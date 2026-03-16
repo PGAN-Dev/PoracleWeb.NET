@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,6 +20,7 @@ interface CleaningItem {
 @Component({
   selector: 'app-cleaning',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatCardModule,
     MatSlideToggleModule,
@@ -132,6 +134,7 @@ interface CleaningItem {
   ],
 })
 export class CleaningComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly cleaningService = inject(CleaningService);
   private readonly dashboardService = inject(DashboardService);
   private readonly snackBar = inject(MatSnackBar);
@@ -203,7 +206,7 @@ export class CleaningComponent implements OnInit {
   }
 
   private loadCounts(): void {
-    this.dashboardService.getCounts().subscribe({
+    this.dashboardService.getCounts().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (counts) => {
         for (const item of this.cleaningItems) {
           const key = item.type === 'monsters' ? 'pokemon' : item.type;
@@ -220,7 +223,7 @@ export class CleaningComponent implements OnInit {
 
   toggleClean(item: CleaningItem, enabled: boolean): void {
     this.toggling.set(true);
-    this.cleaningService.toggleClean(item.type, enabled).subscribe({
+    this.cleaningService.toggleClean(item.type, enabled).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => {
         item.enabled.set(enabled);
         this.toggling.set(false);

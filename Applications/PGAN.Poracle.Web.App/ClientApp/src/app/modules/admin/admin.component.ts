@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -17,7 +18,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { AdminService } from '../../core/services/admin.service';
 import { SettingsService } from '../../core/services/settings.service';
-import { Human, PwebSetting } from '../../core/models';
+import { AdminUser, PwebSetting } from '../../core/models';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
@@ -27,6 +28,7 @@ import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/d
 @Component({
   selector: 'app-admin',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     MatCardModule,
@@ -130,7 +132,7 @@ import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/d
                 <!-- Profile Column -->
                 <ng-container matColumnDef="profileNo">
                   <th mat-header-cell *matHeaderCellDef>Profile</th>
-                  <td mat-cell *matCellDef="let user">{{ user.profileNo || 1 }}</td>
+                  <td mat-cell *matCellDef="let user">{{ user.currentProfileNo || 1 }}</td>
                 </ng-container>
 
                 <!-- Actions Column -->
@@ -414,13 +416,14 @@ import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/d
   ],
 })
 export class AdminComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly adminService = inject(AdminService);
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
   // ─── Users state ───────────────────────────────────
-  readonly users = signal<any[]>([]);
+  readonly users = signal<AdminUser[]>([]);
   readonly usersLoading = signal(true);
   readonly searchTerm = signal('');
   readonly pageIndex = signal(parseInt(sessionStorage.getItem('admin_pageIndex') || '0', 10));
@@ -431,7 +434,7 @@ export class AdminComponent implements OnInit {
     const term = this.searchTerm().toLowerCase().trim();
     if (!term) return this.users();
     return this.users().filter(
-      (u) =>
+      (u: AdminUser) =>
         u.id.toLowerCase().includes(term) ||
         (u.name || '').toLowerCase().includes(term),
     );
@@ -463,7 +466,7 @@ export class AdminComponent implements OnInit {
   // ─── User Management ──────────────────────────────
   loadUsers(): void {
     this.usersLoading.set(true);
-    this.adminService.getUsers().subscribe({
+    this.adminService.getUsers().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (users) => {
         this.users.set(users);
         this.usersLoading.set(false);
@@ -490,14 +493,14 @@ export class AdminComponent implements OnInit {
   loadAvatarsForCurrentPage(): void {
     const page = this.paginatedUsers();
     const discordIds = page
-      .filter((u: any) => u.type?.startsWith('discord') && !this.avatarCache.has(u.id) && !this.avatarFetchPending.has(u.id))
-      .map((u: any) => u.id);
+      .filter((u: AdminUser) => u.type?.startsWith('discord') && !this.avatarCache.has(u.id) && !this.avatarFetchPending.has(u.id))
+      .map((u: AdminUser) => u.id);
 
     if (discordIds.length === 0) return;
 
     for (const id of discordIds) this.avatarFetchPending.add(id);
 
-    this.adminService.fetchAvatars(discordIds).subscribe({
+    this.adminService.fetchAvatars(discordIds).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (avatarMap) => {
         for (const [id, url] of Object.entries(avatarMap)) {
           this.avatarCache.set(id, url);
@@ -505,7 +508,7 @@ export class AdminComponent implements OnInit {
         for (const id of discordIds) this.avatarFetchPending.delete(id);
         // Rebuild users array to trigger change detection
         this.users.update(users => users.map(u =>
-          this.avatarCache.has(u.id) ? { ...u, avatarUrl: this.avatarCache.get(u.id) } : u
+          this.avatarCache.has(u.id) ? { ...u, avatarUrl: this.avatarCache.get(u.id) ?? null } : u
         ));
       },
       error: () => {
@@ -514,12 +517,12 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  toggleUser(user: Human, enable: boolean): void {
+  toggleUser(user: AdminUser, enable: boolean): void {
     const action$ = enable
       ? this.adminService.enableUser(user.id)
       : this.adminService.disableUser(user.id);
 
-    action$.subscribe({
+    action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         this.users.update((users) =>
           users.map((u) => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)),
@@ -538,7 +541,7 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  deleteAlarms(user: Human): void {
+  deleteAlarms(user: AdminUser): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Delete All Alarms',
@@ -569,7 +572,7 @@ export class AdminComponent implements OnInit {
   // ─── Settings Management ──────────────────────────
   loadSettings(): void {
     this.settingsLoading.set(true);
-    this.settingsService.getAll().subscribe({
+    this.settingsService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (settings) => {
         this.settings.set(settings);
         this.settingsLoading.set(false);
@@ -614,7 +617,7 @@ export class AdminComponent implements OnInit {
     if (newValue === undefined) return;
 
     this.settingSaving.set(setting.setting);
-    this.settingsService.update(setting.setting, newValue).subscribe({
+    this.settingsService.update(setting.setting, newValue).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.settingSaving.set(null);
         this.modifiedSettings.update((map) => {
@@ -642,7 +645,7 @@ export class AdminComponent implements OnInit {
     let errors = 0;
 
     for (const [key, value] of entries) {
-      this.settingsService.update(key, value).subscribe({
+      this.settingsService.update(key, value).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           completed++;
           this.modifiedSettings.update((map) => {

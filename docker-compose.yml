@@ -27,6 +27,8 @@ services:
       - Poracle__ApiAddress=${PORACLE_API_ADDRESS}
       - Poracle__ApiSecret=${PORACLE_API_SECRET}
       - Poracle__AdminIds=${PORACLE_ADMIN_IDS}
+      # CORS (comma-separated origins, leave empty to allow all)
+      - Cors__AllowedOrigins__0=${CORS_ORIGIN:-}
       # DTS source path (inside container)
       - DTS_SOURCE_DIR=/poracle-config
     volumes:
@@ -37,3 +39,19 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using PGAN.Poracle.Web.Api.Configuration;
@@ -14,6 +15,7 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/auth")]
+[EnableRateLimiting("auth")]
 public class AuthController : BaseApiController
 {
     private readonly IHumanService _humanService;
@@ -46,24 +48,42 @@ public class AuthController : BaseApiController
     [HttpGet("discord/login")]
     public IActionResult DiscordLogin()
     {
+        // Generate a random state value for CSRF protection
+        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+        Response.Cookies.Append("oauth_state", state, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            MaxAge = TimeSpan.FromMinutes(10)
+        });
+
         // Redirect URI points to the API itself, not the Angular app
         var callbackUri = $"{Request.Scheme}://{Request.Host}/api/auth/discord/callback";
         var redirectUrl = "https://discord.com/api/oauth2/authorize" +
             $"?client_id={_discordSettings.ClientId}" +
             $"&redirect_uri={Uri.EscapeDataString(callbackUri)}" +
             "&response_type=code" +
-            "&scope=identify";
+            "&scope=identify" +
+            $"&state={Uri.EscapeDataString(state)}";
 
         return Ok(new { url = redirectUrl });
     }
 
     [AllowAnonymous]
     [HttpGet("discord/callback")]
-    public async Task<IActionResult> DiscordCallback([FromQuery] string code)
+    public async Task<IActionResult> DiscordCallback([FromQuery] string code, [FromQuery] string? state)
     {
-        // Derive frontend URL from the request host (same hostname, port 4200)
-        var host = Request.Host.Host;
-        var frontendUrl = $"http://{host}:4200";
+        // Derive frontend URL from the request
+        var frontendUrl = GetFrontendUrl();
+
+        // Validate OAuth state parameter for CSRF protection
+        var savedState = Request.Cookies["oauth_state"];
+        Response.Cookies.Delete("oauth_state");
+
+        if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(savedState) || state != savedState)
+            return BadRequest(new { error = "Invalid OAuth state. Possible CSRF attack." });
 
         if (string.IsNullOrEmpty(code))
             return Redirect($"{frontendUrl}/login?error=missing_code");
@@ -126,8 +146,8 @@ public class AuthController : BaseApiController
 
         var jwt = GenerateJwtToken(userInfo);
 
-        // Redirect browser to Angular with token in query param
-        return Redirect($"{frontendUrl}/auth/discord/callback?token={jwt}");
+        // Redirect browser to Angular with token in URL fragment to avoid server-side leakage
+        return Redirect($"{frontendUrl}/auth/discord/callback#token={jwt}");
     }
 
     [AllowAnonymous]
@@ -264,6 +284,22 @@ public class AuthController : BaseApiController
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private string GetFrontendUrl()
+    {
+        // Prefer the Origin header if available (set by browsers on navigation requests from the SPA)
+        var origin = Request.Headers.Origin.FirstOrDefault();
+        if (!string.IsNullOrEmpty(origin))
+            return origin.TrimEnd('/');
+
+        // Fall back to the Referer header
+        var referer = Request.Headers.Referer.FirstOrDefault();
+        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+            return $"{refererUri.Scheme}://{refererUri.Authority}";
+
+        // Default: same scheme/host with dev-mode port 4200
+        return $"{Request.Scheme}://{Request.Host.Host}:4200";
     }
 
     private async Task<bool> IsUserAdminAsync(string userId)

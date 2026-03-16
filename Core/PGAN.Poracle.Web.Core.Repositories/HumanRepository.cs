@@ -1,3 +1,4 @@
+using System.Reflection;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using PGAN.Poracle.Web.Core.Abstractions.Repositories;
@@ -11,6 +12,12 @@ public class HumanRepository : IHumanRepository
 {
     private readonly PoracleContext _context;
     private readonly IMapper _mapper;
+
+    // Cached reflection results for EnsureNotNullDefaults
+    private static readonly PropertyInfo[] WritableStringProperties =
+        typeof(HumanEntity).GetProperties()
+            .Where(p => p.PropertyType == typeof(string) && p.CanWrite)
+            .ToArray();
 
     public HumanRepository(PoracleContext context, IMapper mapper)
     {
@@ -40,6 +47,7 @@ public class HumanRepository : IHumanRepository
     public async Task<Human> CreateAsync(Human human)
     {
         var entity = _mapper.Map<HumanEntity>(human);
+        EnsureNotNullDefaults(entity);
         _context.Humans.Add(entity);
         await _context.SaveChangesAsync();
         return _mapper.Map<Human>(entity);
@@ -51,6 +59,7 @@ public class HumanRepository : IHumanRepository
             ?? throw new InvalidOperationException($"Human with id {human.Id} not found.");
 
         _mapper.Map(human, entity);
+        EnsureNotNullDefaults(entity);
         await _context.SaveChangesAsync();
         return _mapper.Map<Human>(entity);
     }
@@ -72,5 +81,16 @@ public class HumanRepository : IHumanRepository
         count += await _context.Nests.Where(n => n.Id == userId).ExecuteDeleteAsync();
         count += await _context.Gyms.Where(g => g.Id == userId).ExecuteDeleteAsync();
         return count;
+    }
+
+    private static void EnsureNotNullDefaults(HumanEntity entity)
+    {
+        foreach (var prop in WritableStringProperties)
+        {
+            if (prop.GetValue(entity) == null)
+            {
+                prop.SetValue(entity, string.Empty);
+            }
+        }
     }
 }

@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -40,6 +41,7 @@ interface AreaGroup {
 @Component({
   selector: 'app-area-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     MatCardModule,
@@ -601,6 +603,7 @@ interface AreaGroup {
   ],
 })
 export class AreaListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly areaService = inject(AreaService);
   private readonly locationService = inject(LocationService);
   private readonly dialog = inject(MatDialog);
@@ -672,7 +675,7 @@ export class AreaListComponent implements OnInit {
       if (loaded >= 3) this.loading.set(false);
     };
 
-    this.areaService.getSelected().subscribe({
+    this.areaService.getSelected().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (areas) => {
         this.selectedAreas.set(areas);
         check();
@@ -680,7 +683,7 @@ export class AreaListComponent implements OnInit {
       error: () => check(),
     });
 
-    this.areaService.getAvailable().subscribe({
+    this.areaService.getAvailable().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (areas) => {
         this.availableAreas.set(areas.filter((a) => a.userSelectable !== false));
         check();
@@ -688,17 +691,21 @@ export class AreaListComponent implements OnInit {
       error: () => check(),
     });
 
-    this.locationService.getLocation().subscribe({
+    this.locationService.getLocation().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (loc) => {
         this.location.set(loc);
         check();
         if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
-          this.locationService.reverseGeocode(loc.latitude, loc.longitude).subscribe((result) => {
+          this.locationService.reverseGeocode(loc.latitude, loc.longitude).pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe((result) => {
             if (result?.display_name) {
               this.locationAddress.set(result.display_name);
             }
           });
-          this.locationService.getStaticMapUrl(loc.latitude, loc.longitude).subscribe((result) => {
+          this.locationService.getStaticMapUrl(loc.latitude, loc.longitude).pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe((result) => {
             if (result?.url) this.locationMapUrl.set(result.url);
           });
         }
@@ -707,7 +714,7 @@ export class AreaListComponent implements OnInit {
     });
 
     // Load geofence data async (non-blocking)
-    this.areaService.getGeofencePolygons().subscribe({
+    this.areaService.getGeofencePolygons().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => this.rawGeofenceData.set(data),
       error: () => {},
     });
@@ -748,7 +755,7 @@ export class AreaListComponent implements OnInit {
       for (const area of batch) {
         if (area.mapUrl !== undefined) continue; // already loaded or loading
         area.mapLoading = true;
-        this.areaService.getMapUrl(area.name).subscribe(url => {
+        this.areaService.getMapUrl(area.name).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(url => {
           area.mapUrl = url;
           area.mapLoading = false;
         });
@@ -774,7 +781,7 @@ export class AreaListComponent implements OnInit {
       .map((a) => a.name);
 
     this.saving.set(true);
-    this.areaService.update(selected).subscribe({
+    this.areaService.update(selected).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.selectedAreas.set(selected);
         this.saving.set(false);
@@ -886,10 +893,14 @@ export class AreaListComponent implements OnInit {
         this.locationAddress.set('');
         this.locationMapUrl.set('');
         if (result.latitude !== 0 || result.longitude !== 0) {
-          this.locationService.reverseGeocode(result.latitude, result.longitude).subscribe((geo) => {
+          this.locationService.reverseGeocode(result.latitude, result.longitude).pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe((geo) => {
             if (geo?.display_name) this.locationAddress.set(geo.display_name);
           });
-          this.locationService.getStaticMapUrl(result.latitude, result.longitude).subscribe((map) => {
+          this.locationService.getStaticMapUrl(result.latitude, result.longitude).pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe((map) => {
             if (map?.url) this.locationMapUrl.set(map.url);
           });
         }

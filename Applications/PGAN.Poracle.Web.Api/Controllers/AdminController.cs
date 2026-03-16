@@ -61,7 +61,7 @@ public class AdminController : BaseApiController
         {
             // Try cache first, fetch on-demand for new users
             var url = Services.AvatarCacheService.GetAvatar(id)
-                ?? await Services.AvatarCacheService.FetchSingleAsync(id, _discordSettings.BotToken);
+                ?? await Services.AvatarCacheService.FetchSingleAsync(id, _discordSettings.BotToken, _httpClientFactory, _logger);
             if (url != null) result[id] = url;
         }
         return Ok(result);
@@ -199,7 +199,10 @@ public class AdminController : BaseApiController
 
                     await Task.Delay(80);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch Discord avatar for user {UserId}", userId);
+                }
             }
         }
         catch (Exception ex)

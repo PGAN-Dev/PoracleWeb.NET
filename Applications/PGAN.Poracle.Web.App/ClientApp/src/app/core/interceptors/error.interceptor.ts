@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { HttpInterceptorFn } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 
@@ -12,10 +13,17 @@ function shouldSilence(url: string): boolean {
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
+  const router = inject(Router);
 
   return next(req).pipe(
     catchError((error) => {
       const silent = shouldSilence(req.url);
+
+      // Always clear token and redirect on 401, even for silent endpoints
+      if (error.status === 401) {
+        localStorage.removeItem('poracle_token');
+        router.navigate(['/login']);
+      }
 
       // Don't show toasts or redirect for silent endpoints
       if (!silent) {

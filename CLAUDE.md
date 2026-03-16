@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidelines for Claude Code when working on the PGAN.Poracle.Web project.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -36,7 +36,7 @@ PGAN.Poracle.Web.slnx
 |   +-- Web.Api/                 ASP.NET Core host
 |   |   +-- Controllers/         20 API controllers (REST, all under /api/)
 |   |   +-- Configuration/       DI registration (ServiceCollectionExtensions)
-|   |   +-- Services/            AvatarCacheService (IHostedService)
+|   |   +-- Services/            Background services: AvatarCacheService, DtsCacheService
 |   +-- Web.App/
 |       +-- ClientApp/           Angular 21 SPA
 |           +-- src/app/
@@ -73,8 +73,10 @@ PGAN.Poracle.Web.slnx
 - `humans.current_profile_no` (not `profile_no`) tracks the active profile.
 - All alarm tables reference `profile_no` to filter by active profile.
 
-### Dashboard
+### Service Lifetimes
+- Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
 - `DashboardService` runs sequential DB queries (not `Task.WhenAll`) because it uses a single scoped `DbContext` instance which is not thread-safe.
+- Swagger/OpenAPI is available in the development environment.
 
 ### Angular Patterns
 - All components are **standalone** (no NgModules).
@@ -111,21 +113,32 @@ The `ScannerDb` connection string is optional. If not configured, `IScannerServi
 ## Build & Run
 
 ```bash
-# Build entire solution
-dotnet build    # from solution root (E:\PGAN\pogogit\PGAN.Poracle.Web\)
+# Build entire solution (from solution root)
+dotnet build
 
-# Run API (starts on http://localhost:5145)
+# Run API (starts on http://localhost:5048)
 cd Applications/PGAN.Poracle.Web.Api
 dotnet run
 
 # Run Angular dev server (starts on http://localhost:4200)
 cd Applications/PGAN.Poracle.Web.App/ClientApp
 npm install
-npx ng serve --host 0.0.0.0
+npm start              # alias for ng serve
+npm run watch          # watch mode for development
+npm run build          # production build
 
-# Docker build
+# Run frontend tests (Vitest via Angular CLI builder)
+cd Applications/PGAN.Poracle.Web.App/ClientApp
+npm test
+
+# Docker (maps host:8082 → container:8080)
 docker compose up -d --build
 ```
+
+## Code Style
+
+- **Prettier**: 100-char print width, single quotes, configured in `.prettierrc`
+- **EditorConfig**: 2-space indent, UTF-8, in `ClientApp/.editorconfig`
 
 ## File Locations
 

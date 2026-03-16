@@ -3,7 +3,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = localStorage.getItem('poracle_token');
 
-  if (token) {
+  if (token?.trim()) {
     req = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`,

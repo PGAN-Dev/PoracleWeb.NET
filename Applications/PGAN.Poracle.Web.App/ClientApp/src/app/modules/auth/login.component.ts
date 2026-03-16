@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   inject,
   signal,
   OnInit,
@@ -8,6 +9,7 @@ import {
   ViewChild,
   NgZone,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -306,6 +308,7 @@ declare global {
   ],
 })
 export class LoginComponent implements OnInit, AfterViewInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly ngZone = inject(NgZone);
@@ -326,7 +329,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
     }
 
     // Check if Telegram auth is enabled
-    this.auth.getTelegramConfig().subscribe({
+    this.auth.getTelegramConfig().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (config) => {
         this.telegramEnabled.set(config.enabled);
         this.telegramBotUsername = config.botUsername;
@@ -348,11 +351,8 @@ export class LoginComponent implements OnInit, AfterViewInit {
   loginWithDiscord(): void {
     this.loading.set(true);
     this.error.set(null);
-    // Redirect directly to Discord - the API callback URI handles the rest
-    const apiHost = `http://${window.location.hostname}:5048`;
-    const clientId = '343127029857648640';
-    const redirectUri = encodeURIComponent(`${apiHost}/api/auth/discord/callback`);
-    window.location.href = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify`;
+    // Delegate to AuthService which fetches the OAuth URL from the API
+    this.auth.loginWithDiscord();
   }
 
   private loadTelegramWidget(): void {
@@ -378,7 +378,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.auth.loginWithTelegram(telegramData).subscribe({
+    this.auth.loginWithTelegram(telegramData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: (err) => {
         this.loading.set(false);

@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +21,7 @@ import {
 @Component({
   selector: 'app-profile-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatCardModule,
     MatButtonModule,
@@ -236,6 +238,7 @@ import {
   ],
 })
 export class ProfileListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly profileService = inject(ProfileService);
   private readonly authService = inject(AuthService);
   private readonly dialog = inject(MatDialog);
@@ -251,7 +254,7 @@ export class ProfileListComponent implements OnInit {
 
   loadProfiles(): void {
     this.loading.set(true);
-    this.profileService.getAll().subscribe({
+    this.profileService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (profiles) => {
         this.profiles.set(profiles);
         this.loading.set(false);
@@ -284,7 +287,7 @@ export class ProfileListComponent implements OnInit {
 
   switchProfile(profile: Profile): void {
     this.switching.set(true);
-    this.profileService.switchProfile(profile.profileNo).subscribe({
+    this.profileService.switchProfile(profile.profileNo).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.switching.set(false);
         this.snackBar.open(`Switched to profile "${profile.name}"`, 'OK', {

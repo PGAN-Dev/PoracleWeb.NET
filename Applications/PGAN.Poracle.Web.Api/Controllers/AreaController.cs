@@ -9,11 +9,13 @@ public class AreaController : BaseApiController
 {
     private readonly IHumanService _humanService;
     private readonly IPoracleApiProxy _poracleApiProxy;
+    private readonly ILogger<AreaController> _logger;
 
-    public AreaController(IHumanService humanService, IPoracleApiProxy poracleApiProxy)
+    public AreaController(IHumanService humanService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger)
     {
         _humanService = humanService;
         _poracleApiProxy = poracleApiProxy;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -31,8 +33,9 @@ public class AreaController : BaseApiController
             {
                 areas = JsonSerializer.Deserialize<string[]>(human.Area) ?? [];
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Failed to parse area JSON for user {UserId}, falling back to comma-separated", UserId);
                 // Fallback: treat as comma-separated
                 areas = human.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
@@ -50,9 +53,9 @@ public class AreaController : BaseApiController
             if (areasJson != null)
                 return Content(areasJson, "application/json");
         }
-        catch
+        catch (Exception ex)
         {
-            // Poracle API unreachable
+            _logger.LogWarning(ex, "Failed to fetch available areas from Poracle API for user {UserId}", UserId);
         }
 
         return Ok(Array.Empty<object>());
@@ -83,7 +86,10 @@ public class AreaController : BaseApiController
             if (json != null)
                 return Content(json, "application/json");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch geofence data from Poracle API");
+        }
 
         return Ok(new { status = "ok", geofence = Array.Empty<object>() });
     }
@@ -97,7 +103,10 @@ public class AreaController : BaseApiController
             if (mapUrl != null)
                 return Ok(new { url = mapUrl });
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch map URL for area {AreaName} from Poracle API", areaName);
+        }
 
         return NotFound();
     }

@@ -1,9 +1,30 @@
 using System.Text;
+using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using PGAN.Poracle.Web.Api.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Startup config validation — fail fast if critical settings are missing
+var poracleDb = builder.Configuration.GetConnectionString("PoracleDb");
+if (string.IsNullOrWhiteSpace(poracleDb))
+    throw new InvalidOperationException("Configuration 'ConnectionStrings:PoracleDb' is required but was not provided.");
+
+var jwtSecret = builder.Configuration["Jwt:Secret"];
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+    throw new InvalidOperationException("Configuration 'Jwt:Secret' is required and must be at least 32 characters.");
+
+var discordClientId = builder.Configuration["Discord:ClientId"];
+if (string.IsNullOrWhiteSpace(discordClientId))
+    throw new InvalidOperationException("Configuration 'Discord:ClientId' is required but was not provided.");
+
+var discordClientSecret = builder.Configuration["Discord:ClientSecret"];
+if (string.IsNullOrWhiteSpace(discordClientSecret))
+    throw new InvalidOperationException("Configuration 'Discord:ClientSecret' is required but was not provided.");
 
 // Add controllers
 builder.Services.AddControllers();
@@ -38,13 +59,42 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS for Angular dev server
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromSeconds(60);
+        limiterOptions.QueueLimit = 0;
+        limiterOptions.AutoReplenishment = true;
+    });
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            JsonSerializer.Serialize(new { error = "Too many requests. Please try again later." }),
+            cancellationToken);
+    };
+});
+
+// CORS
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.SetIsOriginAllowed(_ => true)
-              .AllowAnyHeader()
+        if (allowedOrigins is { Length: > 0 })
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+        else
+        {
+            policy.SetIsOriginAllowed(_ => true);
+        }
+
+        policy.AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
@@ -55,6 +105,42 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// Global exception handling
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("GlobalExceptionHandler");
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
+        if (exceptionFeature is not null)
+        {
+            logger.LogError(exceptionFeature.Error, "Unhandled exception occurred.");
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(
+            JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
+    });
+});
+
+// Security headers
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "DENY";
+        headers["X-XSS-Protection"] = "0";
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'";
+        return Task.CompletedTask;
+    });
+    await next();
+});
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -62,6 +148,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

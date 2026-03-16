@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +24,7 @@ import {
 @Component({
   selector: 'app-pokemon-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatCardModule,
     MatButtonModule,
@@ -427,6 +429,7 @@ import {
   ],
 })
 export class PokemonListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly monsterService = inject(MonsterService);
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
@@ -437,13 +440,13 @@ export class PokemonListComponent implements OnInit {
 
   ngOnInit(): void {
     // Ensure masterdata is loaded
-    this.masterData.loadData().subscribe();
+    this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadMonsters();
   }
 
   loadMonsters(): void {
     this.loading.set(true);
-    this.monsterService.getAll().subscribe({
+    this.monsterService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (monsters) => {
         this.monsters.set(monsters);
         this.loading.set(false);

@@ -10,4 +10,5 @@ public interface IBaseRepository<TModel> where TModel : class
     Task<int> DeleteAllByUserAsync(string userId, int profileNo);
     Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
     Task<int> CountByUserAsync(string userId, int profileNo);
+    Task<int> BulkUpdateCleanAsync(string userId, int profileNo, int clean);
 }

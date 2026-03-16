@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using System.Reflection;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using PGAN.Poracle.Web.Core.Abstractions.Repositories;
@@ -12,6 +14,24 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
 {
     protected readonly PoracleContext Context;
     protected readonly IMapper Mapper;
+
+    // Cached reflection results for EnsureNotNullDefaults
+    private static readonly PropertyInfo[] WritableStringProperties =
+        typeof(TEntity).GetProperties()
+            .Where(p => p.PropertyType == typeof(string) && p.CanWrite)
+            .ToArray();
+
+    // Cached Uid property for GetUidFromModel
+    private static readonly PropertyInfo? UidProperty =
+        typeof(TModel).GetProperty("Uid");
+
+    // Cached Distance property for SetDistance
+    private static readonly PropertyInfo? DistanceProperty =
+        typeof(TEntity).GetProperty("Distance");
+
+    // Cached Clean property for SetClean
+    private static readonly PropertyInfo? CleanProperty =
+        typeof(TEntity).GetProperty("Clean");
 
     protected BaseRepository(PoracleContext context, IMapper mapper)
     {
@@ -33,6 +53,7 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
     public async Task<IEnumerable<TModel>> GetByUserAsync(string userId, int profileNo)
     {
         var entities = await DbSet
+            .AsNoTracking()
             .Where(UserProfileFilter(userId, profileNo))
             .ToListAsync();
 
@@ -42,6 +63,7 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
     public async Task<TModel?> GetByUidAsync(int uid)
     {
         var entity = await DbSet
+            .AsNoTracking()
             .FirstOrDefaultAsync(UidFilter(uid));
 
         return entity is null ? null : Mapper.Map<TModel>(entity);
@@ -59,14 +81,11 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
 
     private static void EnsureNotNullDefaults(TEntity entity)
     {
-        foreach (var prop in typeof(TEntity).GetProperties())
+        foreach (var prop in WritableStringProperties)
         {
-            if (prop.PropertyType == typeof(string) && prop.CanWrite)
+            if (prop.GetValue(entity) == null)
             {
-                if (prop.GetValue(entity) == null)
-                {
-                    prop.SetValue(entity, string.Empty);
-                }
+                prop.SetValue(entity, string.Empty);
             }
         }
     }
@@ -121,6 +140,21 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
         return entities.Count;
     }
 
+    public async Task<int> BulkUpdateCleanAsync(string userId, int profileNo, int clean)
+    {
+        var entities = await DbSet
+            .Where(UserProfileFilter(userId, profileNo))
+            .ToListAsync();
+
+        foreach (var entity in entities)
+        {
+            SetClean(entity, clean);
+        }
+
+        await Context.SaveChangesAsync();
+        return entities.Count;
+    }
+
     public async Task<int> CountByUserAsync(string userId, int profileNo)
     {
         return await DbSet
@@ -129,14 +163,18 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
 
     private int GetUidFromModel(TModel model)
     {
-        var property = typeof(TModel).GetProperty("Uid")
+        var property = UidProperty
             ?? throw new InvalidOperationException($"Model type {typeof(TModel).Name} does not have a Uid property.");
         return (int)(property.GetValue(model) ?? 0);
     }
 
     private static void SetDistance(TEntity entity, int distance)
     {
-        var property = typeof(TEntity).GetProperty("Distance");
-        property?.SetValue(entity, distance);
+        DistanceProperty?.SetValue(entity, distance);
+    }
+
+    private static void SetClean(TEntity entity, int clean)
+    {
+        CleanProperty?.SetValue(entity, clean);
     }
 }

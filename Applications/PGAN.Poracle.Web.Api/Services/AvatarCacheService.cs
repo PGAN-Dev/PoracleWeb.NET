@@ -10,6 +10,7 @@ public class AvatarCacheService : BackgroundService
 {
     private readonly IServiceProvider _services;
     private readonly DiscordSettings _discord;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AvatarCacheService> _logger;
 
     private static readonly ConcurrentDictionary<string, string> Avatars = new();
@@ -21,10 +22,12 @@ public class AvatarCacheService : BackgroundService
     public AvatarCacheService(
         IServiceProvider services,
         IOptions<DiscordSettings> discord,
+        IHttpClientFactory httpClientFactory,
         ILogger<AvatarCacheService> logger)
     {
         _services = services;
         _discord = discord.Value;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -34,14 +37,14 @@ public class AvatarCacheService : BackgroundService
     public static bool IsReady => _initialLoadComplete;
 
     /// <summary>Fetch a single user's avatar on demand (for new users).</summary>
-    public static async Task<string?> FetchSingleAsync(string userId, string botToken)
+    public static async Task<string?> FetchSingleAsync(string userId, string botToken, IHttpClientFactory httpClientFactory, ILogger? logger = null)
     {
         if (Avatars.TryGetValue(userId, out var existing)) return existing;
         if (string.IsNullOrEmpty(botToken)) return null;
 
         try
         {
-            using var client = new HttpClient();
+            using var client = httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Add("Authorization", $"Bot {botToken}");
             client.DefaultRequestHeaders.Add("User-Agent", "DiscordBot (https://pgan.me, 1.0)");
             client.Timeout = TimeSpan.FromSeconds(5);
@@ -63,7 +66,10 @@ public class AvatarCacheService : BackgroundService
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to fetch avatar for Discord user {UserId}", userId);
+        }
         return null;
     }
 
@@ -122,7 +128,7 @@ public class AvatarCacheService : BackgroundService
 
         _logger.LogInformation("Fetching {Count} new Discord avatars...", discordIds.Count);
 
-        using var client = new HttpClient();
+        using var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Add("Authorization", $"Bot {_discord.BotToken}");
         client.DefaultRequestHeaders.Add("User-Agent", "DiscordBot (https://pgan.me, 1.0)");
         client.Timeout = TimeSpan.FromSeconds(10);
@@ -172,7 +178,10 @@ public class AvatarCacheService : BackgroundService
                 }
             }
             catch (TaskCanceledException) { break; }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch avatar for Discord user {UserId}", userId);
+            }
         }
 
         _logger.LogInformation("Avatar fetch done: {Fetched} new, {Total} total.", fetched, Avatars.Count);

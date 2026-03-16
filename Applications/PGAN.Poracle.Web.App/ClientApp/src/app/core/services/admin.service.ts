@@ -2,15 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ConfigService } from './config.service';
-import { Human } from '../models';
+import { AdminUser, Human } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
   private readonly config = inject(ConfigService);
 
-  getUsers(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.config.apiHost}/api/admin/users`);
+  getUsers(): Observable<AdminUser[]> {
+    return this.http.get<AdminUser[]>(`${this.config.apiHost}/api/admin/users`);
   }
 
   getUser(userId: string): Observable<Human> {

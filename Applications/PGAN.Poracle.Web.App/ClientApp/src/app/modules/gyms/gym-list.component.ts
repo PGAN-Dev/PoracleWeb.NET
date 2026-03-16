@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,7 +15,7 @@ import { GymEditDialogComponent } from './gym-edit-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: 'app-gym-list', standalone: true,
+  selector: 'app-gym-list', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, MatDialogModule, MatTooltipModule, MatSnackBarModule, MatProgressSpinnerModule],
   template: `
     <div class="page-header">
@@ -98,12 +99,13 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
   `],
 })
 export class GymListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly gymService = inject(GymService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   readonly gyms = signal<Gym[]>([]); readonly loading = signal(true);
   ngOnInit(): void { this.loadGyms(); }
-  loadGyms(): void { this.loading.set(true); this.gymService.getAll().subscribe({ next: g => { this.gyms.set(g); this.loading.set(false); }, error: () => this.loading.set(false) }); }
+  loadGyms(): void { this.loading.set(true); this.gymService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: g => { this.gyms.set(g); this.loading.set(false); }, error: () => this.loading.set(false) }); }
   getTeamName(team: number): string { switch(team) { case 0: return 'Neutral'; case 1: return 'Mystic (Blue)'; case 2: return 'Valor (Red)'; case 3: return 'Instinct (Yellow)'; default: return `Team ${team}`; } }
   getTeamColor(team: number): string { switch(team) { case 0: return '#9E9E9E'; case 1: return '#2196F3'; case 2: return '#F44336'; case 3: return '#FFC107'; default: return '#9E9E9E'; } }
   formatDistance(meters: number): string { return meters >= 1000 ? `${(meters/1000).toFixed(1)} km` : `${meters} m`; }

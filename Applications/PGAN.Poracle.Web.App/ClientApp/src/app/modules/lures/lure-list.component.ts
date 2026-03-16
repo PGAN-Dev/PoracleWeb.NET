@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,7 +15,7 @@ import { LureEditDialogComponent } from './lure-edit-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: 'app-lure-list', standalone: true,
+  selector: 'app-lure-list', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, MatDialogModule, MatTooltipModule, MatSnackBarModule, MatProgressSpinnerModule],
   template: `
     <div class="page-header">
@@ -94,13 +95,14 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
   `],
 })
 export class LureListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly lureService = inject(LureService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   readonly lures = signal<Lure[]>([]); readonly loading = signal(true);
 
   ngOnInit(): void { this.loadLures(); }
-  loadLures(): void { this.loading.set(true); this.lureService.getAll().subscribe({ next: l => { this.lures.set(l); this.loading.set(false); }, error: () => this.loading.set(false) }); }
+  loadLures(): void { this.loading.set(true); this.lureService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: l => { this.lures.set(l); this.loading.set(false); }, error: () => this.loading.set(false) }); }
   getLureName(id: number): string { switch(id) { case 501: return 'Normal'; case 502: return 'Glacial'; case 503: return 'Mossy'; case 504: return 'Magnetic'; case 505: return 'Rainy'; case 506: return 'Golden'; default: return `Lure #${id}`; } }
   getLureColor(id: number): string { switch(id) { case 501: return '#FF9800'; case 502: return '#03A9F4'; case 503: return '#4CAF50'; case 504: return '#9E9E9E'; case 505: return '#2196F3'; case 506: return '#FFC107'; default: return '#9E9E9E'; } }
   formatDistance(meters: number): string { return meters >= 1000 ? `${(meters/1000).toFixed(1)} km` : `${meters} m`; }

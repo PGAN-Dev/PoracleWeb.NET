@@ -183,6 +183,17 @@ export interface Human {
   communityMembership: string | null;
 }
 
+/** Shape returned by GET /api/admin/users (anonymous projection from AdminController). */
+export interface AdminUser {
+  id: string;
+  name: string | null;
+  type: string | null;
+  enabled: number;
+  currentProfileNo: number;
+  language: string | null;
+  avatarUrl: string | null;
+}
+
 // ─── Profile ───────────────────────────────────────────────────────────────────
 
 export interface Profile {

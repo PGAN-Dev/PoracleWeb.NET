@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +21,7 @@ import {
 @Component({
   selector: 'app-invasion-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatCardModule, MatButtonModule, MatIconModule, MatMenuModule,
     MatDialogModule, MatTooltipModule, MatSnackBarModule, MatProgressSpinnerModule,
@@ -118,6 +120,7 @@ import {
   `],
 })
 export class InvasionListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
@@ -125,11 +128,11 @@ export class InvasionListComponent implements OnInit {
   readonly invasions = signal<Invasion[]>([]);
   readonly loading = signal(true);
 
-  ngOnInit(): void { this.masterData.loadData().subscribe(); this.loadInvasions(); }
+  ngOnInit(): void { this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(); this.loadInvasions(); }
 
   loadInvasions(): void {
     this.loading.set(true);
-    this.invasionService.getAll().subscribe({ next: (inv) => { this.invasions.set(inv); this.loading.set(false); }, error: () => this.loading.set(false) });
+    this.invasionService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: (inv) => { this.invasions.set(inv); this.loading.set(false); }, error: () => this.loading.set(false) });
   }
 
   formatDistance(meters: number): string { return meters >= 1000 ? `${(meters/1000).toFixed(1)} km` : `${meters} m`; }

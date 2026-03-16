@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,7 +16,7 @@ import { NestEditDialogComponent } from './nest-edit-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
-  selector: 'app-nest-list', standalone: true,
+  selector: 'app-nest-list', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, MatDialogModule, MatTooltipModule, MatSnackBarModule, MatProgressSpinnerModule],
   template: `
     <div class="page-header">
@@ -93,13 +94,14 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
   `],
 })
 export class NestListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly nestService = inject(NestService);
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   readonly nests = signal<Nest[]>([]); readonly loading = signal(true);
-  ngOnInit(): void { this.masterData.loadData().subscribe(); this.loadNests(); }
-  loadNests(): void { this.loading.set(true); this.nestService.getAll().subscribe({ next: n => { this.nests.set(n); this.loading.set(false); }, error: () => this.loading.set(false) }); }
+  ngOnInit(): void { this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(); this.loadNests(); }
+  loadNests(): void { this.loading.set(true); this.nestService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: n => { this.nests.set(n); this.loading.set(false); }, error: () => this.loading.set(false) }); }
   getPokemonName(id: number): string { return this.masterData.getPokemonName(id); }
   getPokemonImage(pokemonId: number): string { return pokemonId === 0 ? '' : `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${pokemonId}.png`; }
   onImageError(event: Event): void { (event.target as HTMLImageElement).style.display = 'none'; }

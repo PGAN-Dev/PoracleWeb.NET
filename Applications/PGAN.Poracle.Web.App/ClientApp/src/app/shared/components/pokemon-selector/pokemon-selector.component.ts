@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   inject,
   signal,
   computed,
@@ -7,8 +8,9 @@ import {
   output,
   OnInit,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -98,6 +100,7 @@ import { MasterDataService, PokemonEntry } from '../../../core/services/masterda
   ],
 })
 export class PokemonSelectorComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly masterData = inject(MasterDataService);
 
   multi = input(false);
@@ -123,18 +126,18 @@ export class PokemonSelectorComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.masterData.getAllPokemon$().subscribe((pokemon) => {
+    this.masterData.getAllPokemon$().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((pokemon) => {
       this.allPokemon.set(pokemon);
     });
 
-    this.searchControl.valueChanges.subscribe((value) => {
+    this.searchControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => {
       if (typeof value === 'string') {
         this.searchText.set(value);
       }
     });
   }
 
-  onSelected(event: any): void {
+  onSelected(event: MatAutocompleteSelectedEvent): void {
     const pokemon: PokemonEntry = event.option.value;
     if (this.multi()) {
       this.selectedPokemon.update((list) => [...list, pokemon]);

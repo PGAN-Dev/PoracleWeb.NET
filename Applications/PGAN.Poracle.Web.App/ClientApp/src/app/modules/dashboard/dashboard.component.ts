@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
+import { switchMap, filter, EMPTY } from 'rxjs';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AreaService } from '../../core/services/area.service';
 import { LocationService } from '../../core/services/location.service';
@@ -24,6 +26,7 @@ interface DashboardCard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatCardModule, MatIconModule, MatButtonModule, MatTooltipModule, MatChipsModule, MatDividerModule],
   template: `
     <div class="page-header">
@@ -325,6 +328,7 @@ interface DashboardCard {
   ],
 })
 export class DashboardComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dashboardService = inject(DashboardService);
   private readonly areaService = inject(AreaService);
   private readonly locationService = inject(LocationService);
@@ -359,22 +363,33 @@ export class DashboardComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.dashboardService.getCounts().subscribe(c => this.counts.set(c));
-    this.areaService.getSelected().subscribe(a => this.selectedAreas.set(a));
-    this.locationService.getLocation().subscribe({
-      next: (loc) => {
+    this.dashboardService.getCounts().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(c => this.counts.set(c));
+
+    this.areaService.getSelected().pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(a => this.selectedAreas.set(a));
+
+    this.locationService.getLocation().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap((loc) => {
         this.location.set(loc);
         if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
-          this.locationService.reverseGeocode(loc.latitude, loc.longitude).subscribe((result) => {
+          this.locationService.reverseGeocode(loc.latitude, loc.longitude).pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe((result) => {
             if (result?.display_name) this.locationAddress.set(result.display_name);
           });
-          this.locationService.getStaticMapUrl(loc.latitude, loc.longitude).subscribe((result) => {
+          this.locationService.getStaticMapUrl(loc.latitude, loc.longitude).pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe((result) => {
             if (result?.url) this.locationMapUrl.set(result.url);
           });
         }
-      },
-      error: () => {},
-    });
+        return EMPTY;
+      }),
+    ).subscribe();
   }
 
   navigate(route: string): void {

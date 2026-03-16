@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,6 +25,7 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
 @Component({
   selector: 'app-raid-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatCardModule,
     MatButtonModule,
@@ -409,6 +411,7 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
   ],
 })
 export class RaidListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly raidService = inject(RaidService);
   private readonly eggService = inject(EggService);
   private readonly masterData = inject(MasterDataService);
@@ -420,13 +423,13 @@ export class RaidListComponent implements OnInit {
   readonly loading = signal(true);
 
   ngOnInit(): void {
-    this.masterData.loadData().subscribe();
+    this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadData();
   }
 
   loadData(): void {
     this.loading.set(true);
-    forkJoin([this.raidService.getAll(), this.eggService.getAll()]).subscribe({
+    forkJoin([this.raidService.getAll(), this.eggService.getAll()]).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ([raids, eggs]) => {
         this.raids.set(raids);
         this.eggs.set(eggs);

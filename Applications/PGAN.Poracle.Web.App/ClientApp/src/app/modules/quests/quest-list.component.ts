@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,6 +22,7 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
 @Component({
   selector: 'app-quest-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatCardModule,
     MatButtonModule,
@@ -294,6 +296,7 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
   ],
 })
 export class QuestListComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly questService = inject(QuestService);
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
@@ -303,13 +306,13 @@ export class QuestListComponent implements OnInit {
   readonly loading = signal(true);
 
   ngOnInit(): void {
-    this.masterData.loadData().subscribe();
+    this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadQuests();
   }
 
   loadQuests(): void {
     this.loading.set(true);
-    this.questService.getAll().subscribe({
+    this.questService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (quests) => {
         this.quests.set(quests);
         this.loading.set(false);
