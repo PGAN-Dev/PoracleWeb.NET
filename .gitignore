@@ -24,7 +24,7 @@ appsettings.Development.json
 dts-cache.json
 dts-custom.json
 avatar-cache.json
-package-lock.json
+# package-lock.json is committed for reproducible Docker builds
 *.http
 *.mjs
 screenshot-*.png
