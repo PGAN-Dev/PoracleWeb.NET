@@ -27,12 +27,11 @@ RUN dotnet publish Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj
 # Stage 3: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
 WORKDIR /app
-RUN groupadd --system --gid 1000 appgroup && \
-    useradd --system --uid 1000 --gid appgroup --no-create-home appuser
+RUN useradd --system --no-create-home appuser
 COPY --from=dotnet-build /app/publish .
 COPY --from=angular-build /app/angular/dist/ClientApp/browser wwwroot/
 
-RUN mkdir -p /app/data && chown appuser:appgroup /app/data
+RUN mkdir -p /app/data && chown appuser /app/data
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
