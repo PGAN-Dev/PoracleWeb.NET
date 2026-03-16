@@ -9,7 +9,7 @@ RUN npx ng build --configuration production
 # Stage 2: Build .NET API
 FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS dotnet-build
 WORKDIR /src
-COPY *.sln ./
+COPY PGAN.Poracle.Web.slnx ./
 COPY Core/ Core/
 COPY Data/ Data/
 COPY Applications/PGAN.Poracle.Web.Api/ Applications/PGAN.Poracle.Web.Api/
@@ -21,7 +21,13 @@ RUN dotnet publish Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
 WORKDIR /app
 COPY --from=dotnet-build /app/publish .
-COPY --from=angular-build /app/angular/dist/client-app/browser wwwroot/
+COPY --from=angular-build /app/angular/dist/ClientApp/browser wwwroot/
+
+RUN mkdir -p /app/data
+
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DATA_DIR=/app/data
+
 ENTRYPOINT ["dotnet", "PGAN.Poracle.Web.Api.dll"]

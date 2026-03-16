@@ -14,7 +14,9 @@ public class AvatarCacheService : BackgroundService
 
     private static readonly ConcurrentDictionary<string, string> Avatars = new();
     private static bool _initialLoadComplete;
-    private const string CacheFile = "avatar-cache.json";
+    private static readonly string CacheFile = Path.Combine(
+        Environment.GetEnvironmentVariable("DATA_DIR") ?? Directory.GetCurrentDirectory(),
+        "avatar-cache.json");
 
     public AvatarCacheService(
         IServiceProvider services,
