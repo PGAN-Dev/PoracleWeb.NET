@@ -11,8 +11,9 @@ builder.Services.AddControllers();
 // Add Poracle services (DbContext, repositories, services, settings)
 builder.Services.AddPoracleServices(builder.Configuration);
 
-// Background avatar cache
+// Background services
 builder.Services.AddHostedService<PGAN.Poracle.Web.Api.Services.AvatarCacheService>();
+builder.Services.AddHostedService<PGAN.Poracle.Web.Api.Services.DtsCacheService>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;

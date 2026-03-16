@@ -39,22 +39,11 @@ public class ConfigController : BaseApiController
     [HttpGet("dts")]
     public IActionResult GetDts()
     {
-        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? Directory.GetCurrentDirectory();
-        var path = Path.Combine(dataDir, "dts-cache.json");
-        if (!System.IO.File.Exists(path))
-            return Ok(Array.Empty<object>());
-
-        try
-        {
-            // Serve the raw JSON and let the frontend parse it
-            var json = System.IO.File.ReadAllText(path);
+        var json = Services.DtsCacheService.GetCachedDts();
+        if (!string.IsNullOrEmpty(json))
             return Content(json, "application/json");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to read DTS file");
-            return Ok(Array.Empty<object>());
-        }
+
+        return Ok(Array.Empty<object>());
     }
 
     [AllowAnonymous]

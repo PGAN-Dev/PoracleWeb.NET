@@ -25,9 +25,14 @@ services:
       - Poracle__ApiAddress=${PORACLE_API_ADDRESS}
       - Poracle__ApiSecret=${PORACLE_API_SECRET}
       - Poracle__AdminIds=${PORACLE_ADMIN_IDS}
+      # DTS source path (inside container)
+      - DTS_SOURCE_DIR=/poracle-config
     volumes:
-      # Persist avatar cache and DTS across restarts
+      # Persist avatar cache across restarts
       - ./data:/app/data
+      # Mount Poracle config for DTS templates (read-only)
+      # Adjust the host path to your PoracleJS config directory
+      - ${PORACLE_CONFIG_DIR:-./data}:/poracle-config:ro
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
