@@ -1,0 +1,27 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.vs/
+.vs/
+
+## Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+## Environment
+.env
+appsettings.*.local.json
+
+## IDE
+.idea/
+.vscode/
+*.swp
+appsettings.Development.json
+dts-cache.json
+dts-custom.json
+avatar-cache.json
+package-lock.json

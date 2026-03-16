@@ -1,0 +1,126 @@
+@if (auth.isLoggedIn()) {
+  <mat-toolbar color="primary" class="app-toolbar">
+    <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <div class="app-title-block">
+      <span class="app-title">PoGO Alerts Network</span>
+      <span class="app-subtitle">DM Alerts Configuration</span>
+    </div>
+    <span class="toolbar-spacer"></span>
+    <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkMode() ? 'Switch to light mode' : 'Switch to dark mode'">
+      <mat-icon>{{ darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger">
+      @if (auth.user()?.avatarUrl) {
+        <img [src]="auth.user()!.avatarUrl!" class="user-avatar" alt="avatar" />
+      } @else {
+        <mat-icon class="default-avatar-icon">account_circle</mat-icon>
+      }
+    </button>
+    <mat-menu #userMenu="matMenu" class="user-menu-panel">
+      <div class="user-menu-header" mat-menu-item disabled>
+        <div class="user-menu-avatar">
+          @if (auth.user()?.avatarUrl) {
+            <img [src]="auth.user()!.avatarUrl!" class="menu-avatar" alt="avatar" />
+          } @else {
+            <mat-icon class="menu-avatar-icon">account_circle</mat-icon>
+          }
+        </div>
+        <div class="user-menu-info">
+          <span class="user-menu-name">{{ auth.user()?.username }}</span>
+          <span class="user-menu-profile">{{ auth.user()?.profileName || ('Profile #' + auth.user()?.profileNo) }}</span>
+        </div>
+      </div>
+      <mat-divider></mat-divider>
+      <button mat-menu-item routerLink="/profiles">
+        <mat-icon>swap_horiz</mat-icon>
+        <span>Switch Profile</span>
+      </button>
+      <button mat-menu-item routerLink="/areas">
+        <mat-icon>map</mat-icon>
+        <span>Areas & Location</span>
+      </button>
+      <button mat-menu-item routerLink="/cleaning">
+        <mat-icon>cleaning_services</mat-icon>
+        <span>Cleaning</span>
+      </button>
+      <mat-divider></mat-divider>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="app-sidenav-container">
+    <mat-sidenav
+      [mode]="isMobile() ? 'over' : 'side'"
+      [opened]="sidenavOpened()"
+      (openedChange)="sidenavOpened.set($event)"
+      class="app-sidenav"
+    >
+      <mat-nav-list>
+        <!-- Alarms Section -->
+        <div class="nav-group-label">Alarms</div>
+        @for (item of alarmNavItems(); track item.route) {
+          <a
+            mat-list-item
+            [routerLink]="item.route"
+            routerLinkActive="active-link"
+            (click)="onNavClick()"
+            class="nav-item"
+          >
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+            @if (item.countKey && getCount(item) > 0) {
+              <span class="nav-badge">{{ getCount(item) }}</span>
+            }
+          </a>
+        }
+
+        <mat-divider class="nav-divider"></mat-divider>
+
+        <!-- Settings Section -->
+        <div class="nav-group-label">Settings</div>
+        @for (item of settingsNavItems(); track item.route) {
+          <a
+            mat-list-item
+            [routerLink]="item.route"
+            routerLinkActive="active-link"
+            (click)="onNavClick()"
+            class="nav-item"
+          >
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+          </a>
+        }
+
+        @if (adminNavItems().length > 0) {
+          <mat-divider class="nav-divider"></mat-divider>
+
+          <!-- Admin Section -->
+          <div class="nav-group-label">Admin</div>
+          @for (item of adminNavItems(); track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              (click)="onNavClick()"
+              class="nav-item"
+            >
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          }
+        }
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="app-content">
+      <router-outlet />
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+} @else {
+  <router-outlet />
+}

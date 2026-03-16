@@ -1,0 +1,314 @@
+import { Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import {
+  MatDialogModule,
+  MatDialogRef,
+  MAT_DIALOG_DATA,
+} from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { RaidService } from '../../core/services/raid.service';
+import { EggService } from '../../core/services/egg.service';
+import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
+
+export interface RaidEditDialogData {
+  type: 'raid' | 'egg';
+  item: Raid | Egg;
+}
+
+@Component({
+  selector: 'app-raid-edit-dialog',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatSlideToggleModule,
+    MatIconModule,
+    MatRadioModule,
+    MatTabsModule,
+    MatSnackBarModule,
+    TemplateSelectorComponent,
+    DeliveryPreviewComponent,
+  ],
+  template: `
+    <h2 mat-dialog-title>Edit {{ data.type === 'raid' ? 'Raid' : 'Egg' }} Alarm</h2>
+    <mat-dialog-content>
+      <div class="item-header">
+        <img [src]="getImage()" [alt]="getTitle()" class="item-img" (error)="onImageError($event)" />
+        <div>
+          <h3>{{ getTitle() }}</h3>
+          <span class="item-subtitle">Level {{ data.item.level }}</span>
+        </div>
+      </div>
+
+      <mat-tab-group animationDuration="200ms" class="alarm-tabs">
+        <!-- Tab 1: Settings -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>tune</mat-icon>
+            <span class="tab-label">Settings</span>
+          </ng-template>
+          <div class="tab-content">
+            <h4>Location Mode</h4>
+            <mat-radio-group
+              [formControl]="form.controls.distanceMode"
+              class="distance-radio-group"
+              (change)="onDistanceModeChange()"
+            >
+              <mat-radio-button value="areas">
+                <div class="radio-label">
+                  <mat-icon>map</mat-icon>
+                  <div>
+                    <strong>Use Areas</strong>
+                    <p class="radio-hint">Notifications will use your configured area geofences</p>
+                  </div>
+                </div>
+              </mat-radio-button>
+              <mat-radio-button value="distance">
+                <div class="radio-label">
+                  <mat-icon>straighten</mat-icon>
+                  <div>
+                    <strong>Set Distance</strong>
+                    <p class="radio-hint">Notify within a radius from your location</p>
+                  </div>
+                </div>
+              </mat-radio-button>
+            </mat-radio-group>
+
+            @if (form.controls.distanceMode.value === 'distance') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Distance</mat-label>
+                <input matInput type="number" [formControl]="form.controls.distanceKm" min="0" step="0.1" />
+                <span matSuffix>km</span>
+              </mat-form-field>
+            }
+
+            <app-delivery-preview
+              [mode]="form.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
+              [distanceKm]="form.controls.distanceKm.value ?? 0">
+            </app-delivery-preview>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Team</mat-label>
+              <mat-select [formControl]="form.controls.team">
+                <mat-option [value]="0">Any Team</mat-option>
+                <mat-option [value]="1">Mystic (Blue)</mat-option>
+                <mat-option [value]="2">Valor (Red)</mat-option>
+                <mat-option [value]="3">Instinct (Yellow)</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </mat-tab>
+
+        <!-- Tab 2: Delivery -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>notifications</mat-icon>
+            <span class="tab-label">Delivery</span>
+          </ng-template>
+          <div class="tab-content">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Ping / Role</mat-label>
+              <input matInput [formControl]="form.controls.ping" />
+            </mat-form-field>
+
+            <app-template-selector
+              [alarmType]="data.type === 'egg' ? 'egg' : 'raid'"
+              [value]="form.controls.template.value ?? ''"
+              (valueChange)="form.controls.template.setValue($event)">
+            </app-template-selector>
+
+            <mat-slide-toggle [formControl]="form.controls.clean">
+              Clean mode
+            </mat-slide-toggle>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="dialogRef.close(false)">Cancel</button>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="save()"
+        [disabled]="saving()"
+      >
+        {{ saving() ? 'Saving...' : 'Save' }}
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [
+    `
+      mat-dialog-content {
+        min-width: 400px;
+        max-width: 600px;
+      }
+      .alarm-tabs { margin: 0 -24px; }
+      :host ::ng-deep .alarm-tabs .mat-mdc-tab-body-wrapper { padding: 0 24px; }
+      .tab-content { padding: 16px 0; }
+      .tab-label { margin-left: 6px; }
+      .item-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .item-img {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+      }
+      .item-header h3 {
+        margin: 0;
+      }
+      .item-subtitle {
+        color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+        font-size: 13px;
+      }
+      .full-width {
+        width: 100%;
+      }
+      h4 {
+        margin: 16px 0 8px;
+        color: var(--text-muted, rgba(0, 0, 0, 0.64));
+      }
+      mat-slide-toggle {
+        margin: 16px 0;
+      }
+      .distance-radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .radio-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .radio-label mat-icon {
+        margin-top: 2px;
+        color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+      }
+      .radio-hint {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+        font-weight: normal;
+      }
+    `,
+  ],
+})
+export class RaidEditDialogComponent {
+  readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
+  readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
+  private readonly raidService = inject(RaidService);
+  private readonly eggService = inject(EggService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly fb = inject(FormBuilder);
+
+  saving = signal(false);
+
+  form = this.fb.group({
+    distanceMode: [this.data.item.distance === 0 ? 'areas' : 'distance' as 'areas' | 'distance'],
+    distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
+    team: [this.data.item.team],
+    ping: [this.data.item.ping ?? ''],
+    template: [this.data.item.template ?? ''],
+    clean: [this.data.item.clean === 1],
+  });
+
+  getImage(): string {
+    if (this.data.type === 'egg') {
+      return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/egg/${this.data.item.level}.png`;
+    }
+    const raid = this.data.item as Raid;
+    if (raid.pokemonId && raid.pokemonId !== 9000) {
+      return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${raid.pokemonId}.png`;
+    }
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/egg/${this.data.item.level}.png`;
+  }
+
+  getTitle(): string {
+    if (this.data.type === 'egg') {
+      return `Level ${this.data.item.level} Egg`;
+    }
+    const raid = this.data.item as Raid;
+    if (raid.pokemonId && raid.pokemonId !== 9000) {
+      return `Raid Boss #${raid.pokemonId}`;
+    }
+    return `Level ${raid.level} Raid`;
+  }
+
+  onImageError(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
+  }
+
+  onDistanceModeChange(): void {
+    if (this.form.controls.distanceMode.value === 'areas') {
+      this.form.controls.distanceKm.setValue(0);
+    } else {
+      if (!this.form.controls.distanceKm.value) {
+        this.form.controls.distanceKm.setValue(1);
+      }
+    }
+  }
+
+  save(): void {
+    this.saving.set(true);
+    const values = this.form.getRawValue();
+    const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+
+    if (this.data.type === 'raid') {
+      const update: RaidUpdate = {
+        distance: distanceMeters,
+        team: values.team ?? 0,
+        ping: values.ping || null,
+        template: values.template || null,
+        clean: values.clean ? 1 : 0,
+      };
+      this.raidService.update(this.data.item.uid, update).subscribe({
+        next: () => {
+          this.snackBar.open('Raid alarm updated', 'OK', { duration: 3000 });
+          this.dialogRef.close(true);
+        },
+        error: () => {
+          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.saving.set(false);
+        },
+      });
+    } else {
+      const update: EggUpdate = {
+        distance: distanceMeters,
+        team: values.team ?? 0,
+        ping: values.ping || null,
+        template: values.template || null,
+        clean: values.clean ? 1 : 0,
+      };
+      this.eggService.update(this.data.item.uid, update).subscribe({
+        next: () => {
+          this.snackBar.open('Egg alarm updated', 'OK', { duration: 3000 });
+          this.dialogRef.close(true);
+        },
+        error: () => {
+          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.saving.set(false);
+        },
+      });
+    }
+  }
+}

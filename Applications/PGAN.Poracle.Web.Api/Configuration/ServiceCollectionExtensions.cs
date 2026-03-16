@@ -1,0 +1,81 @@
+using Microsoft.EntityFrameworkCore;
+using PGAN.Poracle.Web.Core.Abstractions.Repositories;
+using PGAN.Poracle.Web.Core.Abstractions.Services;
+using PGAN.Poracle.Web.Core.Abstractions.UnitsOfWork;
+using PGAN.Poracle.Web.Core.Mappings;
+using PGAN.Poracle.Web.Core.Repositories;
+using PGAN.Poracle.Web.Core.Services;
+using PGAN.Poracle.Web.Core.UnitsOfWork;
+using PGAN.Poracle.Web.Data;
+using PGAN.Poracle.Web.Data.Scanner;
+
+namespace PGAN.Poracle.Web.Api.Configuration;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddPoracleServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Register DbContext with Oracle MySQL provider
+        var connectionString = configuration.GetConnectionString("PoracleDb");
+        services.AddDbContext<PoracleContext>(options =>
+            options.UseMySQL(connectionString!));
+
+        // Register MemoryCache
+        services.AddMemoryCache();
+
+        // Register AutoMapper
+        services.AddAutoMapper(typeof(PoracleMappingProfile));
+
+        // Register Repositories
+        services.AddScoped<IMonsterRepository, MonsterRepository>();
+        services.AddScoped<IRaidRepository, RaidRepository>();
+        services.AddScoped<IEggRepository, EggRepository>();
+        services.AddScoped<IQuestRepository, QuestRepository>();
+        services.AddScoped<IInvasionRepository, InvasionRepository>();
+        services.AddScoped<ILureRepository, LureRepository>();
+        services.AddScoped<INestRepository, NestRepository>();
+        services.AddScoped<IGymRepository, GymRepository>();
+        services.AddScoped<IHumanRepository, HumanRepository>();
+        services.AddScoped<IProfileRepository, ProfileRepository>();
+        services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
+
+        // Register Unit of Work
+        services.AddScoped<IPoracleUnitOfWork, PoracleUnitOfWork>();
+
+        // Register Services
+        services.AddScoped<IMonsterService, MonsterService>();
+        services.AddScoped<IRaidService, RaidService>();
+        services.AddScoped<IEggService, EggService>();
+        services.AddScoped<IQuestService, QuestService>();
+        services.AddScoped<IInvasionService, InvasionService>();
+        services.AddScoped<ILureService, LureService>();
+        services.AddScoped<INestService, NestService>();
+        services.AddScoped<IGymService, GymService>();
+        services.AddScoped<IHumanService, HumanService>();
+        services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<ICleaningService, CleaningService>();
+        services.AddScoped<IPwebSettingService, PwebSettingService>();
+        services.AddSingleton<IMasterDataService, MasterDataService>();
+
+        // Register Scanner DB (optional - only if connection string is configured)
+        var scannerConnectionString = configuration.GetConnectionString("ScannerDb");
+        if (!string.IsNullOrEmpty(scannerConnectionString))
+        {
+            services.AddDbContext<RdmScannerContext>(options =>
+                options.UseMySQL(scannerConnectionString));
+            services.AddScoped<IScannerService, RdmScannerService>();
+        }
+
+        // Register HttpClient for Poracle API
+        services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
+
+        // Register settings
+        services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+        services.Configure<DiscordSettings>(configuration.GetSection("Discord"));
+        services.Configure<TelegramSettings>(configuration.GetSection("Telegram"));
+        services.Configure<PoracleSettings>(configuration.GetSection("Poracle"));
+
+        return services;
+    }
+}
