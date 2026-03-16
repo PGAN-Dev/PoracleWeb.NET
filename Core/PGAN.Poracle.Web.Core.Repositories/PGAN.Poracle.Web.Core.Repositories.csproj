@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="14.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PGAN.Poracle.Web.Core.Abstractions\PGAN.Poracle.Web.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Data\PGAN.Poracle.Web.Data\PGAN.Poracle.Web.Data.csproj" />
+  </ItemGroup>
+
+</Project>

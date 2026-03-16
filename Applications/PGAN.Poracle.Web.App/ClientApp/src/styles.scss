@@ -1,0 +1,134 @@
+@use '@angular/material' as mat;
+@import 'leaflet/dist/leaflet.css';
+
+// Custom M3 theme for PoracleWeb
+// Primary: #1976D2 (Material Blue)
+// Tertiary/Accent: #00BCD4 (Teal)
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$cyan-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+body {
+  // Support both light and dark mode based on user preference
+  color-scheme: light dark;
+
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  margin: 0;
+  height: 100%;
+}
+
+// ─── Dark mode overrides ────────────────────────────────────────────
+
+body.dark-theme {
+  // Cards & surfaces
+  --card-bg: var(--mat-sys-surface-container, #1e1e1e);
+  --card-border: var(--mat-sys-outline-variant, rgba(255, 255, 255, 0.12));
+  --text-secondary: var(--mat-sys-on-surface-variant, rgba(255, 255, 255, 0.7));
+  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-hint: rgba(255, 255, 255, 0.38);
+  --divider: rgba(255, 255, 255, 0.08);
+  --skeleton-bg: rgba(255, 255, 255, 0.08);
+  --hover-overlay: rgba(255, 255, 255, 0.04);
+}
+
+body.light-theme,
+body:not(.dark-theme) {
+  --card-bg: var(--mat-sys-surface-container, #fff);
+  --card-border: var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  --text-secondary: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.54));
+  --text-muted: rgba(0, 0, 0, 0.5);
+  --text-hint: rgba(0, 0, 0, 0.38);
+  --divider: rgba(0, 0, 0, 0.08);
+  --skeleton-bg: rgba(0, 0, 0, 0.08);
+  --hover-overlay: rgba(0, 0, 0, 0.04);
+}
+
+// ─── Global utility classes ─────────────────────────────────────────
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+// ─── Toast / Snackbar styles ────────────────────────────────────────
+
+.toast-success .mdc-snackbar__surface {
+  background-color: #2e7d32 !important;
+}
+
+.toast-success .mdc-snackbar__label,
+.toast-success .mat-mdc-button {
+  color: #fff !important;
+}
+
+.toast-error .mdc-snackbar__surface {
+  background-color: #c62828 !important;
+}
+
+.toast-error .mdc-snackbar__label,
+.toast-error .mat-mdc-button {
+  color: #fff !important;
+}
+
+.toast-info .mdc-snackbar__surface {
+  background-color: #1565c0 !important;
+}
+
+.toast-info .mdc-snackbar__label,
+.toast-info .mat-mdc-button {
+  color: #fff !important;
+}
+
+// ─── Scrollbar styling ──────────────────────────────────────────────
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--mat-sys-outline-variant);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--mat-sys-outline);
+}
+
+// ─── Responsive helpers ─────────────────────────────────────────────
+
+@media (max-width: 599px) {
+  // Single column cards on mobile
+  .dashboard-grid,
+  .alarm-grid,
+  .profile-grid,
+  .areas-content,
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

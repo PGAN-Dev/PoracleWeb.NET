@@ -1,0 +1,19 @@
+services:
+  poracle-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8080"
+    environment:
+      - ConnectionStrings__PoracleDb=Server=host.docker.internal;Port=3309;Database=poracle_dev;User=root;Password=${DB_PASSWORD}
+      - Jwt__Secret=${JWT_SECRET}
+      - Discord__ClientId=${DISCORD_CLIENT_ID}
+      - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
+      - Discord__RedirectUri=${DISCORD_REDIRECT_URI}
+      - Poracle__ApiAddress=${PORACLE_API_ADDRESS}
+      - Poracle__ApiSecret=${PORACLE_API_SECRET}
+      - Poracle__AdminIds=${PORACLE_ADMIN_IDS}
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
