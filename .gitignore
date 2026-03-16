@@ -25,3 +25,4 @@ dts-cache.json
 dts-custom.json
 avatar-cache.json
 package-lock.json
+*.http

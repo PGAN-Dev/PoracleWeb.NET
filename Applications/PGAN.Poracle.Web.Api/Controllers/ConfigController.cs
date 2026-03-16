@@ -39,7 +39,8 @@ public class ConfigController : BaseApiController
     [HttpGet("dts")]
     public IActionResult GetDts()
     {
-        var path = Path.Combine(Directory.GetCurrentDirectory(), "dts-cache.json");
+        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? Directory.GetCurrentDirectory();
+        var path = Path.Combine(dataDir, "dts-cache.json");
         if (!System.IO.File.Exists(path))
             return Ok(Array.Empty<object>());
 

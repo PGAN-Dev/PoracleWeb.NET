@@ -6,14 +6,28 @@ services:
     ports:
       - "8082:8080"
     environment:
-      - ConnectionStrings__PoracleDb=Server=host.docker.internal;Port=3309;Database=poracle_dev;User=root;Password=${DB_PASSWORD}
+      # Database
+      - ConnectionStrings__PoracleDb=Server=${DB_HOST:-host.docker.internal};Port=${DB_PORT:-3309};Database=${DB_NAME:-poracle};User=${DB_USER:-root};Password=${DB_PASSWORD}
+      - ConnectionStrings__ScannerDb=${SCANNER_DB_CONNECTION:-}
+      # JWT
       - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=PGAN.Poracle.Web
+      - Jwt__Audience=PGAN.Poracle.Web.App
+      # Discord OAuth2
       - Discord__ClientId=${DISCORD_CLIENT_ID}
       - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
-      - Discord__RedirectUri=${DISCORD_REDIRECT_URI}
+      - Discord__BotToken=${DISCORD_BOT_TOKEN:-}
+      # Telegram
+      - Telegram__Enabled=${TELEGRAM_ENABLED:-false}
+      - Telegram__BotToken=${TELEGRAM_BOT_TOKEN:-}
+      - Telegram__BotUsername=${TELEGRAM_BOT_USERNAME:-}
+      # Poracle API
       - Poracle__ApiAddress=${PORACLE_API_ADDRESS}
       - Poracle__ApiSecret=${PORACLE_API_SECRET}
       - Poracle__AdminIds=${PORACLE_ADMIN_IDS}
+    volumes:
+      # Persist avatar cache and DTS across restarts
+      - ./data:/app/data
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

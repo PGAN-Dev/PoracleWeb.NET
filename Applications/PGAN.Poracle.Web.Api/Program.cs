@@ -67,11 +67,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Serve Angular SPA in production
+// Serve Angular SPA
+app.UseDefaultFiles();
+app.UseStaticFiles();
 if (!app.Environment.IsDevelopment())
 {
-    app.UseDefaultFiles();
-    app.UseStaticFiles();
     app.MapFallbackToFile("index.html");
 }
 
