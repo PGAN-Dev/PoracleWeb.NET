@@ -1,8 +1,10 @@
 services:
   poracle-web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/pgan-dev/poracleweb.net:latest
+    # To build from source instead, uncomment below and comment out image:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     ports:
       - "8082:8080"
     environment:
@@ -31,7 +33,6 @@ services:
       # Persist avatar cache across restarts
       - ./data:/app/data
       # Mount Poracle config for DTS templates (read-only)
-      # Adjust the host path to your PoracleJS config directory
       - ${PORACLE_CONFIG_DIR:-./data}:/poracle-config:ro
     restart: unless-stopped
     extra_hosts:
