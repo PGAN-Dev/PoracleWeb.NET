@@ -63,8 +63,10 @@ export class CallbackComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
-    // The API redirects here with ?token=JWT after successful Discord OAuth
-    const token = this.route.snapshot.queryParamMap.get('token');
+    // The API redirects here with #token=JWT (fragment) or ?error=... (query param)
+    const fragment = this.route.snapshot.fragment || '';
+    const fragmentParams = new URLSearchParams(fragment);
+    const token = fragmentParams.get('token');
     const errorParam = this.route.snapshot.queryParamMap.get('error');
 
     if (errorParam) {
