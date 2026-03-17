@@ -55,7 +55,7 @@ public class AuthController : BaseApiController
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.Lax,
             MaxAge = TimeSpan.FromMinutes(10)
         });
 
