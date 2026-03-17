@@ -100,6 +100,37 @@ public class PoracleApiProxy : IPoracleApiProxy
             }
         }
 
+        if (root.TryGetProperty("delegateAdministration", out var delegateAdmin) &&
+            delegateAdmin.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var entry in delegateAdmin.EnumerateArray())
+            {
+                // Support both {id, admins} and {webhookId, discordIds} key conventions
+                var webhookId =
+                    (entry.TryGetProperty("webhookId", out var wh) ? wh.GetString() : null) ??
+                    (entry.TryGetProperty("id", out var id) ? id.GetString() : null);
+
+                if (string.IsNullOrEmpty(webhookId)) continue;
+
+                var users = new List<string>();
+                var usersArray =
+                    entry.TryGetProperty("discordIds", out var dIds) ? dIds :
+                    entry.TryGetProperty("admins", out var adm) ? adm :
+                    default;
+
+                if (usersArray.ValueKind == JsonValueKind.Array)
+                    foreach (var u in usersArray.EnumerateArray())
+                        if (u.GetString() is { } uid)
+                            users.Add(uid);
+
+                config.DelegateAdministration.Add(new PoracleDelegateEntry
+                {
+                    WebhookId = webhookId,
+                    DiscordIds = users
+                });
+            }
+        }
+
         return config;
     }
 

@@ -83,6 +83,15 @@ public class HumanRepository : IHumanRepository
         return count;
     }
 
+    public async Task<bool> DeleteUserAsync(string userId)
+    {
+        var entity = await _context.Humans.FirstOrDefaultAsync(h => h.Id == userId);
+        if (entity is null) return false;
+        _context.Humans.Remove(entity);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     private static void EnsureNotNullDefaults(HumanEntity entity)
     {
         foreach (var prop in WritableStringProperties)

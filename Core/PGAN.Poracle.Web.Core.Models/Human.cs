@@ -12,6 +12,8 @@ public class Human
     public int Fails { get; set; }
     public string? Language { get; set; }
     public int AdminDisable { get; set; }
+    public DateTime LastChecked { get; set; }
+    public DateTime? DisabledDate { get; set; }
     public int CurrentProfileNo { get; set; }
     public string? CommunityMembership { get; set; }
 }

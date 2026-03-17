@@ -87,9 +87,32 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
+    redirectTo: 'admin/users',
+    pathMatch: 'full',
+  },
+  {
+    path: 'admin/users',
     loadComponent: () =>
-      import('./modules/admin/admin.component').then((m) => m.AdminComponent),
+      import('./modules/admin/admin-users.component').then((m) => m.AdminUsersComponent),
     canActivate: [authGuard, adminGuard],
+  },
+  {
+    path: 'admin/webhooks',
+    loadComponent: () =>
+      import('./modules/admin/admin-webhooks.component').then((m) => m.AdminWebhooksComponent),
+    canActivate: [authGuard, adminGuard],
+  },
+  {
+    path: 'admin/settings',
+    loadComponent: () =>
+      import('./modules/admin/admin-settings.component').then((m) => m.AdminSettingsComponent),
+    canActivate: [authGuard, adminGuard],
+  },
+  {
+    path: 'my-webhooks',
+    loadComponent: () =>
+      import('./modules/admin/my-webhooks.component').then((m) => m.MyWebhooksComponent),
+    canActivate: [authGuard],
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

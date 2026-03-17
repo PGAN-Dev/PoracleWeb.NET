@@ -23,10 +23,18 @@ public class PoracleConfig
     public string EverythingFlagPermissions { get; set; } = string.Empty;
     public int MaxDistance { get; set; }
     public PoracleAdmins? Admins { get; set; }
+    public List<PoracleDelegateEntry> DelegateAdministration { get; set; } = new();
 }
 
 public class PoracleAdmins
 {
     public List<string> Discord { get; set; } = new();
     public List<string> Telegram { get; set; } = new();
+}
+
+public class PoracleDelegateEntry
+{
+    /// <summary>Webhook URL (matches the `id` column in humans table).</summary>
+    public string WebhookId { get; set; } = string.Empty;
+    public List<string> DiscordIds { get; set; } = new();
 }
