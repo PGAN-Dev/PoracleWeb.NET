@@ -51,13 +51,19 @@ public class AuthController : BaseApiController
         // Generate a random state value for CSRF protection
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
-        Response.Cookies.Append("oauth_state", state, new CookieOptions
+        var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.Lax,
             MaxAge = TimeSpan.FromMinutes(10)
-        });
+        };
+
+        Response.Cookies.Append("oauth_state", state, cookieOptions);
+
+        // Save the origin so we know where to redirect after the callback
+        var origin = $"{Request.Scheme}://{Request.Host}";
+        Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
         // Redirect URI points to the API itself, not the Angular app
         var callbackUri = $"{Request.Scheme}://{Request.Host}/api/auth/discord/callback";
@@ -288,17 +294,13 @@ public class AuthController : BaseApiController
 
     private string GetFrontendUrl()
     {
-        // Prefer the Origin header if available (set by browsers on navigation requests from the SPA)
-        var origin = Request.Headers.Origin.FirstOrDefault();
-        if (!string.IsNullOrEmpty(origin))
-            return origin.TrimEnd('/');
+        // Use the origin saved during the login step
+        var savedOrigin = Request.Cookies["oauth_origin"];
+        Response.Cookies.Delete("oauth_origin");
+        if (!string.IsNullOrEmpty(savedOrigin))
+            return savedOrigin.TrimEnd('/');
 
-        // Fall back to the Referer header
-        var referer = Request.Headers.Referer.FirstOrDefault();
-        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
-            return $"{refererUri.Scheme}://{refererUri.Authority}";
-
-        // Default: same scheme/host as the request
+        // Fallback: same scheme/host as the request
         return $"{Request.Scheme}://{Request.Host}";
     }
 
