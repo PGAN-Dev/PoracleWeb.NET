@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using PGAN.Poracle.Web.Api.Configuration;
@@ -123,6 +124,12 @@ app.UseExceptionHandler(errorApp =>
         await context.Response.WriteAsync(
             JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
     });
+});
+
+// Support reverse proxies (X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host)
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
 });
 
 // Security headers

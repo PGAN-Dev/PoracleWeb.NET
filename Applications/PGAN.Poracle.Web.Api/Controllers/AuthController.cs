@@ -61,7 +61,7 @@ public class AuthController : BaseApiController
 
         // Redirect URI points to the API itself, not the Angular app
         var callbackUri = $"{Request.Scheme}://{Request.Host}/api/auth/discord/callback";
-        var redirectUrl = "https://discord.com/api/oauth2/authorize" +
+        var redirectUrl = "https://discordapp.com/api/oauth2/authorize" +
             $"?client_id={_discordSettings.ClientId}" +
             $"&redirect_uri={Uri.EscapeDataString(callbackUri)}" +
             "&response_type=code" +
@@ -100,7 +100,7 @@ public class AuthController : BaseApiController
             ["redirect_uri"] = $"{Request.Scheme}://{Request.Host}/api/auth/discord/callback"
         });
 
-        var tokenResponse = await httpClient.PostAsync("https://discord.com/api/oauth2/token", tokenRequest);
+        var tokenResponse = await httpClient.PostAsync("https://discordapp.com/api/oauth2/token", tokenRequest);
         if (!tokenResponse.IsSuccessStatusCode)
         {
             var errorBody = await tokenResponse.Content.ReadAsStringAsync();
@@ -115,7 +115,7 @@ public class AuthController : BaseApiController
         httpClient.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var userResponse = await httpClient.GetAsync("https://discord.com/api/users/@me");
+        var userResponse = await httpClient.GetAsync("https://discordapp.com/api/users/@me");
         if (!userResponse.IsSuccessStatusCode)
             return Redirect($"{frontendUrl}/login?error=discord_user_fetch_failed");
 
@@ -298,8 +298,8 @@ public class AuthController : BaseApiController
         if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
             return $"{refererUri.Scheme}://{refererUri.Authority}";
 
-        // Default: same scheme/host with dev-mode port 4200
-        return $"{Request.Scheme}://{Request.Host.Host}:4200";
+        // Default: same scheme/host as the request
+        return $"{Request.Scheme}://{Request.Host}";
     }
 
     private async Task<bool> IsUserAdminAsync(string userId)
