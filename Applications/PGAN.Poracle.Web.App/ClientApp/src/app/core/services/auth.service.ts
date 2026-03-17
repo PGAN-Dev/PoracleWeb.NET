@@ -6,6 +6,7 @@ import { ConfigService } from './config.service';
 import { UserInfo, LoginResponse, TelegramConfig } from '../models';
 
 const TOKEN_KEY = 'poracle_token';
+const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -19,6 +20,7 @@ export class AuthService {
   readonly user = this.currentUser.asReadonly();
   readonly isLoggedIn = computed(() => !!this.currentUser());
   readonly isAdmin = computed(() => this.currentUser()?.isAdmin ?? false);
+  readonly isImpersonating = computed(() => !!localStorage.getItem(ADMIN_TOKEN_KEY));
 
   constructor() {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -77,6 +79,7 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
     this.currentUser.set(null);
     this.router.navigate(['/login']);
   }
@@ -87,6 +90,28 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  /** Switch to impersonated user token, saving the admin token for later. */
+  impersonate(token: string): void {
+    const adminToken = localStorage.getItem(TOKEN_KEY);
+    if (adminToken) {
+      localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
+    }
+    localStorage.setItem(TOKEN_KEY, token);
+    this.loadCurrentUser();
+    this.router.navigate(['/dashboard']);
+  }
+
+  /** Restore the admin's original token. */
+  stopImpersonating(): void {
+    const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);
+    if (adminToken) {
+      localStorage.setItem(TOKEN_KEY, adminToken);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+      this.loadCurrentUser();
+      this.router.navigate(['/admin']);
+    }
   }
 
   private handleAuthResponse(res: LoginResponse): void {

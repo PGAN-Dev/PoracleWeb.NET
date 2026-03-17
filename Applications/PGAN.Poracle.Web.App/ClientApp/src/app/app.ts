@@ -134,6 +134,11 @@ export class App implements OnInit {
     }
   }
 
+  stopImpersonating(): void {
+    this.auth.stopImpersonating();
+    this.loadCounts();
+  }
+
   logout(): void {
     this.auth.logout();
   }
