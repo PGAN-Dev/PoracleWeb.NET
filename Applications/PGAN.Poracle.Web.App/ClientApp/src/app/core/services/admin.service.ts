@@ -32,4 +32,8 @@ export class AdminService {
   fetchAvatars(userIds: string[]): Observable<Record<string, string>> {
     return this.http.post<Record<string, string>>(`${this.config.apiHost}/api/admin/users/avatars`, userIds);
   }
+
+  impersonateUser(userId: string): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}/impersonate`, {});
+  }
 }

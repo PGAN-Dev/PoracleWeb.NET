@@ -1,8 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using PGAN.Poracle.Web.Api.Configuration;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
+using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Api.Controllers;
 
@@ -11,17 +16,20 @@ public class AdminController : BaseApiController
 {
     private readonly IHumanService _humanService;
     private readonly DiscordSettings _discordSettings;
+    private readonly JwtSettings _jwtSettings;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AdminController> _logger;
 
     public AdminController(
         IHumanService humanService,
         IOptions<DiscordSettings> discordSettings,
+        IOptions<JwtSettings> jwtSettings,
         IHttpClientFactory httpClientFactory,
         ILogger<AdminController> logger)
     {
         _humanService = humanService;
         _discordSettings = discordSettings.Value;
+        _jwtSettings = jwtSettings.Value;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
@@ -130,6 +138,46 @@ public class AdminController : BaseApiController
         if (!exists) return NotFound();
         var count = await _humanService.DeleteAllAlarmsByUserAsync(id);
         return Ok(new { deleted = count });
+    }
+
+    [HttpPost("users/{id}/impersonate")]
+    public async Task<IActionResult> ImpersonateUser(string id)
+    {
+        if (!IsAdmin) return Forbid();
+
+        var human = await _humanService.GetByIdAsync(id);
+        if (human is null) return NotFound();
+
+        var avatarUrl = Services.AvatarCacheService.GetAvatar(id)
+            ?? GetDefaultAvatarUrl(id, human.Type);
+
+        var claims = new List<Claim>
+        {
+            new("userId", human.Id),
+            new("username", human.Name ?? human.Id),
+            new("type", human.Type ?? "discord:user"),
+            new("isAdmin", "false"),
+            new("profileNo", human.CurrentProfileNo.ToString()),
+            new("impersonatedBy", UserId),
+        };
+
+        if (!string.IsNullOrEmpty(avatarUrl))
+            claims.Add(new Claim("avatarUrl", avatarUrl));
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var token = new JwtSecurityToken(
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+            signingCredentials: credentials);
+
+        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+        _logger.LogInformation("Admin {AdminId} impersonating user {UserId}", UserId, id);
+
+        return Ok(new { token = jwt });
     }
 
     private static string GetDefaultAvatarUrl(string userId, string? type)

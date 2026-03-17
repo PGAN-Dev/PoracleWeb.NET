@@ -4,6 +4,30 @@
   height: 100%;
 }
 
+.impersonation-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #ff9800;
+  color: #fff;
+  font-size: 14px;
+  z-index: 1001;
+  position: sticky;
+  top: 0;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  button {
+    margin-left: auto;
+    font-size: 12px;
+  }
+}
+
 .app-toolbar {
   position: sticky;
   top: 0;

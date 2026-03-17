@@ -17,6 +17,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { AdminService } from '../../core/services/admin.service';
+import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { AdminUser, PwebSetting } from '../../core/models';
 import {
@@ -159,6 +160,13 @@ import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/d
                           <mat-icon>person</mat-icon>
                         </button>
                       }
+                      <button
+                        mat-icon-button
+                        (click)="impersonate(user)"
+                        matTooltip="View as this user"
+                      >
+                        <mat-icon>visibility</mat-icon>
+                      </button>
                       <button
                         mat-icon-button
                         color="warn"
@@ -418,6 +426,7 @@ import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/d
 export class AdminComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly adminService = inject(AdminService);
+  private readonly auth = inject(AuthService);
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -566,6 +575,17 @@ export class AdminComponent implements OnInit {
           },
         });
       }
+    });
+  }
+
+  impersonate(user: AdminUser): void {
+    this.adminService.impersonateUser(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        this.auth.impersonate(res.token);
+      },
+      error: () => {
+        this.snackBar.open('Failed to impersonate user', 'OK', { duration: 3000 });
+      },
     });
   }
 

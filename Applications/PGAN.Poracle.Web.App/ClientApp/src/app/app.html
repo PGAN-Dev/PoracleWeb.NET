@@ -1,3 +1,13 @@
+@if (auth.isImpersonating()) {
+  <div class="impersonation-banner">
+    <mat-icon>visibility</mat-icon>
+    <span>Viewing as <strong>{{ auth.user()?.username }}</strong></span>
+    <button mat-raised-button (click)="stopImpersonating()">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Admin
+    </button>
+  </div>
+}
 @if (auth.isLoggedIn()) {
   <mat-toolbar color="primary" class="app-toolbar">
     <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation">
