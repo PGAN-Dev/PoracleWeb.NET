@@ -135,7 +135,7 @@ app.Use(async (context, next) =>
         headers["X-Frame-Options"] = "DENY";
         headers["X-XSS-Protection"] = "0";
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'";
+        headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'";
         return Task.CompletedTask;
     });
     await next();
