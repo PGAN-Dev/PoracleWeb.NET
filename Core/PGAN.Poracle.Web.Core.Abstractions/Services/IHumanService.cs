@@ -11,4 +11,5 @@ public interface IHumanService
     Task<Human> UpdateAsync(Human human);
     Task<bool> ExistsAsync(string id);
     Task<int> DeleteAllAlarmsByUserAsync(string userId);
+    Task<bool> DeleteUserAsync(string userId);
 }

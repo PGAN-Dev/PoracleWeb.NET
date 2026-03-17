@@ -179,6 +179,7 @@ export interface Human {
   latitude: number;
   longitude: number;
   enabled: number;
+  adminDisable: number;
   language: string;
   communityMembership: string | null;
 }
@@ -189,6 +190,9 @@ export interface AdminUser {
   name: string | null;
   type: string | null;
   enabled: number;
+  adminDisable: number;
+  lastChecked: string | null;
+  disabledDate: string | null;
   currentProfileNo: number;
   language: string | null;
   avatarUrl: string | null;
@@ -226,9 +230,11 @@ export interface UserInfo {
   username: string;
   type: string;
   isAdmin: boolean;
+  enabled: boolean;
   profileNo: number;
   profileName: string | null;
   avatarUrl: string | null;
+  managedWebhooks?: string[] | null;
 }
 
 export interface LoginResponse {

@@ -47,4 +47,9 @@ public class HumanService : IHumanService
     {
         return await _repository.DeleteAllAlarmsByUserAsync(userId);
     }
+
+    public async Task<bool> DeleteUserAsync(string userId)
+    {
+        return await _repository.DeleteUserAsync(userId);
+    }
 }

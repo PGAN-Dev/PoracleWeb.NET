@@ -13,4 +13,6 @@ public abstract class BaseApiController : ControllerBase
     protected int ProfileNo => int.Parse(User.FindFirstValue("profileNo") ?? "1");
     protected bool IsAdmin => User.FindFirstValue("isAdmin") == "true";
     protected string Username => User.FindFirstValue("username") ?? string.Empty;
+    protected string[] ManagedWebhooks => User.FindFirstValue("managedWebhooks")
+        ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
 }

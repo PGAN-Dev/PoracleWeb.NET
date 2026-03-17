@@ -20,6 +20,7 @@ public class AuthController : BaseApiController
 {
     private readonly IHumanService _humanService;
     private readonly IPoracleApiProxy _poracleApiProxy;
+    private readonly IPwebSettingService _pwebSettingService;
     private readonly JwtSettings _jwtSettings;
     private readonly DiscordSettings _discordSettings;
     private readonly TelegramSettings _telegramSettings;
@@ -29,6 +30,7 @@ public class AuthController : BaseApiController
     public AuthController(
         IHumanService humanService,
         IPoracleApiProxy poracleApiProxy,
+        IPwebSettingService pwebSettingService,
         IOptions<JwtSettings> jwtSettings,
         IOptions<DiscordSettings> discordSettings,
         IOptions<TelegramSettings> telegramSettings,
@@ -37,6 +39,7 @@ public class AuthController : BaseApiController
     {
         _humanService = humanService;
         _poracleApiProxy = poracleApiProxy;
+        _pwebSettingService = pwebSettingService;
         _jwtSettings = jwtSettings.Value;
         _discordSettings = discordSettings.Value;
         _telegramSettings = telegramSettings.Value;
@@ -51,18 +54,22 @@ public class AuthController : BaseApiController
         // Generate a random state value for CSRF protection
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
+        var isHttps = string.Equals(Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = isHttps,
             SameSite = SameSiteMode.Lax,
             MaxAge = TimeSpan.FromMinutes(10)
         };
 
         Response.Cookies.Append("oauth_state", state, cookieOptions);
 
-        // Save the origin so we know where to redirect after the callback
-        var origin = $"{Request.Scheme}://{Request.Host}";
+        // Save the frontend origin so we know where to redirect after the callback
+        var referer = Request.Headers.Referer.FirstOrDefault();
+        var origin = !string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
+            ? $"{refererUri.Scheme}://{refererUri.Authority}"
+            : $"{Request.Scheme}://{Request.Host}";
         Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
         // Redirect URI points to the API itself, not the Angular app
@@ -74,7 +81,7 @@ public class AuthController : BaseApiController
             "&scope=identify" +
             $"&state={Uri.EscapeDataString(state)}";
 
-        return Ok(new { url = redirectUrl });
+        return Redirect(redirectUrl);
     }
 
     [AllowAnonymous]
@@ -138,7 +145,7 @@ public class AuthController : BaseApiController
         if (human == null)
             return Redirect($"{frontendUrl}/login?error=user_not_registered");
 
-        var isAdmin = await IsUserAdminAsync(discordId);
+        var (isAdmin, managedWebhooks) = await GetRolesAsync(discordId);
 
         var userInfo = new UserInfo
         {
@@ -146,9 +153,18 @@ public class AuthController : BaseApiController
             Username = username,
             Type = "discord:user",
             IsAdmin = isAdmin,
+            Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
-            AvatarUrl = avatarUrl
+            AvatarUrl = avatarUrl,
+            ManagedWebhooks = managedWebhooks
         };
+
+        // Cache avatar for admin panel use
+        if (!string.IsNullOrEmpty(avatarUrl))
+        {
+            Services.AvatarCacheService.SetAvatar(discordId, avatarUrl);
+            Services.AvatarCacheService.Save();
+        }
 
         var jwt = GenerateJwtToken(userInfo);
 
@@ -211,7 +227,7 @@ public class AuthController : BaseApiController
         if (human == null)
             return StatusCode(403, new { error = "User not registered in Poracle." });
 
-        var isAdmin = await IsUserAdminAsync(telegramId);
+        var (isAdmin, managedWebhooks) = await GetRolesAsync(telegramId);
 
         var userInfo = new UserInfo
         {
@@ -219,8 +235,10 @@ public class AuthController : BaseApiController
             Username = username!,
             Type = "telegram:user",
             IsAdmin = isAdmin,
+            Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
-            AvatarUrl = photoUrl
+            AvatarUrl = photoUrl,
+            ManagedWebhooks = managedWebhooks
         };
 
         var jwt = GenerateJwtToken(userInfo);
@@ -244,19 +262,39 @@ public class AuthController : BaseApiController
     }
 
     [HttpGet("me")]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
+        // Read enabled status from DB (not JWT) so it reflects real-time changes
+        var human = await _humanService.GetByIdAsync(UserId);
+        var enabled = human != null ? human.Enabled == 1 && human.AdminDisable == 0 : true;
+
         var userInfo = new UserInfo
         {
             Id = UserId,
             Username = Username,
             Type = User.FindFirstValue("type") ?? string.Empty,
             IsAdmin = IsAdmin,
+            Enabled = enabled,
             ProfileNo = ProfileNo,
-            AvatarUrl = User.FindFirstValue("avatarUrl")
+            AvatarUrl = User.FindFirstValue("avatarUrl"),
+            ManagedWebhooks = ManagedWebhooks.Length > 0 ? ManagedWebhooks : null
         };
 
         return Ok(userInfo);
+    }
+
+    [HttpPost("alerts/toggle")]
+    public async Task<IActionResult> ToggleAlerts()
+    {
+        var human = await _humanService.GetByIdAsync(UserId);
+        if (human == null) return NotFound();
+
+        if (human.AdminDisable == 1)
+            return BadRequest(new { error = "Your account has been disabled by an administrator." });
+
+        human.Enabled = human.Enabled == 1 ? 0 : 1;
+        await _humanService.UpdateAsync(human);
+        return Ok(new { enabled = human.Enabled == 1 });
     }
 
     [HttpPost("logout")]
@@ -276,11 +314,15 @@ public class AuthController : BaseApiController
             new("username", user.Username),
             new("type", user.Type),
             new("isAdmin", user.IsAdmin.ToString().ToLowerInvariant()),
+            new("enabled", user.Enabled.ToString().ToLowerInvariant()),
             new("profileNo", user.ProfileNo.ToString()),
         };
 
         if (!string.IsNullOrEmpty(user.AvatarUrl))
             claims.Add(new Claim("avatarUrl", user.AvatarUrl));
+
+        if (user.ManagedWebhooks is { Length: > 0 })
+            claims.Add(new Claim("managedWebhooks", string.Join(',', user.ManagedWebhooks)));
 
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
@@ -290,6 +332,100 @@ public class AuthController : BaseApiController
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
+    /// Calls PoracleJS getAdministrationRoles once and returns (isAdmin, managedWebhooks).
+    /// managedWebhooks merges: Poracle-resolved webhook delegation + our own pweb_settings layer.
+    /// </summary>
+    private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
+    {
+        // Fast path: configured admin IDs
+        if (!string.IsNullOrEmpty(_poracleSettings.AdminIds))
+        {
+            var adminIds = _poracleSettings.AdminIds.Split(',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (adminIds.Contains(userId))
+                return (true, null);
+        }
+
+        // Check Poracle config admins list
+        try
+        {
+            var config = await _poracleApiProxy.GetConfigAsync();
+            if (config?.Admins != null &&
+                (config.Admins.Discord.Contains(userId) || config.Admins.Telegram.Contains(userId)))
+                return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch Poracle config for admin check for {UserId}.", userId);
+        }
+
+        // Call getAdministrationRoles once — resolves delegation including Discord guild roles
+        var managed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var isAdmin = false;
+
+        try
+        {
+            var rolesJson = await _poracleApiProxy.GetAdminRolesAsync(userId);
+            if (!string.IsNullOrEmpty(rolesJson))
+            {
+                using var doc = JsonDocument.Parse(rolesJson);
+                var root = doc.RootElement;
+
+                // Some versions return isAdmin at root; others wrap under admin.discord
+                if (root.TryGetProperty("isAdmin", out var isAdminProp) && isAdminProp.ValueKind == JsonValueKind.True)
+                    isAdmin = true;
+
+                // Parse admin.discord.webhooks — the authoritative delegate webhook list
+                if (root.TryGetProperty("admin", out var adminEl) &&
+                    adminEl.TryGetProperty("discord", out var discordEl))
+                {
+                    if (!isAdmin &&
+                        discordEl.TryGetProperty("isAdmin", out var discordAdmin) &&
+                        discordAdmin.ValueKind == JsonValueKind.True)
+                        isAdmin = true;
+
+                    if (discordEl.TryGetProperty("webhooks", out var webhooks) &&
+                        webhooks.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var wh in webhooks.EnumerateArray())
+                            if (wh.GetString() is { } id)
+                                managed.Add(id);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch administration roles for {UserId}.", userId);
+        }
+
+        if (isAdmin) return (true, null);
+
+        // Also merge our own pweb_settings delegation layer
+        try
+        {
+            var allSettings = await _pwebSettingService.GetAllAsync();
+            const string prefix = "webhook_delegates:";
+            foreach (var setting in allSettings)
+            {
+                if (setting.Setting?.StartsWith(prefix) == true)
+                {
+                    var delegates = setting.Value?.Split(',',
+                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+                    if (delegates.Contains(userId))
+                        managed.Add(setting.Setting[prefix.Length..]);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch pweb_settings delegates for {UserId}.", userId);
+        }
+
+        return (false, managed.Count > 0 ? managed.ToArray() : null);
     }
 
     private string GetFrontendUrl()
@@ -304,50 +440,4 @@ public class AuthController : BaseApiController
         return $"{Request.Scheme}://{Request.Host}";
     }
 
-    private async Task<bool> IsUserAdminAsync(string userId)
-    {
-        // Check configured admin IDs first
-        if (!string.IsNullOrEmpty(_poracleSettings.AdminIds))
-        {
-            var adminIds = _poracleSettings.AdminIds.Split(',',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (adminIds.Contains(userId))
-                return true;
-        }
-
-        // Check Poracle API admin list from config
-        try
-        {
-            var config = await _poracleApiProxy.GetConfigAsync();
-            if (config?.Admins != null)
-            {
-                if (config.Admins.Discord.Contains(userId) ||
-                    config.Admins.Telegram.Contains(userId))
-                    return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch Poracle config for admin check.");
-        }
-
-        // Check administration roles via Poracle API
-        try
-        {
-            var rolesJson = await _poracleApiProxy.GetAdminRolesAsync(userId);
-            if (!string.IsNullOrEmpty(rolesJson))
-            {
-                using var doc = JsonDocument.Parse(rolesJson);
-                if (doc.RootElement.TryGetProperty("isAdmin", out var isAdminProp) &&
-                    isAdminProp.GetBoolean())
-                    return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch admin roles for user {UserId}.", userId);
-        }
-
-        return false;
-    }
 }

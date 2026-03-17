@@ -19,7 +19,8 @@ interface NavItem {
   icon: string;
   route: string;
   adminOnly?: boolean;
-  group: 'alarms' | 'settings' | 'admin';
+  delegateOnly?: boolean;
+  group: 'alarms' | 'settings' | 'admin' | 'webhooks';
   countKey?: keyof DashboardCounts;
 }
 
@@ -57,10 +58,7 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
-    // Load alarm counts for nav badges when user is logged in
-    if (this.auth.isAuthenticated()) {
-      this.loadCounts();
-    }
+    // Counts loaded by dashboard component when needed
   }
 
   loadCounts(): void {
@@ -82,7 +80,10 @@ export class App implements OnInit {
     { label: 'Areas', icon: 'map', route: '/areas', group: 'settings' },
     { label: 'Profiles', icon: 'person', route: '/profiles', group: 'settings' },
     { label: 'Cleaning', icon: 'cleaning_services', route: '/cleaning', group: 'settings' },
-    { label: 'Admin', icon: 'admin_panel_settings', route: '/admin', adminOnly: true, group: 'admin' },
+    { label: 'Users', icon: 'people', route: '/admin/users', adminOnly: true, group: 'admin' },
+    { label: 'Webhooks', icon: 'webhook', route: '/admin/webhooks', adminOnly: true, group: 'admin' },
+    { label: 'Settings', icon: 'settings', route: '/admin/settings', adminOnly: true, group: 'admin' },
+    { label: 'My Webhooks', icon: 'webhook', route: '/my-webhooks', delegateOnly: true, group: 'webhooks' },
   ];
 
   protected readonly alarmNavItems = computed(() =>
@@ -95,6 +96,12 @@ export class App implements OnInit {
 
   protected readonly adminNavItems = computed(() =>
     this.navItems.filter((item) => item.group === 'admin' && (!item.adminOnly || this.auth.isAdmin())),
+  );
+
+  protected readonly webhookNavItems = computed(() =>
+    this.navItems.filter(
+      (item) => item.group === 'webhooks' && (!item.delegateOnly || this.auth.hasManagedWebhooks()),
+    ),
   );
 
   getCount(item: NavItem): number {
@@ -132,6 +139,12 @@ export class App implements OnInit {
     if (this.isMobile()) {
       this.sidenavOpened.set(false);
     }
+  }
+
+  toggleAlerts(): void {
+    this.auth.toggleAlerts().subscribe({
+      next: () => this.auth.loadCurrentUser(),
+    });
   }
 
   stopImpersonating(): void {

@@ -7,7 +7,7 @@ COPY Applications/PGAN.Poracle.Web.App/ClientApp/ ./
 RUN npx ng build --configuration production
 
 # Stage 2: Build .NET API
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS dotnet-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
 WORKDIR /src
 COPY PGAN.Poracle.Web.slnx ./
 COPY Core/PGAN.Poracle.Web.Core.Abstractions/PGAN.Poracle.Web.Core.Abstractions.csproj Core/PGAN.Poracle.Web.Core.Abstractions/
@@ -25,7 +25,7 @@ COPY . .
 RUN dotnet publish Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj -c Release -o /app/publish
 
 # Stage 3: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 RUN useradd --system --no-create-home appuser
 COPY --from=dotnet-build /app/publish .

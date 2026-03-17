@@ -131,7 +131,9 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
-forwardedHeadersOptions.KnownIPNetworks.Clear();
+#pragma warning disable ASPDEPR005
+forwardedHeadersOptions.KnownNetworks.Clear();
+#pragma warning restore ASPDEPR005
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 

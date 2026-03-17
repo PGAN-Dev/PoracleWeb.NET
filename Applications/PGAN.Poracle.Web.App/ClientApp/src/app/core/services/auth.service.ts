@@ -15,12 +15,15 @@ export class AuthService {
   private readonly router = inject(Router);
 
   private readonly currentUser = signal<UserInfo | null>(null);
+  private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
   private readonly userLoaded$ = new ReplaySubject<UserInfo | null>(1);
 
   readonly user = this.currentUser.asReadonly();
   readonly isLoggedIn = computed(() => !!this.currentUser());
   readonly isAdmin = computed(() => this.currentUser()?.isAdmin ?? false);
-  readonly isImpersonating = computed(() => !!localStorage.getItem(ADMIN_TOKEN_KEY));
+  readonly isImpersonating = this._isImpersonating.asReadonly();
+  readonly managedWebhooks = computed(() => this.currentUser()?.managedWebhooks ?? []);
+  readonly hasManagedWebhooks = computed(() => (this.currentUser()?.managedWebhooks?.length ?? 0) > 0);
 
   constructor() {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -37,12 +40,7 @@ export class AuthService {
   }
 
   loginWithDiscord(): void {
-    this.http
-      .get<{ url: string }>(`${this.config.apiHost}/api/auth/discord/login`)
-      .subscribe({
-        next: (res) => (window.location.href = res.url),
-        error: (err) => console.error('Discord login failed:', err),
-      });
+    window.location.href = `${this.config.apiHost}/api/auth/discord/login`;
   }
 
   handleTokenFromCallback(token: string): void {
@@ -61,27 +59,36 @@ export class AuthService {
     return this.http.get<TelegramConfig>(`${this.config.apiHost}/api/auth/telegram/config`);
   }
 
-  loadCurrentUser(): void {
-    this.http.get<UserInfo>(`${this.config.apiHost}/api/auth/me`).subscribe({
-      next: (user) => {
-        this.currentUser.set(user);
-        this.userLoaded$.next(user);
-      },
-      error: (err) => {
-        if (err.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
-          this.currentUser.set(null);
-        }
-        this.userLoaded$.next(null);
-      },
+  loadCurrentUser(): Promise<UserInfo | null> {
+    return new Promise((resolve) => {
+      this.http.get<UserInfo>(`${this.config.apiHost}/api/auth/me`).subscribe({
+        next: (user) => {
+          this.currentUser.set(user);
+          this.userLoaded$.next(user);
+          resolve(user);
+        },
+        error: (err) => {
+          if (err.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            this.currentUser.set(null);
+          }
+          this.userLoaded$.next(null);
+          resolve(null);
+        },
+      });
     });
   }
 
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
+    this._isImpersonating.set(false);
     this.currentUser.set(null);
     this.router.navigate(['/login']);
+  }
+
+  toggleAlerts(): Observable<{ enabled: boolean }> {
+    return this.http.post<{ enabled: boolean }>(`${this.config.apiHost}/api/auth/alerts/toggle`, {});
   }
 
   getToken(): string | null {
@@ -99,17 +106,19 @@ export class AuthService {
       localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
     }
     localStorage.setItem(TOKEN_KEY, token);
+    this._isImpersonating.set(true);
     this.loadCurrentUser();
     this.router.navigate(['/dashboard']);
   }
 
   /** Restore the admin's original token. */
-  stopImpersonating(): void {
+  async stopImpersonating(): Promise<void> {
     const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);
     if (adminToken) {
       localStorage.setItem(TOKEN_KEY, adminToken);
       localStorage.removeItem(ADMIN_TOKEN_KEY);
-      this.loadCurrentUser();
+      this._isImpersonating.set(false);
+      await this.loadCurrentUser();
       this.router.navigate(['/admin']);
     }
   }

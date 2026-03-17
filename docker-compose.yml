@@ -1,6 +1,6 @@
 services:
   poracle-web:
-    image: ghcr.io/pgan-dev/poracleweb.net:latest
+    image: poracleweb-local:latest
     # To build from source instead, uncomment below and comment out image:
     # build:
     #   context: .
@@ -9,7 +9,7 @@ services:
       - "8082:8080"
     environment:
       # Database
-      - ConnectionStrings__PoracleDb=Server=${DB_HOST:-host.docker.internal};Port=${DB_PORT:-3309};Database=${DB_NAME:-poracle};User=${DB_USER:-root};Password=${DB_PASSWORD}
+      - ConnectionStrings__PoracleDb=Server=${DB_HOST:-host.docker.internal};Port=${DB_PORT:-3309};Database=${DB_NAME:-poracle};User=${DB_USER:-root};Password=${DB_PASSWORD};AllowZeroDateTime=true;ConvertZeroDateTime=true
       - ConnectionStrings__ScannerDb=${SCANNER_DB_CONNECTION:-}
       # JWT
       - Jwt__Secret=${JWT_SECRET}
