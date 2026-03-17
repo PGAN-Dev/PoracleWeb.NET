@@ -127,10 +127,13 @@ app.UseExceptionHandler(errorApp =>
 });
 
 // Support reverse proxies (X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host)
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
-});
+};
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Security headers
 app.Use(async (context, next) =>
