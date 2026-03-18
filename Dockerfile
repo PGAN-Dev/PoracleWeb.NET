@@ -20,6 +20,7 @@ COPY Data/PGAN.Poracle.Web.Data/PGAN.Poracle.Web.Data.csproj Data/PGAN.Poracle.W
 COPY Data/PGAN.Poracle.Web.Data.Scanner/PGAN.Poracle.Web.Data.Scanner.csproj Data/PGAN.Poracle.Web.Data.Scanner/
 COPY Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj Applications/PGAN.Poracle.Web.Api/
 COPY Applications/PGAN.Poracle.Web.App/PGAN.Poracle.Web.App.csproj Applications/PGAN.Poracle.Web.App/
+COPY Tests/PGAN.Poracle.Web.Tests/PGAN.Poracle.Web.Tests.csproj Tests/PGAN.Poracle.Web.Tests/
 RUN dotnet restore
 COPY . .
 RUN dotnet publish Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj -c Release -o /app/publish
