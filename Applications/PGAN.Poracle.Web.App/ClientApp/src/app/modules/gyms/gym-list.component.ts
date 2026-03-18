@@ -62,7 +62,11 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
           </mat-card>
         } @empty {
           <div class="empty-state">
-            <mat-icon class="empty-icon" style="color:#00bcd4">fitness_center</mat-icon>
+            <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+              <polygon points="40,8 56,35 50,35 58,60 48,60 55,90 25,90 32,60 22,60 30,35 24,35" fill="#00bcd4" opacity="0.12" stroke="#00bcd4" stroke-width="2.5"/>
+              <circle cx="40" cy="50" r="10" fill="none" stroke="#00bcd4" stroke-width="3" opacity="0.5"/>
+              <circle cx="40" cy="50" r="4" fill="#00bcd4" opacity="0.4"/>
+            </svg>
             <h2 class="empty-title">No Gym Alarms Configured</h2>
             <p class="empty-subtitle">Get notified about gym team changes and open slots</p>
             <button mat-flat-button (click)="openAddDialog()" style="background:#00bcd4;color:#fff"><mat-icon>add</mat-icon> Add Gym</button>
@@ -98,7 +102,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
     .ping-info { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; color: rgba(0,0,0,0.64); }
     .ping-info mat-icon { font-size: 16px; width: 16px; height: 16px; }
     .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; }
-    .empty-icon { font-size: 72px; width: 72px; height: 72px; margin-bottom: 16px; opacity: 0.7; }
+    .empty-icon { margin-bottom: 16px; opacity: 0.8; }
     .empty-title { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
     .empty-subtitle { font-size: 14px; color: var(--text-secondary, rgba(0,0,0,0.54)); margin: 0 0 24px; max-width: 400px; }
   `],

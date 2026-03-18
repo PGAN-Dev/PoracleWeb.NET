@@ -173,7 +173,14 @@ import {
           </mat-card>
         } @empty {
           <div class="empty-state">
-            <mat-icon class="empty-icon" style="color: #4caf50">catching_pokemon</mat-icon>
+            <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="#4caf50" stroke-width="4"/>
+              <path d="M4 50 H36" stroke="#4caf50" stroke-width="4"/>
+              <path d="M64 50 H96" stroke="#4caf50" stroke-width="4"/>
+              <path d="M4 50 A46 46 0 0 1 96 50" fill="#4caf50" opacity="0.15"/>
+              <circle cx="50" cy="50" r="14" fill="none" stroke="#4caf50" stroke-width="4"/>
+              <circle cx="50" cy="50" r="7" fill="#4caf50" opacity="0.5"/>
+            </svg>
             <h2 class="empty-title">No Pokemon Alarms Configured</h2>
             <p class="empty-subtitle">Track wild spawns with custom IV, CP, and level filters</p>
             <button mat-flat-button style="background-color: #4caf50; color: white" (click)="openAddDialog()">
@@ -420,11 +427,8 @@ import {
         text-align: center;
       }
       .empty-icon {
-        font-size: 72px;
-        width: 72px;
-        height: 72px;
         margin-bottom: 16px;
-        opacity: 0.7;
+        opacity: 0.8;
       }
       .empty-title {
         font-size: 20px;

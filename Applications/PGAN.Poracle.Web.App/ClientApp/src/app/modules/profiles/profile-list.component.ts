@@ -111,7 +111,14 @@ import {
           </mat-card>
         } @empty {
           <div class="empty-state">
-            <mat-icon class="empty-icon">person_outline</mat-icon>
+            <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
+              <ellipse cx="50" cy="72" rx="30" ry="8" fill="#7b1fa2" opacity="0.1"/>
+              <circle cx="50" cy="48" r="22" fill="#7b1fa2" opacity="0.1" stroke="#7b1fa2" stroke-width="3"/>
+              <path d="M28 45 Q35 20 50 18 Q65 20 72 45" fill="#7b1fa2" opacity="0.2" stroke="#7b1fa2" stroke-width="2.5"/>
+              <path d="M28 45 H72" stroke="#7b1fa2" stroke-width="3"/>
+              <circle cx="50" cy="38" r="5" fill="#7b1fa2" opacity="0.4"/>
+              <path d="M35 56 Q50 68 65 56" fill="none" stroke="#7b1fa2" stroke-width="2" opacity="0.3"/>
+            </svg>
             <h2>No Profiles</h2>
             <p>Each profile has its own set of alarms, areas, and location</p>
             <button mat-flat-button class="cta-button" (click)="openAddDialog()">
@@ -222,10 +229,8 @@ import {
         padding: 64px 16px;
       }
       .empty-icon {
-        font-size: 72px;
-        width: 72px;
-        height: 72px;
-        color: #7b1fa2;
+        margin-bottom: 16px;
+        opacity: 0.8;
       }
       .empty-state h2 {
         margin: 16px 0 8px;

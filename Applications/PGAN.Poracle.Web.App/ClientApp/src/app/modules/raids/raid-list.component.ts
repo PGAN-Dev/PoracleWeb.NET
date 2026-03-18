@@ -133,7 +133,13 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
               </mat-card>
             } @empty {
               <div class="empty-state">
-                <mat-icon class="empty-icon" style="color: #f44336">shield</mat-icon>
+                <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+                  <ellipse cx="40" cy="55" rx="32" ry="40" fill="#f44336" opacity="0.12" stroke="#f44336" stroke-width="3"/>
+                  <path d="M12 45 Q25 55 40 42 Q55 55 68 45" fill="none" stroke="#f44336" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="40" cy="30" r="4" fill="#f44336" opacity="0.4"/>
+                  <circle cx="30" cy="22" r="2.5" fill="#f44336" opacity="0.3"/>
+                  <circle cx="50" cy="25" r="3" fill="#f44336" opacity="0.35"/>
+                </svg>
                 <h2 class="empty-title">No Raid Alarms Configured</h2>
                 <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
                 <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
@@ -202,7 +208,13 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
               </mat-card>
             } @empty {
               <div class="empty-state">
-                <mat-icon class="empty-icon" style="color: #f44336">egg</mat-icon>
+                <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+                  <ellipse cx="40" cy="55" rx="32" ry="40" fill="#f44336" opacity="0.12" stroke="#f44336" stroke-width="3"/>
+                  <path d="M12 45 Q25 55 40 42 Q55 55 68 45" fill="none" stroke="#f44336" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="40" cy="30" r="4" fill="#f44336" opacity="0.4"/>
+                  <circle cx="30" cy="22" r="2.5" fill="#f44336" opacity="0.3"/>
+                  <circle cx="50" cy="25" r="3" fill="#f44336" opacity="0.35"/>
+                </svg>
                 <h2 class="empty-title">No Egg Alarms Configured</h2>
                 <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
                 <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
@@ -402,11 +414,8 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
         text-align: center;
       }
       .empty-icon {
-        font-size: 72px;
-        width: 72px;
-        height: 72px;
         margin-bottom: 16px;
-        opacity: 0.7;
+        opacity: 0.8;
       }
       .empty-title {
         font-size: 20px;

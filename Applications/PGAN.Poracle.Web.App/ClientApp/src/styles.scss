@@ -33,6 +33,15 @@ body {
 
 // ─── Dark mode overrides ────────────────────────────────────────────
 
+body.dark-theme::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(13, 71, 161, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 body.dark-theme {
   // Cards & surfaces
   --card-bg: var(--mat-sys-surface-container, #1e1e1e);
@@ -55,6 +64,49 @@ body:not(.dark-theme) {
   --divider: rgba(0, 0, 0, 0.08);
   --skeleton-bg: rgba(0, 0, 0, 0.08);
   --hover-overlay: rgba(0, 0, 0, 0.04);
+}
+
+// ─── Pokeball loading spinner ──────────────────────────────────────
+
+.pokeball-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #f44336 0%, #f44336 47%, #333 47%, #333 53%, #fff 53%, #fff 100%);
+  border: 3px solid #333;
+  position: relative;
+  animation: pokespin 1s linear infinite;
+  box-sizing: border-box;
+
+  &::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border: 3px solid #333;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+  }
+}
+
+.pokeball-spinner-lg {
+  @extend .pokeball-spinner;
+  width: 48px;
+  height: 48px;
+
+  &::after {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@keyframes pokespin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 // ─── Global utility classes ─────────────────────────────────────────
@@ -98,6 +150,24 @@ body:not(.dark-theme) {
 .toast-info .mdc-snackbar__label,
 .toast-info .mat-mdc-button {
   color: #fff !important;
+}
+
+.toast-success .mdc-snackbar__surface::before {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  opacity: 0.15;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M4 50 H36' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M64 50 H96' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M4 50 A46 46 0 0 1 96 50' fill='%23fff'/%3E%3Ccircle cx='50' cy='50' r='14' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23fff'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.mdc-snackbar__surface {
+  position: relative;
 }
 
 // ─── Scrollbar styling ──────────────────────────────────────────────

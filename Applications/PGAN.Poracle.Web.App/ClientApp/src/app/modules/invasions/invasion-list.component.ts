@@ -78,7 +78,13 @@ import {
           </mat-card>
         } @empty {
           <div class="empty-state">
-            <mat-icon class="empty-icon">security</mat-icon>
+            <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+              <ellipse cx="40" cy="32" rx="28" ry="26" fill="#607d8b" opacity="0.12" stroke="#607d8b" stroke-width="3"/>
+              <text x="40" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#607d8b" opacity="0.6" font-family="serif">R</text>
+              <line x1="28" y1="56" x2="40" y2="68" stroke="#607d8b" stroke-width="2.5"/>
+              <line x1="52" y1="56" x2="40" y2="68" stroke="#607d8b" stroke-width="2.5"/>
+              <rect x="32" y="68" width="16" height="12" rx="3" fill="#607d8b" opacity="0.2" stroke="#607d8b" stroke-width="2"/>
+            </svg>
             <h2 class="empty-title">No Invasion Alarms Configured</h2>
             <p class="empty-subtitle">Get alerts for Team GO Rocket encounters by type</p>
             <button mat-flat-button class="cta-invasion" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Invasion</button>
@@ -114,7 +120,7 @@ import {
     .ping-info { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; color: rgba(0,0,0,0.64); }
     .ping-info mat-icon { font-size: 16px; width: 16px; height: 16px; }
     .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; }
-    .empty-icon { font-size: 72px; width: 72px; height: 72px; color: #607d8b; margin-bottom: 16px; opacity: 0.7; }
+    .empty-icon { margin-bottom: 16px; opacity: 0.8; }
     .empty-title { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
     .empty-subtitle { font-size: 14px; color: var(--text-secondary, rgba(0,0,0,0.54)); margin: 0 0 24px; max-width: 400px; }
     .cta-invasion { background: #607d8b !important; color: white !important; }

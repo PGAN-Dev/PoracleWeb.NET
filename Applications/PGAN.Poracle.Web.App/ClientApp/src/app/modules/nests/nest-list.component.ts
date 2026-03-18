@@ -58,7 +58,13 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
           </mat-card>
         } @empty {
           <div class="empty-state">
-            <mat-icon class="empty-icon" style="color:#8bc34a">park</mat-icon>
+            <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
+              <path d="M15 80 Q30 60 50 65 Q70 60 85 80" fill="none" stroke="#8bc34a" stroke-width="4" stroke-linecap="round"/>
+              <path d="M10 85 Q30 65 50 70 Q70 65 90 85" fill="#8bc34a" opacity="0.1" stroke="#8bc34a" stroke-width="3"/>
+              <ellipse cx="38" cy="52" rx="12" ry="16" fill="#8bc34a" opacity="0.15" stroke="#8bc34a" stroke-width="2.5" transform="rotate(-8 38 52)"/>
+              <ellipse cx="58" cy="50" rx="11" ry="15" fill="#8bc34a" opacity="0.15" stroke="#8bc34a" stroke-width="2.5" transform="rotate(10 58 50)"/>
+              <ellipse cx="48" cy="48" rx="12" ry="16" fill="#8bc34a" opacity="0.2" stroke="#8bc34a" stroke-width="2.5"/>
+            </svg>
             <h2 class="empty-title">No Nest Alarms Configured</h2>
             <p class="empty-subtitle">Monitor Pokemon nesting locations with spawn rate filters</p>
             <button mat-flat-button (click)="openAddDialog()" style="background:#8bc34a;color:#fff"><mat-icon>add</mat-icon> Add Nest</button>
@@ -93,7 +99,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
     .ping-info { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; color: rgba(0,0,0,0.64); }
     .ping-info mat-icon { font-size: 16px; width: 16px; height: 16px; }
     .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; }
-    .empty-icon { font-size: 72px; width: 72px; height: 72px; margin-bottom: 16px; opacity: 0.7; }
+    .empty-icon { margin-bottom: 16px; opacity: 0.8; }
     .empty-title { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
     .empty-subtitle { font-size: 14px; color: var(--text-secondary, rgba(0,0,0,0.54)); margin: 0 0 24px; max-width: 400px; }
   `],

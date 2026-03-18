@@ -57,7 +57,15 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
           </mat-card>
         } @empty {
           <div class="empty-state">
-            <mat-icon class="empty-icon" style="color:#e91e63">location_on</mat-icon>
+            <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+              <rect x="32" y="8" width="16" height="50" rx="4" fill="#e91e63" opacity="0.15" stroke="#e91e63" stroke-width="3"/>
+              <circle cx="40" cy="18" r="4" fill="#e91e63" opacity="0.4"/>
+              <line x1="40" y1="58" x2="40" y2="80" stroke="#e91e63" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="40" cy="85" r="5" fill="#e91e63" opacity="0.3" stroke="#e91e63" stroke-width="2"/>
+              <line x1="22" y1="30" x2="32" y2="34" stroke="#e91e63" stroke-width="2" opacity="0.4"/>
+              <line x1="58" y1="26" x2="48" y2="30" stroke="#e91e63" stroke-width="2" opacity="0.4"/>
+              <line x1="20" y1="44" x2="32" y2="42" stroke="#e91e63" stroke-width="2" opacity="0.3"/>
+            </svg>
             <h2 class="empty-title">No Lure Alarms Configured</h2>
             <p class="empty-subtitle">Track active lure modules nearby</p>
             <button mat-flat-button (click)="openAddDialog()" style="background:#e91e63;color:#fff"><mat-icon>add</mat-icon> Add Lure</button>
@@ -94,7 +102,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
     .ping-info { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; color: rgba(0,0,0,0.64); }
     .ping-info mat-icon { font-size: 16px; width: 16px; height: 16px; }
     .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; }
-    .empty-icon { font-size: 72px; width: 72px; height: 72px; margin-bottom: 16px; opacity: 0.7; }
+    .empty-icon { margin-bottom: 16px; opacity: 0.8; }
     .empty-title { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
     .empty-subtitle { font-size: 14px; color: var(--text-secondary, rgba(0,0,0,0.54)); margin: 0 0 24px; max-width: 400px; }
   `],

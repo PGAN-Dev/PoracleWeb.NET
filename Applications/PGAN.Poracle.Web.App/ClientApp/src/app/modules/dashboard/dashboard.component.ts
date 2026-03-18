@@ -270,6 +270,23 @@ interface DashboardCard {
       .area-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2e7d32; margin-right: 6px; vertical-align: middle; }
 
       /* Section Header */
+      .section-header, .areas-header {
+        position: relative;
+        overflow: hidden;
+      }
+      .section-header::before, .areas-header::before {
+        content: '';
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        opacity: 0.06;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M4 50 H36' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M64 50 H96' stroke='%23000' stroke-width='6'/%3E%3Cpath d='M4 50 A46 46 0 0 1 96 50' fill='%23000'/%3E%3Ccircle cx='50' cy='50' r='14' fill='none' stroke='%23000' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23000'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: contain;
+      }
       .section-header {
         display: flex;
         justify-content: space-between;
@@ -292,6 +309,20 @@ interface DashboardCard {
         border-top: none;
         border-left: 8px solid var(--mat-sys-primary, #1976d2);
         position: relative;
+        overflow: hidden;
+      }
+      .dashboard-card::after {
+        content: '';
+        position: absolute;
+        right: -15px;
+        bottom: -15px;
+        width: 60px;
+        height: 60px;
+        opacity: 0.03;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23000' stroke-width='5'/%3E%3Cpath d='M4 50 H36' stroke='%23000' stroke-width='5'/%3E%3Cpath d='M64 50 H96' stroke='%23000' stroke-width='5'/%3E%3Cpath d='M4 50 A46 46 0 0 1 96 50' fill='%23000'/%3E%3Ccircle cx='50' cy='50' r='14' fill='none' stroke='%23000' stroke-width='5'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23000'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: contain;
+        pointer-events: none;
       }
       .dashboard-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
       .dashboard-card.muted { opacity: 0.55; border-left-color: var(--text-hint, rgba(0,0,0,0.2)) !important; background: transparent !important; }

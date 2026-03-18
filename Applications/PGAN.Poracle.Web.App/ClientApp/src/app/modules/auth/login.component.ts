@@ -34,7 +34,14 @@ declare global {
       <div class="login-container">
         <div class="login-brand">
           <div class="brand-icon">
-            <mat-icon>catching_pokemon</mat-icon>
+            <svg viewBox="0 0 100 100" width="56" height="56" class="pokeball-logo">
+              <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="4"/>
+              <path d="M2 50 H38" stroke="rgba(255,255,255,0.9)" stroke-width="4"/>
+              <path d="M62 50 H98" stroke="rgba(255,255,255,0.9)" stroke-width="4"/>
+              <path d="M2 50 A48 48 0 0 1 98 50" fill="rgba(255,255,255,0.3)"/>
+              <circle cx="50" cy="50" r="16" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="4"/>
+              <circle cx="50" cy="50" r="8" fill="rgba(255,255,255,0.9)"/>
+            </svg>
           </div>
           <h1 class="brand-title">PoGO Alerts Network</h1>
           <p class="brand-description">DM Alerts Configuration</p>
@@ -146,13 +153,16 @@ declare global {
         align-items: center;
         justify-content: center;
         border: 2px solid rgba(255, 255, 255, 0.3);
+        animation: pokepulse 3s ease-in-out infinite;
       }
 
-      .brand-icon mat-icon {
-        font-size: 36px;
-        width: 36px;
-        height: 36px;
-        color: #fff;
+      @keyframes pokepulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.9; }
+      }
+
+      .pokeball-logo {
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
       }
 
       .brand-title {

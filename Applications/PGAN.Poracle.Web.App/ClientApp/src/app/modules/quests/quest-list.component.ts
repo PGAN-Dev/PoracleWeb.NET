@@ -113,7 +113,12 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
           </mat-card>
         } @empty {
           <div class="empty-state">
-            <mat-icon class="empty-icon">assignment</mat-icon>
+            <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+              <line x1="40" y1="95" x2="40" y2="45" stroke="#9c27b0" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="40" cy="35" r="22" fill="#9c27b0" opacity="0.1" stroke="#9c27b0" stroke-width="3"/>
+              <rect x="30" y="28" width="20" height="14" rx="3" fill="#9c27b0" opacity="0.25"/>
+              <circle cx="40" cy="35" r="5" fill="#9c27b0" opacity="0.5"/>
+            </svg>
             <h2 class="empty-title">No Quest Alarms Configured</h2>
             <p class="empty-subtitle">Track field research tasks by reward type</p>
             <button mat-flat-button class="cta-quest" (click)="openAddDialog()">
@@ -286,12 +291,8 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
         text-align: center;
       }
       .empty-icon {
-        font-size: 72px;
-        width: 72px;
-        height: 72px;
-        color: #9c27b0;
         margin-bottom: 16px;
-        opacity: 0.7;
+        opacity: 0.8;
       }
       .empty-title {
         font-size: 20px;
