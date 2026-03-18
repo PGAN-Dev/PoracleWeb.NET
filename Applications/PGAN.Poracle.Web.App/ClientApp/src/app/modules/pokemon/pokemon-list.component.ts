@@ -79,7 +79,7 @@ import {
             class="gen-chip"
             [class.gen-active]="activeGen() === gen"
             (click)="activeGen.set(activeGen() === gen ? null : gen)"
-          >Gen {{ gen.label }}</button>
+          >{{ gen.label }}</button>
         }
         @if (activeGen()) {
           <span class="gen-count">{{ filteredMonsters().length }} alarm{{ filteredMonsters().length === 1 ? '' : 's' }}</span>
@@ -247,7 +247,7 @@ import {
       .gen-filter-bar {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
         padding: 0 24px 12px;
         flex-wrap: wrap;
       }
@@ -255,13 +255,15 @@ import {
         border: 1px solid var(--card-border, rgba(0,0,0,0.15));
         background: transparent;
         border-radius: 16px;
-        padding: 5px 14px;
+        padding: 4px 10px;
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.15s ease;
         color: var(--mat-sys-on-surface, #333);
         line-height: 1.4;
+        min-width: 28px;
+        text-align: center;
       }
       .gen-chip:hover {
         background: rgba(76, 175, 80, 0.08);

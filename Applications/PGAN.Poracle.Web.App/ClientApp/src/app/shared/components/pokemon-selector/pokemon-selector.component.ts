@@ -113,19 +113,21 @@ interface GenRange { label: string; min: number; max: number; }
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--text-secondary, rgba(0,0,0,0.54));
-        margin-right: 4px;
+        margin-right: 2px;
       }
       .gen-chip {
         border: 1px solid var(--card-border, rgba(0,0,0,0.15));
         background: transparent;
         border-radius: 16px;
-        padding: 4px 12px;
-        font-size: 13px;
+        padding: 3px 9px;
+        font-size: 12px;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.15s ease;
         color: var(--mat-sys-on-surface, #333);
         line-height: 1.4;
+        min-width: 24px;
+        text-align: center;
       }
       .gen-chip:hover {
         background: rgba(25, 118, 210, 0.08);
