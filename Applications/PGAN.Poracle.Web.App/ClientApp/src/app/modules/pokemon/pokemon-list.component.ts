@@ -11,8 +11,10 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MonsterService } from '../../core/services/monster.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { IconService } from '../../core/services/icon.service';
 import { Monster } from '../../core/models';
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
@@ -20,6 +22,7 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
 @Component({
   selector: 'app-pokemon-list',
@@ -37,6 +40,7 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
   ],
   template: `
     <div class="page-header">
@@ -78,9 +82,21 @@ import {
           <button
             class="gen-chip"
             [class.gen-active]="activeGen() === gen"
+            [style.--gen-color]="gen.color"
+            [style.border-color]="activeGen() === gen ? gen.color : ''"
             (click)="activeGen.set(activeGen() === gen ? null : gen)"
           >G{{ gen.label }}</button>
         }
+        <span class="filter-spacer"></span>
+        <mat-form-field appearance="outline" class="sort-field">
+          <mat-icon matPrefix>sort</mat-icon>
+          <mat-select [value]="sortBy()" (valueChange)="sortBy.set($event)">
+            <mat-option value="name">Name</mat-option>
+            <mat-option value="id">Pokédex #</mat-option>
+            <mat-option value="generation">Generation</mat-option>
+            <mat-option value="evolution">Evolution</mat-option>
+          </mat-select>
+        </mat-form-field>
         @if (activeGen()) {
           <span class="gen-count">{{ filteredMonsters().length }} alarm{{ filteredMonsters().length === 1 ? '' : 's' }}</span>
         }
@@ -121,9 +137,6 @@ import {
               <div class="card-top-actions">
                 @if (monster.clean === 1) {
                   <span class="clean-dot" matTooltip="Clean mode enabled"></span>
-                }
-                @if (monster.template) {
-                  <span class="template-chip" matTooltip="Template: {{ monster.template }}">{{ monster.template }}</span>
                 }
               </div>
             </div>
@@ -266,13 +279,28 @@ import {
         text-align: center;
       }
       .gen-chip:hover {
-        background: rgba(76, 175, 80, 0.08);
-        border-color: #4caf50;
+        background: color-mix(in srgb, var(--gen-color, #4caf50) 10%, transparent);
+        border-color: var(--gen-color, #4caf50);
       }
       .gen-chip.gen-active {
-        background: #4caf50;
+        background: var(--gen-color, #4caf50);
         color: #fff;
-        border-color: #4caf50;
+        border-color: var(--gen-color, #4caf50);
+      }
+      .filter-spacer {
+        flex: 1;
+      }
+      .sort-field {
+        width: 130px;
+        font-size: 12px;
+      }
+      .sort-field .mat-mdc-form-field-subscript-wrapper { display: none; }
+      .sort-field mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 4px;
+        color: var(--text-hint, rgba(0,0,0,0.38));
       }
       .gen-count {
         font-size: 12px;
@@ -334,19 +362,6 @@ import {
         background: #4caf50;
         display: inline-block;
         flex-shrink: 0;
-      }
-      .template-chip {
-        display: inline-block;
-        background: #e8eaf6;
-        color: #3f51b5;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: 500;
-        max-width: 80px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
       .pokemon-img {
         width: 64px;
@@ -501,31 +516,64 @@ export class PokemonListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly iconService = inject(IconService);
 
   readonly monsters = signal<Monster[]>([]);
   readonly loading = signal(true);
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
+  readonly sortBy = signal<'name' | 'id' | 'evolution' | 'generation'>('name');
 
   readonly generations = [
-    { label: '1', min: 1, max: 151 },
-    { label: '2', min: 152, max: 251 },
-    { label: '3', min: 252, max: 386 },
-    { label: '4', min: 387, max: 493 },
-    { label: '5', min: 494, max: 649 },
-    { label: '6', min: 650, max: 721 },
-    { label: '7', min: 722, max: 809 },
-    { label: '8', min: 810, max: 905 },
-    { label: '9', min: 906, max: 1025 },
+    { label: '1', min: 1, max: 151, color: '#4CAF50' },
+    { label: '2', min: 152, max: 251, color: '#FFD600' },
+    { label: '3', min: 252, max: 386, color: '#2196F3' },
+    { label: '4', min: 387, max: 493, color: '#9C27B0' },
+    { label: '5', min: 494, max: 649, color: '#FF5722' },
+    { label: '6', min: 650, max: 721, color: '#E91E63' },
+    { label: '7', min: 722, max: 809, color: '#00BCD4' },
+    { label: '8', min: 810, max: 905, color: '#795548' },
+    { label: '9', min: 906, max: 1025, color: '#607D8B' },
   ];
 
   readonly filteredMonsters = computed(() => {
     const gen = this.activeGen();
-    const all = this.monsters();
-    if (!gen) return all;
-    return all.filter((m) => {
-      if (m.pokemonId === 0) return true; // "All Pokemon" always shows
-      return m.pokemonId >= gen.min && m.pokemonId <= gen.max;
+    const sort = this.sortBy();
+    let list = this.monsters();
+
+    // Filter by generation
+    if (gen) {
+      list = list.filter((m) => {
+        if (m.pokemonId === 0) return true;
+        return m.pokemonId >= gen.min && m.pokemonId <= gen.max;
+      });
+    }
+
+    // Separate "All Pokemon" (id=0) alarms to keep at the top
+    const allPokemon = list.filter((m) => m.pokemonId === 0);
+    const specific = list.filter((m) => m.pokemonId !== 0);
+
+    // Sort specific alarms
+    specific.sort((a, b) => {
+      if (sort === 'name') {
+        return this.getPokemonName(a.pokemonId).localeCompare(this.getPokemonName(b.pokemonId));
+      } else if (sort === 'id') {
+        return a.pokemonId - b.pokemonId;
+      } else if (sort === 'generation') {
+        // Sort by generation (dex number range), then by name within each gen
+        const genA = this.getGenNumber(a.pokemonId);
+        const genB = this.getGenNumber(b.pokemonId);
+        if (genA !== genB) return genA - genB;
+        return this.getPokemonName(a.pokemonId).localeCompare(this.getPokemonName(b.pokemonId));
+      } else {
+        // Evolution line: sort by base evolution Pokemon ID
+        const baseA = this.getBaseEvolution(a.pokemonId);
+        const baseB = this.getBaseEvolution(b.pokemonId);
+        if (baseA !== baseB) return baseA - baseB;
+        return a.pokemonId - b.pokemonId; // Within same line, sort by dex number
+      }
     });
+
+    return [...allPokemon, ...specific];
   });
 
   ngOnInit(): void {
@@ -547,20 +595,29 @@ export class PokemonListComponent implements OnInit {
     });
   }
 
+  private getGenNumber(id: number): number {
+    for (const gen of this.generations) {
+      if (id >= gen.min && id <= gen.max) return +gen.label;
+    }
+    return 10;
+  }
+
+  private getBaseEvolution(id: number): number {
+    return this.masterData.getBaseEvolution(id);
+  }
+
   getPokemonName(id: number): string {
     if (id === 0) return 'All Pokemon';
     return this.masterData.getPokemonName(id);
   }
 
   getPokemonImage(pokemonId: number, form: number): string {
-    if (pokemonId === 0) return '';
-    const formSuffix = form > 0 ? `_f${form}` : '';
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${pokemonId}${formSuffix}.png`;
+    return this.iconService.getPokemonUrl(pokemonId, form);
   }
 
   onImageError(event: Event, pokemonId: number): void {
     const img = event.target as HTMLImageElement;
-    const fallback = `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${pokemonId}.png`;
+    const fallback = this.iconService.getPokemonFallbackUrl(pokemonId);
     if (!img.src.endsWith(`/${pokemonId}.png`)) {
       img.src = fallback;
     } else {
@@ -691,26 +748,16 @@ export class PokemonListComponent implements OnInit {
   }
 
   updateAllDistance(): void {
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        title: 'Update All Distance',
-        message:
-          'This will update the distance for all Pokemon alarms. Enter the new distance in the field below.',
-        confirmText: 'Update',
-      } as ConfirmDialogData,
-    });
-    ref.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        // Default to 0 for now; a more advanced approach would use a custom dialog
-        this.monsterService.updateAllDistance(0).subscribe({
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    ref.afterClosed().subscribe((distance) => {
+      if (distance !== null && distance !== undefined) {
+        this.monsterService.updateAllDistance(distance).subscribe({
           next: () => {
             this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
             this.loadMonsters();
           },
           error: () => {
-            this.snackBar.open('Failed to update distances', 'OK', {
-              duration: 3000,
-            });
+            this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 });
           },
         });
       }

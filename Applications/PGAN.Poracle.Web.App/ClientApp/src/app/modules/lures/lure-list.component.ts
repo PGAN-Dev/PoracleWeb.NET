@@ -13,6 +13,7 @@ import { Lure } from '../../core/models';
 import { LureAddDialogComponent } from './lure-add-dialog.component';
 import { LureEditDialogComponent } from './lure-edit-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
 @Component({
   selector: 'app-lure-list', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,7 +26,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
       </div>
       <div class="header-actions">
         <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions"><mat-icon>more_vert</mat-icon></button>
-        <mat-menu #bulkMenu="matMenu"><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu>
+        <mat-menu #bulkMenu="matMenu"><button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu>
         <button mat-fab (click)="openAddDialog()" style="background:#e91e63;color:#fff"><mat-icon>add</mat-icon></button>
       </div>
     </div>
@@ -124,6 +125,17 @@ export class LureListComponent implements OnInit {
   deleteLure(lure: Lure): void {
     this.dialog.open(ConfirmDialogComponent, { data: { title: 'Delete Lure Alarm', message: `Delete the ${this.getLureName(lure.lureId)} lure alarm?`, confirmText: 'Delete', warn: true } as ConfirmDialogData })
       .afterClosed().subscribe(c => { if (c) this.lureService.delete(lure.uid).subscribe({ next: () => { this.snackBar.open('Lure alarm deleted', 'OK', { duration: 3000 }); this.loadLures(); }, error: () => this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 }) }); });
+  }
+  updateAllDistance(): void {
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    ref.afterClosed().subscribe((distance) => {
+      if (distance !== null && distance !== undefined) {
+        this.lureService.updateAllDistance(distance).subscribe({
+          next: () => { this.snackBar.open('All distances updated', 'OK', { duration: 3000 }); this.loadLures(); },
+          error: () => this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 }),
+        });
+      }
+    });
   }
   deleteAll(): void {
     this.dialog.open(ConfirmDialogComponent, { data: { title: 'Delete All Lure Alarms', message: 'Delete ALL lure alarms? This cannot be undone.', confirmText: 'Delete All', warn: true } as ConfirmDialogData })

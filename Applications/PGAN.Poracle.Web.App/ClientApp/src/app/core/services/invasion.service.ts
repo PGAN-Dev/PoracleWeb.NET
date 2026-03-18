@@ -28,4 +28,8 @@ export class InvasionService {
   deleteAll(): Observable<void> {
     return this.http.delete<void>(`${this.config.apiHost}/api/invasions`);
   }
+
+  updateAllDistance(distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/invasions/distance`, distance);
+  }
 }

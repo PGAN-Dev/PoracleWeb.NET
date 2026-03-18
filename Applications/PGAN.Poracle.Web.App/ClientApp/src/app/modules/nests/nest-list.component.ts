@@ -14,6 +14,8 @@ import { Nest } from '../../core/models';
 import { NestAddDialogComponent } from './nest-add-dialog.component';
 import { NestEditDialogComponent } from './nest-edit-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-nest-list', standalone: true, changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,7 +28,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
       </div>
       <div class="header-actions">
         <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions"><mat-icon>more_vert</mat-icon></button>
-        <mat-menu #bulkMenu="matMenu"><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu>
+        <mat-menu #bulkMenu="matMenu"><button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu>
         <button mat-fab (click)="openAddDialog()" style="background:#8bc34a;color:#fff"><mat-icon>add</mat-icon></button>
       </div>
     </div>
@@ -110,11 +112,12 @@ export class NestListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly iconService = inject(IconService);
   readonly nests = signal<Nest[]>([]); readonly loading = signal(true);
   ngOnInit(): void { this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(); this.loadNests(); }
   loadNests(): void { this.loading.set(true); this.nestService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: n => { this.nests.set(n); this.loading.set(false); }, error: () => this.loading.set(false) }); }
   getPokemonName(id: number): string { return this.masterData.getPokemonName(id); }
-  getPokemonImage(pokemonId: number): string { return pokemonId === 0 ? '' : `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${pokemonId}.png`; }
+  getPokemonImage(pokemonId: number): string { return this.iconService.getPokemonUrl(pokemonId); }
   onImageError(event: Event): void { (event.target as HTMLImageElement).style.display = 'none'; }
   formatDistance(meters: number): string { return meters >= 1000 ? `${(meters/1000).toFixed(1)} km` : `${meters} m`; }
   openAddDialog(): void { this.dialog.open(NestAddDialogComponent, { width: '600px', maxHeight: '90vh' }).afterClosed().subscribe(r => { if (r) this.loadNests(); }); }
@@ -122,6 +125,17 @@ export class NestListComponent implements OnInit {
   deleteNest(nest: Nest): void {
     this.dialog.open(ConfirmDialogComponent, { data: { title: 'Delete Nest Alarm', message: `Delete the alarm for ${this.getPokemonName(nest.pokemonId)}?`, confirmText: 'Delete', warn: true } as ConfirmDialogData })
       .afterClosed().subscribe(c => { if (c) this.nestService.delete(nest.uid).subscribe({ next: () => { this.snackBar.open('Nest alarm deleted', 'OK', { duration: 3000 }); this.loadNests(); }, error: () => this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 }) }); });
+  }
+  updateAllDistance(): void {
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    ref.afterClosed().subscribe((distance) => {
+      if (distance !== null && distance !== undefined) {
+        this.nestService.updateAllDistance(distance).subscribe({
+          next: () => { this.snackBar.open('All distances updated', 'OK', { duration: 3000 }); this.loadNests(); },
+          error: () => this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 }),
+        });
+      }
+    });
   }
   deleteAll(): void {
     this.dialog.open(ConfirmDialogComponent, { data: { title: 'Delete All Nest Alarms', message: 'Delete ALL nest alarms? This cannot be undone.', confirmText: 'Delete All', warn: true } as ConfirmDialogData })

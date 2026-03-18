@@ -71,6 +71,13 @@
   min-height: 56px;
   background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
   color: #fff !important;
+
+  .mat-mdc-icon-button,
+  .mat-mdc-icon-button .mat-icon,
+  mat-icon,
+  a {
+    color: #fff !important;
+  }
 }
 
 .app-title-block {

@@ -19,6 +19,7 @@ services:
       - Discord__ClientId=${DISCORD_CLIENT_ID}
       - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
       - Discord__BotToken=${DISCORD_BOT_TOKEN:-}
+      - Discord__GuildId=${DISCORD_GUILD_ID:-}
       # Telegram
       - Telegram__Enabled=${TELEGRAM_ENABLED:-false}
       - Telegram__BotToken=${TELEGRAM_BOT_TOKEN:-}
@@ -31,6 +32,8 @@ services:
       - Cors__AllowedOrigins__0=${CORS_ORIGIN:-}
       # DTS source path (inside container)
       - DTS_SOURCE_DIR=/poracle-config
+      # Data directory for avatar cache, DTS cache, etc.
+      - DATA_DIR=/app/data
     volumes:
       # Persist avatar cache across restarts
       - ./data:/app/data

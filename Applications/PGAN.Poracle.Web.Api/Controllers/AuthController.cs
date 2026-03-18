@@ -145,7 +145,14 @@ public class AuthController : BaseApiController
         if (human == null)
             return Redirect($"{frontendUrl}/login?error=user_not_registered");
 
+        // Role-based access: check Discord guild roles if enabled
         var (isAdmin, managedWebhooks) = await GetRolesAsync(discordId);
+        if (!isAdmin)
+        {
+            var roleCheckResult = await CheckRoleAccessAsync(discordId);
+            if (roleCheckResult != null)
+                return Redirect($"{frontendUrl}/login?error={roleCheckResult}");
+        }
 
         var userInfo = new UserInfo
         {
@@ -426,6 +433,78 @@ public class AuthController : BaseApiController
         }
 
         return (false, managed.Count > 0 ? managed.ToArray() : null);
+    }
+
+    /// <summary>
+    /// Checks if role-based access is enabled and whether the user has an allowed role.
+    /// Returns null if access is granted, or an error string if denied.
+    /// </summary>
+    private async Task<string?> CheckRoleAccessAsync(string discordId)
+    {
+        try
+        {
+            var allSettings = await _pwebSettingService.GetAllAsync();
+            var settingsMap = allSettings.ToDictionary(s => s.Setting ?? "", s => s.Value ?? "");
+
+            // Check if role-based access is enabled
+            if (!settingsMap.TryGetValue("enable_roles", out var enableRoles) ||
+                !string.Equals(enableRoles, "True", StringComparison.OrdinalIgnoreCase))
+                return null; // Not enabled, allow access
+
+            // Get allowed role IDs
+            if (!settingsMap.TryGetValue("allowed_role_ids", out var roleIdsStr) ||
+                string.IsNullOrWhiteSpace(roleIdsStr))
+                return null; // No roles configured, allow everyone
+
+            var allowedRoles = new HashSet<string>(
+                roleIdsStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+            // Need bot token and guild ID to check roles
+            if (string.IsNullOrEmpty(_discordSettings.BotToken) || string.IsNullOrEmpty(_discordSettings.GuildId))
+            {
+                _logger.LogWarning("Role-based access enabled but Discord BotToken or GuildId not configured.");
+                return null; // Misconfigured, fail open
+            }
+
+            // Fetch user's guild member data via bot API
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", _discordSettings.BotToken);
+
+            var response = await httpClient.GetAsync(
+                $"https://discordapp.com/api/v10/guilds/{_discordSettings.GuildId}/members/{discordId}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to fetch guild member {UserId}: {Status}", discordId, response.StatusCode);
+                // 404 = not in guild, 403 = bot doesn't have access
+                return response.StatusCode == System.Net.HttpStatusCode.NotFound
+                    ? "not_in_guild"
+                    : "role_check_failed";
+            }
+
+            var memberJson = await response.Content.ReadFromJsonAsync<JsonElement>();
+            var userRoles = new HashSet<string>();
+            if (memberJson.TryGetProperty("roles", out var rolesArray) &&
+                rolesArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var role in rolesArray.EnumerateArray())
+                    if (role.GetString() is { } roleId)
+                        userRoles.Add(roleId);
+            }
+
+            // User must have ALL of the allowed roles
+            if (allowedRoles.IsSubsetOf(userRoles))
+                return null;
+
+            _logger.LogInformation("User {UserId} denied: no matching roles.", discordId);
+            return "missing_required_role";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Role check failed for {UserId}, allowing access.", discordId);
+            return null; // Fail open on errors
+        }
     }
 
     private string GetFrontendUrl()

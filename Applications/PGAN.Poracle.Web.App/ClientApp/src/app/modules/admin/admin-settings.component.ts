@@ -17,6 +17,8 @@ interface SettingMeta {
   label: string;
   description: string;
   type: 'text' | 'url' | 'boolean';
+  /** Only show this setting when another boolean setting is True */
+  showWhen?: string;
 }
 
 interface SettingGroup {
@@ -71,10 +73,8 @@ const SETTING_GROUPS: SettingGroup[] = [
     icon: 'admin_panel_settings',
     color: '#f44336',
     settings: [
-      { key: 'enable_roles', label: 'Enable Role-Based Access', description: 'Restrict access based on Discord roles.', type: 'boolean' },
-      { key: 'enable_admin_dis', label: 'Enable Admin Discord Features', description: 'Enable Discord-specific admin tools.', type: 'boolean' },
-      { key: 'admin_disable_userlist', label: 'Hide User List from Non-Admins', description: 'Prevent non-admin users from seeing other registered users.', type: 'boolean' },
-      { key: 'admin_channel_id', label: 'Admin Channel', description: 'Discord channel ID used for admin notifications.', type: 'text' },
+      { key: 'enable_roles', label: 'Enable Role-Based Access', description: 'Only allow users with specific Discord roles to log in. Requires Bot Token and Guild ID.', type: 'boolean' },
+      { key: 'allowed_role_ids', label: 'Allowed Role IDs', description: 'Comma-separated Discord role IDs that grant access (e.g. "123456789,987654321"). Leave empty to allow all.', type: 'text', showWhen: 'enable_roles' },
       { key: 'allowed_languages', label: 'Allowed Languages', description: 'Comma-separated list of language codes users can select (e.g. "en,de,fr").', type: 'text' },
     ],
   },
@@ -102,10 +102,6 @@ const SETTING_GROUPS: SettingGroup[] = [
     color: '#2e7d32',
     settings: [
       { key: 'provider_url', label: 'Map Tile URL', description: 'URL template for the map tile provider (used for static maps).', type: 'url' },
-      { key: 'uicons_pkmn', label: 'Pokémon Icons URL', description: 'Base URL for UIcons Pokémon sprite assets.', type: 'url' },
-      { key: 'uicons_gym', label: 'Gym Icons URL', description: 'Base URL for UIcons gym sprite assets.', type: 'url' },
-      { key: 'uicons_raid', label: 'Raid Icons URL', description: 'Base URL for UIcons raid sprite assets.', type: 'url' },
-      { key: 'uicons_reward', label: 'Reward Icons URL', description: 'Base URL for UIcons quest reward sprite assets.', type: 'url' },
     ],
   },
   {
@@ -177,7 +173,7 @@ const SETTING_GROUPS: SettingGroup[] = [
 
             <div class="section-rows">
               @for (meta of group.settings; track meta.key; let rowLast = $last) {
-                @if (getSettingValue(meta.key) !== null) {
+                @if (getSettingValue(meta.key) !== null && isSettingVisible(meta)) {
                   <div class="setting-row" [class.modified]="modifiedSettings().has(meta.key)">
                     <div class="setting-info">
                       <span class="setting-label">{{ meta.label }}</span>
@@ -214,6 +210,46 @@ const SETTING_GROUPS: SettingGroup[] = [
             <div class="section-gap"></div>
           }
         }
+
+        <!-- Icon Repository Selector -->
+        <div class="section-gap"></div>
+        <section class="settings-section">
+          <div class="section-header" style="border-left: 4px solid #2e7d32">
+            <mat-icon class="section-icon" style="color: #2e7d32">image</mat-icon>
+            <span class="section-label">Icon Repository</span>
+          </div>
+          <div class="repo-selector">
+            @for (repo of iconRepos; track repo.name) {
+              <div class="repo-card" [class.repo-active]="isRepoActive(repo)" (click)="selectRepo(repo)">
+                <div class="repo-header">
+                  <div class="repo-radio">
+                    @if (isRepoActive(repo)) {
+                      <mat-icon class="repo-check">check_circle</mat-icon>
+                    } @else {
+                      <mat-icon class="repo-uncheck">radio_button_unchecked</mat-icon>
+                    }
+                  </div>
+                  <div class="repo-info">
+                    <span class="repo-name">{{ repo.name }}</span>
+                    <span class="repo-url">{{ repo.base }}</span>
+                  </div>
+                </div>
+                <div class="repo-preview-row">
+                  @for (img of repo.previewImages; track img.path) {
+                    <div class="icon-preview-item">
+                      <img [src]="repo.base + '/' + img.path"
+                           class="icon-preview-img"
+                           (error)="onPreviewError($event)"
+                           (load)="onPreviewLoad($event)"
+                           loading="lazy" />
+                      <span class="icon-preview-name">{{ img.name }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </section>
 
         @if (unknownSettings().length > 0) {
           <div class="section-gap"></div>
@@ -301,6 +337,71 @@ const SETTING_GROUPS: SettingGroup[] = [
 
       .inline-spinner { display: inline-block; margin-right: 8px; vertical-align: middle; }
 
+      .repo-selector {
+        display: flex;
+        flex-direction: column;
+      }
+      .repo-card {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--divider, rgba(0,0,0,0.08));
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .repo-card:last-child { border-bottom: none; }
+      .repo-card:hover { background: rgba(46, 125, 50, 0.04); }
+      .repo-card.repo-active {
+        background: rgba(46, 125, 50, 0.06);
+        border-left: 3px solid #2e7d32;
+      }
+      .repo-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .repo-radio { flex-shrink: 0; display: flex; }
+      .repo-check { color: #2e7d32; font-size: 22px; width: 22px; height: 22px; }
+      .repo-uncheck { color: var(--text-hint, rgba(0,0,0,0.3)); font-size: 22px; width: 22px; height: 22px; }
+      .repo-info { display: flex; flex-direction: column; min-width: 0; }
+      .repo-name { font-size: 14px; font-weight: 500; }
+      .repo-url {
+        font-size: 11px;
+        color: var(--text-hint, rgba(0,0,0,0.38));
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .repo-preview-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding-left: 34px;
+      }
+      .icon-preview-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .icon-preview-img {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+        border-radius: 8px;
+        background: var(--skeleton-bg, rgba(0,0,0,0.05));
+        padding: 4px;
+        transition: opacity 0.2s;
+      }
+      .icon-preview-img.preview-error {
+        opacity: 0.15;
+        filter: grayscale(1);
+      }
+      .icon-preview-name {
+        font-size: 10px;
+        color: var(--text-hint, rgba(0,0,0,0.38));
+        text-align: center;
+      }
+
       @media (max-width: 599px) {
         .setting-row {
           flex-direction: column;
@@ -329,8 +430,11 @@ export class AdminSettingsComponent implements OnInit {
     return map;
   });
 
-  private readonly allDefinedKeys = new Set(SETTING_GROUPS.flatMap((g) => g.settings.map((s) => s.key)));
-  private readonly internalPrefixes = ['webhook_delegates:', 'scan_db', 'cf_', 'api_address', 'api_secret', 'source_raid_bosses', 'telegram_bot_token'];
+  private readonly allDefinedKeys = new Set([
+    ...SETTING_GROUPS.flatMap((g) => g.settings.map((s) => s.key)),
+    'uicons_pkmn', 'uicons_gym', 'uicons_raid', 'uicons_reward',
+  ]);
+  private readonly internalPrefixes = ['webhook_delegates:', 'scan_db', 'cf_', 'api_address', 'api_secret', 'source_raid_bosses', 'telegram_bot_token', 'enable_admin_dis', 'admin_disable_userlist', 'admin_channel_id'];
 
   readonly visibleGroups = computed(() =>
     SETTING_GROUPS.filter((g) => g.settings.some((s) => this.settingMap().has(s.key))),
@@ -344,6 +448,98 @@ export class AdminSettingsComponent implements OnInit {
     ),
   );
 
+  readonly iconRepos = [
+    {
+      name: 'Whitewillem (Ingame)',
+      base: 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons',
+      previewImages: [
+        { path: 'pokemon/25.png', name: 'Pikachu' },
+        { path: 'pokemon/6.png', name: 'Charizard' },
+        { path: 'pokemon/150.png', name: 'Mewtwo' },
+        { path: 'raid/egg/5.png', name: 'T5 Egg' },
+        { path: 'gym/1.png', name: 'Mystic' },
+      ],
+    },
+    {
+      name: 'Nileplumb (Home)',
+      base: 'https://raw.githubusercontent.com/nileplumb/PkmnHomeIcons/master/UICONS',
+      previewImages: [
+        { path: 'pokemon/25.png', name: 'Pikachu' },
+        { path: 'pokemon/6.png', name: 'Charizard' },
+        { path: 'pokemon/150.png', name: 'Mewtwo' },
+        { path: 'raid/egg/5.png', name: 'T5 Egg' },
+        { path: 'gym/1.png', name: 'Mystic' },
+      ],
+    },
+    {
+      name: 'Nileplumb (Shuffle)',
+      base: 'https://raw.githubusercontent.com/nileplumb/PkmnShuffleMap/master/UICONS',
+      previewImages: [
+        { path: 'pokemon/25.png', name: 'Pikachu' },
+        { path: 'pokemon/6.png', name: 'Charizard' },
+        { path: 'pokemon/150.png', name: 'Mewtwo' },
+        { path: 'raid/egg/5.png', name: 'T5 Egg' },
+        { path: 'gym/1.png', name: 'Mystic' },
+      ],
+    },
+    {
+      name: 'Jms412 (Home)',
+      base: 'https://raw.githubusercontent.com/jms412/PkmnHomeIcons/master/UICONS',
+      previewImages: [
+        { path: 'pokemon/25.png', name: 'Pikachu' },
+        { path: 'pokemon/6.png', name: 'Charizard' },
+        { path: 'pokemon/150.png', name: 'Mewtwo' },
+        { path: 'raid/egg/5.png', name: 'T5 Egg' },
+        { path: 'gym/1.png', name: 'Mystic' },
+      ],
+    },
+    {
+      name: 'Jms412 (Pokedex)',
+      base: 'https://raw.githubusercontent.com/jms412/PkmnPokedexIcons/master/UICONS',
+      previewImages: [
+        { path: 'pokemon/25.png', name: 'Pikachu' },
+        { path: 'pokemon/6.png', name: 'Charizard' },
+        { path: 'pokemon/150.png', name: 'Mewtwo' },
+        { path: 'raid/egg/5.png', name: 'T5 Egg' },
+        { path: 'gym/1.png', name: 'Mystic' },
+      ],
+    },
+  ];
+
+  isRepoActive(repo: { base: string }): boolean {
+    const current = (this.getSettingValue('uicons_pkmn') ?? '').toLowerCase();
+    return current.startsWith(repo.base.toLowerCase());
+  }
+
+  selectRepo(repo: { base: string }): void {
+    const keys: Record<string, string> = {
+      uicons_pkmn: `${repo.base}/pokemon`,
+      uicons_raid: `${repo.base}/raid`,
+      uicons_gym: `${repo.base}/gym`,
+      uicons_reward: `${repo.base}/reward`,
+    };
+    for (const [key, value] of Object.entries(keys)) {
+      this.applyChange(key, value);
+      // Also update the settings list so the value is reflected immediately
+      this.settings.update((list) => {
+        const exists = list.some((s) => s.setting === key);
+        if (exists) return list.map((s) => s.setting === key ? { ...s, value } : s);
+        return [...list, { setting: key, value }];
+      });
+    }
+    this.snackBar.open(`Selected ${repo.base.split('/').pop()} icons — click Save to apply`, 'OK', { duration: 4000 });
+  }
+
+  onPreviewError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.classList.add('preview-error');
+  }
+
+  onPreviewLoad(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.classList.remove('preview-error');
+  }
+
   ngOnInit(): void {
     this.settingsService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (settings) => { this.settings.set(settings); this.settingsLoading.set(false); },
@@ -354,6 +550,11 @@ export class AdminSettingsComponent implements OnInit {
   getSettingValue(key: string): string | null | undefined {
     const map = this.settingMap();
     return map.has(key) ? map.get(key) ?? null : undefined;
+  }
+
+  isSettingVisible(meta: SettingMeta): boolean {
+    if (!meta.showWhen) return true;
+    return this.getBool(meta.showWhen);
   }
 
   getBool(key: string): boolean {

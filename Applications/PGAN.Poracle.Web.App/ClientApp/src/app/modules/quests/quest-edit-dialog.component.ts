@@ -17,6 +17,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { Quest, QuestUpdate } from '../../core/models';
+import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-quest-edit-dialog',
@@ -177,6 +178,7 @@ export class QuestEditDialogComponent {
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
+  private readonly iconService = inject(IconService);
 
   saving = signal(false);
 
@@ -190,9 +192,9 @@ export class QuestEditDialogComponent {
 
   getImage(): string {
     if (this.data.rewardType === 7 && this.data.pokemonId > 0) {
-      return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${this.data.pokemonId}.png`;
+      return this.iconService.getPokemonUrl(this.data.pokemonId);
     }
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/quest/${this.data.rewardType}.png`;
+    return this.iconService.getRewardUrl('quest', this.data.rewardType);
   }
 
   getTitle(): string {

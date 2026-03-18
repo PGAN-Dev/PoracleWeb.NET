@@ -19,8 +19,10 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { forkJoin } from 'rxjs';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
+import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-raid-list',
@@ -53,6 +55,9 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
           <mat-icon>more_vert</mat-icon>
         </button>
         <mat-menu #bulkMenu="matMenu">
+          <button mat-menu-item (click)="updateAllDistance()">
+            <mat-icon>straighten</mat-icon> Update All Distance
+          </button>
           <button mat-menu-item (click)="deleteAll()">
             <mat-icon color="warn">delete_sweep</mat-icon> Delete All
           </button>
@@ -438,6 +443,7 @@ export class RaidListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly iconService = inject(IconService);
 
   readonly raids = signal<Raid[]>([]);
   readonly eggs = signal<Egg[]>([]);
@@ -464,9 +470,9 @@ export class RaidListComponent implements OnInit {
 
   getRaidImage(raid: Raid): string {
     if (raid.pokemonId && raid.pokemonId !== 9000) {
-      return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${raid.pokemonId}.png`;
+      return this.iconService.getPokemonUrl(raid.pokemonId);
     }
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/egg/${raid.level}.png`;
+    return this.iconService.getRaidEggUrl(raid.level);
   }
 
   getRaidTitle(raid: Raid): string {
@@ -477,7 +483,7 @@ export class RaidListComponent implements OnInit {
   }
 
   getEggImage(level: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/egg/${level}.png`;
+    return this.iconService.getRaidEggUrl(level);
   }
 
   getLevelColor(level: number): string {
@@ -599,6 +605,23 @@ export class RaidListComponent implements OnInit {
           },
           error: () => {
             this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 });
+          },
+        });
+      }
+    });
+  }
+
+  updateAllDistance(): void {
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    ref.afterClosed().subscribe((distance) => {
+      if (distance !== null && distance !== undefined) {
+        forkJoin([this.raidService.updateAllDistance(distance), this.eggService.updateAllDistance(distance)]).subscribe({
+          next: () => {
+            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.loadData();
+          },
+          error: () => {
+            this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 });
           },
         });
       }

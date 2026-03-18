@@ -14,6 +14,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { Nest, NestUpdate } from '../../core/models';
+import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-nest-edit-dialog', standalone: true,
@@ -92,6 +93,7 @@ export class NestEditDialogComponent {
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
+  private readonly iconService = inject(IconService);
   saving = signal(false);
   pokemonName = this.masterData.getPokemonName(this.data.pokemonId);
   form = this.fb.group({
@@ -100,7 +102,7 @@ export class NestEditDialogComponent {
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     ping: [this.data.ping ?? ''], template: [this.data.template ?? ''], clean: [this.data.clean === 1],
   });
-  getPokemonImage(): string { return this.data.pokemonId === 0 ? '' : `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${this.data.pokemonId}.png`; }
+  getPokemonImage(): string { return this.iconService.getPokemonUrl(this.data.pokemonId); }
   onImageError(event: Event): void { (event.target as HTMLImageElement).style.display = 'none'; }
   onDistanceModeChange(): void { if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0); else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1); }
   save(): void {

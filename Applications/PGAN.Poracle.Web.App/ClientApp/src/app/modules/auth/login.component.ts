@@ -10,7 +10,7 @@ import {
   NgZone,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -321,6 +321,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly ngZone = inject(NgZone);
 
   @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
@@ -332,6 +333,21 @@ export class LoginComponent implements OnInit, AfterViewInit {
   private telegramBotUsername = '';
 
   ngOnInit(): void {
+    // Show error from query params (e.g. redirected from failed OAuth)
+    const errorCode = this.route.snapshot.queryParamMap.get('error');
+    if (errorCode) {
+      const messages: Record<string, string> = {
+        user_not_registered: 'Your account is not registered with Poracle. Please register using the bot first.',
+        missing_required_role: 'You do not have the required Discord role to access this site.',
+        not_in_guild: 'You must be a member of the Discord server to access this site.',
+        role_check_failed: 'Unable to verify your Discord roles. Please try again later.',
+        token_exchange_failed: 'Discord authentication failed. Please try again.',
+        missing_code: 'Discord authentication was cancelled or failed.',
+        discord_user_fetch_failed: 'Could not retrieve your Discord profile. Please try again.',
+      };
+      this.error.set(messages[errorCode] || `Login failed: ${errorCode}`);
+    }
+
     // If already logged in, redirect
     if (this.auth.isLoggedIn()) {
       this.router.navigate(['/dashboard']);

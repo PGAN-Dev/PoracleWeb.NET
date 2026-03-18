@@ -10,6 +10,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { TemplateService } from '../../../core/services/template.service';
 import { ConfigService } from '../../../core/services/config.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SettingsService } from '../../../core/services/settings.service';
+import { IconService } from '../../../core/services/icon.service';
 
 interface DtsRaw {
   id: number;
@@ -62,6 +64,7 @@ const CONDITION_LABELS: Record<string, string> = {
     MatSlideToggleModule, MatChipsModule, MatButtonModule,
   ],
   template: `
+    @if (templatesEnabled()) {
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Template</mat-label>
       <mat-select [(ngModel)]="value" (ngModelChange)="onChange($event)">
@@ -111,7 +114,7 @@ const CONDITION_LABELS: Record<string, string> = {
                   }
                 </div>
                 @if (hasThumbnail()) {
-                  <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/25.png"
+                  <img [src]="iconService.getPokemonUrl(25)"
                        class="embed-thumbnail" alt="Pokemon" />
                 }
               </div>
@@ -143,6 +146,7 @@ const CONDITION_LABELS: Record<string, string> = {
           }
         </div>
       </div>
+    }
     }
   `,
   styles: [`
@@ -281,6 +285,10 @@ export class TemplateSelectorComponent implements OnInit {
   private http = inject(HttpClient);
   private config = inject(ConfigService);
   private auth = inject(AuthService);
+  private settings = inject(SettingsService);
+  readonly iconService = inject(IconService);
+
+  templatesEnabled = computed(() => this.settings.siteSettings()['enable_templates']?.toLowerCase() === 'true');
 
   private static dtsCache: DtsRaw[] | null = null;
 

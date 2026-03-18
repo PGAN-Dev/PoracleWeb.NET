@@ -17,7 +17,9 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
+import { IconService } from '../../core/services/icon.service';
 
 @Component({
   selector: 'app-quest-list',
@@ -49,6 +51,9 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
           <mat-icon>more_vert</mat-icon>
         </button>
         <mat-menu #bulkMenu="matMenu">
+          <button mat-menu-item (click)="updateAllDistance()">
+            <mat-icon>straighten</mat-icon> Update All Distance
+          </button>
           <button mat-menu-item (click)="deleteAll()">
             <mat-icon color="warn">delete_sweep</mat-icon> Delete All
           </button>
@@ -322,6 +327,7 @@ export class QuestListComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly iconService = inject(IconService);
 
   readonly quests = signal<Quest[]>([]);
   readonly loading = signal(true);
@@ -346,9 +352,9 @@ export class QuestListComponent implements OnInit {
 
   getQuestImage(quest: Quest): string {
     if (quest.rewardType === 7 && quest.pokemonId > 0) {
-      return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${quest.pokemonId}.png`;
+      return this.iconService.getPokemonUrl(quest.pokemonId);
     }
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/quest/${quest.rewardType}.png`;
+    return this.iconService.getRewardUrl('quest', quest.rewardType);
   }
 
   getQuestTitle(quest: Quest): string {
@@ -437,6 +443,23 @@ export class QuestListComponent implements OnInit {
           },
           error: () => {
             this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 });
+          },
+        });
+      }
+    });
+  }
+
+  updateAllDistance(): void {
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    ref.afterClosed().subscribe((distance) => {
+      if (distance !== null && distance !== undefined) {
+        this.questService.updateAllDistance(distance).subscribe({
+          next: () => {
+            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.loadQuests();
+          },
+          error: () => {
+            this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 });
           },
         });
       }

@@ -52,6 +52,24 @@ import { forkJoin } from 'rxjs';
             <span class="tab-label">Selection</span>
           </ng-template>
           <div class="tab-content">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Team</mat-label>
+              <mat-select [formControl]="commonForm.controls.team">
+                <mat-option [value]="0">
+                  <span class="team-option"><span class="team-dot" style="background:#9e9e9e"></span> Any Team</span>
+                </mat-option>
+                <mat-option [value]="1">
+                  <span class="team-option"><span class="team-dot" style="background:#2196f3"></span> Mystic (Blue)</span>
+                </mat-option>
+                <mat-option [value]="2">
+                  <span class="team-option"><span class="team-dot" style="background:#f44336"></span> Valor (Red)</span>
+                </mat-option>
+                <mat-option [value]="3">
+                  <span class="team-option"><span class="team-dot" style="background:#ffeb3b"></span> Instinct (Yellow)</span>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
             <mat-tab-group [(selectedIndex)]="tabIndex">
               <!-- By Level -->
               <mat-tab label="By Level">
@@ -153,16 +171,6 @@ import { forkJoin } from 'rxjs';
 
             <h4>Common Settings</h4>
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Team</mat-label>
-              <mat-select [formControl]="commonForm.controls.team">
-                <mat-option [value]="0">Any Team</mat-option>
-                <mat-option [value]="1">Mystic (Blue)</mat-option>
-                <mat-option [value]="2">Valor (Red)</mat-option>
-                <mat-option [value]="3">Instinct (Yellow)</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
               <mat-label>Ping / Role</mat-label>
               <input matInput [formControl]="commonForm.controls.ping" placeholder="e.g. @role or empty" />
             </mat-form-field>
@@ -258,6 +266,17 @@ import { forkJoin } from 'rxjs';
       .btn-spinner {
         display: inline-block;
         margin-right: 8px;
+      }
+      .team-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .team-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
       }
     `,
   ],

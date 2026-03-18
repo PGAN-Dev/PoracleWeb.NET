@@ -19,6 +19,7 @@ import { EggService } from '../../core/services/egg.service';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
+import { IconService } from '../../core/services/icon.service';
 
 export interface RaidEditDialogData {
   type: 'raid' | 'egg';
@@ -53,6 +54,24 @@ export interface RaidEditDialogData {
           <span class="item-subtitle">Level {{ data.item.level }}</span>
         </div>
       </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Team</mat-label>
+        <mat-select [formControl]="form.controls.team">
+          <mat-option [value]="0">
+            <span class="team-option"><span class="team-dot" style="background:#9e9e9e"></span> Any Team</span>
+          </mat-option>
+          <mat-option [value]="1">
+            <span class="team-option"><span class="team-dot" style="background:#2196f3"></span> Mystic (Blue)</span>
+          </mat-option>
+          <mat-option [value]="2">
+            <span class="team-option"><span class="team-dot" style="background:#f44336"></span> Valor (Red)</span>
+          </mat-option>
+          <mat-option [value]="3">
+            <span class="team-option"><span class="team-dot" style="background:#ffeb3b"></span> Instinct (Yellow)</span>
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 
       <mat-tab-group animationDuration="200ms" class="alarm-tabs">
         <!-- Tab 1: Settings -->
@@ -101,15 +120,6 @@ export interface RaidEditDialogData {
               [distanceKm]="form.controls.distanceKm.value ?? 0">
             </app-delivery-preview>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Team</mat-label>
-              <mat-select [formControl]="form.controls.team">
-                <mat-option [value]="0">Any Team</mat-option>
-                <mat-option [value]="1">Mystic (Blue)</mat-option>
-                <mat-option [value]="2">Valor (Red)</mat-option>
-                <mat-option [value]="3">Instinct (Yellow)</mat-option>
-              </mat-select>
-            </mat-form-field>
           </div>
         </mat-tab>
 
@@ -210,6 +220,17 @@ export interface RaidEditDialogData {
         color: var(--text-secondary, rgba(0, 0, 0, 0.54));
         font-weight: normal;
       }
+      .team-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .team-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
     `,
   ],
 })
@@ -220,6 +241,7 @@ export class RaidEditDialogComponent {
   private readonly eggService = inject(EggService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
+  private readonly iconService = inject(IconService);
 
   saving = signal(false);
 
@@ -234,13 +256,13 @@ export class RaidEditDialogComponent {
 
   getImage(): string {
     if (this.data.type === 'egg') {
-      return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/egg/${this.data.item.level}.png`;
+      return this.iconService.getRaidEggUrl(this.data.item.level);
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
-      return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${raid.pokemonId}.png`;
+      return this.iconService.getPokemonUrl(raid.pokemonId);
     }
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/egg/${this.data.item.level}.png`;
+    return this.iconService.getRaidEggUrl(this.data.item.level);
   }
 
   getTitle(): string {

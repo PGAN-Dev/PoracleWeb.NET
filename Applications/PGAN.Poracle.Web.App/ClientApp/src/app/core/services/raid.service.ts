@@ -28,4 +28,8 @@ export class RaidService {
   deleteAll(): Observable<void> {
     return this.http.delete<void>(`${this.config.apiHost}/api/raids`);
   }
+
+  updateAllDistance(distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/raids/distance`, distance);
+  }
 }

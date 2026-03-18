@@ -42,6 +42,7 @@ interface CleaningItem {
           <mat-spinner diameter="48"></mat-spinner>
         </div>
       } @else {
+        <div class="cleaning-content">
         <mat-card class="cleaning-card">
           <div class="section-header">
             <mat-icon>auto_delete</mat-icon>
@@ -66,21 +67,20 @@ interface CleaningItem {
             </div>
           }
         </mat-card>
+        </div>
       }
     </div>
   `,
   styles: [
     `
       .cleaning-container {
-        padding: 0 24px 24px;
-        max-width: 600px;
-        margin: 0 auto;
+        padding: 0;
       }
       .page-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        padding: 16px 0;
+        padding: 16px 24px;
         gap: 16px;
       }
       .page-header-text {
@@ -104,6 +104,10 @@ interface CleaningItem {
         display: flex;
         justify-content: center;
         padding: 64px;
+      }
+      .cleaning-content {
+        padding: 0 24px 24px;
+        max-width: 600px;
       }
       .cleaning-card {
         padding: 0;

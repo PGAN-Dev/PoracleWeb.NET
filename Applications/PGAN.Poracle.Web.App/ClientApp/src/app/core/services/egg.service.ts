@@ -28,4 +28,8 @@ export class EggService {
   deleteAll(): Observable<void> {
     return this.http.delete<void>(`${this.config.apiHost}/api/eggs`);
   }
+
+  updateAllDistance(distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/eggs/distance`, distance);
+  }
 }

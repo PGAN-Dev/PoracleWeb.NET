@@ -28,4 +28,8 @@ export class GymService {
   deleteAll(): Observable<void> {
     return this.http.delete<void>(`${this.config.apiHost}/api/gyms`);
   }
+
+  updateAllDistance(distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/gyms/distance`, distance);
+  }
 }

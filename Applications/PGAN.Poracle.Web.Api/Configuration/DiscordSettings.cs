@@ -7,4 +7,5 @@ public class DiscordSettings
     public string RedirectUri { get; set; } = string.Empty;
     public string FrontendUrl { get; set; } = "http://localhost:4200";
     public string BotToken { get; set; } = string.Empty;
+    public string GuildId { get; set; } = string.Empty;
 }

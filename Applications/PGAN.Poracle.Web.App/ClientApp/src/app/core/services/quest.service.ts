@@ -28,4 +28,8 @@ export class QuestService {
   deleteAll(): Observable<void> {
     return this.http.delete<void>(`${this.config.apiHost}/api/quests`);
   }
+
+  updateAllDistance(distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/quests/distance`, distance);
+  }
 }

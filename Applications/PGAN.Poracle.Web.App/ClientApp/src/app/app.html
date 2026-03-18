@@ -32,10 +32,15 @@
       <circle cx="50" cy="50" r="8" fill="currentColor"/>
     </svg>
     <div class="app-title-block">
-      <span class="app-title">PoGO Alerts Network</span>
+      <span class="app-title">{{ siteTitle() }}</span>
       <span class="app-subtitle">DM Alerts Configuration</span>
     </div>
     <span class="toolbar-spacer"></span>
+    @if (customNavLink(); as link) {
+      <a mat-icon-button [href]="link.url" target="_blank" [matTooltip]="link.label">
+        <mat-icon>{{ link.icon || 'launch' }}</mat-icon>
+      </a>
+    }
     <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkMode() ? 'Switch to light mode' : 'Switch to dark mode'">
       <mat-icon>{{ darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>

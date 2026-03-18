@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -17,6 +17,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MonsterService } from '../../core/services/monster.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { IconService } from '../../core/services/icon.service';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { Monster, MonsterUpdate } from '../../core/models';
@@ -132,9 +133,35 @@ import { Monster, MonsterUpdate } from '../../core/models';
               </mat-form-field>
             </div>
 
+            @if (availableForms().length > 0) {
+              <h4>Form & Gender</h4>
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Form</mat-label>
+                  <mat-select [formControl]="form.controls.form">
+                    <mat-option [value]="0">All Forms</mat-option>
+                    @for (f of availableForms(); track f.id) {
+                      <mat-option [value]="f.id">{{ f.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Gender</mat-label>
+                  <mat-select [formControl]="form.controls.gender">
+                    <mat-option [value]="0">All</mat-option>
+                    <mat-option [value]="1">♂ Male</mat-option>
+                    <mat-option [value]="2">♀ Female</mat-option>
+                    <mat-option [value]="3">Genderless</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            }
+
             <mat-expansion-panel>
               <mat-expansion-panel-header>
-                <mat-panel-title>Weight & Gender</mat-panel-title>
+                <mat-panel-title>
+                  <mat-icon>more_horiz</mat-icon> More Filters
+                </mat-panel-title>
               </mat-expansion-panel-header>
               <div class="form-row">
                 <mat-form-field appearance="outline">
@@ -146,19 +173,24 @@ import { Monster, MonsterUpdate } from '../../core/models';
                   <input matInput type="number" [formControl]="form.controls.maxWeight" />
                 </mat-form-field>
               </div>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Gender</mat-label>
-                <mat-select [formControl]="form.controls.gender">
-                  <mat-option [value]="0">All</mat-option>
-                  <mat-option [value]="1">Male</mat-option>
-                  <mat-option [value]="2">Female</mat-option>
-                  <mat-option [value]="3">Genderless</mat-option>
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Form</mat-label>
-                <input matInput type="number" [formControl]="form.controls.form" />
-              </mat-form-field>
+              @if (availableForms().length === 0) {
+                <div class="form-row">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Gender</mat-label>
+                    <mat-select [formControl]="form.controls.gender">
+                      <mat-option [value]="0">All</mat-option>
+                      <mat-option [value]="1">♂ Male</mat-option>
+                      <mat-option [value]="2">♀ Female</mat-option>
+                      <mat-option [value]="3">Genderless</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Form ID</mat-label>
+                    <input matInput type="number" [formControl]="form.controls.form" />
+                    <mat-hint>0 = all forms</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
             </mat-expansion-panel>
           </div>
         </mat-tab>
@@ -352,8 +384,13 @@ export class PokemonEditDialogComponent {
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
+  private readonly iconService = inject(IconService);
 
   saving = signal(false);
+
+  readonly availableForms = computed(() => {
+    return this.masterData.getFormsForPokemon(this.data.pokemonId);
+  });
 
   pokemonName = this.data.pokemonId === 0 ? 'All Pokemon' : this.masterData.getPokemonName(this.data.pokemonId);
 
@@ -386,15 +423,12 @@ export class PokemonEditDialogComponent {
   });
 
   getPokemonImage(): string {
-    if (this.data.pokemonId === 0) return '';
-    const formSuffix = this.data.form > 0 ? `_f${this.data.form}` : '';
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${this.data.pokemonId}${formSuffix}.png`;
+    return this.iconService.getPokemonUrl(this.data.pokemonId, this.data.form);
   }
 
   onImageError(event: Event): void {
-    // Fallback to no-form image
     const img = event.target as HTMLImageElement;
-    const fallback = `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${this.data.pokemonId}.png`;
+    const fallback = this.iconService.getPokemonFallbackUrl(this.data.pokemonId);
     if (!img.src.endsWith(`/${this.data.pokemonId}.png`)) {
       img.src = fallback;
     } else {

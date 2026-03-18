@@ -11,6 +11,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
+import { SettingsService } from './core/services/settings.service';
 import { DashboardCounts } from './core/models';
 import { LanguageSelectorComponent } from './shared/components/language-selector/language-selector.component';
 
@@ -23,6 +24,8 @@ interface NavItem {
   group: 'alarms' | 'settings' | 'admin' | 'webhooks';
   countKey?: keyof DashboardCounts;
   iconColor?: string;
+  /** pweb_settings key that disables this item when set to 'True' */
+  disableKey?: string;
 }
 
 @Component({
@@ -48,18 +51,39 @@ interface NavItem {
 export class App implements OnInit {
   protected readonly auth = inject(AuthService);
   private readonly dashboardService = inject(DashboardService);
+  private readonly settingsService = inject(SettingsService);
 
   protected readonly isMobile = signal(window.innerWidth < 768);
   protected readonly sidenavOpened = signal(!this.isMobile());
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
   protected readonly counts = signal<DashboardCounts | null>(null);
 
+  protected readonly siteTitle = computed(() =>
+    this.settingsService.siteSettings()['custom_title'] || 'PoGO Alerts Network',
+  );
+
+  protected readonly customNavLink = computed(() => {
+    const s = this.settingsService.siteSettings();
+    const url = s['custom_page_url'];
+    const label = s['custom_page_name'];
+    if (!url || !label) return null;
+    const rawIcon = s['custom_page_icon'] || '';
+    // FontAwesome classes (e.g. "fas fa-map") aren't Material icons — use fallback
+    const icon = rawIcon && !rawIcon.includes('fa-') ? rawIcon : 'launch';
+    return { url, label, icon };
+  });
+
   constructor() {
     this.applyTheme();
   }
 
   ngOnInit(): void {
-    // Counts loaded by dashboard component when needed
+    this.settingsService.loadOnce().subscribe();
+  }
+
+  private isFeatureDisabled(key?: string): boolean {
+    if (!key) return false;
+    return this.settingsService.isDisabled(key);
   }
 
   loadCounts(): void {
@@ -71,15 +95,15 @@ export class App implements OnInit {
 
   protected readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', group: 'alarms', iconColor: '#1976d2' },
-    { label: 'Pokemon', icon: 'catching_pokemon', route: '/pokemon', group: 'alarms', countKey: 'pokemon', iconColor: '#4caf50' },
-    { label: 'Raids', icon: 'shield', route: '/raids', group: 'alarms', countKey: 'raids', iconColor: '#f44336' },
-    { label: 'Quests', icon: 'assignment', route: '/quests', group: 'alarms', countKey: 'quests', iconColor: '#9c27b0' },
-    { label: 'Invasions', icon: 'warning', route: '/invasions', group: 'alarms', countKey: 'invasions', iconColor: '#607d8b' },
-    { label: 'Lures', icon: 'place', route: '/lures', group: 'alarms', countKey: 'lures', iconColor: '#e91e63' },
-    { label: 'Nests', icon: 'park', route: '/nests', group: 'alarms', countKey: 'nests', iconColor: '#8bc34a' },
-    { label: 'Gyms', icon: 'fitness_center', route: '/gyms', group: 'alarms', countKey: 'gyms', iconColor: '#00bcd4' },
-    { label: 'Areas', icon: 'map', route: '/areas', group: 'settings', iconColor: '#ff9800' },
-    { label: 'Profiles', icon: 'person', route: '/profiles', group: 'settings', iconColor: '#7b1fa2' },
+    { label: 'Pokemon', icon: 'catching_pokemon', route: '/pokemon', group: 'alarms', countKey: 'pokemon', iconColor: '#4caf50', disableKey: 'disable_mons' },
+    { label: 'Raids', icon: 'shield', route: '/raids', group: 'alarms', countKey: 'raids', iconColor: '#f44336', disableKey: 'disable_raids' },
+    { label: 'Quests', icon: 'assignment', route: '/quests', group: 'alarms', countKey: 'quests', iconColor: '#9c27b0', disableKey: 'disable_quests' },
+    { label: 'Invasions', icon: 'warning', route: '/invasions', group: 'alarms', countKey: 'invasions', iconColor: '#607d8b', disableKey: 'disable_invasions' },
+    { label: 'Lures', icon: 'place', route: '/lures', group: 'alarms', countKey: 'lures', iconColor: '#e91e63', disableKey: 'disable_lures' },
+    { label: 'Nests', icon: 'park', route: '/nests', group: 'alarms', countKey: 'nests', iconColor: '#8bc34a', disableKey: 'disable_nests' },
+    { label: 'Gyms', icon: 'fitness_center', route: '/gyms', group: 'alarms', countKey: 'gyms', iconColor: '#00bcd4', disableKey: 'disable_gyms' },
+    { label: 'Areas', icon: 'map', route: '/areas', group: 'settings', iconColor: '#ff9800', disableKey: 'disable_areas' },
+    { label: 'Profiles', icon: 'person', route: '/profiles', group: 'settings', iconColor: '#7b1fa2', disableKey: 'disable_profiles' },
     { label: 'Cleaning', icon: 'cleaning_services', route: '/cleaning', group: 'settings', iconColor: '#795548' },
     { label: 'Users', icon: 'people', route: '/admin/users', adminOnly: true, group: 'admin', iconColor: '#455a64' },
     { label: 'Webhooks', icon: 'webhook', route: '/admin/webhooks', adminOnly: true, group: 'admin', iconColor: '#00897b' },
@@ -88,11 +112,19 @@ export class App implements OnInit {
   ];
 
   protected readonly alarmNavItems = computed(() =>
-    this.navItems.filter((item) => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin())),
+    this.navItems.filter((item) =>
+      item.group === 'alarms' &&
+      (!item.adminOnly || this.auth.isAdmin()) &&
+      (this.auth.isAdmin() || !this.isFeatureDisabled(item.disableKey)),
+    ),
   );
 
   protected readonly settingsNavItems = computed(() =>
-    this.navItems.filter((item) => item.group === 'settings' && (!item.adminOnly || this.auth.isAdmin())),
+    this.navItems.filter((item) =>
+      item.group === 'settings' &&
+      (!item.adminOnly || this.auth.isAdmin()) &&
+      (this.auth.isAdmin() || !this.isFeatureDisabled(item.disableKey)),
+    ),
   );
 
   protected readonly adminNavItems = computed(() =>

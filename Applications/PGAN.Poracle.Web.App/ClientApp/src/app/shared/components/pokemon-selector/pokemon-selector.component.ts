@@ -16,6 +16,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
+import { IconService } from '../../../core/services/icon.service';
 
 interface GenRange { label: string; min: number; max: number; }
 
@@ -153,6 +154,7 @@ interface GenRange { label: string; min: number; max: number; }
 export class PokemonSelectorComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly masterData = inject(MasterDataService);
+  private readonly iconService = inject(IconService);
 
   multi = input(false);
   selectionChange = output<number[]>();
@@ -246,8 +248,7 @@ export class PokemonSelectorComponent implements OnInit {
   }
 
   getPokemonImage(id: number): string {
-    if (id === 0) return '';
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/${id}.png`;
+    return this.iconService.getPokemonUrl(id);
   }
 
   onImageError(event: Event): void {

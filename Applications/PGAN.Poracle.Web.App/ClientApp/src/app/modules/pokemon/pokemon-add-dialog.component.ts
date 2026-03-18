@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -16,6 +16,7 @@ import { PokemonSelectorComponent } from '../../shared/components/pokemon-select
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { MonsterService } from '../../core/services/monster.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterCreate } from '../../core/models';
 import { forkJoin } from 'rxjs';
 
@@ -123,6 +124,30 @@ import { forkJoin } from 'rxjs';
               </mat-form-field>
             </div>
 
+            @if (availableForms().length > 0) {
+              <h4>Form & Gender</h4>
+              <div class="form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Form</mat-label>
+                  <mat-select [formControl]="filtersForm.controls.form">
+                    <mat-option [value]="0">All Forms</mat-option>
+                    @for (f of availableForms(); track f.id) {
+                      <mat-option [value]="f.id">{{ f.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Gender</mat-label>
+                  <mat-select [formControl]="filtersForm.controls.gender">
+                    <mat-option [value]="0">All</mat-option>
+                    <mat-option [value]="1">♂ Male</mat-option>
+                    <mat-option [value]="2">♀ Female</mat-option>
+                    <mat-option [value]="3">Genderless</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            }
+
             <mat-expansion-panel>
               <mat-expansion-panel-header>
                 <mat-panel-title>
@@ -139,22 +164,24 @@ import { forkJoin } from 'rxjs';
                   <input matInput type="number" [formControl]="filtersForm.controls.maxWeight" />
                 </mat-form-field>
               </div>
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Gender</mat-label>
-                  <mat-select [formControl]="filtersForm.controls.gender">
-                    <mat-option [value]="0">All</mat-option>
-                    <mat-option [value]="1">♂ Male</mat-option>
-                    <mat-option [value]="2">♀ Female</mat-option>
-                    <mat-option [value]="3">Genderless</mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>Form</mat-label>
-                  <input matInput type="number" [formControl]="filtersForm.controls.form" />
-                  <mat-hint>0 = all forms</mat-hint>
-                </mat-form-field>
-              </div>
+              @if (availableForms().length === 0) {
+                <div class="form-row">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Gender</mat-label>
+                    <mat-select [formControl]="filtersForm.controls.gender">
+                      <mat-option [value]="0">All</mat-option>
+                      <mat-option [value]="1">♂ Male</mat-option>
+                      <mat-option [value]="2">♀ Female</mat-option>
+                      <mat-option [value]="3">Genderless</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Form ID</mat-label>
+                    <input matInput type="number" [formControl]="filtersForm.controls.form" />
+                    <mat-hint>0 = all forms</mat-hint>
+                  </mat-form-field>
+                </div>
+              }
             </mat-expansion-panel>
           </div>
         </mat-tab>
@@ -286,11 +313,18 @@ import { forkJoin } from 'rxjs';
 export class PokemonAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
   private readonly monsterService = inject(MonsterService);
+  private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
 
   selectedPokemonIds = signal<number[]>([]);
   saving = signal(false);
+
+  readonly availableForms = computed(() => {
+    const ids = this.selectedPokemonIds();
+    if (ids.length !== 1 || ids[0] === 0) return [];
+    return this.masterData.getFormsForPokemon(ids[0]);
+  });
 
   filtersForm = this.fb.group({
     minIv: [0, [Validators.min(0), Validators.max(100)]],
