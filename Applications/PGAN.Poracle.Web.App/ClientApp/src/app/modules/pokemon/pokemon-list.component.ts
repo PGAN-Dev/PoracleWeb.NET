@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -71,6 +71,22 @@ import {
       </div>
     </div>
 
+    @if (!loading() && monsters().length > 0) {
+      <div class="gen-filter-bar">
+        <button class="gen-chip" [class.gen-active]="activeGen() === null" (click)="activeGen.set(null)">All</button>
+        @for (gen of generations; track gen.label) {
+          <button
+            class="gen-chip"
+            [class.gen-active]="activeGen() === gen"
+            (click)="activeGen.set(activeGen() === gen ? null : gen)"
+          >Gen {{ gen.label }}</button>
+        }
+        @if (activeGen()) {
+          <span class="gen-count">{{ filteredMonsters().length }} alarm{{ filteredMonsters().length === 1 ? '' : 's' }}</span>
+        }
+      </div>
+    }
+
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="48"></mat-spinner>
@@ -78,7 +94,7 @@ import {
       </div>
     } @else {
       <div class="alarm-grid">
-        @for (monster of monsters(); track monster.uid) {
+        @for (monster of filteredMonsters(); track monster.uid) {
           <mat-card class="alarm-card" [class.all-pokemon-card]="monster.pokemonId === 0">
             <div class="card-top" [style.border-top-color]="getTypeColor(monster.pokemonId)">
               @if (monster.pokemonId === 0) {
@@ -227,6 +243,39 @@ import {
         display: flex;
         align-items: center;
         gap: 8px;
+      }
+      .gen-filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 24px 12px;
+        flex-wrap: wrap;
+      }
+      .gen-chip {
+        border: 1px solid var(--card-border, rgba(0,0,0,0.15));
+        background: transparent;
+        border-radius: 16px;
+        padding: 5px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        color: var(--mat-sys-on-surface, #333);
+        line-height: 1.4;
+      }
+      .gen-chip:hover {
+        background: rgba(76, 175, 80, 0.08);
+        border-color: #4caf50;
+      }
+      .gen-chip.gen-active {
+        background: #4caf50;
+        color: #fff;
+        border-color: #4caf50;
+      }
+      .gen-count {
+        font-size: 12px;
+        color: var(--text-secondary, rgba(0,0,0,0.54));
+        margin-left: 4px;
       }
       .loading-container {
         display: flex;
@@ -453,6 +502,29 @@ export class PokemonListComponent implements OnInit {
 
   readonly monsters = signal<Monster[]>([]);
   readonly loading = signal(true);
+  readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
+
+  readonly generations = [
+    { label: '1', min: 1, max: 151 },
+    { label: '2', min: 152, max: 251 },
+    { label: '3', min: 252, max: 386 },
+    { label: '4', min: 387, max: 493 },
+    { label: '5', min: 494, max: 649 },
+    { label: '6', min: 650, max: 721 },
+    { label: '7', min: 722, max: 809 },
+    { label: '8', min: 810, max: 905 },
+    { label: '9', min: 906, max: 1025 },
+  ];
+
+  readonly filteredMonsters = computed(() => {
+    const gen = this.activeGen();
+    const all = this.monsters();
+    if (!gen) return all;
+    return all.filter((m) => {
+      if (m.pokemonId === 0) return true; // "All Pokemon" always shows
+      return m.pokemonId >= gen.min && m.pokemonId <= gen.max;
+    });
+  });
 
   ngOnInit(): void {
     // Ensure masterdata is loaded

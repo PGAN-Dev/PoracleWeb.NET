@@ -17,6 +17,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
 
+interface GenRange { label: string; min: number; max: number; }
+
 @Component({
   selector: 'app-pokemon-selector',
   standalone: true,
@@ -29,6 +31,17 @@ import { MasterDataService, PokemonEntry } from '../../../core/services/masterda
     MatIconModule,
   ],
   template: `
+    <div class="gen-filter">
+      <span class="gen-label">Gen</span>
+      @for (gen of generations; track gen.label) {
+        <button
+          class="gen-chip"
+          [class.gen-active]="activeGen() === gen"
+          (click)="toggleGen(gen)"
+        >{{ gen.label }}</button>
+      }
+    </div>
+
     <mat-form-field class="full-width" appearance="outline">
       <mat-label>Search Pokemon</mat-label>
       <input
@@ -87,6 +100,42 @@ import { MasterDataService, PokemonEntry } from '../../../core/services/masterda
   `,
   styles: [
     `
+      .gen-filter {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+      .gen-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary, rgba(0,0,0,0.54));
+        margin-right: 4px;
+      }
+      .gen-chip {
+        border: 1px solid var(--card-border, rgba(0,0,0,0.15));
+        background: transparent;
+        border-radius: 16px;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        color: var(--mat-sys-on-surface, #333);
+        line-height: 1.4;
+      }
+      .gen-chip:hover {
+        background: rgba(25, 118, 210, 0.08);
+        border-color: #1976d2;
+      }
+      .gen-chip.gen-active {
+        background: #1976d2;
+        color: #fff;
+        border-color: #1976d2;
+      }
       .full-width { width: 100%; }
       .pokemon-option { display: flex; align-items: center; gap: 8px; }
       .pokemon-option-img { width: 32px; height: 32px; object-fit: contain; }
@@ -110,19 +159,42 @@ export class PokemonSelectorComponent implements OnInit {
   allPokemon = signal<PokemonEntry[]>([]);
   selectedPokemon = signal<PokemonEntry[]>([]);
   searchText = signal('');
+  activeGen = signal<GenRange | null>(null);
+
+  readonly generations: GenRange[] = [
+    { label: '1', min: 1, max: 151 },
+    { label: '2', min: 152, max: 251 },
+    { label: '3', min: 252, max: 386 },
+    { label: '4', min: 387, max: 493 },
+    { label: '5', min: 494, max: 649 },
+    { label: '6', min: 650, max: 721 },
+    { label: '7', min: 722, max: 809 },
+    { label: '8', min: 810, max: 905 },
+    { label: '9', min: 906, max: 1025 },
+  ];
 
   filteredPokemon = computed(() => {
     const search = this.searchText().toLowerCase();
     const selected = new Set(this.selectedPokemon().map((p) => p.id));
+    const gen = this.activeGen();
     const all = this.allPokemon();
 
     if (!all.length) return [];
 
     return all.filter((p) => {
       if (this.multi() && selected.has(p.id)) return false;
-      if (!search) return p.id === 0; // Show only "All Pokemon" when no search
+      // When a generation is active, show all Pokemon in that range (plus "All Pokemon")
+      if (gen) {
+        if (p.id === 0) return true;
+        const inGen = p.id >= gen.min && p.id <= gen.max;
+        if (!inGen) return false;
+        if (search) return p.name.toLowerCase().includes(search) || p.id.toString() === search;
+        return true;
+      }
+      // No gen filter: original behavior
+      if (!search) return p.id === 0;
       return p.name.toLowerCase().includes(search) || p.id.toString() === search;
-    }).slice(0, 50); // Limit to 50 results for performance
+    }).slice(0, 100);
   });
 
   ngOnInit(): void {
@@ -149,6 +221,12 @@ export class PokemonSelectorComponent implements OnInit {
       this.searchControl.setValue(this.formatPokemonName(pokemon), { emitEvent: false });
       this.selectionChange.emit([pokemon.id]);
     }
+  }
+
+  toggleGen(gen: GenRange): void {
+    this.activeGen.update((current) => current === gen ? null : gen);
+    this.searchControl.setValue('');
+    this.searchText.set('');
   }
 
   removePokemon(id: number): void {
