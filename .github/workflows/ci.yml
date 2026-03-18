@@ -73,7 +73,7 @@ jobs:
         run: npm run prettier-check
 
       - name: Test (Jest)
-        run: npx jest --ci
+        run: npm test -- --ci
 
       - name: Build (production)
         run: npm run build
