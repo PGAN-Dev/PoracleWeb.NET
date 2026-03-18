@@ -26,7 +26,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
       <div class="header-actions">
         <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions"><mat-icon>more_vert</mat-icon></button>
         <mat-menu #bulkMenu="matMenu"><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu>
-        <button mat-fab (click)="openAddDialog()" matTooltip="Add Gym Alarm" style="background:#00bcd4;color:#fff"><mat-icon>add</mat-icon></button>
+        <button mat-fab (click)="openAddDialog()" style="background:#00bcd4;color:#fff"><mat-icon>add</mat-icon></button>
       </div>
     </div>
     @if (loading()) { <div class="loading-container"><mat-spinner diameter="48"></mat-spinner><p class="loading-text">Loading alarms...</p></div> }
@@ -80,7 +80,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
     .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px; gap: 16px; }
     .loading-text { color: rgba(0,0,0,0.54); font-size: 14px; }
     .alarm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 0 24px 24px; }
-    .alarm-card { position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+    .alarm-card { position: relative; border: 1px solid var(--card-border, rgba(0,0,0,0.12)); border-left: 4px solid #00bcd4; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; }
     .alarm-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
     .card-top { display: flex; align-items: center; gap: 12px; padding: 16px 16px 0; border-top: 4px solid #9E9E9E; }
     .card-top-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }

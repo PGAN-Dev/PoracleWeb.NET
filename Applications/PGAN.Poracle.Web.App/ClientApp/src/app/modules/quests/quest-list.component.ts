@@ -57,7 +57,6 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
           mat-fab
           class="fab-quest"
           (click)="openAddDialog()"
-          matTooltip="Add Quest Alarm"
         >
           <mat-icon>add</mat-icon>
         </button>
@@ -176,6 +175,10 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
       }
       .alarm-card {
         position: relative;
+        border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+        border-left: 4px solid #9c27b0;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         transition:
           transform 0.2s,
           box-shadow 0.2s;

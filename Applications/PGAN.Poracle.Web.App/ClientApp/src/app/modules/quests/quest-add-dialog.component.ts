@@ -47,7 +47,7 @@ import { forkJoin } from 'rxjs';
             <span class="tab-label">Rewards</span>
           </ng-template>
           <div class="tab-content">
-            <mat-tab-group [(selectedIndex)]="tabIndex">
+            <mat-tab-group [(selectedIndex)]="tabIndex" class="reward-tabs">
               <mat-tab label="Pokemon">
                 <div class="tab-content">
                   <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
@@ -190,6 +190,22 @@ import { forkJoin } from 'rxjs';
       }
       .alarm-tabs { margin: 0 -24px; }
       :host ::ng-deep .alarm-tabs .mat-mdc-tab-body-wrapper { padding: 0 24px; }
+      :host ::ng-deep .reward-tabs .mat-mdc-tab-labels {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      :host ::ng-deep .reward-tabs .mat-mdc-tab-labels::-webkit-scrollbar {
+        display: none;
+      }
+      :host ::ng-deep .reward-tabs .mat-mdc-tab-label-container {
+        overflow: visible;
+      }
+      @media (max-width: 599px) {
+        mat-dialog-content {
+          min-width: unset;
+        }
+      }
       .tab-content {
         padding: 16px 0;
       }

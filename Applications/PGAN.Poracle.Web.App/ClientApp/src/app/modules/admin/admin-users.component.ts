@@ -349,6 +349,15 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
       .text-muted {
         color: var(--text-hint, rgba(0, 0, 0, 0.38));
       }
+      @media (max-width: 599px) {
+        .table-container {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        table {
+          min-width: 600px;
+        }
+      }
     `,
   ],
 })

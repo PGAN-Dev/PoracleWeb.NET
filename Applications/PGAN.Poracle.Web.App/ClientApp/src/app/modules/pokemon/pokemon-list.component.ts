@@ -63,7 +63,6 @@ import {
         <button
           mat-fab
           (click)="openAddDialog()"
-          matTooltip="Add Pokemon Alarm"
           [style.background-color]="'#4caf50'"
           [style.color]="'white'"
         >
@@ -242,6 +241,10 @@ import {
       }
       .alarm-card {
         position: relative;
+        border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+        border-left: 4px solid #4caf50;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         transition:
           transform 0.2s,
           box-shadow 0.2s;
@@ -251,7 +254,7 @@ import {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
       }
       .all-pokemon-card {
-        border: 2px dashed rgba(0, 0, 0, 0.2);
+        border-left: 4px solid #9e9e9e;
       }
       .card-top {
         display: flex;

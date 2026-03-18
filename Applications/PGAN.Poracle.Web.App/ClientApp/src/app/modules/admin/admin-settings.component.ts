@@ -300,6 +300,17 @@ const SETTING_GROUPS: SettingGroup[] = [
       .setting-field .mat-mdc-form-field-subscript-wrapper { display: none; }
 
       .inline-spinner { display: inline-block; margin-right: 8px; vertical-align: middle; }
+
+      @media (max-width: 599px) {
+        .setting-row {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+        }
+        .setting-field {
+          width: 100%;
+        }
+      }
     `,
   ],
 })

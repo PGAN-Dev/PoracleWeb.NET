@@ -595,6 +595,15 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
       }
       .empty-state h2 { margin: 16px 0 8px; font-weight: 400; }
       .empty-state p { color: var(--text-secondary, rgba(0, 0, 0, 0.54)); }
+      @media (max-width: 599px) {
+        .table-container {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        table {
+          min-width: 700px;
+        }
+      }
     `,
   ],
 })

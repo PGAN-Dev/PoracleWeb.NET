@@ -345,8 +345,36 @@ interface DashboardCard {
       @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
       @media (max-width: 599px) {
-        .status-row { grid-template-columns: 1fr; }
-        .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+        .page-header { margin: 0 12px; padding: 16px; }
+        .dashboard-content { padding: 16px 12px; }
+        .status-row { grid-template-columns: 1fr; gap: 8px; }
+        .status-card.areas-card,
+        .status-card.profile-card {
+          padding: 10px 16px;
+          gap: 12px;
+        }
+        .areas-card .status-icon-wrap,
+        .profile-card .status-icon-wrap {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+        }
+        .areas-card .status-icon-wrap mat-icon,
+        .profile-card .status-icon-wrap mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+        .areas-card .status-label,
+        .profile-card .status-label {
+          font-size: 11px;
+        }
+        .areas-card .status-value,
+        .profile-card .status-value {
+          font-size: 14px;
+        }
+        .location-map-thumb { height: 90px; }
+        .dashboard-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       }
     `,
   ],

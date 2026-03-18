@@ -43,7 +43,6 @@ import {
           mat-fab
           color="primary"
           (click)="openAddDialog()"
-          matTooltip="Add Profile"
         >
           <mat-icon>add</mat-icon>
         </button>

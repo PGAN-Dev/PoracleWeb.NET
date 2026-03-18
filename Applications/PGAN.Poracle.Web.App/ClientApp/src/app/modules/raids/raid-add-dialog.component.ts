@@ -214,6 +214,11 @@ import { forkJoin } from 'rxjs';
         gap: 8px;
         margin-bottom: 16px;
       }
+      @media (max-width: 599px) {
+        .level-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
       .full-width {
         width: 100%;
       }

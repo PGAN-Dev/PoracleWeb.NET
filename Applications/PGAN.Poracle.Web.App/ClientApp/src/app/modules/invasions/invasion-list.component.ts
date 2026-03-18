@@ -37,7 +37,7 @@ import {
         <mat-menu #bulkMenu="matMenu">
           <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
         </mat-menu>
-        <button mat-fab class="fab-invasion" (click)="openAddDialog()" matTooltip="Add Invasion Alarm"><mat-icon>add</mat-icon></button>
+        <button mat-fab class="fab-invasion" (click)="openAddDialog()"><mat-icon>add</mat-icon></button>
       </div>
     </div>
     @if (loading()) {
@@ -96,7 +96,7 @@ import {
     .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px; gap: 16px; }
     .loading-text { color: rgba(0,0,0,0.54); font-size: 14px; }
     .alarm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 0 24px 24px; }
-    .alarm-card { position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+    .alarm-card { position: relative; border: 1px solid var(--card-border, rgba(0,0,0,0.12)); border-left: 4px solid #607d8b; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; }
     .alarm-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
     .card-top { display: flex; align-items: center; gap: 12px; padding: 16px 16px 0; border-top: 4px solid #424242; }
     .card-top-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }

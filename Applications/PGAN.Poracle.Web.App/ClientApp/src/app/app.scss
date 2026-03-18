@@ -48,6 +48,22 @@
   }
 }
 
+@media (max-width: 599px) {
+  .disabled-banner {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 12px;
+    font-size: 13px;
+    gap: 6px;
+
+    button {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+}
+
 .app-toolbar {
   position: sticky;
   top: 0;
@@ -114,6 +130,16 @@
 body.dark-theme .app-content::after {
   opacity: 0.1;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%2390caf9'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%2390caf9'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 599px) {
+  .app-content::after {
+    width: 250px;
+    height: 250px;
+    bottom: -30px;
+    right: -30px;
+    opacity: 0.05;
+  }
 }
 
 // ─── Nav items ────────────────────────────────────────────────
