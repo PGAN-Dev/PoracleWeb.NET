@@ -110,11 +110,13 @@
 .app-sidenav {
   width: 250px;
   border-right: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.08));
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.03) 0%, rgba(0, 188, 212, 0.02) 50%, transparent 100%);
+  background: linear-gradient(180deg, rgba(21, 101, 192, 0.03) 0%, rgba(0, 188, 212, 0.02) 50%, var(--mat-sys-surface, #fff) 100%);
+  background-color: var(--mat-sys-surface, #fff);
 }
 
 body.dark-theme .app-sidenav {
-  background: linear-gradient(180deg, rgba(21, 101, 192, 0.06) 0%, rgba(0, 188, 212, 0.03) 50%, transparent 100%);
+  background: linear-gradient(180deg, rgba(21, 101, 192, 0.06) 0%, rgba(0, 188, 212, 0.03) 50%, var(--mat-sys-surface, #1e1e1e) 100%);
+  background-color: var(--mat-sys-surface, #1e1e1e);
 }
 
 .app-content {
