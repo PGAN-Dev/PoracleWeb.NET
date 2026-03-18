@@ -1,0 +1,231 @@
+.login-page {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a237e 0%, #1565c0 40%, #0288d1 70%, #00bcd4 100%);
+}
+
+.login-bg-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image:
+    radial-gradient(circle at 20% 30%, #fff 2px, transparent 2px), radial-gradient(circle at 80% 70%, #fff 1.5px, transparent 1.5px),
+    radial-gradient(circle at 50% 10%, #fff 3px, transparent 3px), radial-gradient(circle at 10% 80%, #fff 2px, transparent 2px),
+    radial-gradient(circle at 90% 20%, #fff 1px, transparent 1px), radial-gradient(circle at 40% 60%, #fff 2.5px, transparent 2.5px),
+    radial-gradient(circle at 70% 40%, #fff 1.5px, transparent 1.5px);
+  background-size: 200px 200px;
+  animation: drift 20s linear infinite;
+}
+
+@keyframes drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(200px, 200px);
+  }
+}
+
+.login-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 32px;
+  color: #fff;
+}
+
+.brand-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  animation: pokepulse 3s ease-in-out infinite;
+}
+
+@keyframes pokepulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.pokeball-logo {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+}
+
+.brand-title {
+  font-size: 32px;
+  font-weight: 300;
+  margin: 0 0 8px;
+  letter-spacing: 1px;
+}
+
+.brand-description {
+  font-size: 15px;
+  margin: 0;
+  opacity: 0.85;
+}
+
+.login-card {
+  width: 100%;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25) !important;
+}
+
+.login-heading {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 8px 0 4px;
+  text-align: center;
+}
+
+.login-subheading {
+  font-size: 14px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  text-align: center;
+  margin: 0 0 20px;
+}
+
+.login-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    filter 0.15s;
+  width: 100%;
+}
+
+.auth-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.auth-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-icon {
+  flex-shrink: 0;
+}
+
+.discord-btn {
+  background-color: #5865f2;
+  color: #fff;
+}
+
+.discord-btn:hover:not(:disabled) {
+  background-color: #4752c4;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+}
+.divider span {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.telegram-widget {
+  display: flex;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #c62828;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: rgba(198, 40, 40, 0.08);
+  font-size: 14px;
+}
+
+.error-message mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.login-footer {
+  margin-top: 24px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 16px;
+  }
+  .brand-title {
+    font-size: 26px;
+  }
+}

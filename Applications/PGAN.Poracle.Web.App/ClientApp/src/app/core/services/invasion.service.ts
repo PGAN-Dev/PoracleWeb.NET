@@ -1,24 +1,17 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+
 import { ConfigService } from './config.service';
 import { Invasion, InvasionCreate, InvasionUpdate } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class InvasionService {
-  private readonly http = inject(HttpClient);
   private readonly config = inject(ConfigService);
-
-  getAll(): Observable<Invasion[]> {
-    return this.http.get<Invasion[]>(`${this.config.apiHost}/api/invasions`);
-  }
+  private readonly http = inject(HttpClient);
 
   create(invasion: InvasionCreate): Observable<Invasion> {
     return this.http.post<Invasion>(`${this.config.apiHost}/api/invasions`, invasion);
-  }
-
-  update(uid: number, invasion: InvasionUpdate): Observable<void> {
-    return this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion);
   }
 
   delete(uid: number): Observable<void> {
@@ -27,6 +20,14 @@ export class InvasionService {
 
   deleteAll(): Observable<void> {
     return this.http.delete<void>(`${this.config.apiHost}/api/invasions`);
+  }
+
+  getAll(): Observable<Invasion[]> {
+    return this.http.get<Invasion[]>(`${this.config.apiHost}/api/invasions`);
+  }
+
+  update(uid: number, invasion: InvasionUpdate): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/invasions/${uid}`, invasion);
   }
 
   updateAllDistance(distance: number): Observable<void> {

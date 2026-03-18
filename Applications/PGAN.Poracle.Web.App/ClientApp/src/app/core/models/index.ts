@@ -1,34 +1,34 @@
 // ─── Monster ───────────────────────────────────────────────────────────────────
 
 export interface Monster {
-  uid: number;
-  id: string;
-  pokemonId: number;
-  ping: string | null;
-  distance: number;
-  minIv: number;
-  maxIv: number;
-  minCp: number;
-  maxCp: number;
-  minLevel: number;
-  maxLevel: number;
-  minWeight: number;
-  maxWeight: number;
   atk: number;
+  clean: number;
   def: number;
-  sta: number;
-  maxAtk: number;
-  maxDef: number;
-  maxSta: number;
-  pvpRankingWorst: number;
-  pvpRankingBest: number;
-  pvpRankingMinCp: number;
-  pvpRankingLeague: number;
+  distance: number;
   form: number;
   gender: number;
-  clean: number;
-  template: string | null;
+  id: string;
+  maxAtk: number;
+  maxCp: number;
+  maxDef: number;
+  maxIv: number;
+  maxLevel: number;
+  maxSta: number;
+  maxWeight: number;
+  minCp: number;
+  minIv: number;
+  minLevel: number;
+  minWeight: number;
+  ping: string | null;
+  pokemonId: number;
   profileNo: number;
+  pvpRankingBest: number;
+  pvpRankingLeague: number;
+  pvpRankingMinCp: number;
+  pvpRankingWorst: number;
+  sta: number;
+  template: string | null;
+  uid: number;
 }
 
 export type MonsterCreate = Omit<Monster, 'uid' | 'id'>;
@@ -38,20 +38,20 @@ export type MonsterUpdate = Partial<MonsterCreate>;
 // ─── Raid ──────────────────────────────────────────────────────────────────────
 
 export interface Raid {
-  uid: number;
-  id: string;
-  pokemonId: number;
-  ping: string | null;
+  clean: number;
   distance: number;
-  team: number;
   exclusive: number;
   form: number;
-  move: number;
-  level: number;
-  clean: number;
-  template: string | null;
-  profileNo: number;
   gymId: string | null;
+  id: string;
+  level: number;
+  move: number;
+  ping: string | null;
+  pokemonId: number;
+  profileNo: number;
+  team: number;
+  template: string | null;
+  uid: number;
 }
 
 export type RaidCreate = Omit<Raid, 'uid' | 'id'>;
@@ -61,16 +61,16 @@ export type RaidUpdate = Partial<RaidCreate>;
 // ─── Egg ───────────────────────────────────────────────────────────────────────
 
 export interface Egg {
-  uid: number;
-  id: string;
-  ping: string | null;
-  distance: number;
-  team: number;
-  exclusive: number;
-  level: number;
   clean: number;
-  template: string | null;
+  distance: number;
+  exclusive: number;
+  id: string;
+  level: number;
+  ping: string | null;
   profileNo: number;
+  team: number;
+  template: string | null;
+  uid: number;
 }
 
 export type EggCreate = Omit<Egg, 'uid' | 'id'>;
@@ -80,17 +80,17 @@ export type EggUpdate = Partial<EggCreate>;
 // ─── Quest ─────────────────────────────────────────────────────────────────────
 
 export interface Quest {
-  uid: number;
-  id: string;
-  pokemonId: number;
-  ping: string | null;
-  distance: number;
   clean: number;
-  template: string | null;
-  rewardType: number;
-  reward: number;
-  shiny: number;
+  distance: number;
+  id: string;
+  ping: string | null;
+  pokemonId: number;
   profileNo: number;
+  reward: number;
+  rewardType: number;
+  shiny: number;
+  template: string | null;
+  uid: number;
 }
 
 export type QuestCreate = Omit<Quest, 'uid' | 'id'>;
@@ -100,15 +100,15 @@ export type QuestUpdate = Partial<QuestCreate>;
 // ─── Invasion ──────────────────────────────────────────────────────────────────
 
 export interface Invasion {
-  uid: number;
+  clean: number;
+  distance: number;
+  gender: number;
+  gruntType: string | null;
   id: string;
   ping: string | null;
-  distance: number;
-  clean: number;
-  template: string | null;
-  gruntType: string | null;
-  gender: number;
   profileNo: number;
+  template: string | null;
+  uid: number;
 }
 
 export type InvasionCreate = Omit<Invasion, 'uid' | 'id'>;
@@ -118,14 +118,14 @@ export type InvasionUpdate = Partial<InvasionCreate>;
 // ─── Lure ──────────────────────────────────────────────────────────────────────
 
 export interface Lure {
-  uid: number;
-  id: string;
-  ping: string | null;
-  distance: number;
   clean: number;
-  template: string | null;
+  distance: number;
+  id: string;
   lureId: number;
+  ping: string | null;
   profileNo: number;
+  template: string | null;
+  uid: number;
 }
 
 export type LureCreate = Omit<Lure, 'uid' | 'id'>;
@@ -135,15 +135,15 @@ export type LureUpdate = Partial<LureCreate>;
 // ─── Nest ──────────────────────────────────────────────────────────────────────
 
 export interface Nest {
-  uid: number;
-  id: string;
-  pokemonId: number;
-  ping: string | null;
-  distance: number;
   clean: number;
-  template: string | null;
+  distance: number;
+  id: string;
   minSpawnAvg: number;
+  ping: string | null;
+  pokemonId: number;
   profileNo: number;
+  template: string | null;
+  uid: number;
 }
 
 export type NestCreate = Omit<Nest, 'uid' | 'id'>;
@@ -153,17 +153,17 @@ export type NestUpdate = Partial<NestCreate>;
 // ─── Gym ───────────────────────────────────────────────────────────────────────
 
 export interface Gym {
-  uid: number;
+  battle_changes: number;
+  clean: number;
+  distance: number;
+  gymId: string | null;
   id: string;
   ping: string | null;
-  distance: number;
-  clean: number;
-  template: string | null;
-  team: number;
-  slot_changes: number;
-  battle_changes: number;
-  gymId: string | null;
   profileNo: number;
+  slot_changes: number;
+  team: number;
+  template: string | null;
+  uid: number;
 }
 
 export type GymCreate = Omit<Gym, 'uid' | 'id'>;
@@ -173,37 +173,37 @@ export type GymUpdate = Partial<GymCreate>;
 // ─── Human / User ──────────────────────────────────────────────────────────────
 
 export interface Human {
-  id: string;
-  name: string;
+  adminDisable: number;
   area: string;
+  communityMembership: string | null;
+  enabled: number;
+  id: string;
+  language: string;
   latitude: number;
   longitude: number;
-  enabled: number;
-  adminDisable: number;
-  language: string;
-  communityMembership: string | null;
+  name: string;
 }
 
 /** Shape returned by GET /api/admin/users (anonymous projection from AdminController). */
 export interface AdminUser {
+  adminDisable: number;
+  avatarUrl: string | null;
+  currentProfileNo: number;
+  disabledDate: string | null;
+  enabled: number;
   id: string;
+  language: string | null;
+  lastChecked: string | null;
   name: string | null;
   type: string | null;
-  enabled: number;
-  adminDisable: number;
-  lastChecked: string | null;
-  disabledDate: string | null;
-  currentProfileNo: number;
-  language: string | null;
-  avatarUrl: string | null;
 }
 
 // ─── Profile ───────────────────────────────────────────────────────────────────
 
 export interface Profile {
-  profileNo: number;
-  name: string;
   active: boolean;
+  name: string;
+  profileNo: number;
 }
 
 export interface ProfileCreate {
@@ -213,28 +213,28 @@ export interface ProfileCreate {
 // ─── Dashboard ─────────────────────────────────────────────────────────────────
 
 export interface DashboardCounts {
-  pokemon: number;
-  raids: number;
   eggs: number;
-  quests: number;
+  gyms: number;
   invasions: number;
   lures: number;
   nests: number;
-  gyms: number;
+  pokemon: number;
+  quests: number;
+  raids: number;
 }
 
 // ─── Auth / User Info ──────────────────────────────────────────────────────────
 
 export interface UserInfo {
-  id: string;
-  username: string;
-  type: string;
-  isAdmin: boolean;
-  enabled: boolean;
-  profileNo: number;
-  profileName: string | null;
   avatarUrl: string | null;
+  enabled: boolean;
+  id: string;
+  isAdmin: boolean;
   managedWebhooks?: string[] | null;
+  profileName: string | null;
+  profileNo: number;
+  type: string;
+  username: string;
 }
 
 export interface LoginResponse {
@@ -243,26 +243,26 @@ export interface LoginResponse {
 }
 
 export interface TelegramConfig {
-  enabled: boolean;
   botUsername: string;
+  enabled: boolean;
 }
 
 // ─── Poracle Config ────────────────────────────────────────────────────────────
 
 export interface PoracleConfig {
-  pokemon: Record<string, string>;
-  forms: Record<string, string>;
-  moves: Record<string, string>;
-  items: Record<string, string>;
-  grunts: Record<string, string>;
   areas: AreaDefinition[];
+  forms: Record<string, string>;
+  grunts: Record<string, string>;
+  items: Record<string, string>;
+  moves: Record<string, string>;
+  pokemon: Record<string, string>;
 }
 
 export interface AreaDefinition {
-  name: string;
-  group: string;
-  userSelectable: boolean;
   description?: string;
+  group: string;
+  name: string;
+  userSelectable: boolean;
 }
 
 // ─── Location ──────────────────────────────────────────────────────────────────
@@ -276,26 +276,26 @@ export interface Location {
 // ─── Geocoding ────────────────────────────────────────────────────────────────
 
 export interface GeocodingAddress {
-  road?: string;
-  house_number?: string;
   city?: string;
+  country?: string;
+  house_number?: string;
+  postcode?: string;
+  road?: string;
+  state?: string;
   town?: string;
   village?: string;
-  state?: string;
-  country?: string;
-  postcode?: string;
 }
 
 export interface GeocodingResult {
+  address?: GeocodingAddress;
+  display_name: string;
   lat: string;
   lon: string;
-  display_name: string;
-  address?: GeocodingAddress;
 }
 
 export interface ReverseGeocodingResult {
-  display_name: string;
   address?: GeocodingAddress;
+  display_name: string;
 }
 
 // ─── Geofence ─────────────────────────────────────────────────────────────────
@@ -309,9 +309,9 @@ export interface GeofenceData {
 // ─── Area ──────────────────────────────────────────────────────────────────────
 
 export interface AreaSelection {
+  group: string;
   name: string;
   selected: boolean;
-  group: string;
 }
 
 // ─── PwebSetting ──────────────────────────────────────────────────────────────

@@ -1,0 +1,57 @@
+.hint {
+  color: rgba(0, 0, 0, 0.54);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.delegates-chips {
+  display: block;
+  margin-bottom: 16px;
+  min-height: 32px;
+}
+.add-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.user-id-field {
+  flex: 1;
+}
+.admin-chip {
+  opacity: 0.8;
+}
+.admin-lock-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: rgba(0, 0, 0, 0.4);
+}
+.user-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+.option-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: block;
+}
+.option-avatar-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: rgba(0, 0, 0, 0.38);
+  line-height: 28px;
+}
+.option-name {
+  font-weight: 500;
+  margin-right: 4px;
+}
+.option-id {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.54);
+  font-family: monospace;
+}

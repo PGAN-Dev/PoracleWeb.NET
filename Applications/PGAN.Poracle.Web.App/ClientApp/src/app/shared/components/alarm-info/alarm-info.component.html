@@ -1,0 +1,24 @@
+<div class="alarm-info-row">
+  <span class="distance-chip" [class.areas-mode]="distance() === 0">
+    <mat-icon class="info-icon">{{ distance() === 0 ? 'map' : 'straighten' }}</mat-icon>
+    {{ distance() | distanceDisplay }}
+  </span>
+  @if (clean() === 1) {
+    <span class="clean-chip" matTooltip="Clean mode: auto-delete after despawn">
+      <mat-icon class="info-icon">auto_delete</mat-icon>
+      Clean
+    </span>
+  }
+  @if (template()) {
+    <span class="template-chip" [matTooltip]="'Template: ' + template()">
+      <mat-icon class="info-icon">description</mat-icon>
+      {{ template() }}
+    </span>
+  }
+  @if (ping()) {
+    <span class="ping-chip" [matTooltip]="'Ping: ' + ping()">
+      <mat-icon class="info-icon">notifications</mat-icon>
+      {{ ping() }}
+    </span>
+  }
+</div>

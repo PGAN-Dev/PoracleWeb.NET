@@ -1,0 +1,214 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(69, 90, 100, 0.06) 0%, rgba(0, 137, 123, 0.04) 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+}
+.page-description {
+  margin: 4px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  border-left: 3px solid #1976d2;
+  padding-left: 12px;
+}
+.page-content {
+  padding: 0 24px 48px;
+  max-width: 860px;
+}
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 64px;
+}
+
+.settings-section {
+  border: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--mat-app-surface-variant, rgba(0, 0, 0, 0.03));
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+}
+.section-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  opacity: 0.85;
+}
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+}
+.section-gap {
+  height: 16px;
+}
+
+.section-rows {
+  display: flex;
+  flex-direction: column;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 20px;
+  transition: background 0.15s;
+}
+.setting-row.modified {
+  background: rgba(25, 118, 210, 0.08);
+  border-left: 3px solid rgba(25, 118, 210, 0.4);
+}
+.setting-info {
+  flex: 1;
+  min-width: 0;
+}
+.setting-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+.setting-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.setting-control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.setting-field {
+  width: 280px;
+}
+.setting-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.inline-spinner {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.repo-selector {
+  display: flex;
+  flex-direction: column;
+}
+.repo-card {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.repo-card:last-child {
+  border-bottom: none;
+}
+.repo-card:hover {
+  background: rgba(46, 125, 50, 0.04);
+}
+.repo-card.repo-active {
+  background: rgba(46, 125, 50, 0.06);
+  border-left: 3px solid #2e7d32;
+}
+.repo-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.repo-radio {
+  flex-shrink: 0;
+  display: flex;
+}
+.repo-check {
+  color: #2e7d32;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+.repo-uncheck {
+  color: var(--text-hint, rgba(0, 0, 0, 0.3));
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+.repo-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.repo-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+.repo-url {
+  font-size: 11px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.repo-preview-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-left: 34px;
+}
+.icon-preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.icon-preview-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.05));
+  padding: 4px;
+  transition: opacity 0.2s;
+}
+.icon-preview-img.preview-error {
+  opacity: 0.15;
+  filter: grayscale(1);
+}
+.icon-preview-name {
+  font-size: 10px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  text-align: center;
+}
+
+@media (max-width: 599px) {
+  .setting-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .setting-field {
+    width: 100%;
+  }
+}

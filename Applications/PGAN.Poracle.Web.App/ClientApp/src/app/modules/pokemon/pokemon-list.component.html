@@ -1,0 +1,157 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Pokemon Alarms</h1>
+    <p class="page-description">
+      Track wild Pokemon spawns with custom IV, CP, level, and PVP filters. Use <mat-icon class="inline-icon">map</mat-icon> Areas for
+      geofence-based alerts, or set a <mat-icon class="inline-icon">straighten</mat-icon> Distance radius from your location.
+    </p>
+  </div>
+  <div class="header-actions">
+    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #bulkMenu="matMenu">
+      <button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button>
+      <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
+    </mat-menu>
+    <button mat-fab (click)="openAddDialog()" [style.background-color]="'#4caf50'" [style.color]="'white'">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>
+
+@if (!loading() && monsters().length > 0) {
+  <div class="gen-filter-bar">
+    <button class="gen-chip" [class.gen-active]="activeGen() === null" (click)="activeGen.set(null)">All</button>
+    @for (gen of generations; track gen.label) {
+      <button
+        class="gen-chip"
+        [class.gen-active]="activeGen() === gen"
+        [style.--gen-color]="gen.color"
+        [style.border-color]="activeGen() === gen ? gen.color : ''"
+        (click)="activeGen.set(activeGen() === gen ? null : gen)">
+        G{{ gen.label }}
+      </button>
+    }
+    <span class="filter-spacer"></span>
+    <mat-form-field appearance="outline" class="sort-field">
+      <mat-icon matPrefix>sort</mat-icon>
+      <mat-select [value]="sortBy()" (valueChange)="sortBy.set($event)">
+        <mat-option value="name">Name</mat-option>
+        <mat-option value="id">Pokédex #</mat-option>
+        <mat-option value="generation">Generation</mat-option>
+        <mat-option value="evolution">Evolution</mat-option>
+      </mat-select>
+    </mat-form-field>
+    @if (activeGen()) {
+      <span class="gen-count">{{ filteredMonsters().length }} alarm{{ filteredMonsters().length === 1 ? '' : 's' }}</span>
+    }
+  </div>
+}
+
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="loading-text">Loading alarms...</p>
+  </div>
+} @else {
+  <div class="alarm-grid">
+    @for (monster of filteredMonsters(); track monster.uid) {
+      <mat-card class="alarm-card" [class.all-pokemon-card]="monster.pokemonId === 0">
+        <div class="card-top" [style.border-top-color]="getTypeColor(monster.pokemonId)">
+          @if (monster.pokemonId === 0) {
+            <div class="all-pokemon-icon">
+              <mat-icon>select_all</mat-icon>
+            </div>
+          } @else {
+            <img
+              [src]="getPokemonImage(monster.pokemonId, monster.form)"
+              [alt]="'Pokemon #' + monster.pokemonId"
+              class="pokemon-img"
+              (error)="onImageError($event, monster.pokemonId)" />
+          }
+          <div class="pokemon-info">
+            <h3>{{ getPokemonName(monster.pokemonId) }}</h3>
+            @if (monster.pokemonId > 0) {
+              <span class="pokemon-id">#{{ monster.pokemonId }}</span>
+            }
+            @if (monster.form > 0) {
+              <span class="form-badge">Form {{ monster.form }}</span>
+            }
+          </div>
+          <div class="card-top-actions">
+            @if (monster.clean === 1) {
+              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
+            }
+          </div>
+        </div>
+        <mat-card-content>
+          <div class="stat-grid">
+            <div class="stat">
+              <span class="stat-label">IV</span>
+              <span class="stat-value">{{ getIvDisplay(monster.minIv, monster.maxIv) }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">CP</span>
+              <span class="stat-value">{{ monster.minCp }}-{{ monster.maxCp }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Level</span>
+              <span class="stat-value">{{ monster.minLevel }}-{{ monster.maxLevel }}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Gender</span>
+              <span class="stat-value">{{ getGenderDisplay(monster.gender) }}</span>
+            </div>
+          </div>
+          <div class="distance-chip-row">
+            @if (monster.distance === 0) {
+              <span class="distance-chip area-mode"> <mat-icon>map</mat-icon> Using Areas </span>
+            } @else {
+              <span class="distance-chip distance-mode"> <mat-icon>straighten</mat-icon> {{ formatDistance(monster.distance) }} </span>
+            }
+          </div>
+          @if (monster.pvpRankingLeague > 0) {
+            <div class="pvp-row">
+              <span class="pvp-badge">
+                <mat-icon>emoji_events</mat-icon>
+                {{ getLeagueName(monster.pvpRankingLeague) }} League
+              </span>
+              <span class="pvp-rank">Rank {{ monster.pvpRankingBest }}-{{ monster.pvpRankingWorst }}</span>
+            </div>
+          }
+          @if (monster.ping) {
+            <div class="ping-info">
+              <mat-icon>notifications</mat-icon>
+              <span>{{ monster.ping }}</span>
+            </div>
+          }
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-icon-button (click)="editMonster(monster)" matTooltip="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button (click)="deleteMonster(monster)" matTooltip="Delete" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <div class="empty-state">
+        <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#4caf50" stroke-width="4" />
+          <path d="M4 50 H36" stroke="#4caf50" stroke-width="4" />
+          <path d="M64 50 H96" stroke="#4caf50" stroke-width="4" />
+          <path d="M4 50 A46 46 0 0 1 96 50" fill="#4caf50" opacity="0.15" />
+          <circle cx="50" cy="50" r="14" fill="none" stroke="#4caf50" stroke-width="4" />
+          <circle cx="50" cy="50" r="7" fill="#4caf50" opacity="0.5" />
+        </svg>
+        <h2 class="empty-title">No Pokemon Alarms Configured</h2>
+        <p class="empty-subtitle">Track wild spawns with custom IV, CP, and level filters</p>
+        <button mat-flat-button style="background-color: #4caf50; color: white" (click)="openAddDialog()">
+          <mat-icon>add</mat-icon> Add Pokemon
+        </button>
+      </div>
+    }
+  </div>
+}

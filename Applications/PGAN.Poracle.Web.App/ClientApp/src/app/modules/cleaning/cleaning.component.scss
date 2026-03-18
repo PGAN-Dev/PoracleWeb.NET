@@ -1,0 +1,87 @@
+.cleaning-container {
+  padding: 0;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 24px;
+  gap: 16px;
+}
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+}
+.page-description {
+  margin: 4px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 3px solid #1976d2;
+  padding-left: 12px;
+}
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 64px;
+}
+.cleaning-content {
+  padding: 0 24px 24px;
+  max-width: 600px;
+}
+.cleaning-card {
+  padding: 0;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(121, 85, 72, 0.06) 0%, transparent 100%);
+  border-radius: 12px 12px 0 0;
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.64));
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+}
+.section-header mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}
+.cleaning-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+  transition: background-color 0.15s ease;
+}
+.cleaning-row:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+.cleaning-row:last-child {
+  border-bottom: none;
+}
+.cleaning-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.label-text {
+  display: flex;
+  flex-direction: column;
+}
+.label-name {
+  font-size: 16px;
+}
+.label-hint {
+  font-size: 12px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}

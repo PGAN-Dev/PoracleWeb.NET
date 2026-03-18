@@ -1,0 +1,46 @@
+<div class="gen-filter">
+  <span class="gen-label">Gen</span>
+  @for (gen of generations; track gen.label) {
+    <button class="gen-chip" [class.gen-active]="activeGen() === gen" (click)="toggleGen(gen)">G{{ gen.label }}</button>
+  }
+</div>
+
+<mat-form-field class="full-width" appearance="outline">
+  <mat-label>Search Pokemon</mat-label>
+  <input matInput [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Type name or ID..." />
+  <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSelected($event)">
+    @for (pokemon of filteredPokemon(); track pokemon.id) {
+      <mat-option [value]="pokemon" [class.all-pokemon-option]="pokemon.id === 0">
+        <div class="pokemon-option">
+          @if (pokemon.id === 0) {
+            <mat-icon class="all-pokemon-icon">select_all</mat-icon>
+          } @else {
+            <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="pokemon-option-img" (error)="onImageError($event)" />
+          }
+          <span>{{ formatPokemonName(pokemon) }}</span>
+          @if (pokemon.id > 0) {
+            <span class="pokemon-option-id">#{{ padId(pokemon.id) }}</span>
+          }
+        </div>
+      </mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>
+
+@if (multi()) {
+  <mat-chip-set class="selected-chips">
+    @for (pokemon of selectedPokemon(); track pokemon.id) {
+      <mat-chip (removed)="removePokemon(pokemon.id)" [class.all-pokemon-chip]="pokemon.id === 0">
+        @if (pokemon.id === 0) {
+          <mat-icon matChipAvatar>select_all</mat-icon>
+        } @else {
+          <img matChipAvatar [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="chip-avatar" (error)="onImageError($event)" />
+        }
+        {{ formatPokemonName(pokemon) }}
+        <button matChipRemove>
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip>
+    }
+  </mat-chip-set>
+}

@@ -1,0 +1,273 @@
+<h2 mat-dialog-title>Add Pokemon Alarm</h2>
+<mat-dialog-content>
+  <mat-tab-group animationDuration="200ms" class="alarm-tabs">
+    <!-- Tab 1: Pokemon -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>catching_pokemon</mat-icon>
+        <span class="tab-label">Pokemon</span>
+      </ng-template>
+      <div class="tab-content">
+        <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
+        @if (selectedPokemonIds().length > 0) {
+          <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
+        } @else {
+          <p class="selection-hint">Search and select one or more Pokemon to track</p>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Filters -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>tune</mat-icon>
+        <span class="tab-label">Filters</span>
+      </ng-template>
+      <div class="tab-content">
+        <h4>IV Range</h4>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Min IV</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.minIv" />
+            <span matTextSuffix>%</span>
+            @if (filtersForm.controls.minIv.invalid) {
+              <mat-error>0-100</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Max IV</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.maxIv" />
+            <span matTextSuffix>%</span>
+            @if (filtersForm.controls.maxIv.invalid) {
+              <mat-error>0-100</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <h4>CP & Level</h4>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Min CP</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.minCp" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Max CP</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.maxCp" />
+          </mat-form-field>
+        </div>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Min Level</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.minLevel" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Max Level</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.maxLevel" />
+          </mat-form-field>
+        </div>
+
+        <h4>Individual Stats (ATK / DEF / STA)</h4>
+        <div class="form-row triple">
+          <mat-form-field appearance="outline">
+            <mat-label>Min ATK</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.atk" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Min DEF</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.def" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Min STA</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.sta" />
+          </mat-form-field>
+        </div>
+        <div class="form-row triple">
+          <mat-form-field appearance="outline">
+            <mat-label>Max ATK</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.maxAtk" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Max DEF</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.maxDef" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Max STA</mat-label>
+            <input matInput type="number" [formControl]="filtersForm.controls.maxSta" />
+          </mat-form-field>
+        </div>
+
+        @if (availableForms().length > 0) {
+          <h4>Form & Gender</h4>
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Form</mat-label>
+              <mat-select [formControl]="filtersForm.controls.form">
+                <mat-option [value]="0">All Forms</mat-option>
+                @for (f of availableForms(); track f.id) {
+                  <mat-option [value]="f.id">{{ f.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Gender</mat-label>
+              <mat-select [formControl]="filtersForm.controls.gender">
+                <mat-option [value]="0">All</mat-option>
+                <mat-option [value]="1">♂ Male</mat-option>
+                <mat-option [value]="2">♀ Female</mat-option>
+                <mat-option [value]="3">Genderless</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title> <mat-icon>more_horiz</mat-icon> More Filters </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Min Weight</mat-label>
+              <input matInput type="number" [formControl]="filtersForm.controls.minWeight" />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Max Weight</mat-label>
+              <input matInput type="number" [formControl]="filtersForm.controls.maxWeight" />
+            </mat-form-field>
+          </div>
+          @if (availableForms().length === 0) {
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Gender</mat-label>
+                <mat-select [formControl]="filtersForm.controls.gender">
+                  <mat-option [value]="0">All</mat-option>
+                  <mat-option [value]="1">♂ Male</mat-option>
+                  <mat-option [value]="2">♀ Female</mat-option>
+                  <mat-option [value]="3">Genderless</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Form ID</mat-label>
+                <input matInput type="number" [formControl]="filtersForm.controls.form" />
+                <mat-hint>0 = all forms</mat-hint>
+              </mat-form-field>
+            </div>
+          }
+        </mat-expansion-panel>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 3: PVP -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>emoji_events</mat-icon>
+        <span class="tab-label">PVP</span>
+      </ng-template>
+      <div class="tab-content">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>PVP League</mat-label>
+          <mat-select [formControl]="pvpForm.controls.pvpRankingLeague">
+            <mat-option [value]="0">None (disabled)</mat-option>
+            <mat-option [value]="500">Little Cup (500 CP)</mat-option>
+            <mat-option [value]="1500">Great League (1500 CP)</mat-option>
+            <mat-option [value]="2500">Ultra League (2500 CP)</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        @if (pvpForm.controls.pvpRankingLeague.value !== 0) {
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Best Rank</mat-label>
+              <input matInput type="number" [formControl]="pvpForm.controls.pvpRankingBest" />
+              <mat-hint>e.g. 1</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Worst Rank</mat-label>
+              <input matInput type="number" [formControl]="pvpForm.controls.pvpRankingWorst" />
+              <mat-hint>e.g. 100</mat-hint>
+            </mat-form-field>
+          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Min CP for League</mat-label>
+            <input matInput type="number" [formControl]="pvpForm.controls.pvpRankingMinCp" />
+            <mat-hint>Only alert if evolved CP meets this minimum</mat-hint>
+          </mat-form-field>
+        } @else {
+          <div class="pvp-disabled-hint">
+            <mat-icon>info_outline</mat-icon>
+            <p>Select a league to filter by PVP rank. This notifies you when a Pokemon's IVs rank highly for PVP battles.</p>
+          </div>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab 4: Notification -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>notifications</mat-icon>
+        <span class="tab-label">Delivery</span>
+      </ng-template>
+      <div class="tab-content">
+        <h4>Location Mode</h4>
+        <mat-radio-group [formControl]="notifForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
+          <mat-radio-button value="areas">
+            <div class="radio-label">
+              <mat-icon>map</mat-icon>
+              <div>
+                <strong>Use Areas</strong>
+                <p class="radio-hint">Notify based on your configured geofence areas</p>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button value="distance">
+            <div class="radio-label">
+              <mat-icon>straighten</mat-icon>
+              <div>
+                <strong>Set Distance</strong>
+                <p class="radio-hint">Notify within a radius from your location</p>
+              </div>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+
+        @if (notifForm.controls.distanceMode.value === 'distance') {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Distance</mat-label>
+            <input matInput type="number" [formControl]="notifForm.controls.distanceKm" min="0" step="0.1" />
+            <span matSuffix>km</span>
+          </mat-form-field>
+        }
+
+        <app-delivery-preview
+          [mode]="notifForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
+          [distanceKm]="notifForm.controls.distanceKm.value ?? 0">
+        </app-delivery-preview>
+
+        <h4>Message Settings</h4>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Ping / Role</mat-label>
+          <input matInput [formControl]="notifForm.controls.ping" placeholder="e.g. @Pokemon or leave empty" />
+          <mat-hint>Discord role to mention in the notification</mat-hint>
+        </mat-form-field>
+
+        <app-template-selector
+          [alarmType]="'monster'"
+          [value]="notifForm.controls.template.value ?? ''"
+          (valueChange)="notifForm.controls.template.setValue($event)"></app-template-selector>
+
+        <mat-slide-toggle [formControl]="notifForm.controls.clean">
+          Clean mode — auto-delete notification after Pokemon despawns
+        </mat-slide-toggle>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !isFormValid()">
+    @if (saving()) {
+      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+    }
+    {{ saving() ? 'Saving...' : 'Save Alarm' }}
+  </button>
+</mat-dialog-actions>

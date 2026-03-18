@@ -5,24 +5,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 export class ToastService {
   private readonly snackBar = inject(MatSnackBar);
 
-  success(message: string): void {
-    this.snackBar.open(message, 'OK', {
-      duration: 3000,
-      panelClass: ['toast-success'],
-    });
-  }
-
   error(message: string): void {
     this.snackBar.open(message, 'Dismiss', {
       duration: 5000,
       panelClass: ['toast-error'],
-    });
-  }
-
-  info(message: string): void {
-    this.snackBar.open(message, 'OK', {
-      duration: 3000,
-      panelClass: ['toast-info'],
     });
   }
 
@@ -67,5 +53,19 @@ export class ToastService {
     }
 
     this.error(message);
+  }
+
+  info(message: string): void {
+    this.snackBar.open(message, 'OK', {
+      duration: 3000,
+      panelClass: ['toast-info'],
+    });
+  }
+
+  success(message: string): void {
+    this.snackBar.open(message, 'OK', {
+      duration: 3000,
+      panelClass: ['toast-success'],
+    });
   }
 }

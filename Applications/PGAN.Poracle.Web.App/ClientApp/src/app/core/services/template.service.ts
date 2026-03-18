@@ -1,38 +1,24 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable, ReplaySubject, map } from 'rxjs';
-import { ConfigService } from './config.service';
+
 import { AuthService } from './auth.service';
+import { ConfigService } from './config.service';
 
 export interface TemplateData {
-  status: string;
   discord: Record<string, Record<string, (string | number)[]>>;
+  status: string;
   telegram: Record<string, Record<string, (string | number)[]>>;
 }
 
 @Injectable({ providedIn: 'root' })
 export class TemplateService {
-  private readonly http = inject(HttpClient);
-  private readonly config = inject(ConfigService);
   private readonly auth = inject(AuthService);
+  private readonly config = inject(ConfigService);
+  private readonly http = inject(HttpClient);
 
-  private templates$ = new ReplaySubject<TemplateData>(1);
   private loaded = false;
-
-  loadTemplates(): Observable<TemplateData> {
-    if (!this.loaded) {
-      this.loaded = true;
-      this.http.get<TemplateData>(`${this.config.apiHost}/api/config/templates`)
-        .subscribe({
-          next: t => this.templates$.next(t),
-          error: () => {
-            this.loaded = false;
-            this.templates$.next({ status: 'ok', discord: {}, telegram: {} });
-          },
-        });
-    }
-    return this.templates$;
-  }
+  private templates$ = new ReplaySubject<TemplateData>(1);
 
   getTemplatesForType(alarmType: string): Observable<(string | number)[]> {
     return this.loadTemplates().pipe(
@@ -46,7 +32,21 @@ export class TemplateService {
           if (Array.isArray(arr)) arr.forEach((t: string | number) => templates.add(t));
         });
         return [...templates];
-      })
+      }),
     );
+  }
+
+  loadTemplates(): Observable<TemplateData> {
+    if (!this.loaded) {
+      this.loaded = true;
+      this.http.get<TemplateData>(`${this.config.apiHost}/api/config/templates`).subscribe({
+        error: () => {
+          this.loaded = false;
+          this.templates$.next({ discord: {}, status: 'ok', telegram: {} });
+        },
+        next: t => this.templates$.next(t),
+      });
+    }
+    return this.templates$;
   }
 }

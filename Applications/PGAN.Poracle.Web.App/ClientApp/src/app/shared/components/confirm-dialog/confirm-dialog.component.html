@@ -1,0 +1,26 @@
+<h2 mat-dialog-title [class.warn-title]="data.warn">
+  @if (data.warn) {
+    <mat-icon class="title-icon warn-icon">warning</mat-icon>
+  }
+  {{ data.title }}
+</h2>
+<mat-dialog-content>
+  <p>{{ data.message }}</p>
+  @if (data.itemDescription) {
+    <p class="item-description">{{ data.itemDescription }}</p>
+  }
+  @if (data.showDontAskAgain) {
+    <mat-checkbox [(ngModel)]="dontAskAgain" class="dont-ask-checkbox"> Don't ask again for this session </mat-checkbox>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">
+    {{ data.cancelText || 'Cancel' }}
+  </button>
+  <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()">
+    @if (data.warn) {
+      <mat-icon>delete</mat-icon>
+    }
+    {{ data.confirmText || 'Confirm' }}
+  </button>
+</mat-dialog-actions>

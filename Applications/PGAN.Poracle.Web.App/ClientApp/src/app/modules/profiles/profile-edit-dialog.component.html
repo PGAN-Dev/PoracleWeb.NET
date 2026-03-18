@@ -1,0 +1,21 @@
+<h2 mat-dialog-title>Edit Profile</h2>
+@if (saving()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Profile Number</mat-label>
+    <input matInput [value]="data.profileNo" disabled />
+  </mat-form-field>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Profile Name</mat-label>
+    <input matInput [(ngModel)]="profileName" placeholder="Enter profile name" maxlength="32" (keyup.enter)="save()" />
+    <mat-hint>{{ profileName.length }}/32</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim()">
+    <mat-icon>save</mat-icon> Save
+  </button>
+</mat-dialog-actions>

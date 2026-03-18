@@ -1,0 +1,134 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Dashboard</h1>
+    <p class="dashboard-subtitle">Welcome back, {{ username() }}</p>
+    <p class="page-description">Your notification alarm overview. Click any card to manage alarms, or use Quick Actions to get started.</p>
+  </div>
+</div>
+
+<div class="dashboard-content">
+  <!-- Status Overview Row -->
+  <div class="status-row">
+    <!-- Location Card -->
+    <mat-card class="status-card location-card-full" (click)="navigate('/areas')">
+      @if (locationMapUrl()) {
+        <img [src]="locationMapUrl()" class="location-map-thumb" alt="Location" loading="lazy" />
+      }
+      <div class="location-card-body">
+        <div class="status-icon-wrap location-icon">
+          <mat-icon>my_location</mat-icon>
+        </div>
+        <div class="status-info">
+          <span class="status-label">Location</span>
+          @if (location(); as loc) {
+            @if (locationAddress()) {
+              <span class="status-value status-address" [title]="loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4)">{{
+                locationAddress()
+              }}</span>
+            } @else {
+              <span class="status-value">{{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}</span>
+            }
+          } @else {
+            <span class="status-value not-set">Not set</span>
+          }
+        </div>
+        <mat-icon class="status-arrow">chevron_right</mat-icon>
+      </div>
+    </mat-card>
+
+    <!-- Areas Card -->
+    <mat-card class="status-card areas-card" (click)="navigate('/areas')">
+      <div class="status-icon-wrap areas-icon">
+        <mat-icon>map</mat-icon>
+      </div>
+      <div class="status-info">
+        <span class="status-label">Active Areas</span>
+        @if (selectedAreas().length > 0) {
+          <span class="status-value">{{ selectedAreas().length }} area(s)</span>
+        } @else {
+          <span class="status-value not-set">No areas selected</span>
+        }
+      </div>
+      <mat-icon class="status-arrow">chevron_right</mat-icon>
+    </mat-card>
+
+    <!-- Profile Card -->
+    <mat-card class="status-card profile-card" (click)="navigate('/profiles')">
+      <div class="status-icon-wrap profile-icon">
+        <mat-icon>person</mat-icon>
+      </div>
+      <div class="status-info">
+        <span class="status-label">Profile</span>
+        <span class="status-value">Profile {{ profileNo() }}</span>
+      </div>
+      <mat-icon class="status-arrow">chevron_right</mat-icon>
+    </mat-card>
+  </div>
+
+  <!-- Areas Chips -->
+  @if (selectedAreas().length > 0) {
+    <mat-card class="areas-detail-card">
+      <mat-card-content>
+        <div class="areas-header">
+          <mat-icon>place</mat-icon>
+          <span>Tracking areas</span>
+        </div>
+        <mat-chip-set class="area-chips">
+          @for (area of selectedAreas(); track area) {
+            <mat-chip highlighted color="primary"><span class="area-dot"></span>{{ area }}</mat-chip>
+          }
+        </mat-chip-set>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Quick Actions -->
+  <div class="section-header">
+    <h2>Quick Actions</h2>
+  </div>
+  <div class="quick-actions">
+    <button mat-flat-button (click)="navigate('/pokemon')" class="action-btn action-pokemon">
+      <mat-icon>catching_pokemon</mat-icon> Add Pokemon
+    </button>
+    <button mat-flat-button (click)="navigate('/raids')" class="action-btn action-raids"><mat-icon>shield</mat-icon> Add Raid</button>
+    <button mat-flat-button (click)="navigate('/quests')" class="action-btn action-quests"><mat-icon>explore</mat-icon> Add Quest</button>
+    <button mat-flat-button (click)="navigate('/areas')" class="action-btn action-areas"><mat-icon>map</mat-icon> Manage Areas</button>
+    <button mat-flat-button (click)="navigate('/cleaning')" class="action-btn action-cleaning">
+      <mat-icon>cleaning_services</mat-icon> Cleaning
+    </button>
+  </div>
+
+  <!-- Alarm Counts Section -->
+  <div class="section-header">
+    <h2>Active Filters</h2>
+    <span class="total-count">{{ totalAlarms() }} total alarms</span>
+  </div>
+
+  <div class="dashboard-grid">
+    @if (counts(); as c) {
+      @for (card of cards; track card.key) {
+        <mat-card class="dashboard-card" [class]="card.colorClass" [class.muted]="c[card.key] === 0" (click)="navigate(card.route)">
+          <div class="card-header-row">
+            <div class="card-icon-wrap" [class.muted-icon]="c[card.key] === 0">
+              <mat-icon>{{ card.icon }}</mat-icon>
+            </div>
+          </div>
+          <mat-card-content>
+            <span class="count" [class.count-zero]="c[card.key] === 0">{{ c[card.key] }}</span>
+            <span class="label">{{ card.label }}</span>
+            <span class="subtitle">{{ card.subtitle }}</span>
+          </mat-card-content>
+        </mat-card>
+      }
+    } @else {
+      @for (i of skeletonItems; track i) {
+        <mat-card class="dashboard-card skeleton">
+          <mat-card-content>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-count"></div>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  </div>
+</div>

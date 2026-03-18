@@ -1,0 +1,31 @@
+@if (mode === 'areas') {
+  <div class="preview-box areas-preview">
+    <div class="preview-label">
+      <mat-icon>map</mat-icon>
+      <span>Notifications will be sent for these areas:</span>
+    </div>
+    @if (areas().length > 0) {
+      <mat-chip-set class="area-chips">
+        @for (area of areas(); track area) {
+          <mat-chip highlighted color="primary">{{ area }}</mat-chip>
+        }
+      </mat-chip-set>
+    } @else {
+      <p class="no-areas">No areas configured. <a href="/areas">Set up areas</a> first.</p>
+    }
+  </div>
+} @else if (mode === 'distance' && distanceKm > 0) {
+  <div class="preview-box distance-preview">
+    <div class="preview-label">
+      <mat-icon>straighten</mat-icon>
+      <span>Notifications within {{ distanceKm }} km of your location:</span>
+    </div>
+    @if (mapUrl()) {
+      <img [src]="mapUrl()" class="distance-map" alt="Distance radius map" loading="lazy" />
+    } @else if (loading()) {
+      <div class="map-loading">
+        <mat-spinner diameter="24"></mat-spinner>
+      </div>
+    }
+  </div>
+}

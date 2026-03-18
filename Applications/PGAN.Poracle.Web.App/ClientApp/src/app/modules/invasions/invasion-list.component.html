@@ -1,0 +1,83 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Invasion Alarms</h1>
+    <p class="page-description">Get alerts for Team GO Rocket grunt encounters by type.</p>
+  </div>
+  <div class="header-actions">
+    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions"><mat-icon>more_vert</mat-icon></button>
+    <mat-menu #bulkMenu="matMenu">
+      <button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button>
+      <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
+    </mat-menu>
+    <button mat-fab class="fab-invasion" (click)="openAddDialog()"><mat-icon>add</mat-icon></button>
+  </div>
+</div>
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="loading-text">Loading alarms...</p>
+  </div>
+} @else {
+  <div class="alarm-grid">
+    @for (invasion of invasions(); track invasion.uid) {
+      <mat-card class="alarm-card">
+        <div class="card-top">
+          <mat-icon class="rocket-icon">security</mat-icon>
+          <div class="item-info">
+            <h3>{{ invasion.gruntType || 'Unknown Grunt' }}</h3>
+            <span class="gender-label">
+              @if (invasion.gender === 1) {
+                <mat-icon class="gender-icon">male</mat-icon> Male
+              } @else if (invasion.gender === 2) {
+                <mat-icon class="gender-icon">female</mat-icon> Female
+              } @else {
+                Any Gender
+              }
+            </span>
+          </div>
+          <div class="card-top-actions">
+            @if (invasion.clean === 1) {
+              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
+            }
+            @if (invasion.template) {
+              <span class="template-chip" matTooltip="Template: {{ invasion.template }}">{{ invasion.template }}</span>
+            }
+          </div>
+        </div>
+        <mat-card-content>
+          <div class="distance-chip-row">
+            @if (invasion.distance === 0) {
+              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+            } @else {
+              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(invasion.distance) }}</span>
+            }
+          </div>
+          @if (invasion.ping) {
+            <div class="ping-info">
+              <mat-icon>notifications</mat-icon><span>{{ invasion.ping }}</span>
+            </div>
+          }
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-icon-button (click)="editInvasion(invasion)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button (click)="deleteInvasion(invasion)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <div class="empty-state">
+        <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+          <ellipse cx="40" cy="32" rx="28" ry="26" fill="#607d8b" opacity="0.12" stroke="#607d8b" stroke-width="3" />
+          <text x="40" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#607d8b" opacity="0.6" font-family="serif">
+            R
+          </text>
+          <line x1="28" y1="56" x2="40" y2="68" stroke="#607d8b" stroke-width="2.5" />
+          <line x1="52" y1="56" x2="40" y2="68" stroke="#607d8b" stroke-width="2.5" />
+          <rect x="32" y="68" width="16" height="12" rx="3" fill="#607d8b" opacity="0.2" stroke="#607d8b" stroke-width="2" />
+        </svg>
+        <h2 class="empty-title">No Invasion Alarms Configured</h2>
+        <p class="empty-subtitle">Get alerts for Team GO Rocket encounters by type</p>
+        <button mat-flat-button class="cta-invasion" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Invasion</button>
+      </div>
+    }
+  </div>
+}

@@ -1,6 +1,7 @@
-import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, ReplaySubject, forkJoin, map, tap } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, ReplaySubject, forkJoin, map } from 'rxjs';
+
 import { ConfigService } from './config.service';
 
 export interface PokemonEntry {
@@ -10,28 +11,76 @@ export interface PokemonEntry {
 
 @Injectable({ providedIn: 'root' })
 export class MasterDataService {
-  private readonly http = inject(HttpClient);
   private readonly config = inject(ConfigService);
-
-  private pokemonMap = new Map<number, string>();
-  private itemMap = new Map<number, string>();
-  private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
   private readonly evoBaseMap = new Map<number, number>();
+
   private formsLoaded = false;
   private formsLoadRequested = false;
+  private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
+  private readonly http = inject(HttpClient);
+  private itemMap = new Map<number, string>();
   private loaded = false;
-  private readonly ready$ = new ReplaySubject<boolean>(1);
   private loadRequested = false;
+  private pokemonMap = new Map<number, string>();
+  private readonly ready$ = new ReplaySubject<boolean>(1);
+
+  getAllPokemon(): PokemonEntry[] {
+    const entries: PokemonEntry[] = [{ id: 0, name: 'All Pokemon' }];
+    this.pokemonMap.forEach((name, id) => {
+      entries.push({ id, name });
+    });
+    entries.sort((a, b) => a.id - b.id);
+    return entries;
+  }
+
+  getAllPokemon$(): Observable<PokemonEntry[]> {
+    return this.loadData().pipe(map(() => this.getAllPokemon()));
+  }
+
+  /** Get the base (first stage) evolution ID for a Pokemon. Returns the ID itself if no chain found. */
+  getBaseEvolution(id: number): number {
+    return this.evoBaseMap.get(id) ?? id;
+  }
+
+  getFormName(pokemonId: number, formId: number): string {
+    if (formId === 0) return '';
+    const forms = this.getFormsForPokemon(pokemonId);
+    const match = forms.find(f => f.id === formId);
+    return match?.name ?? `Form ${formId}`;
+  }
+
+  getFormsForPokemon(pokemonId: number): { id: number; name: string }[] {
+    return this.formsMap().get(pokemonId) ?? [];
+  }
+
+  getItemName(id: number): string {
+    return this.itemMap.get(id) ?? `Item #${id}`;
+  }
+
+  getPokemonName(id: number): string {
+    if (id === 0) return 'All Pokemon';
+    return this.pokemonMap.get(id) ?? `Pokemon #${id}`;
+  }
+
+  isLoaded(): boolean {
+    return this.loaded;
+  }
 
   loadData(): Observable<boolean> {
     if (!this.loadRequested) {
       this.loadRequested = true;
 
       forkJoin({
-        pokemon: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/pokemon`),
         items: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/items`),
+        pokemon: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/pokemon`),
       }).subscribe({
-        next: ({ pokemon, items }) => {
+        error: () => {
+          // Masterdata unavailable - continue without names
+          this.loaded = true;
+          this.loadRequested = false;
+          this.ready$.next(true);
+        },
+        next: ({ items, pokemon }) => {
           this.pokemonMap.clear();
           if (pokemon) {
             Object.entries(pokemon).forEach(([id, name]) => {
@@ -50,12 +99,6 @@ export class MasterDataService {
           this.ready$.next(true);
           this.loadForms();
         },
-        error: () => {
-          // Masterdata unavailable - continue without names
-          this.loaded = true;
-          this.loadRequested = false;
-          this.ready$.next(true);
-        },
       });
     }
     return this.ready$.asObservable();
@@ -67,8 +110,15 @@ export class MasterDataService {
 
     const url = 'https://raw.githubusercontent.com/WatWowMap/Masterfile-Generator/master/master-latest-poracle.json';
     this.http.get<Record<string, unknown>>(url).subscribe({
-      next: (data) => {
-        const monsters = data['monsters'] as Record<string, { id: number; name: string; form?: { id: number; name: string }; evolutions?: { evoId: number }[] }> | undefined;
+      error: () => {
+        // Forms unavailable - continue without form names
+        this.formsLoaded = true;
+        this.formsLoadRequested = false;
+      },
+      next: data => {
+        const monsters = data['monsters'] as
+          | Record<string, { id: number; name: string; form?: { id: number; name: string }; evolutions?: { evoId: number }[] }>
+          | undefined;
         if (!monsters) {
           this.formsLoaded = true;
           return;
@@ -120,53 +170,6 @@ export class MasterDataService {
 
         this.formsLoaded = true;
       },
-      error: () => {
-        // Forms unavailable - continue without form names
-        this.formsLoaded = true;
-        this.formsLoadRequested = false;
-      },
     });
-  }
-
-  getFormsForPokemon(pokemonId: number): { id: number; name: string }[] {
-    return this.formsMap().get(pokemonId) ?? [];
-  }
-
-  /** Get the base (first stage) evolution ID for a Pokemon. Returns the ID itself if no chain found. */
-  getBaseEvolution(id: number): number {
-    return this.evoBaseMap.get(id) ?? id;
-  }
-
-  getPokemonName(id: number): string {
-    if (id === 0) return 'All Pokemon';
-    return this.pokemonMap.get(id) ?? `Pokemon #${id}`;
-  }
-
-  getFormName(pokemonId: number, formId: number): string {
-    if (formId === 0) return '';
-    const forms = this.getFormsForPokemon(pokemonId);
-    const match = forms.find(f => f.id === formId);
-    return match?.name ?? `Form ${formId}`;
-  }
-
-  getItemName(id: number): string {
-    return this.itemMap.get(id) ?? `Item #${id}`;
-  }
-
-  getAllPokemon(): PokemonEntry[] {
-    const entries: PokemonEntry[] = [{ id: 0, name: 'All Pokemon' }];
-    this.pokemonMap.forEach((name, id) => {
-      entries.push({ id, name });
-    });
-    entries.sort((a, b) => a.id - b.id);
-    return entries;
-  }
-
-  getAllPokemon$(): Observable<PokemonEntry[]> {
-    return this.loadData().pipe(map(() => this.getAllPokemon()));
-  }
-
-  isLoaded(): boolean {
-    return this.loaded;
   }
 }

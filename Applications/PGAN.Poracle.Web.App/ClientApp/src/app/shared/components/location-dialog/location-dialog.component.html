@@ -1,0 +1,71 @@
+<h2 mat-dialog-title>Set Location</h2>
+@if (saving()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+<mat-dialog-content>
+  <!-- Address Search -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Search address</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input
+      matInput
+      [matAutocomplete]="auto"
+      [(ngModel)]="searchQuery"
+      (ngModelChange)="onSearchChange($event)"
+      placeholder="Type an address to search..." />
+    @if (searching()) {
+      <mat-icon matSuffix class="spin">sync</mat-icon>
+    }
+    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="selectResult($event.option.value)" class="address-autocomplete">
+      @for (result of searchResults(); track $index) {
+        <mat-option [value]="result" class="address-option">
+          <div class="address-option-content">
+            <mat-icon class="address-option-icon">{{ getPlaceIcon(result) }}</mat-icon>
+            <div class="address-option-text">
+              <span class="address-primary">{{ getAddressPrimary(result) }}</span>
+              <span class="address-secondary">{{ getAddressSecondary(result) }}</span>
+            </div>
+          </div>
+        </mat-option>
+      }
+      @if (searchResults().length === 0 && searching()) {
+        <mat-option disabled>
+          <span class="autocomplete-option">Searching...</span>
+        </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <!-- Lat/Lng Fields -->
+  <div class="location-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Latitude</mat-label>
+      <input matInput type="number" [(ngModel)]="latitude" step="0.000001" (change)="onCoordsChanged()" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Longitude</mat-label>
+      <input matInput type="number" [(ngModel)]="longitude" step="0.000001" (change)="onCoordsChanged()" />
+    </mat-form-field>
+  </div>
+
+  <!-- Resolved Address Display -->
+  @if (resolvedAddress()) {
+    <div class="resolved-address">
+      <mat-icon>place</mat-icon>
+      <span>{{ resolvedAddress() }}</span>
+    </div>
+  }
+
+  <!-- Mini Map -->
+  <div #mapContainer class="mini-map"></div>
+
+  <!-- Use My Location -->
+  <button mat-stroked-button color="primary" (click)="useMyLocation()" [disabled]="locating()" class="geolocate-btn">
+    <mat-icon>my_location</mat-icon>
+    {{ locating() ? 'Getting location...' : 'Use My Location' }}
+  </button>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !isValid()"><mat-icon>save</mat-icon> Save</button>
+</mat-dialog-actions>

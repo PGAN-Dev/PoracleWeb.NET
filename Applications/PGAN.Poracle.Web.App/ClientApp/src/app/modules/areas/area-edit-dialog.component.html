@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>Select Areas</h2>
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Search areas</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [(ngModel)]="searchText" (ngModelChange)="filterAreas()" placeholder="Filter by name..." />
+    @if (searchText) {
+      <button mat-icon-button matSuffix (click)="searchText = ''; filterAreas()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <div class="select-actions">
+    <button mat-button (click)="selectAll()">Select All</button>
+    <button mat-button (click)="deselectAll()">Deselect All</button>
+    <span class="selection-count">{{ selectedCount() }} selected</span>
+  </div>
+
+  @if (hasMultipleGroups) {
+    <mat-accordion multi>
+      @for (group of filteredGroups(); track group.name) {
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="group-icon">folder</mat-icon>
+              {{ group.name }}
+              <span class="group-badge" [class.has-selected]="group.selectedCount > 0">
+                {{ group.selectedCount }}/{{ group.totalCount }}
+              </span>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="group-actions">
+            <button mat-button color="primary" (click)="selectGroup(group.name)">Select All</button>
+            <button mat-button (click)="deselectGroup(group.name)">Deselect All</button>
+          </div>
+          @for (area of group.areas; track area.name) {
+            <mat-checkbox [checked]="area.selected" (change)="toggle(area, $event.checked)" class="area-checkbox">
+              {{ area.name }}
+            </mat-checkbox>
+          }
+        </mat-expansion-panel>
+      }
+    </mat-accordion>
+  } @else {
+    @for (group of filteredGroups(); track group.name) {
+      @for (area of group.areas; track area.name) {
+        <mat-checkbox [checked]="area.selected" (change)="toggle(area, $event.checked)" class="area-checkbox">
+          {{ area.name }}
+        </mat-checkbox>
+      }
+    }
+  }
+
+  @if (filteredGroups().length === 0) {
+    <p class="no-results">No areas match your search</p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()"><mat-icon>save</mat-icon> Save</button>
+</mat-dialog-actions>

@@ -1,118 +1,101 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+
 import { adminGuard } from './core/guards/admin.guard';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
+    loadComponent: () => import('./modules/auth/login.component').then(m => m.LoginComponent),
     path: 'login',
-    loadComponent: () =>
-      import('./modules/auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    loadComponent: () => import('./modules/auth/callback.component').then(m => m.CallbackComponent),
     path: 'auth/callback',
-    loadComponent: () =>
-      import('./modules/auth/callback.component').then((m) => m.CallbackComponent),
   },
   {
+    loadComponent: () => import('./modules/auth/callback.component').then(m => m.CallbackComponent),
     path: 'auth/discord/callback',
-    loadComponent: () =>
-      import('./modules/auth/callback.component').then((m) => m.CallbackComponent),
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/dashboard/dashboard.component').then(m => m.DashboardComponent),
     path: 'dashboard',
-    loadComponent: () =>
-      import('./modules/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/pokemon/pokemon-list.component').then(m => m.PokemonListComponent),
     path: 'pokemon',
-    loadComponent: () =>
-      import('./modules/pokemon/pokemon-list.component').then((m) => m.PokemonListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/raids/raid-list.component').then(m => m.RaidListComponent),
     path: 'raids',
-    loadComponent: () =>
-      import('./modules/raids/raid-list.component').then((m) => m.RaidListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/quests/quest-list.component').then(m => m.QuestListComponent),
     path: 'quests',
-    loadComponent: () =>
-      import('./modules/quests/quest-list.component').then((m) => m.QuestListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/invasions/invasion-list.component').then(m => m.InvasionListComponent),
     path: 'invasions',
-    loadComponent: () =>
-      import('./modules/invasions/invasion-list.component').then((m) => m.InvasionListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/lures/lure-list.component').then(m => m.LureListComponent),
     path: 'lures',
-    loadComponent: () =>
-      import('./modules/lures/lure-list.component').then((m) => m.LureListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/nests/nest-list.component').then(m => m.NestListComponent),
     path: 'nests',
-    loadComponent: () =>
-      import('./modules/nests/nest-list.component').then((m) => m.NestListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/gyms/gym-list.component').then(m => m.GymListComponent),
     path: 'gyms',
-    loadComponent: () =>
-      import('./modules/gyms/gym-list.component').then((m) => m.GymListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/areas/area-list.component').then(m => m.AreaListComponent),
     path: 'areas',
-    loadComponent: () =>
-      import('./modules/areas/area-list.component').then((m) => m.AreaListComponent),
-    canActivate: [authGuard],
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/profiles/profile-list.component').then(m => m.ProfileListComponent),
     path: 'profiles',
-    loadComponent: () =>
-      import('./modules/profiles/profile-list.component').then((m) => m.ProfileListComponent),
-    canActivate: [authGuard],
   },
   {
-    path: 'cleaning',
-    loadComponent: () =>
-      import('./modules/cleaning/cleaning.component').then((m) => m.CleaningComponent),
     canActivate: [authGuard],
+    loadComponent: () => import('./modules/cleaning/cleaning.component').then(m => m.CleaningComponent),
+    path: 'cleaning',
   },
   {
     path: 'admin',
-    redirectTo: 'admin/users',
     pathMatch: 'full',
+    redirectTo: 'admin/users',
   },
   {
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./modules/admin/admin-users.component').then(m => m.AdminUsersComponent),
     path: 'admin/users',
-    loadComponent: () =>
-      import('./modules/admin/admin-users.component').then((m) => m.AdminUsersComponent),
-    canActivate: [authGuard, adminGuard],
   },
   {
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./modules/admin/admin-webhooks.component').then(m => m.AdminWebhooksComponent),
     path: 'admin/webhooks',
-    loadComponent: () =>
-      import('./modules/admin/admin-webhooks.component').then((m) => m.AdminWebhooksComponent),
-    canActivate: [authGuard, adminGuard],
   },
   {
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./modules/admin/admin-settings.component').then(m => m.AdminSettingsComponent),
     path: 'admin/settings',
-    loadComponent: () =>
-      import('./modules/admin/admin-settings.component').then((m) => m.AdminSettingsComponent),
-    canActivate: [authGuard, adminGuard],
   },
   {
-    path: 'my-webhooks',
-    loadComponent: () =>
-      import('./modules/admin/my-webhooks.component').then((m) => m.MyWebhooksComponent),
     canActivate: [authGuard],
+    loadComponent: () => import('./modules/admin/my-webhooks.component').then(m => m.MyWebhooksComponent),
+    path: 'my-webhooks',
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

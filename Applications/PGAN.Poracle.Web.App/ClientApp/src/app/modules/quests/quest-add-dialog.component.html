@@ -1,0 +1,133 @@
+<h2 mat-dialog-title>Add Quest Alarm</h2>
+<mat-dialog-content>
+  <mat-tab-group animationDuration="200ms" class="alarm-tabs">
+    <!-- Tab 1: Rewards -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>explore</mat-icon>
+        <span class="tab-label">Rewards</span>
+      </ng-template>
+      <div class="tab-content">
+        <mat-tab-group [(selectedIndex)]="tabIndex" class="reward-tabs">
+          <mat-tab label="Pokemon">
+            <div class="tab-content">
+              <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
+              @if (selectedPokemonIds().length > 0) {
+                <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
+              }
+            </div>
+          </mat-tab>
+          <mat-tab label="Items">
+            <div class="tab-content">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Item Reward</mat-label>
+                <mat-select [formControl]="itemForm.controls.reward">
+                  <mat-option [value]="0">Any Item</mat-option>
+                  <mat-option [value]="1">Poke Ball</mat-option>
+                  <mat-option [value]="2">Great Ball</mat-option>
+                  <mat-option [value]="3">Ultra Ball</mat-option>
+                  <mat-option [value]="101">Potion</mat-option>
+                  <mat-option [value]="102">Super Potion</mat-option>
+                  <mat-option [value]="103">Hyper Potion</mat-option>
+                  <mat-option [value]="104">Max Potion</mat-option>
+                  <mat-option [value]="201">Revive</mat-option>
+                  <mat-option [value]="202">Max Revive</mat-option>
+                  <mat-option [value]="301">Rare Candy</mat-option>
+                  <mat-option [value]="401">Silver Pinap Berry</mat-option>
+                  <mat-option [value]="501">Star Piece</mat-option>
+                  <mat-option [value]="502">Lucky Egg</mat-option>
+                  <mat-option [value]="503">Incense</mat-option>
+                  <mat-option [value]="504">Lure Module</mat-option>
+                  <mat-option [value]="705">Rocket Radar</mat-option>
+                  <mat-option [value]="1301">Stardust</mat-option>
+                  <mat-option [value]="1402">XL Candy</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </mat-tab>
+          <mat-tab label="Mega Energy">
+            <div class="tab-content">
+              <app-pokemon-selector [multi]="true" (selectionChange)="onMegaPokemonSelected($event)" />
+              @if (selectedMegaPokemonIds().length > 0) {
+                <p class="selection-count">{{ selectedMegaPokemonIds().length }} Pokemon selected</p>
+              }
+            </div>
+          </mat-tab>
+          <mat-tab label="Candy">
+            <div class="tab-content">
+              <app-pokemon-selector [multi]="true" (selectionChange)="onCandyPokemonSelected($event)" />
+              @if (selectedCandyPokemonIds().length > 0) {
+                <p class="selection-count">{{ selectedCandyPokemonIds().length }} Pokemon selected</p>
+              }
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Delivery -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>notifications</mat-icon>
+        <span class="tab-label">Delivery</span>
+      </ng-template>
+      <div class="tab-content">
+        <h4>Location Mode</h4>
+        <mat-radio-group [formControl]="commonForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
+          <mat-radio-button value="areas">
+            <div class="radio-label">
+              <mat-icon>map</mat-icon>
+              <div>
+                <strong>Use Areas</strong>
+                <p class="radio-hint">Notifications will use your configured area geofences</p>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button value="distance">
+            <div class="radio-label">
+              <mat-icon>straighten</mat-icon>
+              <div>
+                <strong>Set Distance</strong>
+                <p class="radio-hint">Notify within a radius from your location</p>
+              </div>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+
+        @if (commonForm.controls.distanceMode.value === 'distance') {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Distance</mat-label>
+            <input matInput type="number" [formControl]="commonForm.controls.distanceKm" min="0" step="0.1" />
+            <span matSuffix>km</span>
+          </mat-form-field>
+        }
+
+        <app-delivery-preview
+          [mode]="commonForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
+          [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
+        </app-delivery-preview>
+
+        <h4>Common Settings</h4>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Ping / Role</mat-label>
+          <input matInput [formControl]="commonForm.controls.ping" placeholder="e.g. @role or empty" />
+        </mat-form-field>
+
+        <app-template-selector
+          [alarmType]="'quest'"
+          [value]="commonForm.controls.template.value ?? ''"
+          (valueChange)="commonForm.controls.template.setValue($event)">
+        </app-template-selector>
+
+        <mat-slide-toggle [formControl]="commonForm.controls.clean"> Clean mode (auto-delete after quest resets) </mat-slide-toggle>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close(false)">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave()">
+    {{ saving() ? 'Saving...' : 'Save' }}
+  </button>
+</mat-dialog-actions>

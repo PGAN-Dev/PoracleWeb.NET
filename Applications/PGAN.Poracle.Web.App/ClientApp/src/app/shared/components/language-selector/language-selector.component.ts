@@ -1,7 +1,8 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+
 import { LocationService } from '../../../core/services/location.service';
 
 interface LanguageOption {
@@ -10,54 +11,14 @@ interface LanguageOption {
 }
 
 @Component({
+  imports: [MatSelectModule, MatFormFieldModule, MatIconModule],
   selector: 'app-language-selector',
   standalone: true,
-  imports: [MatSelectModule, MatFormFieldModule, MatIconModule],
-  template: `
-    <mat-form-field appearance="outline" class="language-field">
-      <mat-icon matPrefix>language</mat-icon>
-      <mat-select
-        [value]="selectedLanguage()"
-        (selectionChange)="onLanguageChange($event.value)"
-        panelClass="language-panel"
-      >
-        @for (lang of languages; track lang.code) {
-          <mat-option [value]="lang.code">{{ lang.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-  `,
-  styles: [
-    `
-      .language-field {
-        width: 110px;
-        margin: 0 4px;
-
-        ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-          display: none;
-        }
-
-        ::ng-deep .mat-mdc-text-field-wrapper {
-          height: 36px;
-          padding: 0 8px;
-        }
-
-        ::ng-deep .mat-mdc-form-field-infix {
-          padding: 4px 0;
-          min-height: unset;
-        }
-
-        ::ng-deep .mat-mdc-select-trigger {
-          font-size: 13px;
-        }
-      }
-    `,
-  ],
+  styleUrl: './language-selector.component.scss',
+  templateUrl: './language-selector.component.html',
 })
 export class LanguageSelectorComponent implements OnInit {
   private readonly locationService = inject(LocationService);
-
-  protected readonly selectedLanguage = signal('en');
 
   readonly languages: LanguageOption[] = [
     { code: 'en', label: 'English' },
@@ -79,6 +40,8 @@ export class LanguageSelectorComponent implements OnInit {
     { code: 'th', label: 'Thai' },
     { code: 'tr', label: 'Turkish' },
   ];
+
+  protected readonly selectedLanguage = signal('en');
 
   ngOnInit(): void {
     const stored = localStorage.getItem('poracle-language');

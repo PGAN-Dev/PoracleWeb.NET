@@ -1,7 +1,9 @@
 @if (auth.isImpersonating()) {
   <div class="impersonation-banner">
     <mat-icon>visibility</mat-icon>
-    <span>Viewing as <strong>{{ auth.user()?.username }}</strong></span>
+    <span
+      >Viewing as <strong>{{ auth.user()?.username }}</strong></span
+    >
     <button mat-raised-button (click)="stopImpersonating()">
       <mat-icon>arrow_back</mat-icon>
       Back to Admin
@@ -24,12 +26,12 @@
       <mat-icon>menu</mat-icon>
     </button>
     <svg viewBox="0 0 100 100" width="24" height="24" class="toolbar-pokeball">
-      <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="6"/>
-      <path d="M2 50 H38" stroke="currentColor" stroke-width="6"/>
-      <path d="M62 50 H98" stroke="currentColor" stroke-width="6"/>
-      <path d="M2 50 A48 48 0 0 1 98 50" fill="currentColor" opacity="0.3"/>
-      <circle cx="50" cy="50" r="16" fill="none" stroke="currentColor" stroke-width="6"/>
-      <circle cx="50" cy="50" r="8" fill="currentColor"/>
+      <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="6" />
+      <path d="M2 50 H38" stroke="currentColor" stroke-width="6" />
+      <path d="M62 50 H98" stroke="currentColor" stroke-width="6" />
+      <path d="M2 50 A48 48 0 0 1 98 50" fill="currentColor" opacity="0.3" />
+      <circle cx="50" cy="50" r="16" fill="none" stroke="currentColor" stroke-width="6" />
+      <circle cx="50" cy="50" r="8" fill="currentColor" />
     </svg>
     <div class="app-title-block">
       <span class="app-title">{{ siteTitle() }}</span>
@@ -62,7 +64,7 @@
         </div>
         <div class="user-menu-info">
           <span class="user-menu-name">{{ auth.user()?.username }}</span>
-          <span class="user-menu-profile">{{ auth.user()?.profileName || ('Profile #' + auth.user()?.profileNo) }}</span>
+          <span class="user-menu-profile">{{ auth.user()?.profileName || 'Profile #' + auth.user()?.profileNo }}</span>
         </div>
       </div>
       <mat-divider></mat-divider>
@@ -96,19 +98,12 @@
       [mode]="isMobile() ? 'over' : 'side'"
       [opened]="sidenavOpened()"
       (openedChange)="sidenavOpened.set($event)"
-      class="app-sidenav"
-    >
+      class="app-sidenav">
       <mat-nav-list>
         <!-- Alarms Section -->
         <div class="nav-group-label">Alarms</div>
         @for (item of alarmNavItems(); track item.route) {
-          <a
-            mat-list-item
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-            (click)="onNavClick()"
-            class="nav-item"
-          >
+          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
             <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
             <span matListItemTitle>{{ item.label }}</span>
           </a>
@@ -119,13 +114,7 @@
         <!-- Settings Section -->
         <div class="nav-group-label">Settings</div>
         @for (item of settingsNavItems(); track item.route) {
-          <a
-            mat-list-item
-            [routerLink]="item.route"
-            routerLinkActive="active-link"
-            (click)="onNavClick()"
-            class="nav-item"
-          >
+          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
             <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
             <span matListItemTitle>{{ item.label }}</span>
           </a>
@@ -137,13 +126,7 @@
           <!-- Admin Section -->
           <div class="nav-group-label">Admin</div>
           @for (item of adminNavItems(); track item.route) {
-            <a
-              mat-list-item
-              [routerLink]="item.route"
-              routerLinkActive="active-link"
-              (click)="onNavClick()"
-              class="nav-item"
-            >
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
             </a>
@@ -156,13 +139,7 @@
           <!-- Webhooks Section (for delegates) -->
           <div class="nav-group-label">Webhooks</div>
           @for (item of webhookNavItems(); track item.route) {
-            <a
-              mat-list-item
-              [routerLink]="item.route"
-              routerLinkActive="active-link"
-              (click)="onNavClick()"
-              class="nav-item"
-            >
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
             </a>

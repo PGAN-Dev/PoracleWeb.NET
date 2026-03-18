@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>Update All Distance</h2>
+<mat-dialog-content>
+  <p class="dialog-desc">Set the location mode for all alarms of this type.</p>
+
+  <mat-radio-group [(ngModel)]="mode" class="mode-group">
+    <mat-radio-button value="areas">
+      <div class="radio-label">
+        <mat-icon>map</mat-icon>
+        <div>
+          <strong>Use Areas</strong>
+          <p class="radio-hint">Notifications will use your configured geofence areas</p>
+        </div>
+      </div>
+    </mat-radio-button>
+    <mat-radio-button value="distance">
+      <div class="radio-label">
+        <mat-icon>straighten</mat-icon>
+        <div>
+          <strong>Set Distance</strong>
+          <p class="radio-hint">Notify within a radius from your location</p>
+        </div>
+      </div>
+    </mat-radio-button>
+  </mat-radio-group>
+
+  @if (mode() === 'distance') {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Distance</mat-label>
+      <input matInput type="number" [(ngModel)]="distanceKm" min="0.1" step="0.1" />
+      <span matSuffix>km</span>
+    </mat-form-field>
+  }
+
+  <app-delivery-preview [mode]="mode()" [distanceKm]="mode() === 'distance' ? distanceKm : 0"> </app-delivery-preview>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close(null)">Cancel</button>
+  <button mat-raised-button color="primary" (click)="apply()">Update All</button>
+</mat-dialog-actions>

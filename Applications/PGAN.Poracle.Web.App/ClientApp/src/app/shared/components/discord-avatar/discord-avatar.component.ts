@@ -1,40 +1,72 @@
-import { Component, Input, ElementRef, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Component, Input, ElementRef, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
+
 import { ConfigService } from '../../../core/services/config.service';
 
 @Component({
   selector: 'app-discord-avatar',
   standalone: true,
-  template: `<img [src]="resolvedUrl" class="avatar-img" (error)="onError($event)" loading="lazy" />`,
-  styles: [`
-    .avatar-img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #e0e0e0;
-    }
-  `],
+  styleUrl: './discord-avatar.component.scss',
+  templateUrl: './discord-avatar.component.html',
 })
 export class DiscordAvatarComponent implements OnInit, OnDestroy {
-  @Input() userId = '';
-  @Input() defaultUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
-  @Input() userType = '';
-
-  resolvedUrl = '';
-
-  private static cache = new Map<string, string>();
-  private static pending = new Map<string, Set<DiscordAvatarComponent>>();
   private static batchTimer: ReturnType<typeof setTimeout> | null = null;
-  private static http: HttpClient;
+  private static cache = new Map<string, string>();
   private static config: ConfigService;
 
-  private el = inject(ElementRef);
+  private static http: HttpClient;
+
+  private static pending = new Map<string, Set<DiscordAvatarComponent>>();
   private cdr = inject(ChangeDetectorRef);
-  private httpClient = inject(HttpClient);
   private configSvc = inject(ConfigService);
+  private el = inject(ElementRef);
+  private httpClient = inject(HttpClient);
+
   private observer: IntersectionObserver | null = null;
+  @Input() defaultUrl = 'https://cdn.discordapp.com/embed/avatars/0.png';
+  resolvedUrl = '';
+  @Input() userId = '';
+  @Input() userType = '';
+
+  private static flushBatch(): void {
+    const ids = [...this.pending.keys()];
+    if (ids.length === 0) return;
+
+    const pendingSnapshot = new Map(this.pending);
+    this.pending.clear();
+    this.batchTimer = null;
+
+    this.http.post<Record<string, string>>(`${this.config.apiHost}/api/admin/users/avatars`, ids).subscribe({
+      next: avatarMap => {
+        for (const [id, url] of Object.entries(avatarMap)) {
+          this.cache.set(id, url);
+          pendingSnapshot.get(id)?.forEach(comp => {
+            comp.resolvedUrl = url;
+            comp.cdr.detectChanges();
+          });
+        }
+        // Retry IDs that didn't get a response (rate limited)
+        const missed = ids.filter(id => !avatarMap[id] && !this.cache.has(id));
+        if (missed.length > 0) {
+          setTimeout(() => {
+            for (const id of missed) {
+              const comps = pendingSnapshot.get(id);
+              if (comps) {
+                this.pending.set(id, comps);
+              }
+            }
+            if (this.pending.size > 0) this.flushBatch();
+          }, 3000);
+        }
+      },
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.observer?.disconnect();
+    // Remove from pending
+    DiscordAvatarComponent.pending.get(this.userId)?.delete(this);
+  }
 
   ngOnInit(): void {
     DiscordAvatarComponent.http = this.httpClient;
@@ -51,7 +83,7 @@ export class DiscordAvatarComponent implements OnInit, OnDestroy {
 
     // Observe visibility
     this.observer = new IntersectionObserver(
-      (entries) => {
+      entries => {
         if (entries[0]?.isIntersecting) {
           this.observer?.disconnect();
           this.observer = null;
@@ -61,12 +93,6 @@ export class DiscordAvatarComponent implements OnInit, OnDestroy {
       { rootMargin: '200px' },
     );
     this.observer.observe(this.el.nativeElement);
-  }
-
-  ngOnDestroy(): void {
-    this.observer?.disconnect();
-    // Remove from pending
-    DiscordAvatarComponent.pending.get(this.userId)?.delete(this);
   }
 
   onError(event: Event): void {
@@ -90,41 +116,5 @@ export class DiscordAvatarComponent implements OnInit, OnDestroy {
     // Debounce batch request
     if (DiscordAvatarComponent.batchTimer) clearTimeout(DiscordAvatarComponent.batchTimer);
     DiscordAvatarComponent.batchTimer = setTimeout(() => DiscordAvatarComponent.flushBatch(), 200);
-  }
-
-  private static flushBatch(): void {
-    const ids = [...this.pending.keys()];
-    if (ids.length === 0) return;
-
-    const pendingSnapshot = new Map(this.pending);
-    this.pending.clear();
-    this.batchTimer = null;
-
-    this.http
-      .post<Record<string, string>>(`${this.config.apiHost}/api/admin/users/avatars`, ids)
-      .subscribe({
-        next: (avatarMap) => {
-          for (const [id, url] of Object.entries(avatarMap)) {
-            this.cache.set(id, url);
-            pendingSnapshot.get(id)?.forEach((comp) => {
-              comp.resolvedUrl = url;
-              comp.cdr.detectChanges();
-            });
-          }
-          // Retry IDs that didn't get a response (rate limited)
-          const missed = ids.filter(id => !avatarMap[id] && !this.cache.has(id));
-          if (missed.length > 0) {
-            setTimeout(() => {
-              for (const id of missed) {
-                const comps = pendingSnapshot.get(id);
-                if (comps) {
-                  this.pending.set(id, comps);
-                }
-              }
-              if (this.pending.size > 0) this.flushBatch();
-            }, 3000);
-          }
-        },
-      });
   }
 }

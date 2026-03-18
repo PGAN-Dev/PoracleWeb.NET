@@ -1,0 +1,41 @@
+<div class="cleaning-container">
+  <div class="page-header">
+    <div class="page-header-text">
+      <h1>Cleaning Settings</h1>
+      <p class="page-description">
+        Enable auto-cleanup to automatically remove expired notification alarms. When enabled, alarms that have been triggered will be
+        automatically cleaned up.
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="cleaning-content">
+      <mat-card class="cleaning-card">
+        <div class="section-header">
+          <mat-icon>auto_delete</mat-icon>
+          <span>Auto-Cleanup by Alarm Type</span>
+        </div>
+        @for (item of cleaningItems; track item.type) {
+          <div class="cleaning-row">
+            <div class="cleaning-label">
+              <mat-icon [style.color]="item.color">{{ item.icon }}</mat-icon>
+              <div class="label-text">
+                <span class="label-name">{{ item.label }}</span>
+                @if (!item.hasAlarms()) {
+                  <span class="label-hint">No alarms configured</span>
+                }
+              </div>
+            </div>
+            <mat-slide-toggle [checked]="item.enabled()" [disabled]="toggling()" (change)="toggleClean(item, $event.checked)">
+            </mat-slide-toggle>
+          </div>
+        }
+      </mat-card>
+    </div>
+  }
+</div>

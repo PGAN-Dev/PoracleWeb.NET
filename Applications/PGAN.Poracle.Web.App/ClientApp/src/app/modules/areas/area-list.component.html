@@ -1,0 +1,236 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Areas & Location</h1>
+    <p class="page-description">
+      Configure which geographic areas you receive notifications for, and set your home location for distance-based alerts. Click
+      <mat-icon class="inline-icon">edit</mat-icon> Edit Areas to select from available geofences. Set your location to enable
+      distance-based filtering.
+    </p>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+} @else {
+  <div class="areas-page">
+    <!-- Area Overview Map -->
+    @if (geofenceData().length > 0) {
+      <mat-card class="area-map-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>public</mat-icon>
+          <mat-card-title>Area Overview</mat-card-title>
+          <mat-card-subtitle>{{ geofenceData().length }} geofenced areas</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <app-area-map
+            [geofence]="geofenceData()"
+            [selectedAreas]="selectedAreas()"
+            [userLocation]="userLocationForMap()"
+            [groupMapping]="groupMapping()"
+            (areaClicked)="onMapAreaClicked($event)"></app-area-map>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Selected Areas Chips -->
+    <mat-card class="selected-areas-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>map</mat-icon>
+        <mat-card-title>Selected Areas</mat-card-title>
+        <mat-card-subtitle>{{ selectedAreas().length }} area(s) active</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        @if (selectedAreas().length > 0) {
+          <mat-chip-set class="selected-chips">
+            @for (area of selectedAreas(); track area) {
+              <mat-chip highlighted color="primary" (removed)="removeArea(area)">
+                <mat-icon matChipAvatar>place</mat-icon>
+                {{ area }}
+                @if (editing()) {
+                  <button matChipRemove>
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                }
+              </mat-chip>
+            }
+          </mat-chip-set>
+        } @else {
+          <div class="empty-state">
+            <mat-icon class="empty-icon">map</mat-icon>
+            <p>No areas selected</p>
+          </div>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end">
+        @if (!editing()) {
+          <button mat-raised-button color="primary" (click)="startEditing()"><mat-icon>edit</mat-icon> Edit Areas</button>
+        }
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Area Selection Panel -->
+    @if (editing()) {
+      <mat-card class="area-selection-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>checklist</mat-icon>
+          <mat-card-title>Select Areas</mat-card-title>
+          <mat-card-subtitle>Choose the areas you want to track</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (availableAreas().length === 0) {
+            <!-- Poracle API offline -->
+            <div class="api-offline-notice">
+              <mat-icon class="warning-icon">cloud_off</mat-icon>
+              <p>Area geofences are not available. The Poracle API may be offline.</p>
+              <mat-form-field appearance="outline" class="manual-input">
+                <mat-label>Add area name manually</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="manualAreaName"
+                  (keyup.enter)="addManualArea()"
+                  placeholder="Type an area name and press Enter" />
+                <button mat-icon-button matSuffix (click)="addManualArea()" [disabled]="!manualAreaName.trim()">
+                  <mat-icon>add_circle</mat-icon>
+                </button>
+              </mat-form-field>
+            </div>
+          } @else {
+            <!-- Search -->
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Search areas</mat-label>
+              <mat-icon matPrefix>search</mat-icon>
+              <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" placeholder="Filter by name..." />
+              @if (searchText) {
+                <button mat-icon-button matSuffix (click)="clearSearch()">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </mat-form-field>
+
+            @if (hasMultipleGroups()) {
+              <!-- Accordion grouped view -->
+              <mat-accordion multi>
+                @for (group of filteredGroups(); track group.name) {
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon class="group-icon">folder</mat-icon>
+                        <span class="group-name">{{ group.name }}</span>
+                        <span class="group-badge" [class.has-selected]="group.selectedCount > 0">
+                          {{ group.selectedCount }}/{{ group.totalCount }}
+                        </span>
+                      </mat-panel-title>
+                    </mat-expansion-panel-header>
+
+                    <div class="group-actions">
+                      <button mat-button color="primary" (click)="selectGroup(group.name)">
+                        <mat-icon>select_all</mat-icon> Select All
+                      </button>
+                      <button mat-button (click)="deselectGroup(group.name)"><mat-icon>deselect</mat-icon> Deselect All</button>
+                    </div>
+
+                    <div class="area-grid">
+                      @for (area of group.areas; track area.name) {
+                        <div class="area-tile" [class.area-selected]="area.selected" (click)="toggleArea(area, !area.selected)">
+                          @if (area.mapUrl) {
+                            <img [src]="area.mapUrl" class="area-map-img" [alt]="area.name" loading="lazy" />
+                          } @else if (area.mapLoading) {
+                            <div class="area-map-placeholder"><mat-spinner diameter="24"></mat-spinner></div>
+                          } @else {
+                            <div class="area-map-placeholder"><mat-icon>map</mat-icon></div>
+                          }
+                          <div class="area-tile-footer">
+                            <mat-checkbox
+                              [checked]="area.selected"
+                              (click)="$event.stopPropagation()"
+                              (change)="toggleArea(area, $event.checked)"></mat-checkbox>
+                            <span class="area-tile-name">{{ area.name }}</span>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </mat-expansion-panel>
+                }
+              </mat-accordion>
+            } @else {
+              <!-- Flat list (single group or ungrouped) -->
+              @if (filteredGroups().length > 0) {
+                <div class="flat-list-actions">
+                  <button mat-button color="primary" (click)="selectAllAreas()"><mat-icon>select_all</mat-icon> Select All</button>
+                  <button mat-button (click)="deselectAllAreas()"><mat-icon>deselect</mat-icon> Deselect All</button>
+                  <span class="selection-count"> {{ totalSelectedCount() }} of {{ editableAreas().length }} selected </span>
+                </div>
+                <div class="area-grid">
+                  @for (area of filteredGroups()[0].areas; track area.name) {
+                    <div class="area-tile" [class.area-selected]="area.selected" (click)="toggleArea(area, !area.selected)">
+                      @if (area.mapUrl) {
+                        <img [src]="area.mapUrl" class="area-map-img" [alt]="area.name" loading="lazy" />
+                      } @else if (area.mapLoading) {
+                        <div class="area-map-placeholder"><mat-spinner diameter="24"></mat-spinner></div>
+                      } @else {
+                        <div class="area-map-placeholder"><mat-icon>map</mat-icon></div>
+                      }
+                      <div class="area-tile-footer">
+                        <mat-checkbox
+                          [checked]="area.selected"
+                          (click)="$event.stopPropagation()"
+                          (change)="toggleArea(area, $event.checked)"></mat-checkbox>
+                        <span class="area-tile-name">{{ area.name }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            }
+
+            @if (filteredGroups().length === 0 && searchText) {
+              <p class="no-results">No areas match "{{ searchText }}"</p>
+            }
+          }
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-button (click)="cancelEditing()"><mat-icon>close</mat-icon> Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveAreas()" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="20" class="inline-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>save</mat-icon>
+            }
+            Save
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    }
+
+    <!-- Location Card -->
+    <mat-card class="location-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>place</mat-icon>
+        <mat-card-title>Current Location</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        @if (location(); as loc) {
+          @if (locationMapUrl()) {
+            <img [src]="locationMapUrl()" class="location-static-map" alt="Location map" loading="lazy" />
+          }
+          @if (locationAddress()) {
+            <div class="location-address">
+              <mat-icon>place</mat-icon>
+              <span>{{ locationAddress() }}</span>
+            </div>
+          }
+          <div class="location-coords">
+            <span class="coord-chip">{{ loc.latitude.toFixed(6) }}, {{ loc.longitude.toFixed(6) }}</span>
+          </div>
+        } @else {
+          <p class="no-location">No location set</p>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-raised-button color="accent" (click)="openLocationDialog()"><mat-icon>my_location</mat-icon> Set Location</button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+}

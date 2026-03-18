@@ -1,0 +1,18 @@
+@if (error()) {
+  <div class="callback-container">
+    <div class="callback-error">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h2>Authentication Failed</h2>
+      <p>{{ error() }}</p>
+      <a mat-raised-button color="primary" routerLink="/login">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Login
+      </a>
+    </div>
+  </div>
+} @else {
+  <div class="callback-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Authenticating...</p>
+  </div>
+}

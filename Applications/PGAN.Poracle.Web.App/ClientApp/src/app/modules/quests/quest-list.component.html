@@ -1,0 +1,72 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Quest Alarms</h1>
+    <p class="page-description">Track field research tasks by reward type: Pokemon encounters, items, mega energy, or candy.</p>
+  </div>
+  <div class="header-actions">
+    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #bulkMenu="matMenu">
+      <button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button>
+      <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
+    </mat-menu>
+    <button mat-fab class="fab-quest" (click)="openAddDialog()">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="loading-text">Loading alarms...</p>
+  </div>
+} @else {
+  <div class="alarm-grid">
+    @for (quest of quests(); track quest.uid) {
+      <mat-card class="alarm-card">
+        <div class="card-top" [style.border-top-color]="getRewardColor(quest.rewardType)">
+          <img [src]="getQuestImage(quest)" [alt]="getQuestTitle(quest)" class="item-img" (error)="onImageError($event)" />
+          <div class="item-info">
+            <h3>{{ getQuestTitle(quest) }}</h3>
+            <span class="reward-badge" [style.background]="getRewardColor(quest.rewardType)">
+              {{ getRewardTypeLabel(quest.rewardType) }}
+            </span>
+          </div>
+          <div class="card-top-actions">
+            @if (quest.clean === 1) {
+              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
+            }
+            @if (quest.template) {
+              <span class="template-chip" matTooltip="Template: {{ quest.template }}">{{ quest.template }}</span>
+            }
+          </div>
+        </div>
+        <mat-card-content>
+          <app-alarm-info [distance]="quest.distance" [clean]="quest.clean" [template]="quest.template" [ping]="quest.ping" />
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-icon-button (click)="editQuest(quest)" matTooltip="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button (click)="deleteQuest(quest)" matTooltip="Delete" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <div class="empty-state">
+        <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+          <line x1="40" y1="95" x2="40" y2="45" stroke="#9c27b0" stroke-width="4" stroke-linecap="round" />
+          <circle cx="40" cy="35" r="22" fill="#9c27b0" opacity="0.1" stroke="#9c27b0" stroke-width="3" />
+          <rect x="30" y="28" width="20" height="14" rx="3" fill="#9c27b0" opacity="0.25" />
+          <circle cx="40" cy="35" r="5" fill="#9c27b0" opacity="0.5" />
+        </svg>
+        <h2 class="empty-title">No Quest Alarms Configured</h2>
+        <p class="empty-subtitle">Track field research tasks by reward type</p>
+        <button mat-flat-button class="cta-quest" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Quest</button>
+      </div>
+    }
+  </div>
+}

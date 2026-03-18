@@ -105,8 +105,12 @@ body:not(.dark-theme) {
 }
 
 @keyframes pokespin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // ─── Global utility classes ─────────────────────────────────────────
@@ -196,14 +200,22 @@ router-outlet + * {
   animation: pageIn 0.2s ease-out;
 }
 @keyframes pageIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 // ─── Card hover effects ────────────────────────────────────────────
 
 .mat-mdc-card {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .mat-mdc-card:hover {
   transform: translateY(-2px);

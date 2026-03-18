@@ -1,0 +1,24 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 24px;
+  gap: 16px;
+}
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+}
+.page-description {
+  margin: 4px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 3px solid #1976d2;
+  padding-left: 12px;
+}

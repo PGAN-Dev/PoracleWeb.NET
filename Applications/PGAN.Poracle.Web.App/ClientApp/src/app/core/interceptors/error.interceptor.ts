@@ -1,14 +1,15 @@
-import { inject } from '@angular/core';
 import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+
 import { ToastService } from '../services/toast.service';
 
 /** Endpoints where errors should be silently swallowed (no user-facing toast). */
 const SILENT_URL_PATTERNS = ['/api/config', '/api/masterdata', '/api/auth/me', '/api/admin/users/avatars'];
 
 function shouldSilence(url: string): boolean {
-  return SILENT_URL_PATTERNS.some((pattern) => url.includes(pattern));
+  return SILENT_URL_PATTERNS.some(pattern => url.includes(pattern));
 }
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
@@ -16,7 +17,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
 
   return next(req).pipe(
-    catchError((error) => {
+    catchError(error => {
       const silent = shouldSilence(req.url);
 
       // Always clear token and redirect on 401, even for silent endpoints

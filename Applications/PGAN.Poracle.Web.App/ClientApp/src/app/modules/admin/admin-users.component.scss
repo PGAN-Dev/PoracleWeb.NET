@@ -1,0 +1,116 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(69, 90, 100, 0.06) 0%, rgba(0, 137, 123, 0.04) 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+}
+.page-description {
+  margin: 4px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 3px solid #1976d2;
+  padding-left: 12px;
+}
+.page-content {
+  padding: 0 24px 24px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.search-field {
+  flex: 1;
+  max-width: 480px;
+  min-width: 200px;
+}
+.status-filter {
+  width: 180px;
+}
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 64px;
+}
+.table-container {
+  overflow-x: auto;
+}
+.users-table {
+  width: 100%;
+}
+.users-table tr.mat-mdc-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.user-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.status-active {
+  background: #4caf50;
+  color: white;
+}
+.status-paused {
+  background: #ff9800;
+  color: white;
+}
+.status-disabled {
+  background: #f44336;
+  color: white;
+}
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+.empty-state {
+  text-align: center;
+  padding: 64px 16px;
+}
+.empty-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.24));
+}
+.empty-state h2 {
+  margin: 16px 0 8px;
+  font-weight: 400;
+}
+.empty-state p {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+.text-muted {
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}
+@media (max-width: 599px) {
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    min-width: 600px;
+  }
+}

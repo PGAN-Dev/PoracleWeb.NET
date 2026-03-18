@@ -1,0 +1,154 @@
+{
+  "root": true,
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "project": ["tsconfig.app.json", "tsconfig.spec.json"],
+        "createDefaultProgram": true
+      },
+      "plugins": ["sort-class-members", "@typescript-eslint", "eslint-plugin-perfectionist", "unused-imports"],
+      "extends": [
+        "plugin:@angular-eslint/recommended",
+        "plugin:@angular-eslint/template/process-inline-templates",
+        "plugin:prettier/recommended",
+        "plugin:import/recommended",
+        "plugin:import/typescript"
+      ],
+      "rules": {
+        "@angular-eslint/directive-selector": [
+          "error",
+          {
+            "type": "attribute",
+            "prefix": "app",
+            "style": "camelCase"
+          }
+        ],
+        "@angular-eslint/component-selector": [
+          "error",
+          {
+            "type": "element",
+            "prefix": "app",
+            "style": "kebab-case"
+          }
+        ],
+        "prettier/prettier": [
+          "error",
+          {
+            "usePrettierrc": true,
+            "endOfLine": "auto"
+          }
+        ],
+        "import/no-unresolved": "error",
+        "import/order": [
+          "warn",
+          {
+            "groups": ["builtin", "external", "internal", ["sibling", "parent"], "index", "unknown"],
+            "newlines-between": "always",
+            "alphabetize": {
+              "order": "asc",
+              "caseInsensitive": true
+            }
+          }
+        ],
+        "perfectionist/sort-classes": [
+          "warn",
+          {
+            "type": "natural",
+            "order": "asc",
+            "groups": [
+              "static-property",
+              "private-property",
+              "property",
+              "constructor",
+              "get-method",
+              "set-method",
+              "static-method",
+              "method",
+              "private-method"
+            ]
+          }
+        ],
+        "perfectionist/sort-objects": [
+          "warn",
+          {
+            "type": "natural",
+            "order": "asc",
+            "groups": ["top"],
+            "customGroups": { "top": ["id", "name"] }
+          }
+        ],
+        "perfectionist/sort-interfaces": [
+          "warn",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-array-includes": [
+          "warn",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-enums": [
+          "warn",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "perfectionist/sort-exports": [
+          "warn",
+          {
+            "type": "natural",
+            "order": "asc"
+          }
+        ],
+        "unused-imports/no-unused-imports": "warn",
+        "lines-between-class-members": ["warn", "always", { "exceptAfterSingleLine": true }]
+      },
+      "settings": {
+        "import/resolver": {
+          "node": {
+            "extensions": [".js", ".jsx", ".ts", ".tsx"],
+            "moduleDirectory": ["src", "node_modules"]
+          },
+          "typescript": {
+            "project": "./tsconfig.json"
+          }
+        }
+      }
+    },
+    {
+      "files": ["*.html"],
+      "extends": ["plugin:@angular-eslint/template/recommended"],
+      "rules": {
+        "prettier/prettier": [
+          "error",
+          {
+            "usePrettierrc": true,
+            "endOfLine": "auto"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["*.html"],
+      "excludedFiles": ["*inline-template-*.component.html"],
+      "extends": ["plugin:prettier/recommended"],
+      "rules": {
+        "prettier/prettier": [
+          "error",
+          {
+            "usePrettierrc": true,
+            "parser": "angular",
+            "endOfLine": "auto"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Lure Alarms</h1>
+    <p class="page-description">Track active lure modules: Normal, Glacial, Mossy, Magnetic, Rainy, or Golden.</p>
+  </div>
+  <div class="header-actions">
+    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions"><mat-icon>more_vert</mat-icon></button>
+    <mat-menu #bulkMenu="matMenu"
+      ><button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button
+      ><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu
+    >
+    <button mat-fab (click)="openAddDialog()" style="background: #e91e63; color: #fff"><mat-icon>add</mat-icon></button>
+  </div>
+</div>
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="loading-text">Loading alarms...</p>
+  </div>
+} @else {
+  <div class="alarm-grid">
+    @for (lure of lures(); track lure.uid) {
+      <mat-card class="alarm-card">
+        <div class="card-top" [style.border-top-color]="getLureColor(lure.lureId)">
+          <span class="lure-dot" [style.background]="getLureColor(lure.lureId)"></span>
+          <div class="item-info">
+            <h3>{{ getLureName(lure.lureId) }} Lure</h3>
+            <span class="lure-id">ID: {{ lure.lureId }}</span>
+          </div>
+          <div class="card-top-actions">
+            @if (lure.clean === 1) {
+              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
+            }
+            @if (lure.template) {
+              <span class="template-chip" matTooltip="Template: {{ lure.template }}">{{ lure.template }}</span>
+            }
+          </div>
+        </div>
+        <mat-card-content>
+          <div class="stat-grid">
+            <div class="stat">
+              <span class="stat-label">Type</span
+              ><span class="stat-value" [style.color]="getLureColor(lure.lureId)">{{ getLureName(lure.lureId) }}</span>
+            </div>
+          </div>
+          <div class="distance-chip-row">
+            @if (lure.distance === 0) {
+              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+            } @else {
+              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(lure.distance) }}</span>
+            }
+          </div>
+          @if (lure.ping) {
+            <div class="ping-info">
+              <mat-icon>notifications</mat-icon><span>{{ lure.ping }}</span>
+            </div>
+          }
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-icon-button (click)="editLure(lure)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button (click)="deleteLure(lure)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <div class="empty-state">
+        <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+          <rect x="32" y="8" width="16" height="50" rx="4" fill="#e91e63" opacity="0.15" stroke="#e91e63" stroke-width="3" />
+          <circle cx="40" cy="18" r="4" fill="#e91e63" opacity="0.4" />
+          <line x1="40" y1="58" x2="40" y2="80" stroke="#e91e63" stroke-width="3" stroke-linecap="round" />
+          <circle cx="40" cy="85" r="5" fill="#e91e63" opacity="0.3" stroke="#e91e63" stroke-width="2" />
+          <line x1="22" y1="30" x2="32" y2="34" stroke="#e91e63" stroke-width="2" opacity="0.4" />
+          <line x1="58" y1="26" x2="48" y2="30" stroke="#e91e63" stroke-width="2" opacity="0.4" />
+          <line x1="20" y1="44" x2="32" y2="42" stroke="#e91e63" stroke-width="2" opacity="0.3" />
+        </svg>
+        <h2 class="empty-title">No Lure Alarms Configured</h2>
+        <p class="empty-subtitle">Track active lure modules nearby</p>
+        <button mat-flat-button (click)="openAddDialog()" style="background: #e91e63; color: #fff">
+          <mat-icon>add</mat-icon> Add Lure
+        </button>
+      </div>
+    }
+  </div>
+}

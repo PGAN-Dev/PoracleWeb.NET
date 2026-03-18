@@ -1,0 +1,78 @@
+.gen-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.gen-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-right: 2px;
+}
+.gen-chip {
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.15));
+  background: transparent;
+  border-radius: 16px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--mat-sys-on-surface, #333);
+  line-height: 1.4;
+  min-width: 24px;
+  text-align: center;
+}
+.gen-chip:hover {
+  background: rgba(25, 118, 210, 0.08);
+  border-color: #1976d2;
+}
+.gen-chip.gen-active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+.full-width {
+  width: 100%;
+}
+.pokemon-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pokemon-option-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.pokemon-option-id {
+  margin-left: auto;
+  color: rgba(0, 0, 0, 0.54);
+  font-size: 12px;
+}
+.all-pokemon-icon {
+  width: 32px;
+  height: 32px;
+  font-size: 28px;
+  color: #1565c0;
+}
+.all-pokemon-option {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  font-weight: 500;
+}
+.all-pokemon-chip {
+  background-color: #e3f2fd !important;
+  font-weight: 500;
+}
+.selected-chips {
+  margin-top: 8px;
+}
+.chip-avatar {
+  width: 24px !important;
+  height: 24px !important;
+  object-fit: contain;
+}

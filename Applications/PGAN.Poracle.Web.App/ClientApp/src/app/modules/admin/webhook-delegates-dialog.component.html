@@ -1,0 +1,72 @@
+<h2 mat-dialog-title>Manage Delegates — {{ data.webhook.name || data.webhook.id }}</h2>
+<mat-dialog-content>
+  <p class="hint">Delegates can manage alarms for this webhook. Search by name or Discord user ID.</p>
+  @if (loading()) {
+    <mat-spinner diameter="32"></mat-spinner>
+  } @else {
+    <mat-chip-set class="delegates-chips">
+      @for (uid of data.poracleAdmins; track uid) {
+        <mat-chip class="admin-chip" [matTooltip]="'Global admin (from Poracle config)'">
+          @if (getAvatarUrl(uid)) {
+            <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
+          }
+          {{ getDisplayName(uid) }}
+          <mat-icon matChipTrailingIcon class="admin-lock-icon">lock</mat-icon>
+        </mat-chip>
+      }
+      @for (uid of data.porocleDelegates; track uid) {
+        <mat-chip class="admin-chip" [matTooltip]="'Delegate from Poracle config (read-only)'">
+          @if (getAvatarUrl(uid)) {
+            <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
+          }
+          {{ getDisplayName(uid) }}
+          <mat-icon matChipTrailingIcon class="admin-lock-icon">lock</mat-icon>
+        </mat-chip>
+      }
+      @for (uid of delegates(); track uid) {
+        <mat-chip (removed)="removeDelegate(uid)">
+          @if (getAvatarUrl(uid)) {
+            <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
+          }
+          {{ getDisplayName(uid) }}
+          <button matChipRemove aria-label="Remove delegate">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip>
+      }
+    </mat-chip-set>
+    <div class="add-row">
+      <mat-form-field appearance="outline" class="user-id-field">
+        <mat-label>Search user by name or ID</mat-label>
+        <input
+          matInput
+          [(ngModel)]="searchText"
+          (ngModelChange)="onSearchChange($event)"
+          (keydown.enter)="addDelegateFromSearch()"
+          [matAutocomplete]="userAuto"
+          placeholder="Name or Discord user ID..." />
+        <mat-autocomplete #userAuto="matAutocomplete" (optionSelected)="onUserSelected($event.option.value)">
+          @for (u of filteredUsers(); track u.id) {
+            <mat-option [value]="u.id">
+              <div class="user-option">
+                @if (u.avatarUrl) {
+                  <img [src]="u.avatarUrl" class="option-avatar" alt="" />
+                } @else {
+                  <mat-icon class="option-avatar-icon">account_circle</mat-icon>
+                }
+                <span class="option-name">{{ u.name || u.id }}</span>
+                <span class="option-id">{{ u.id }}</span>
+              </div>
+            </mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+      <button mat-raised-button color="primary" [disabled]="!searchText.trim()" (click)="addDelegateFromSearch()">
+        <mat-icon>person_add</mat-icon> Add
+      </button>
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close()">Close</button>
+</mat-dialog-actions>

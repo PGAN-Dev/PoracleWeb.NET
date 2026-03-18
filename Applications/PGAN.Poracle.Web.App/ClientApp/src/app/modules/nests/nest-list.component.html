@@ -1,0 +1,102 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Nest Alarms</h1>
+    <p class="page-description">Monitor Pokemon nesting locations with minimum spawn rate filters.</p>
+  </div>
+  <div class="header-actions">
+    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions"><mat-icon>more_vert</mat-icon></button>
+    <mat-menu #bulkMenu="matMenu"
+      ><button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button
+      ><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu
+    >
+    <button mat-fab (click)="openAddDialog()" style="background: #8bc34a; color: #fff"><mat-icon>add</mat-icon></button>
+  </div>
+</div>
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="loading-text">Loading alarms...</p>
+  </div>
+} @else {
+  <div class="alarm-grid">
+    @for (nest of nests(); track nest.uid) {
+      <mat-card class="alarm-card">
+        <div class="card-top" [style.border-top-color]="'#8BC34A'">
+          <img
+            [src]="getPokemonImage(nest.pokemonId)"
+            [alt]="getPokemonName(nest.pokemonId)"
+            class="item-img"
+            (error)="onImageError($event)" />
+          <div class="item-info">
+            <h3>{{ getPokemonName(nest.pokemonId) }}</h3>
+            <span class="pokemon-id">#{{ nest.pokemonId }}</span>
+          </div>
+          <div class="card-top-actions">
+            @if (nest.clean === 1) {
+              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
+            }
+            @if (nest.template) {
+              <span class="template-chip" matTooltip="Template: {{ nest.template }}">{{ nest.template }}</span>
+            }
+          </div>
+        </div>
+        <mat-card-content>
+          <div class="stat-grid">
+            <div class="stat">
+              <span class="stat-label">Min Spawns/Hr</span><span class="stat-value">{{ nest.minSpawnAvg }}</span>
+            </div>
+          </div>
+          <div class="distance-chip-row">
+            @if (nest.distance === 0) {
+              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+            } @else {
+              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(nest.distance) }}</span>
+            }
+          </div>
+          @if (nest.ping) {
+            <div class="ping-info">
+              <mat-icon>notifications</mat-icon><span>{{ nest.ping }}</span>
+            </div>
+          }
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-icon-button (click)="editNest(nest)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button (click)="deleteNest(nest)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <div class="empty-state">
+        <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
+          <path d="M15 80 Q30 60 50 65 Q70 60 85 80" fill="none" stroke="#8bc34a" stroke-width="4" stroke-linecap="round" />
+          <path d="M10 85 Q30 65 50 70 Q70 65 90 85" fill="#8bc34a" opacity="0.1" stroke="#8bc34a" stroke-width="3" />
+          <ellipse
+            cx="38"
+            cy="52"
+            rx="12"
+            ry="16"
+            fill="#8bc34a"
+            opacity="0.15"
+            stroke="#8bc34a"
+            stroke-width="2.5"
+            transform="rotate(-8 38 52)" />
+          <ellipse
+            cx="58"
+            cy="50"
+            rx="11"
+            ry="15"
+            fill="#8bc34a"
+            opacity="0.15"
+            stroke="#8bc34a"
+            stroke-width="2.5"
+            transform="rotate(10 58 50)" />
+          <ellipse cx="48" cy="48" rx="12" ry="16" fill="#8bc34a" opacity="0.2" stroke="#8bc34a" stroke-width="2.5" />
+        </svg>
+        <h2 class="empty-title">No Nest Alarms Configured</h2>
+        <p class="empty-subtitle">Monitor Pokemon nesting locations with spawn rate filters</p>
+        <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #fff">
+          <mat-icon>add</mat-icon> Add Nest
+        </button>
+      </div>
+    }
+  </div>
+}

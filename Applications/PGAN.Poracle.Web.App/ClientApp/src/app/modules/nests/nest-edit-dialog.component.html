@@ -1,0 +1,80 @@
+<h2 mat-dialog-title>Edit Nest Alarm</h2>
+<mat-dialog-content>
+  <div class="item-header">
+    <img [src]="getPokemonImage()" [alt]="pokemonName" class="item-img" (error)="onImageError($event)" />
+    <div>
+      <h3>{{ pokemonName }}</h3>
+      <span class="item-subtitle">#{{ data.pokemonId }}</span>
+    </div>
+  </div>
+
+  <mat-tab-group animationDuration="200ms" class="alarm-tabs">
+    <!-- Tab 1: Settings -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>tune</mat-icon>
+        <span class="tab-label">Settings</span>
+      </ng-template>
+      <div class="tab-content">
+        <mat-form-field appearance="outline" class="full-width"
+          ><mat-label>Min Spawns/Hour</mat-label><input matInput type="number" [formControl]="form.controls.minSpawnAvg" min="0"
+        /></mat-form-field>
+        <h4>Location Mode</h4>
+        <mat-radio-group [formControl]="form.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
+          <mat-radio-button value="areas"
+            ><div class="radio-label">
+              <mat-icon>map</mat-icon>
+              <div>
+                <strong>Use Areas</strong>
+                <p class="radio-hint">Notifications will use your configured area geofences</p>
+              </div>
+            </div></mat-radio-button
+          >
+          <mat-radio-button value="distance"
+            ><div class="radio-label">
+              <mat-icon>straighten</mat-icon>
+              <div>
+                <strong>Set Distance</strong>
+                <p class="radio-hint">Notify within a radius from your location</p>
+              </div>
+            </div></mat-radio-button
+          >
+        </mat-radio-group>
+        @if (form.controls.distanceMode.value === 'distance') {
+          <mat-form-field appearance="outline" class="full-width"
+            ><mat-label>Distance</mat-label
+            ><input matInput type="number" [formControl]="form.controls.distanceKm" min="0" step="0.1" /><span matSuffix
+              >km</span
+            ></mat-form-field
+          >
+        }
+        <app-delivery-preview
+          [mode]="form.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
+          [distanceKm]="form.controls.distanceKm.value ?? 0">
+        </app-delivery-preview>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Delivery -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>notifications</mat-icon>
+        <span class="tab-label">Delivery</span>
+      </ng-template>
+      <div class="tab-content">
+        <mat-form-field appearance="outline" class="full-width"
+          ><mat-label>Ping / Role</mat-label><input matInput [formControl]="form.controls.ping"
+        /></mat-form-field>
+        <app-template-selector
+          [alarmType]="'nest'"
+          [value]="form.controls.template.value ?? ''"
+          (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
+        <mat-slide-toggle [formControl]="form.controls.clean">Clean mode</mat-slide-toggle>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close(false)">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save' }}</button>
+</mat-dialog-actions>

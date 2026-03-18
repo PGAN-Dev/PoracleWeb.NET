@@ -1,0 +1,137 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Server Settings</h1>
+    <p class="page-description">Configure site behaviour, integrations, and feature flags.</p>
+  </div>
+  @if (modifiedSettings().size > 0) {
+    <button mat-raised-button color="primary" (click)="saveAllModified()" [disabled]="bulkSaving()">
+      @if (bulkSaving()) {
+        <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
+      } @else {
+        <mat-icon>save</mat-icon>
+      }
+      Save {{ modifiedSettings().size }} Change{{ modifiedSettings().size === 1 ? '' : 's' }}
+    </button>
+  }
+</div>
+
+<div class="page-content">
+  @if (settingsLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    @for (group of visibleGroups(); track group.label; let last = $last) {
+      <section class="settings-section">
+        <div class="section-header" [style.border-left]="'4px solid ' + group.color">
+          <mat-icon class="section-icon" [style.color]="group.color">{{ group.icon }}</mat-icon>
+          <span class="section-label">{{ group.label }}</span>
+        </div>
+
+        <div class="section-rows">
+          @for (meta of group.settings; track meta.key; let rowLast = $last) {
+            @if (getSettingValue(meta.key) !== null && isSettingVisible(meta)) {
+              <div class="setting-row" [class.modified]="modifiedSettings().has(meta.key)">
+                <div class="setting-info">
+                  <span class="setting-label">{{ meta.label }}</span>
+                  <span class="setting-desc">{{ meta.description }}</span>
+                </div>
+                <div class="setting-control">
+                  @if (meta.type === 'boolean') {
+                    <mat-slide-toggle
+                      [checked]="getBool(meta.key)"
+                      (change)="onBoolChange(meta.key, $event.checked)"
+                      color="primary"></mat-slide-toggle>
+                  } @else {
+                    <mat-form-field appearance="outline" class="setting-field">
+                      <input
+                        matInput
+                        type="text"
+                        [ngModel]="getSettingValue(meta.key) ?? ''"
+                        (ngModelChange)="onTextChange(meta.key, $event)" />
+                    </mat-form-field>
+                  }
+                </div>
+              </div>
+              @if (!rowLast) {
+                <mat-divider></mat-divider>
+              }
+            }
+          }
+        </div>
+      </section>
+
+      @if (!last) {
+        <div class="section-gap"></div>
+      }
+    }
+
+    <!-- Icon Repository Selector -->
+    <div class="section-gap"></div>
+    <section class="settings-section">
+      <div class="section-header" style="border-left: 4px solid #2e7d32">
+        <mat-icon class="section-icon" style="color: #2e7d32">image</mat-icon>
+        <span class="section-label">Icon Repository</span>
+      </div>
+      <div class="repo-selector">
+        @for (repo of iconRepos; track repo.name) {
+          <div class="repo-card" [class.repo-active]="isRepoActive(repo)" (click)="selectRepo(repo)">
+            <div class="repo-header">
+              <div class="repo-radio">
+                @if (isRepoActive(repo)) {
+                  <mat-icon class="repo-check">check_circle</mat-icon>
+                } @else {
+                  <mat-icon class="repo-uncheck">radio_button_unchecked</mat-icon>
+                }
+              </div>
+              <div class="repo-info">
+                <span class="repo-name">{{ repo.name }}</span>
+                <span class="repo-url">{{ repo.base }}</span>
+              </div>
+            </div>
+            <div class="repo-preview-row">
+              @for (img of repo.previewImages; track img.path) {
+                <div class="icon-preview-item">
+                  <img
+                    [src]="repo.base + '/' + img.path"
+                    class="icon-preview-img"
+                    (error)="onPreviewError($event)"
+                    (load)="onPreviewLoad($event)"
+                    loading="lazy" />
+                  <span class="icon-preview-name">{{ img.name }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (unknownSettings().length > 0) {
+      <div class="section-gap"></div>
+      <section class="settings-section">
+        <div class="section-header">
+          <mat-icon class="section-icon">help_outline</mat-icon>
+          <span class="section-label">Other</span>
+        </div>
+        <div class="section-rows">
+          @for (s of unknownSettings(); track s.setting; let rowLast = $last) {
+            <div class="setting-row" [class.modified]="modifiedSettings().has(s.setting)">
+              <div class="setting-info">
+                <span class="setting-label">{{ s.setting }}</span>
+              </div>
+              <div class="setting-control">
+                <mat-form-field appearance="outline" class="setting-field">
+                  <input matInput [ngModel]="s.value ?? ''" (ngModelChange)="onTextChange(s.setting, $event)" />
+                </mat-form-field>
+              </div>
+            </div>
+            @if (!rowLast) {
+              <mat-divider></mat-divider>
+            }
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

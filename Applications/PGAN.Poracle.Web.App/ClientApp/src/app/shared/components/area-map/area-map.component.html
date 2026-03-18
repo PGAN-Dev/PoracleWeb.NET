@@ -1,0 +1,33 @@
+<div class="map-toolbar">
+  <mat-form-field appearance="outline" class="region-select">
+    <mat-label>Jump to Region</mat-label>
+    <mat-select (selectionChange)="onRegionSelected($event.value)" [value]="selectedRegion()">
+      <mat-option value="">All Regions</mat-option>
+      @for (group of regionGroups(); track group.label) {
+        <mat-optgroup [label]="group.label">
+          @for (region of group.regions; track region.label) {
+            <mat-option [value]="region.label"> {{ region.shortLabel }} ({{ region.areaCount }}) </mat-option>
+          }
+        </mat-optgroup>
+      }
+    </mat-select>
+  </mat-form-field>
+  <button mat-icon-button matTooltip="Fit all areas" (click)="fitAll()">
+    <mat-icon>zoom_out_map</mat-icon>
+  </button>
+  @if (selectedRegion()) {
+    <mat-chip highlighted color="primary" (removed)="clearRegion()">
+      {{ selectedRegion() }}
+      <button matChipRemove><mat-icon>cancel</mat-icon></button>
+    </mat-chip>
+  }
+</div>
+<div #mapContainer class="area-map-container"></div>
+<div class="map-legend">
+  @for (entry of visibleLegend(); track entry.group) {
+    <span class="legend-item" (click)="onRegionSelected(entry.group)">
+      <span class="legend-swatch" [style.background]="entry.color"></span>
+      <span class="legend-label">{{ entry.group || 'Ungrouped' }}</span>
+    </span>
+  }
+</div>

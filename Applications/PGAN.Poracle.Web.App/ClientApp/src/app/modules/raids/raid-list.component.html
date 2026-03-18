@@ -1,0 +1,159 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Raid & Egg Alarms</h1>
+    <p class="page-description">
+      Get notified about raid bosses and egg hatches at nearby gyms. Add by raid level for all bosses at that tier, or by specific Pokemon.
+    </p>
+  </div>
+  <div class="header-actions">
+    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions">
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #bulkMenu="matMenu">
+      <button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button>
+      <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
+    </mat-menu>
+    <button mat-fab (click)="openAddDialog()" [style.background-color]="'#f44336'" [style.color]="'white'">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="loading-text">Loading alarms...</p>
+  </div>
+} @else {
+  <mat-tab-group>
+    <!-- Raids Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>shield</mat-icon>
+        <span class="tab-label">Raids ({{ raids().length }})</span>
+      </ng-template>
+      <div class="alarm-grid">
+        @for (raid of raids(); track raid.uid) {
+          <mat-card class="alarm-card">
+            <div class="card-top" [style.border-top-color]="getLevelColor(raid.level)">
+              <img [src]="getRaidImage(raid)" [alt]="getRaidTitle(raid)" class="item-img" (error)="onImageError($event)" />
+              <div class="item-info">
+                <h3>{{ getRaidTitle(raid) }}</h3>
+                <div class="level-stars">
+                  @for (s of getLevelStars(raid.level); track s) {
+                    <mat-icon class="star-icon">star</mat-icon>
+                  }
+                </div>
+              </div>
+              <div class="card-top-actions">
+                @if (raid.clean === 1) {
+                  <span class="clean-dot" matTooltip="Clean mode enabled"></span>
+                }
+                @if (raid.template) {
+                  <span class="template-chip" matTooltip="Template: {{ raid.template }}">{{ raid.template }}</span>
+                }
+              </div>
+            </div>
+            <mat-card-content>
+              <div class="stat-grid">
+                <div class="stat">
+                  <span class="stat-label">Team</span>
+                  <span class="stat-value" [style.color]="getTeamColor(raid.team)">{{ getTeamName(raid.team) }}</span>
+                </div>
+              </div>
+              <app-alarm-info [distance]="raid.distance" [clean]="raid.clean" [template]="raid.template" [ping]="raid.ping" />
+            </mat-card-content>
+            <mat-card-actions align="end">
+              <button mat-icon-button (click)="editRaid(raid)" matTooltip="Edit">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="deleteRaid(raid)" matTooltip="Delete" color="warn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        } @empty {
+          <div class="empty-state">
+            <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+              <ellipse cx="40" cy="55" rx="32" ry="40" fill="#f44336" opacity="0.12" stroke="#f44336" stroke-width="3" />
+              <path d="M12 45 Q25 55 40 42 Q55 55 68 45" fill="none" stroke="#f44336" stroke-width="3" stroke-linecap="round" />
+              <circle cx="40" cy="30" r="4" fill="#f44336" opacity="0.4" />
+              <circle cx="30" cy="22" r="2.5" fill="#f44336" opacity="0.3" />
+              <circle cx="50" cy="25" r="3" fill="#f44336" opacity="0.35" />
+            </svg>
+            <h2 class="empty-title">No Raid Alarms Configured</h2>
+            <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
+            <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
+              <mat-icon>add</mat-icon> Add Raid
+            </button>
+          </div>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Eggs Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>egg</mat-icon>
+        <span class="tab-label">Eggs ({{ eggs().length }})</span>
+      </ng-template>
+      <div class="alarm-grid">
+        @for (egg of eggs(); track egg.uid) {
+          <mat-card class="alarm-card">
+            <div class="card-top" [style.border-top-color]="getLevelColor(egg.level)">
+              <img [src]="getEggImage(egg.level)" [alt]="'Level ' + egg.level + ' Egg'" class="item-img" (error)="onImageError($event)" />
+              <div class="item-info">
+                <h3>Level {{ egg.level }} Egg</h3>
+                <div class="level-stars">
+                  @for (s of getLevelStars(egg.level); track s) {
+                    <mat-icon class="star-icon">star</mat-icon>
+                  }
+                </div>
+              </div>
+              <div class="card-top-actions">
+                @if (egg.clean === 1) {
+                  <span class="clean-dot" matTooltip="Clean mode enabled"></span>
+                }
+                @if (egg.template) {
+                  <span class="template-chip" matTooltip="Template: {{ egg.template }}">{{ egg.template }}</span>
+                }
+              </div>
+            </div>
+            <mat-card-content>
+              <div class="stat-grid">
+                <div class="stat">
+                  <span class="stat-label">Team</span>
+                  <span class="stat-value" [style.color]="getTeamColor(egg.team)">{{ getTeamName(egg.team) }}</span>
+                </div>
+              </div>
+              <app-alarm-info [distance]="egg.distance" [clean]="egg.clean" [template]="egg.template" [ping]="egg.ping" />
+            </mat-card-content>
+            <mat-card-actions align="end">
+              <button mat-icon-button (click)="editEgg(egg)" matTooltip="Edit">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="deleteEgg(egg)" matTooltip="Delete" color="warn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        } @empty {
+          <div class="empty-state">
+            <svg viewBox="0 0 80 100" width="58" height="72" class="empty-icon">
+              <ellipse cx="40" cy="55" rx="32" ry="40" fill="#f44336" opacity="0.12" stroke="#f44336" stroke-width="3" />
+              <path d="M12 45 Q25 55 40 42 Q55 55 68 45" fill="none" stroke="#f44336" stroke-width="3" stroke-linecap="round" />
+              <circle cx="40" cy="30" r="4" fill="#f44336" opacity="0.4" />
+              <circle cx="30" cy="22" r="2.5" fill="#f44336" opacity="0.3" />
+              <circle cx="50" cy="25" r="3" fill="#f44336" opacity="0.35" />
+            </svg>
+            <h2 class="empty-title">No Egg Alarms Configured</h2>
+            <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
+            <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
+              <mat-icon>add</mat-icon> Add Egg
+            </button>
+          </div>
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+}
