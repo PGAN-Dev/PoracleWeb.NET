@@ -79,7 +79,7 @@ import {
             class="gen-chip"
             [class.gen-active]="activeGen() === gen"
             (click)="activeGen.set(activeGen() === gen ? null : gen)"
-          >{{ gen.label }}</button>
+          >G{{ gen.label }}</button>
         }
         @if (activeGen()) {
           <span class="gen-count">{{ filteredMonsters().length }} alarm{{ filteredMonsters().length === 1 ? '' : 's' }}</span>

@@ -38,7 +38,7 @@ interface GenRange { label: string; min: number; max: number; }
           class="gen-chip"
           [class.gen-active]="activeGen() === gen"
           (click)="toggleGen(gen)"
-        >{{ gen.label }}</button>
+        >G{{ gen.label }}</button>
       }
     </div>
 
