@@ -114,8 +114,8 @@ import {
           <div class="empty-state">
             <mat-icon class="empty-icon">person_outline</mat-icon>
             <h2>No Profiles</h2>
-            <p>Create your first profile to get started!</p>
-            <button mat-raised-button color="primary" (click)="openAddDialog()">
+            <p>Each profile has its own set of alarms, areas, and location</p>
+            <button mat-flat-button class="cta-button" (click)="openAddDialog()">
               <mat-icon>add</mat-icon> Create Profile
             </button>
           </div>
@@ -168,6 +168,7 @@ import {
       .profile-card {
         position: relative;
         border-top: 4px solid #9e9e9e;
+        border-left: 4px solid transparent;
         transition:
           transform 0.2s,
           box-shadow 0.2s;
@@ -178,6 +179,7 @@ import {
       }
       .active-profile {
         border-top-color: #4caf50;
+        border-left-color: #4caf50;
       }
       .active-badge {
         position: absolute;
@@ -221,10 +223,10 @@ import {
         padding: 64px 16px;
       }
       .empty-icon {
-        font-size: 64px;
-        width: 64px;
-        height: 64px;
-        color: var(--text-hint, rgba(0, 0, 0, 0.24));
+        font-size: 72px;
+        width: 72px;
+        height: 72px;
+        color: #7b1fa2;
       }
       .empty-state h2 {
         margin: 16px 0 8px;
@@ -233,6 +235,10 @@ import {
       .empty-state p {
         color: var(--text-secondary, rgba(0, 0, 0, 0.54));
         margin-bottom: 24px;
+      }
+      .cta-button {
+        background-color: #7b1fa2 !important;
+        color: white !important;
       }
     `,
   ],

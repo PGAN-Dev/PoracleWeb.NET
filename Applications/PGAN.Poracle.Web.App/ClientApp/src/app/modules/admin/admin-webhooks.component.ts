@@ -472,8 +472,11 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        padding: 16px 24px;
+        padding: 20px 24px;
         gap: 16px;
+        background: linear-gradient(135deg, rgba(69,90,100,0.06) 0%, rgba(0,137,123,0.04) 100%);
+        border-radius: 12px;
+        margin-bottom: 16px;
       }
       .page-header-text {
         flex: 1;
@@ -521,6 +524,9 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
       .users-table {
         width: 100%;
       }
+      .users-table tr.mat-mdc-row:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
       .webhook-url {
         display: inline-flex;
         align-items: center;
@@ -567,6 +573,7 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
       .delegate-avatar {
         width: 24px; height: 24px; border-radius: 50%;
         border: 2px solid var(--mat-sidenav-container-background-color, white);
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
         object-fit: cover; display: block;
       }
       .delegate-avatar-fallback {

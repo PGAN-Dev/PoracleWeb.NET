@@ -22,6 +22,7 @@ interface SettingMeta {
 interface SettingGroup {
   label: string;
   icon: string;
+  color: string;
   settings: SettingMeta[];
 }
 
@@ -29,6 +30,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Branding',
     icon: 'palette',
+    color: '#1976d2',
     settings: [
       { key: 'custom_title', label: 'Site Title', description: 'Name shown in the browser tab and page header.', type: 'text' },
       { key: 'custom_page_name', label: 'Nav Link Label', description: 'Label for the custom navigation link (e.g. "Back To Map").', type: 'text' },
@@ -39,6 +41,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Alarm Types',
     icon: 'notifications',
+    color: '#ff9800',
     settings: [
       { key: 'disable_mons', label: 'Disable Pokémon', description: 'Hide Pokémon alarm management from all users.', type: 'boolean' },
       { key: 'disable_raids', label: 'Disable Raids', description: 'Hide raid alarm management from all users.', type: 'boolean' },
@@ -52,6 +55,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Features',
     icon: 'tune',
+    color: '#4caf50',
     settings: [
       { key: 'disable_areas', label: 'Disable Areas', description: 'Prevent users from managing their area subscriptions.', type: 'boolean' },
       { key: 'disable_profiles', label: 'Disable Profiles', description: 'Prevent users from creating and switching alarm profiles.', type: 'boolean' },
@@ -65,6 +69,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Administration',
     icon: 'admin_panel_settings',
+    color: '#f44336',
     settings: [
       { key: 'enable_roles', label: 'Enable Role-Based Access', description: 'Restrict access based on Discord roles.', type: 'boolean' },
       { key: 'enable_admin_dis', label: 'Enable Admin Discord Features', description: 'Enable Discord-specific admin tools.', type: 'boolean' },
@@ -76,6 +81,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Commands',
     icon: 'terminal',
+    color: '#607d8b',
     settings: [
       { key: 'register_command', label: 'Register Command', description: 'The Poracle bot command users run to register (e.g. "$!register").', type: 'text' },
       { key: 'location_command', label: 'Location Command', description: 'The Poracle bot command users run to set their location.', type: 'text' },
@@ -84,6 +90,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Telegram',
     icon: 'send',
+    color: '#0088cc',
     settings: [
       { key: 'enable_telegram', label: 'Enable Telegram', description: 'Allow users to log in and manage alarms via Telegram.', type: 'boolean' },
       { key: 'telegram_bot', label: 'Bot Username', description: 'Telegram bot username (without @).', type: 'text' },
@@ -92,6 +99,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Maps & Assets',
     icon: 'map',
+    color: '#2e7d32',
     settings: [
       { key: 'provider_url', label: 'Map Tile URL', description: 'URL template for the map tile provider (used for static maps).', type: 'url' },
       { key: 'uicons_pkmn', label: 'Pokémon Icons URL', description: 'Base URL for UIcons Pokémon sprite assets.', type: 'url' },
@@ -103,6 +111,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Analytics & Links',
     icon: 'bar_chart',
+    color: '#7b1fa2',
     settings: [
       { key: 'gAnalyticsId', label: 'Google Analytics ID', description: 'GA4 measurement ID (leave blank to disable).', type: 'text' },
       { key: 'patreonUrl', label: 'Patreon URL', description: 'Link to your Patreon page shown in the UI.', type: 'url' },
@@ -112,6 +121,7 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     label: 'Debug',
     icon: 'bug_report',
+    color: '#ff5722',
     settings: [
       { key: 'site_is_https', label: 'Site Is HTTPS', description: 'Mark the site as running over HTTPS (affects cookie security).', type: 'boolean' },
       { key: 'debug', label: 'Debug Mode', description: 'Enable verbose debug logging (not recommended in production).', type: 'boolean' },
@@ -160,8 +170,8 @@ const SETTING_GROUPS: SettingGroup[] = [
       } @else {
         @for (group of visibleGroups(); track group.label; let last = $last) {
           <section class="settings-section">
-            <div class="section-header">
-              <mat-icon class="section-icon">{{ group.icon }}</mat-icon>
+            <div class="section-header" [style.border-left]="'4px solid ' + group.color">
+              <mat-icon class="section-icon" [style.color]="group.color">{{ group.icon }}</mat-icon>
               <span class="section-label">{{ group.label }}</span>
             </div>
 
@@ -238,8 +248,11 @@ const SETTING_GROUPS: SettingGroup[] = [
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px 24px;
+        padding: 20px 24px;
         gap: 16px;
+        background: linear-gradient(135deg, rgba(69,90,100,0.06) 0%, rgba(0,137,123,0.04) 100%);
+        border-radius: 12px;
+        margin-bottom: 16px;
       }
       .page-header-text { flex: 1; min-width: 0; }
       .page-header h1 { margin: 0; font-size: 24px; font-weight: 400; }
@@ -266,7 +279,7 @@ const SETTING_GROUPS: SettingGroup[] = [
         background: var(--mat-app-surface-variant, rgba(0,0,0,0.03));
         border-bottom: 1px solid var(--divider, rgba(0,0,0,0.12));
       }
-      .section-icon { font-size: 18px; width: 18px; height: 18px; color: #1976d2; opacity: 0.85; }
+      .section-icon { font-size: 18px; width: 18px; height: 18px; opacity: 0.85; }
       .section-label { font-size: 13px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-secondary, rgba(0,0,0,0.6)); }
       .section-gap { height: 16px; }
 
@@ -278,7 +291,7 @@ const SETTING_GROUPS: SettingGroup[] = [
         padding: 14px 20px;
         transition: background 0.15s;
       }
-      .setting-row.modified { background: rgba(25, 118, 210, 0.04); }
+      .setting-row.modified { background: rgba(25, 118, 210, 0.08); border-left: 3px solid rgba(25, 118, 210, 0.4); }
       .setting-info { flex: 1; min-width: 0; }
       .setting-label { display: block; font-size: 14px; font-weight: 500; }
       .setting-desc { display: block; font-size: 12px; color: var(--text-secondary, rgba(0,0,0,0.54)); margin-top: 2px; line-height: 1.4; }

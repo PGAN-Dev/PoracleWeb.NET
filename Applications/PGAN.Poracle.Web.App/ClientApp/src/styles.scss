@@ -120,6 +120,32 @@ body:not(.dark-theme) {
   background-color: var(--mat-sys-outline);
 }
 
+// ─── Page transition animation ──────────────────────────────────────
+
+router-outlet + * {
+  animation: pageIn 0.2s ease-out;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// ─── Card hover effects ────────────────────────────────────────────
+
+.mat-mdc-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.mat-mdc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+// ─── Dark mode toolbar ─────────────────────────────────────────────
+
+body.dark-theme .app-toolbar {
+  background: linear-gradient(135deg, #0d47a1 0%, #1a237e 100%) !important;
+}
+
 // ─── Responsive helpers ─────────────────────────────────────────────
 
 @media (max-width: 599px) {

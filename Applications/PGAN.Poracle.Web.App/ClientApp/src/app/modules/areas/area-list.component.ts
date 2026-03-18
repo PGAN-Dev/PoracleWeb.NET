@@ -360,7 +360,13 @@ interface AreaGroup {
 
       /* Area Map Card */
       .area-map-card {
-        border-top: 4px solid #9c27b0;
+        border: 1px solid var(--card-border, rgba(0,0,0,0.12));
+        border-radius: 12px;
+      }
+      .area-map-card mat-card-header {
+        background: linear-gradient(135deg, rgba(255,152,0,0.06) 0%, transparent 100%);
+        border-radius: 12px 12px 0 0;
+        padding: 16px;
       }
 
       /* Selected Areas Card */
@@ -372,6 +378,9 @@ interface AreaGroup {
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
+      }
+      .selected-chips mat-chip {
+        border-left: 3px solid #4caf50;
       }
       .empty-state {
         text-align: center;

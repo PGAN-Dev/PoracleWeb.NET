@@ -43,6 +43,10 @@ interface CleaningItem {
         </div>
       } @else {
         <mat-card class="cleaning-card">
+          <div class="section-header">
+            <mat-icon>auto_delete</mat-icon>
+            <span>Auto-Cleanup by Alarm Type</span>
+          </div>
           @for (item of cleaningItems; track item.type) {
             <div class="cleaning-row">
               <div class="cleaning-label">
@@ -104,12 +108,34 @@ interface CleaningItem {
       .cleaning-card {
         padding: 0;
       }
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(135deg, rgba(121,85,72,0.06) 0%, transparent 100%);
+        border-radius: 12px 12px 0 0;
+        padding: 16px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-secondary, rgba(0,0,0,0.64));
+        border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+      }
+      .section-header mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        color: var(--text-hint, rgba(0,0,0,0.38));
+      }
       .cleaning-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 16px 24px;
         border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+        transition: background-color 0.15s ease;
+      }
+      .cleaning-row:hover {
+        background-color: rgba(0, 0, 0, 0.02);
       }
       .cleaning-row:last-child {
         border-bottom: none;

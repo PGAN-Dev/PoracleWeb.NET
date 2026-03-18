@@ -37,7 +37,7 @@ import {
         <mat-menu #bulkMenu="matMenu">
           <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
         </mat-menu>
-        <button mat-fab color="primary" (click)="openAddDialog()" matTooltip="Add Invasion Alarm"><mat-icon>add</mat-icon></button>
+        <button mat-fab class="fab-invasion" (click)="openAddDialog()" matTooltip="Add Invasion Alarm"><mat-icon>add</mat-icon></button>
       </div>
     </div>
     @if (loading()) {
@@ -79,9 +79,9 @@ import {
         } @empty {
           <div class="empty-state">
             <mat-icon class="empty-icon">security</mat-icon>
-            <h2>No Invasion Alarms Configured</h2>
-            <p>Tap + to add your first invasion alarm</p>
-            <button mat-fab extended color="primary" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Invasion</button>
+            <h2 class="empty-title">No Invasion Alarms Configured</h2>
+            <p class="empty-subtitle">Get alerts for Team GO Rocket encounters by type</p>
+            <button mat-flat-button class="cta-invasion" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Invasion</button>
           </div>
         }
       </div>
@@ -113,10 +113,12 @@ import {
     .distance-mode { background: #e3f2fd; color: #1565c0; }
     .ping-info { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; color: rgba(0,0,0,0.64); }
     .ping-info mat-icon { font-size: 16px; width: 16px; height: 16px; }
-    .empty-state { grid-column: 1 / -1; text-align: center; padding: 64px 16px; }
-    .empty-icon { font-size: 64px; width: 64px; height: 64px; color: rgba(0,0,0,0.24); }
-    .empty-state h2 { margin: 16px 0 8px; font-weight: 400; }
-    .empty-state p { color: rgba(0,0,0,0.54); margin-bottom: 24px; }
+    .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; }
+    .empty-icon { font-size: 72px; width: 72px; height: 72px; color: #607d8b; margin-bottom: 16px; opacity: 0.7; }
+    .empty-title { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
+    .empty-subtitle { font-size: 14px; color: var(--text-secondary, rgba(0,0,0,0.54)); margin: 0 0 24px; max-width: 400px; }
+    .cta-invasion { background: #607d8b !important; color: white !important; }
+    .fab-invasion { background: #607d8b !important; color: white !important; }
   `],
 })
 export class InvasionListComponent implements OnInit {

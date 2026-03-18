@@ -22,6 +22,7 @@ interface NavItem {
   delegateOnly?: boolean;
   group: 'alarms' | 'settings' | 'admin' | 'webhooks';
   countKey?: keyof DashboardCounts;
+  iconColor?: string;
 }
 
 @Component({
@@ -69,21 +70,21 @@ export class App implements OnInit {
   }
 
   protected readonly navItems: NavItem[] = [
-    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', group: 'alarms' },
-    { label: 'Pokemon', icon: 'catching_pokemon', route: '/pokemon', group: 'alarms', countKey: 'pokemon' },
-    { label: 'Raids', icon: 'shield', route: '/raids', group: 'alarms', countKey: 'raids' },
-    { label: 'Quests', icon: 'assignment', route: '/quests', group: 'alarms', countKey: 'quests' },
-    { label: 'Invasions', icon: 'warning', route: '/invasions', group: 'alarms', countKey: 'invasions' },
-    { label: 'Lures', icon: 'place', route: '/lures', group: 'alarms', countKey: 'lures' },
-    { label: 'Nests', icon: 'park', route: '/nests', group: 'alarms', countKey: 'nests' },
-    { label: 'Gyms', icon: 'fitness_center', route: '/gyms', group: 'alarms', countKey: 'gyms' },
-    { label: 'Areas', icon: 'map', route: '/areas', group: 'settings' },
-    { label: 'Profiles', icon: 'person', route: '/profiles', group: 'settings' },
-    { label: 'Cleaning', icon: 'cleaning_services', route: '/cleaning', group: 'settings' },
-    { label: 'Users', icon: 'people', route: '/admin/users', adminOnly: true, group: 'admin' },
-    { label: 'Webhooks', icon: 'webhook', route: '/admin/webhooks', adminOnly: true, group: 'admin' },
-    { label: 'Settings', icon: 'settings', route: '/admin/settings', adminOnly: true, group: 'admin' },
-    { label: 'My Webhooks', icon: 'webhook', route: '/my-webhooks', delegateOnly: true, group: 'webhooks' },
+    { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', group: 'alarms', iconColor: '#1976d2' },
+    { label: 'Pokemon', icon: 'catching_pokemon', route: '/pokemon', group: 'alarms', countKey: 'pokemon', iconColor: '#4caf50' },
+    { label: 'Raids', icon: 'shield', route: '/raids', group: 'alarms', countKey: 'raids', iconColor: '#f44336' },
+    { label: 'Quests', icon: 'assignment', route: '/quests', group: 'alarms', countKey: 'quests', iconColor: '#9c27b0' },
+    { label: 'Invasions', icon: 'warning', route: '/invasions', group: 'alarms', countKey: 'invasions', iconColor: '#607d8b' },
+    { label: 'Lures', icon: 'place', route: '/lures', group: 'alarms', countKey: 'lures', iconColor: '#e91e63' },
+    { label: 'Nests', icon: 'park', route: '/nests', group: 'alarms', countKey: 'nests', iconColor: '#8bc34a' },
+    { label: 'Gyms', icon: 'fitness_center', route: '/gyms', group: 'alarms', countKey: 'gyms', iconColor: '#00bcd4' },
+    { label: 'Areas', icon: 'map', route: '/areas', group: 'settings', iconColor: '#ff9800' },
+    { label: 'Profiles', icon: 'person', route: '/profiles', group: 'settings', iconColor: '#7b1fa2' },
+    { label: 'Cleaning', icon: 'cleaning_services', route: '/cleaning', group: 'settings', iconColor: '#795548' },
+    { label: 'Users', icon: 'people', route: '/admin/users', adminOnly: true, group: 'admin', iconColor: '#455a64' },
+    { label: 'Webhooks', icon: 'webhook', route: '/admin/webhooks', adminOnly: true, group: 'admin', iconColor: '#00897b' },
+    { label: 'Settings', icon: 'settings', route: '/admin/settings', adminOnly: true, group: 'admin', iconColor: '#546e7a' },
+    { label: 'My Webhooks', icon: 'webhook', route: '/my-webhooks', delegateOnly: true, group: 'webhooks', iconColor: '#00897b' },
   ];
 
   protected readonly alarmNavItems = computed(() =>

@@ -19,7 +19,7 @@
   </div>
 }
 @if (auth.isLoggedIn()) {
-  <mat-toolbar color="primary" class="app-toolbar">
+  <mat-toolbar class="app-toolbar">
     <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation">
       <mat-icon>menu</mat-icon>
     </button>
@@ -96,7 +96,7 @@
             (click)="onNavClick()"
             class="nav-item"
           >
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
             <span matListItemTitle>{{ item.label }}</span>
           </a>
         }
@@ -113,7 +113,7 @@
             (click)="onNavClick()"
             class="nav-item"
           >
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
             <span matListItemTitle>{{ item.label }}</span>
           </a>
         }
@@ -131,7 +131,7 @@
               (click)="onNavClick()"
               class="nav-item"
             >
-              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
             </a>
           }
@@ -150,7 +150,7 @@
               (click)="onNavClick()"
               class="nav-item"
             >
-              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
             </a>
           }

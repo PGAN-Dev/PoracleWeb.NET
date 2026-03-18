@@ -53,6 +53,8 @@
   top: 0;
   z-index: 1000;
   min-height: 56px;
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  color: #fff !important;
 }
 
 .app-title-block {
@@ -90,6 +92,29 @@
 
 .app-content {
   padding: 0;
+  background: linear-gradient(180deg, rgba(21, 101, 192, 0.02) 0%, transparent 300px);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: fixed;
+    bottom: -60px;
+    right: -60px;
+    width: 420px;
+    height: 420px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3C!-- Pokeball --%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%231565c0' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%231565c0'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%231565c0' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%231565c0'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+  }
+}
+
+body.dark-theme .app-content::after {
+  opacity: 0.1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%2390caf9' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%2390caf9'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%2390caf9' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%2390caf9'/%3E%3C/svg%3E");
 }
 
 // ─── Nav items ────────────────────────────────────────────────
@@ -110,14 +135,11 @@
 }
 
 .active-link {
-  background-color: var(--mat-sys-secondary-container, rgba(25, 118, 210, 0.08)) !important;
-  color: var(--mat-sys-on-secondary-container, #1976d2) !important;
-  border-left-color: var(--mat-sys-primary, #1976d2) !important;
+  background-color: rgba(25, 118, 210, 0.1) !important;
+  border-radius: 0 24px 24px 0 !important;
+  margin-right: 12px;
+  border-left-color: currentColor !important;
   font-weight: 500;
-
-  mat-icon {
-    color: var(--mat-sys-primary, #1976d2) !important;
-  }
 }
 
 .nav-badge {

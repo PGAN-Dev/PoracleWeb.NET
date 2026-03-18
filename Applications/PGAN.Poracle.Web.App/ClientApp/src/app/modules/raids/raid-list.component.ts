@@ -59,9 +59,10 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
         </mat-menu>
         <button
           mat-fab
-          color="primary"
           (click)="openAddDialog()"
           matTooltip="Add Raid/Egg Alarm"
+          [style.background-color]="'#f44336'"
+          [style.color]="'white'"
         >
           <mat-icon>add</mat-icon>
         </button>
@@ -133,10 +134,10 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
               </mat-card>
             } @empty {
               <div class="empty-state">
-                <mat-icon class="empty-icon">shield</mat-icon>
-                <h2>No Raid Alarms Configured</h2>
-                <p>Tap + to add your first raid alarm</p>
-                <button mat-fab extended color="primary" (click)="openAddDialog()">
+                <mat-icon class="empty-icon" style="color: #f44336">shield</mat-icon>
+                <h2 class="empty-title">No Raid Alarms Configured</h2>
+                <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
+                <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
                   <mat-icon>add</mat-icon> Add Raid
                 </button>
               </div>
@@ -202,10 +203,10 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
               </mat-card>
             } @empty {
               <div class="empty-state">
-                <mat-icon class="empty-icon">egg</mat-icon>
-                <h2>No Egg Alarms Configured</h2>
-                <p>Tap + to add your first egg alarm</p>
-                <button mat-fab extended color="primary" (click)="openAddDialog()">
+                <mat-icon class="empty-icon" style="color: #f44336">egg</mat-icon>
+                <h2 class="empty-title">No Egg Alarms Configured</h2>
+                <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
+                <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
                   <mat-icon>add</mat-icon> Add Egg
                 </button>
               </div>
@@ -390,22 +391,30 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
       }
       .empty-state {
         grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 24px;
         text-align: center;
-        padding: 64px 16px;
       }
       .empty-icon {
-        font-size: 64px;
-        width: 64px;
-        height: 64px;
-        color: var(--text-hint, rgba(0, 0, 0, 0.24));
+        font-size: 72px;
+        width: 72px;
+        height: 72px;
+        margin-bottom: 16px;
+        opacity: 0.7;
       }
-      .empty-state h2 {
-        margin: 16px 0 8px;
-        font-weight: 400;
+      .empty-title {
+        font-size: 20px;
+        font-weight: 500;
+        margin: 0 0 8px;
       }
-      .empty-state p {
-        color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-        margin-bottom: 24px;
+      .empty-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary, rgba(0,0,0,0.54));
+        margin: 0 0 24px;
+        max-width: 400px;
       }
     `,
   ],

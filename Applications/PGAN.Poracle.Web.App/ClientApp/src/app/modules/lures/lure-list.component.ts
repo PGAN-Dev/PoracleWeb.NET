@@ -26,7 +26,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
       <div class="header-actions">
         <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions"><mat-icon>more_vert</mat-icon></button>
         <mat-menu #bulkMenu="matMenu"><button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button></mat-menu>
-        <button mat-fab color="primary" (click)="openAddDialog()" matTooltip="Add Lure Alarm"><mat-icon>add</mat-icon></button>
+        <button mat-fab (click)="openAddDialog()" matTooltip="Add Lure Alarm" style="background:#e91e63;color:#fff"><mat-icon>add</mat-icon></button>
       </div>
     </div>
     @if (loading()) { <div class="loading-container"><mat-spinner diameter="48"></mat-spinner><p class="loading-text">Loading alarms...</p></div> }
@@ -56,8 +56,12 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
             </mat-card-actions>
           </mat-card>
         } @empty {
-          <div class="empty-state"><mat-icon class="empty-icon">location_on</mat-icon><h2>No Lure Alarms Configured</h2><p>Tap + to add your first lure alarm</p>
-            <button mat-fab extended color="primary" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Lure</button></div>
+          <div class="empty-state">
+            <mat-icon class="empty-icon" style="color:#e91e63">location_on</mat-icon>
+            <h2 class="empty-title">No Lure Alarms Configured</h2>
+            <p class="empty-subtitle">Track active lure modules nearby</p>
+            <button mat-flat-button (click)="openAddDialog()" style="background:#e91e63;color:#fff"><mat-icon>add</mat-icon> Add Lure</button>
+          </div>
         }
       </div>
     }
@@ -89,9 +93,10 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
     .area-mode { background: #e8f5e9; color: #2e7d32; } .distance-mode { background: #e3f2fd; color: #1565c0; }
     .ping-info { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 13px; color: rgba(0,0,0,0.64); }
     .ping-info mat-icon { font-size: 16px; width: 16px; height: 16px; }
-    .empty-state { grid-column: 1 / -1; text-align: center; padding: 64px 16px; }
-    .empty-icon { font-size: 64px; width: 64px; height: 64px; color: rgba(0,0,0,0.24); }
-    .empty-state h2 { margin: 16px 0 8px; font-weight: 400; } .empty-state p { color: rgba(0,0,0,0.54); margin-bottom: 24px; }
+    .empty-state { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; text-align: center; }
+    .empty-icon { font-size: 72px; width: 72px; height: 72px; margin-bottom: 16px; opacity: 0.7; }
+    .empty-title { font-size: 20px; font-weight: 500; margin: 0 0 8px; }
+    .empty-subtitle { font-size: 14px; color: var(--text-secondary, rgba(0,0,0,0.54)); margin: 0 0 24px; max-width: 400px; }
   `],
 })
 export class LureListComponent implements OnInit {
