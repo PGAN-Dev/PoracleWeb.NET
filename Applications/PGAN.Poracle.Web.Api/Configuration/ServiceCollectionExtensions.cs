@@ -24,7 +24,7 @@ public static class ServiceCollectionExtensions
         services.AddMemoryCache();
 
         // Register AutoMapper
-        services.AddAutoMapper(typeof(PoracleMappingProfile));
+        services.AddAutoMapper(cfg => cfg.AddProfile<PoracleMappingProfile>());
 
         // Register Repositories
         services.AddScoped<IMonsterRepository, MonsterRepository>();
