@@ -15,4 +15,7 @@
     <Project Path="Data/PGAN.Poracle.Web.Data.Scanner/PGAN.Poracle.Web.Data.Scanner.csproj" />
     <Project Path="Data/PGAN.Poracle.Web.Data/PGAN.Poracle.Web.Data.csproj" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/PGAN.Poracle.Web.Tests/PGAN.Poracle.Web.Tests.csproj" />
+  </Folder>
 </Solution>

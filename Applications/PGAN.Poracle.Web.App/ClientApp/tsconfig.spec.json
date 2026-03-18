@@ -5,8 +5,9 @@
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
     "types": [
-      "vitest/globals"
-    ]
+      "jest"
+    ],
+    "esModuleInterop": true
   },
   "include": [
     "src/**/*.d.ts",
