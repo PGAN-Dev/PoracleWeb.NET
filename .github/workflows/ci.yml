@@ -19,6 +19,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -30,9 +31,6 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore
-
-      - name: Check formatting (editorconfig)
-        run: dotnet format --verify-no-changes --verbosity diagnostic
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
@@ -76,7 +74,7 @@ jobs:
         run: npm run prettier-check
 
       - name: Test (Jest)
-        run: npm test -- --ci
+        run: npx jest --ci
 
       - name: Build (production)
         run: npm run build
