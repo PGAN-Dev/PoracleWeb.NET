@@ -13,11 +13,7 @@ describe('LocationService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(LocationService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -46,9 +42,7 @@ describe('LocationService', () => {
         expect(results[0].display_name).toBe('Main Street, City');
       });
 
-      const req = httpMock.expectOne(
-        `${API}/api/location/geocode?q=Main%20Street`,
-      );
+      const req = httpMock.expectOne(`${API}/api/location/geocode?q=Main%20Street`);
       expect(req.request.method).toBe('GET');
       req.flush([{ display_name: 'Main Street, City', lat: '40.7', lon: '-74.0' }]);
     });
@@ -59,7 +53,8 @@ describe('LocationService', () => {
       });
 
       httpMock.expectOne(`${API}/api/location/geocode?q=test`).flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
     });
   });
@@ -72,7 +67,8 @@ describe('LocationService', () => {
       });
 
       httpMock.expectOne(`${API}/api/location`).flush({
-        latitude: 40.7128, longitude: -74.006,
+        latitude: 40.7128,
+        longitude: -74.006,
       });
     });
   });
@@ -116,7 +112,8 @@ describe('LocationService', () => {
       });
 
       httpMock.expectOne(`${API}/api/location/reverse?lat=0&lon=0`).flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
     });
   });
@@ -138,7 +135,8 @@ describe('LocationService', () => {
       });
 
       httpMock.expectOne(`${API}/api/location/staticmap?lat=0&lon=0`).flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
     });
   });
@@ -149,9 +147,9 @@ describe('LocationService', () => {
         expect(result?.url).toBe('https://maps.example.com/distance.png');
       });
 
-      httpMock.expectOne(
-        `${API}/api/location/distancemap?lat=40.7&lon=-74&distance=5000`,
-      ).flush({ url: 'https://maps.example.com/distance.png' });
+      httpMock
+        .expectOne(`${API}/api/location/distancemap?lat=40.7&lon=-74&distance=5000`)
+        .flush({ url: 'https://maps.example.com/distance.png' });
     });
 
     it('should return null on error', () => {
@@ -159,9 +157,7 @@ describe('LocationService', () => {
         expect(result).toBeNull();
       });
 
-      httpMock.expectOne(
-        `${API}/api/location/distancemap?lat=0&lon=0&distance=1000`,
-      ).flush(null, { status: 500, statusText: 'Error' });
+      httpMock.expectOne(`${API}/api/location/distancemap?lat=0&lon=0&distance=1000`).flush(null, { status: 500, statusText: 'Error' });
     });
   });
 });

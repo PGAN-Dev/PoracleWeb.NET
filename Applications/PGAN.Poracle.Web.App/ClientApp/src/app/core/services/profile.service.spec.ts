@@ -11,16 +11,12 @@ describe('ProfileService', () => {
   let httpMock: HttpTestingController;
   const API = 'http://test-api';
 
-  const mockProfile: Profile = { active: true, name: 'Default', profileNo: 1 };
+  const mockProfile: Profile = { name: 'Default', active: true, profileNo: 1 };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(ProfileService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -34,10 +30,7 @@ describe('ProfileService', () => {
       expect(profiles[0].active).toBe(true);
     });
 
-    httpMock.expectOne(`${API}/api/profiles`).flush([
-      mockProfile,
-      { active: false, name: 'PVP', profileNo: 2 },
-    ]);
+    httpMock.expectOne(`${API}/api/profiles`).flush([mockProfile, { name: 'PVP', active: false, profileNo: 2 }]);
   });
 
   it('should create a profile', () => {
@@ -48,7 +41,7 @@ describe('ProfileService', () => {
     const req = httpMock.expectOne(`${API}/api/profiles`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ name: 'New Profile' });
-    req.flush({ active: false, name: 'New Profile', profileNo: 3 });
+    req.flush({ name: 'New Profile', active: false, profileNo: 3 });
   });
 
   it('should delete a profile', () => {
@@ -67,7 +60,7 @@ describe('ProfileService', () => {
 
     const req = httpMock.expectOne(`${API}/api/profiles/switch/2`);
     expect(req.request.method).toBe('PUT');
-    req.flush({ active: true, name: 'PVP', profileNo: 2 });
+    req.flush({ name: 'PVP', active: true, profileNo: 2 });
   });
 
   it('should update a profile name', () => {

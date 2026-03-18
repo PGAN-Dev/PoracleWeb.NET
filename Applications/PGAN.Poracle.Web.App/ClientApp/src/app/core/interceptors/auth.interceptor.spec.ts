@@ -12,10 +12,7 @@ describe('authInterceptor', () => {
     localStorage.clear();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(withInterceptors([authInterceptor])),
-        provideHttpClientTesting(),
-      ],
+      providers: [provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpClient);
     httpMock = TestBed.inject(HttpTestingController);

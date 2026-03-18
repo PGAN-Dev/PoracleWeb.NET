@@ -12,25 +12,34 @@ describe('AdminService', () => {
   const API = 'http://test-api';
 
   const mockHuman: Human = {
-    adminDisable: 0, area: '["downtown"]', communityMembership: null,
-    enabled: 1, id: '123', language: 'en', latitude: 40.7,
-    longitude: -74.0, name: 'TestUser',
+    id: '123',
+    name: 'TestUser',
+    adminDisable: 0,
+    area: '["downtown"]',
+    communityMembership: null,
+    enabled: 1,
+    language: 'en',
+    latitude: 40.7,
+    longitude: -74.0,
   };
 
   const mockAdminUser: AdminUser = {
-    adminDisable: 0, avatarUrl: null, currentProfileNo: 1,
-    disabledDate: null, enabled: 1, id: '123', language: 'en',
-    lastChecked: null, name: 'TestUser', type: 'discord:user',
+    id: '123',
+    name: 'TestUser',
+    adminDisable: 0,
+    avatarUrl: null,
+    currentProfileNo: 1,
+    disabledDate: null,
+    enabled: 1,
+    language: 'en',
+    lastChecked: null,
+    type: 'discord:user',
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(AdminService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -97,7 +106,8 @@ describe('AdminService', () => {
     });
 
     httpMock.expectOne(`${API}/api/admin/users/123/pause`).flush({
-      ...mockHuman, enabled: 0,
+      ...mockHuman,
+      enabled: 0,
     });
   });
 

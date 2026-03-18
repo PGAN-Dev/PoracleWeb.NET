@@ -12,19 +12,26 @@ describe('RaidService', () => {
   const API = 'http://test-api';
 
   const mockRaid: Raid = {
-    clean: 0, distance: 0, exclusive: 0, form: 0, gymId: null,
-    id: '1', level: 5, move: 0, ping: null, pokemonId: 150,
-    profileNo: 1, team: 0, template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    clean: 0,
+    distance: 0,
+    exclusive: 0,
+    form: 0,
+    gymId: null,
+    level: 5,
+    move: 0,
+    ping: null,
+    pokemonId: 150,
+    profileNo: 1,
+    team: 0,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(RaidService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -45,9 +52,18 @@ describe('RaidService', () => {
 
   it('should create a raid', () => {
     const payload: RaidCreate = {
-      clean: 0, distance: 0, exclusive: 1, form: 0, gymId: null,
-      level: 5, move: 0, ping: null, pokemonId: 150, profileNo: 1,
-      team: 0, template: 'default',
+      clean: 0,
+      distance: 0,
+      exclusive: 1,
+      form: 0,
+      gymId: null,
+      level: 5,
+      move: 0,
+      ping: null,
+      pokemonId: 150,
+      profileNo: 1,
+      team: 0,
+      template: 'default',
     };
 
     service.create(payload).subscribe(result => {

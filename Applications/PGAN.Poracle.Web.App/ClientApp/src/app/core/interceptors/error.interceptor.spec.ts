@@ -38,7 +38,8 @@ describe('errorInterceptor', () => {
     http.get('/api/dashboard').subscribe({ error: () => {} });
 
     httpMock.expectOne('/api/dashboard').flush(null, {
-      status: 401, statusText: 'Unauthorized',
+      status: 401,
+      statusText: 'Unauthorized',
     });
 
     expect(localStorage.getItem('poracle_token')).toBeNull();
@@ -50,7 +51,8 @@ describe('errorInterceptor', () => {
     http.get('/api/admin/users').subscribe({ error: () => {} });
 
     httpMock.expectOne('/api/admin/users').flush(null, {
-      status: 403, statusText: 'Forbidden',
+      status: 403,
+      statusText: 'Forbidden',
     });
 
     expect(toast.error).toHaveBeenCalledWith("You don't have permission for this action.");
@@ -60,7 +62,8 @@ describe('errorInterceptor', () => {
     http.get('/api/monsters/999').subscribe({ error: () => {} });
 
     httpMock.expectOne('/api/monsters/999').flush(null, {
-      status: 404, statusText: 'Not Found',
+      status: 404,
+      statusText: 'Not Found',
     });
 
     expect(toast.error).toHaveBeenCalledWith('The requested resource was not found.');
@@ -70,7 +73,8 @@ describe('errorInterceptor', () => {
     http.get('/api/dashboard').subscribe({ error: () => {} });
 
     httpMock.expectOne('/api/dashboard').flush(null, {
-      status: 500, statusText: 'Error',
+      status: 500,
+      statusText: 'Error',
     });
 
     expect(toast.error).toHaveBeenCalledWith('Something went wrong. Please try again.');
@@ -82,7 +86,8 @@ describe('errorInterceptor', () => {
       http.get('/api/dashboard').subscribe({ error: () => {} });
 
       httpMock.expectOne('/api/dashboard').flush(null, {
-        status, statusText: 'Unavailable',
+        status,
+        statusText: 'Unavailable',
       });
 
       expect(toast.error).toHaveBeenCalledWith('Server is temporarily unavailable.');
@@ -92,10 +97,7 @@ describe('errorInterceptor', () => {
   it('should show network error toast for status 0', () => {
     http.get('/api/dashboard').subscribe({ error: () => {} });
 
-    httpMock.expectOne('/api/dashboard').error(
-      new ProgressEvent('error'),
-      { status: 0, statusText: 'Unknown Error' },
-    );
+    httpMock.expectOne('/api/dashboard').error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
 
     expect(toast.error).toHaveBeenCalledWith('Network error. Check your connection.');
   });
@@ -105,7 +107,8 @@ describe('errorInterceptor', () => {
       http.get('/api/config/templates').subscribe({ error: () => {} });
 
       httpMock.expectOne('/api/config/templates').flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
 
       expect(toast.error).not.toHaveBeenCalled();
@@ -115,7 +118,8 @@ describe('errorInterceptor', () => {
       http.get('/api/masterdata/pokemon').subscribe({ error: () => {} });
 
       httpMock.expectOne('/api/masterdata/pokemon').flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
 
       expect(toast.error).not.toHaveBeenCalled();
@@ -126,7 +130,8 @@ describe('errorInterceptor', () => {
       http.get('/api/auth/me').subscribe({ error: () => {} });
 
       httpMock.expectOne('/api/auth/me').flush(null, {
-        status: 401, statusText: 'Unauthorized',
+        status: 401,
+        statusText: 'Unauthorized',
       });
 
       expect(toast.error).not.toHaveBeenCalled();
@@ -138,7 +143,8 @@ describe('errorInterceptor', () => {
       http.post('/api/admin/users/avatars', ['123']).subscribe({ error: () => {} });
 
       httpMock.expectOne('/api/admin/users/avatars').flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
 
       expect(toast.error).not.toHaveBeenCalled();
@@ -149,11 +155,14 @@ describe('errorInterceptor', () => {
     let receivedError: any;
 
     http.get('/api/dashboard').subscribe({
-      error: err => { receivedError = err; },
+      error: err => {
+        receivedError = err;
+      },
     });
 
     httpMock.expectOne('/api/dashboard').flush(null, {
-      status: 500, statusText: 'Error',
+      status: 500,
+      statusText: 'Error',
     });
 
     expect(receivedError).toBeDefined();

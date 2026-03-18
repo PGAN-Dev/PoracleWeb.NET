@@ -12,19 +12,23 @@ describe('QuestService', () => {
   const API = 'http://test-api';
 
   const mockQuest: Quest = {
-    clean: 0, distance: 0, id: '1', ping: null, pokemonId: 25,
-    profileNo: 1, reward: 1, rewardType: 2, shiny: 0,
-    template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    clean: 0,
+    distance: 0,
+    ping: null,
+    pokemonId: 25,
+    profileNo: 1,
+    reward: 1,
+    rewardType: 2,
+    shiny: 0,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(QuestService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -45,8 +49,15 @@ describe('QuestService', () => {
 
   it('should create a quest', () => {
     const payload: QuestCreate = {
-      clean: 0, distance: 0, ping: null, pokemonId: 25,
-      profileNo: 1, reward: 1, rewardType: 2, shiny: 1, template: null,
+      clean: 0,
+      distance: 0,
+      ping: null,
+      pokemonId: 25,
+      profileNo: 1,
+      reward: 1,
+      rewardType: 2,
+      shiny: 1,
+      template: null,
     };
 
     service.create(payload).subscribe(result => {

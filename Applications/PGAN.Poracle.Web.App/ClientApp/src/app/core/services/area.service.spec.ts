@@ -13,11 +13,7 @@ describe('AreaService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(AreaService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -60,7 +56,14 @@ describe('AreaService', () => {
   describe('getGeofencePolygons', () => {
     it('should extract geofence array from response', () => {
       const geofences = [
-        { id: 1, name: 'Area1', path: [[1, 2], [3, 4]] as [number, number][] },
+        {
+          id: 1,
+          name: 'Area1',
+          path: [
+            [1, 2],
+            [3, 4],
+          ] as [number, number][],
+        },
       ];
 
       service.getGeofencePolygons().subscribe(result => {
@@ -69,8 +72,8 @@ describe('AreaService', () => {
       });
 
       httpMock.expectOne(`${API}/api/areas/geofence`).flush({
-        status: 'ok',
         geofence: geofences,
+        status: 'ok',
       });
     });
 
@@ -90,7 +93,8 @@ describe('AreaService', () => {
       });
 
       httpMock.expectOne(`${API}/api/areas/geofence`).flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
     });
   });
@@ -119,7 +123,8 @@ describe('AreaService', () => {
       });
 
       httpMock.expectOne(`${API}/api/areas/map/unknown`).flush(null, {
-        status: 404, statusText: 'Not Found',
+        status: 404,
+        statusText: 'Not Found',
       });
     });
 

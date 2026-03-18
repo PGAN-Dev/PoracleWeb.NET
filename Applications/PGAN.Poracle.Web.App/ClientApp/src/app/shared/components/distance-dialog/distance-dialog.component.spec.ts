@@ -1,7 +1,7 @@
-import { TestBed } from '@angular/core/testing';
-import { MatDialogRef } from '@angular/material/dialog';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { MatDialogRef } from '@angular/material/dialog';
 
 import { DistanceDialogComponent } from './distance-dialog.component';
 import { ConfigService } from '../../../core/services/config.service';
@@ -15,13 +15,13 @@ describe('DistanceDialogComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [DistanceDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: ConfigService, useValue: { apiHost: 'http://test' } },
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
+      imports: [DistanceDialogComponent],
     });
 
     const fixture = TestBed.createComponent(DistanceDialogComponent);

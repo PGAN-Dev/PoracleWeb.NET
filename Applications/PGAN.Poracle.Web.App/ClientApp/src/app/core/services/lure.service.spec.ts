@@ -12,18 +12,20 @@ describe('LureService', () => {
   const API = 'http://test-api';
 
   const mockLure: Lure = {
-    clean: 0, distance: 0, id: '1', lureId: 502,
-    ping: null, profileNo: 1, template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    clean: 0,
+    distance: 0,
+    lureId: 502,
+    ping: null,
+    profileNo: 1,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(LureService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -42,8 +44,12 @@ describe('LureService', () => {
 
   it('should create a lure', () => {
     const payload: LureCreate = {
-      clean: 0, distance: 0, lureId: 503,
-      ping: null, profileNo: 1, template: null,
+      clean: 0,
+      distance: 0,
+      lureId: 503,
+      ping: null,
+      profileNo: 1,
+      template: null,
     };
 
     service.create(payload).subscribe(result => {

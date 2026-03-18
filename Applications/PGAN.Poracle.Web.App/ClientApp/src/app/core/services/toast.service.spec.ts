@@ -10,9 +10,7 @@ describe('ToastService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        { provide: MatSnackBar, useValue: { open: jest.fn() } },
-      ],
+      providers: [{ provide: MatSnackBar, useValue: { open: jest.fn() } }],
     });
     service = TestBed.inject(ToastService);
     snackBar = TestBed.inject(MatSnackBar) as jest.Mocked<MatSnackBar>;
@@ -64,88 +62,56 @@ describe('ToastService', () => {
 
     it('should show custom error message from 400 response body', () => {
       service.httpError({
-        status: 400,
         error: { error: 'Invalid Pokemon ID' },
+        status: 400,
       });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Invalid Pokemon ID',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Invalid Pokemon ID', 'Dismiss', expect.anything());
     });
 
     it('should show fallback for 400 without body error', () => {
       service.httpError({ status: 400 });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Invalid request. Please check your input.',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Invalid request. Please check your input.', 'Dismiss', expect.anything());
     });
 
     it('should show session expired for 401', () => {
       service.httpError({ status: 401 });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Your session has expired. Please sign in again.',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Your session has expired. Please sign in again.', 'Dismiss', expect.anything());
     });
 
     it('should show permission denied for 403', () => {
       service.httpError({ status: 403 });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'You do not have permission to perform this action.',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('You do not have permission to perform this action.', 'Dismiss', expect.anything());
     });
 
     it('should show not found for 404', () => {
       service.httpError({ status: 404 });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'The requested resource was not found.',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('The requested resource was not found.', 'Dismiss', expect.anything());
     });
 
     it('should show conflict for 409 with custom error', () => {
       service.httpError({
-        status: 409,
         error: { error: 'Profile already exists' },
+        status: 409,
       });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Profile already exists',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Profile already exists', 'Dismiss', expect.anything());
     });
 
     it('should show default conflict for 409 without custom error', () => {
       service.httpError({ status: 409 });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'A conflict occurred. The item may have been modified.',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('A conflict occurred. The item may have been modified.', 'Dismiss', expect.anything());
     });
 
     it('should show rate limit for 429', () => {
       service.httpError({ status: 429 });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Too many requests. Please wait a moment and try again.',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Too many requests. Please wait a moment and try again.', 'Dismiss', expect.anything());
     });
 
     it('should show server error for 500', () => {
@@ -174,37 +140,25 @@ describe('ToastService', () => {
     it('should show generic message for unknown status codes', () => {
       service.httpError({ status: 418 });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Something went wrong. Please try again.',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Something went wrong. Please try again.', 'Dismiss', expect.anything());
     });
 
     it('should prefer error.error over error.message in default case', () => {
       service.httpError({
-        status: 418,
         error: { error: 'Teapot error', message: 'fallback' },
+        status: 418,
       });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Teapot error',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Teapot error', 'Dismiss', expect.anything());
     });
 
     it('should fall back to error.message when error.error is absent in 400', () => {
       service.httpError({
-        status: 400,
         error: { message: 'Missing field: name' },
+        status: 400,
       });
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Missing field: name',
-        'Dismiss',
-        expect.anything(),
-      );
+      expect(snackBar.open).toHaveBeenCalledWith('Missing field: name', 'Dismiss', expect.anything());
     });
   });
 });

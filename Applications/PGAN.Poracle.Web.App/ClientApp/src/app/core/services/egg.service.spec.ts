@@ -12,19 +12,22 @@ describe('EggService', () => {
   const API = 'http://test-api';
 
   const mockEgg: Egg = {
-    clean: 0, distance: 0, exclusive: 0, id: '1',
-    level: 5, ping: null, profileNo: 1, team: 0,
-    template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    clean: 0,
+    distance: 0,
+    exclusive: 0,
+    level: 5,
+    ping: null,
+    profileNo: 1,
+    team: 0,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(EggService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -42,8 +45,14 @@ describe('EggService', () => {
 
   it('should create an egg', () => {
     const payload: EggCreate = {
-      clean: 0, distance: 0, exclusive: 1, level: 3,
-      ping: null, profileNo: 1, team: 0, template: null,
+      clean: 0,
+      distance: 0,
+      exclusive: 1,
+      level: 3,
+      ping: null,
+      profileNo: 1,
+      team: 0,
+      template: null,
     };
     service.create(payload).subscribe(r => expect(r.uid).toBe(1));
     const req = httpMock.expectOne(`${API}/api/eggs`);

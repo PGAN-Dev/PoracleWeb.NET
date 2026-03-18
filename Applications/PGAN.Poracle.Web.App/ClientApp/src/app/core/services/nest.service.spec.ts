@@ -12,18 +12,21 @@ describe('NestService', () => {
   const API = 'http://test-api';
 
   const mockNest: Nest = {
-    clean: 0, distance: 0, id: '1', minSpawnAvg: 5,
-    ping: null, pokemonId: 25, profileNo: 1, template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    clean: 0,
+    distance: 0,
+    minSpawnAvg: 5,
+    ping: null,
+    pokemonId: 25,
+    profileNo: 1,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(NestService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -41,8 +44,13 @@ describe('NestService', () => {
 
   it('should create a nest', () => {
     const payload: NestCreate = {
-      clean: 0, distance: 0, minSpawnAvg: 10,
-      ping: null, pokemonId: 25, profileNo: 1, template: null,
+      clean: 0,
+      distance: 0,
+      minSpawnAvg: 10,
+      ping: null,
+      pokemonId: 25,
+      profileNo: 1,
+      template: null,
     };
     service.create(payload).subscribe(r => expect(r.uid).toBe(1));
     const req = httpMock.expectOne(`${API}/api/nests`);

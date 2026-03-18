@@ -12,18 +12,21 @@ describe('InvasionService', () => {
   const API = 'http://test-api';
 
   const mockInvasion: Invasion = {
-    clean: 0, distance: 0, gender: 0, gruntType: 'Water',
-    id: '1', ping: null, profileNo: 1, template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    clean: 0,
+    distance: 0,
+    gender: 0,
+    gruntType: 'Water',
+    ping: null,
+    profileNo: 1,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(InvasionService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -44,8 +47,13 @@ describe('InvasionService', () => {
 
   it('should create an invasion', () => {
     const payload: InvasionCreate = {
-      clean: 0, distance: 0, gender: 1, gruntType: 'Fire',
-      ping: null, profileNo: 1, template: null,
+      clean: 0,
+      distance: 0,
+      gender: 1,
+      gruntType: 'Fire',
+      ping: null,
+      profileNo: 1,
+      template: null,
     };
 
     service.create(payload).subscribe(result => {

@@ -13,11 +13,7 @@ describe('MasterDataService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(MasterDataService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -85,9 +81,7 @@ describe('MasterDataService', () => {
       });
 
       // forkJoin cancels remaining requests when one errors, so only error the first
-      httpMock.expectOne(`${API}/api/masterdata/pokemon`).error(
-        new ProgressEvent('error'), { status: 500, statusText: 'Error' },
-      );
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).error(new ProgressEvent('error'), { status: 500, statusText: 'Error' });
       // The items request gets cancelled by forkJoin, so just match and discard it
       httpMock.match(`${API}/api/masterdata/items`);
 
@@ -100,7 +94,9 @@ describe('MasterDataService', () => {
       service.loadData().subscribe();
 
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({
-        '150': 'Mewtwo', '25': 'Pikachu', '1': 'Bulbasaur',
+        '1': 'Bulbasaur',
+        '25': 'Pikachu',
+        '150': 'Mewtwo',
       });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(req => req.url.includes('master-latest-poracle')).flush({});

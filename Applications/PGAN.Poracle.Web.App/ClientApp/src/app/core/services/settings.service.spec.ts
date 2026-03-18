@@ -20,11 +20,7 @@ describe('SettingsService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(SettingsService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -53,9 +49,7 @@ describe('SettingsService', () => {
 
       // Second call - should still make HTTP request but not re-populate
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([
-        { setting: 'enable_templates', value: 'false' },
-      ]);
+      httpMock.expectOne(`${API}/api/settings`).flush([{ setting: 'enable_templates', value: 'false' }]);
 
       // Should still have old value since loaded flag is true
       expect(service.siteSettings()['enable_templates']).toBe('true');
@@ -64,9 +58,7 @@ describe('SettingsService', () => {
     it('should handle settings with null values', () => {
       service.getAll().subscribe();
 
-      httpMock.expectOne(`${API}/api/settings`).flush([
-        { setting: 'key1', value: null },
-      ]);
+      httpMock.expectOne(`${API}/api/settings`).flush([{ setting: 'key1', value: null }]);
 
       expect(service.siteSettings()['key1']).toBe('');
     });
@@ -79,7 +71,12 @@ describe('SettingsService', () => {
       });
 
       httpMock.expectOne(`${API}/api/settings/config`).flush({
-        areas: [], forms: {}, grunts: {}, items: {}, moves: {}, pokemon: {},
+        areas: [],
+        forms: {},
+        grunts: {},
+        items: {},
+        moves: {},
+        pokemon: {},
       });
     });
   });
@@ -87,27 +84,21 @@ describe('SettingsService', () => {
   describe('isDisabled', () => {
     it('should return true when setting is "true"', () => {
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([
-        { setting: 'disable_raids', value: 'true' },
-      ]);
+      httpMock.expectOne(`${API}/api/settings`).flush([{ setting: 'disable_raids', value: 'true' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(true);
     });
 
     it('should return true case-insensitively', () => {
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([
-        { setting: 'disable_raids', value: 'True' },
-      ]);
+      httpMock.expectOne(`${API}/api/settings`).flush([{ setting: 'disable_raids', value: 'True' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(true);
     });
 
     it('should return false when setting is not "true"', () => {
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([
-        { setting: 'disable_raids', value: 'false' },
-      ]);
+      httpMock.expectOne(`${API}/api/settings`).flush([{ setting: 'disable_raids', value: 'false' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(false);
     });
@@ -154,7 +145,8 @@ describe('SettingsService', () => {
       service.update('key with spaces', 'val').subscribe();
 
       httpMock.expectOne(`${API}/api/settings/key%20with%20spaces`).flush({
-        setting: 'key with spaces', value: 'val',
+        setting: 'key with spaces',
+        value: 'val',
       });
     });
   });

@@ -1,11 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
-import {
-  ConfirmDialogComponent,
-  ConfirmDialogData,
-  ConfirmDialogResult,
-} from './confirm-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData, ConfirmDialogResult } from './confirm-dialog.component';
 
 describe('ConfirmDialogComponent', () => {
   let component: ConfirmDialogComponent;
@@ -16,11 +12,11 @@ describe('ConfirmDialogComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [ConfirmDialogComponent],
       providers: [
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
+      imports: [ConfirmDialogComponent],
     });
 
     const fixture = TestBed.createComponent(ConfirmDialogComponent);
@@ -31,8 +27,8 @@ describe('ConfirmDialogComponent', () => {
   describe('without showDontAskAgain', () => {
     beforeEach(() => {
       setup({
-        title: 'Delete Item',
         message: 'Are you sure you want to delete this?',
+        title: 'Delete Item',
       });
     });
 
@@ -55,9 +51,9 @@ describe('ConfirmDialogComponent', () => {
   describe('with showDontAskAgain', () => {
     beforeEach(() => {
       setup({
-        title: 'Delete All',
         message: 'Delete all items?',
         showDontAskAgain: true,
+        title: 'Delete All',
       });
     });
 
@@ -94,10 +90,10 @@ describe('ConfirmDialogComponent', () => {
   describe('with custom button text', () => {
     it('should accept custom confirm and cancel text', () => {
       setup({
-        title: 'Custom',
-        message: 'Custom message',
-        confirmText: 'Yes, do it',
         cancelText: 'Nah',
+        confirmText: 'Yes, do it',
+        message: 'Custom message',
+        title: 'Custom',
       });
 
       expect(component.data.confirmText).toBe('Yes, do it');
@@ -108,8 +104,8 @@ describe('ConfirmDialogComponent', () => {
   describe('with warn flag', () => {
     it('should pass warn flag through data', () => {
       setup({
-        title: 'Warning',
         message: 'This is destructive',
+        title: 'Warning',
         warn: true,
       });
 

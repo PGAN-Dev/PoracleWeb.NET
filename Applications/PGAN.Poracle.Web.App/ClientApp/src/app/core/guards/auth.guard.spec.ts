@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree } from '@angular/router';
-import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { Router, UrlTree, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 
 import { authGuard } from './auth.guard';
-import { AuthService } from '../services/auth.service';
 import { UserInfo } from '../models';
+import { AuthService } from '../services/auth.service';
 
 describe('authGuard', () => {
   let authService: {
@@ -16,9 +15,15 @@ describe('authGuard', () => {
   const mockState = {} as RouterStateSnapshot;
 
   const mockUser: UserInfo = {
-    avatarUrl: null, enabled: true, id: '123', isAdmin: false,
-    managedWebhooks: [], profileName: 'Default', profileNo: 1,
-    type: 'discord:user', username: 'TestUser',
+    id: '123',
+    username: 'TestUser',
+    avatarUrl: null,
+    enabled: true,
+    isAdmin: false,
+    managedWebhooks: [],
+    profileName: 'Default',
+    profileNo: 1,
+    type: 'discord:user',
   };
 
   beforeEach(() => {
@@ -43,9 +48,7 @@ describe('authGuard', () => {
     authService.isAuthenticated.mockReturnValue(true);
     authService.waitForUser.mockResolvedValue(mockUser);
 
-    const result = await TestBed.runInInjectionContext(() =>
-      authGuard(mockRoute, mockState),
-    );
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
     expect(result).toBe(true);
   });
@@ -53,9 +56,7 @@ describe('authGuard', () => {
   it('should redirect to login when not authenticated', async () => {
     authService.isAuthenticated.mockReturnValue(false);
 
-    const result = await TestBed.runInInjectionContext(() =>
-      authGuard(mockRoute, mockState),
-    );
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
     expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
     expect(result).toBe('login-url-tree');
@@ -65,9 +66,7 @@ describe('authGuard', () => {
     authService.isAuthenticated.mockReturnValue(true);
     authService.waitForUser.mockResolvedValue(null);
 
-    const result = await TestBed.runInInjectionContext(() =>
-      authGuard(mockRoute, mockState),
-    );
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
 
     expect(router.createUrlTree).toHaveBeenCalledWith(['/login']);
     expect(result).toBe('login-url-tree');

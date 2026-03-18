@@ -18,10 +18,7 @@ describe('PokemonNamePipe', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        PokemonNamePipe,
-        { provide: MasterDataService, useValue: masterData },
-      ],
+      providers: [PokemonNamePipe, { provide: MasterDataService, useValue: masterData }],
     });
     pipe = TestBed.inject(PokemonNamePipe);
   });

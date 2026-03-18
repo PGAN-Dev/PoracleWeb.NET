@@ -1,10 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree } from '@angular/router';
-import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { Router, UrlTree, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 
 import { adminGuard } from './admin.guard';
-import { AuthService } from '../services/auth.service';
 import { UserInfo } from '../models';
+import { AuthService } from '../services/auth.service';
 
 describe('adminGuard', () => {
   let authService: { waitForUser: jest.Mock };
@@ -13,9 +12,15 @@ describe('adminGuard', () => {
   const mockState = {} as RouterStateSnapshot;
 
   const mockUser: UserInfo = {
-    avatarUrl: null, enabled: true, id: '123', isAdmin: false,
-    managedWebhooks: [], profileName: 'Default', profileNo: 1,
-    type: 'discord:user', username: 'TestUser',
+    id: '123',
+    username: 'TestUser',
+    avatarUrl: null,
+    enabled: true,
+    isAdmin: false,
+    managedWebhooks: [],
+    profileName: 'Default',
+    profileNo: 1,
+    type: 'discord:user',
   };
 
   const mockAdmin: UserInfo = { ...mockUser, isAdmin: true };
@@ -38,9 +43,7 @@ describe('adminGuard', () => {
   it('should allow access for admin users', async () => {
     authService.waitForUser.mockResolvedValue(mockAdmin);
 
-    const result = await TestBed.runInInjectionContext(() =>
-      adminGuard(mockRoute, mockState),
-    );
+    const result = await TestBed.runInInjectionContext(() => adminGuard(mockRoute, mockState));
 
     expect(result).toBe(true);
   });
@@ -48,9 +51,7 @@ describe('adminGuard', () => {
   it('should redirect non-admin users to dashboard', async () => {
     authService.waitForUser.mockResolvedValue(mockUser);
 
-    const result = await TestBed.runInInjectionContext(() =>
-      adminGuard(mockRoute, mockState),
-    );
+    const result = await TestBed.runInInjectionContext(() => adminGuard(mockRoute, mockState));
 
     expect(router.createUrlTree).toHaveBeenCalledWith(['/dashboard']);
     expect(result).toBe('dashboard-url-tree');
@@ -59,9 +60,7 @@ describe('adminGuard', () => {
   it('should redirect to dashboard when user is null', async () => {
     authService.waitForUser.mockResolvedValue(null);
 
-    const result = await TestBed.runInInjectionContext(() =>
-      adminGuard(mockRoute, mockState),
-    );
+    const result = await TestBed.runInInjectionContext(() => adminGuard(mockRoute, mockState));
 
     expect(router.createUrlTree).toHaveBeenCalledWith(['/dashboard']);
     expect(result).toBe('dashboard-url-tree');

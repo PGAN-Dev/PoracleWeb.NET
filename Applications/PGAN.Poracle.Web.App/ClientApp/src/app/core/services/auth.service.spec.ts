@@ -14,21 +14,21 @@ describe('AuthService', () => {
   const API = 'http://test-api';
 
   const mockUser: UserInfo = {
+    id: '123456',
+    username: 'TestUser',
     avatarUrl: 'https://example.com/avatar.png',
     enabled: true,
-    id: '123456',
     isAdmin: false,
     managedWebhooks: [],
     profileName: 'Default',
     profileNo: 1,
     type: 'discord:user',
-    username: 'TestUser',
   };
 
   const mockAdminUser: UserInfo = {
     ...mockUser,
-    isAdmin: true,
     username: 'AdminUser',
+    isAdmin: true,
   };
 
   beforeEach(() => {
@@ -41,7 +41,7 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: { apiHost: API } },
         {
           provide: Router,
-          useValue: { navigate: jest.fn(), createUrlTree: jest.fn() },
+          useValue: { createUrlTree: jest.fn(), navigate: jest.fn() },
         },
       ],
     });
@@ -260,7 +260,7 @@ describe('AuthService', () => {
 
   describe('loginWithTelegram', () => {
     it('should post telegram data and store token on success', () => {
-      const telegramData = { id: '123', first_name: 'Test', hash: 'abc' };
+      const telegramData = { first_name: 'Test', id: '123', hash: 'abc' };
       const loginResponse = { token: 'new-jwt', user: mockUser };
 
       service.loginWithTelegram(telegramData).subscribe(res => {

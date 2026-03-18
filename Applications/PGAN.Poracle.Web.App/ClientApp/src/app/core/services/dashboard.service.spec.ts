@@ -12,11 +12,7 @@ describe('DashboardService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: 'http://test-api' } }],
     });
     service = TestBed.inject(DashboardService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -32,8 +28,14 @@ describe('DashboardService', () => {
 
   it('should fetch dashboard counts', () => {
     const mockCounts = {
-      eggs: 1, gyms: 2, invasions: 3, lures: 4,
-      nests: 5, pokemon: 10, quests: 6, raids: 7,
+      raids: 7,
+      eggs: 1,
+      gyms: 2,
+      invasions: 3,
+      lures: 4,
+      nests: 5,
+      pokemon: 10,
+      quests: 6,
     };
 
     service.getCounts().subscribe(counts => {

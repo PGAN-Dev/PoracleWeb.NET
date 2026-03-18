@@ -12,22 +12,40 @@ describe('MonsterService', () => {
   const API = 'http://test-api';
 
   const mockMonster: Monster = {
-    atk: 15, clean: 0, def: 14, distance: 0, form: 0, gender: 0,
-    id: '1', maxAtk: 15, maxCp: 9999, maxDef: 15, maxIv: 100,
-    maxLevel: 50, maxSta: 15, maxWeight: 9999, minCp: 0, minIv: 90,
-    minLevel: 0, minWeight: 0, ping: null, pokemonId: 25, profileNo: 1,
-    pvpRankingBest: 0, pvpRankingLeague: 0, pvpRankingMinCp: 0,
-    pvpRankingWorst: 0, sta: 15, template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    atk: 15,
+    clean: 0,
+    def: 14,
+    distance: 0,
+    form: 0,
+    gender: 0,
+    maxAtk: 15,
+    maxCp: 9999,
+    maxDef: 15,
+    maxIv: 100,
+    maxLevel: 50,
+    maxSta: 15,
+    maxWeight: 9999,
+    minCp: 0,
+    minIv: 90,
+    minLevel: 0,
+    minWeight: 0,
+    ping: null,
+    pokemonId: 25,
+    profileNo: 1,
+    pvpRankingBest: 0,
+    pvpRankingLeague: 0,
+    pvpRankingMinCp: 0,
+    pvpRankingWorst: 0,
+    sta: 15,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(MonsterService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -48,12 +66,32 @@ describe('MonsterService', () => {
 
   it('should create a monster with POST', () => {
     const createPayload: MonsterCreate = {
-      atk: 15, clean: 0, def: 14, distance: 0, form: 0, gender: 0,
-      maxAtk: 15, maxCp: 9999, maxDef: 15, maxIv: 100, maxLevel: 50,
-      maxSta: 15, maxWeight: 9999, minCp: 0, minIv: 90, minLevel: 0,
-      minWeight: 0, ping: null, pokemonId: 25, profileNo: 1,
-      pvpRankingBest: 0, pvpRankingLeague: 0, pvpRankingMinCp: 0,
-      pvpRankingWorst: 0, sta: 15, template: null,
+      atk: 15,
+      clean: 0,
+      def: 14,
+      distance: 0,
+      form: 0,
+      gender: 0,
+      maxAtk: 15,
+      maxCp: 9999,
+      maxDef: 15,
+      maxIv: 100,
+      maxLevel: 50,
+      maxSta: 15,
+      maxWeight: 9999,
+      minCp: 0,
+      minIv: 90,
+      minLevel: 0,
+      minWeight: 0,
+      ping: null,
+      pokemonId: 25,
+      profileNo: 1,
+      pvpRankingBest: 0,
+      pvpRankingLeague: 0,
+      pvpRankingMinCp: 0,
+      pvpRankingWorst: 0,
+      sta: 15,
+      template: null,
     };
 
     service.create(createPayload).subscribe(result => {
@@ -68,7 +106,7 @@ describe('MonsterService', () => {
   });
 
   it('should update a monster with PUT', () => {
-    const updatePayload: MonsterUpdate = { minIv: 95, distance: 500 };
+    const updatePayload: MonsterUpdate = { distance: 500, minIv: 95 };
 
     service.update(1, updatePayload).subscribe();
 

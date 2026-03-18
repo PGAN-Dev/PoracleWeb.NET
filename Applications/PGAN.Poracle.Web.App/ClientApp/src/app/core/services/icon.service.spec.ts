@@ -1,5 +1,5 @@
-import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 
 import { IconService } from './icon.service';
 import { SettingsService } from './settings.service';

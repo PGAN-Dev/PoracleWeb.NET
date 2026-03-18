@@ -13,8 +13,8 @@ describe('TemplateService', () => {
 
   const mockTemplateData: TemplateData = {
     discord: {
-      monster: { default: ['template1', 'template2'] },
       raid: { default: ['raid_template'] },
+      monster: { default: ['template1', 'template2'] },
     },
     status: 'ok',
     telegram: {
@@ -64,7 +64,8 @@ describe('TemplateService', () => {
       });
 
       httpMock.expectOne(`${API}/api/config/templates`).flush(null, {
-        status: 500, statusText: 'Error',
+        status: 500,
+        statusText: 'Error',
       });
     });
   });

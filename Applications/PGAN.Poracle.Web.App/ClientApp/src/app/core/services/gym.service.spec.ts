@@ -12,19 +12,23 @@ describe('GymService', () => {
   const API = 'http://test-api';
 
   const mockGym: Gym = {
-    battle_changes: 0, clean: 0, distance: 0, gymId: null,
-    id: '1', ping: null, profileNo: 1, slot_changes: 0,
-    team: 1, template: null, uid: 1,
+    id: '1',
+    uid: 1,
+    battle_changes: 0,
+    clean: 0,
+    distance: 0,
+    gymId: null,
+    ping: null,
+    profileNo: 1,
+    slot_changes: 0,
+    team: 1,
+    template: null,
   };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: ConfigService, useValue: { apiHost: API } },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
     service = TestBed.inject(GymService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -42,8 +46,15 @@ describe('GymService', () => {
 
   it('should create a gym', () => {
     const payload: GymCreate = {
-      battle_changes: 1, clean: 0, distance: 0, gymId: null,
-      ping: null, profileNo: 1, slot_changes: 1, team: 2, template: null,
+      battle_changes: 1,
+      clean: 0,
+      distance: 0,
+      gymId: null,
+      ping: null,
+      profileNo: 1,
+      slot_changes: 1,
+      team: 2,
+      template: null,
     };
     service.create(payload).subscribe(r => expect(r.uid).toBe(1));
     const req = httpMock.expectOne(`${API}/api/gyms`);
