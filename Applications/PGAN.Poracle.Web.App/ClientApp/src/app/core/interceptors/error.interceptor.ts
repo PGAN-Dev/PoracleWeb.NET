@@ -6,10 +6,15 @@ import { catchError, throwError } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 
 /** Endpoints where errors should be silently swallowed (no user-facing toast). */
-const SILENT_URL_PATTERNS = ['/api/config', '/api/masterdata', '/api/auth/me', '/api/admin/users/avatars'];
+const SILENT_URL_PATTERNS = ['/api/config', '/api/masterdata', '/api/auth/me', '/api/admin/users/avatars', '/api/settings'];
 
 function shouldSilence(url: string): boolean {
   return SILENT_URL_PATTERNS.some(pattern => url.includes(pattern));
+}
+
+/** Routes where 401s should NOT trigger a redirect to /login (e.g. OAuth callback). */
+function isAuthCallbackRoute(): boolean {
+  return window.location.pathname.includes('/auth/') || window.location.hash.includes('token=');
 }
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
@@ -20,13 +25,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError(error => {
       const silent = shouldSilence(req.url);
 
-      // Always clear token and redirect on 401, even for silent endpoints
-      if (error.status === 401) {
+      // On 401, clear token and redirect — but NOT during OAuth callback flow
+      if (error.status === 401 && !isAuthCallbackRoute()) {
         localStorage.removeItem('poracle_token');
         router.navigate(['/login']);
       }
 
-      // Don't show toasts or redirect for silent endpoints
+      // Don't show toasts for silent endpoints
       if (!silent) {
         switch (error.status) {
           case 401:

@@ -149,6 +149,17 @@ describe('errorInterceptor', () => {
 
       expect(toast.error).not.toHaveBeenCalled();
     });
+
+    it('should NOT show toast for /api/settings errors', () => {
+      http.get('/api/settings').subscribe({ error: () => {} });
+
+      httpMock.expectOne('/api/settings').flush(null, {
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      expect(toast.error).not.toHaveBeenCalled();
+    });
   });
 
   it('should re-throw the error for downstream handling', () => {
