@@ -367,8 +367,41 @@ public class QuickPickService(
 
     private static Monster BuildMonster(Dictionary<string, object?> filters, int pokemonId, int profileNo, QuickPickApplyRequest request)
     {
+        // Start with sensible defaults (matching the add dialog defaults)
+        var monster = new Monster
+        {
+            MaxIv = 100,
+            MaxCp = 9000,
+            MaxLevel = 40,
+            MaxWeight = 9000000,
+            MaxAtk = 15,
+            MaxDef = 15,
+            MaxSta = 15,
+            PvpRankingBest = 1,
+            PvpRankingWorst = 100,
+        };
+
+        // Overlay the quick pick filters on top of the defaults
         var json = JsonSerializer.Serialize(filters, JsonOptions);
-        var monster = JsonSerializer.Deserialize<Monster>(json, JsonOptions) ?? new Monster();
+        var overrides = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, JsonOptions);
+        if (overrides != null)
+        {
+            foreach (var (key, value) in overrides)
+            {
+                var prop = typeof(Monster).GetProperty(key, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                if (prop != null && prop.CanWrite)
+                {
+                    if (prop.PropertyType == typeof(int) && value.TryGetInt32(out var intVal))
+                    {
+                        prop.SetValue(monster, intVal);
+                    }
+                    else if (prop.PropertyType == typeof(string))
+                    {
+                        prop.SetValue(monster, value.GetString());
+                    }
+                }
+            }
+        }
 
         monster.PokemonId = pokemonId;
         monster.ProfileNo = profileNo;
@@ -702,8 +735,6 @@ public class QuickPickService(
         // ── Size (from PoracleWeb) ──
         new() { Id = "xxl", Name = "XXL Pokemon", Description = "Track all jumbo sized Pokemon for the XXL medal", Icon = "open_in_full", Category = "Size", AlarmType = "monster", SortOrder = 20, Filters = new() { ["size"] = 5 } },
         new() { Id = "xxs", Name = "XXS Pokemon", Description = "Track all tiny Pokemon for the XXS medal", Icon = "close_fullscreen", Category = "Size", AlarmType = "monster", SortOrder = 21, Filters = new() { ["size"] = 1, ["maxSize"] = 1 } },
-        new() { Id = "big-magikarp", Name = "Big Magikarp", Description = "Track XL Magikarp (13.13kg+) for the Fisher medal", Icon = "set_meal", Category = "Size", AlarmType = "monster", SortOrder = 22, Filters = new() { ["pokemonId"] = 129, ["minWeight"] = 13130 } },
-        new() { Id = "tiny-rattata", Name = "Tiny Rattata", Description = "Track XS Rattata (2.41kg or less) for the Youngster medal", Icon = "pest_control", Category = "Size", AlarmType = "monster", SortOrder = 23, Filters = new() { ["pokemonId"] = 19, ["maxWeight"] = 2410 } },
 
         // ── Raids ──
         new() { Id = "raid-mega", Name = "All Mega Raids", Description = "Track all Mega and Primal raid bosses", Icon = "shield", Category = "Raids", AlarmType = "raid", SortOrder = 30, Filters = new() { ["level"] = 6 } },
@@ -721,7 +752,6 @@ public class QuickPickService(
         new() { Id = "quest-stardust", Name = "Stardust Quests", Description = "Track field research rewarding stardust", Icon = "assignment", Category = "Quests", AlarmType = "quest", SortOrder = 40, Filters = new() { ["rewardType"] = 3 } },
         new() { Id = "quest-pokemon", Name = "Pokemon Encounter Quests", Description = "Track field research rewarding Pokemon encounters", Icon = "catching_pokemon", Category = "Quests", AlarmType = "quest", SortOrder = 41, Filters = new() { ["rewardType"] = 7 } },
         new() { Id = "quest-rare-candy", Name = "Rare Candy Quests", Description = "Track field research rewarding rare candy", Icon = "assignment", Category = "Quests", AlarmType = "quest", SortOrder = 42, Filters = new() { ["rewardType"] = 2, ["reward"] = 1301 } },
-        new() { Id = "quest-xl-candy", Name = "XL Candy Quests", Description = "Track field research rewarding XL rare candy", Icon = "assignment", Category = "Quests", AlarmType = "quest", SortOrder = 43, Filters = new() { ["rewardType"] = 2, ["reward"] = 1304 } },
 
         // ── Invasions ──
         new() { Id = "all-invasions", Name = "All Invasions", Description = "Track all Team Rocket grunt and leader invasions", Icon = "warning", Category = "Invasions", AlarmType = "invasion", SortOrder = 50, Filters = [] },
@@ -732,5 +762,6 @@ public class QuickPickService(
         new() { Id = "lure-magnetic", Name = "Magnetic Lures", Description = "Track Magnetic Lure Modules at PokeStops", Icon = "bolt", Category = "Lures", AlarmType = "lure", SortOrder = 61, Filters = new() { ["lureId"] = 501 } },
         new() { Id = "lure-mossy", Name = "Mossy Lures", Description = "Track Mossy Lure Modules at PokeStops", Icon = "eco", Category = "Lures", AlarmType = "lure", SortOrder = 62, Filters = new() { ["lureId"] = 503 } },
         new() { Id = "lure-rainy", Name = "Rainy Lures", Description = "Track Rainy Lure Modules at PokeStops", Icon = "water_drop", Category = "Lures", AlarmType = "lure", SortOrder = 63, Filters = new() { ["lureId"] = 504 } },
+        new() { Id = "lure-golden", Name = "Golden Lures", Description = "Track Golden Lure Modules at PokeStops", Icon = "stars", Category = "Lures", AlarmType = "lure", SortOrder = 64, Filters = new() { ["lureId"] = 505 } },
     ];
 }
