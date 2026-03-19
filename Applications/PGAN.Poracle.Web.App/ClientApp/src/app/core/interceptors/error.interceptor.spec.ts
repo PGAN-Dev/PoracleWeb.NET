@@ -43,7 +43,7 @@ describe('errorInterceptor', () => {
     });
 
     expect(localStorage.getItem('poracle_token')).toBeNull();
-    expect(router.navigate).toHaveBeenCalledWith(['/login']);
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
     expect(toast.error).toHaveBeenCalledWith('Session expired. Please log in again.');
   });
 
@@ -136,7 +136,7 @@ describe('errorInterceptor', () => {
 
       expect(toast.error).not.toHaveBeenCalled();
       expect(localStorage.getItem('poracle_token')).toBeNull();
-      expect(router.navigate).toHaveBeenCalledWith(['/login']);
+      expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
     });
 
     it('should NOT show toast for /api/admin/users/avatars errors', () => {
