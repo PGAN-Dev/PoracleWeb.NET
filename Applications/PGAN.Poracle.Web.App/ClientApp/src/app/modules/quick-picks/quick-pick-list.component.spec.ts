@@ -193,5 +193,4 @@ describe('QuickPickListComponent', () => {
     component.selectCategory('PvP');
     expect(component.selectedCategory()).toBe('PvP');
   });
-
 });
