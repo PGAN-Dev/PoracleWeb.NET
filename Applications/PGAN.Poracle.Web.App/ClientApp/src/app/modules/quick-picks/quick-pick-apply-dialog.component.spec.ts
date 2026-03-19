@@ -63,8 +63,8 @@ describe('QuickPickApplyDialogComponent', () => {
       expect(component.isReapply).toBe(false);
     });
 
-    it('should show pokemon exclusions for monster type', () => {
-      expect(component.showPokemonExclusions).toBe(true);
+    it('should show exclusions for monster type with pokemonId=0 (undefined filters)', () => {
+      expect(component.showExclusions).toBe(true);
     });
 
     it('should initialize with applying false', () => {
@@ -91,8 +91,6 @@ describe('QuickPickApplyDialogComponent', () => {
         appliedState: {
           trackedUids: [100, 200],
           appliedAt: '2025-01-01',
-          excludeGruntTypes: [],
-          excludeLureIds: [],
           excludePokemonIds: [1, 4, 7],
           quickPickId: 'test-1',
         },
@@ -109,31 +107,35 @@ describe('QuickPickApplyDialogComponent', () => {
   });
 
   describe('non-monster alarm type', () => {
-    it('should not show pokemon exclusions for quest type', () => {
+    it('should not show exclusions for quest type', () => {
       setup({
         ...basePick,
         definition: { ...basePick.definition, alarmType: 'quest' },
       });
 
-      expect(component.showPokemonExclusions).toBe(false);
+      expect(component.showExclusions).toBe(false);
     });
 
-    it('should show pokemon exclusions for raid type', () => {
+    it('should not show exclusions for raid type', () => {
       setup({
         ...basePick,
         definition: { ...basePick.definition, alarmType: 'raid' },
       });
 
-      expect(component.showPokemonExclusions).toBe(true);
+      expect(component.showExclusions).toBe(false);
     });
 
-    it('should show pokemon exclusions for nest type', () => {
+    it('should not show exclusions for specific pokemonId', () => {
       setup({
         ...basePick,
-        definition: { ...basePick.definition, alarmType: 'nest' },
+        definition: {
+          ...basePick.definition,
+          alarmType: 'monster',
+          filters: { pokemonId: 129 },
+        },
       });
 
-      expect(component.showPokemonExclusions).toBe(true);
+      expect(component.showExclusions).toBe(false);
     });
   });
 
