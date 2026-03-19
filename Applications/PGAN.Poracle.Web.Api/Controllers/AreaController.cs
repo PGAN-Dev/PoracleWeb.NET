@@ -67,13 +67,18 @@ public class AreaController(IHumanService humanService, IPoracleApiProxy poracle
             return this.NotFound();
         }
 
+        // Lowercase area names to match Poracle's expected format (PHP PoracleWeb does strtolower)
+        var normalizedAreas = request.Areas != null && request.Areas.Length > 0
+            ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
+            : [];
+
         // Store as JSON array to match Poracle's format
-        human.Area = request.Areas != null && request.Areas.Length > 0
-            ? JsonSerializer.Serialize(request.Areas)
+        human.Area = normalizedAreas.Length > 0
+            ? JsonSerializer.Serialize(normalizedAreas)
             : "[]";
 
         await this._humanService.UpdateAsync(human);
-        return this.Ok(request.Areas ?? []);
+        return this.Ok(normalizedAreas);
     }
 
     [HttpGet("geofence")]
