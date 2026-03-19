@@ -43,9 +43,9 @@ export class AuthService {
     return localStorage.getItem(TOKEN_KEY);
   }
 
-  handleTokenFromCallback(token: string): void {
+  async handleTokenFromCallback(token: string): Promise<void> {
     localStorage.setItem(TOKEN_KEY, token);
-    this.loadCurrentUser();
+    await this.loadCurrentUser();
     this.router.navigate(['/dashboard']);
   }
 

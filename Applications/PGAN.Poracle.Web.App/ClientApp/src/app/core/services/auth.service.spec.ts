@@ -103,14 +103,21 @@ describe('AuthService', () => {
   });
 
   describe('handleTokenFromCallback', () => {
-    it('should store token, load user, and navigate to dashboard', () => {
-      service.handleTokenFromCallback('new-token');
+    it('should store token, load user, then navigate to dashboard', async () => {
+      const promise = service.handleTokenFromCallback('new-token');
 
       expect(localStorage.getItem('poracle_token')).toBe('new-token');
-      expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+
+      // Navigation should NOT happen until loadCurrentUser resolves
+      expect(router.navigate).not.toHaveBeenCalled();
 
       const req = httpMock.expectOne(`${API}/api/auth/me`);
       req.flush(mockUser);
+      await promise;
+
+      // Now navigation should have happened
+      expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+      expect(service.user()).toEqual(mockUser);
     });
   });
 
