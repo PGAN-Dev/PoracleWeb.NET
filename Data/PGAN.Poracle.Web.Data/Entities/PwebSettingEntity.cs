@@ -11,5 +11,8 @@ public class PwebSettingEntity
     public string Setting { get; set; } = null!;
 
     [Column("value")]
-    public string? Value { get; set; }
+    public string? Value
+    {
+        get; set;
+    }
 }

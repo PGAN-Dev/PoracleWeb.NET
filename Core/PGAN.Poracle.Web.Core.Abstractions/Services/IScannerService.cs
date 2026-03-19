@@ -4,6 +4,6 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IScannerService
 {
-    Task<IEnumerable<QuestData>> GetActiveQuestsAsync();
-    Task<IEnumerable<RaidData>> GetActiveRaidsAsync();
+    public Task<IEnumerable<QuestData>> GetActiveQuestsAsync();
+    public Task<IEnumerable<RaidData>> GetActiveRaidsAsync();
 }

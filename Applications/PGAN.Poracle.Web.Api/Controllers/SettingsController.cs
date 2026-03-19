@@ -5,30 +5,27 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/settings")]
-public class SettingsController : BaseApiController
+public class SettingsController(IPwebSettingService settingService) : BaseApiController
 {
-    private readonly IPwebSettingService _settingService;
-
-    public SettingsController(IPwebSettingService settingService)
-    {
-        _settingService = settingService;
-    }
+    private readonly IPwebSettingService _settingService = settingService;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var settings = await _settingService.GetAllAsync();
-        return Ok(settings);
+        var settings = await this._settingService.GetAllAsync();
+        return this.Ok(settings);
     }
 
     [HttpPut("{key}")]
     public async Task<IActionResult> Upsert(string key, [FromBody] PwebSetting setting)
     {
-        if (!IsAdmin)
-            return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
         setting.Setting = key;
-        var result = await _settingService.CreateOrUpdateAsync(setting);
-        return Ok(result);
+        var result = await this._settingService.CreateOrUpdateAsync(setting);
+        return this.Ok(result);
     }
 }

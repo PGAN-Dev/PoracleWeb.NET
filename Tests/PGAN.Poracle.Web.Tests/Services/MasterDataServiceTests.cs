@@ -5,7 +5,7 @@ using PGAN.Poracle.Web.Core.Services;
 
 namespace PGAN.Poracle.Web.Tests.Services;
 
-public class MasterDataServiceTests
+public class MasterDataServiceTests : IDisposable
 {
     private readonly IMemoryCache _cache;
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
@@ -14,38 +14,38 @@ public class MasterDataServiceTests
 
     public MasterDataServiceTests()
     {
-        _cache = new MemoryCache(new MemoryCacheOptions());
-        _sut = new MasterDataService(_cache, _httpClientFactory.Object, _logger.Object);
+        this._cache = new MemoryCache(new MemoryCacheOptions());
+        this._sut = new MasterDataService(this._cache, this._httpClientFactory.Object, this._logger.Object);
     }
 
     [Fact]
-    public async Task GetPokemonDataAsync_ReturnsNull_WhenCacheEmpty_AndFetchFails()
+    public async Task GetPokemonDataAsyncReturnsNullWhenCacheEmptyAndFetchFails()
     {
         // HttpClientFactory returns a client that will fail (no handler set up)
-        _httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(new FailingHandler()));
 
-        var result = await _sut.GetPokemonDataAsync();
+        var result = await this._sut.GetPokemonDataAsync();
 
         // After failed fetch, cache remains empty
         Assert.Null(result);
     }
 
     [Fact]
-    public async Task GetItemDataAsync_ReturnsNull_WhenCacheEmpty_AndFetchFails()
+    public async Task GetItemDataAsyncReturnsNullWhenCacheEmptyAndFetchFails()
     {
-        _httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(new FailingHandler()));
 
-        var result = await _sut.GetItemDataAsync();
+        var result = await this._sut.GetItemDataAsync();
 
         Assert.Null(result);
     }
 
     [Fact]
-    public async Task GetPokemonDataAsync_ReturnsCachedData_AfterSuccessfulFetch()
+    public async Task GetPokemonDataAsyncReturnsCachedDataAfterSuccessfulFetch()
     {
-        var masterJson = """
+        var masterJson = /*lang=json,strict*/ """
         {
             "monsters": {
                 "1_0": { "name": "Bulbasaur" },
@@ -57,10 +57,10 @@ public class MasterDataServiceTests
         }
         """;
 
-        _httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(new FakeHandler(masterJson)));
 
-        var result = await _sut.GetPokemonDataAsync();
+        var result = await this._sut.GetPokemonDataAsync();
 
         Assert.NotNull(result);
         Assert.Contains("Bulbasaur", result);
@@ -68,9 +68,9 @@ public class MasterDataServiceTests
     }
 
     [Fact]
-    public async Task GetItemDataAsync_ReturnsCachedData_AfterSuccessfulFetch()
+    public async Task GetItemDataAsyncReturnsCachedDataAfterSuccessfulFetch()
     {
-        var masterJson = """
+        var masterJson = /*lang=json,strict*/ """
         {
             "monsters": {},
             "items": {
@@ -80,41 +80,40 @@ public class MasterDataServiceTests
         }
         """;
 
-        _httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(new FakeHandler(masterJson)));
 
-        var result = await _sut.GetItemDataAsync();
+        var result = await this._sut.GetItemDataAsync();
 
         Assert.NotNull(result);
         Assert.Contains("Poke Ball", result);
     }
 
     [Fact]
-    public async Task RefreshCacheAsync_HandlesExceptionGracefully()
+    public async Task RefreshCacheAsyncHandlesExceptionGracefully()
     {
-        _httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(new FailingHandler()));
 
         // Should not throw
-        await _sut.RefreshCacheAsync();
+        await this._sut.RefreshCacheAsync();
     }
 
-    private class FailingHandler : HttpMessageHandler
+    private sealed class FailingHandler : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            throw new HttpRequestException("Network error");
-        }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => throw new HttpRequestException("Network error");
     }
 
-    private class FakeHandler(string responseJson) : HttpMessageHandler
+    private sealed class FakeHandler(string responseJson) : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
         {
-            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
-            {
-                Content = new StringContent(responseJson, System.Text.Encoding.UTF8, "application/json")
-            });
-        }
+            Content = new StringContent(responseJson, System.Text.Encoding.UTF8, "application/json")
+        });
+    }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
     }
 }

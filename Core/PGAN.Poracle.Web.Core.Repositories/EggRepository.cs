@@ -8,11 +8,9 @@ using PGAN.Poracle.Web.Data.Entities;
 
 namespace PGAN.Poracle.Web.Core.Repositories;
 
-public class EggRepository : BaseRepository<EggEntity, Egg>, IEggRepository
+public class EggRepository(PoracleContext context, IMapper mapper) : BaseRepository<EggEntity, Egg>(context, mapper), IEggRepository
 {
-    public EggRepository(PoracleContext context, IMapper mapper) : base(context, mapper) { }
-
-    protected override DbSet<EggEntity> DbSet => Context.Eggs;
+    protected override DbSet<EggEntity> DbSet => this.Context.Eggs;
     protected override Expression<Func<EggEntity, bool>> UserProfileFilter(string userId, int profileNo)
         => e => e.Id == userId && e.ProfileNo == profileNo;
     protected override Expression<Func<EggEntity, bool>> UidFilter(int uid)

@@ -5,59 +5,68 @@ using PGAN.Poracle.Web.Core.Abstractions.Services;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/masterdata")]
-public class MasterDataController : BaseApiController
+public class MasterDataController(IMasterDataService masterDataService, IPoracleApiProxy poracleApiProxy) : BaseApiController
 {
-    private readonly IMasterDataService _masterDataService;
-    private readonly IPoracleApiProxy _poracleApiProxy;
-
-    public MasterDataController(IMasterDataService masterDataService, IPoracleApiProxy poracleApiProxy)
-    {
-        _masterDataService = masterDataService;
-        _poracleApiProxy = poracleApiProxy;
-    }
+    private readonly IMasterDataService _masterDataService = masterDataService;
+    private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
 
     [AllowAnonymous]
     [HttpGet("pokemon")]
     public async Task<IActionResult> GetPokemon()
     {
-        var data = await _masterDataService.GetPokemonDataAsync();
+        var data = await this._masterDataService.GetPokemonDataAsync();
         if (data == null)
         {
-            await _masterDataService.RefreshCacheAsync();
-            data = await _masterDataService.GetPokemonDataAsync();
+            await this._masterDataService.RefreshCacheAsync();
+            data = await this._masterDataService.GetPokemonDataAsync();
         }
 
         if (data == null)
-            return NotFound(new { message = "Pokemon data not available." });
+        {
+            return this.NotFound(new
+            {
+                message = "Pokemon data not available."
+            });
+        }
 
-        return Content(data, "application/json");
+        return this.Content(data, "application/json");
     }
 
     [AllowAnonymous]
     [HttpGet("items")]
     public async Task<IActionResult> GetItems()
     {
-        var data = await _masterDataService.GetItemDataAsync();
+        var data = await this._masterDataService.GetItemDataAsync();
         if (data == null)
         {
-            await _masterDataService.RefreshCacheAsync();
-            data = await _masterDataService.GetItemDataAsync();
+            await this._masterDataService.RefreshCacheAsync();
+            data = await this._masterDataService.GetItemDataAsync();
         }
 
         if (data == null)
-            return NotFound(new { message = "Item data not available." });
+        {
+            return this.NotFound(new
+            {
+                message = "Item data not available."
+            });
+        }
 
-        return Content(data, "application/json");
+        return this.Content(data, "application/json");
     }
 
     [AllowAnonymous]
     [HttpGet("grunts")]
     public async Task<IActionResult> GetGrunts()
     {
-        var grunts = await _poracleApiProxy.GetGruntsAsync();
+        var grunts = await this._poracleApiProxy.GetGruntsAsync();
         if (grunts == null)
-            return NotFound(new { message = "Grunt data not available." });
+        {
+            return this.NotFound(new
+            {
+                message = "Grunt data not available."
+            });
+        }
 
-        return Content(grunts, "application/json");
+        return this.Content(grunts, "application/json");
     }
 }

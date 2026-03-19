@@ -15,63 +15,83 @@ public class RaidControllerTests : ControllerTestBase
 
     public RaidControllerTests()
     {
-        _sut = new RaidController(_service.Object, _mapper.Object);
-        SetupUser(_sut);
+        this._sut = new RaidController(this._service.Object, this._mapper.Object);
+        SetupUser(this._sut);
     }
 
     [Fact]
-    public async Task GetAll_ReturnsOk()
+    public async Task GetAllReturnsOk()
     {
-        _service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync(new List<Raid> { new() { Uid = 1 } });
-        var result = await _sut.GetAll();
+        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync(new List<Raid> { new() { Uid = 1 } });
+        var result = await this._sut.GetAll();
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetByUid_ReturnsOk_WhenFound()
+    public async Task GetByUidReturnsOkWhenFound()
     {
-        _service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Raid { Uid = 1 });
-        Assert.IsType<OkObjectResult>(await _sut.GetByUid(1));
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Raid { Uid = 1 });
+        Assert.IsType<OkObjectResult>(await this._sut.GetByUid(1));
     }
 
     [Fact]
-    public async Task GetByUid_ReturnsNotFound()
+    public async Task GetByUidReturnsNotFound()
     {
-        _service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null);
-        Assert.IsType<NotFoundResult>(await _sut.GetByUid(999));
+        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.GetByUid(999));
     }
 
     [Fact]
-    public async Task Create_ReturnsCreatedAtAction()
+    public async Task CreateReturnsCreatedAtAction()
     {
         var model = new RaidCreate();
         var raid = new Raid { Uid = 1 };
-        _mapper.Setup(m => m.Map<Raid>(model)).Returns(raid);
-        _service.Setup(s => s.CreateAsync("123456789", raid)).ReturnsAsync(raid);
-        Assert.IsType<CreatedAtActionResult>(await _sut.Create(model));
+        this._mapper.Setup(m => m.Map<Raid>(model)).Returns(raid);
+        this._service.Setup(s => s.CreateAsync("123456789", raid)).ReturnsAsync(raid);
+        Assert.IsType<CreatedAtActionResult>(await this._sut.Create(model));
     }
 
     [Fact]
-    public async Task Update_ReturnsOk_WhenFound()
+    public async Task UpdateReturnsOkWhenFound()
     {
         var existing = new Raid { Uid = 1 };
-        _service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
-        _service.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
-        Assert.IsType<OkObjectResult>(await _sut.Update(1, new RaidUpdate()));
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
+        this._service.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
+        Assert.IsType<OkObjectResult>(await this._sut.Update(1, new RaidUpdate()));
     }
 
     [Fact]
-    public async Task Update_ReturnsNotFound() { _service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null); Assert.IsType<NotFoundResult>(await _sut.Update(999, new RaidUpdate())); }
+    public async Task UpdateReturnsNotFound()
+    {
+        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.Update(999, new RaidUpdate()));
+    }
 
     [Fact]
-    public async Task Delete_ReturnsNoContent() { _service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true); Assert.IsType<NoContentResult>(await _sut.Delete(1)); }
+    public async Task DeleteReturnsNoContent()
+    {
+        this._service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
+        Assert.IsType<NoContentResult>(await this._sut.Delete(1));
+    }
 
     [Fact]
-    public async Task Delete_ReturnsNotFound() { _service.Setup(s => s.DeleteAsync(999)).ReturnsAsync(false); Assert.IsType<NotFoundResult>(await _sut.Delete(999)); }
+    public async Task DeleteReturnsNotFound()
+    {
+        this._service.Setup(s => s.DeleteAsync(999)).ReturnsAsync(false);
+        Assert.IsType<NotFoundResult>(await this._sut.Delete(999));
+    }
 
     [Fact]
-    public async Task DeleteAll_ReturnsOk() { _service.Setup(s => s.DeleteAllByUserAsync("123456789", 1)).ReturnsAsync(3); Assert.IsType<OkObjectResult>(await _sut.DeleteAll()); }
+    public async Task DeleteAllReturnsOk()
+    {
+        this._service.Setup(s => s.DeleteAllByUserAsync("123456789", 1)).ReturnsAsync(3);
+        Assert.IsType<OkObjectResult>(await this._sut.DeleteAll());
+    }
 
     [Fact]
-    public async Task UpdateAllDistance_ReturnsOk() { _service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 100)).ReturnsAsync(2); Assert.IsType<OkObjectResult>(await _sut.UpdateAllDistance(100)); }
+    public async Task UpdateAllDistanceReturnsOk()
+    {
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 100)).ReturnsAsync(2);
+        Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(100));
+    }
 }

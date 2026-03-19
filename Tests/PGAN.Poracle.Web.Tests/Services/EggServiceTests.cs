@@ -10,75 +10,75 @@ public class EggServiceTests
     private readonly Mock<IEggRepository> _repository = new();
     private readonly EggService _sut;
 
-    public EggServiceTests() => _sut = new EggService(_repository.Object);
+    public EggServiceTests() => this._sut = new EggService(this._repository.Object);
 
     [Fact]
-    public async Task GetByUserAsync_ReturnsEggs()
+    public async Task GetByUserAsyncReturnsEggs()
     {
-        _repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync(new List<Egg> { new() { Uid = 1 } });
-        var result = await _sut.GetByUserAsync("u1", 1);
+        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync(new List<Egg> { new() { Uid = 1 } });
+        var result = await this._sut.GetByUserAsync("u1", 1);
         Assert.Single(result);
     }
 
     [Fact]
-    public async Task GetByUidAsync_ReturnsEgg()
+    public async Task GetByUidAsyncReturnsEgg()
     {
-        _repository.Setup(r => r.GetByUidAsync(1)).ReturnsAsync(new Egg { Uid = 1 });
-        Assert.NotNull(await _sut.GetByUidAsync(1));
+        this._repository.Setup(r => r.GetByUidAsync(1)).ReturnsAsync(new Egg { Uid = 1 });
+        Assert.NotNull(await this._sut.GetByUidAsync(1));
     }
 
     [Fact]
-    public async Task GetByUidAsync_ReturnsNull_WhenNotFound()
+    public async Task GetByUidAsyncReturnsNullWhenNotFound()
     {
-        _repository.Setup(r => r.GetByUidAsync(999)).ReturnsAsync((Egg?)null);
-        Assert.Null(await _sut.GetByUidAsync(999));
+        this._repository.Setup(r => r.GetByUidAsync(999)).ReturnsAsync((Egg?)null);
+        Assert.Null(await this._sut.GetByUidAsync(999));
     }
 
     [Fact]
-    public async Task CreateAsync_SetsUserId()
+    public async Task CreateAsyncSetsUserId()
     {
         var egg = new Egg();
-        _repository.Setup(r => r.CreateAsync(It.IsAny<Egg>())).ReturnsAsync((Egg e) => e);
-        var result = await _sut.CreateAsync("user1", egg);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Egg>())).ReturnsAsync((Egg e) => e);
+        var result = await this._sut.CreateAsync("user1", egg);
         Assert.Equal("user1", result.Id);
     }
 
     [Fact]
-    public async Task UpdateAsync_CallsRepository()
+    public async Task UpdateAsyncCallsRepository()
     {
         var egg = new Egg { Uid = 1 };
-        _repository.Setup(r => r.UpdateAsync(egg)).ReturnsAsync(egg);
-        await _sut.UpdateAsync(egg);
-        _repository.Verify(r => r.UpdateAsync(egg), Times.Once);
+        this._repository.Setup(r => r.UpdateAsync(egg)).ReturnsAsync(egg);
+        await this._sut.UpdateAsync(egg);
+        this._repository.Verify(r => r.UpdateAsync(egg), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsExpectedResult()
+    public async Task DeleteAsyncReturnsExpectedResult()
     {
-        _repository.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
-        Assert.True(await _sut.DeleteAsync(1));
-        _repository.Setup(r => r.DeleteAsync(999)).ReturnsAsync(false);
-        Assert.False(await _sut.DeleteAsync(999));
+        this._repository.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
+        Assert.True(await this._sut.DeleteAsync(1));
+        this._repository.Setup(r => r.DeleteAsync(999)).ReturnsAsync(false);
+        Assert.False(await this._sut.DeleteAsync(999));
     }
 
     [Fact]
-    public async Task DeleteAllByUserAsync_ReturnsCount()
+    public async Task DeleteAllByUserAsyncReturnsCount()
     {
-        _repository.Setup(r => r.DeleteAllByUserAsync("u", 1)).ReturnsAsync(4);
-        Assert.Equal(4, await _sut.DeleteAllByUserAsync("u", 1));
+        this._repository.Setup(r => r.DeleteAllByUserAsync("u", 1)).ReturnsAsync(4);
+        Assert.Equal(4, await this._sut.DeleteAllByUserAsync("u", 1));
     }
 
     [Fact]
-    public async Task UpdateDistanceByUserAsync_ReturnsCount()
+    public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
-        _repository.Setup(r => r.UpdateDistanceByUserAsync("u", 1, 200)).ReturnsAsync(3);
-        Assert.Equal(3, await _sut.UpdateDistanceByUserAsync("u", 1, 200));
+        this._repository.Setup(r => r.UpdateDistanceByUserAsync("u", 1, 200)).ReturnsAsync(3);
+        Assert.Equal(3, await this._sut.UpdateDistanceByUserAsync("u", 1, 200));
     }
 
     [Fact]
-    public async Task CountByUserAsync_ReturnsCount()
+    public async Task CountByUserAsyncReturnsCount()
     {
-        _repository.Setup(r => r.CountByUserAsync("u", 1)).ReturnsAsync(5);
-        Assert.Equal(5, await _sut.CountByUserAsync("u", 1));
+        this._repository.Setup(r => r.CountByUserAsync("u", 1)).ReturnsAsync(5);
+        Assert.Equal(5, await this._sut.CountByUserAsync("u", 1));
     }
 }

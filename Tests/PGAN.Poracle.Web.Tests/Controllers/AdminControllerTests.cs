@@ -27,96 +27,96 @@ public class AdminControllerTests : ControllerTestBase
             Audience = "test",
             ExpirationMinutes = 60
         });
-        _sut = new AdminController(_humanService.Object, _pwebSettingService.Object, _proxy.Object, poracleSettings, jwtSettings, _logger.Object);
+        this._sut = new AdminController(this._humanService.Object, this._pwebSettingService.Object, this._proxy.Object, poracleSettings, jwtSettings, this._logger.Object);
     }
 
     // --- GetAllUsers ---
 
     [Fact]
-    public async Task GetAllUsers_ReturnsForbid_WhenNotAdmin()
+    public async Task GetAllUsersReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.GetAllUsers());
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.GetAllUsers());
     }
 
     [Fact]
-    public async Task GetAllUsers_ReturnsOk_WhenAdmin()
+    public async Task GetAllUsersReturnsOkWhenAdmin()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<Human>
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<Human>
         {
             new() { Id = "u1", Name = "User1", Type = "discord:user" },
             new() { Id = "u2", Name = "User2", Type = "telegram:user" }
         });
 
-        var result = await _sut.GetAllUsers();
+        var result = await this._sut.GetAllUsers();
         Assert.IsType<OkObjectResult>(result);
     }
 
     // --- GetUser ---
 
     [Fact]
-    public async Task GetUser_ReturnsForbid_WhenNotAdmin()
+    public async Task GetUserReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.GetUser("u1"));
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.GetUser("u1"));
     }
 
     [Fact]
-    public async Task GetUser_ReturnsNotFound_WhenMissing()
+    public async Task GetUserReturnsNotFoundWhenMissing()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.GetByIdAsync("unknown")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.GetUser("unknown"));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("unknown")).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.GetUser("unknown"));
     }
 
     [Fact]
-    public async Task GetUser_ReturnsOk_WhenFound()
+    public async Task GetUserReturnsOkWhenFound()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "User1", Type = "discord:user" });
-        Assert.IsType<OkObjectResult>(await _sut.GetUser("u1"));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "User1", Type = "discord:user" });
+        Assert.IsType<OkObjectResult>(await this._sut.GetUser("u1"));
     }
 
     // --- EnableUser / DisableUser ---
 
     [Fact]
-    public async Task EnableUser_ReturnsForbid_WhenNotAdmin()
+    public async Task EnableUserReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.EnableUser("u1"));
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.EnableUser("u1"));
     }
 
     [Fact]
-    public async Task EnableUser_ReturnsNotFound_WhenMissing()
+    public async Task EnableUserReturnsNotFoundWhenMissing()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.EnableUser("u1"));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.EnableUser("u1"));
     }
 
     [Fact]
-    public async Task EnableUser_SetsAdminDisableToZero()
+    public async Task EnableUserSetsAdminDisableToZero()
     {
-        SetupUser(_sut, isAdmin: true);
+        SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", AdminDisable = 1 };
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        await _sut.EnableUser("u1");
+        await this._sut.EnableUser("u1");
 
         Assert.Equal(0, human.AdminDisable);
     }
 
     [Fact]
-    public async Task DisableUser_SetsAdminDisableToOne()
+    public async Task DisableUserSetsAdminDisableToOne()
     {
-        SetupUser(_sut, isAdmin: true);
+        SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", AdminDisable = 0 };
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        await _sut.DisableUser("u1");
+        await this._sut.DisableUser("u1");
 
         Assert.Equal(1, human.AdminDisable);
     }
@@ -124,27 +124,27 @@ public class AdminControllerTests : ControllerTestBase
     // --- PauseUser / ResumeUser ---
 
     [Fact]
-    public async Task PauseUser_SetsEnabledToZero()
+    public async Task PauseUserSetsEnabledToZero()
     {
-        SetupUser(_sut, isAdmin: true);
+        SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", Enabled = 1 };
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        await _sut.PauseUser("u1");
+        await this._sut.PauseUser("u1");
 
         Assert.Equal(0, human.Enabled);
     }
 
     [Fact]
-    public async Task ResumeUser_SetsEnabledToOne()
+    public async Task ResumeUserSetsEnabledToOne()
     {
-        SetupUser(_sut, isAdmin: true);
+        SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", Enabled = 0 };
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        await _sut.ResumeUser("u1");
+        await this._sut.ResumeUser("u1");
 
         Assert.Equal(1, human.Enabled);
     }
@@ -152,186 +152,186 @@ public class AdminControllerTests : ControllerTestBase
     // --- DeleteUserAlarms ---
 
     [Fact]
-    public async Task DeleteUserAlarms_ReturnsForbid_WhenNotAdmin()
+    public async Task DeleteUserAlarmsReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.DeleteUserAlarms("u1"));
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.DeleteUserAlarms("u1"));
     }
 
     [Fact]
-    public async Task DeleteUserAlarms_ReturnsNotFound_WhenUserMissing()
+    public async Task DeleteUserAlarmsReturnsNotFoundWhenUserMissing()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.ExistsAsync("u1")).ReturnsAsync(false);
-        Assert.IsType<NotFoundResult>(await _sut.DeleteUserAlarms("u1"));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("u1")).ReturnsAsync(false);
+        Assert.IsType<NotFoundResult>(await this._sut.DeleteUserAlarms("u1"));
     }
 
     [Fact]
-    public async Task DeleteUserAlarms_ReturnsOkWithCount()
+    public async Task DeleteUserAlarmsReturnsOkWithCount()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.ExistsAsync("u1")).ReturnsAsync(true);
-        _humanService.Setup(s => s.DeleteAllAlarmsByUserAsync("u1")).ReturnsAsync(10);
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("u1")).ReturnsAsync(true);
+        this._humanService.Setup(s => s.DeleteAllAlarmsByUserAsync("u1")).ReturnsAsync(10);
 
-        var result = await _sut.DeleteUserAlarms("u1");
+        var result = await this._sut.DeleteUserAlarms("u1");
         Assert.IsType<OkObjectResult>(result);
     }
 
     // --- CreateWebhook ---
 
     [Fact]
-    public async Task CreateWebhook_ReturnsForbid_WhenNotAdmin()
+    public async Task CreateWebhookReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test")));
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test")));
     }
 
     [Fact]
-    public async Task CreateWebhook_ReturnsBadRequest_WhenUrlEmpty()
+    public async Task CreateWebhookReturnsBadRequestWhenUrlEmpty()
     {
-        SetupUser(_sut, isAdmin: true);
-        Assert.IsType<BadRequestObjectResult>(await _sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "")));
+        SetupUser(this._sut, isAdmin: true);
+        Assert.IsType<BadRequestObjectResult>(await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "")));
     }
 
     [Fact]
-    public async Task CreateWebhook_ReturnsBadRequest_WhenNameEmpty()
+    public async Task CreateWebhookReturnsBadRequestWhenNameEmpty()
     {
-        SetupUser(_sut, isAdmin: true);
-        Assert.IsType<BadRequestObjectResult>(await _sut.CreateWebhook(new AdminController.CreateWebhookRequest("", "http://test")));
+        SetupUser(this._sut, isAdmin: true);
+        Assert.IsType<BadRequestObjectResult>(await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("", "http://test")));
     }
 
     [Fact]
-    public async Task CreateWebhook_ReturnsConflict_WhenAlreadyExists()
+    public async Task CreateWebhookReturnsConflictWhenAlreadyExists()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(true);
-        Assert.IsType<ConflictObjectResult>(await _sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test")));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(true);
+        Assert.IsType<ConflictObjectResult>(await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test")));
     }
 
     [Fact]
-    public async Task CreateWebhook_ReturnsOk_WhenSuccessful()
+    public async Task CreateWebhookReturnsOkWhenSuccessful()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(false);
-        _humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync(new Human { Id = "http://test", Name = "Test", Type = "webhook" });
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.ExistsAsync("http://test")).ReturnsAsync(false);
+        this._humanService.Setup(s => s.CreateAsync(It.IsAny<Human>())).ReturnsAsync(new Human { Id = "http://test", Name = "Test", Type = "webhook" });
 
-        var result = await _sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
+        var result = await this._sut.CreateWebhook(new AdminController.CreateWebhookRequest("Test", "http://test"));
         Assert.IsType<OkObjectResult>(result);
     }
 
     // --- DeleteUser ---
 
     [Fact]
-    public async Task DeleteUser_ReturnsForbid_WhenNotAdmin()
+    public async Task DeleteUserReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.DeleteUser("u1"));
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.DeleteUser("u1"));
     }
 
     [Fact]
-    public async Task DeleteUser_ReturnsNotFound_WhenMissing()
+    public async Task DeleteUserReturnsNotFoundWhenMissing()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(false);
-        Assert.IsType<NotFoundResult>(await _sut.DeleteUser("u1"));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(false);
+        Assert.IsType<NotFoundResult>(await this._sut.DeleteUser("u1"));
     }
 
     [Fact]
-    public async Task DeleteUser_ReturnsNoContent_WhenDeleted()
+    public async Task DeleteUserReturnsNoContentWhenDeleted()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(true);
-        Assert.IsType<NoContentResult>(await _sut.DeleteUser("u1"));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(true);
+        Assert.IsType<NoContentResult>(await this._sut.DeleteUser("u1"));
     }
 
     // --- ImpersonateUser ---
 
     [Fact]
-    public async Task ImpersonateUser_ReturnsForbid_WhenNotAdmin()
+    public async Task ImpersonateUserReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.ImpersonateUser("u1"));
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.ImpersonateUser("u1"));
     }
 
     [Fact]
-    public async Task ImpersonateUser_ReturnsNotFound_WhenMissing()
+    public async Task ImpersonateUserReturnsNotFoundWhenMissing()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.ImpersonateUser("u1"));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.ImpersonateUser("u1"));
     }
 
     [Fact]
-    public async Task ImpersonateUser_ReturnsOkWithToken()
+    public async Task ImpersonateUserReturnsOkWithToken()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "User1", Type = "discord:user", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "User1", Type = "discord:user", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
 
-        var result = await _sut.ImpersonateUser("u1");
+        var result = await this._sut.ImpersonateUser("u1");
         Assert.IsType<OkObjectResult>(result);
     }
 
     // --- ImpersonateById ---
 
     [Fact]
-    public async Task ImpersonateById_ReturnsForbid_WhenNotAdminOrDelegate()
+    public async Task ImpersonateByIdReturnsForbidWhenNotAdminOrDelegate()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
     }
 
     [Fact]
-    public async Task ImpersonateById_AllowsDelegate_WhenManagedWebhookMatches()
+    public async Task ImpersonateByIdAllowsDelegateWhenManagedWebhookMatches()
     {
-        SetupUser(_sut, isAdmin: false, managedWebhooks: ["u1"]);
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "WH", Type = "webhook", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
+        SetupUser(this._sut, isAdmin: false, managedWebhooks: ["u1"]);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "WH", Type = "webhook", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
 
-        var result = await _sut.ImpersonateById(new AdminController.ImpersonateRequest("u1"));
+        var result = await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1"));
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task ImpersonateById_ReturnsNotFound_WhenHumanMissing()
+    public async Task ImpersonateByIdReturnsNotFoundWhenHumanMissing()
     {
-        SetupUser(_sut, isAdmin: true);
-        _humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
     }
 
     // --- WebhookDelegates ---
 
     [Fact]
-    public async Task GetAllWebhookDelegates_ReturnsForbid_WhenNotAdmin()
+    public async Task GetAllWebhookDelegatesReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.GetAllWebhookDelegates());
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.GetAllWebhookDelegates());
     }
 
     [Fact]
-    public async Task GetAllWebhookDelegates_ReturnsFilteredSettings()
+    public async Task GetAllWebhookDelegatesReturnsFilteredSettings()
     {
-        SetupUser(_sut, isAdmin: true);
-        _pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<PwebSetting>
+        SetupUser(this._sut, isAdmin: true);
+        this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<PwebSetting>
         {
             new() { Setting = "webhook_delegates:wh1", Value = "u1,u2" },
             new() { Setting = "webhook_delegates:wh2", Value = "u3" },
             new() { Setting = "other_setting", Value = "ignored" }
         });
 
-        var result = await _sut.GetAllWebhookDelegates();
+        var result = await this._sut.GetAllWebhookDelegates();
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task AddWebhookDelegate_AddsNewDelegate()
+    public async Task AddWebhookDelegateAddsNewDelegate()
     {
-        SetupUser(_sut, isAdmin: true);
-        _pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
+        SetupUser(this._sut, isAdmin: true);
+        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
             .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1" });
-        _pwebSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>()))
+        this._pwebSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>()))
             .ReturnsAsync(new PwebSetting());
 
-        var result = await _sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var delegates = Assert.IsType<string[]>(ok.Value);
@@ -340,13 +340,13 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task AddWebhookDelegate_DoesNotDuplicate()
+    public async Task AddWebhookDelegateDoesNotDuplicate()
     {
-        SetupUser(_sut, isAdmin: true);
-        _pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
+        SetupUser(this._sut, isAdmin: true);
+        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
             .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1" });
 
-        var result = await _sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var delegates = Assert.IsType<string[]>(ok.Value);
@@ -354,68 +354,68 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task RemoveWebhookDelegate_RemovesAndDeletesSettingWhenEmpty()
+    public async Task RemoveWebhookDelegateRemovesAndDeletesSettingWhenEmpty()
     {
-        SetupUser(_sut, isAdmin: true);
-        _pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
+        SetupUser(this._sut, isAdmin: true);
+        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
             .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1" });
-        _pwebSettingService.Setup(s => s.DeleteAsync("webhook_delegates:wh1")).ReturnsAsync(true);
+        this._pwebSettingService.Setup(s => s.DeleteAsync("webhook_delegates:wh1")).ReturnsAsync(true);
 
-        var result = await _sut.RemoveWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
+        var result = await this._sut.RemoveWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var delegates = Assert.IsType<string[]>(ok.Value);
         Assert.Empty(delegates);
-        _pwebSettingService.Verify(s => s.DeleteAsync("webhook_delegates:wh1"), Times.Once);
+        this._pwebSettingService.Verify(s => s.DeleteAsync("webhook_delegates:wh1"), Times.Once);
     }
 
     [Fact]
-    public async Task RemoveWebhookDelegate_UpdatesSetting_WhenOthersRemain()
+    public async Task RemoveWebhookDelegateUpdatesSettingWhenOthersRemain()
     {
-        SetupUser(_sut, isAdmin: true);
-        _pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
+        SetupUser(this._sut, isAdmin: true);
+        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
             .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1,u2" });
-        _pwebSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>()))
+        this._pwebSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>()))
             .ReturnsAsync(new PwebSetting());
 
-        var result = await _sut.RemoveWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
+        var result = await this._sut.RemoveWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var delegates = Assert.IsType<string[]>(ok.Value);
         Assert.Single(delegates);
         Assert.Equal("u2", delegates[0]);
-        _pwebSettingService.Verify(s => s.CreateOrUpdateAsync(It.Is<PwebSetting>(s => s.Value == "u2")), Times.Once);
+        this._pwebSettingService.Verify(s => s.CreateOrUpdateAsync(It.Is<PwebSetting>(s => s.Value == "u2")), Times.Once);
     }
 
     // --- GetPoracleAdmins ---
 
     [Fact]
-    public async Task GetPoracleAdmins_ReturnsForbid_WhenNotAdmin()
+    public async Task GetPoracleAdminsReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        Assert.IsType<ForbidResult>(await _sut.GetPoracleAdmins());
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.GetPoracleAdmins());
     }
 
     [Fact]
-    public async Task GetPoracleAdmins_MergesConfiguredAndPoracleAdmins()
+    public async Task GetPoracleAdminsMergesConfiguredAndPoracleAdmins()
     {
-        SetupUser(_sut, isAdmin: true);
-        _proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        SetupUser(this._sut, isAdmin: true);
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
         {
             Admins = new PoracleAdmins { Discord = ["discord_admin"] }
         });
 
-        var result = await _sut.GetPoracleAdmins();
+        var result = await this._sut.GetPoracleAdmins();
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetPoracleAdmins_HandlesProxyFailure()
+    public async Task GetPoracleAdminsHandlesProxyFailure()
     {
-        SetupUser(_sut, isAdmin: true);
-        _proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new Exception("fail"));
+        SetupUser(this._sut, isAdmin: true);
+        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new Exception("fail"));
 
-        var result = await _sut.GetPoracleAdmins();
+        var result = await this._sut.GetPoracleAdmins();
         // Should still return OK with just configured admin IDs
         Assert.IsType<OkObjectResult>(result);
     }

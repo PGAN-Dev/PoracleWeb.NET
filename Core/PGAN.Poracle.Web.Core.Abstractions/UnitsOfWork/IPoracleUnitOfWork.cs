@@ -4,17 +4,50 @@ namespace PGAN.Poracle.Web.Core.Abstractions.UnitsOfWork;
 
 public interface IPoracleUnitOfWork : IDisposable
 {
-    IMonsterRepository Monsters { get; }
-    IRaidRepository Raids { get; }
-    IEggRepository Eggs { get; }
-    IQuestRepository Quests { get; }
-    IInvasionRepository Invasions { get; }
-    ILureRepository Lures { get; }
-    INestRepository Nests { get; }
-    IGymRepository Gyms { get; }
-    IHumanRepository Humans { get; }
-    IProfileRepository Profiles { get; }
-    IPwebSettingRepository PwebSettings { get; }
+    public IMonsterRepository Monsters
+    {
+        get;
+    }
+    public IRaidRepository Raids
+    {
+        get;
+    }
+    public IEggRepository Eggs
+    {
+        get;
+    }
+    public IQuestRepository Quests
+    {
+        get;
+    }
+    public IInvasionRepository Invasions
+    {
+        get;
+    }
+    public ILureRepository Lures
+    {
+        get;
+    }
+    public INestRepository Nests
+    {
+        get;
+    }
+    public IGymRepository Gyms
+    {
+        get;
+    }
+    public IHumanRepository Humans
+    {
+        get;
+    }
+    public IProfileRepository Profiles
+    {
+        get;
+    }
+    public IPwebSettingRepository PwebSettings
+    {
+        get;
+    }
 
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

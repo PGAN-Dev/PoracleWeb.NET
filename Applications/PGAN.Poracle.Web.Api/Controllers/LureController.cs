@@ -6,73 +6,84 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/lures")]
-public class LureController : BaseApiController
+public class LureController(ILureService lureService, IMapper mapper) : BaseApiController
 {
-    private readonly ILureService _lureService;
-    private readonly IMapper _mapper;
-
-    public LureController(ILureService lureService, IMapper mapper)
-    {
-        _lureService = lureService;
-        _mapper = mapper;
-    }
+    private readonly ILureService _lureService = lureService;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var lures = await _lureService.GetByUserAsync(UserId, ProfileNo);
-        return Ok(lures);
+        var lures = await this._lureService.GetByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(lures);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var lure = await _lureService.GetByUidAsync(uid);
+        var lure = await this._lureService.GetByUidAsync(uid);
         if (lure == null)
-            return NotFound();
-        return Ok(lure);
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(lure);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] LureCreate model)
     {
-        var lure = _mapper.Map<Lure>(model);
-        var result = await _lureService.CreateAsync(UserId, lure);
-        return CreatedAtAction(nameof(GetByUid), new { uid = result.Uid }, result);
+        var lure = this._mapper.Map<Lure>(model);
+        var result = await this._lureService.CreateAsync(this.UserId, lure);
+        return this.CreatedAtAction(nameof(GetByUid), new
+        {
+            uid = result.Uid
+        }, result);
     }
 
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] LureUpdate model)
     {
-        var existing = await _lureService.GetByUidAsync(uid);
+        var existing = await this._lureService.GetByUidAsync(uid);
         if (existing == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        _mapper.Map(model, existing);
-        var result = await _lureService.UpdateAsync(existing);
-        return Ok(result);
+        this._mapper.Map(model, existing);
+        var result = await this._lureService.UpdateAsync(existing);
+        return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await _lureService.DeleteAsync(uid);
+        var success = await this._lureService.DeleteAsync(uid);
         if (!success)
-            return NotFound();
-        return NoContent();
+        {
+            return this.NotFound();
+        }
+
+        return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await _lureService.DeleteAllByUserAsync(UserId, ProfileNo);
-        return Ok(new { deleted = count });
+        var count = await this._lureService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(new
+        {
+            deleted = count
+        });
     }
 
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
-        var count = await _lureService.UpdateDistanceByUserAsync(UserId, ProfileNo, distance);
-        return Ok(new { updated = count });
+        var count = await this._lureService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 }

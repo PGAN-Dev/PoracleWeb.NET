@@ -4,32 +4,15 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class PwebSettingService : IPwebSettingService
+public class PwebSettingService(IPwebSettingRepository repository) : IPwebSettingService
 {
-    private readonly IPwebSettingRepository _repository;
+    private readonly IPwebSettingRepository _repository = repository;
 
-    public PwebSettingService(IPwebSettingRepository repository)
-    {
-        _repository = repository;
-    }
+    public async Task<IEnumerable<PwebSetting>> GetAllAsync() => await this._repository.GetAllAsync();
 
-    public async Task<IEnumerable<PwebSetting>> GetAllAsync()
-    {
-        return await _repository.GetAllAsync();
-    }
+    public async Task<PwebSetting?> GetByKeyAsync(string key) => await this._repository.GetByKeyAsync(key);
 
-    public async Task<PwebSetting?> GetByKeyAsync(string key)
-    {
-        return await _repository.GetByKeyAsync(key);
-    }
+    public async Task<PwebSetting> CreateOrUpdateAsync(PwebSetting setting) => await this._repository.CreateOrUpdateAsync(setting);
 
-    public async Task<PwebSetting> CreateOrUpdateAsync(PwebSetting setting)
-    {
-        return await _repository.CreateOrUpdateAsync(setting);
-    }
-
-    public async Task<bool> DeleteAsync(string key)
-    {
-        return await _repository.DeleteAsync(key);
-    }
+    public async Task<bool> DeleteAsync(string key) => await this._repository.DeleteAsync(key);
 }

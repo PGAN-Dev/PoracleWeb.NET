@@ -11,38 +11,30 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/admin")]
-public class AdminController : BaseApiController
+public class AdminController(
+    IHumanService humanService,
+    IPwebSettingService pwebSettingService,
+    IPoracleApiProxy poracleApiProxy,
+    IOptions<PoracleSettings> poracleSettings,
+    IOptions<JwtSettings> jwtSettings,
+    ILogger<AdminController> logger) : BaseApiController
 {
-    private readonly IHumanService _humanService;
-    private readonly IPwebSettingService _pwebSettingService;
-    private readonly IPoracleApiProxy _poracleApiProxy;
-    private readonly PoracleSettings _poracleSettings;
-    private readonly JwtSettings _jwtSettings;
-    private readonly ILogger<AdminController> _logger;
-
-    public AdminController(
-        IHumanService humanService,
-        IPwebSettingService pwebSettingService,
-        IPoracleApiProxy poracleApiProxy,
-        IOptions<PoracleSettings> poracleSettings,
-        IOptions<JwtSettings> jwtSettings,
-        ILogger<AdminController> logger)
-    {
-        _humanService = humanService;
-        _pwebSettingService = pwebSettingService;
-        _poracleApiProxy = poracleApiProxy;
-        _poracleSettings = poracleSettings.Value;
-        _jwtSettings = jwtSettings.Value;
-        _logger = logger;
-    }
+    private readonly IHumanService _humanService = humanService;
+    private readonly IPwebSettingService _pwebSettingService = pwebSettingService;
+    private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly ILogger<AdminController> _logger = logger;
 
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers()
     {
-        if (!IsAdmin)
-            return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
-        var humans = await _humanService.GetAllAsync();
+        var humans = await this._humanService.GetAllAsync();
 
         // Return users with avatars from background cache
         var userList = humans.Select(h => new
@@ -60,23 +52,27 @@ public class AdminController : BaseApiController
                 ?? GetDefaultAvatarUrl(h.Id, h.Type)
         });
 
-        return Ok(userList);
+        return this.Ok(userList);
     }
 
     [HttpGet("users/{id}")]
     public async Task<IActionResult> GetUser(string id)
     {
-        if (!IsAdmin)
-            return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
-        var human = await _humanService.GetByIdAsync(id);
+        var human = await this._humanService.GetByIdAsync(id);
         if (human is null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
         var avatarUrl = Services.AvatarCacheService.GetAvatar(id)
             ?? GetDefaultAvatarUrl(id, human.Type);
 
-        return Ok(new
+        return this.Ok(new
         {
             human.Id,
             human.Name,
@@ -94,70 +90,126 @@ public class AdminController : BaseApiController
     [HttpPut("users/{id}/enable")]
     public async Task<IActionResult> EnableUser(string id)
     {
-        if (!IsAdmin) return Forbid();
-        var human = await _humanService.GetByIdAsync(id);
-        if (human is null) return NotFound();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var human = await this._humanService.GetByIdAsync(id);
+        if (human is null)
+        {
+            return this.NotFound();
+        }
+
         human.AdminDisable = 0;
-        var updated = await _humanService.UpdateAsync(human);
-        return Ok(updated);
+        var updated = await this._humanService.UpdateAsync(human);
+        return this.Ok(updated);
     }
 
     [HttpPut("users/{id}/disable")]
     public async Task<IActionResult> DisableUser(string id)
     {
-        if (!IsAdmin) return Forbid();
-        var human = await _humanService.GetByIdAsync(id);
-        if (human is null) return NotFound();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var human = await this._humanService.GetByIdAsync(id);
+        if (human is null)
+        {
+            return this.NotFound();
+        }
+
         human.AdminDisable = 1;
-        var updated = await _humanService.UpdateAsync(human);
-        return Ok(updated);
+        var updated = await this._humanService.UpdateAsync(human);
+        return this.Ok(updated);
     }
 
     [HttpPut("users/{id}/pause")]
     public async Task<IActionResult> PauseUser(string id)
     {
-        if (!IsAdmin) return Forbid();
-        var human = await _humanService.GetByIdAsync(id);
-        if (human is null) return NotFound();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var human = await this._humanService.GetByIdAsync(id);
+        if (human is null)
+        {
+            return this.NotFound();
+        }
+
         human.Enabled = 0;
-        var updated = await _humanService.UpdateAsync(human);
-        return Ok(updated);
+        var updated = await this._humanService.UpdateAsync(human);
+        return this.Ok(updated);
     }
 
     [HttpPut("users/{id}/resume")]
     public async Task<IActionResult> ResumeUser(string id)
     {
-        if (!IsAdmin) return Forbid();
-        var human = await _humanService.GetByIdAsync(id);
-        if (human is null) return NotFound();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var human = await this._humanService.GetByIdAsync(id);
+        if (human is null)
+        {
+            return this.NotFound();
+        }
+
         human.Enabled = 1;
-        var updated = await _humanService.UpdateAsync(human);
-        return Ok(updated);
+        var updated = await this._humanService.UpdateAsync(human);
+        return this.Ok(updated);
     }
 
     [HttpDelete("users/{id}/alarms")]
     public async Task<IActionResult> DeleteUserAlarms(string id)
     {
-        if (!IsAdmin) return Forbid();
-        var exists = await _humanService.ExistsAsync(id);
-        if (!exists) return NotFound();
-        var count = await _humanService.DeleteAllAlarmsByUserAsync(id);
-        return Ok(new { deleted = count });
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var exists = await this._humanService.ExistsAsync(id);
+        if (!exists)
+        {
+            return this.NotFound();
+        }
+
+        var count = await this._humanService.DeleteAllAlarmsByUserAsync(id);
+        return this.Ok(new
+        {
+            deleted = count
+        });
     }
 
     [HttpPost("webhooks")]
     public async Task<IActionResult> CreateWebhook([FromBody] CreateWebhookRequest request)
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
         if (string.IsNullOrWhiteSpace(request.Url) || string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest(new { error = "Name and URL are required." });
+        {
+            return this.BadRequest(new
+            {
+                error = "Name and URL are required."
+            });
+        }
 
-        var exists = await _humanService.ExistsAsync(request.Url);
+        var exists = await this._humanService.ExistsAsync(request.Url);
         if (exists)
-            return Conflict(new { error = "A webhook with this URL already exists." });
+        {
+            return this.Conflict(new
+            {
+                error = "A webhook with this URL already exists."
+            });
+        }
 
-        var human = new PGAN.Poracle.Web.Core.Models.Human
+        var human = new Human
         {
             Id = request.Url,
             Name = request.Name,
@@ -166,9 +218,9 @@ public class AdminController : BaseApiController
             AdminDisable = 0,
         };
 
-        var created = await _humanService.CreateAsync(human);
-        _logger.LogInformation("Admin {AdminId} created webhook {WebhookId}", UserId, request.Url);
-        return Ok(created);
+        var created = await this._humanService.CreateAsync(human);
+        this._logger.LogInformation("Admin {AdminId} created webhook {WebhookId}", this.UserId, request.Url);
+        return this.Ok(created);
     }
 
     public record CreateWebhookRequest(string Name, string Url);
@@ -176,38 +228,50 @@ public class AdminController : BaseApiController
     [HttpGet("poracle-admins")]
     public async Task<IActionResult> GetPoracleAdmins()
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
         var admins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        if (!string.IsNullOrEmpty(_poracleSettings.AdminIds))
+        if (!string.IsNullOrEmpty(this._poracleSettings.AdminIds))
         {
-            foreach (var id in _poracleSettings.AdminIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (var id in this._poracleSettings.AdminIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
                 admins.Add(id);
+            }
         }
 
         try
         {
-            var config = await _poracleApiProxy.GetConfigAsync();
+            var config = await this._poracleApiProxy.GetConfigAsync();
             if (config?.Admins?.Discord != null)
+            {
                 foreach (var id in config.Admins.Discord)
+                {
                     admins.Add(id);
+                }
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch Poracle config for admin list.");
+            this._logger.LogWarning(ex, "Failed to fetch Poracle config for admin list.");
         }
 
-        return Ok(admins);
+        return this.Ok(admins);
     }
 
     [HttpGet("poracle-delegates")]
     public IActionResult GetPorocleDelegates()
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
-        var result = ReadPorocleDelegatesFromFile();
-        return Ok(result);
+        var result = this.ReadPorocleDelegatesFromFile();
+        return this.Ok(result);
     }
 
     private Dictionary<string, string[]> ReadPorocleDelegatesFromFile()
@@ -215,16 +279,22 @@ public class AdminController : BaseApiController
         try
         {
             var sourceDir = Environment.GetEnvironmentVariable("DTS_SOURCE_DIR");
-            if (string.IsNullOrEmpty(sourceDir)) return [];
+            if (string.IsNullOrEmpty(sourceDir))
+            {
+                return [];
+            }
 
             var candidates = new[]
             {
-                System.IO.Path.Combine(sourceDir, "local.json"),
-                System.IO.Path.Combine(sourceDir, "config", "local.json"),
+                Path.Combine(sourceDir, "local.json"),
+                Path.Combine(sourceDir, "config", "local.json"),
             };
 
             var localJsonPath = candidates.FirstOrDefault(System.IO.File.Exists);
-            if (localJsonPath == null) return [];
+            if (localJsonPath == null)
+            {
+                return [];
+            }
 
             var jsonOptions = new System.Text.Json.JsonSerializerOptions
             {
@@ -242,7 +312,9 @@ public class AdminController : BaseApiController
 
             if (!doc.RootElement.TryGetProperty("delegateAdministration", out var delegateAdmin) ||
                 delegateAdmin.ValueKind != System.Text.Json.JsonValueKind.Array)
+            {
                 return [];
+            }
 
             var result = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
 
@@ -252,7 +324,10 @@ public class AdminController : BaseApiController
                     (entry.TryGetProperty("webhookId", out var wh) ? wh.GetString() : null) ??
                     (entry.TryGetProperty("id", out var id) ? id.GetString() : null);
 
-                if (string.IsNullOrEmpty(webhookId)) continue;
+                if (string.IsNullOrEmpty(webhookId))
+                {
+                    continue;
+                }
 
                 var users = new List<string>();
                 var usersEl =
@@ -261,20 +336,26 @@ public class AdminController : BaseApiController
                     default;
 
                 if (usersEl.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
                     foreach (var u in usersEl.EnumerateArray())
+                    {
                         if (u.GetString() is { } uid)
+                        {
                             users.Add(uid);
+                        }
+                    }
+                }
 
-                result[webhookId] = users.ToArray();
+                result[webhookId] = [.. users];
             }
 
-            _logger.LogInformation("Loaded {Count} delegateAdministration entries from {Path}",
+            this._logger.LogInformation("Loaded {Count} delegateAdministration entries from {Path}",
                 result.Count, localJsonPath);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to read delegateAdministration from local.json.");
+            this._logger.LogWarning(ex, "Failed to read delegateAdministration from local.json.");
             return [];
         }
     }
@@ -282,63 +363,79 @@ public class AdminController : BaseApiController
     [HttpGet("webhook-delegates/all")]
     public async Task<IActionResult> GetAllWebhookDelegates()
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
         const string prefix = "webhook_delegates:";
-        var allSettings = await _pwebSettingService.GetAllAsync();
+        var allSettings = await this._pwebSettingService.GetAllAsync();
         var result = allSettings
             .Where(s => s.Setting?.StartsWith(prefix) == true)
             .ToDictionary(
                 s => s.Setting![prefix.Length..],
                 s => s.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
-        return Ok(result);
+        return this.Ok(result);
     }
 
     [HttpGet("webhook-delegates")]
     public async Task<IActionResult> GetWebhookDelegates([FromQuery] string webhookId)
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
-        var setting = await _pwebSettingService.GetByKeyAsync($"webhook_delegates:{webhookId}");
+        var setting = await this._pwebSettingService.GetByKeyAsync($"webhook_delegates:{webhookId}");
         var delegates = setting?.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
-        return Ok(delegates);
+        return this.Ok(delegates);
     }
 
     [HttpPost("webhook-delegates")]
     public async Task<IActionResult> AddWebhookDelegate([FromBody] WebhookDelegateRequest request)
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
         var key = $"webhook_delegates:{request.WebhookId}";
-        var setting = await _pwebSettingService.GetByKeyAsync(key);
+        var setting = await this._pwebSettingService.GetByKeyAsync(key);
         var delegates = (setting?.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []).ToList();
 
         if (!delegates.Contains(request.UserId))
         {
             delegates.Add(request.UserId);
-            await _pwebSettingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = string.Join(',', delegates) });
+            await this._pwebSettingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = string.Join(',', delegates) });
         }
 
-        return Ok(delegates.ToArray());
+        return this.Ok(delegates.ToArray());
     }
 
     [HttpDelete("webhook-delegates")]
     public async Task<IActionResult> RemoveWebhookDelegate([FromBody] WebhookDelegateRequest request)
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
         var key = $"webhook_delegates:{request.WebhookId}";
-        var setting = await _pwebSettingService.GetByKeyAsync(key);
+        var setting = await this._pwebSettingService.GetByKeyAsync(key);
         var delegates = (setting?.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []).ToList();
 
         delegates.Remove(request.UserId);
 
         if (delegates.Count == 0)
-            await _pwebSettingService.DeleteAsync(key);
+        {
+            await this._pwebSettingService.DeleteAsync(key);
+        }
         else
-            await _pwebSettingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = string.Join(',', delegates) });
+        {
+            await this._pwebSettingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = string.Join(',', delegates) });
+        }
 
-        return Ok(delegates.ToArray());
+        return this.Ok(delegates.ToArray());
     }
 
     public record WebhookDelegateRequest(string WebhookId, string UserId);
@@ -347,11 +444,17 @@ public class AdminController : BaseApiController
     public async Task<IActionResult> ImpersonateById([FromBody] ImpersonateRequest request)
     {
         // Allow admins or delegates who manage this specific webhook
-        var isDelegate = ManagedWebhooks.Contains(request.UserId);
-        if (!IsAdmin && !isDelegate) return Forbid();
+        var isDelegate = this.ManagedWebhooks.Contains(request.UserId);
+        if (!this.IsAdmin && !isDelegate)
+        {
+            return this.Forbid();
+        }
 
-        var human = await _humanService.GetByIdAsync(request.UserId);
-        if (human is null) return NotFound();
+        var human = await this._humanService.GetByIdAsync(request.UserId);
+        if (human is null)
+        {
+            return this.NotFound();
+        }
 
         var avatarUrl = Services.AvatarCacheService.GetAvatar(request.UserId)
             ?? GetDefaultAvatarUrl(request.UserId, human.Type);
@@ -364,24 +467,29 @@ public class AdminController : BaseApiController
             new("isAdmin", "false"),
             new("enabled", (human.Enabled == 1 && human.AdminDisable == 0).ToString().ToLowerInvariant()),
             new("profileNo", human.CurrentProfileNo.ToString()),
-            new("impersonatedBy", UserId),
+            new("impersonatedBy", this.UserId),
         };
 
         if (!string.IsNullOrEmpty(avatarUrl))
+        {
             claims.Add(new Claim("avatarUrl", avatarUrl));
+        }
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
+            issuer: this._jwtSettings.Issuer,
+            audience: this._jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
             signingCredentials: credentials);
 
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-        _logger.LogInformation("Admin {AdminId} impersonating {UserId}", UserId, request.UserId);
-        return Ok(new { token = jwt });
+        this._logger.LogInformation("Admin {AdminId} impersonating {UserId}", this.UserId, request.UserId);
+        return this.Ok(new
+        {
+            token = jwt
+        });
     }
 
     public record ImpersonateRequest(string UserId);
@@ -389,20 +497,34 @@ public class AdminController : BaseApiController
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
-        if (!IsAdmin) return Forbid();
-        var deleted = await _humanService.DeleteUserAsync(id);
-        if (!deleted) return NotFound();
-        _logger.LogInformation("Admin {AdminId} deleted user {UserId}", UserId, id);
-        return NoContent();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var deleted = await this._humanService.DeleteUserAsync(id);
+        if (!deleted)
+        {
+            return this.NotFound();
+        }
+
+        this._logger.LogInformation("Admin {AdminId} deleted user {UserId}", this.UserId, id);
+        return this.NoContent();
     }
 
     [HttpPost("users/{id}/impersonate")]
     public async Task<IActionResult> ImpersonateUser(string id)
     {
-        if (!IsAdmin) return Forbid();
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
 
-        var human = await _humanService.GetByIdAsync(id);
-        if (human is null) return NotFound();
+        var human = await this._humanService.GetByIdAsync(id);
+        if (human is null)
+        {
+            return this.NotFound();
+        }
 
         var avatarUrl = Services.AvatarCacheService.GetAvatar(id)
             ?? GetDefaultAvatarUrl(id, human.Type);
@@ -415,36 +537,45 @@ public class AdminController : BaseApiController
             new("isAdmin", "false"),
             new("enabled", (human.Enabled == 1 && human.AdminDisable == 0).ToString().ToLowerInvariant()),
             new("profileNo", human.CurrentProfileNo.ToString()),
-            new("impersonatedBy", UserId),
+            new("impersonatedBy", this.UserId),
         };
 
         if (!string.IsNullOrEmpty(avatarUrl))
+        {
             claims.Add(new Claim("avatarUrl", avatarUrl));
+        }
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
+            issuer: this._jwtSettings.Issuer,
+            audience: this._jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
             signingCredentials: credentials);
 
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
-        _logger.LogInformation("Admin {AdminId} impersonating user {UserId}", UserId, id);
+        this._logger.LogInformation("Admin {AdminId} impersonating user {UserId}", this.UserId, id);
 
-        return Ok(new { token = jwt });
+        return this.Ok(new
+        {
+            token = jwt
+        });
     }
 
     private static string GetDefaultAvatarUrl(string userId, string? type)
     {
         if (type?.StartsWith("discord") != true)
+        {
             return "https://cdn.discordapp.com/embed/avatars/0.png";
+        }
 
         // New Discord username system: (userId >> 22) % 6
         if (long.TryParse(userId, out var id))
+        {
             return $"https://cdn.discordapp.com/embed/avatars/{(id >> 22) % 6}.png";
+        }
 
         return "https://cdn.discordapp.com/embed/avatars/0.png";
     }

@@ -8,11 +8,9 @@ using PGAN.Poracle.Web.Data.Entities;
 
 namespace PGAN.Poracle.Web.Core.Repositories;
 
-public class NestRepository : BaseRepository<NestEntity, Nest>, INestRepository
+public class NestRepository(PoracleContext context, IMapper mapper) : BaseRepository<NestEntity, Nest>(context, mapper), INestRepository
 {
-    public NestRepository(PoracleContext context, IMapper mapper) : base(context, mapper) { }
-
-    protected override DbSet<NestEntity> DbSet => Context.Nests;
+    protected override DbSet<NestEntity> DbSet => this.Context.Nests;
     protected override Expression<Func<NestEntity, bool>> UserProfileFilter(string userId, int profileNo)
         => n => n.Id == userId && n.ProfileNo == profileNo;
     protected override Expression<Func<NestEntity, bool>> UidFilter(int uid)

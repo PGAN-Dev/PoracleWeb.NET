@@ -15,40 +15,40 @@ public class LocationControllerTests : ControllerTestBase
 
     public LocationControllerTests()
     {
-        _sut = new LocationController(_humanService.Object, _proxy.Object, _httpClientFactory.Object);
-        SetupUser(_sut);
+        this._sut = new LocationController(this._humanService.Object, this._proxy.Object, this._httpClientFactory.Object);
+        SetupUser(this._sut);
     }
 
     // --- GetLocation ---
 
     [Fact]
-    public async Task GetLocation_ReturnsOk_WhenHumanFound()
+    public async Task GetLocationReturnsOkWhenHumanFound()
     {
-        _humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1))
+        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1))
             .ReturnsAsync(new Human { Id = "123456789", Latitude = 40.7128, Longitude = -74.006 });
 
-        var result = await _sut.GetLocation();
+        var result = await this._sut.GetLocation();
 
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetLocation_ReturnsNotFound_WhenHumanMissing()
+    public async Task GetLocationReturnsNotFoundWhenHumanMissing()
     {
-        _humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.GetLocation());
+        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.GetLocation());
     }
 
     // --- UpdateLocation ---
 
     [Fact]
-    public async Task UpdateLocation_UpdatesCoordinates()
+    public async Task UpdateLocationUpdatesCoordinates()
     {
         var human = new Human { Id = "123456789", Latitude = 0, Longitude = 0 };
-        _humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        var result = await _sut.UpdateLocation(
+        var result = await this._sut.UpdateLocation(
             new LocationController.LocationUpdateRequest { Latitude = 51.5074, Longitude = -0.1278 });
 
         Assert.IsType<OkObjectResult>(result);
@@ -57,114 +57,114 @@ public class LocationControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task UpdateLocation_ReturnsNotFound_WhenHumanMissing()
+    public async Task UpdateLocationReturnsNotFoundWhenHumanMissing()
     {
-        _humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync((Human?)null);
+        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync((Human?)null);
         Assert.IsType<NotFoundResult>(
-            await _sut.UpdateLocation(new LocationController.LocationUpdateRequest { Latitude = 0, Longitude = 0 }));
+            await this._sut.UpdateLocation(new LocationController.LocationUpdateRequest { Latitude = 0, Longitude = 0 }));
     }
 
     // --- UpdateLanguage ---
 
     [Fact]
-    public async Task UpdateLanguage_SetsLanguage()
+    public async Task UpdateLanguageSetsLanguage()
     {
         var human = new Human { Id = "123456789", Language = "en" };
-        _humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        var result = await _sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" });
+        var result = await this._sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" });
 
         Assert.IsType<OkObjectResult>(result);
         Assert.Equal("de", human.Language);
     }
 
     [Fact]
-    public async Task UpdateLanguage_ReturnsNotFound_WhenHumanMissing()
+    public async Task UpdateLanguageReturnsNotFoundWhenHumanMissing()
     {
-        _humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync((Human?)null);
+        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync((Human?)null);
         Assert.IsType<NotFoundResult>(
-            await _sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" }));
+            await this._sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" }));
     }
 
     // --- Geocode ---
 
     [Fact]
-    public async Task Geocode_ReturnsBadRequest_WhenQueryEmpty()
+    public async Task GeocodeReturnsBadRequestWhenQueryEmpty()
     {
-        var result = await _sut.Geocode("");
+        var result = await this._sut.Geocode("");
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
-    public async Task Geocode_ReturnsBadRequest_WhenQueryWhitespace()
+    public async Task GeocodeReturnsBadRequestWhenQueryWhitespace()
     {
-        var result = await _sut.Geocode("   ");
+        var result = await this._sut.Geocode("   ");
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
-    public async Task Geocode_ReturnsBadRequest_WhenNoProviderConfigured()
+    public async Task GeocodeReturnsBadRequestWhenNoProviderConfigured()
     {
-        _proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { ProviderUrl = "" });
-        var result = await _sut.Geocode("London");
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { ProviderUrl = "" });
+        var result = await this._sut.Geocode("London");
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
-    public async Task Geocode_ReturnsBadRequest_WhenConfigNull()
+    public async Task GeocodeReturnsBadRequestWhenConfigNull()
     {
-        _proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
-        var result = await _sut.Geocode("London");
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
+        var result = await this._sut.Geocode("London");
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
     // --- GetStaticMap ---
 
     [Fact]
-    public async Task GetStaticMap_ReturnsOk_WhenUrlAvailable()
+    public async Task GetStaticMapReturnsOkWhenUrlAvailable()
     {
-        _proxy.Setup(p => p.GetLocationMapUrlAsync(51.5, -0.1)).ReturnsAsync("https://map.example/img.png");
-        var result = await _sut.GetStaticMap(51.5, -0.1);
+        this._proxy.Setup(p => p.GetLocationMapUrlAsync(51.5, -0.1)).ReturnsAsync("https://map.example/img.png");
+        var result = await this._sut.GetStaticMap(51.5, -0.1);
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetStaticMap_ReturnsNotFound_WhenUrlNull()
+    public async Task GetStaticMapReturnsNotFoundWhenUrlNull()
     {
-        _proxy.Setup(p => p.GetLocationMapUrlAsync(0, 0)).ReturnsAsync((string?)null);
-        Assert.IsType<NotFoundResult>(await _sut.GetStaticMap(0, 0));
+        this._proxy.Setup(p => p.GetLocationMapUrlAsync(0, 0)).ReturnsAsync((string?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.GetStaticMap(0, 0));
     }
 
     [Fact]
-    public async Task GetStaticMap_ReturnsNotFound_WhenThrows()
+    public async Task GetStaticMapReturnsNotFoundWhenThrows()
     {
-        _proxy.Setup(p => p.GetLocationMapUrlAsync(It.IsAny<double>(), It.IsAny<double>())).ThrowsAsync(new Exception());
-        Assert.IsType<NotFoundResult>(await _sut.GetStaticMap(0, 0));
+        this._proxy.Setup(p => p.GetLocationMapUrlAsync(It.IsAny<double>(), It.IsAny<double>())).ThrowsAsync(new Exception());
+        Assert.IsType<NotFoundResult>(await this._sut.GetStaticMap(0, 0));
     }
 
     // --- GetDistanceMap ---
 
     [Fact]
-    public async Task GetDistanceMap_ReturnsOk_WhenUrlAvailable()
+    public async Task GetDistanceMapReturnsOkWhenUrlAvailable()
     {
-        _proxy.Setup(p => p.GetDistanceMapUrlAsync(51.5, -0.1, 500)).ReturnsAsync("https://map.example/dist.png");
-        var result = await _sut.GetDistanceMap(51.5, -0.1, 500);
+        this._proxy.Setup(p => p.GetDistanceMapUrlAsync(51.5, -0.1, 500)).ReturnsAsync("https://map.example/dist.png");
+        var result = await this._sut.GetDistanceMap(51.5, -0.1, 500);
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetDistanceMap_ReturnsNotFound_WhenUrlNull()
+    public async Task GetDistanceMapReturnsNotFoundWhenUrlNull()
     {
-        _proxy.Setup(p => p.GetDistanceMapUrlAsync(0, 0, 0)).ReturnsAsync((string?)null);
-        Assert.IsType<NotFoundResult>(await _sut.GetDistanceMap(0, 0, 0));
+        this._proxy.Setup(p => p.GetDistanceMapUrlAsync(0, 0, 0)).ReturnsAsync((string?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.GetDistanceMap(0, 0, 0));
     }
 
     [Fact]
-    public async Task GetDistanceMap_ReturnsNotFound_WhenThrows()
+    public async Task GetDistanceMapReturnsNotFoundWhenThrows()
     {
-        _proxy.Setup(p => p.GetDistanceMapUrlAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<int>()))
+        this._proxy.Setup(p => p.GetDistanceMapUrlAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<int>()))
             .ThrowsAsync(new Exception());
-        Assert.IsType<NotFoundResult>(await _sut.GetDistanceMap(0, 0, 0));
+        Assert.IsType<NotFoundResult>(await this._sut.GetDistanceMap(0, 0, 0));
     }
 }

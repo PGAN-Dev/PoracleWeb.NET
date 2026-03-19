@@ -1,4 +1,3 @@
-using AutoMapper;
 using PGAN.Poracle.Web.Core.Models;
 using PGAN.Poracle.Web.Data.Entities;
 
@@ -9,60 +8,60 @@ public class PoracleMappingProfile : AutoMapper.Profile
     public PoracleMappingProfile()
     {
         // Monster mappings
-        CreateMap<MonsterEntity, Monster>().ReverseMap();
-        CreateMap<MonsterCreate, MonsterEntity>();
-        CreateMap<MonsterCreate, Monster>();
-        CreateMap<MonsterUpdate, Monster>();
+        this.CreateMap<MonsterEntity, Monster>().ReverseMap();
+        this.CreateMap<MonsterCreate, MonsterEntity>();
+        this.CreateMap<MonsterCreate, Monster>();
+        this.CreateMap<MonsterUpdate, Monster>();
 
         // Raid mappings
-        CreateMap<RaidEntity, Raid>().ReverseMap();
-        CreateMap<RaidCreate, RaidEntity>();
-        CreateMap<RaidCreate, Raid>();
-        CreateMap<RaidUpdate, Raid>();
+        this.CreateMap<RaidEntity, Raid>().ReverseMap();
+        this.CreateMap<RaidCreate, RaidEntity>();
+        this.CreateMap<RaidCreate, Raid>();
+        this.CreateMap<RaidUpdate, Raid>();
 
         // Egg mappings
-        CreateMap<EggEntity, Egg>().ReverseMap();
-        CreateMap<EggCreate, EggEntity>();
-        CreateMap<EggCreate, Egg>();
-        CreateMap<EggUpdate, Egg>();
+        this.CreateMap<EggEntity, Egg>().ReverseMap();
+        this.CreateMap<EggCreate, EggEntity>();
+        this.CreateMap<EggCreate, Egg>();
+        this.CreateMap<EggUpdate, Egg>();
 
         // Quest mappings
-        CreateMap<QuestEntity, Quest>().ReverseMap();
-        CreateMap<QuestCreate, QuestEntity>();
-        CreateMap<QuestCreate, Quest>();
-        CreateMap<QuestUpdate, Quest>();
+        this.CreateMap<QuestEntity, Quest>().ReverseMap();
+        this.CreateMap<QuestCreate, QuestEntity>();
+        this.CreateMap<QuestCreate, Quest>();
+        this.CreateMap<QuestUpdate, Quest>();
 
         // Invasion mappings
-        CreateMap<InvasionEntity, Invasion>().ReverseMap();
-        CreateMap<InvasionCreate, InvasionEntity>();
-        CreateMap<InvasionCreate, Invasion>();
-        CreateMap<InvasionUpdate, Invasion>();
+        this.CreateMap<InvasionEntity, Invasion>().ReverseMap();
+        this.CreateMap<InvasionCreate, InvasionEntity>();
+        this.CreateMap<InvasionCreate, Invasion>();
+        this.CreateMap<InvasionUpdate, Invasion>();
 
         // Lure mappings
-        CreateMap<LureEntity, Lure>().ReverseMap();
-        CreateMap<LureCreate, LureEntity>();
-        CreateMap<LureCreate, Lure>();
-        CreateMap<LureUpdate, Lure>();
+        this.CreateMap<LureEntity, Lure>().ReverseMap();
+        this.CreateMap<LureCreate, LureEntity>();
+        this.CreateMap<LureCreate, Lure>();
+        this.CreateMap<LureUpdate, Lure>();
 
         // Nest mappings
-        CreateMap<NestEntity, Nest>().ReverseMap();
-        CreateMap<NestCreate, NestEntity>();
-        CreateMap<NestCreate, Nest>();
-        CreateMap<NestUpdate, Nest>();
+        this.CreateMap<NestEntity, Nest>().ReverseMap();
+        this.CreateMap<NestCreate, NestEntity>();
+        this.CreateMap<NestCreate, Nest>();
+        this.CreateMap<NestUpdate, Nest>();
 
         // Gym mappings
-        CreateMap<GymEntity, Gym>().ReverseMap();
-        CreateMap<GymCreate, GymEntity>();
-        CreateMap<GymCreate, Gym>();
-        CreateMap<GymUpdate, Gym>();
+        this.CreateMap<GymEntity, Gym>().ReverseMap();
+        this.CreateMap<GymCreate, GymEntity>();
+        this.CreateMap<GymCreate, Gym>();
+        this.CreateMap<GymUpdate, Gym>();
 
         // Human mappings
-        CreateMap<HumanEntity, Human>().ReverseMap();
+        this.CreateMap<HumanEntity, Human>().ReverseMap();
 
         // Profile mappings
-        CreateMap<ProfileEntity, Models.Profile>().ReverseMap();
+        this.CreateMap<ProfileEntity, Profile>().ReverseMap();
 
         // PwebSetting mappings
-        CreateMap<PwebSettingEntity, PwebSetting>().ReverseMap();
+        this.CreateMap<PwebSettingEntity, PwebSetting>().ReverseMap();
     }
 }

@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 using AutoMapper;
@@ -8,18 +7,16 @@ using PGAN.Poracle.Web.Data;
 
 namespace PGAN.Poracle.Web.Core.Repositories;
 
-public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
+public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IMapper mapper) : IBaseRepository<TModel>
     where TEntity : class
     where TModel : class
 {
-    protected readonly PoracleContext Context;
-    protected readonly IMapper Mapper;
+    protected readonly PoracleContext Context = context;
+    protected readonly IMapper Mapper = mapper;
 
     // Cached reflection results for EnsureNotNullDefaults
     private static readonly PropertyInfo[] WritableStringProperties =
-        typeof(TEntity).GetProperties()
-            .Where(p => p.PropertyType == typeof(string) && p.CanWrite)
-            .ToArray();
+        [.. typeof(TEntity).GetProperties().Where(p => p.PropertyType == typeof(string) && p.CanWrite)];
 
     // Cached Uid property for GetUidFromModel
     private static readonly PropertyInfo? UidProperty =
@@ -33,13 +30,10 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
     private static readonly PropertyInfo? CleanProperty =
         typeof(TEntity).GetProperty("Clean");
 
-    protected BaseRepository(PoracleContext context, IMapper mapper)
+    protected abstract DbSet<TEntity> DbSet
     {
-        Context = context;
-        Mapper = mapper;
+        get;
     }
-
-    protected abstract DbSet<TEntity> DbSet { get; }
 
     // Subclasses build a Where expression for userId + profileNo filtering
     protected abstract Expression<Func<TEntity, bool>> UserProfileFilter(string userId, int profileNo);
@@ -52,31 +46,31 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
 
     public async Task<IEnumerable<TModel>> GetByUserAsync(string userId, int profileNo)
     {
-        var entities = await DbSet
+        var entities = await this.DbSet
             .AsNoTracking()
-            .Where(UserProfileFilter(userId, profileNo))
+            .Where(this.UserProfileFilter(userId, profileNo))
             .ToListAsync();
 
-        return Mapper.Map<IEnumerable<TModel>>(entities);
+        return this.Mapper.Map<IEnumerable<TModel>>(entities);
     }
 
     public async Task<TModel?> GetByUidAsync(int uid)
     {
-        var entity = await DbSet
+        var entity = await this.DbSet
             .AsNoTracking()
-            .FirstOrDefaultAsync(UidFilter(uid));
+            .FirstOrDefaultAsync(this.UidFilter(uid));
 
-        return entity is null ? null : Mapper.Map<TModel>(entity);
+        return entity is null ? null : this.Mapper.Map<TModel>(entity);
     }
 
     public async Task<TModel> CreateAsync(TModel model)
     {
-        var entity = Mapper.Map<TEntity>(model);
+        var entity = this.Mapper.Map<TEntity>(model);
         // Ensure NOT NULL text fields have defaults
         EnsureNotNullDefaults(entity);
-        DbSet.Add(entity);
-        await Context.SaveChangesAsync();
-        return Mapper.Map<TModel>(entity);
+        this.DbSet.Add(entity);
+        await this.Context.SaveChangesAsync();
+        return this.Mapper.Map<TModel>(entity);
     }
 
     private static void EnsureNotNullDefaults(TEntity entity)
@@ -92,43 +86,45 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
 
     public async Task<TModel> UpdateAsync(TModel model)
     {
-        var modelUid = GetUidFromModel(model);
+        var modelUid = BaseRepository<TEntity, TModel>.GetUidFromModel(model);
 
-        var entity = await DbSet.FirstOrDefaultAsync(UidFilter(modelUid))
+        var entity = await this.DbSet.FirstOrDefaultAsync(this.UidFilter(modelUid))
             ?? throw new InvalidOperationException($"Entity with uid {modelUid} not found.");
 
-        Mapper.Map(model, entity);
+        this.Mapper.Map(model, entity);
         EnsureNotNullDefaults(entity);
-        await Context.SaveChangesAsync();
-        return Mapper.Map<TModel>(entity);
+        await this.Context.SaveChangesAsync();
+        return this.Mapper.Map<TModel>(entity);
     }
 
     public async Task<bool> DeleteAsync(int uid)
     {
-        var entity = await DbSet.FirstOrDefaultAsync(UidFilter(uid));
+        var entity = await this.DbSet.FirstOrDefaultAsync(this.UidFilter(uid));
         if (entity is null)
+        {
             return false;
+        }
 
-        DbSet.Remove(entity);
-        await Context.SaveChangesAsync();
+        this.DbSet.Remove(entity);
+        await this.Context.SaveChangesAsync();
         return true;
     }
 
     public async Task<int> DeleteAllByUserAsync(string userId, int profileNo)
     {
-        var entities = await DbSet
-            .Where(UserProfileFilter(userId, profileNo))
+        var entities = await this.DbSet
+            .Where(this.UserProfileFilter(userId, profileNo))
             .ToListAsync();
 
-        DbSet.RemoveRange(entities);
-        await Context.SaveChangesAsync();
+        this.DbSet.RemoveRange(entities);
+        await this.Context.SaveChangesAsync();
         return entities.Count;
     }
 
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
-        var entities = await DbSet
-            .Where(UserProfileFilter(userId, profileNo))
+        var entities = await this.DbSet
+            .Where(this.UserProfileFilter(userId, profileNo))
             .ToListAsync();
 
         foreach (var entity in entities)
@@ -136,14 +132,14 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
             SetDistance(entity, distance);
         }
 
-        await Context.SaveChangesAsync();
+        await this.Context.SaveChangesAsync();
         return entities.Count;
     }
 
     public async Task<int> BulkUpdateCleanAsync(string userId, int profileNo, int clean)
     {
-        var entities = await DbSet
-            .Where(UserProfileFilter(userId, profileNo))
+        var entities = await this.DbSet
+            .Where(this.UserProfileFilter(userId, profileNo))
             .ToListAsync();
 
         foreach (var entity in entities)
@@ -151,30 +147,35 @@ public abstract class BaseRepository<TEntity, TModel> : IBaseRepository<TModel>
             SetClean(entity, clean);
         }
 
-        await Context.SaveChangesAsync();
+        await this.Context.SaveChangesAsync();
         return entities.Count;
     }
 
-    public async Task<int> CountByUserAsync(string userId, int profileNo)
+    public async Task<IEnumerable<TModel>> BulkCreateAsync(IEnumerable<TModel> models)
     {
-        return await DbSet
-            .CountAsync(UserProfileFilter(userId, profileNo));
+        var entities = models.Select(m =>
+        {
+            var entity = this.Mapper.Map<TEntity>(m);
+            EnsureNotNullDefaults(entity);
+            return entity;
+        }).ToList();
+
+        this.DbSet.AddRange(entities);
+        await this.Context.SaveChangesAsync();
+        return this.Mapper.Map<IEnumerable<TModel>>(entities);
     }
 
-    private int GetUidFromModel(TModel model)
+    public async Task<int> CountByUserAsync(string userId, int profileNo) => await this.DbSet
+            .CountAsync(this.UserProfileFilter(userId, profileNo));
+
+    private static int GetUidFromModel(TModel model)
     {
         var property = UidProperty
             ?? throw new InvalidOperationException($"Model type {typeof(TModel).Name} does not have a Uid property.");
         return (int)(property.GetValue(model) ?? 0);
     }
 
-    private static void SetDistance(TEntity entity, int distance)
-    {
-        DistanceProperty?.SetValue(entity, distance);
-    }
+    private static void SetDistance(TEntity entity, int distance) => DistanceProperty?.SetValue(entity, distance);
 
-    private static void SetClean(TEntity entity, int clean)
-    {
-        CleanProperty?.SetValue(entity, clean);
-    }
+    private static void SetClean(TEntity entity, int clean) => CleanProperty?.SetValue(entity, clean);
 }

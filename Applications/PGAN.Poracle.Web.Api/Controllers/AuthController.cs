@@ -16,36 +16,24 @@ namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/auth")]
 [EnableRateLimiting("auth")]
-public class AuthController : BaseApiController
+public class AuthController(
+    IHumanService humanService,
+    IPoracleApiProxy poracleApiProxy,
+    IPwebSettingService pwebSettingService,
+    IOptions<JwtSettings> jwtSettings,
+    IOptions<DiscordSettings> discordSettings,
+    IOptions<TelegramSettings> telegramSettings,
+    IOptions<PoracleSettings> poracleSettings,
+    ILogger<AuthController> logger) : BaseApiController
 {
-    private readonly IHumanService _humanService;
-    private readonly IPoracleApiProxy _poracleApiProxy;
-    private readonly IPwebSettingService _pwebSettingService;
-    private readonly JwtSettings _jwtSettings;
-    private readonly DiscordSettings _discordSettings;
-    private readonly TelegramSettings _telegramSettings;
-    private readonly PoracleSettings _poracleSettings;
-    private readonly ILogger<AuthController> _logger;
-
-    public AuthController(
-        IHumanService humanService,
-        IPoracleApiProxy poracleApiProxy,
-        IPwebSettingService pwebSettingService,
-        IOptions<JwtSettings> jwtSettings,
-        IOptions<DiscordSettings> discordSettings,
-        IOptions<TelegramSettings> telegramSettings,
-        IOptions<PoracleSettings> poracleSettings,
-        ILogger<AuthController> logger)
-    {
-        _humanService = humanService;
-        _poracleApiProxy = poracleApiProxy;
-        _pwebSettingService = pwebSettingService;
-        _jwtSettings = jwtSettings.Value;
-        _discordSettings = discordSettings.Value;
-        _telegramSettings = telegramSettings.Value;
-        _poracleSettings = poracleSettings.Value;
-        _logger = logger;
-    }
+    private readonly IHumanService _humanService = humanService;
+    private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPwebSettingService _pwebSettingService = pwebSettingService;
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly DiscordSettings _discordSettings = discordSettings.Value;
+    private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
+    private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
+    private readonly ILogger<AuthController> _logger = logger;
 
     [AllowAnonymous]
     [HttpGet("discord/login")]
@@ -54,7 +42,7 @@ public class AuthController : BaseApiController
         // Generate a random state value for CSRF protection
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
-        var isHttps = string.Equals(Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
+        var isHttps = string.Equals(this.Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
@@ -63,25 +51,25 @@ public class AuthController : BaseApiController
             MaxAge = TimeSpan.FromMinutes(10)
         };
 
-        Response.Cookies.Append("oauth_state", state, cookieOptions);
+        this.Response.Cookies.Append("oauth_state", state, cookieOptions);
 
         // Save the frontend origin so we know where to redirect after the callback
-        var referer = Request.Headers.Referer.FirstOrDefault();
+        var referer = this.Request.Headers.Referer.FirstOrDefault();
         var origin = !string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
             ? $"{refererUri.Scheme}://{refererUri.Authority}"
-            : $"{Request.Scheme}://{Request.Host}";
-        Response.Cookies.Append("oauth_origin", origin, cookieOptions);
+            : $"{this.Request.Scheme}://{this.Request.Host}";
+        this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
         // Redirect URI points to the API itself, not the Angular app
-        var callbackUri = $"{Request.Scheme}://{Request.Host}/api/auth/discord/callback";
+        var callbackUri = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/discord/callback";
         var redirectUrl = "https://discordapp.com/api/oauth2/authorize" +
-            $"?client_id={_discordSettings.ClientId}" +
+            $"?client_id={this._discordSettings.ClientId}" +
             $"&redirect_uri={Uri.EscapeDataString(callbackUri)}" +
             "&response_type=code" +
             "&scope=identify" +
             $"&state={Uri.EscapeDataString(state)}";
 
-        return Redirect(redirectUrl);
+        return this.Redirect(redirectUrl);
     }
 
     [AllowAnonymous]
@@ -89,36 +77,43 @@ public class AuthController : BaseApiController
     public async Task<IActionResult> DiscordCallback([FromQuery] string code, [FromQuery] string? state)
     {
         // Derive frontend URL from the request
-        var frontendUrl = GetFrontendUrl();
+        var frontendUrl = this.GetFrontendUrl();
 
         // Validate OAuth state parameter for CSRF protection
-        var savedState = Request.Cookies["oauth_state"];
-        Response.Cookies.Delete("oauth_state");
+        var savedState = this.Request.Cookies["oauth_state"];
+        this.Response.Cookies.Delete("oauth_state");
 
         if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(savedState) || state != savedState)
-            return BadRequest(new { error = "Invalid OAuth state. Possible CSRF attack." });
+        {
+            return this.BadRequest(new
+            {
+                error = "Invalid OAuth state. Possible CSRF attack."
+            });
+        }
 
         if (string.IsNullOrEmpty(code))
-            return Redirect($"{frontendUrl}/login?error=missing_code");
+        {
+            return this.Redirect($"{frontendUrl}/login#error=missing_code");
+        }
 
         using var httpClient = new HttpClient();
 
         // Exchange code for access token
         var tokenRequest = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_id"] = _discordSettings.ClientId,
-            ["client_secret"] = _discordSettings.ClientSecret,
+            ["client_id"] = this._discordSettings.ClientId,
+            ["client_secret"] = this._discordSettings.ClientSecret,
             ["grant_type"] = "authorization_code",
             ["code"] = code,
-            ["redirect_uri"] = $"{Request.Scheme}://{Request.Host}/api/auth/discord/callback"
+            ["redirect_uri"] = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/discord/callback"
         });
 
         var tokenResponse = await httpClient.PostAsync("https://discordapp.com/api/oauth2/token", tokenRequest);
         if (!tokenResponse.IsSuccessStatusCode)
         {
             var errorBody = await tokenResponse.Content.ReadAsStringAsync();
-            _logger.LogWarning("Discord token exchange failed: {Status} {Body}", tokenResponse.StatusCode, errorBody);
-            return Redirect($"{frontendUrl}/login?error=token_exchange_failed");
+            this._logger.LogWarning("Discord token exchange failed: {Status} {Body}", tokenResponse.StatusCode, errorBody);
+            return this.Redirect($"{frontendUrl}/login#error=token_exchange_failed");
         }
 
         var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -130,7 +125,9 @@ public class AuthController : BaseApiController
 
         var userResponse = await httpClient.GetAsync("https://discordapp.com/api/users/@me");
         if (!userResponse.IsSuccessStatusCode)
-            return Redirect($"{frontendUrl}/login?error=discord_user_fetch_failed");
+        {
+            return this.Redirect($"{frontendUrl}/login#error=discord_user_fetch_failed");
+        }
 
         var discordUser = await userResponse.Content.ReadFromJsonAsync<JsonElement>();
         var discordId = discordUser.GetProperty("id").GetString()!;
@@ -141,17 +138,21 @@ public class AuthController : BaseApiController
             : null;
 
         // Look up user in DB
-        var human = await _humanService.GetByIdAsync(discordId);
+        var human = await this._humanService.GetByIdAsync(discordId);
         if (human == null)
-            return Redirect($"{frontendUrl}/login?error=user_not_registered");
+        {
+            return this.Redirect($"{frontendUrl}/login#error=user_not_registered");
+        }
 
         // Role-based access: check Discord guild roles if enabled
-        var (isAdmin, managedWebhooks) = await GetRolesAsync(discordId);
+        var (isAdmin, managedWebhooks) = await this.GetRolesAsync(discordId);
         if (!isAdmin)
         {
-            var roleCheckResult = await CheckRoleAccessAsync(discordId);
+            var roleCheckResult = await this.CheckRoleAccessAsync(discordId);
             if (roleCheckResult != null)
-                return Redirect($"{frontendUrl}/login?error={roleCheckResult}");
+            {
+                return this.Redirect($"{frontendUrl}/login#error={roleCheckResult}");
+            }
         }
 
         var userInfo = new UserInfo
@@ -173,21 +174,31 @@ public class AuthController : BaseApiController
             Services.AvatarCacheService.Save();
         }
 
-        var jwt = GenerateJwtToken(userInfo);
+        var jwt = this.GenerateJwtToken(userInfo);
 
         // Redirect browser to Angular with token in URL fragment to avoid server-side leakage
-        return Redirect($"{frontendUrl}/auth/discord/callback#token={jwt}");
+        return this.Redirect($"{frontendUrl}/auth/discord/callback#token={jwt}");
     }
 
     [AllowAnonymous]
     [HttpPost("telegram/verify")]
     public async Task<IActionResult> TelegramVerify([FromBody] Dictionary<string, string> telegramData)
     {
-        if (telegramData == null || !telegramData.ContainsKey("id") || !telegramData.ContainsKey("hash"))
-            return BadRequest(new { error = "Invalid Telegram login data." });
+        if (telegramData == null || !telegramData.TryGetValue("id", out var telegramId) || !telegramData.TryGetValue("hash", out var hash))
+        {
+            return this.BadRequest(new
+            {
+                error = "Invalid Telegram login data."
+            });
+        }
 
-        if (!_telegramSettings.Enabled)
-            return BadRequest(new { error = "Telegram authentication is not enabled." });
+        if (!this._telegramSettings.Enabled)
+        {
+            return this.BadRequest(new
+            {
+                error = "Telegram authentication is not enabled."
+            });
+        }
 
         // Validate auth_date is not older than 86400 seconds (24 hours)
         if (telegramData.TryGetValue("auth_date", out var authDateStr) &&
@@ -195,46 +206,57 @@ public class AuthController : BaseApiController
         {
             var authDate = DateTimeOffset.FromUnixTimeSeconds(authDateUnix);
             if (DateTimeOffset.UtcNow - authDate > TimeSpan.FromSeconds(86400))
-                return Unauthorized(new { error = "Telegram authentication data has expired." });
+            {
+                return this.Unauthorized(new
+                {
+                    error = "Telegram authentication data has expired."
+                });
+            }
         }
         else
         {
-            return BadRequest(new { error = "Missing or invalid auth_date." });
+            return this.BadRequest(new
+            {
+                error = "Missing or invalid auth_date."
+            });
         }
 
         // Validate HMAC-SHA256
-        var botToken = _telegramSettings.BotToken;
-        var hash = telegramData["hash"];
+        var botToken = this._telegramSettings.BotToken;
 
         var dataCheckString = string.Join("\n",
             telegramData
                 .Where(kvp => kvp.Key != "hash")
                 .OrderBy(kvp => kvp.Key)
                 .Select(kvp => $"{kvp.Key}={kvp.Value}"));
-
-        using var sha256 = SHA256.Create();
-        var secretKey = sha256.ComputeHash(Encoding.UTF8.GetBytes(botToken));
+        var secretKey = SHA256.HashData(Encoding.UTF8.GetBytes(botToken));
 
         using var hmac = new HMACSHA256(secretKey);
-        var computedHash = BitConverter.ToString(
-            hmac.ComputeHash(Encoding.UTF8.GetBytes(dataCheckString)))
-            .Replace("-", "")
-            .ToLowerInvariant();
+        var computedHash = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(dataCheckString)));
 
         if (computedHash != hash)
-            return Unauthorized(new { error = "Invalid Telegram authentication data." });
+        {
+            return this.Unauthorized(new
+            {
+                error = "Invalid Telegram authentication data."
+            });
+        }
 
-        var telegramId = telegramData["id"];
         var username = telegramData.GetValueOrDefault("username",
             telegramData.GetValueOrDefault("first_name", "Unknown"));
         var photoUrl = telegramData.GetValueOrDefault("photo_url");
 
         // Look up user in DB
-        var human = await _humanService.GetByIdAsync(telegramId);
+        var human = await this._humanService.GetByIdAsync(telegramId);
         if (human == null)
-            return StatusCode(403, new { error = "User not registered in Poracle." });
+        {
+            return this.StatusCode(403, new
+            {
+                error = "User not registered in Poracle."
+            });
+        }
 
-        var (isAdmin, managedWebhooks) = await GetRolesAsync(telegramId);
+        var (isAdmin, managedWebhooks) = await this.GetRolesAsync(telegramId);
 
         var userInfo = new UserInfo
         {
@@ -248,9 +270,9 @@ public class AuthController : BaseApiController
             ManagedWebhooks = managedWebhooks
         };
 
-        var jwt = GenerateJwtToken(userInfo);
+        var jwt = this.GenerateJwtToken(userInfo);
 
-        return Ok(new
+        return this.Ok(new
         {
             token = jwt,
             user = userInfo
@@ -259,60 +281,71 @@ public class AuthController : BaseApiController
 
     [AllowAnonymous]
     [HttpGet("telegram/config")]
-    public IActionResult TelegramConfig()
+    public IActionResult TelegramConfig() => this.Ok(new
     {
-        return Ok(new
-        {
-            enabled = _telegramSettings.Enabled,
-            botUsername = _telegramSettings.BotUsername
-        });
-    }
+        enabled = this._telegramSettings.Enabled,
+        botUsername = this._telegramSettings.BotUsername
+    });
 
+    [EnableRateLimiting("auth-read")]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
         // Read enabled status from DB (not JWT) so it reflects real-time changes
-        var human = await _humanService.GetByIdAsync(UserId);
-        var enabled = human != null ? human.Enabled == 1 && human.AdminDisable == 0 : true;
+        var human = await this._humanService.GetByIdAsync(this.UserId);
+        var enabled = human == null || human.Enabled == 1 && human.AdminDisable == 0;
 
         var userInfo = new UserInfo
         {
-            Id = UserId,
-            Username = Username,
-            Type = User.FindFirstValue("type") ?? string.Empty,
-            IsAdmin = IsAdmin,
+            Id = this.UserId,
+            Username = this.Username,
+            Type = this.User.FindFirstValue("type") ?? string.Empty,
+            IsAdmin = this.IsAdmin,
             Enabled = enabled,
-            ProfileNo = ProfileNo,
-            AvatarUrl = User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = ManagedWebhooks.Length > 0 ? ManagedWebhooks : null
+            ProfileNo = this.ProfileNo,
+            AvatarUrl = this.User.FindFirstValue("avatarUrl"),
+            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null
         };
 
-        return Ok(userInfo);
+        return this.Ok(userInfo);
     }
 
+    [EnableRateLimiting("auth-read")]
     [HttpPost("alerts/toggle")]
     public async Task<IActionResult> ToggleAlerts()
     {
-        var human = await _humanService.GetByIdAsync(UserId);
-        if (human == null) return NotFound();
+        var human = await this._humanService.GetByIdAsync(this.UserId);
+        if (human == null)
+        {
+            return this.NotFound();
+        }
 
         if (human.AdminDisable == 1)
-            return BadRequest(new { error = "Your account has been disabled by an administrator." });
+        {
+            return this.BadRequest(new
+            {
+                error = "Your account has been disabled by an administrator."
+            });
+        }
 
         human.Enabled = human.Enabled == 1 ? 0 : 1;
-        await _humanService.UpdateAsync(human);
-        return Ok(new { enabled = human.Enabled == 1 });
+        await this._humanService.UpdateAsync(human);
+        return this.Ok(new
+        {
+            enabled = human.Enabled == 1
+        });
     }
 
+    [EnableRateLimiting("auth-read")]
     [HttpPost("logout")]
-    public IActionResult Logout()
+    public IActionResult Logout() => this.Ok(new
     {
-        return Ok(new { message = "Logged out successfully." });
-    }
+        message = "Logged out successfully."
+    });
 
     private string GenerateJwtToken(UserInfo user)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
@@ -326,16 +359,20 @@ public class AuthController : BaseApiController
         };
 
         if (!string.IsNullOrEmpty(user.AvatarUrl))
+        {
             claims.Add(new Claim("avatarUrl", user.AvatarUrl));
+        }
 
         if (user.ManagedWebhooks is { Length: > 0 })
+        {
             claims.Add(new Claim("managedWebhooks", string.Join(',', user.ManagedWebhooks)));
+        }
 
         var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
+            issuer: this._jwtSettings.Issuer,
+            audience: this._jwtSettings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
@@ -348,25 +385,29 @@ public class AuthController : BaseApiController
     private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
     {
         // Fast path: configured admin IDs
-        if (!string.IsNullOrEmpty(_poracleSettings.AdminIds))
+        if (!string.IsNullOrEmpty(this._poracleSettings.AdminIds))
         {
-            var adminIds = _poracleSettings.AdminIds.Split(',',
+            var adminIds = this._poracleSettings.AdminIds.Split(',',
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (adminIds.Contains(userId))
+            {
                 return (true, null);
+            }
         }
 
         // Check Poracle config admins list
         try
         {
-            var config = await _poracleApiProxy.GetConfigAsync();
+            var config = await this._poracleApiProxy.GetConfigAsync();
             if (config?.Admins != null &&
                 (config.Admins.Discord.Contains(userId) || config.Admins.Telegram.Contains(userId)))
+            {
                 return (true, null);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch Poracle config for admin check for {UserId}.", userId);
+            this._logger.LogWarning(ex, "Failed to fetch Poracle config for admin check for {UserId}.", userId);
         }
 
         // Call getAdministrationRoles once — resolves delegation including Discord guild roles
@@ -375,7 +416,7 @@ public class AuthController : BaseApiController
 
         try
         {
-            var rolesJson = await _poracleApiProxy.GetAdminRolesAsync(userId);
+            var rolesJson = await this._poracleApiProxy.GetAdminRolesAsync(userId);
             if (!string.IsNullOrEmpty(rolesJson))
             {
                 using var doc = JsonDocument.Parse(rolesJson);
@@ -383,7 +424,9 @@ public class AuthController : BaseApiController
 
                 // Some versions return isAdmin at root; others wrap under admin.discord
                 if (root.TryGetProperty("isAdmin", out var isAdminProp) && isAdminProp.ValueKind == JsonValueKind.True)
+                {
                     isAdmin = true;
+                }
 
                 // Parse admin.discord.webhooks — the authoritative delegate webhook list
                 if (root.TryGetProperty("admin", out var adminEl) &&
@@ -392,29 +435,38 @@ public class AuthController : BaseApiController
                     if (!isAdmin &&
                         discordEl.TryGetProperty("isAdmin", out var discordAdmin) &&
                         discordAdmin.ValueKind == JsonValueKind.True)
+                    {
                         isAdmin = true;
+                    }
 
                     if (discordEl.TryGetProperty("webhooks", out var webhooks) &&
                         webhooks.ValueKind == JsonValueKind.Array)
                     {
                         foreach (var wh in webhooks.EnumerateArray())
+                        {
                             if (wh.GetString() is { } id)
+                            {
                                 managed.Add(id);
+                            }
+                        }
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch administration roles for {UserId}.", userId);
+            this._logger.LogWarning(ex, "Failed to fetch administration roles for {UserId}.", userId);
         }
 
-        if (isAdmin) return (true, null);
+        if (isAdmin)
+        {
+            return (true, null);
+        }
 
         // Also merge our own pweb_settings delegation layer
         try
         {
-            var allSettings = await _pwebSettingService.GetAllAsync();
+            var allSettings = await this._pwebSettingService.GetAllAsync();
             const string prefix = "webhook_delegates:";
             foreach (var setting in allSettings)
             {
@@ -423,13 +475,15 @@ public class AuthController : BaseApiController
                     var delegates = setting.Value?.Split(',',
                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
                     if (delegates.Contains(userId))
+                    {
                         managed.Add(setting.Setting[prefix.Length..]);
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch pweb_settings delegates for {UserId}.", userId);
+            this._logger.LogWarning(ex, "Failed to fetch pweb_settings delegates for {UserId}.", userId);
         }
 
         return (false, managed.Count > 0 ? managed.ToArray() : null);
@@ -443,40 +497,46 @@ public class AuthController : BaseApiController
     {
         try
         {
-            var allSettings = await _pwebSettingService.GetAllAsync();
+            var allSettings = await this._pwebSettingService.GetAllAsync();
             var settingsMap = allSettings.ToDictionary(s => s.Setting ?? "", s => s.Value ?? "");
 
             // Check if role-based access is enabled
             if (!settingsMap.TryGetValue("enable_roles", out var enableRoles) ||
                 !string.Equals(enableRoles, "True", StringComparison.OrdinalIgnoreCase))
+            {
                 return null; // Not enabled, allow access
+            }
 
             // Get allowed role IDs
             if (!settingsMap.TryGetValue("allowed_role_ids", out var roleIdsStr) ||
                 string.IsNullOrWhiteSpace(roleIdsStr))
+            {
                 return null; // No roles configured, allow everyone
+            }
 
             var allowedRoles = new HashSet<string>(
                 roleIdsStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
             // Need bot token and guild ID to check roles
-            if (string.IsNullOrEmpty(_discordSettings.BotToken) || string.IsNullOrEmpty(_discordSettings.GuildId))
+            if (string.IsNullOrEmpty(this._discordSettings.BotToken) || string.IsNullOrEmpty(this._discordSettings.GuildId))
             {
-                _logger.LogWarning("Role-based access enabled but Discord BotToken or GuildId not configured.");
+                this._logger.LogWarning("Role-based access enabled but Discord BotToken or GuildId not configured.");
                 return null; // Misconfigured, fail open
             }
 
             // Fetch user's guild member data via bot API
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", _discordSettings.BotToken);
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", this._discordSettings.BotToken);
 
             var response = await httpClient.GetAsync(
-                $"https://discordapp.com/api/v10/guilds/{_discordSettings.GuildId}/members/{discordId}");
+                $"https://discordapp.com/api/guilds/{this._discordSettings.GuildId}/members/{discordId}");
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch guild member {UserId}: {Status}", discordId, response.StatusCode);
+                var errorBody = await response.Content.ReadAsStringAsync();
+                this._logger.LogWarning("Failed to fetch guild member {UserId}: {Status} {Body}",
+                    discordId, response.StatusCode, errorBody);
                 // 404 = not in guild, 403 = bot doesn't have access
                 return response.StatusCode == System.Net.HttpStatusCode.NotFound
                     ? "not_in_guild"
@@ -489,34 +549,48 @@ public class AuthController : BaseApiController
                 rolesArray.ValueKind == JsonValueKind.Array)
             {
                 foreach (var role in rolesArray.EnumerateArray())
+                {
                     if (role.GetString() is { } roleId)
+                    {
                         userRoles.Add(roleId);
+                    }
+                }
             }
+
+            this._logger.LogInformation(
+                "Role check for {UserId}: required=[{Required}], user=[{UserRoles}]",
+                discordId,
+                string.Join(", ", allowedRoles),
+                string.Join(", ", userRoles));
 
             // User must have ALL of the allowed roles
             if (allowedRoles.IsSubsetOf(userRoles))
+            {
                 return null;
+            }
 
-            _logger.LogInformation("User {UserId} denied: no matching roles.", discordId);
+            this._logger.LogInformation("User {UserId} denied: missing required roles.", discordId);
             return "missing_required_role";
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Role check failed for {UserId}, allowing access.", discordId);
-            return null; // Fail open on errors
+            this._logger.LogError(ex, "Role check failed for {UserId}, denying access.", discordId);
+            return "role_check_failed";
         }
     }
 
     private string GetFrontendUrl()
     {
         // Use the origin saved during the login step
-        var savedOrigin = Request.Cookies["oauth_origin"];
-        Response.Cookies.Delete("oauth_origin");
+        var savedOrigin = this.Request.Cookies["oauth_origin"];
+        this.Response.Cookies.Delete("oauth_origin");
         if (!string.IsNullOrEmpty(savedOrigin))
+        {
             return savedOrigin.TrimEnd('/');
+        }
 
         // Fallback: same scheme/host as the request
-        return $"{Request.Scheme}://{Request.Host}";
+        return $"{this.Request.Scheme}://{this.Request.Host}";
     }
 
 }

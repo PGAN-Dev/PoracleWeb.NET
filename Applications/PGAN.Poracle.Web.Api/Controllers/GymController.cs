@@ -6,73 +6,84 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/gyms")]
-public class GymController : BaseApiController
+public class GymController(IGymService gymService, IMapper mapper) : BaseApiController
 {
-    private readonly IGymService _gymService;
-    private readonly IMapper _mapper;
-
-    public GymController(IGymService gymService, IMapper mapper)
-    {
-        _gymService = gymService;
-        _mapper = mapper;
-    }
+    private readonly IGymService _gymService = gymService;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var gyms = await _gymService.GetByUserAsync(UserId, ProfileNo);
-        return Ok(gyms);
+        var gyms = await this._gymService.GetByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(gyms);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var gym = await _gymService.GetByUidAsync(uid);
+        var gym = await this._gymService.GetByUidAsync(uid);
         if (gym == null)
-            return NotFound();
-        return Ok(gym);
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(gym);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] GymCreate model)
     {
-        var gym = _mapper.Map<Gym>(model);
-        var result = await _gymService.CreateAsync(UserId, gym);
-        return CreatedAtAction(nameof(GetByUid), new { uid = result.Uid }, result);
+        var gym = this._mapper.Map<Gym>(model);
+        var result = await this._gymService.CreateAsync(this.UserId, gym);
+        return this.CreatedAtAction(nameof(GetByUid), new
+        {
+            uid = result.Uid
+        }, result);
     }
 
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] GymUpdate model)
     {
-        var existing = await _gymService.GetByUidAsync(uid);
+        var existing = await this._gymService.GetByUidAsync(uid);
         if (existing == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        _mapper.Map(model, existing);
-        var result = await _gymService.UpdateAsync(existing);
-        return Ok(result);
+        this._mapper.Map(model, existing);
+        var result = await this._gymService.UpdateAsync(existing);
+        return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await _gymService.DeleteAsync(uid);
+        var success = await this._gymService.DeleteAsync(uid);
         if (!success)
-            return NotFound();
-        return NoContent();
+        {
+            return this.NotFound();
+        }
+
+        return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await _gymService.DeleteAllByUserAsync(UserId, ProfileNo);
-        return Ok(new { deleted = count });
+        var count = await this._gymService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(new
+        {
+            deleted = count
+        });
     }
 
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
-        var count = await _gymService.UpdateDistanceByUserAsync(UserId, ProfileNo, distance);
-        return Ok(new { updated = count });
+        var count = await this._gymService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 }

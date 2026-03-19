@@ -4,53 +4,37 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class GymService : IGymService
+public class GymService(IGymRepository repository) : IGymService
 {
-    private readonly IGymRepository _repository;
+    private readonly IGymRepository _repository = repository;
 
-    public GymService(IGymRepository repository)
-    {
-        _repository = repository;
-    }
+    public async Task<IEnumerable<Gym>> GetByUserAsync(string userId, int profileNo) => await this._repository.GetByUserAsync(userId, profileNo);
 
-    public async Task<IEnumerable<Gym>> GetByUserAsync(string userId, int profileNo)
-    {
-        return await _repository.GetByUserAsync(userId, profileNo);
-    }
-
-    public async Task<Gym?> GetByUidAsync(int uid)
-    {
-        return await _repository.GetByUidAsync(uid);
-    }
+    public async Task<Gym?> GetByUidAsync(int uid) => await this._repository.GetByUidAsync(uid);
 
     public async Task<Gym> CreateAsync(string userId, Gym model)
     {
         model.Id = userId;
-        return await _repository.CreateAsync(model);
+        return await this._repository.CreateAsync(model);
     }
 
-    public async Task<Gym> UpdateAsync(Gym model)
-    {
-        return await _repository.UpdateAsync(model);
-    }
+    public async Task<Gym> UpdateAsync(Gym model) => await this._repository.UpdateAsync(model);
 
-    public async Task<bool> DeleteAsync(int uid)
-    {
-        return await _repository.DeleteAsync(uid);
-    }
+    public async Task<bool> DeleteAsync(int uid) => await this._repository.DeleteAsync(uid);
 
-    public async Task<int> DeleteAllByUserAsync(string userId, int profileNo)
-    {
-        return await _repository.DeleteAllByUserAsync(userId, profileNo);
-    }
+    public async Task<int> DeleteAllByUserAsync(string userId, int profileNo) => await this._repository.DeleteAllByUserAsync(userId, profileNo);
 
-    public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
-    {
-        return await _repository.UpdateDistanceByUserAsync(userId, profileNo, distance);
-    }
+    public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance) => await this._repository.UpdateDistanceByUserAsync(userId, profileNo, distance);
 
-    public async Task<int> CountByUserAsync(string userId, int profileNo)
+    public async Task<int> CountByUserAsync(string userId, int profileNo) => await this._repository.CountByUserAsync(userId, profileNo);
+
+    public async Task<IEnumerable<Gym>> BulkCreateAsync(string userId, IEnumerable<Gym> models)
     {
-        return await _repository.CountByUserAsync(userId, profileNo);
+        foreach (var model in models)
+        {
+            model.Id = userId;
+        }
+
+        return await this._repository.BulkCreateAsync(models);
     }
 }

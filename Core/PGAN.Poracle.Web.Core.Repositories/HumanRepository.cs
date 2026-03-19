@@ -8,87 +8,80 @@ using PGAN.Poracle.Web.Data.Entities;
 
 namespace PGAN.Poracle.Web.Core.Repositories;
 
-public class HumanRepository : IHumanRepository
+public class HumanRepository(PoracleContext context, IMapper mapper) : IHumanRepository
 {
-    private readonly PoracleContext _context;
-    private readonly IMapper _mapper;
+    private readonly PoracleContext _context = context;
+    private readonly IMapper _mapper = mapper;
 
     // Cached reflection results for EnsureNotNullDefaults
     private static readonly PropertyInfo[] WritableStringProperties =
-        typeof(HumanEntity).GetProperties()
-            .Where(p => p.PropertyType == typeof(string) && p.CanWrite)
-            .ToArray();
-
-    public HumanRepository(PoracleContext context, IMapper mapper)
-    {
-        _context = context;
-        _mapper = mapper;
-    }
+        [.. typeof(HumanEntity).GetProperties().Where(p => p.PropertyType == typeof(string) && p.CanWrite)];
 
     public async Task<IEnumerable<Human>> GetAllAsync()
     {
-        var entities = await _context.Humans.ToListAsync();
-        return _mapper.Map<IEnumerable<Human>>(entities);
+        var entities = await this._context.Humans.ToListAsync();
+        return this._mapper.Map<IEnumerable<Human>>(entities);
     }
 
     public async Task<Human?> GetByIdAsync(string id)
     {
-        var entity = await _context.Humans.FirstOrDefaultAsync(h => h.Id == id);
-        return entity is null ? null : _mapper.Map<Human>(entity);
+        var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == id);
+        return entity is null ? null : this._mapper.Map<Human>(entity);
     }
 
     public async Task<Human?> GetByIdAndProfileAsync(string id, int profileNo)
     {
-        var entity = await _context.Humans
+        var entity = await this._context.Humans
             .FirstOrDefaultAsync(h => h.Id == id && h.CurrentProfileNo == profileNo);
-        return entity is null ? null : _mapper.Map<Human>(entity);
+        return entity is null ? null : this._mapper.Map<Human>(entity);
     }
 
     public async Task<Human> CreateAsync(Human human)
     {
-        var entity = _mapper.Map<HumanEntity>(human);
+        var entity = this._mapper.Map<HumanEntity>(human);
         EnsureNotNullDefaults(entity);
-        _context.Humans.Add(entity);
-        await _context.SaveChangesAsync();
-        return _mapper.Map<Human>(entity);
+        this._context.Humans.Add(entity);
+        await this._context.SaveChangesAsync();
+        return this._mapper.Map<Human>(entity);
     }
 
     public async Task<Human> UpdateAsync(Human human)
     {
-        var entity = await _context.Humans.FirstOrDefaultAsync(h => h.Id == human.Id)
+        var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == human.Id)
             ?? throw new InvalidOperationException($"Human with id {human.Id} not found.");
 
-        _mapper.Map(human, entity);
+        this._mapper.Map(human, entity);
         EnsureNotNullDefaults(entity);
-        await _context.SaveChangesAsync();
-        return _mapper.Map<Human>(entity);
+        await this._context.SaveChangesAsync();
+        return this._mapper.Map<Human>(entity);
     }
 
-    public async Task<bool> ExistsAsync(string id)
-    {
-        return await _context.Humans.AnyAsync(h => h.Id == id);
-    }
+    public async Task<bool> ExistsAsync(string id) => await this._context.Humans.AnyAsync(h => h.Id == id);
 
     public async Task<int> DeleteAllAlarmsByUserAsync(string userId)
     {
         var count = 0;
-        count += await _context.Monsters.Where(m => m.Id == userId).ExecuteDeleteAsync();
-        count += await _context.Raids.Where(r => r.Id == userId).ExecuteDeleteAsync();
-        count += await _context.Eggs.Where(e => e.Id == userId).ExecuteDeleteAsync();
-        count += await _context.Quests.Where(q => q.Id == userId).ExecuteDeleteAsync();
-        count += await _context.Invasions.Where(i => i.Id == userId).ExecuteDeleteAsync();
-        count += await _context.Lures.Where(l => l.Id == userId).ExecuteDeleteAsync();
-        count += await _context.Nests.Where(n => n.Id == userId).ExecuteDeleteAsync();
-        count += await _context.Gyms.Where(g => g.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Monsters.Where(m => m.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Raids.Where(r => r.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Eggs.Where(e => e.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Quests.Where(q => q.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Invasions.Where(i => i.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Lures.Where(l => l.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Nests.Where(n => n.Id == userId).ExecuteDeleteAsync();
+        count += await this._context.Gyms.Where(g => g.Id == userId).ExecuteDeleteAsync();
         return count;
     }
 
     public async Task<bool> DeleteUserAsync(string userId)
     {
-        var entity = await _context.Humans.FirstOrDefaultAsync(h => h.Id == userId);
-        if (entity is null) return false;
-        _context.Humans.Remove(entity);
-        await _context.SaveChangesAsync();
+        var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == userId);
+        if (entity is null)
+        {
+            return false;
+        }
+
+        this._context.Humans.Remove(entity);
+        await this._context.SaveChangesAsync();
         return true;
     }
 

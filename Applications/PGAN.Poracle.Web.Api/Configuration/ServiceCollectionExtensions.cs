@@ -57,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICleaningService, CleaningService>();
         services.AddScoped<IPwebSettingService, PwebSettingService>();
         services.AddSingleton<IMasterDataService, MasterDataService>();
+        services.AddScoped<IQuickPickService, QuickPickService>();
 
         // Register Scanner DB (optional - only if connection string is configured)
         var scannerConnectionString = configuration.GetConnectionString("ScannerDb");

@@ -3,10 +3,8 @@ using PGAN.Poracle.Web.Data.Scanner.Entities;
 
 namespace PGAN.Poracle.Web.Data.Scanner;
 
-public class RdmScannerContext : DbContext
+public class RdmScannerContext(DbContextOptions<RdmScannerContext> options) : DbContext(options)
 {
-    public RdmScannerContext(DbContextOptions<RdmScannerContext> options) : base(options) { }
-
-    public DbSet<RdmPokestopEntity> Pokestops => Set<RdmPokestopEntity>();
-    public DbSet<RdmGymEntity> Gyms => Set<RdmGymEntity>();
+    public DbSet<RdmPokestopEntity> Pokestops => this.Set<RdmPokestopEntity>();
+    public DbSet<RdmGymEntity> Gyms => this.Set<RdmGymEntity>();
 }

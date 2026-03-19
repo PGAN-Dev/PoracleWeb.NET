@@ -8,11 +8,9 @@ using PGAN.Poracle.Web.Data.Entities;
 
 namespace PGAN.Poracle.Web.Core.Repositories;
 
-public class GymRepository : BaseRepository<GymEntity, Gym>, IGymRepository
+public class GymRepository(PoracleContext context, IMapper mapper) : BaseRepository<GymEntity, Gym>(context, mapper), IGymRepository
 {
-    public GymRepository(PoracleContext context, IMapper mapper) : base(context, mapper) { }
-
-    protected override DbSet<GymEntity> DbSet => Context.Gyms;
+    protected override DbSet<GymEntity> DbSet => this.Context.Gyms;
     protected override Expression<Func<GymEntity, bool>> UserProfileFilter(string userId, int profileNo)
         => g => g.Id == userId && g.ProfileNo == profileNo;
     protected override Expression<Func<GymEntity, bool>> UidFilter(int uid)

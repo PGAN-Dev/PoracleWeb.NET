@@ -4,9 +4,9 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IProfileService
 {
-    Task<IEnumerable<Profile>> GetByUserAsync(string userId);
-    Task<Profile?> GetByUserAndProfileNoAsync(string userId, int profileNo);
-    Task<Profile> CreateAsync(Profile profile);
-    Task<Profile> UpdateAsync(Profile profile);
-    Task<bool> DeleteAsync(string userId, int profileNo);
+    public Task<IEnumerable<Profile>> GetByUserAsync(string userId);
+    public Task<Profile?> GetByUserAndProfileNoAsync(string userId, int profileNo);
+    public Task<Profile> CreateAsync(Profile profile);
+    public Task<Profile> UpdateAsync(Profile profile);
+    public Task<bool> DeleteAsync(string userId, int profileNo);
 }

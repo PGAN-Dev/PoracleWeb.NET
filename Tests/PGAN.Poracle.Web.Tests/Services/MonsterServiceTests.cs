@@ -10,53 +10,50 @@ public class MonsterServiceTests
     private readonly Mock<IMonsterRepository> _repository = new();
     private readonly MonsterService _sut;
 
-    public MonsterServiceTests()
-    {
-        _sut = new MonsterService(_repository.Object);
-    }
+    public MonsterServiceTests() => this._sut = new MonsterService(this._repository.Object);
 
     [Fact]
-    public async Task GetByUserAsync_ReturnsMonsters()
+    public async Task GetByUserAsyncReturnsMonsters()
     {
         var monsters = new List<Monster> { new() { Uid = 1, PokemonId = 25 } };
-        _repository.Setup(r => r.GetByUserAsync("user1", 1)).ReturnsAsync(monsters);
+        this._repository.Setup(r => r.GetByUserAsync("user1", 1)).ReturnsAsync(monsters);
 
-        var result = await _sut.GetByUserAsync("user1", 1);
+        var result = await this._sut.GetByUserAsync("user1", 1);
 
         Assert.Single(result);
         Assert.Equal(25, result.First().PokemonId);
     }
 
     [Fact]
-    public async Task GetByUidAsync_ReturnsMonster()
+    public async Task GetByUidAsyncReturnsMonster()
     {
         var monster = new Monster { Uid = 1, PokemonId = 25 };
-        _repository.Setup(r => r.GetByUidAsync(1)).ReturnsAsync(monster);
+        this._repository.Setup(r => r.GetByUidAsync(1)).ReturnsAsync(monster);
 
-        var result = await _sut.GetByUidAsync(1);
+        var result = await this._sut.GetByUidAsync(1);
 
         Assert.NotNull(result);
         Assert.Equal(25, result!.PokemonId);
     }
 
     [Fact]
-    public async Task GetByUidAsync_ReturnsNull_WhenNotFound()
+    public async Task GetByUidAsyncReturnsNullWhenNotFound()
     {
-        _repository.Setup(r => r.GetByUidAsync(999)).ReturnsAsync((Monster?)null);
+        this._repository.Setup(r => r.GetByUidAsync(999)).ReturnsAsync((Monster?)null);
 
-        var result = await _sut.GetByUidAsync(999);
+        var result = await this._sut.GetByUidAsync(999);
 
         Assert.Null(result);
     }
 
     [Fact]
-    public async Task CreateAsync_SetsUserIdAndDefaults()
+    public async Task CreateAsyncSetsUserIdAndDefaults()
     {
         var monster = new Monster { PokemonId = 25, Ping = null, Template = null };
-        _repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
             .ReturnsAsync((Monster m) => m);
 
-        var result = await _sut.CreateAsync("user1", monster);
+        var result = await this._sut.CreateAsync("user1", monster);
 
         Assert.Equal("user1", result.Id);
         Assert.Equal(string.Empty, result.Ping);
@@ -64,76 +61,76 @@ public class MonsterServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_PreservesNonNullPingAndTemplate()
+    public async Task CreateAsyncPreservesNonNullPingAndTemplate()
     {
         var monster = new Monster { PokemonId = 25, Ping = "<@123>", Template = "custom" };
-        _repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
             .ReturnsAsync((Monster m) => m);
 
-        var result = await _sut.CreateAsync("user1", monster);
+        var result = await this._sut.CreateAsync("user1", monster);
 
         Assert.Equal("<@123>", result.Ping);
         Assert.Equal("custom", result.Template);
     }
 
     [Fact]
-    public async Task UpdateAsync_CallsRepository()
+    public async Task UpdateAsyncCallsRepository()
     {
         var monster = new Monster { Uid = 1, PokemonId = 25 };
-        _repository.Setup(r => r.UpdateAsync(monster)).ReturnsAsync(monster);
+        this._repository.Setup(r => r.UpdateAsync(monster)).ReturnsAsync(monster);
 
-        var result = await _sut.UpdateAsync(monster);
+        var result = await this._sut.UpdateAsync(monster);
 
         Assert.Equal(1, result.Uid);
-        _repository.Verify(r => r.UpdateAsync(monster), Times.Once);
+        this._repository.Verify(r => r.UpdateAsync(monster), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsTrue_WhenDeleted()
+    public async Task DeleteAsyncReturnsTrueWhenDeleted()
     {
-        _repository.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
+        this._repository.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
 
-        var result = await _sut.DeleteAsync(1);
+        var result = await this._sut.DeleteAsync(1);
 
         Assert.True(result);
     }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsFalse_WhenNotFound()
+    public async Task DeleteAsyncReturnsFalseWhenNotFound()
     {
-        _repository.Setup(r => r.DeleteAsync(999)).ReturnsAsync(false);
+        this._repository.Setup(r => r.DeleteAsync(999)).ReturnsAsync(false);
 
-        var result = await _sut.DeleteAsync(999);
+        var result = await this._sut.DeleteAsync(999);
 
         Assert.False(result);
     }
 
     [Fact]
-    public async Task DeleteAllByUserAsync_ReturnsCount()
+    public async Task DeleteAllByUserAsyncReturnsCount()
     {
-        _repository.Setup(r => r.DeleteAllByUserAsync("user1", 1)).ReturnsAsync(5);
+        this._repository.Setup(r => r.DeleteAllByUserAsync("user1", 1)).ReturnsAsync(5);
 
-        var result = await _sut.DeleteAllByUserAsync("user1", 1);
+        var result = await this._sut.DeleteAllByUserAsync("user1", 1);
 
         Assert.Equal(5, result);
     }
 
     [Fact]
-    public async Task UpdateDistanceByUserAsync_ReturnsCount()
+    public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
-        _repository.Setup(r => r.UpdateDistanceByUserAsync("user1", 1, 500)).ReturnsAsync(3);
+        this._repository.Setup(r => r.UpdateDistanceByUserAsync("user1", 1, 500)).ReturnsAsync(3);
 
-        var result = await _sut.UpdateDistanceByUserAsync("user1", 1, 500);
+        var result = await this._sut.UpdateDistanceByUserAsync("user1", 1, 500);
 
         Assert.Equal(3, result);
     }
 
     [Fact]
-    public async Task CountByUserAsync_ReturnsCount()
+    public async Task CountByUserAsyncReturnsCount()
     {
-        _repository.Setup(r => r.CountByUserAsync("user1", 1)).ReturnsAsync(10);
+        this._repository.Setup(r => r.CountByUserAsync("user1", 1)).ReturnsAsync(10);
 
-        var result = await _sut.CountByUserAsync("user1", 1);
+        var result = await this._sut.CountByUserAsync("user1", 1);
 
         Assert.Equal(10, result);
     }

@@ -7,21 +7,18 @@ using PGAN.Poracle.Web.Data;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/dashboard")]
-public class DashboardController : BaseApiController
+public class DashboardController(PoracleContext context) : BaseApiController
 {
-    private readonly PoracleContext _context;
-
-    public DashboardController(PoracleContext context)
-    {
-        _context = context;
-    }
+    private readonly PoracleContext _context = context;
 
     [HttpGet]
     public async Task<IActionResult> GetCounts()
     {
-        var conn = _context.Database.GetDbConnection();
+        var conn = this._context.Database.GetDbConnection();
         if (conn.State != ConnectionState.Open)
+        {
             await conn.OpenAsync();
+        }
 
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -37,12 +34,12 @@ public class DashboardController : BaseApiController
 
         var userIdParam = cmd.CreateParameter();
         userIdParam.ParameterName = "@userId";
-        userIdParam.Value = UserId;
+        userIdParam.Value = this.UserId;
         cmd.Parameters.Add(userIdParam);
 
         var profileNoParam = cmd.CreateParameter();
         profileNoParam.ParameterName = "@profileNo";
-        profileNoParam.Value = ProfileNo;
+        profileNoParam.Value = this.ProfileNo;
         cmd.Parameters.Add(profileNoParam);
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -59,6 +56,6 @@ public class DashboardController : BaseApiController
             counts.Gyms = reader.GetInt32(7);
         }
 
-        return Ok(counts);
+        return this.Ok(counts);
     }
 }

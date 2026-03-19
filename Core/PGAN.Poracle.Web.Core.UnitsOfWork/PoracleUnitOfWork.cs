@@ -4,71 +4,85 @@ using PGAN.Poracle.Web.Data;
 
 namespace PGAN.Poracle.Web.Core.UnitsOfWork;
 
-public class PoracleUnitOfWork : IPoracleUnitOfWork
+public class PoracleUnitOfWork(
+    PoracleContext context,
+    IMonsterRepository monsterRepository,
+    IRaidRepository raidRepository,
+    IEggRepository eggRepository,
+    IQuestRepository questRepository,
+    IInvasionRepository invasionRepository,
+    ILureRepository lureRepository,
+    INestRepository nestRepository,
+    IGymRepository gymRepository,
+    IHumanRepository humanRepository,
+    IProfileRepository profileRepository,
+    IPwebSettingRepository pwebSettingRepository) : IPoracleUnitOfWork
 {
-    private readonly PoracleContext _context;
+    private readonly PoracleContext _context = context;
     private bool _disposed;
 
-    public PoracleUnitOfWork(
-        PoracleContext context,
-        IMonsterRepository monsterRepository,
-        IRaidRepository raidRepository,
-        IEggRepository eggRepository,
-        IQuestRepository questRepository,
-        IInvasionRepository invasionRepository,
-        ILureRepository lureRepository,
-        INestRepository nestRepository,
-        IGymRepository gymRepository,
-        IHumanRepository humanRepository,
-        IProfileRepository profileRepository,
-        IPwebSettingRepository pwebSettingRepository)
+    public IMonsterRepository Monsters
     {
-        _context = context;
-        Monsters = monsterRepository;
-        Raids = raidRepository;
-        Eggs = eggRepository;
-        Quests = questRepository;
-        Invasions = invasionRepository;
-        Lures = lureRepository;
-        Nests = nestRepository;
-        Gyms = gymRepository;
-        Humans = humanRepository;
-        Profiles = profileRepository;
-        PwebSettings = pwebSettingRepository;
-    }
-
-    public IMonsterRepository Monsters { get; }
-    public IRaidRepository Raids { get; }
-    public IEggRepository Eggs { get; }
-    public IQuestRepository Quests { get; }
-    public IInvasionRepository Invasions { get; }
-    public ILureRepository Lures { get; }
-    public INestRepository Nests { get; }
-    public IGymRepository Gyms { get; }
-    public IHumanRepository Humans { get; }
-    public IProfileRepository Profiles { get; }
-    public IPwebSettingRepository PwebSettings { get; }
-
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        get;
+    } = monsterRepository;
+    public IRaidRepository Raids
     {
-        return await _context.SaveChangesAsync(cancellationToken);
-    }
+        get;
+    } = raidRepository;
+    public IEggRepository Eggs
+    {
+        get;
+    } = eggRepository;
+    public IQuestRepository Quests
+    {
+        get;
+    } = questRepository;
+    public IInvasionRepository Invasions
+    {
+        get;
+    } = invasionRepository;
+    public ILureRepository Lures
+    {
+        get;
+    } = lureRepository;
+    public INestRepository Nests
+    {
+        get;
+    } = nestRepository;
+    public IGymRepository Gyms
+    {
+        get;
+    } = gymRepository;
+    public IHumanRepository Humans
+    {
+        get;
+    } = humanRepository;
+    public IProfileRepository Profiles
+    {
+        get;
+    } = profileRepository;
+    public IPwebSettingRepository PwebSettings
+    {
+        get;
+    } = pwebSettingRepository;
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => await this._context.SaveChangesAsync(cancellationToken);
 
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
         GC.SuppressFinalize(this);
     }
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!_disposed)
+        if (!this._disposed)
         {
             if (disposing)
             {
-                _context.Dispose();
+                this._context.Dispose();
             }
-            _disposed = true;
+            this._disposed = true;
         }
     }
 }

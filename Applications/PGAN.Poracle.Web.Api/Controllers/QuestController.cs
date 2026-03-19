@@ -6,73 +6,84 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/quests")]
-public class QuestController : BaseApiController
+public class QuestController(IQuestService questService, IMapper mapper) : BaseApiController
 {
-    private readonly IQuestService _questService;
-    private readonly IMapper _mapper;
-
-    public QuestController(IQuestService questService, IMapper mapper)
-    {
-        _questService = questService;
-        _mapper = mapper;
-    }
+    private readonly IQuestService _questService = questService;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var quests = await _questService.GetByUserAsync(UserId, ProfileNo);
-        return Ok(quests);
+        var quests = await this._questService.GetByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(quests);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var quest = await _questService.GetByUidAsync(uid);
+        var quest = await this._questService.GetByUidAsync(uid);
         if (quest == null)
-            return NotFound();
-        return Ok(quest);
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(quest);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] QuestCreate model)
     {
-        var quest = _mapper.Map<Quest>(model);
-        var result = await _questService.CreateAsync(UserId, quest);
-        return CreatedAtAction(nameof(GetByUid), new { uid = result.Uid }, result);
+        var quest = this._mapper.Map<Quest>(model);
+        var result = await this._questService.CreateAsync(this.UserId, quest);
+        return this.CreatedAtAction(nameof(GetByUid), new
+        {
+            uid = result.Uid
+        }, result);
     }
 
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] QuestUpdate model)
     {
-        var existing = await _questService.GetByUidAsync(uid);
+        var existing = await this._questService.GetByUidAsync(uid);
         if (existing == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        _mapper.Map(model, existing);
-        var result = await _questService.UpdateAsync(existing);
-        return Ok(result);
+        this._mapper.Map(model, existing);
+        var result = await this._questService.UpdateAsync(existing);
+        return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await _questService.DeleteAsync(uid);
+        var success = await this._questService.DeleteAsync(uid);
         if (!success)
-            return NotFound();
-        return NoContent();
+        {
+            return this.NotFound();
+        }
+
+        return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await _questService.DeleteAllByUserAsync(UserId, ProfileNo);
-        return Ok(new { deleted = count });
+        var count = await this._questService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(new
+        {
+            deleted = count
+        });
     }
 
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
-        var count = await _questService.UpdateDistanceByUserAsync(UserId, ProfileNo, distance);
-        return Ok(new { updated = count });
+        var count = await this._questService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 }

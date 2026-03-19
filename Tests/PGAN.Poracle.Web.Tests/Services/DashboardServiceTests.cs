@@ -16,32 +16,29 @@ public class DashboardServiceTests
     private readonly Mock<IGymRepository> _gymRepo = new();
     private readonly DashboardService _sut;
 
-    public DashboardServiceTests()
-    {
-        _sut = new DashboardService(
-            _monsterRepo.Object,
-            _raidRepo.Object,
-            _eggRepo.Object,
-            _questRepo.Object,
-            _invasionRepo.Object,
-            _lureRepo.Object,
-            _nestRepo.Object,
-            _gymRepo.Object);
-    }
+    public DashboardServiceTests() => this._sut = new DashboardService(
+            this._monsterRepo.Object,
+            this._raidRepo.Object,
+            this._eggRepo.Object,
+            this._questRepo.Object,
+            this._invasionRepo.Object,
+            this._lureRepo.Object,
+            this._nestRepo.Object,
+            this._gymRepo.Object);
 
     [Fact]
-    public async Task GetCountsAsync_ReturnsAllCounts()
+    public async Task GetCountsAsyncReturnsAllCounts()
     {
-        _monsterRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(10);
-        _raidRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(5);
-        _eggRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(3);
-        _questRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(7);
-        _invasionRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(2);
-        _lureRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(4);
-        _nestRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(1);
-        _gymRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(6);
+        this._monsterRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(10);
+        this._raidRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(5);
+        this._eggRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(3);
+        this._questRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(7);
+        this._invasionRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(2);
+        this._lureRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(4);
+        this._nestRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(1);
+        this._gymRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(6);
 
-        var result = await _sut.GetCountsAsync("u1", 1);
+        var result = await this._sut.GetCountsAsync("u1", 1);
 
         Assert.Equal(10, result.Monsters);
         Assert.Equal(5, result.Raids);
@@ -54,47 +51,47 @@ public class DashboardServiceTests
     }
 
     [Fact]
-    public async Task GetCountsAsync_ReturnsZeroCounts_WhenNoAlarms()
+    public async Task GetCountsAsyncReturnsZeroCountsWhenNoAlarms()
     {
-        _monsterRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        _raidRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        _eggRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        _questRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        _invasionRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        _lureRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        _nestRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        _gymRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._monsterRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._raidRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._eggRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._questRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._invasionRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._lureRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._nestRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        this._gymRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
 
-        var result = await _sut.GetCountsAsync("u1", 1);
+        var result = await this._sut.GetCountsAsync("u1", 1);
 
         Assert.Equal(0, result.Monsters);
         Assert.Equal(0, result.Raids);
     }
 
     [Fact]
-    public async Task GetCountsAsync_CallsRepositoriesSequentially()
+    public async Task GetCountsAsyncCallsRepositoriesSequentially()
     {
         // Verify sequential execution (not parallel) to avoid DbContext concurrency issues
         var callOrder = new List<string>();
 
-        _monsterRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._monsterRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("monsters")).ReturnsAsync(0);
-        _raidRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._raidRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("raids")).ReturnsAsync(0);
-        _eggRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._eggRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("eggs")).ReturnsAsync(0);
-        _questRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._questRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("quests")).ReturnsAsync(0);
-        _invasionRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._invasionRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("invasions")).ReturnsAsync(0);
-        _lureRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._lureRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("lures")).ReturnsAsync(0);
-        _nestRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._nestRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("nests")).ReturnsAsync(0);
-        _gymRepo.Setup(r => r.CountByUserAsync("u1", 1))
+        this._gymRepo.Setup(r => r.CountByUserAsync("u1", 1))
             .Callback(() => callOrder.Add("gyms")).ReturnsAsync(0);
 
-        await _sut.GetCountsAsync("u1", 1);
+        await this._sut.GetCountsAsync("u1", 1);
 
         Assert.Equal(8, callOrder.Count);
         Assert.Equal("monsters", callOrder[0]);

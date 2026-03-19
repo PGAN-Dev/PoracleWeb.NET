@@ -57,6 +57,7 @@ export class App implements OnInit {
 
   protected readonly navItems: NavItem[] = [
     { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'Dashboard', route: '/dashboard' },
+    { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'Quick Picks', route: '/quick-picks' },
     {
       countKey: 'pokemon',
       disableKey: 'disable_mons',

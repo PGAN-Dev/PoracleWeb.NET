@@ -18,14 +18,14 @@ public class PoracleMappingProfileTests
     }
 
     [Fact]
-    public void Mapper_CanBeCreated()
+    public void MapperCanBeCreated()
     {
         var mapper = CreateMapper();
         Assert.NotNull(mapper);
     }
 
     [Fact]
-    public void MonsterEntity_MapsTo_Monster()
+    public void MonsterEntityMapsToMonster()
     {
         var mapper = CreateMapper();
         var entity = new MonsterEntity { Uid = 1, PokemonId = 25, Id = "user1" };
@@ -36,7 +36,7 @@ public class PoracleMappingProfileTests
     }
 
     [Fact]
-    public void Monster_MapsTo_MonsterEntity()
+    public void MonsterMapsToMonsterEntity()
     {
         var mapper = CreateMapper();
         var model = new Monster { Uid = 1, PokemonId = 150, Id = "user1", Ping = "test" };
@@ -46,7 +46,7 @@ public class PoracleMappingProfileTests
     }
 
     [Fact]
-    public void MonsterCreate_MapsTo_Monster()
+    public void MonsterCreateMapsToMonster()
     {
         var mapper = CreateMapper();
         var create = new MonsterCreate();
@@ -55,7 +55,7 @@ public class PoracleMappingProfileTests
     }
 
     [Fact]
-    public void HumanEntity_MapsTo_Human()
+    public void HumanEntityMapsToHuman()
     {
         var mapper = CreateMapper();
         var entity = new HumanEntity { Id = "user1", Name = "TestUser", Enabled = 1, CurrentProfileNo = 2 };
@@ -67,18 +67,18 @@ public class PoracleMappingProfileTests
     }
 
     [Fact]
-    public void ProfileEntity_MapsTo_Profile()
+    public void ProfileEntityMapsToProfile()
     {
         var mapper = CreateMapper();
         var entity = new ProfileEntity { Id = "user1", ProfileNo = 3, Name = "PvP" };
-        var model = mapper.Map<PGAN.Poracle.Web.Core.Models.Profile>(entity);
+        var model = mapper.Map<Core.Models.Profile>(entity);
         Assert.Equal("user1", model.Id);
         Assert.Equal(3, model.ProfileNo);
         Assert.Equal("PvP", model.Name);
     }
 
     [Fact]
-    public void PwebSettingEntity_MapsTo_PwebSetting()
+    public void PwebSettingEntityMapsToPwebSetting()
     {
         var mapper = CreateMapper();
         var entity = new PwebSettingEntity { Setting = "key", Value = "val" };

@@ -320,3 +320,37 @@ export interface PwebSetting {
   setting: string;
   value: string | null;
 }
+
+// ─── Quick Picks ──────────────────────────────────────────────────────────────
+
+export interface QuickPickDefinition {
+  alarmType: string;
+  category: string;
+  description: string;
+  enabled: boolean;
+  filters: Record<string, unknown>;
+  icon: string;
+  id: string;
+  name: string;
+  scope: string;
+  sortOrder: number;
+}
+
+export interface QuickPickAppliedState {
+  appliedAt: string;
+  excludePokemonIds: number[];
+  quickPickId: string;
+  trackedUids: number[];
+}
+
+export interface QuickPickApplyRequest {
+  clean?: number;
+  distance?: number;
+  excludePokemonIds?: number[];
+  template?: string;
+}
+
+export interface QuickPickSummary {
+  appliedState: QuickPickAppliedState | null;
+  definition: QuickPickDefinition;
+}

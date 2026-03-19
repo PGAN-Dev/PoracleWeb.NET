@@ -10,66 +10,74 @@ public class ProfileServiceTests
     private readonly Mock<IProfileRepository> _repository = new();
     private readonly ProfileService _sut;
 
-    public ProfileServiceTests() => _sut = new ProfileService(_repository.Object);
+    public ProfileServiceTests() => this._sut = new ProfileService(this._repository.Object);
 
     [Fact]
-    public async Task GetByUserAsync_ReturnsProfiles()
+    public async Task GetByUserAsyncReturnsProfiles()
     {
-        _repository.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync(new List<Profile>
+        this._repository.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync(new List<Profile>
         {
             new() { Id = "u1", ProfileNo = 1, Name = "Default" },
             new() { Id = "u1", ProfileNo = 2, Name = "PvP" }
         });
 
-        var result = (await _sut.GetByUserAsync("u1")).ToList();
+        var result = (await this._sut.GetByUserAsync("u1")).ToList();
 
         Assert.Equal(2, result.Count);
         Assert.Equal("Default", result[0].Name);
     }
 
     [Fact]
-    public async Task GetByUserAndProfileNoAsync_ReturnsProfile()
+    public async Task GetByUserAndProfileNoAsyncReturnsProfile()
     {
-        _repository.Setup(r => r.GetByUserAndProfileNoAsync("u1", 1))
+        this._repository.Setup(r => r.GetByUserAndProfileNoAsync("u1", 1))
             .ReturnsAsync(new Profile { Id = "u1", ProfileNo = 1, Name = "Default" });
 
-        var result = await _sut.GetByUserAndProfileNoAsync("u1", 1);
+        var result = await this._sut.GetByUserAndProfileNoAsync("u1", 1);
 
         Assert.NotNull(result);
         Assert.Equal("Default", result!.Name);
     }
 
     [Fact]
-    public async Task GetByUserAndProfileNoAsync_ReturnsNull_WhenNotFound()
+    public async Task GetByUserAndProfileNoAsyncReturnsNullWhenNotFound()
     {
-        _repository.Setup(r => r.GetByUserAndProfileNoAsync("u1", 99)).ReturnsAsync((Profile?)null);
-        Assert.Null(await _sut.GetByUserAndProfileNoAsync("u1", 99));
+        this._repository.Setup(r => r.GetByUserAndProfileNoAsync("u1", 99)).ReturnsAsync((Profile?)null);
+        Assert.Null(await this._sut.GetByUserAndProfileNoAsync("u1", 99));
     }
 
     [Fact]
-    public async Task CreateAsync_Delegates()
+    public async Task CreateAsyncDelegates()
     {
         var profile = new Profile { Id = "u1", ProfileNo = 3, Name = "New" };
-        _repository.Setup(r => r.CreateAsync(profile)).ReturnsAsync(profile);
+        this._repository.Setup(r => r.CreateAsync(profile)).ReturnsAsync(profile);
 
-        var result = await _sut.CreateAsync(profile);
+        var result = await this._sut.CreateAsync(profile);
 
         Assert.Equal("New", result.Name);
-        _repository.Verify(r => r.CreateAsync(profile), Times.Once);
+        this._repository.Verify(r => r.CreateAsync(profile), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateAsync_Delegates()
+    public async Task UpdateAsyncDelegates()
     {
         var profile = new Profile { Id = "u1", ProfileNo = 1, Name = "Updated" };
-        _repository.Setup(r => r.UpdateAsync(profile)).ReturnsAsync(profile);
-        await _sut.UpdateAsync(profile);
-        _repository.Verify(r => r.UpdateAsync(profile), Times.Once);
+        this._repository.Setup(r => r.UpdateAsync(profile)).ReturnsAsync(profile);
+        await this._sut.UpdateAsync(profile);
+        this._repository.Verify(r => r.UpdateAsync(profile), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsTrue() { _repository.Setup(r => r.DeleteAsync("u1", 2)).ReturnsAsync(true); Assert.True(await _sut.DeleteAsync("u1", 2)); }
+    public async Task DeleteAsyncReturnsTrue()
+    {
+        this._repository.Setup(r => r.DeleteAsync("u1", 2)).ReturnsAsync(true);
+        Assert.True(await this._sut.DeleteAsync("u1", 2));
+    }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsFalse() { _repository.Setup(r => r.DeleteAsync("u1", 99)).ReturnsAsync(false); Assert.False(await _sut.DeleteAsync("u1", 99)); }
+    public async Task DeleteAsyncReturnsFalse()
+    {
+        this._repository.Setup(r => r.DeleteAsync("u1", 99)).ReturnsAsync(false);
+        Assert.False(await this._sut.DeleteAsync("u1", 99));
+    }
 }

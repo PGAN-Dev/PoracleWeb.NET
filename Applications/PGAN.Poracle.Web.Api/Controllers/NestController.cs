@@ -6,73 +6,84 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/nests")]
-public class NestController : BaseApiController
+public class NestController(INestService nestService, IMapper mapper) : BaseApiController
 {
-    private readonly INestService _nestService;
-    private readonly IMapper _mapper;
-
-    public NestController(INestService nestService, IMapper mapper)
-    {
-        _nestService = nestService;
-        _mapper = mapper;
-    }
+    private readonly INestService _nestService = nestService;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var nests = await _nestService.GetByUserAsync(UserId, ProfileNo);
-        return Ok(nests);
+        var nests = await this._nestService.GetByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(nests);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var nest = await _nestService.GetByUidAsync(uid);
+        var nest = await this._nestService.GetByUidAsync(uid);
         if (nest == null)
-            return NotFound();
-        return Ok(nest);
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(nest);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] NestCreate model)
     {
-        var nest = _mapper.Map<Nest>(model);
-        var result = await _nestService.CreateAsync(UserId, nest);
-        return CreatedAtAction(nameof(GetByUid), new { uid = result.Uid }, result);
+        var nest = this._mapper.Map<Nest>(model);
+        var result = await this._nestService.CreateAsync(this.UserId, nest);
+        return this.CreatedAtAction(nameof(GetByUid), new
+        {
+            uid = result.Uid
+        }, result);
     }
 
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] NestUpdate model)
     {
-        var existing = await _nestService.GetByUidAsync(uid);
+        var existing = await this._nestService.GetByUidAsync(uid);
         if (existing == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        _mapper.Map(model, existing);
-        var result = await _nestService.UpdateAsync(existing);
-        return Ok(result);
+        this._mapper.Map(model, existing);
+        var result = await this._nestService.UpdateAsync(existing);
+        return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await _nestService.DeleteAsync(uid);
+        var success = await this._nestService.DeleteAsync(uid);
         if (!success)
-            return NotFound();
-        return NoContent();
+        {
+            return this.NotFound();
+        }
+
+        return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await _nestService.DeleteAllByUserAsync(UserId, ProfileNo);
-        return Ok(new { deleted = count });
+        var count = await this._nestService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(new
+        {
+            deleted = count
+        });
     }
 
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
-        var count = await _nestService.UpdateDistanceByUserAsync(UserId, ProfileNo, distance);
-        return Ok(new { updated = count });
+        var count = await this._nestService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 }

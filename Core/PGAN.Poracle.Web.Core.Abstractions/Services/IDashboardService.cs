@@ -4,5 +4,5 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IDashboardService
 {
-    Task<DashboardCounts> GetCountsAsync(string userId, int profileNo);
+    public Task<DashboardCounts> GetCountsAsync(string userId, int profileNo);
 }

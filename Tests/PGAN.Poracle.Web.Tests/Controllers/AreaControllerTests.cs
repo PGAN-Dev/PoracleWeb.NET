@@ -16,25 +16,25 @@ public class AreaControllerTests : ControllerTestBase
 
     public AreaControllerTests()
     {
-        _sut = new AreaController(_humanService.Object, _proxy.Object, _logger.Object);
-        SetupUser(_sut);
+        this._sut = new AreaController(this._humanService.Object, this._proxy.Object, this._logger.Object);
+        SetupUser(this._sut);
     }
 
     // --- GetSelectedAreas ---
 
     [Fact]
-    public async Task GetSelectedAreas_ReturnsNotFound_WhenHumanMissing()
+    public async Task GetSelectedAreasReturnsNotFoundWhenHumanMissing()
     {
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.GetSelectedAreas());
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.GetSelectedAreas());
     }
 
     [Fact]
-    public async Task GetSelectedAreas_ReturnsEmptyArray_WhenAreaIsNull()
+    public async Task GetSelectedAreasReturnsEmptyArrayWhenAreaIsNull()
     {
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(new Human { Id = "123456789", Area = null });
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(new Human { Id = "123456789", Area = null });
 
-        var result = await _sut.GetSelectedAreas();
+        var result = await this._sut.GetSelectedAreas();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var areas = Assert.IsType<string[]>(ok.Value);
@@ -42,22 +42,22 @@ public class AreaControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetSelectedAreas_ReturnsEmptyArray_WhenAreaIsWhitespace()
+    public async Task GetSelectedAreasReturnsEmptyArrayWhenAreaIsWhitespace()
     {
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(new Human { Id = "123456789", Area = "   " });
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(new Human { Id = "123456789", Area = "   " });
 
-        var result = await _sut.GetSelectedAreas();
+        var result = await this._sut.GetSelectedAreas();
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Empty(Assert.IsType<string[]>(ok.Value));
     }
 
     [Fact]
-    public async Task GetSelectedAreas_ParsesJsonArray()
+    public async Task GetSelectedAreasParsesJsonArray()
     {
-        _humanService.Setup(s => s.GetByIdAsync("123456789"))
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
             .ReturnsAsync(new Human { Id = "123456789", Area = "[\"west end\",\"downtown\"]" });
 
-        var result = await _sut.GetSelectedAreas();
+        var result = await this._sut.GetSelectedAreas();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var areas = Assert.IsType<string[]>(ok.Value);
@@ -67,12 +67,12 @@ public class AreaControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetSelectedAreas_FallsBackToCommaSeparated_WhenJsonInvalid()
+    public async Task GetSelectedAreasFallsBackToCommaSeparatedWhenJsonInvalid()
     {
-        _humanService.Setup(s => s.GetByIdAsync("123456789"))
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
             .ReturnsAsync(new Human { Id = "123456789", Area = "west end,downtown" });
 
-        var result = await _sut.GetSelectedAreas();
+        var result = await this._sut.GetSelectedAreas();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var areas = Assert.IsType<string[]>(ok.Value);
@@ -82,68 +82,68 @@ public class AreaControllerTests : ControllerTestBase
     // --- GetAvailableAreas ---
 
     [Fact]
-    public async Task GetAvailableAreas_ReturnsContent_WhenProxyReturnsData()
+    public async Task GetAvailableAreasReturnsContentWhenProxyReturnsData()
     {
-        _proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ReturnsAsync("[{\"name\":\"area1\"}]");
-        var result = await _sut.GetAvailableAreas();
+        this._proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ReturnsAsync(/*lang=json,strict*/ "[{\"name\":\"area1\"}]");
+        var result = await this._sut.GetAvailableAreas();
         Assert.IsType<ContentResult>(result);
     }
 
     [Fact]
-    public async Task GetAvailableAreas_ReturnsOkEmpty_WhenProxyReturnsNull()
+    public async Task GetAvailableAreasReturnsOkEmptyWhenProxyReturnsNull()
     {
-        _proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ReturnsAsync((string?)null);
-        Assert.IsType<OkObjectResult>(await _sut.GetAvailableAreas());
+        this._proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ReturnsAsync((string?)null);
+        Assert.IsType<OkObjectResult>(await this._sut.GetAvailableAreas());
     }
 
     [Fact]
-    public async Task GetAvailableAreas_ReturnsOkEmpty_WhenProxyThrows()
+    public async Task GetAvailableAreasReturnsOkEmptyWhenProxyThrows()
     {
-        _proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ThrowsAsync(new HttpRequestException());
-        Assert.IsType<OkObjectResult>(await _sut.GetAvailableAreas());
+        this._proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ThrowsAsync(new HttpRequestException());
+        Assert.IsType<OkObjectResult>(await this._sut.GetAvailableAreas());
     }
 
     // --- UpdateAreas ---
 
     [Fact]
-    public async Task UpdateAreas_ReturnsNotFound_WhenHumanMissing()
+    public async Task UpdateAreasReturnsNotFoundWhenHumanMissing()
     {
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["a"] }));
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["a"] }));
     }
 
     [Fact]
-    public async Task UpdateAreas_SetsAreasAsJsonArray()
+    public async Task UpdateAreasSetsAreasAsJsonArray()
     {
         var human = new Human { Id = "123456789" };
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        await _sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["west", "east"] });
+        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["west", "east"] });
 
         Assert.Equal("[\"west\",\"east\"]", human.Area);
     }
 
     [Fact]
-    public async Task UpdateAreas_SetsEmptyJsonArray_WhenAreasNull()
+    public async Task UpdateAreasSetsEmptyJsonArrayWhenAreasNull()
     {
         var human = new Human { Id = "123456789" };
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        await _sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = null });
+        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = null });
 
         Assert.Equal("[]", human.Area);
     }
 
     [Fact]
-    public async Task UpdateAreas_SetsEmptyJsonArray_WhenAreasEmpty()
+    public async Task UpdateAreasSetsEmptyJsonArrayWhenAreasEmpty()
     {
         var human = new Human { Id = "123456789" };
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        await _sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = [] });
+        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = [] });
 
         Assert.Equal("[]", human.Area);
     }
@@ -151,47 +151,47 @@ public class AreaControllerTests : ControllerTestBase
     // --- GetGeofencePolygons ---
 
     [Fact]
-    public async Task GetGeofencePolygons_ReturnsContent_WhenAvailable()
+    public async Task GetGeofencePolygonsReturnsContentWhenAvailable()
     {
-        _proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync("{\"geofence\":[]}");
-        Assert.IsType<ContentResult>(await _sut.GetGeofencePolygons());
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync(/*lang=json,strict*/ "{\"geofence\":[]}");
+        Assert.IsType<ContentResult>(await this._sut.GetGeofencePolygons());
     }
 
     [Fact]
-    public async Task GetGeofencePolygons_ReturnsFallback_WhenNull()
+    public async Task GetGeofencePolygonsReturnsFallbackWhenNull()
     {
-        _proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync((string?)null);
-        Assert.IsType<OkObjectResult>(await _sut.GetGeofencePolygons());
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ReturnsAsync((string?)null);
+        Assert.IsType<OkObjectResult>(await this._sut.GetGeofencePolygons());
     }
 
     [Fact]
-    public async Task GetGeofencePolygons_ReturnsFallback_WhenThrows()
+    public async Task GetGeofencePolygonsReturnsFallbackWhenThrows()
     {
-        _proxy.Setup(p => p.GetAllGeofenceDataAsync()).ThrowsAsync(new Exception());
-        Assert.IsType<OkObjectResult>(await _sut.GetGeofencePolygons());
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ThrowsAsync(new Exception());
+        Assert.IsType<OkObjectResult>(await this._sut.GetGeofencePolygons());
     }
 
     // --- GetAreaMap ---
 
     [Fact]
-    public async Task GetAreaMap_ReturnsOk_WhenMapUrlAvailable()
+    public async Task GetAreaMapReturnsOkWhenMapUrlAvailable()
     {
-        _proxy.Setup(p => p.GetAreaMapUrlAsync("downtown")).ReturnsAsync("https://example.com/map.png");
-        var result = await _sut.GetAreaMap("downtown");
+        this._proxy.Setup(p => p.GetAreaMapUrlAsync("downtown")).ReturnsAsync("https://example.com/map.png");
+        var result = await this._sut.GetAreaMap("downtown");
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetAreaMap_ReturnsNotFound_WhenNull()
+    public async Task GetAreaMapReturnsNotFoundWhenNull()
     {
-        _proxy.Setup(p => p.GetAreaMapUrlAsync(It.IsAny<string>())).ReturnsAsync((string?)null);
-        Assert.IsType<NotFoundResult>(await _sut.GetAreaMap("unknown"));
+        this._proxy.Setup(p => p.GetAreaMapUrlAsync(It.IsAny<string>())).ReturnsAsync((string?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.GetAreaMap("unknown"));
     }
 
     [Fact]
-    public async Task GetAreaMap_ReturnsNotFound_WhenThrows()
+    public async Task GetAreaMapReturnsNotFoundWhenThrows()
     {
-        _proxy.Setup(p => p.GetAreaMapUrlAsync(It.IsAny<string>())).ThrowsAsync(new Exception());
-        Assert.IsType<NotFoundResult>(await _sut.GetAreaMap("bad"));
+        this._proxy.Setup(p => p.GetAreaMapUrlAsync(It.IsAny<string>())).ThrowsAsync(new Exception());
+        Assert.IsType<NotFoundResult>(await this._sut.GetAreaMap("bad"));
     }
 }

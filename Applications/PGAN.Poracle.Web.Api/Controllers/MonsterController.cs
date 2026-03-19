@@ -6,73 +6,84 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/monsters")]
-public class MonsterController : BaseApiController
+public class MonsterController(IMonsterService monsterService, IMapper mapper) : BaseApiController
 {
-    private readonly IMonsterService _monsterService;
-    private readonly IMapper _mapper;
-
-    public MonsterController(IMonsterService monsterService, IMapper mapper)
-    {
-        _monsterService = monsterService;
-        _mapper = mapper;
-    }
+    private readonly IMonsterService _monsterService = monsterService;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var monsters = await _monsterService.GetByUserAsync(UserId, ProfileNo);
-        return Ok(monsters);
+        var monsters = await this._monsterService.GetByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(monsters);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var monster = await _monsterService.GetByUidAsync(uid);
+        var monster = await this._monsterService.GetByUidAsync(uid);
         if (monster == null)
-            return NotFound();
-        return Ok(monster);
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(monster);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] MonsterCreate model)
     {
-        var monster = _mapper.Map<Monster>(model);
-        var result = await _monsterService.CreateAsync(UserId, monster);
-        return CreatedAtAction(nameof(GetByUid), new { uid = result.Uid }, result);
+        var monster = this._mapper.Map<Monster>(model);
+        var result = await this._monsterService.CreateAsync(this.UserId, monster);
+        return this.CreatedAtAction(nameof(GetByUid), new
+        {
+            uid = result.Uid
+        }, result);
     }
 
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] MonsterUpdate model)
     {
-        var existing = await _monsterService.GetByUidAsync(uid);
+        var existing = await this._monsterService.GetByUidAsync(uid);
         if (existing == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        _mapper.Map(model, existing);
-        var result = await _monsterService.UpdateAsync(existing);
-        return Ok(result);
+        this._mapper.Map(model, existing);
+        var result = await this._monsterService.UpdateAsync(existing);
+        return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await _monsterService.DeleteAsync(uid);
+        var success = await this._monsterService.DeleteAsync(uid);
         if (!success)
-            return NotFound();
-        return NoContent();
+        {
+            return this.NotFound();
+        }
+
+        return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await _monsterService.DeleteAllByUserAsync(UserId, ProfileNo);
-        return Ok(new { deleted = count });
+        var count = await this._monsterService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(new
+        {
+            deleted = count
+        });
     }
 
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
-        var count = await _monsterService.UpdateDistanceByUserAsync(UserId, ProfileNo, distance);
-        return Ok(new { updated = count });
+        var count = await this._monsterService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 }

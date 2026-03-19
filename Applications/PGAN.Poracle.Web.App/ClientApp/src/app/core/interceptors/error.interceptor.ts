@@ -12,9 +12,11 @@ function shouldSilence(url: string): boolean {
   return SILENT_URL_PATTERNS.some(pattern => url.includes(pattern));
 }
 
-/** Routes where 401s should NOT trigger a redirect to /login (e.g. OAuth callback). */
+/** Routes where 401s should NOT trigger a redirect to /login (e.g. OAuth callback, login page itself). */
 function isAuthCallbackRoute(): boolean {
-  return window.location.pathname.includes('/auth/') || window.location.hash.includes('token=');
+  return (
+    window.location.pathname.includes('/auth/') || window.location.hash.includes('token=') || window.location.pathname.endsWith('/login')
+  );
 }
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
@@ -25,10 +27,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError(error => {
       const silent = shouldSilence(req.url);
 
-      // On 401, clear token and redirect — but NOT during OAuth callback flow
+      // On 401, clear token and redirect — but NOT during OAuth callback flow or login page
       if (error.status === 401 && !isAuthCallbackRoute()) {
         localStorage.removeItem('poracle_token');
-        router.navigate(['/login']);
+        // Preserve any existing query params (e.g. ?error=missing_required_role)
+        const params = new URLSearchParams(window.location.search);
+        router.navigate(['/login'], { queryParams: Object.fromEntries(params) });
       }
 
       // Don't show toasts for silent endpoints

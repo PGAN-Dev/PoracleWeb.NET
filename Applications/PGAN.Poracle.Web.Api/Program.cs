@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
-using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PGAN.Poracle.Web.Api.Configuration;
 
@@ -13,19 +13,27 @@ var builder = WebApplication.CreateBuilder(args);
 // Startup config validation — fail fast if critical settings are missing
 var poracleDb = builder.Configuration.GetConnectionString("PoracleDb");
 if (string.IsNullOrWhiteSpace(poracleDb))
+{
     throw new InvalidOperationException("Configuration 'ConnectionStrings:PoracleDb' is required but was not provided.");
+}
 
 var jwtSecret = builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+{
     throw new InvalidOperationException("Configuration 'Jwt:Secret' is required and must be at least 32 characters.");
+}
 
 var discordClientId = builder.Configuration["Discord:ClientId"];
 if (string.IsNullOrWhiteSpace(discordClientId))
+{
     throw new InvalidOperationException("Configuration 'Discord:ClientId' is required but was not provided.");
+}
 
 var discordClientSecret = builder.Configuration["Discord:ClientSecret"];
 if (string.IsNullOrWhiteSpace(discordClientSecret))
+{
     throw new InvalidOperationException("Configuration 'Discord:ClientSecret' is required but was not provided.");
+}
 
 // Add controllers
 builder.Services.AddControllers();
@@ -44,18 +52,15 @@ builder.Services.AddAuthentication(options =>
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
+.AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
 {
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings.Issuer,
-        ValidAudience = jwtSettings.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
-    };
+    ValidateIssuer = true,
+    ValidateAudience = true,
+    ValidateLifetime = true,
+    ValidateIssuerSigningKey = true,
+    ValidIssuer = jwtSettings.Issuer,
+    ValidAudience = jwtSettings.Audience,
+    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret))
 });
 
 builder.Services.AddAuthorization();
@@ -71,20 +76,28 @@ builder.Services.AddRateLimiter(options =>
         limiterOptions.QueueLimit = 0;
         limiterOptions.AutoReplenishment = true;
     });
+    options.AddFixedWindowLimiter("auth-read", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 60;
+        limiterOptions.Window = TimeSpan.FromSeconds(60);
+        limiterOptions.QueueLimit = 0;
+        limiterOptions.AutoReplenishment = true;
+    });
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.ContentType = "application/json";
         await context.HttpContext.Response.WriteAsync(
-            JsonSerializer.Serialize(new { error = "Too many requests. Please try again later." }),
+            JsonSerializer.Serialize(new
+            {
+                error = "Too many requests. Please try again later."
+            }),
             cancellationToken);
     };
 });
 
 // CORS
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     {
         if (allowedOrigins is { Length: > 0 })
         {
@@ -98,18 +111,32 @@ builder.Services.AddCors(options =>
         policy.AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
-    });
-});
+    }));
 
 // OpenAPI
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Global exception handling
-app.UseExceptionHandler(errorApp =>
+// Ensure pweb_settings.value can hold JSON blobs (quick pick definitions/applied states)
+using (var scope = app.Services.CreateScope())
 {
-    errorApp.Run(async context =>
+    var db = scope.ServiceProvider.GetRequiredService<PGAN.Poracle.Web.Data.PoracleContext>();
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE pweb_settings MODIFY COLUMN `value` LONGTEXT NULL");
+    }
+    catch (Exception ex)
+    {
+        var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Startup");
+        startupLogger.LogWarning(ex, "Could not alter pweb_settings.value column (may already be LONGTEXT).");
+    }
+}
+
+// Global exception handling
+app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
     {
         var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
             .CreateLogger("GlobalExceptionHandler");
@@ -122,9 +149,11 @@ app.UseExceptionHandler(errorApp =>
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsync(
-            JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
-    });
-});
+            JsonSerializer.Serialize(new
+            {
+                error = "An unexpected error occurred."
+            }));
+    }));
 
 // Support reverse proxies (X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host)
 var forwardedHeadersOptions = new ForwardedHeadersOptions

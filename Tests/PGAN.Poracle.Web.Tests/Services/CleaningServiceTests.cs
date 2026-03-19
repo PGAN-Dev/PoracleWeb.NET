@@ -20,70 +20,70 @@ public class CleaningServiceTests
 
     public CleaningServiceTests()
     {
-        _unitOfWork.Setup(u => u.Monsters).Returns(_monsterRepo.Object);
-        _unitOfWork.Setup(u => u.Raids).Returns(_raidRepo.Object);
-        _unitOfWork.Setup(u => u.Eggs).Returns(_eggRepo.Object);
-        _unitOfWork.Setup(u => u.Quests).Returns(_questRepo.Object);
-        _unitOfWork.Setup(u => u.Invasions).Returns(_invasionRepo.Object);
-        _unitOfWork.Setup(u => u.Lures).Returns(_lureRepo.Object);
-        _unitOfWork.Setup(u => u.Nests).Returns(_nestRepo.Object);
-        _unitOfWork.Setup(u => u.Gyms).Returns(_gymRepo.Object);
-        _sut = new CleaningService(_unitOfWork.Object);
+        this._unitOfWork.Setup(u => u.Monsters).Returns(this._monsterRepo.Object);
+        this._unitOfWork.Setup(u => u.Raids).Returns(this._raidRepo.Object);
+        this._unitOfWork.Setup(u => u.Eggs).Returns(this._eggRepo.Object);
+        this._unitOfWork.Setup(u => u.Quests).Returns(this._questRepo.Object);
+        this._unitOfWork.Setup(u => u.Invasions).Returns(this._invasionRepo.Object);
+        this._unitOfWork.Setup(u => u.Lures).Returns(this._lureRepo.Object);
+        this._unitOfWork.Setup(u => u.Nests).Returns(this._nestRepo.Object);
+        this._unitOfWork.Setup(u => u.Gyms).Returns(this._gymRepo.Object);
+        this._sut = new CleaningService(this._unitOfWork.Object);
     }
 
     [Fact]
-    public async Task ToggleCleanMonstersAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanMonstersAsyncDelegatesToUnitOfWork()
     {
-        _monsterRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(5);
-        Assert.Equal(5, await _sut.ToggleCleanMonstersAsync("u1", 1, 1));
+        this._monsterRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(5);
+        Assert.Equal(5, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanRaidsAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanRaidsAsyncDelegatesToUnitOfWork()
     {
-        _raidRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(3);
-        Assert.Equal(3, await _sut.ToggleCleanRaidsAsync("u1", 1, 0));
+        this._raidRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(3);
+        Assert.Equal(3, await this._sut.ToggleCleanRaidsAsync("u1", 1, 0));
     }
 
     [Fact]
-    public async Task ToggleCleanEggsAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanEggsAsyncDelegatesToUnitOfWork()
     {
-        _eggRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(2);
-        Assert.Equal(2, await _sut.ToggleCleanEggsAsync("u1", 1, 1));
+        this._eggRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(2);
+        Assert.Equal(2, await this._sut.ToggleCleanEggsAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanQuestsAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanQuestsAsyncDelegatesToUnitOfWork()
     {
-        _questRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(4);
-        Assert.Equal(4, await _sut.ToggleCleanQuestsAsync("u1", 1, 1));
+        this._questRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(4);
+        Assert.Equal(4, await this._sut.ToggleCleanQuestsAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanInvasionsAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanInvasionsAsyncDelegatesToUnitOfWork()
     {
-        _invasionRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(6);
-        Assert.Equal(6, await _sut.ToggleCleanInvasionsAsync("u1", 1, 0));
+        this._invasionRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(6);
+        Assert.Equal(6, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 0));
     }
 
     [Fact]
-    public async Task ToggleCleanLuresAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanLuresAsyncDelegatesToUnitOfWork()
     {
-        _lureRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(1);
-        Assert.Equal(1, await _sut.ToggleCleanLuresAsync("u1", 1, 1));
+        this._lureRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(1);
+        Assert.Equal(1, await this._sut.ToggleCleanLuresAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanNestsAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanNestsAsyncDelegatesToUnitOfWork()
     {
-        _nestRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(8);
-        Assert.Equal(8, await _sut.ToggleCleanNestsAsync("u1", 1, 1));
+        this._nestRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(8);
+        Assert.Equal(8, await this._sut.ToggleCleanNestsAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanGymsAsync_DelegatesToUnitOfWork()
+    public async Task ToggleCleanGymsAsyncDelegatesToUnitOfWork()
     {
-        _gymRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(9);
-        Assert.Equal(9, await _sut.ToggleCleanGymsAsync("u1", 1, 0));
+        this._gymRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(9);
+        Assert.Equal(9, await this._sut.ToggleCleanGymsAsync("u1", 1, 0));
     }
 }

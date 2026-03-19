@@ -8,11 +8,9 @@ using PGAN.Poracle.Web.Data.Entities;
 
 namespace PGAN.Poracle.Web.Core.Repositories;
 
-public class LureRepository : BaseRepository<LureEntity, Lure>, ILureRepository
+public class LureRepository(PoracleContext context, IMapper mapper) : BaseRepository<LureEntity, Lure>(context, mapper), ILureRepository
 {
-    public LureRepository(PoracleContext context, IMapper mapper) : base(context, mapper) { }
-
-    protected override DbSet<LureEntity> DbSet => Context.Lures;
+    protected override DbSet<LureEntity> DbSet => this.Context.Lures;
     protected override Expression<Func<LureEntity, bool>> UserProfileFilter(string userId, int profileNo)
         => l => l.Id == userId && l.ProfileNo == profileNo;
     protected override Expression<Func<LureEntity, bool>> UidFilter(int uid)

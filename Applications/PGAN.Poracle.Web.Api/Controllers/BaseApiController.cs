@@ -9,10 +9,10 @@ namespace PGAN.Poracle.Web.Api.Controllers;
 [Authorize]
 public abstract class BaseApiController : ControllerBase
 {
-    protected string UserId => User.FindFirstValue("userId") ?? throw new UnauthorizedAccessException();
-    protected int ProfileNo => int.Parse(User.FindFirstValue("profileNo") ?? "1");
-    protected bool IsAdmin => User.FindFirstValue("isAdmin") == "true";
-    protected string Username => User.FindFirstValue("username") ?? string.Empty;
-    protected string[] ManagedWebhooks => User.FindFirstValue("managedWebhooks")
+    protected string UserId => this.User.FindFirstValue("userId") ?? throw new UnauthorizedAccessException();
+    protected int ProfileNo => int.Parse(this.User.FindFirstValue("profileNo") ?? "1");
+    protected bool IsAdmin => this.User.FindFirstValue("isAdmin") == "true";
+    protected string Username => this.User.FindFirstValue("username") ?? string.Empty;
+    protected string[] ManagedWebhooks => this.User.FindFirstValue("managedWebhooks")
         ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
 }

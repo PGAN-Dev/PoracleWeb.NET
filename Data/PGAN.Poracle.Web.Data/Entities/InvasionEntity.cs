@@ -9,7 +9,10 @@ public class InvasionEntity
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Column("uid")]
-    public int Uid { get; set; }
+    public int Uid
+    {
+        get; set;
+    }
 
     [Column("id")]
     public string Id { get; set; } = null!;
@@ -18,23 +21,41 @@ public class InvasionEntity
     public string Ping { get; set; } = string.Empty;
 
     [Column("distance")]
-    public int Distance { get; set; }
+    public int Distance
+    {
+        get; set;
+    }
 
     [Column("gender")]
-    public int Gender { get; set; }
+    public int Gender
+    {
+        get; set;
+    }
 
     [Column("grunt_type")]
-    public string? GruntType { get; set; }
+    public string? GruntType
+    {
+        get; set;
+    }
 
     [Column("clean")]
-    public int Clean { get; set; }
+    public int Clean
+    {
+        get; set;
+    }
 
     [Column("template")]
-    public string? Template { get; set; }
+    public string? Template
+    {
+        get; set;
+    }
 
     [Column("profile_no")]
     public int ProfileNo { get; set; } = 1;
 
     [ForeignKey("Id")]
-    public HumanEntity? Human { get; set; }
+    public HumanEntity? Human
+    {
+        get; set;
+    }
 }

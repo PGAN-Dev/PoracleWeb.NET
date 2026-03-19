@@ -4,50 +4,36 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class DashboardService : IDashboardService
+public class DashboardService(
+    IMonsterRepository monsterRepository,
+    IRaidRepository raidRepository,
+    IEggRepository eggRepository,
+    IQuestRepository questRepository,
+    IInvasionRepository invasionRepository,
+    ILureRepository lureRepository,
+    INestRepository nestRepository,
+    IGymRepository gymRepository) : IDashboardService
 {
-    private readonly IMonsterRepository _monsterRepository;
-    private readonly IRaidRepository _raidRepository;
-    private readonly IEggRepository _eggRepository;
-    private readonly IQuestRepository _questRepository;
-    private readonly IInvasionRepository _invasionRepository;
-    private readonly ILureRepository _lureRepository;
-    private readonly INestRepository _nestRepository;
-    private readonly IGymRepository _gymRepository;
+    private readonly IMonsterRepository _monsterRepository = monsterRepository;
+    private readonly IRaidRepository _raidRepository = raidRepository;
+    private readonly IEggRepository _eggRepository = eggRepository;
+    private readonly IQuestRepository _questRepository = questRepository;
+    private readonly IInvasionRepository _invasionRepository = invasionRepository;
+    private readonly ILureRepository _lureRepository = lureRepository;
+    private readonly INestRepository _nestRepository = nestRepository;
+    private readonly IGymRepository _gymRepository = gymRepository;
 
-    public DashboardService(
-        IMonsterRepository monsterRepository,
-        IRaidRepository raidRepository,
-        IEggRepository eggRepository,
-        IQuestRepository questRepository,
-        IInvasionRepository invasionRepository,
-        ILureRepository lureRepository,
-        INestRepository nestRepository,
-        IGymRepository gymRepository)
-    {
-        _monsterRepository = monsterRepository;
-        _raidRepository = raidRepository;
-        _eggRepository = eggRepository;
-        _questRepository = questRepository;
-        _invasionRepository = invasionRepository;
-        _lureRepository = lureRepository;
-        _nestRepository = nestRepository;
-        _gymRepository = gymRepository;
-    }
-
-    public async Task<DashboardCounts> GetCountsAsync(string userId, int profileNo)
-    {
+    public async Task<DashboardCounts> GetCountsAsync(string userId, int profileNo) =>
         // Sequential to avoid DbContext concurrency issues (single scoped context)
-        return new DashboardCounts
+        new DashboardCounts
         {
-            Monsters = await _monsterRepository.CountByUserAsync(userId, profileNo),
-            Raids = await _raidRepository.CountByUserAsync(userId, profileNo),
-            Eggs = await _eggRepository.CountByUserAsync(userId, profileNo),
-            Quests = await _questRepository.CountByUserAsync(userId, profileNo),
-            Invasions = await _invasionRepository.CountByUserAsync(userId, profileNo),
-            Lures = await _lureRepository.CountByUserAsync(userId, profileNo),
-            Nests = await _nestRepository.CountByUserAsync(userId, profileNo),
-            Gyms = await _gymRepository.CountByUserAsync(userId, profileNo)
+            Monsters = await this._monsterRepository.CountByUserAsync(userId, profileNo),
+            Raids = await this._raidRepository.CountByUserAsync(userId, profileNo),
+            Eggs = await this._eggRepository.CountByUserAsync(userId, profileNo),
+            Quests = await this._questRepository.CountByUserAsync(userId, profileNo),
+            Invasions = await this._invasionRepository.CountByUserAsync(userId, profileNo),
+            Lures = await this._lureRepository.CountByUserAsync(userId, profileNo),
+            Nests = await this._nestRepository.CountByUserAsync(userId, profileNo),
+            Gyms = await this._gymRepository.CountByUserAsync(userId, profileNo)
         };
-    }
 }

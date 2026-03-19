@@ -4,31 +4,29 @@ using PGAN.Poracle.Web.Core.Abstractions.Services;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/cleaning")]
-public class CleaningController : BaseApiController
+public class CleaningController(ICleaningService cleaningService) : BaseApiController
 {
-    private readonly ICleaningService _cleaningService;
-
-    public CleaningController(ICleaningService cleaningService)
-    {
-        _cleaningService = cleaningService;
-    }
+    private readonly ICleaningService _cleaningService = cleaningService;
 
     [HttpPut("{alarmType}/{enabled:int}")]
     public async Task<IActionResult> ToggleClean(string alarmType, int enabled)
     {
         var count = alarmType.ToLowerInvariant() switch
         {
-            "monsters" => await _cleaningService.ToggleCleanMonstersAsync(UserId, ProfileNo, enabled),
-            "raids" => await _cleaningService.ToggleCleanRaidsAsync(UserId, ProfileNo, enabled),
-            "eggs" => await _cleaningService.ToggleCleanEggsAsync(UserId, ProfileNo, enabled),
-            "quests" => await _cleaningService.ToggleCleanQuestsAsync(UserId, ProfileNo, enabled),
-            "invasions" => await _cleaningService.ToggleCleanInvasionsAsync(UserId, ProfileNo, enabled),
-            "lures" => await _cleaningService.ToggleCleanLuresAsync(UserId, ProfileNo, enabled),
-            "nests" => await _cleaningService.ToggleCleanNestsAsync(UserId, ProfileNo, enabled),
-            "gyms" => await _cleaningService.ToggleCleanGymsAsync(UserId, ProfileNo, enabled),
+            "monsters" => await this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, enabled),
+            "raids" => await this._cleaningService.ToggleCleanRaidsAsync(this.UserId, this.ProfileNo, enabled),
+            "eggs" => await this._cleaningService.ToggleCleanEggsAsync(this.UserId, this.ProfileNo, enabled),
+            "quests" => await this._cleaningService.ToggleCleanQuestsAsync(this.UserId, this.ProfileNo, enabled),
+            "invasions" => await this._cleaningService.ToggleCleanInvasionsAsync(this.UserId, this.ProfileNo, enabled),
+            "lures" => await this._cleaningService.ToggleCleanLuresAsync(this.UserId, this.ProfileNo, enabled),
+            "nests" => await this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, enabled),
+            "gyms" => await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled),
             _ => throw new ArgumentException($"Unknown alarm type: {alarmType}")
         };
 
-        return Ok(new { updated = count });
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 }

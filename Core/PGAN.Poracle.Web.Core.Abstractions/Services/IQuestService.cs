@@ -4,12 +4,13 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IQuestService
 {
-    Task<IEnumerable<Quest>> GetByUserAsync(string userId, int profileNo);
-    Task<Quest?> GetByUidAsync(int uid);
-    Task<Quest> CreateAsync(string userId, Quest model);
-    Task<Quest> UpdateAsync(Quest model);
-    Task<bool> DeleteAsync(int uid);
-    Task<int> DeleteAllByUserAsync(string userId, int profileNo);
-    Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
-    Task<int> CountByUserAsync(string userId, int profileNo);
+    public Task<IEnumerable<Quest>> GetByUserAsync(string userId, int profileNo);
+    public Task<Quest?> GetByUidAsync(int uid);
+    public Task<Quest> CreateAsync(string userId, Quest model);
+    public Task<Quest> UpdateAsync(Quest model);
+    public Task<bool> DeleteAsync(int uid);
+    public Task<int> DeleteAllByUserAsync(string userId, int profileNo);
+    public Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
+    public Task<int> CountByUserAsync(string userId, int profileNo);
+    public Task<IEnumerable<Quest>> BulkCreateAsync(string userId, IEnumerable<Quest> models);
 }

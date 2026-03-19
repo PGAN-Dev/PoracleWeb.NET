@@ -45,8 +45,10 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Show error from query params (e.g. redirected from failed OAuth)
-    const errorCode = this.route.snapshot.queryParamMap.get('error');
+    // Show error from URL fragment (e.g. /login#error=missing_required_role)
+    const fragment = window.location.hash?.substring(1) ?? '';
+    const fragmentParams = new URLSearchParams(fragment);
+    const errorCode = fragmentParams.get('error');
     if (errorCode) {
       const messages: Record<string, string> = {
         discord_user_fetch_failed: 'Could not retrieve your Discord profile. Please try again.',
@@ -58,10 +60,13 @@ export class LoginComponent implements OnInit {
         user_not_registered: 'Your account is not registered with Poracle. Please register using the bot first.',
       };
       this.error.set(messages[errorCode] || `Login failed: ${errorCode}`);
+      // Clear any stale token without navigating (logout() would redirect away)
+      localStorage.removeItem('poracle_token');
+      localStorage.removeItem('poracle_admin_token');
     }
 
-    // If already logged in, redirect
-    if (this.auth.isLoggedIn()) {
+    // If already logged in and no error, redirect
+    if (!errorCode && this.auth.isLoggedIn()) {
       this.router.navigate(['/dashboard']);
       return;
     }

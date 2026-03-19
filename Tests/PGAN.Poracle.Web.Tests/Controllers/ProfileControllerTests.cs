@@ -14,86 +14,94 @@ public class ProfileControllerTests : ControllerTestBase
 
     public ProfileControllerTests()
     {
-        _sut = new ProfileController(_profileService.Object, _humanService.Object);
-        SetupUser(_sut);
+        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object);
+        SetupUser(this._sut);
     }
 
     [Fact]
-    public async Task GetAll_ReturnsOkWithProfiles()
+    public async Task GetAllReturnsOkWithProfiles()
     {
-        _profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync(new List<Profile> { new() { ProfileNo = 1 } });
-        var result = await _sut.GetAll();
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync(new List<Profile> { new() { ProfileNo = 1 } });
+        var result = await this._sut.GetAll();
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task Create_ReturnsCreatedAtAction()
+    public async Task CreateReturnsCreatedAtAction()
     {
         var profile = new Profile { Name = "New" };
-        _profileService.Setup(s => s.CreateAsync(It.IsAny<Profile>())).ReturnsAsync(profile);
-        var result = await _sut.Create(profile);
+        this._profileService.Setup(s => s.CreateAsync(It.IsAny<Profile>())).ReturnsAsync(profile);
+        var result = await this._sut.Create(profile);
         Assert.IsType<CreatedAtActionResult>(result);
     }
 
     [Fact]
-    public async Task Create_SetsUserId()
+    public async Task CreateSetsUserId()
     {
         var profile = new Profile { Name = "New" };
-        _profileService.Setup(s => s.CreateAsync(It.Is<Profile>(p => p.Id == "123456789"))).ReturnsAsync(profile);
-        await _sut.Create(profile);
+        this._profileService.Setup(s => s.CreateAsync(It.Is<Profile>(p => p.Id == "123456789"))).ReturnsAsync(profile);
+        await this._sut.Create(profile);
         Assert.Equal("123456789", profile.Id);
     }
 
     [Fact]
-    public async Task Update_ReturnsOk_WhenFound()
+    public async Task UpdateReturnsOkWhenFound()
     {
         var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
-        _profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
-        _profileService.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
-        Assert.IsType<OkObjectResult>(await _sut.Update(1, new Profile { Name = "Updated" }));
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+        this._profileService.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
+        Assert.IsType<OkObjectResult>(await this._sut.Update(1, new Profile { Name = "Updated" }));
     }
 
     [Fact]
-    public async Task Update_ReturnsNotFound_WhenMissing()
+    public async Task UpdateReturnsNotFoundWhenMissing()
     {
-        _profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99)).ReturnsAsync((Profile?)null);
-        Assert.IsType<NotFoundResult>(await _sut.Update(99, new Profile()));
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99)).ReturnsAsync((Profile?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.Update(99, new Profile()));
     }
 
     [Fact]
-    public async Task SwitchProfile_ReturnsOk_WhenBothExist()
+    public async Task SwitchProfileReturnsOkWhenBothExist()
     {
         var profile = new Profile { Id = "123456789", ProfileNo = 2 };
         var human = new Human { Id = "123456789", CurrentProfileNo = 1 };
-        _profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(profile);
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        _humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(profile);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        var result = await _sut.SwitchProfile(2);
+        var result = await this._sut.SwitchProfile(2);
 
         Assert.IsType<OkObjectResult>(result);
         Assert.Equal(2, human.CurrentProfileNo);
     }
 
     [Fact]
-    public async Task SwitchProfile_ReturnsNotFound_WhenProfileMissing()
+    public async Task SwitchProfileReturnsNotFoundWhenProfileMissing()
     {
-        _profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99)).ReturnsAsync((Profile?)null);
-        Assert.IsType<NotFoundResult>(await _sut.SwitchProfile(99));
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99)).ReturnsAsync((Profile?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.SwitchProfile(99));
     }
 
     [Fact]
-    public async Task SwitchProfile_ReturnsNotFound_WhenHumanMissing()
+    public async Task SwitchProfileReturnsNotFoundWhenHumanMissing()
     {
         var profile = new Profile { Id = "123456789", ProfileNo = 2 };
-        _profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(profile);
-        _humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await _sut.SwitchProfile(2));
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(profile);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.SwitchProfile(2));
     }
 
     [Fact]
-    public async Task Delete_ReturnsNoContent() { _profileService.Setup(s => s.DeleteAsync("123456789", 2)).ReturnsAsync(true); Assert.IsType<NoContentResult>(await _sut.Delete(2)); }
+    public async Task DeleteReturnsNoContent()
+    {
+        this._profileService.Setup(s => s.DeleteAsync("123456789", 2)).ReturnsAsync(true);
+        Assert.IsType<NoContentResult>(await this._sut.Delete(2));
+    }
 
     [Fact]
-    public async Task Delete_ReturnsNotFound() { _profileService.Setup(s => s.DeleteAsync("123456789", 99)).ReturnsAsync(false); Assert.IsType<NotFoundResult>(await _sut.Delete(99)); }
+    public async Task DeleteReturnsNotFound()
+    {
+        this._profileService.Setup(s => s.DeleteAsync("123456789", 99)).ReturnsAsync(false);
+        Assert.IsType<NotFoundResult>(await this._sut.Delete(99));
+    }
 }

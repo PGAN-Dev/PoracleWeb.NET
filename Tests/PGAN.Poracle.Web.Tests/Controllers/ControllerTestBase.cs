@@ -17,7 +17,9 @@ public abstract class ControllerTestBase
         };
 
         if (managedWebhooks is { Length: > 0 })
+        {
             claims.Add(new Claim("managedWebhooks", string.Join(',', managedWebhooks)));
+        }
 
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var principal = new ClaimsPrincipal(identity);

@@ -23,25 +23,46 @@ public class HumanEntity
     public string Area { get; set; } = null!;
 
     [Column("latitude")]
-    public double Latitude { get; set; }
+    public double Latitude
+    {
+        get; set;
+    }
 
     [Column("longitude")]
-    public double Longitude { get; set; }
+    public double Longitude
+    {
+        get; set;
+    }
 
     [Column("fails")]
-    public int Fails { get; set; }
+    public int Fails
+    {
+        get; set;
+    }
 
     [Column("last_checked")]
-    public DateTime LastChecked { get; set; }
+    public DateTime LastChecked
+    {
+        get; set;
+    }
 
     [Column("language")]
-    public string? Language { get; set; }
+    public string? Language
+    {
+        get; set;
+    }
 
     [Column("admin_disable")]
-    public int AdminDisable { get; set; }
+    public int AdminDisable
+    {
+        get; set;
+    }
 
     [Column("disabled_date")]
-    public DateTime? DisabledDate { get; set; }
+    public DateTime? DisabledDate
+    {
+        get; set;
+    }
 
     [Column("current_profile_no")]
     public int CurrentProfileNo { get; set; } = 1;
@@ -50,21 +71,27 @@ public class HumanEntity
     public string CommunityMembership { get; set; } = null!;
 
     [Column("area_restriction")]
-    public string? AreaRestriction { get; set; }
+    public string? AreaRestriction
+    {
+        get; set;
+    }
 
     [Column("notes")]
     public string Notes { get; set; } = string.Empty;
 
     [Column("blocked_alerts")]
-    public string? BlockedAlerts { get; set; }
+    public string? BlockedAlerts
+    {
+        get; set;
+    }
 
-    public ICollection<ProfileEntity> Profiles { get; set; } = new List<ProfileEntity>();
-    public ICollection<MonsterEntity> Monsters { get; set; } = new List<MonsterEntity>();
-    public ICollection<RaidEntity> Raids { get; set; } = new List<RaidEntity>();
-    public ICollection<EggEntity> Eggs { get; set; } = new List<EggEntity>();
-    public ICollection<QuestEntity> Quests { get; set; } = new List<QuestEntity>();
-    public ICollection<InvasionEntity> Invasions { get; set; } = new List<InvasionEntity>();
-    public ICollection<LureEntity> Lures { get; set; } = new List<LureEntity>();
-    public ICollection<NestEntity> Nests { get; set; } = new List<NestEntity>();
-    public ICollection<GymEntity> Gyms { get; set; } = new List<GymEntity>();
+    public ICollection<ProfileEntity> Profiles { get; set; } = [];
+    public ICollection<MonsterEntity> Monsters { get; set; } = [];
+    public ICollection<RaidEntity> Raids { get; set; } = [];
+    public ICollection<EggEntity> Eggs { get; set; } = [];
+    public ICollection<QuestEntity> Quests { get; set; } = [];
+    public ICollection<InvasionEntity> Invasions { get; set; } = [];
+    public ICollection<LureEntity> Lures { get; set; } = [];
+    public ICollection<NestEntity> Nests { get; set; } = [];
+    public ICollection<GymEntity> Gyms { get; set; } = [];
 }

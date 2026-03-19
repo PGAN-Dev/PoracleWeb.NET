@@ -3,24 +3,19 @@ using PGAN.Poracle.Web.Data.Entities;
 
 namespace PGAN.Poracle.Web.Data;
 
-public class PoracleContext : DbContext
+public class PoracleContext(DbContextOptions<PoracleContext> options) : DbContext(options)
 {
-    public PoracleContext(DbContextOptions<PoracleContext> options)
-        : base(options)
-    {
-    }
-
-    public DbSet<HumanEntity> Humans => Set<HumanEntity>();
-    public DbSet<ProfileEntity> Profiles => Set<ProfileEntity>();
-    public DbSet<MonsterEntity> Monsters => Set<MonsterEntity>();
-    public DbSet<RaidEntity> Raids => Set<RaidEntity>();
-    public DbSet<EggEntity> Eggs => Set<EggEntity>();
-    public DbSet<QuestEntity> Quests => Set<QuestEntity>();
-    public DbSet<InvasionEntity> Invasions => Set<InvasionEntity>();
-    public DbSet<LureEntity> Lures => Set<LureEntity>();
-    public DbSet<NestEntity> Nests => Set<NestEntity>();
-    public DbSet<GymEntity> Gyms => Set<GymEntity>();
-    public DbSet<PwebSettingEntity> PwebSettings => Set<PwebSettingEntity>();
+    public DbSet<HumanEntity> Humans => this.Set<HumanEntity>();
+    public DbSet<ProfileEntity> Profiles => this.Set<ProfileEntity>();
+    public DbSet<MonsterEntity> Monsters => this.Set<MonsterEntity>();
+    public DbSet<RaidEntity> Raids => this.Set<RaidEntity>();
+    public DbSet<EggEntity> Eggs => this.Set<EggEntity>();
+    public DbSet<QuestEntity> Quests => this.Set<QuestEntity>();
+    public DbSet<InvasionEntity> Invasions => this.Set<InvasionEntity>();
+    public DbSet<LureEntity> Lures => this.Set<LureEntity>();
+    public DbSet<NestEntity> Nests => this.Set<NestEntity>();
+    public DbSet<GymEntity> Gyms => this.Set<GymEntity>();
+    public DbSet<PwebSettingEntity> PwebSettings => this.Set<PwebSettingEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +30,9 @@ public class PoracleContext : DbContext
             .HasOne(p => p.Human)
             .WithMany(h => h.Profiles)
             .HasForeignKey(p => p.Id);
+
+        // Ensure pweb_settings.value can hold JSON blobs (quick pick definitions, applied states)
+        modelBuilder.Entity<PwebSettingEntity>().Property(e => e.Value).HasColumnType("longtext");
 
         // Set default values for NOT NULL text columns across all alarm entities
         modelBuilder.Entity<MonsterEntity>().Property(e => e.Ping).HasDefaultValue("");

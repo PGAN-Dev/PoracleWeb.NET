@@ -8,11 +8,9 @@ using PGAN.Poracle.Web.Data.Entities;
 
 namespace PGAN.Poracle.Web.Core.Repositories;
 
-public class InvasionRepository : BaseRepository<InvasionEntity, Invasion>, IInvasionRepository
+public class InvasionRepository(PoracleContext context, IMapper mapper) : BaseRepository<InvasionEntity, Invasion>(context, mapper), IInvasionRepository
 {
-    public InvasionRepository(PoracleContext context, IMapper mapper) : base(context, mapper) { }
-
-    protected override DbSet<InvasionEntity> DbSet => Context.Invasions;
+    protected override DbSet<InvasionEntity> DbSet => this.Context.Invasions;
     protected override Expression<Func<InvasionEntity, bool>> UserProfileFilter(string userId, int profileNo)
         => i => i.Id == userId && i.ProfileNo == profileNo;
     protected override Expression<Func<InvasionEntity, bool>> UidFilter(int uid)

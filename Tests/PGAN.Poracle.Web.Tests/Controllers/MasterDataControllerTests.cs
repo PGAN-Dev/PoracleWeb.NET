@@ -13,18 +13,18 @@ public class MasterDataControllerTests : ControllerTestBase
 
     public MasterDataControllerTests()
     {
-        _sut = new MasterDataController(_masterDataService.Object, _poracleApiProxy.Object);
-        SetupUser(_sut);
+        this._sut = new MasterDataController(this._masterDataService.Object, this._poracleApiProxy.Object);
+        SetupUser(this._sut);
     }
 
     // --- GetPokemon ---
 
     [Fact]
-    public async Task GetPokemon_ReturnsContent_WhenCacheHit()
+    public async Task GetPokemonReturnsContentWhenCacheHit()
     {
-        _masterDataService.Setup(s => s.GetPokemonDataAsync()).ReturnsAsync("{\"1\":\"Bulbasaur\"}");
+        this._masterDataService.Setup(s => s.GetPokemonDataAsync()).ReturnsAsync(/*lang=json,strict*/ "{\"1\":\"Bulbasaur\"}");
 
-        var result = await _sut.GetPokemon();
+        var result = await this._sut.GetPokemon();
 
         var content = Assert.IsType<ContentResult>(result);
         Assert.Equal("application/json", content.ContentType);
@@ -32,28 +32,28 @@ public class MasterDataControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetPokemon_RefreshesCache_WhenCacheMiss_ThenReturnsContent()
+    public async Task GetPokemonRefreshesCacheWhenCacheMissThenReturnsContent()
     {
         // First call returns null, after refresh returns data
         var callCount = 0;
-        _masterDataService.Setup(s => s.GetPokemonDataAsync())
-            .ReturnsAsync(() => ++callCount > 1 ? "{\"1\":\"Bulbasaur\"}" : null);
-        _masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
+        this._masterDataService.Setup(s => s.GetPokemonDataAsync())
+            .ReturnsAsync(() => ++callCount > 1 ? /*lang=json,strict*/ "{\"1\":\"Bulbasaur\"}" : null);
+        this._masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
 
-        var result = await _sut.GetPokemon();
+        var result = await this._sut.GetPokemon();
 
         var content = Assert.IsType<ContentResult>(result);
         Assert.Contains("Bulbasaur", content.Content);
-        _masterDataService.Verify(s => s.RefreshCacheAsync(), Times.Once);
+        this._masterDataService.Verify(s => s.RefreshCacheAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task GetPokemon_ReturnsNotFound_WhenCacheMissAndRefreshFails()
+    public async Task GetPokemonReturnsNotFoundWhenCacheMissAndRefreshFails()
     {
-        _masterDataService.Setup(s => s.GetPokemonDataAsync()).ReturnsAsync((string?)null);
-        _masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
+        this._masterDataService.Setup(s => s.GetPokemonDataAsync()).ReturnsAsync((string?)null);
+        this._masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
 
-        var result = await _sut.GetPokemon();
+        var result = await this._sut.GetPokemon();
 
         Assert.IsType<NotFoundObjectResult>(result);
     }
@@ -61,49 +61,49 @@ public class MasterDataControllerTests : ControllerTestBase
     // --- GetItems ---
 
     [Fact]
-    public async Task GetItems_ReturnsContent_WhenCacheHit()
+    public async Task GetItemsReturnsContentWhenCacheHit()
     {
-        _masterDataService.Setup(s => s.GetItemDataAsync()).ReturnsAsync("{\"1\":\"Poke Ball\"}");
-        var result = await _sut.GetItems();
+        this._masterDataService.Setup(s => s.GetItemDataAsync()).ReturnsAsync(/*lang=json,strict*/ "{\"1\":\"Poke Ball\"}");
+        var result = await this._sut.GetItems();
         Assert.IsType<ContentResult>(result);
     }
 
     [Fact]
-    public async Task GetItems_RefreshesCache_WhenCacheMiss_ThenReturnsContent()
+    public async Task GetItemsRefreshesCacheWhenCacheMissThenReturnsContent()
     {
         var callCount = 0;
-        _masterDataService.Setup(s => s.GetItemDataAsync())
-            .ReturnsAsync(() => ++callCount > 1 ? "{\"1\":\"Poke Ball\"}" : null);
-        _masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
+        this._masterDataService.Setup(s => s.GetItemDataAsync())
+            .ReturnsAsync(() => ++callCount > 1 ? /*lang=json,strict*/ "{\"1\":\"Poke Ball\"}" : null);
+        this._masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
 
-        var result = await _sut.GetItems();
+        var result = await this._sut.GetItems();
 
         Assert.IsType<ContentResult>(result);
-        _masterDataService.Verify(s => s.RefreshCacheAsync(), Times.Once);
+        this._masterDataService.Verify(s => s.RefreshCacheAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task GetItems_ReturnsNotFound_WhenCacheMissAndRefreshFails()
+    public async Task GetItemsReturnsNotFoundWhenCacheMissAndRefreshFails()
     {
-        _masterDataService.Setup(s => s.GetItemDataAsync()).ReturnsAsync((string?)null);
-        _masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
-        Assert.IsType<NotFoundObjectResult>(await _sut.GetItems());
+        this._masterDataService.Setup(s => s.GetItemDataAsync()).ReturnsAsync((string?)null);
+        this._masterDataService.Setup(s => s.RefreshCacheAsync()).Returns(Task.CompletedTask);
+        Assert.IsType<NotFoundObjectResult>(await this._sut.GetItems());
     }
 
     // --- GetGrunts ---
 
     [Fact]
-    public async Task GetGrunts_ReturnsContent_WhenAvailable()
+    public async Task GetGruntsReturnsContentWhenAvailable()
     {
-        _poracleApiProxy.Setup(p => p.GetGruntsAsync()).ReturnsAsync("{\"grunts\":[]}");
-        var result = await _sut.GetGrunts();
+        this._poracleApiProxy.Setup(p => p.GetGruntsAsync()).ReturnsAsync(/*lang=json,strict*/ "{\"grunts\":[]}");
+        var result = await this._sut.GetGrunts();
         Assert.IsType<ContentResult>(result);
     }
 
     [Fact]
-    public async Task GetGrunts_ReturnsNotFound_WhenNull()
+    public async Task GetGruntsReturnsNotFoundWhenNull()
     {
-        _poracleApiProxy.Setup(p => p.GetGruntsAsync()).ReturnsAsync((string?)null);
-        Assert.IsType<NotFoundObjectResult>(await _sut.GetGrunts());
+        this._poracleApiProxy.Setup(p => p.GetGruntsAsync()).ReturnsAsync((string?)null);
+        Assert.IsType<NotFoundObjectResult>(await this._sut.GetGrunts());
     }
 }

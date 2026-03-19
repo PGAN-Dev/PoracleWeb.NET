@@ -15,39 +15,39 @@ public class ConfigControllerTests : ControllerTestBase
 
     public ConfigControllerTests()
     {
-        _sut = new ConfigController(_proxy.Object, _logger.Object);
-        SetupUser(_sut);
+        this._sut = new ConfigController(this._proxy.Object, this._logger.Object);
+        SetupUser(this._sut);
     }
 
     // --- GetTemplates ---
 
     [Fact]
-    public async Task GetTemplates_ReturnsContent_WhenAvailable()
+    public async Task GetTemplatesReturnsContentWhenAvailable()
     {
-        _proxy.Setup(p => p.GetTemplatesAsync()).ReturnsAsync("{\"templates\":{}}");
+        this._proxy.Setup(p => p.GetTemplatesAsync()).ReturnsAsync(/*lang=json,strict*/ "{\"templates\":{}}");
 
-        var result = await _sut.GetTemplates();
+        var result = await this._sut.GetTemplates();
 
         var content = Assert.IsType<ContentResult>(result);
         Assert.Equal("application/json", content.ContentType);
     }
 
     [Fact]
-    public async Task GetTemplates_ReturnsNull_BranchReturnsFallback()
+    public async Task GetTemplatesReturnsNullBranchReturnsFallback()
     {
-        _proxy.Setup(p => p.GetTemplatesAsync()).ReturnsAsync((string?)null);
+        this._proxy.Setup(p => p.GetTemplatesAsync()).ReturnsAsync((string?)null);
 
-        var result = await _sut.GetTemplates();
+        var result = await this._sut.GetTemplates();
 
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetTemplates_ReturnsOkFallback_WhenExceptionThrown()
+    public async Task GetTemplatesReturnsOkFallbackWhenExceptionThrown()
     {
-        _proxy.Setup(p => p.GetTemplatesAsync()).ThrowsAsync(new HttpRequestException("fail"));
+        this._proxy.Setup(p => p.GetTemplatesAsync()).ThrowsAsync(new HttpRequestException("fail"));
 
-        var result = await _sut.GetTemplates();
+        var result = await this._sut.GetTemplates();
 
         Assert.IsType<OkObjectResult>(result);
     }
@@ -55,12 +55,12 @@ public class ConfigControllerTests : ControllerTestBase
     // --- GetConfig ---
 
     [Fact]
-    public async Task GetConfig_ReturnsOk_WhenAvailable()
+    public async Task GetConfigReturnsOkWhenAvailable()
     {
         var config = new PoracleConfig { Locale = "en", MaxDistance = 5000 };
-        _proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(config);
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(config);
 
-        var result = await _sut.GetConfig();
+        var result = await this._sut.GetConfig();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var returned = Assert.IsType<PoracleConfig>(ok.Value);
@@ -69,11 +69,11 @@ public class ConfigControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetConfig_ReturnsFallbackConfig_WhenNull()
+    public async Task GetConfigReturnsFallbackConfigWhenNull()
     {
-        _proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
 
-        var result = await _sut.GetConfig();
+        var result = await this._sut.GetConfig();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var config = Assert.IsType<PoracleConfig>(ok.Value);
@@ -83,11 +83,11 @@ public class ConfigControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetConfig_ReturnsFallbackConfig_WhenExceptionThrown()
+    public async Task GetConfigReturnsFallbackConfigWhenExceptionThrown()
     {
-        _proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new Exception("fail"));
+        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new Exception("fail"));
 
-        var result = await _sut.GetConfig();
+        var result = await this._sut.GetConfig();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var config = Assert.IsType<PoracleConfig>(ok.Value);
@@ -97,10 +97,10 @@ public class ConfigControllerTests : ControllerTestBase
     // --- GetDts ---
 
     [Fact]
-    public void GetDts_ReturnsOkEmptyArray_WhenCacheEmpty()
+    public void GetDtsReturnsOkEmptyArrayWhenCacheEmpty()
     {
         // DtsCacheService.GetCachedDts() returns null/empty when not configured
-        var result = _sut.GetDts();
+        var result = this._sut.GetDts();
         Assert.IsType<OkObjectResult>(result);
     }
 }

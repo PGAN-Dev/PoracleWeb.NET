@@ -11,37 +11,34 @@ public class SettingsControllerTests : ControllerTestBase
     private readonly Mock<IPwebSettingService> _service = new();
     private readonly SettingsController _sut;
 
-    public SettingsControllerTests()
+    public SettingsControllerTests() => this._sut = new SettingsController(this._service.Object);
+
+    [Fact]
+    public async Task GetAllReturnsOk()
     {
-        _sut = new SettingsController(_service.Object);
+        SetupUser(this._sut);
+        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<PwebSetting> { new() { Setting = "k", Value = "v" } });
+        Assert.IsType<OkObjectResult>(await this._sut.GetAll());
     }
 
     [Fact]
-    public async Task GetAll_ReturnsOk()
+    public async Task UpsertReturnsOkWhenAdmin()
     {
-        SetupUser(_sut);
-        _service.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<PwebSetting> { new() { Setting = "k", Value = "v" } });
-        Assert.IsType<OkObjectResult>(await _sut.GetAll());
-    }
-
-    [Fact]
-    public async Task Upsert_ReturnsOk_WhenAdmin()
-    {
-        SetupUser(_sut, isAdmin: true);
+        SetupUser(this._sut, isAdmin: true);
         var setting = new PwebSetting { Value = "val" };
-        _service.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>())).ReturnsAsync(setting);
+        this._service.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>())).ReturnsAsync(setting);
 
-        var result = await _sut.Upsert("key1", setting);
+        var result = await this._sut.Upsert("key1", setting);
 
         Assert.IsType<OkObjectResult>(result);
         Assert.Equal("key1", setting.Setting);
     }
 
     [Fact]
-    public async Task Upsert_ReturnsForbid_WhenNotAdmin()
+    public async Task UpsertReturnsForbidWhenNotAdmin()
     {
-        SetupUser(_sut, isAdmin: false);
-        var result = await _sut.Upsert("key1", new PwebSetting());
+        SetupUser(this._sut, isAdmin: false);
+        var result = await this._sut.Upsert("key1", new PwebSetting());
         Assert.IsType<ForbidResult>(result);
     }
 }

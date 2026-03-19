@@ -12,29 +12,24 @@ namespace PGAN.Poracle.Web.Api.Services;
 ///
 /// The service watches for file changes and reloads automatically.
 /// </summary>
-public class DtsCacheService : BackgroundService
+public class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundService
 {
-    private readonly ILogger<DtsCacheService> _logger;
+    private readonly ILogger<DtsCacheService> _logger = logger;
     private static string? _cachedJson;
-    private static readonly object Lock = new();
-
-    public DtsCacheService(ILogger<DtsCacheService> logger)
-    {
-        _logger = logger;
-    }
+    private static readonly Lock Lock = new();
 
     public static string? GetCachedDts() => _cachedJson;
 
-    protected override async Task ExecuteAsync(CancellationToken ct)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await Task.Delay(2000, ct);
-        LoadDts();
+        await Task.Delay(2000, stoppingToken);
+        this.LoadDts();
 
         // Watch for changes and reload every hour
-        while (!ct.IsCancellationRequested)
+        while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromHours(1), ct);
-            LoadDts();
+            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            this.LoadDts();
         }
     }
 
@@ -48,14 +43,17 @@ public class DtsCacheService : BackgroundService
             // Strategy 1: Read from Poracle config directory (Docker volume)
             if (!string.IsNullOrEmpty(sourceDir) && Directory.Exists(sourceDir))
             {
-                var merged = LoadFromPoracleConfig(sourceDir);
+                var merged = this.LoadFromPoracleConfig(sourceDir);
                 if (merged != null)
                 {
-                    lock (Lock) { _cachedJson = merged; }
+                    lock (Lock)
+                    {
+                        _cachedJson = merged;
+                    }
                     // Also save to data dir as a cache
                     var cachePath = Path.Combine(dataDir, "dts-cache.json");
                     File.WriteAllText(cachePath, merged);
-                    _logger.LogInformation("DTS loaded from Poracle config at {Dir}", sourceDir);
+                    this._logger.LogInformation("DTS loaded from Poracle config at {Dir}", sourceDir);
                     return;
                 }
             }
@@ -65,16 +63,19 @@ public class DtsCacheService : BackgroundService
             if (File.Exists(fallbackPath))
             {
                 var json = File.ReadAllText(fallbackPath);
-                lock (Lock) { _cachedJson = json; }
-                _logger.LogInformation("DTS loaded from cache file at {Path}", fallbackPath);
+                lock (Lock)
+                {
+                    _cachedJson = json;
+                }
+                this._logger.LogInformation("DTS loaded from cache file at {Path}", fallbackPath);
                 return;
             }
 
-            _logger.LogWarning("No DTS files found. Template previews will be unavailable.");
+            this._logger.LogWarning("No DTS files found. Template previews will be unavailable.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load DTS files");
+            this._logger.LogError(ex, "Failed to load DTS files");
         }
     }
 
@@ -97,14 +98,20 @@ public class DtsCacheService : BackgroundService
                 Path.Combine(configDir, "config", "defaults", "dts.json"),
             };
 
-            string? mainDtsPath = candidates.FirstOrDefault(File.Exists);
-            if (mainDtsPath == null) return null;
+            var mainDtsPath = candidates.FirstOrDefault(File.Exists);
+            if (mainDtsPath == null)
+            {
+                return null;
+            }
 
             var mainJson = File.ReadAllText(mainDtsPath);
             var mainEntries = JsonSerializer.Deserialize<JsonElement[]>(mainJson, jsonOptions);
-            if (mainEntries == null) return null;
+            if (mainEntries == null)
+            {
+                return null;
+            }
 
-            _logger.LogInformation("Loaded {Count} DTS entries from {Path}", mainEntries.Length, mainDtsPath);
+            this._logger.LogInformation("Loaded {Count} DTS entries from {Path}", mainEntries.Length, mainDtsPath);
 
             // Look for override files
             var overrideCandidates = new[]
@@ -113,7 +120,7 @@ public class DtsCacheService : BackgroundService
                 Path.Combine(configDir, "config", "dts", "dts.json"),
             };
 
-            string? overridePath = overrideCandidates.FirstOrDefault(File.Exists);
+            var overridePath = overrideCandidates.FirstOrDefault(File.Exists);
             if (overridePath != null)
             {
                 try
@@ -138,17 +145,23 @@ public class DtsCacheService : BackgroundService
                                 return mId == oId && mType == oType && mPlatform == oPlatform;
                             });
 
-                            if (idx >= 0) merged[idx] = o;
-                            else merged.Add(o);
+                            if (idx >= 0)
+                            {
+                                merged[idx] = o;
+                            }
+                            else
+                            {
+                                merged.Add(o);
+                            }
                         }
 
-                        _logger.LogInformation("Merged {Count} DTS overrides from {Path}", overrides.Length, overridePath);
+                        this._logger.LogInformation("Merged {Count} DTS overrides from {Path}", overrides.Length, overridePath);
                         return JsonSerializer.Serialize(merged);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to parse DTS override file at {Path}", overridePath);
+                    this._logger.LogWarning(ex, "Failed to parse DTS override file at {Path}", overridePath);
                 }
             }
 
@@ -156,7 +169,7 @@ public class DtsCacheService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to parse DTS from Poracle config at {Dir}", configDir);
+            this._logger.LogError(ex, "Failed to parse DTS from Poracle config at {Dir}", configDir);
             return null;
         }
     }

@@ -6,16 +6,10 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/config")]
-public class ConfigController : BaseApiController
+public class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigController> logger) : BaseApiController
 {
-    private readonly IPoracleApiProxy _poracleApiProxy;
-    private readonly ILogger<ConfigController> _logger;
-
-    public ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigController> logger)
-    {
-        _poracleApiProxy = poracleApiProxy;
-        _logger = logger;
-    }
+    private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly ILogger<ConfigController> _logger = logger;
 
     [AllowAnonymous]
     [HttpGet("templates")]
@@ -23,16 +17,27 @@ public class ConfigController : BaseApiController
     {
         try
         {
-            var templates = await _poracleApiProxy.GetTemplatesAsync();
+            var templates = await this._poracleApiProxy.GetTemplatesAsync();
             if (templates != null)
-                return Content(templates, "application/json");
+            {
+                return this.Content(templates, "application/json");
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch Poracle templates");
+            this._logger.LogWarning(ex, "Failed to fetch Poracle templates");
         }
 
-        return Ok(new { status = "ok", discord = new { }, telegram = new { } });
+        return this.Ok(new
+        {
+            status = "ok",
+            discord = new
+            {
+            },
+            telegram = new
+            {
+            }
+        });
     }
 
     [AllowAnonymous]
@@ -41,9 +46,11 @@ public class ConfigController : BaseApiController
     {
         var json = Services.DtsCacheService.GetCachedDts();
         if (!string.IsNullOrEmpty(json))
-            return Content(json, "application/json");
+        {
+            return this.Content(json, "application/json");
+        }
 
-        return Ok(Array.Empty<object>());
+        return this.Ok(Array.Empty<object>());
     }
 
     [AllowAnonymous]
@@ -52,16 +59,18 @@ public class ConfigController : BaseApiController
     {
         try
         {
-            var config = await _poracleApiProxy.GetConfigAsync();
+            var config = await this._poracleApiProxy.GetConfigAsync();
             if (config != null)
-                return Ok(config);
+            {
+                return this.Ok(config);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch Poracle config");
+            this._logger.LogWarning(ex, "Failed to fetch Poracle config");
         }
 
-        return Ok(new PoracleConfig
+        return this.Ok(new PoracleConfig
         {
             Locale = "en",
             ProviderUrl = "",

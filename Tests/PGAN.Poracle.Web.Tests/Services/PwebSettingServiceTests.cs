@@ -10,49 +10,57 @@ public class PwebSettingServiceTests
     private readonly Mock<IPwebSettingRepository> _repository = new();
     private readonly PwebSettingService _sut;
 
-    public PwebSettingServiceTests() => _sut = new PwebSettingService(_repository.Object);
+    public PwebSettingServiceTests() => this._sut = new PwebSettingService(this._repository.Object);
 
     [Fact]
-    public async Task GetAllAsync_ReturnsSettings()
+    public async Task GetAllAsyncReturnsSettings()
     {
-        _repository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<PwebSetting>
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<PwebSetting>
         {
             new() { Setting = "key1", Value = "val1" },
             new() { Setting = "key2", Value = "val2" }
         });
 
-        var result = (await _sut.GetAllAsync()).ToList();
+        var result = (await this._sut.GetAllAsync()).ToList();
         Assert.Equal(2, result.Count);
     }
 
     [Fact]
-    public async Task GetByKeyAsync_Found()
+    public async Task GetByKeyAsyncFound()
     {
-        _repository.Setup(r => r.GetByKeyAsync("key1")).ReturnsAsync(new PwebSetting { Setting = "key1", Value = "val1" });
-        var result = await _sut.GetByKeyAsync("key1");
+        this._repository.Setup(r => r.GetByKeyAsync("key1")).ReturnsAsync(new PwebSetting { Setting = "key1", Value = "val1" });
+        var result = await this._sut.GetByKeyAsync("key1");
         Assert.NotNull(result);
         Assert.Equal("val1", result!.Value);
     }
 
     [Fact]
-    public async Task GetByKeyAsync_NotFound()
+    public async Task GetByKeyAsyncNotFound()
     {
-        _repository.Setup(r => r.GetByKeyAsync("unknown")).ReturnsAsync((PwebSetting?)null);
-        Assert.Null(await _sut.GetByKeyAsync("unknown"));
+        this._repository.Setup(r => r.GetByKeyAsync("unknown")).ReturnsAsync((PwebSetting?)null);
+        Assert.Null(await this._sut.GetByKeyAsync("unknown"));
     }
 
     [Fact]
-    public async Task CreateOrUpdateAsync_Delegates()
+    public async Task CreateOrUpdateAsyncDelegates()
     {
         var setting = new PwebSetting { Setting = "key1", Value = "new" };
-        _repository.Setup(r => r.CreateOrUpdateAsync(setting)).ReturnsAsync(setting);
-        var result = await _sut.CreateOrUpdateAsync(setting);
+        this._repository.Setup(r => r.CreateOrUpdateAsync(setting)).ReturnsAsync(setting);
+        var result = await this._sut.CreateOrUpdateAsync(setting);
         Assert.Equal("new", result.Value);
     }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsTrue() { _repository.Setup(r => r.DeleteAsync("key1")).ReturnsAsync(true); Assert.True(await _sut.DeleteAsync("key1")); }
+    public async Task DeleteAsyncReturnsTrue()
+    {
+        this._repository.Setup(r => r.DeleteAsync("key1")).ReturnsAsync(true);
+        Assert.True(await this._sut.DeleteAsync("key1"));
+    }
 
     [Fact]
-    public async Task DeleteAsync_ReturnsFalse() { _repository.Setup(r => r.DeleteAsync("unknown")).ReturnsAsync(false); Assert.False(await _sut.DeleteAsync("unknown")); }
+    public async Task DeleteAsyncReturnsFalse()
+    {
+        this._repository.Setup(r => r.DeleteAsync("unknown")).ReturnsAsync(false);
+        Assert.False(await this._sut.DeleteAsync("unknown"));
+    }
 }

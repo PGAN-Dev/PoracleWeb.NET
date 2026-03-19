@@ -24,6 +24,11 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard],
+    loadComponent: () => import('./modules/quick-picks/quick-pick-list.component').then(m => m.QuickPickListComponent),
+    path: 'quick-picks',
+  },
+  {
+    canActivate: [authGuard],
     loadComponent: () => import('./modules/pokemon/pokemon-list.component').then(m => m.PokemonListComponent),
     path: 'pokemon',
   },

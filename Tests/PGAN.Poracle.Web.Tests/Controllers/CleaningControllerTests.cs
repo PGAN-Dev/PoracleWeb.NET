@@ -12,8 +12,8 @@ public class CleaningControllerTests : ControllerTestBase
 
     public CleaningControllerTests()
     {
-        _sut = new CleaningController(_service.Object);
-        SetupUser(_sut);
+        this._sut = new CleaningController(this._service.Object);
+        SetupUser(this._sut);
     }
 
     [Theory]
@@ -25,34 +25,31 @@ public class CleaningControllerTests : ControllerTestBase
     [InlineData("lures")]
     [InlineData("nests")]
     [InlineData("gyms")]
-    public async Task ToggleClean_ReturnsOk_ForAllAlarmTypes(string alarmType)
+    public async Task ToggleCleanReturnsOkForAllAlarmTypes(string alarmType)
     {
-        _service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(5);
-        _service.Setup(s => s.ToggleCleanRaidsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        _service.Setup(s => s.ToggleCleanEggsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        _service.Setup(s => s.ToggleCleanQuestsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        _service.Setup(s => s.ToggleCleanInvasionsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        _service.Setup(s => s.ToggleCleanLuresAsync("123456789", 1, 1)).ReturnsAsync(5);
-        _service.Setup(s => s.ToggleCleanNestsAsync("123456789", 1, 1)).ReturnsAsync(5);
-        _service.Setup(s => s.ToggleCleanGymsAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanRaidsAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanEggsAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanQuestsAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanInvasionsAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanLuresAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanNestsAsync("123456789", 1, 1)).ReturnsAsync(5);
+        this._service.Setup(s => s.ToggleCleanGymsAsync("123456789", 1, 1)).ReturnsAsync(5);
 
-        var result = await _sut.ToggleClean(alarmType, 1);
+        var result = await this._sut.ToggleClean(alarmType, 1);
 
         Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task ToggleClean_Throws_ForUnknownAlarmType()
-    {
-        await Assert.ThrowsAsync<ArgumentException>(() => _sut.ToggleClean("unknown", 1));
-    }
+    public async Task ToggleCleanThrowsForUnknownAlarmType() => await Assert.ThrowsAsync<ArgumentException>(() => this._sut.ToggleClean("unknown", 1));
 
     [Fact]
-    public async Task ToggleClean_IsCaseInsensitive()
+    public async Task ToggleCleanIsCaseInsensitive()
     {
-        _service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(3);
+        this._service.Setup(s => s.ToggleCleanMonstersAsync("123456789", 1, 1)).ReturnsAsync(3);
 
-        var result = await _sut.ToggleClean("MONSTERS", 1);
+        var result = await this._sut.ToggleClean("MONSTERS", 1);
 
         Assert.IsType<OkObjectResult>(result);
     }

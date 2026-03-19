@@ -9,7 +9,7 @@ namespace PGAN.Poracle.Web.Tests.Controllers;
 public class ScannerControllerTests : ControllerTestBase
 {
     [Fact]
-    public async Task GetActiveQuests_ReturnsNotFound_WhenScannerNotConfigured()
+    public async Task GetActiveQuestsReturnsNotFoundWhenScannerNotConfigured()
     {
         var sut = new ScannerController(scannerService: null);
         SetupUser(sut);
@@ -21,7 +21,7 @@ public class ScannerControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetActiveQuests_ReturnsOk_WhenScannerConfigured()
+    public async Task GetActiveQuestsReturnsOkWhenScannerConfigured()
     {
         var service = new Mock<IScannerService>();
         var quests = new List<QuestData> { new() { PokestopId = "stop1", Name = "Test Stop" } };
@@ -32,12 +32,12 @@ public class ScannerControllerTests : ControllerTestBase
         var result = await sut.GetActiveQuests();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var data = Assert.IsAssignableFrom<IEnumerable<QuestData>>(ok.Value);
+        var data = Assert.IsType<IEnumerable<QuestData>>(ok.Value, exactMatch: false);
         Assert.Single(data);
     }
 
     [Fact]
-    public async Task GetActiveRaids_ReturnsNotFound_WhenScannerNotConfigured()
+    public async Task GetActiveRaidsReturnsNotFoundWhenScannerNotConfigured()
     {
         var sut = new ScannerController(scannerService: null);
         SetupUser(sut);
@@ -48,7 +48,7 @@ public class ScannerControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetActiveRaids_ReturnsOk_WhenScannerConfigured()
+    public async Task GetActiveRaidsReturnsOkWhenScannerConfigured()
     {
         var service = new Mock<IScannerService>();
         var raids = new List<RaidData> { new() { GymId = "gym1", Level = 5 } };

@@ -11,26 +11,50 @@ public class RdmPokestopEntity
     public string Id { get; set; } = string.Empty;
 
     [Column("name")]
-    public string? Name { get; set; }
+    public string? Name
+    {
+        get; set;
+    }
 
     [Column("lat")]
-    public double Lat { get; set; }
+    public double Lat
+    {
+        get; set;
+    }
 
     [Column("lon")]
-    public double Lon { get; set; }
+    public double Lon
+    {
+        get; set;
+    }
 
     [Column("quest_type")]
-    public int? QuestType { get; set; }
+    public int? QuestType
+    {
+        get; set;
+    }
 
     [Column("quest_target")]
-    public int? QuestTarget { get; set; }
+    public int? QuestTarget
+    {
+        get; set;
+    }
 
     [Column("quest_reward_type")]
-    public int? QuestRewardType { get; set; }
+    public int? QuestRewardType
+    {
+        get; set;
+    }
 
     [Column("quest_item_id")]
-    public int? QuestItemId { get; set; }
+    public int? QuestItemId
+    {
+        get; set;
+    }
 
     [Column("quest_pokemon_id")]
-    public int? QuestPokemonId { get; set; }
+    public int? QuestPokemonId
+    {
+        get; set;
+    }
 }

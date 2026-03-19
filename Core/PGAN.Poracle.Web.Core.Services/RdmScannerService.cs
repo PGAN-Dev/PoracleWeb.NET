@@ -5,18 +5,11 @@ using PGAN.Poracle.Web.Data.Scanner;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class RdmScannerService : IScannerService
+public class RdmScannerService(RdmScannerContext context) : IScannerService
 {
-    private readonly RdmScannerContext _context;
+    private readonly RdmScannerContext _context = context;
 
-    public RdmScannerService(RdmScannerContext context)
-    {
-        _context = context;
-    }
-
-    public async Task<IEnumerable<QuestData>> GetActiveQuestsAsync()
-    {
-        return await _context.Pokestops
+    public async Task<IEnumerable<QuestData>> GetActiveQuestsAsync() => await this._context.Pokestops
             .AsNoTracking()
             .Where(p => p.QuestType != null)
             .Select(p => new QuestData
@@ -32,13 +25,12 @@ public class RdmScannerService : IScannerService
                     : (p.QuestPokemonId ?? 0)
             })
             .ToListAsync();
-    }
 
     public async Task<IEnumerable<RaidData>> GetActiveRaidsAsync()
     {
         var nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        return await _context.Gyms
+        return await this._context.Gyms
             .AsNoTracking()
             .Where(g => g.RaidEndTimestamp != null && g.RaidEndTimestamp > nowUnix)
             .Select(g => new RaidData

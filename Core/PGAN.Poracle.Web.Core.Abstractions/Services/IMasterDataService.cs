@@ -2,7 +2,7 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IMasterDataService
 {
-    Task<string?> GetPokemonDataAsync();
-    Task<string?> GetItemDataAsync();
-    Task RefreshCacheAsync();
+    public Task<string?> GetPokemonDataAsync();
+    public Task<string?> GetItemDataAsync();
+    public Task RefreshCacheAsync();
 }

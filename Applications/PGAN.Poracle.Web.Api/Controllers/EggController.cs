@@ -6,73 +6,84 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/eggs")]
-public class EggController : BaseApiController
+public class EggController(IEggService eggService, IMapper mapper) : BaseApiController
 {
-    private readonly IEggService _eggService;
-    private readonly IMapper _mapper;
-
-    public EggController(IEggService eggService, IMapper mapper)
-    {
-        _eggService = eggService;
-        _mapper = mapper;
-    }
+    private readonly IEggService _eggService = eggService;
+    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var eggs = await _eggService.GetByUserAsync(UserId, ProfileNo);
-        return Ok(eggs);
+        var eggs = await this._eggService.GetByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(eggs);
     }
 
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var egg = await _eggService.GetByUidAsync(uid);
+        var egg = await this._eggService.GetByUidAsync(uid);
         if (egg == null)
-            return NotFound();
-        return Ok(egg);
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(egg);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] EggCreate model)
     {
-        var egg = _mapper.Map<Egg>(model);
-        var result = await _eggService.CreateAsync(UserId, egg);
-        return CreatedAtAction(nameof(GetByUid), new { uid = result.Uid }, result);
+        var egg = this._mapper.Map<Egg>(model);
+        var result = await this._eggService.CreateAsync(this.UserId, egg);
+        return this.CreatedAtAction(nameof(GetByUid), new
+        {
+            uid = result.Uid
+        }, result);
     }
 
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] EggUpdate model)
     {
-        var existing = await _eggService.GetByUidAsync(uid);
+        var existing = await this._eggService.GetByUidAsync(uid);
         if (existing == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        _mapper.Map(model, existing);
-        var result = await _eggService.UpdateAsync(existing);
-        return Ok(result);
+        this._mapper.Map(model, existing);
+        var result = await this._eggService.UpdateAsync(existing);
+        return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await _eggService.DeleteAsync(uid);
+        var success = await this._eggService.DeleteAsync(uid);
         if (!success)
-            return NotFound();
-        return NoContent();
+        {
+            return this.NotFound();
+        }
+
+        return this.NoContent();
     }
 
     [HttpDelete]
     public async Task<IActionResult> DeleteAll()
     {
-        var count = await _eggService.DeleteAllByUserAsync(UserId, ProfileNo);
-        return Ok(new { deleted = count });
+        var count = await this._eggService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(new
+        {
+            deleted = count
+        });
     }
 
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
-        var count = await _eggService.UpdateDistanceByUserAsync(UserId, ProfileNo, distance);
-        return Ok(new { updated = count });
+        var count = await this._eggService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 }
