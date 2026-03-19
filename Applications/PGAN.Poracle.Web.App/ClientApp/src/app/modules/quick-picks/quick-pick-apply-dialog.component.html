@@ -26,8 +26,7 @@
         <mat-icon>info</mat-icon>
         <span>
           Exclusions require tracking individually. This will create
-          <strong>{{ individualAlarmCount() }}</strong> individual alarm rows.
-          This may take a moment to apply.
+          <strong>{{ individualAlarmCount() }}</strong> individual alarm rows. This may take a moment to apply.
         </span>
       </div>
     }
@@ -35,10 +34,7 @@
 
   <h4>Delivery Settings</h4>
 
-  <mat-radio-group
-    [formControl]="deliveryForm.controls.distanceMode"
-    class="distance-radio-group"
-    (change)="onDistanceModeChange()">
+  <mat-radio-group [formControl]="deliveryForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
     <mat-radio-button value="areas">
       <div class="radio-label">
         <mat-icon>map</mat-icon>
@@ -78,9 +74,7 @@
     (valueChange)="deliveryForm.controls.template.setValue($event)">
   </app-template-selector>
 
-  <mat-slide-toggle [formControl]="deliveryForm.controls.clean">
-    Clean mode — auto-delete notification after expiry
-  </mat-slide-toggle>
+  <mat-slide-toggle [formControl]="deliveryForm.controls.clean"> Clean mode — auto-delete notification after expiry </mat-slide-toggle>
 </mat-dialog-content>
 
 @if (applying()) {

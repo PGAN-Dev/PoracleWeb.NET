@@ -114,6 +114,6 @@ public class MasterDataServiceTests : IDisposable
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        GC.SuppressFinalize(this);
     }
 }

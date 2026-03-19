@@ -56,9 +56,7 @@
             <span class="pick-description">{{ pick.definition.description }}</span>
           </div>
           <div class="card-top-actions">
-            <span
-              class="alarm-type-chip"
-              [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
+            <span class="alarm-type-chip" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
               {{ pick.definition.alarmType }}
             </span>
           </div>
@@ -92,7 +90,11 @@
               Remove
             </button>
           } @else {
-            <button mat-flat-button (click)="onApply(pick)" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'" style="color: white">
+            <button
+              mat-flat-button
+              (click)="onApply(pick)"
+              [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'"
+              style="color: white">
               <mat-icon>add</mat-icon>
               Apply
             </button>

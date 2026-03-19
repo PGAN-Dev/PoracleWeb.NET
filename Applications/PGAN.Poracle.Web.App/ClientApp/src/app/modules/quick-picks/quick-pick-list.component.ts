@@ -35,8 +35,6 @@ export class QuickPickListComponent implements OnInit {
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
 
-  readonly removing = signal<string | null>(null);
-
   readonly alarmTypeColors: Record<string, string> = {
     raid: '#f44336',
     egg: '#ff9800',
@@ -49,6 +47,7 @@ export class QuickPickListComponent implements OnInit {
   };
 
   readonly picks = signal<QuickPickSummary[]>([]);
+
   readonly categories = computed(() => {
     const cats = new Set(this.picks().map(p => p.definition.category));
     return ['All', ...Array.from(cats).sort()];
@@ -67,6 +66,8 @@ export class QuickPickListComponent implements OnInit {
 
   readonly loading = signal(true);
 
+  readonly removing = signal<string | null>(null);
+
   loadPicks(autoSeed = true): void {
     this.loading.set(true);
     this.quickPickService.getAll().subscribe({
@@ -80,8 +81,8 @@ export class QuickPickListComponent implements OnInit {
         if (picks.length === 0 && autoSeed && this.isAdmin()) {
           // First visit with no picks — seed defaults and reload
           this.quickPickService.seed().subscribe({
-            next: () => this.loadPicks(false),
             error: () => this.loading.set(false),
+            next: () => this.loadPicks(false),
           });
           return;
         }
@@ -93,29 +94,6 @@ export class QuickPickListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPicks();
-  }
-
-  onReseed(): void {
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        message: 'This will delete all admin quick picks and re-create the defaults. User picks are not affected.',
-        title: 'Reset to Defaults',
-      },
-    });
-    ref.afterClosed().subscribe(confirmed => {
-      if (!confirmed) return;
-      this.loading.set(true);
-      this.quickPickService.seed().subscribe({
-        error: () => {
-          this.snackBar.open('Failed to re-seed defaults', 'OK', { duration: 3000 });
-          this.loading.set(false);
-        },
-        next: () => {
-          this.snackBar.open('Defaults restored', 'OK', { duration: 3000 });
-          this.loadPicks(false);
-        },
-      });
-    });
   }
 
   onAddNew(): void {
@@ -196,6 +174,29 @@ export class QuickPickListComponent implements OnInit {
           this.snackBar.open(`Quick pick removed — ${count} alarm(s) deleted`, 'OK', { duration: 3000 });
           this.removing.set(null);
           this.loadPicks();
+        },
+      });
+    });
+  }
+
+  onReseed(): void {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        message: 'This will delete all admin quick picks and re-create the defaults. User picks are not affected.',
+        title: 'Reset to Defaults',
+      },
+    });
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.loading.set(true);
+      this.quickPickService.seed().subscribe({
+        error: () => {
+          this.snackBar.open('Failed to re-seed defaults', 'OK', { duration: 3000 });
+          this.loading.set(false);
+        },
+        next: () => {
+          this.snackBar.open('Defaults restored', 'OK', { duration: 3000 });
+          this.loadPicks(false);
         },
       });
     });

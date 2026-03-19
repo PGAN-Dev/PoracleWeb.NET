@@ -47,32 +47,11 @@ export class QuickPickApplyDialogComponent {
   private readonly masterData = inject(MasterDataService);
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
+  /** Total Pokemon count from master data (minus the "All Pokemon" id=0 entry) */
+  private readonly totalPokemon = this.masterData.getAllPokemon().length - 1;
   readonly applying = signal(false);
   readonly applyStatus = signal('');
   readonly data = inject<QuickPickSummary>(MAT_DIALOG_DATA);
-  readonly dialogRef = inject(MatDialogRef<QuickPickApplyDialogComponent>);
-  readonly excludedPokemonIds = signal<number[]>(
-    this.data.appliedState?.excludePokemonIds ?? [],
-  );
-  readonly isReapply = !!this.data.appliedState;
-  readonly showExclusions =
-    this.data.definition.alarmType === 'monster' &&
-    (this.data.definition.filters['pokemonId'] === 0 ||
-      this.data.definition.filters['pokemonId'] === undefined ||
-      this.data.definition.filters['pokemonId'] === null);
-
-  /** Total Pokemon count from master data (minus the "All Pokemon" id=0 entry) */
-  private readonly totalPokemon = this.masterData.getAllPokemon().length - 1;
-
-  /** How many individual alarms will be created if exclusions are used */
-  readonly individualAlarmCount = computed(() => {
-    if (!this.showExclusions || this.excludedPokemonIds().length === 0) return 0;
-    return Math.max(0, this.totalPokemon - this.excludedPokemonIds().length);
-  });
-
-  /** Whether this apply will create individual rows */
-  readonly willTrackIndividually = computed(() => this.individualAlarmCount() > 0);
-
   deliveryForm = this.fb.group({
     clean: [false],
     distanceKm: [0],
@@ -80,23 +59,38 @@ export class QuickPickApplyDialogComponent {
     template: [''],
   });
 
+  readonly dialogRef = inject(MatDialogRef<QuickPickApplyDialogComponent>);
+  readonly excludedPokemonIds = signal<number[]>(this.data.appliedState?.excludePokemonIds ?? []);
+
+  /** How many individual alarms will be created if exclusions are used */
+  readonly individualAlarmCount = computed(() => {
+    if (!this.showExclusions || this.excludedPokemonIds().length === 0) return 0;
+    return Math.max(0, this.totalPokemon - this.excludedPokemonIds().length);
+  });
+
+  readonly isReapply = !!this.data.appliedState;
+
+  readonly showExclusions =
+    this.data.definition.alarmType === 'monster' &&
+    (this.data.definition.filters['pokemonId'] === 0 ||
+      this.data.definition.filters['pokemonId'] === undefined ||
+      this.data.definition.filters['pokemonId'] === null);
+
+  /** Whether this apply will create individual rows */
+  readonly willTrackIndividually = computed(() => this.individualAlarmCount() > 0);
+
   apply(): void {
     this.applying.set(true);
     this.dialogRef.disableClose = true;
 
     if (this.willTrackIndividually()) {
-      this.applyStatus.set(
-        `Creating ${this.individualAlarmCount()} individual alarms...`,
-      );
+      this.applyStatus.set(`Creating ${this.individualAlarmCount()} individual alarms...`);
     } else {
       this.applyStatus.set('Applying quick pick...');
     }
 
     const delivery = this.deliveryForm.getRawValue();
-    const distanceMeters =
-      delivery.distanceMode === 'areas'
-        ? 0
-        : Math.round((delivery.distanceKm ?? 1) * 1000);
+    const distanceMeters = delivery.distanceMode === 'areas' ? 0 : Math.round((delivery.distanceKm ?? 1) * 1000);
 
     const request: QuickPickApplyRequest = {
       clean: delivery.clean ? 1 : 0,
@@ -120,11 +114,7 @@ export class QuickPickApplyDialogComponent {
       },
       next: state => {
         const count = state.trackedUids?.length ?? 0;
-        this.snackBar.open(
-          `Quick pick ${this.isReapply ? 're-applied' : 'applied'}: ${count} alarm(s) created`,
-          'OK',
-          { duration: 3000 },
-        );
+        this.snackBar.open(`Quick pick ${this.isReapply ? 're-applied' : 'applied'}: ${count} alarm(s) created`, 'OK', { duration: 3000 });
         this.dialogRef.close(true);
       },
     });
