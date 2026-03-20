@@ -25,6 +25,22 @@ mat-dialog-content {
   height: 64px;
   object-fit: contain;
 }
+.all-pokemon-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--divider, rgba(0, 0, 0, 0.06));
+  border-radius: 50%;
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  }
+}
 .pokemon-id {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
