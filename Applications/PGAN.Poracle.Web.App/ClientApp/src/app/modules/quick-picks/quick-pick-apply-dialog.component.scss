@@ -3,14 +3,21 @@
   margin-bottom: 16px;
 }
 
-.exclusion-panel {
-  margin-bottom: 16px;
+.exclusion-toggle {
+  margin-bottom: 12px;
 }
 
-.exclusion-count {
-  margin-left: 8px;
-  color: var(--mat-sys-primary);
+.exclusion-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+
+.exclusion-summary {
+  margin: 8px 0 0;
+  font-size: 13px;
   font-weight: 500;
+  color: #ff9800;
 }
 
 .individual-warning {

@@ -2,7 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -28,7 +27,6 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
-    MatExpansionModule,
     MatProgressBarModule,
     MatRadioModule,
     MatSlideToggleModule,
@@ -62,6 +60,7 @@ export class QuickPickApplyDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<QuickPickApplyDialogComponent>);
+  readonly excludeEnabled = signal((this.data.appliedState?.excludePokemonIds?.length ?? 0) > 0);
   readonly excludedPokemonIds = signal<number[]>(this.data.appliedState?.excludePokemonIds ?? []);
 
   /** How many individual alarms will be created if exclusions are used */
@@ -97,7 +96,7 @@ export class QuickPickApplyDialogComponent {
     const request: QuickPickApplyRequest = {
       clean: delivery.clean ? 1 : 0,
       distance: distanceMeters,
-      excludePokemonIds: this.showExclusions ? this.excludedPokemonIds() : [],
+      excludePokemonIds: this.showExclusions && this.excludeEnabled() ? this.excludedPokemonIds() : [],
       template: delivery.template || undefined,
     };
 
