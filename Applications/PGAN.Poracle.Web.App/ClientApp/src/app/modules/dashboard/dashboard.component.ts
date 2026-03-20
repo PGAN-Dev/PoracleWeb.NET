@@ -14,6 +14,7 @@ import { AreaService } from '../../core/services/area.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { LocationService } from '../../core/services/location.service';
+import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
 
 interface DashboardCard {
   colorClass: string;
@@ -26,7 +27,7 @@ interface DashboardCard {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatCardModule, MatIconModule, MatButtonModule, MatTooltipModule, MatChipsModule, MatDividerModule],
+  imports: [MatCardModule, MatIconModule, MatButtonModule, MatTooltipModule, MatChipsModule, MatDividerModule, OnboardingComponent],
   selector: 'app-dashboard',
   standalone: true,
   styleUrl: './dashboard.component.scss',
@@ -39,6 +40,8 @@ export class DashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly locationService = inject(LocationService);
   private readonly router = inject(Router);
+
+  readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
 
   readonly cards: DashboardCard[] = [
     { colorClass: 'card-pokemon', icon: 'catching_pokemon', key: 'pokemon', label: 'Pokemon', route: '/pokemon', subtitle: 'Wild spawns' },
