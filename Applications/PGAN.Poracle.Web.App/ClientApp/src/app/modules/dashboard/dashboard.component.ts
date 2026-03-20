@@ -129,17 +129,6 @@ export class DashboardComponent implements OnInit {
       });
     }
 
-    if (this.alertsPaused()) {
-      tips.push({
-        type: 'warning',
-        icon: 'pause_circle',
-        message: "Your alerts are currently paused. You won't receive notifications.",
-        route: null,
-        action: 'Resume',
-        id: 'paused',
-      });
-    }
-
     const c = this.counts();
     if (c && Object.values(c).every(v => v === 0)) {
       tips.push({
