@@ -58,9 +58,14 @@ export class QuestEditDialogComponent {
 
   saving = signal(false);
 
+  private get questPokemonId(): number {
+    return this.data.pokemonId > 0 ? this.data.pokemonId : this.data.reward;
+  }
+
   getImage(): string {
-    if (this.data.rewardType === 7 && this.data.pokemonId > 0) {
-      return this.iconService.getPokemonUrl(this.data.pokemonId);
+    const pid = this.questPokemonId;
+    if ((this.data.rewardType === 7 || this.data.rewardType === 12 || this.data.rewardType === 4) && pid > 0) {
+      return this.iconService.getPokemonUrl(pid);
     }
     return this.iconService.getRewardUrl('quest', this.data.rewardType);
   }
@@ -71,6 +76,8 @@ export class QuestEditDialogComponent {
         return 'Pokemon Encounter';
       case 2:
         return 'Item';
+      case 3:
+        return 'Stardust';
       case 12:
         return 'Mega Energy';
       case 4:
@@ -81,16 +88,26 @@ export class QuestEditDialogComponent {
   }
 
   getTitle(): string {
-    if (this.data.rewardType === 7 && this.data.pokemonId > 0) {
-      return this.masterData.getPokemonName(this.data.pokemonId);
+    const pid = this.questPokemonId;
+    if (this.data.rewardType === 7 && pid > 0) {
+      return this.masterData.getPokemonName(pid);
     }
-    if (this.data.rewardType === 12 && this.data.pokemonId > 0) {
-      return `${this.masterData.getPokemonName(this.data.pokemonId)} Mega Energy`;
+    if (this.data.rewardType === 7 && pid === 0) {
+      return 'Any Pokemon Encounter';
     }
-    if (this.data.rewardType === 4 && this.data.pokemonId > 0) {
-      return `${this.masterData.getPokemonName(this.data.pokemonId)} Candy`;
+    if (this.data.rewardType === 12 && pid > 0) {
+      return `${this.masterData.getPokemonName(pid)} Mega Energy`;
     }
-    return `Quest Reward #${this.data.reward}`;
+    if (this.data.rewardType === 4 && pid > 0) {
+      return `${this.masterData.getPokemonName(pid)} Candy`;
+    }
+    if (this.data.rewardType === 3) {
+      return this.data.reward > 0 ? `${this.data.reward}+ Stardust` : 'Stardust';
+    }
+    if (this.data.rewardType === 2) {
+      return this.masterData.getItemName(this.data.reward);
+    }
+    return this.getRewardTypeLabel();
   }
 
   onDistanceModeChange(): void {
