@@ -13,7 +13,15 @@ public class ProfileController(IProfileService profileService, IHumanService hum
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var profiles = await this._profileService.GetByUserAsync(this.UserId);
+        var profiles = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
+        var human = await this._humanService.GetByIdAsync(this.UserId);
+        var activeNo = human?.CurrentProfileNo ?? 1;
+
+        foreach (var p in profiles)
+        {
+            p.Active = p.ProfileNo == activeNo;
+        }
+
         return this.Ok(profiles);
     }
 

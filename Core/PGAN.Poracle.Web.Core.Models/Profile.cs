@@ -20,4 +20,5 @@ public class Profile
     {
         get; set;
     }
+    public bool Active { get; set; }
 }
