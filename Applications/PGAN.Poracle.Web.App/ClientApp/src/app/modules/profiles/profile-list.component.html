@@ -18,12 +18,9 @@
     <mat-spinner diameter="48"></mat-spinner>
   </div>
 } @else {
-  <div class="profile-grid" cdkDropList (cdkDropListDropped)="onDrop($event)">
+  <div class="profile-grid">
     @for (profile of profiles(); track profile.profileNo) {
-      <mat-card class="profile-card" [class.active-profile]="profile.active" cdkDrag>
-        <div class="drag-handle" cdkDragHandle>
-          <mat-icon>drag_indicator</mat-icon>
-        </div>
+      <mat-card class="profile-card" [class.active-profile]="profile.active">
         @if (profile.active) {
           <div class="active-badge">
             <mat-icon>check_circle</mat-icon>

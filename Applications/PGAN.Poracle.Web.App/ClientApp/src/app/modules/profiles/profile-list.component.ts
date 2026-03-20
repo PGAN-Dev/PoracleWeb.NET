@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -20,7 +19,6 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DragDropModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -101,12 +99,6 @@ export class ProfileListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProfiles();
-  }
-
-  onDrop(event: CdkDragDrop<any[]>): void {
-    const items = [...this.profiles()];
-    moveItemInArray(items, event.previousIndex, event.currentIndex);
-    this.profiles.set(items);
   }
 
   openAddDialog(): void {
