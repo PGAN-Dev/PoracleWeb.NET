@@ -82,6 +82,7 @@ export class NestEditDialogComponent {
         distance: dist,
         minSpawnAvg: v.minSpawnAvg ?? 0,
         ping: v.ping || null,
+        pokemonId: this.data.pokemonId,
         template: v.template || null,
       } as NestUpdate)
       .subscribe({

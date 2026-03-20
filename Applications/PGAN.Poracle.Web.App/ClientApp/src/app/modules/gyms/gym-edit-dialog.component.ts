@@ -90,6 +90,7 @@ export class GymEditDialogComponent {
         distance: dist,
         ping: v.ping || null,
         slot_changes: v.slot_changes ? 1 : 0,
+        team: this.data.team,
         template: v.template || null,
       } as GymUpdate)
       .subscribe({
