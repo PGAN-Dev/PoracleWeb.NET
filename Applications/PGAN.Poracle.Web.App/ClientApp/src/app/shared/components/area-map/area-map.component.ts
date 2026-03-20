@@ -54,7 +54,16 @@ interface RegionGrouping {
 }
 
 @Component({
-  imports: [FormsModule, MatAutocompleteModule, MatFormFieldModule, MatInputModule, MatIconModule, MatButtonModule, MatChipsModule, MatTooltipModule],
+  imports: [
+    FormsModule,
+    MatAutocompleteModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatIconModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatTooltipModule,
+  ],
   selector: 'app-area-map',
   standalone: true,
   styleUrl: './area-map.component.scss',
@@ -63,27 +72,43 @@ interface RegionGrouping {
 export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private allBoundsRect: L.LatLngBounds | null = null;
 
+  private fullscreenHandler = () => {
+    if (!document.fullscreenElement) {
+      this.isFullscreen.set(false);
+      setTimeout(() => this.map?.invalidateSize(), 100);
+    }
+  };
+
   private groupColorMap = new Map<string, string>();
   private initialized = false;
   private map: L.Map | null = null;
+
   private polygonByName = new Map<string, L.Polygon>();
 
   private polygonLayers: L.Polygon[] = [];
-
   private userMarker: L.Marker | null = null;
   @Output() areaClicked = new EventEmitter<string>();
   @Input() geofence: GeofenceData[] = [];
   @Input() groupMapping: Map<string, string> = new Map();
+  readonly isFullscreen = signal(false);
   @ViewChild('mapContainer', { static: true }) mapElement!: ElementRef<HTMLDivElement>;
+
   readonly regionGroups = signal<RegionGrouping[]>([]);
+
   readonly regions = signal<RegionEntry[]>([]);
-
   regionSearchText = '';
-
   @Input() selectedAreas: string[] = [];
   readonly selectedRegion = signal('');
+
   @Input() userLocation?: { lat: number; lng: number };
+
   readonly visibleLegend = signal<{ group: string; color: string }[]>([]);
+
+  clearRegion(): void {
+    this.selectedRegion.set('');
+    this.regionSearchText = '';
+    this.fitAll();
+  }
 
   filteredRegions(): RegionEntry[] {
     const search = this.regionSearchText.toLowerCase();
@@ -92,44 +117,12 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     return all.filter(r => r.label.toLowerCase().includes(search) || r.shortLabel.toLowerCase().includes(search));
   }
 
-  clearRegion(): void {
-    this.selectedRegion.set('');
-    this.regionSearchText = '';
-    this.fitAll();
-  }
-
-  readonly isFullscreen = signal(false);
-
   fitAll(): void {
     this.selectedRegion.set('');
     if (this.map && this.allBoundsRect) {
       this.map.fitBounds(this.allBoundsRect, { padding: [20, 20] });
     }
   }
-
-  toggleFullscreen(): void {
-    const el = this.mapElement.nativeElement.closest('.map-container') as HTMLElement | null;
-    if (!el) return;
-
-    if (!document.fullscreenElement) {
-      el.requestFullscreen().then(() => {
-        this.isFullscreen.set(true);
-        setTimeout(() => this.map?.invalidateSize(), 100);
-      });
-    } else {
-      document.exitFullscreen().then(() => {
-        this.isFullscreen.set(false);
-        setTimeout(() => this.map?.invalidateSize(), 100);
-      });
-    }
-  }
-
-  private fullscreenHandler = () => {
-    if (!document.fullscreenElement) {
-      this.isFullscreen.set(false);
-      setTimeout(() => this.map?.invalidateSize(), 100);
-    }
-  };
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -183,6 +176,23 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     if (bounds.length > 0) {
       this.map.fitBounds(L.latLngBounds(bounds), { maxZoom: 14, padding: [30, 30] });
+    }
+  }
+
+  toggleFullscreen(): void {
+    const el = this.mapElement.nativeElement.closest('.map-container') as HTMLElement | null;
+    if (!el) return;
+
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => {
+        this.isFullscreen.set(true);
+        setTimeout(() => this.map?.invalidateSize(), 100);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        this.isFullscreen.set(false);
+        setTimeout(() => this.map?.invalidateSize(), 100);
+      });
     }
   }
 

@@ -98,6 +98,8 @@ export class AreaListComponent implements OnInit {
     return map;
   });
 
+  groupSearchText = '';
+
   readonly selectedAreas = signal<string[]>([]);
 
   readonly hasChanges = computed(() => {
@@ -113,30 +115,16 @@ export class AreaListComponent implements OnInit {
   });
 
   readonly loading = signal(true);
-
   readonly location = signal<Location | null>(null);
+
   readonly locationAddress = signal<string>('');
 
   readonly locationMapUrl = signal<string>('');
-
-  groupSearchText = '';
   manualAreaName = '';
 
   readonly saving = signal(false);
 
   searchText = '';
-
-  filteredGroupOptions(): GroupInfo[] {
-    const search = this.groupSearchText.toLowerCase();
-    const all = this.allGroups();
-    if (!search) return all;
-    return all.filter(g => g.name.toLowerCase().includes(search));
-  }
-
-  onGroupFilterSelected(value: string): void {
-    this.activeGroup.set(value || null);
-    this.groupSearchText = '';
-  }
 
   readonly userLocationForMap = computed(() => {
     const loc = this.location();
@@ -171,17 +159,17 @@ export class AreaListComponent implements OnInit {
     // Triggers visibleAreas recomputation via searchText binding
   }
 
-  clearAllAreas(): void {
-    for (const a of this.areas()) a.selected = false;
-    this.syncSelectedFromAreas();
-  }
-
   cancelChanges(): void {
     const savedSet = new Set(this.savedSelection.map(s => s.toLowerCase()));
     for (const a of this.areas()) {
       a.selected = savedSet.has(a.name.toLowerCase());
     }
     this.selectedAreas.set([...this.savedSelection]);
+  }
+
+  clearAllAreas(): void {
+    for (const a of this.areas()) a.selected = false;
+    this.syncSelectedFromAreas();
   }
 
   clearSearch(): void {
@@ -193,8 +181,20 @@ export class AreaListComponent implements OnInit {
     this.syncSelectedFromAreas();
   }
 
+  filteredGroupOptions(): GroupInfo[] {
+    const search = this.groupSearchText.toLowerCase();
+    const all = this.allGroups();
+    if (!search) return all;
+    return all.filter(g => g.name.toLowerCase().includes(search));
+  }
+
   ngOnInit(): void {
     this.loadData();
+  }
+
+  onGroupFilterSelected(value: string): void {
+    this.activeGroup.set(value || null);
+    this.groupSearchText = '';
   }
 
   onMapAreaClicked(name: string): void {

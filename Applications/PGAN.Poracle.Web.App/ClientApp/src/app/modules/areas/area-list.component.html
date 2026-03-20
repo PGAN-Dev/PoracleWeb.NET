@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
     <h1>Areas & Location</h1>
-    <p class="page-description">Choose which geographic areas you receive notifications for.</p>
+    <p class="page-description">Control where you receive notifications. Choose one or both methods below.</p>
   </div>
 </div>
 
@@ -11,28 +11,78 @@
   </div>
 } @else {
   <div class="areas-page">
-    <!-- Location Card (always visible, compact) -->
-    <div class="location-bar">
-      <mat-icon class="location-icon">my_location</mat-icon>
-      <div class="location-info">
-        <span class="location-label">Your Location</span>
-        @if (location(); as loc) {
-          <span class="location-value">
-            @if (locationAddress()) {
-              {{ locationAddress() }}
-            } @else {
-              {{ loc.latitude.toFixed(5) }}, {{ loc.longitude.toFixed(5) }}
-            }
-          </span>
-        } @else {
-          <span class="location-value location-unset">Not set — needed for distance-based alerts</span>
-        }
+    <!-- Explainer: Two methods side by side -->
+    <div class="method-cards">
+      <div class="method-card method-areas" [class.method-active]="selectedAreas().length > 0">
+        <div class="method-header">
+          <mat-icon class="method-icon">map</mat-icon>
+          <div>
+            <h3>Areas</h3>
+            <span class="method-status">
+              @if (selectedAreas().length > 0) {
+                {{ selectedAreas().length }} area(s) active
+              } @else {
+                Not configured
+              }
+            </span>
+          </div>
+        </div>
+        <p class="method-description">
+          Get notified about anything that happens inside your selected geofenced zones. Set alarms to <strong>"Use Areas"</strong> in the
+          delivery settings.
+        </p>
+        <p class="method-example">
+          <mat-icon>lightbulb</mat-icon>
+          Best for: covering entire cities, neighborhoods, or parks
+        </p>
       </div>
-      <button mat-stroked-button (click)="openLocationDialog()">
-        <mat-icon>edit_location</mat-icon>
-        {{ location() ? 'Change' : 'Set' }}
-      </button>
+
+      <div class="method-card method-location" [class.method-active]="!!location()">
+        <div class="method-header">
+          <mat-icon class="method-icon">my_location</mat-icon>
+          <div>
+            <h3>Location</h3>
+            <span class="method-status">
+              @if (location(); as loc) {
+                @if (locationAddress()) {
+                  {{ locationAddress() | slice: 0 : 50 }}
+                } @else {
+                  {{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}
+                }
+              } @else {
+                Not set
+              }
+            </span>
+          </div>
+          <button mat-stroked-button class="method-action" (click)="openLocationDialog()">
+            <mat-icon>edit_location</mat-icon>
+            {{ location() ? 'Change' : 'Set' }}
+          </button>
+        </div>
+        <p class="method-description">
+          Get notified about anything within a set distance from your pinned location. Set alarms to <strong>"Set Distance"</strong> (e.g.,
+          5 km) in the delivery settings.
+        </p>
+        <p class="method-example">
+          <mat-icon>lightbulb</mat-icon>
+          Best for: alerts near your home, work, or a specific spot
+        </p>
+      </div>
     </div>
+
+    <div class="method-note">
+      <mat-icon>info</mat-icon>
+      <span
+        >Each alarm chooses one method in its Delivery tab: "Use Areas" or "Set Distance". You can use both methods across different
+        alarms.</span
+      >
+    </div>
+
+    <!-- Area Selection Section -->
+    <h2 class="section-title">
+      <mat-icon>map</mat-icon>
+      Select Areas
+    </h2>
 
     <!-- Mode Toggle -->
     <div class="mode-bar">
@@ -52,9 +102,7 @@
       </div>
       <span class="selection-summary">{{ selectedAreas().length }} area(s) selected</span>
       @if (selectedAreas().length > 0) {
-        <button mat-button color="warn" (click)="clearAllAreas()">
-          <mat-icon>delete_sweep</mat-icon> Clear All
-        </button>
+        <button mat-button color="warn" (click)="clearAllAreas()"><mat-icon>delete_sweep</mat-icon> Clear All</button>
       }
     </div>
 
@@ -95,7 +143,6 @@
     <!-- List View -->
     @if (viewMode() === 'list') {
       <div class="list-view">
-        <!-- Region Filter -->
         <mat-form-field appearance="outline" class="region-filter-field">
           <mat-icon matPrefix>search</mat-icon>
           <mat-label>Search by region</mat-label>
@@ -113,9 +160,7 @@
           <mat-autocomplete #groupAuto="matAutocomplete" (optionSelected)="onGroupFilterSelected($event.option.value)">
             <mat-option value="">All Regions</mat-option>
             @for (group of filteredGroupOptions(); track group.name) {
-              <mat-option [value]="group.name">
-                {{ group.name }} ({{ group.selectedCount }}/{{ group.totalCount }})
-              </mat-option>
+              <mat-option [value]="group.name"> {{ group.name }} ({{ group.selectedCount }}/{{ group.totalCount }}) </mat-option>
             }
           </mat-autocomplete>
         </mat-form-field>
@@ -129,7 +174,6 @@
           </mat-chip-set>
         }
 
-        <!-- Checklist -->
         @if (availableAreas().length === 0) {
           <div class="api-offline-notice">
             <mat-icon class="warning-icon">cloud_off</mat-icon>
@@ -147,12 +191,10 @@
             </mat-form-field>
           </div>
         } @else {
-          <!-- Bulk actions -->
           <div class="list-actions">
             <button mat-button color="primary" (click)="selectAllVisible()"><mat-icon>select_all</mat-icon> Select All</button>
             <button mat-button (click)="deselectAllVisible()"><mat-icon>deselect</mat-icon> Deselect All</button>
           </div>
-
           <div class="area-checklist">
             @for (area of visibleAreas(); track area.name) {
               <div class="area-row" [class.area-row-selected]="area.selected" (click)="toggleAreaDirect(area)">
@@ -163,9 +205,7 @@
                 }
               </div>
             } @empty {
-              @if (searchText) {
-                <p class="no-results">No areas match "{{ searchText }}"</p>
-              }
+              <p class="no-results">No areas found</p>
             }
           </div>
         }
