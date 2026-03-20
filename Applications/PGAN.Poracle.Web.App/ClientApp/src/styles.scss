@@ -277,7 +277,28 @@ body.dark-theme .app-toolbar {
   .mat-mdc-dialog-content {
     flex: 1 1 auto !important;
     max-height: none !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  // Prevent form rows from overflowing on narrow screens
+  .form-row {
+    flex-wrap: wrap !important;
+  }
+
+  .form-row mat-form-field {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  // Tabs should not overflow
+  .mat-mdc-tab-group,
+  .mat-mdc-tab-body-wrapper,
+  .mat-mdc-tab-body-content {
+    max-width: 100% !important;
     overflow-x: hidden !important;
   }
 
