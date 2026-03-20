@@ -157,9 +157,9 @@ export class AreaListComponent implements OnInit {
   }
 
   cancelChanges(): void {
-    const savedSet = new Set(this.savedSelection);
+    const savedSet = new Set(this.savedSelection.map(s => s.toLowerCase()));
     for (const a of this.areas()) {
-      a.selected = savedSet.has(a.name);
+      a.selected = savedSet.has(a.name.toLowerCase());
     }
     this.selectedAreas.set([...this.savedSelection]);
   }
@@ -178,7 +178,8 @@ export class AreaListComponent implements OnInit {
   }
 
   onMapAreaClicked(name: string): void {
-    const area = this.areas().find(a => a.name === name);
+    const lowerName = name.toLowerCase();
+    const area = this.areas().find(a => a.name.toLowerCase() === lowerName);
     if (area) {
       this.toggleAreaDirect(area);
     }
@@ -213,7 +214,8 @@ export class AreaListComponent implements OnInit {
   }
 
   removeAreaDirect(name: string): void {
-    const area = this.areas().find(a => a.name === name);
+    const lowerName = name.toLowerCase();
+    const area = this.areas().find(a => a.name.toLowerCase() === lowerName);
     if (area) {
       area.selected = false;
       this.syncSelectedFromAreas();
@@ -254,14 +256,15 @@ export class AreaListComponent implements OnInit {
   }
 
   private buildAreaList(): void {
-    const selectedSet = new Set(this.selectedAreas());
+    // DB stores lowercase area names, API may return mixed case
+    const selectedSet = new Set(this.selectedAreas().map(a => a.toLowerCase()));
     const available = this.availableAreas();
     this.areas.set(
       available
         .map(a => ({
           name: a.name,
           group: a.group ?? '',
-          selected: selectedSet.has(a.name),
+          selected: selectedSet.has(a.name.toLowerCase()),
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
