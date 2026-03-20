@@ -1,5 +1,5 @@
 .hint {
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-size: 13px;
   margin-bottom: 12px;
 }
@@ -43,7 +43,7 @@
   width: 28px;
   height: 28px;
   flex-shrink: 0;
-  color: rgba(0, 0, 0, 0.38);
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
   line-height: 28px;
 }
 .option-name {
@@ -52,6 +52,6 @@
 }
 .option-id {
   font-size: 11px;
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-family: monospace;
 }
