@@ -21,7 +21,7 @@
   </div>
 }
 @if (auth.isLoggedIn()) {
-  <mat-toolbar class="app-toolbar">
+  <mat-toolbar class="app-toolbar" [style.background]="toolbarGradient()">
     <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation menu">
       <mat-icon>menu</mat-icon>
     </button>
@@ -60,7 +60,7 @@
       }
     </button>
     <mat-menu #userMenu="matMenu" class="user-menu-panel">
-      <div class="user-menu-header" mat-menu-item disabled>
+      <div class="user-menu-header">
         <div class="user-menu-avatar">
           @if (auth.user()?.avatarUrl) {
             <img [src]="auth.user()!.avatarUrl!" class="menu-avatar" alt="avatar" />
