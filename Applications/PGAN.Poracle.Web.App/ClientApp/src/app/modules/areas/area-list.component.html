@@ -56,9 +56,7 @@
           </div>
           <div class="method-actions">
             @if (location()) {
-              <button mat-button color="warn" (click)="clearLocation()">
-                <mat-icon>location_off</mat-icon> Clear
-              </button>
+              <button mat-button color="warn" (click)="clearLocation()"><mat-icon>location_off</mat-icon> Clear</button>
             }
             <button mat-stroked-button (click)="openLocationDialog()">
               <mat-icon>edit_location</mat-icon>

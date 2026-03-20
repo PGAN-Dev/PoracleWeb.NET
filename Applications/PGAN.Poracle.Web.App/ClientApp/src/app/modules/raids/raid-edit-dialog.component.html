@@ -8,30 +8,39 @@
     </div>
   </div>
 
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Team</mat-label>
-    <mat-select [formControl]="form.controls.team">
-      <mat-option [value]="0">
-        <span class="team-option"><span class="team-dot" style="background: #9e9e9e"></span> Any Team</span>
-      </mat-option>
-      <mat-option [value]="1">
-        <span class="team-option"><span class="team-dot" style="background: #2196f3"></span> Mystic (Blue)</span>
-      </mat-option>
-      <mat-option [value]="2">
-        <span class="team-option"><span class="team-dot" style="background: #f44336"></span> Valor (Red)</span>
-      </mat-option>
-      <mat-option [value]="3">
-        <span class="team-option"><span class="team-dot" style="background: #ffeb3b"></span> Instinct (Yellow)</span>
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
-
   <mat-tab-group animationDuration="200ms" class="alarm-tabs">
     <!-- Tab 1: Settings -->
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>tune</mat-icon>
         <span class="tab-label">Settings</span>
+      </ng-template>
+      <div class="tab-content">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Team</mat-label>
+          <mat-select [formControl]="form.controls.team">
+            <mat-option [value]="0">
+              <span class="team-option"><span class="team-dot" style="background: #9e9e9e"></span> Any Team</span>
+            </mat-option>
+            <mat-option [value]="1">
+              <span class="team-option"><span class="team-dot" style="background: #2196f3"></span> Mystic (Blue)</span>
+            </mat-option>
+            <mat-option [value]="2">
+              <span class="team-option"><span class="team-dot" style="background: #f44336"></span> Valor (Red)</span>
+            </mat-option>
+            <mat-option [value]="3">
+              <span class="team-option"><span class="team-dot" style="background: #ffeb3b"></span> Instinct (Yellow)</span>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Delivery -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>notifications</mat-icon>
+        <span class="tab-label">Delivery</span>
       </ng-template>
       <div class="tab-content">
         <h4>Location Mode</h4>
@@ -68,16 +77,8 @@
           [mode]="form.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
           [distanceKm]="form.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
-      </div>
-    </mat-tab>
 
-    <!-- Tab 2: Delivery -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <mat-icon>notifications</mat-icon>
-        <span class="tab-label">Delivery</span>
-      </ng-template>
-      <div class="tab-content">
+        <h4>Message Settings</h4>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Ping / Role</mat-label>

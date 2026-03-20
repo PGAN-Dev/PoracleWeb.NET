@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { Quest, QuestUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -27,6 +28,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSlideToggleModule,
     MatIconModule,
     MatRadioModule,
+    MatTabsModule,
     MatSnackBarModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,

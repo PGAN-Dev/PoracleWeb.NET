@@ -36,26 +36,34 @@ import { LocationService } from '../../../core/services/location.service';
 })
 export class LocationDialogComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  private readonly locationIcon = L.divIcon({
+    className: 'location-pin-marker',
+    html: '<div style="width:16px;height:16px;background:#1976D2;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
+    iconAnchor: [11, 11],
+    iconSize: [22, 22],
+  });
+
   private readonly locationService = inject(LocationService);
   private map: L.Map | null = null;
+
   private readonly mapContainerRef = viewChild<ElementRef<HTMLElement>>('mapContainer');
 
   private marker: L.Marker | null = null;
-
   private readonly search$ = new Subject<string>();
   private skipNextReverse = false;
-  private readonly snackBar = inject(MatSnackBar);
 
+  private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Location | null>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<LocationDialogComponent>);
   latitude = this.data?.latitude ?? 0;
   readonly locating = signal(false);
-  longitude = this.data?.longitude ?? 0;
 
+  longitude = this.data?.longitude ?? 0;
   readonly resolvedAddress = signal<string>('');
   readonly saving = signal(false);
   readonly searching = signal(false);
   searchQuery = '';
+
   readonly searchResults = signal<GeocodingResult[]>([]);
 
   constructor() {
@@ -276,13 +284,6 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     this.map.setView([lat, lng], 14);
     this.updateMarker();
   }
-
-  private readonly locationIcon = L.divIcon({
-    className: 'location-pin-marker',
-    html: '<div style="width:16px;height:16px;background:#1976D2;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
-    iconAnchor: [11, 11],
-    iconSize: [22, 22],
-  });
 
   private updateMarker(): void {
     if (!this.map) return;
