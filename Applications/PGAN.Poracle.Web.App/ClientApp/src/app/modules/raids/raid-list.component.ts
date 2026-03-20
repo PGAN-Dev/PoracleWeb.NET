@@ -90,9 +90,11 @@ export class RaidListComponent implements OnInit {
       const raidUids = new Set(this.raids().map(r => r.uid));
       for (const uid of ids) {
         if (raidUids.has(uid)) {
-          await firstValueFrom(this.raidService.update(uid, { distance }));
+          const raid = this.raids().find(r => r.uid === uid);
+          if (raid) await firstValueFrom(this.raidService.update(uid, { ...raid, distance }));
         } else {
-          await firstValueFrom(this.eggService.update(uid, { distance }));
+          const egg = this.eggs().find(e => e.uid === uid);
+          if (egg) await firstValueFrom(this.eggService.update(uid, { ...egg, distance }));
         }
       }
       this.selectedIds.set(new Set());

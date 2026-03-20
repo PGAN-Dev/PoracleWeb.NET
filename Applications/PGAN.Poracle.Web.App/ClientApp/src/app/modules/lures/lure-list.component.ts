@@ -91,7 +91,10 @@ export class LureListComponent implements OnInit {
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const ids = [...this.selectedIds()];
-      for (const uid of ids) await firstValueFrom(this.lureService.update(uid, { distance }));
+      for (const uid of ids) {
+        const lure = this.lures().find(l => l.uid === uid);
+        if (lure) await firstValueFrom(this.lureService.update(uid, { ...lure, distance }));
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadLures();

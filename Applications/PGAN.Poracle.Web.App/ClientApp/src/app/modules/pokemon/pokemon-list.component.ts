@@ -385,7 +385,10 @@ export class PokemonListComponent implements OnInit {
     if (distance !== null && distance !== undefined) {
       const ids = [...this.selectedIds()];
       for (const uid of ids) {
-        await firstValueFrom(this.monsterService.update(uid, { distance }));
+        const monster = this.monsters().find(m => m.uid === uid);
+        if (monster) {
+          await firstValueFrom(this.monsterService.update(uid, { ...monster, distance }));
+        }
       }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);

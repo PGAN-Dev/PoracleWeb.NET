@@ -95,7 +95,10 @@ export class NestListComponent implements OnInit {
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const ids = [...this.selectedIds()];
-      for (const uid of ids) await firstValueFrom(this.nestService.update(uid, { distance }));
+      for (const uid of ids) {
+        const nest = this.nests().find(n => n.uid === uid);
+        if (nest) await firstValueFrom(this.nestService.update(uid, { ...nest, distance }));
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadNests();

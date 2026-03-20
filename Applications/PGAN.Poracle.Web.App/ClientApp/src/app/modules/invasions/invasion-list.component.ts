@@ -103,7 +103,10 @@ export class InvasionListComponent implements OnInit {
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const ids = [...this.selectedIds()];
-      for (const uid of ids) await firstValueFrom(this.invasionService.update(uid, { distance }));
+      for (const uid of ids) {
+        const invasion = this.invasions().find(i => i.uid === uid);
+        if (invasion) await firstValueFrom(this.invasionService.update(uid, { ...invasion, distance }));
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadInvasions();

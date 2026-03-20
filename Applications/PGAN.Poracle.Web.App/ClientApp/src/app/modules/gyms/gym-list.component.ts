@@ -91,7 +91,10 @@ export class GymListComponent implements OnInit {
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const ids = [...this.selectedIds()];
-      for (const uid of ids) await firstValueFrom(this.gymService.update(uid, { distance }));
+      for (const uid of ids) {
+        const gym = this.gyms().find(g => g.uid === uid);
+        if (gym) await firstValueFrom(this.gymService.update(uid, { ...gym, distance }));
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadGyms();
