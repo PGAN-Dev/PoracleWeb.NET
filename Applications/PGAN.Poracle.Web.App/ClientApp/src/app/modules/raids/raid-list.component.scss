@@ -230,8 +230,13 @@
 
 // Skeleton loading
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 .skeleton-card {
   background: var(--card-bg, #fff);
@@ -290,7 +295,9 @@
   font-size: 13px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
-.bulk-spacer { flex: 1; }
+.bulk-spacer {
+  flex: 1;
+}
 .select-mode-active {
   color: #1976d2;
 }

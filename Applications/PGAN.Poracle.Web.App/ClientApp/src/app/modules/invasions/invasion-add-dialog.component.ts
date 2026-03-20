@@ -52,11 +52,36 @@ const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/ma
   templateUrl: './invasion-add-dialog.component.html',
 })
 export class InvasionAddDialogComponent implements OnInit {
+  private static readonly GRUNT_TYPES: { key: string; name: string; typeId: number; invasionId: number }[] = [
+    { name: 'Bug', invasionId: 1, key: 'Bug', typeId: 7 },
+    { name: 'Dark', invasionId: 2, key: 'Dark', typeId: 17 },
+    { name: 'Dragon', invasionId: 3, key: 'Dragon', typeId: 16 },
+    { name: 'Electric', invasionId: 4, key: 'Electric', typeId: 13 },
+    { name: 'Fairy', invasionId: 5, key: 'Fairy', typeId: 18 },
+    { name: 'Fighting', invasionId: 6, key: 'Fighting', typeId: 2 },
+    { name: 'Fire', invasionId: 7, key: 'Fire', typeId: 10 },
+    { name: 'Flying', invasionId: 8, key: 'Flying', typeId: 3 },
+    { name: 'Ghost', invasionId: 9, key: 'Ghost', typeId: 8 },
+    { name: 'Grass', invasionId: 10, key: 'Grass', typeId: 12 },
+    { name: 'Ground', invasionId: 11, key: 'Ground', typeId: 5 },
+    { name: 'Ice', invasionId: 12, key: 'Ice', typeId: 15 },
+    { name: 'Steel', invasionId: 13, key: 'Metal', typeId: 9 },
+    { name: 'Normal', invasionId: 14, key: 'Normal', typeId: 1 },
+    { name: 'Poison', invasionId: 15, key: 'Poison', typeId: 4 },
+    { name: 'Psychic', invasionId: 16, key: 'Psychic', typeId: 14 },
+    { name: 'Rock', invasionId: 17, key: 'Rock', typeId: 6 },
+    { name: 'Water', invasionId: 18, key: 'Water', typeId: 11 },
+    { name: 'Rocket Leader', invasionId: 41, key: 'mixed', typeId: 0 },
+    { name: 'Giovanni', invasionId: 44, key: 'Giovanni', typeId: 0 },
+    { name: 'Decoy Grunt', invasionId: 50, key: 'Decoy', typeId: 0 },
+  ];
+
   private readonly fb = inject(FormBuilder);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<InvasionAddDialogComponent>);
+
   form = this.fb.group({
     clean: [false],
     distanceKm: [1],
@@ -67,44 +92,14 @@ export class InvasionAddDialogComponent implements OnInit {
   });
 
   gruntOptions = signal<GruntOption[]>([]);
-
   readonly isWebhook = inject(AuthService).isImpersonating();
   saving = signal(false);
   selectedCount = signal(0);
-  readonly trackAll = signal(false);
 
-  private static readonly GRUNT_TYPES: { key: string; name: string; typeId: number; invasionId: number }[] = [
-    { key: 'Bug', name: 'Bug', typeId: 7, invasionId: 1 },
-    { key: 'Dark', name: 'Dark', typeId: 17, invasionId: 2 },
-    { key: 'Dragon', name: 'Dragon', typeId: 16, invasionId: 3 },
-    { key: 'Electric', name: 'Electric', typeId: 13, invasionId: 4 },
-    { key: 'Fairy', name: 'Fairy', typeId: 18, invasionId: 5 },
-    { key: 'Fighting', name: 'Fighting', typeId: 2, invasionId: 6 },
-    { key: 'Fire', name: 'Fire', typeId: 10, invasionId: 7 },
-    { key: 'Flying', name: 'Flying', typeId: 3, invasionId: 8 },
-    { key: 'Ghost', name: 'Ghost', typeId: 8, invasionId: 9 },
-    { key: 'Grass', name: 'Grass', typeId: 12, invasionId: 10 },
-    { key: 'Ground', name: 'Ground', typeId: 5, invasionId: 11 },
-    { key: 'Ice', name: 'Ice', typeId: 15, invasionId: 12 },
-    { key: 'Metal', name: 'Steel', typeId: 9, invasionId: 13 },
-    { key: 'Normal', name: 'Normal', typeId: 1, invasionId: 14 },
-    { key: 'Poison', name: 'Poison', typeId: 4, invasionId: 15 },
-    { key: 'Psychic', name: 'Psychic', typeId: 14, invasionId: 16 },
-    { key: 'Rock', name: 'Rock', typeId: 6, invasionId: 17 },
-    { key: 'Water', name: 'Water', typeId: 11, invasionId: 18 },
-    { key: 'mixed', name: 'Rocket Leader', typeId: 0, invasionId: 41 },
-    { key: 'Giovanni', name: 'Giovanni', typeId: 0, invasionId: 44 },
-    { key: 'Decoy', name: 'Decoy Grunt', typeId: 0, invasionId: 50 },
-  ];
+  readonly trackAll = signal(false);
 
   canSave(): boolean {
     return this.trackAll() || this.selectedCount() > 0;
-  }
-
-  ngOnInit(): void {
-    this.gruntOptions.set(
-      InvasionAddDialogComponent.GRUNT_TYPES.map(g => ({ ...g, selected: false })),
-    );
   }
 
   getGruntIcon(grunt: GruntOption): string {
@@ -112,6 +107,10 @@ export class InvasionAddDialogComponent implements OnInit {
       return `${UICONS_BASE}/type/${grunt.typeId}.png`;
     }
     return `${UICONS_BASE}/invasion/${grunt.invasionId}.png`;
+  }
+
+  ngOnInit(): void {
+    this.gruntOptions.set(InvasionAddDialogComponent.GRUNT_TYPES.map(g => ({ ...g, selected: false })));
   }
 
   onDistanceModeChange(): void {
@@ -126,24 +125,26 @@ export class InvasionAddDialogComponent implements OnInit {
       this.saving.set(true);
       const v = this.form.getRawValue();
       const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
-      this.invasionService.create({
-        clean: v.clean ? 1 : 0,
-        distance: dist,
-        gender: v.gender ?? 0,
-        gruntType: null,
-        ping: v.ping || null,
-        profileNo: 1,
-        template: v.template || null,
-      }).subscribe({
-        error: () => {
-          this.snackBar.open('Failed to create alarm', 'OK', { duration: 3000 });
-          this.saving.set(false);
-        },
-        next: () => {
-          this.snackBar.open('All invasions alarm created', 'OK', { duration: 3000 });
-          this.dialogRef.close(true);
-        },
-      });
+      this.invasionService
+        .create({
+          clean: v.clean ? 1 : 0,
+          distance: dist,
+          gender: v.gender ?? 0,
+          gruntType: null,
+          ping: v.ping || null,
+          profileNo: 1,
+          template: v.template || null,
+        })
+        .subscribe({
+          error: () => {
+            this.snackBar.open('Failed to create alarm', 'OK', { duration: 3000 });
+            this.saving.set(false);
+          },
+          next: () => {
+            this.snackBar.open('All invasions alarm created', 'OK', { duration: 3000 });
+            this.dialogRef.close(true);
+          },
+        });
       return;
     }
 

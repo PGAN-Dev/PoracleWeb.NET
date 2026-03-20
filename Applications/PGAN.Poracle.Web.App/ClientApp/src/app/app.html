@@ -49,7 +49,11 @@
         <mat-icon>{{ link.icon || 'launch' }}</mat-icon>
       </a>
     }
-    <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkMode() ? 'Switch to light mode' : 'Switch to dark mode'" aria-label="Toggle dark mode">
+    <button
+      mat-icon-button
+      (click)="toggleTheme()"
+      [matTooltip]="darkMode() ? 'Switch to light mode' : 'Switch to dark mode'"
+      aria-label="Toggle dark mode">
       <mat-icon>{{ darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
     <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger" aria-label="User menu">
@@ -139,78 +143,113 @@
       class="app-sidenav"
       [class.collapsed]="sidenavCollapsed() && !isMobile()">
       <nav aria-label="Main navigation">
-      <mat-nav-list>
-        <!-- Alarms Section -->
-        @if (!sidenavCollapsed() || isMobile()) {
-          <div class="nav-group-label">Alarms</div>
-        }
-        @for (item of alarmNavItems(); track item.route) {
-          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
-            <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-            @if (!sidenavCollapsed() || isMobile()) {
-              <span matListItemTitle>{{ item.label }}</span>
-            }
-          </a>
-        }
-
-        <mat-divider class="nav-divider"></mat-divider>
-
-        <!-- Settings Section -->
-        @if (!sidenavCollapsed() || isMobile()) {
-          <div class="nav-group-label">Settings</div>
-        }
-        @for (item of settingsNavItems(); track item.route) {
-          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
-            <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-            @if (!sidenavCollapsed() || isMobile()) {
-              <span matListItemTitle>{{ item.label }}</span>
-            }
-          </a>
-        }
-
-        @if (adminNavItems().length > 0) {
-          <mat-divider class="nav-divider"></mat-divider>
-
-          <!-- Admin Section -->
+        <mat-nav-list>
+          <!-- Alarms Section -->
           @if (!sidenavCollapsed() || isMobile()) {
-            <div class="nav-group-label">Admin</div>
+            <div class="nav-group-label">Alarms</div>
           }
-          @for (item of adminNavItems(); track item.route) {
-            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
+          @for (item of alarmNavItems(); track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              (click)="onNavClick()"
+              class="nav-item"
+              [matTooltip]="item.label"
+              [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+              matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               @if (!sidenavCollapsed() || isMobile()) {
                 <span matListItemTitle>{{ item.label }}</span>
               }
             </a>
           }
-        }
 
-        @if (!auth.isAdmin() && webhookNavItems().length > 0) {
           <mat-divider class="nav-divider"></mat-divider>
 
-          <!-- Webhooks Section (for delegates) -->
+          <!-- Settings Section -->
           @if (!sidenavCollapsed() || isMobile()) {
-            <div class="nav-group-label">Webhooks</div>
+            <div class="nav-group-label">Settings</div>
           }
-          @for (item of webhookNavItems(); track item.route) {
-            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
+          @for (item of settingsNavItems(); track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              (click)="onNavClick()"
+              class="nav-item"
+              [matTooltip]="item.label"
+              [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+              matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               @if (!sidenavCollapsed() || isMobile()) {
                 <span matListItemTitle>{{ item.label }}</span>
               }
             </a>
           }
-        }
-      </mat-nav-list>
 
-      <!-- Collapse toggle (desktop only) -->
-      @if (!isMobile()) {
-        <div class="sidenav-collapse-toggle">
-          <button mat-icon-button (click)="toggleSidenavCollapse()" [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
-            <mat-icon>{{ sidenavCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-          </button>
-        </div>
-      }
+          @if (adminNavItems().length > 0) {
+            <mat-divider class="nav-divider"></mat-divider>
+
+            <!-- Admin Section -->
+            @if (!sidenavCollapsed() || isMobile()) {
+              <div class="nav-group-label">Admin</div>
+            }
+            @for (item of adminNavItems(); track item.route) {
+              <a
+                mat-list-item
+                [routerLink]="item.route"
+                routerLinkActive="active-link"
+                (click)="onNavClick()"
+                class="nav-item"
+                [matTooltip]="item.label"
+                [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+                matTooltipPosition="right">
+                <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
+                @if (!sidenavCollapsed() || isMobile()) {
+                  <span matListItemTitle>{{ item.label }}</span>
+                }
+              </a>
+            }
+          }
+
+          @if (!auth.isAdmin() && webhookNavItems().length > 0) {
+            <mat-divider class="nav-divider"></mat-divider>
+
+            <!-- Webhooks Section (for delegates) -->
+            @if (!sidenavCollapsed() || isMobile()) {
+              <div class="nav-group-label">Webhooks</div>
+            }
+            @for (item of webhookNavItems(); track item.route) {
+              <a
+                mat-list-item
+                [routerLink]="item.route"
+                routerLinkActive="active-link"
+                (click)="onNavClick()"
+                class="nav-item"
+                [matTooltip]="item.label"
+                [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+                matTooltipPosition="right">
+                <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
+                @if (!sidenavCollapsed() || isMobile()) {
+                  <span matListItemTitle>{{ item.label }}</span>
+                }
+              </a>
+            }
+          }
+        </mat-nav-list>
+
+        <!-- Collapse toggle (desktop only) -->
+        @if (!isMobile()) {
+          <div class="sidenav-collapse-toggle">
+            <button
+              mat-icon-button
+              (click)="toggleSidenavCollapse()"
+              [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+              <mat-icon>{{ sidenavCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+            </button>
+          </div>
+        }
       </nav>
     </mat-sidenav>
 

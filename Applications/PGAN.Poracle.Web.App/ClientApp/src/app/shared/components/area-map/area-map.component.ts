@@ -315,10 +315,10 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       const originalFillOpacity = isSelected ? 0.35 : 0.08;
 
       polygon.on('mouseover', () => {
-        polygon.setStyle({ weight: 3, fillOpacity: 0.4 });
+        polygon.setStyle({ fillOpacity: 0.4, weight: 3 });
       });
       polygon.on('mouseout', () => {
-        polygon.setStyle({ weight: originalWeight, fillOpacity: originalFillOpacity });
+        polygon.setStyle({ fillOpacity: originalFillOpacity, weight: originalWeight });
       });
 
       polygon.on('click', () => {
@@ -378,18 +378,15 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         .bindTooltip('Your Location', { direction: 'top' })
         .addTo(this.map);
 
-      this.userCircle = L.circle(
-        [this.userLocation.lat, this.userLocation.lng],
-        {
-          radius: 5000,
-          color: '#1976d2',
-          fillColor: '#1976d2',
-          fillOpacity: 0.06,
-          weight: 1.5,
-          dashArray: '5, 5',
-          interactive: false,
-        }
-      ).addTo(this.map);
+      this.userCircle = L.circle([this.userLocation.lat, this.userLocation.lng], {
+        color: '#1976d2',
+        dashArray: '5, 5',
+        fillColor: '#1976d2',
+        fillOpacity: 0.06,
+        interactive: false,
+        radius: 5000,
+        weight: 1.5,
+      }).addTo(this.map);
     }
   }
 }

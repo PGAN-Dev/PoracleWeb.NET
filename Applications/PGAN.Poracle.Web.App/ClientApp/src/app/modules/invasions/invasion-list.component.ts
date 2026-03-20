@@ -10,17 +10,33 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
-
 import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
 
 const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
 const GRUNT_TYPE_ID: Record<string, number> = {
-  Bug: 7, Dark: 17, Dragon: 16, Electric: 13, Fairy: 18, Fighting: 2,
-  Fire: 10, Flying: 3, Ghost: 8, Grass: 12, Ground: 5, Ice: 15,
-  Metal: 9, Normal: 1, Poison: 4, Psychic: 14, Rock: 6, Water: 11,
+  Bug: 7,
+  Dark: 17,
+  Dragon: 16,
+  Electric: 13,
+  Fairy: 18,
+  Fighting: 2,
+  Fire: 10,
+  Flying: 3,
+  Ghost: 8,
+  Grass: 12,
+  Ground: 5,
+  Ice: 15,
+  Metal: 9,
+  Normal: 1,
+  Poison: 4,
+  Psychic: 14,
+  Rock: 6,
+  Water: 11,
 };
 const GRUNT_INVASION_ID: Record<string, number> = {
-  mixed: 41, Giovanni: 44, Decoy: 50,
+  Decoy: 50,
+  Giovanni: 44,
+  mixed: 41,
 };
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
 import { Invasion } from '../../core/models';
@@ -55,28 +71,8 @@ export class InvasionListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   readonly invasions = signal<Invasion[]>([]);
   readonly loading = signal(true);
-  readonly selectMode = signal(false);
   readonly selectedIds = signal(new Set<number>());
-
-  toggleSelectMode(): void {
-    this.selectMode.update(v => !v);
-    if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  toggleSelect(uid: number): void {
-    const current = new Set(this.selectedIds());
-    current.has(uid) ? current.delete(uid) : current.add(uid);
-    this.selectedIds.set(current);
-  }
-
-  selectAll(): void {
-    const ids = new Set(this.invasions().map(i => i.uid));
-    this.selectedIds.set(ids);
-  }
-
-  deselectAll(): void {
-    this.selectedIds.set(new Set());
-  }
+  readonly selectMode = signal(false);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -159,6 +155,10 @@ export class InvasionListComponent implements OnInit {
       });
   }
 
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
   editInvasion(invasion: Invasion): void {
     this.dialog
       .open(InvasionEditDialogComponent, { width: '600px', data: invasion, maxHeight: '90vh' })
@@ -168,6 +168,10 @@ export class InvasionListComponent implements OnInit {
       });
   }
 
+  formatDistance(meters: number): string {
+    return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
+  }
+
   getGruntIcon(gruntType: string | null): string {
     const type = gruntType ?? '';
     const typeId = GRUNT_TYPE_ID[type];
@@ -175,10 +179,6 @@ export class InvasionListComponent implements OnInit {
     const invasionId = GRUNT_INVASION_ID[type];
     if (invasionId) return `${UICONS_BASE}/invasion/${invasionId}.png`;
     return '';
-  }
-
-  formatDistance(meters: number): string {
-    return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
 
   loadInvasions(): void {
@@ -207,6 +207,22 @@ export class InvasionListComponent implements OnInit {
       .subscribe(r => {
         if (r) this.loadInvasions();
       });
+  }
+
+  selectAll(): void {
+    const ids = new Set(this.invasions().map(i => i.uid));
+    this.selectedIds.set(ids);
+  }
+
+  toggleSelect(uid: number): void {
+    const current = new Set(this.selectedIds());
+    current.has(uid) ? current.delete(uid) : current.add(uid);
+    this.selectedIds.set(current);
+  }
+
+  toggleSelectMode(): void {
+    this.selectMode.update(v => !v);
+    if (!this.selectMode()) this.selectedIds.set(new Set());
   }
 
   updateAllDistance(): void {

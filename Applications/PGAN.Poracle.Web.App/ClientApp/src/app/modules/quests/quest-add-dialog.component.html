@@ -25,10 +25,7 @@
                   <mat-option [value]="0">Any Item</mat-option>
                   @for (item of questItems(); track item.id) {
                     <mat-option [value]="item.id">
-                      <img
-                        [src]="iconService.getItemUrl(item.id)"
-                        class="option-icon"
-                        (error)="onOptionIconError($event)" />
+                      <img [src]="iconService.getItemUrl(item.id)" class="option-icon" (error)="onOptionIconError($event)" />
                       {{ item.name }}
                     </mat-option>
                   }

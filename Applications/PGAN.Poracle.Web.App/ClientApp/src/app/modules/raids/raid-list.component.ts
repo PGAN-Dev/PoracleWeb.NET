@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -51,8 +51,8 @@ export class RaidListComponent implements OnInit {
   readonly eggs = signal<Egg[]>([]);
   readonly loading = signal(true);
   readonly raids = signal<Raid[]>([]);
-  readonly selectMode = signal(false);
   readonly selectedIds = signal(new Set<number>());
+  readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
 
   async bulkDelete(): Promise<void> {
@@ -90,10 +90,8 @@ export class RaidListComponent implements OnInit {
       const raidUids = this.raids().map(r => r.uid);
       const selectedRaidUids = ids.filter(id => raidUids.includes(id));
       const selectedEggUids = ids.filter(id => !raidUids.includes(id));
-      if (selectedRaidUids.length > 0)
-        await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
-      if (selectedEggUids.length > 0)
-        await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
+      if (selectedRaidUids.length > 0) await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
+      if (selectedEggUids.length > 0) await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
@@ -175,6 +173,10 @@ export class RaidListComponent implements OnInit {
     });
   }
 
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
   editEgg(egg: Egg): void {
     const ref = this.dialog.open(RaidEditDialogComponent, {
       width: '600px',
@@ -206,6 +208,10 @@ export class RaidListComponent implements OnInit {
 
   getEggImage(level: number): string {
     return this.iconService.getRaidEggUrl(level);
+  }
+
+  getGymIcon(team: number): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
   }
 
   getLevelColor(level: number): string {
@@ -243,10 +249,6 @@ export class RaidListComponent implements OnInit {
       return this.masterData.getPokemonName(raid.pokemonId);
     }
     return `Level ${raid.level} Raid`;
-  }
-
-  getGymIcon(team: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
   }
 
   getTeamColor(team: number): string {
@@ -315,10 +317,6 @@ export class RaidListComponent implements OnInit {
     this.raids().forEach(r => ids.add(r.uid));
     this.eggs().forEach(e => ids.add(e.uid));
     this.selectedIds.set(ids);
-  }
-
-  deselectAll(): void {
-    this.selectedIds.set(new Set());
   }
 
   toggleSelect(uid: number): void {

@@ -21,7 +21,12 @@ html {
 
 // ─── Heading typography ─────────────────────────────────────────────
 
-h1, h2, h3, h4, h5, h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
 .mat-mdc-dialog-title,
 .page-title,
 .section-header h2 {
@@ -410,9 +415,15 @@ router-outlet + * {
 
 // ─── Standardized dialog sizes ─────────────────────────────────────
 
-.dialog-sm .mat-mdc-dialog-surface { max-width: 400px; }
-.dialog-md .mat-mdc-dialog-surface { max-width: 560px; }
-.dialog-lg .mat-mdc-dialog-surface { max-width: 720px; }
+.dialog-sm .mat-mdc-dialog-surface {
+  max-width: 400px;
+}
+.dialog-md .mat-mdc-dialog-surface {
+  max-width: 560px;
+}
+.dialog-lg .mat-mdc-dialog-surface {
+  max-width: 720px;
+}
 
 // Ensure consistent padding
 .mat-mdc-dialog-content {

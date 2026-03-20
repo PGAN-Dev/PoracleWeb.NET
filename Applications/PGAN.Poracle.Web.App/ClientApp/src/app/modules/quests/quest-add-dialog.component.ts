@@ -14,7 +14,7 @@ import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { IconService } from '../../core/services/icon.service';
-import { MasterDataService, PokemonEntry } from '../../core/services/masterdata.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
@@ -43,9 +43,15 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
   templateUrl: './quest-add-dialog.component.html',
 })
 export class QuestAddDialogComponent {
+  private static readonly FALLBACK_ICON =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
+
   private readonly fb = inject(FormBuilder);
+  private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
+
   private readonly snackBar = inject(MatSnackBar);
+
   commonForm = this.fb.group({
     clean: [false],
     distanceKm: [1],
@@ -55,20 +61,19 @@ export class QuestAddDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
-
   readonly iconService = inject(IconService);
-  readonly isWebhook = inject(AuthService).isImpersonating();
-  private readonly masterData = inject(MasterDataService);
 
-  /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
-  readonly questItems = signal<{ id: number; name: string }[]>([]);
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   itemForm = this.fb.group({
     reward: [0],
   });
 
+  /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
+  readonly questItems = signal<{ id: number; name: string }[]>([]);
   saving = signal(false);
   selectedCandyPokemonIds = signal<number[]>([]);
+
   selectedMegaPokemonIds = signal<number[]>([]);
 
   selectedPokemonIds = signal<number[]>([]);
@@ -79,23 +84,12 @@ export class QuestAddDialogComponent {
     this.masterData.loadData().subscribe(() => {
       // Filter to quest-relevant items (exclude tickets, passes, storage, etc.)
       const excluded = new Set([
-        800, 801, 802, 803, 901, 902, 903, 904, 905, 1001, 1002, 1003,
-        1401, 1402, 1405, 1406, 1407, 1408, 1410, 1411,
+        800, 801, 802, 803, 901, 902, 903, 904, 905, 1001, 1002, 1003, 1401, 1402, 1405, 1406, 1407, 1408, 1410, 1411,
       ]);
       this.questItems.set(
-        this.masterData.getAllItems().filter(i =>
-          !excluded.has(i.id) && !i.name.includes('Ticket') && !i.name.includes('Pass Points'),
-        ),
+        this.masterData.getAllItems().filter(i => !excluded.has(i.id) && !i.name.includes('Ticket') && !i.name.includes('Pass Points')),
       );
     });
-  }
-
-  private static readonly FALLBACK_ICON =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
-
-  onOptionIconError(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    img.src = QuestAddDialogComponent.FALLBACK_ICON;
   }
 
   canSave(): boolean {
@@ -129,6 +123,11 @@ export class QuestAddDialogComponent {
 
   onMegaPokemonSelected(ids: number[]): void {
     this.selectedMegaPokemonIds.set(ids);
+  }
+
+  onOptionIconError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.src = QuestAddDialogComponent.FALLBACK_ICON;
   }
 
   onPokemonSelected(ids: number[]): void {

@@ -9,8 +9,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -60,8 +60,8 @@ export class QuickPickApplyDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<QuickPickApplyDialogComponent>);
-  readonly excludeEnabled = signal((this.data.appliedState?.excludePokemonIds?.length ?? 0) > 0);
   readonly excludedPokemonIds = signal<number[]>(this.data.appliedState?.excludePokemonIds ?? []);
+  readonly excludeEnabled = signal((this.data.appliedState?.excludePokemonIds?.length ?? 0) > 0);
 
   /** How many individual alarms will be created if exclusions are used */
   readonly individualAlarmCount = computed(() => {

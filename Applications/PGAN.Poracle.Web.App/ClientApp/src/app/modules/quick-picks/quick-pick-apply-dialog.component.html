@@ -55,10 +55,7 @@
       </ng-template>
       <div class="tab-content">
         <h4>Location Mode</h4>
-        <mat-radio-group
-          [formControl]="deliveryForm.controls.distanceMode"
-          class="distance-radio-group"
-          (change)="onDistanceModeChange()">
+        <mat-radio-group [formControl]="deliveryForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
           <mat-radio-button value="areas">
             <div class="radio-label">
               <mat-icon>map</mat-icon>

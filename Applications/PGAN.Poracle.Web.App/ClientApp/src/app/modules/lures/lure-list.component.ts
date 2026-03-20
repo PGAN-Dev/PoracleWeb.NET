@@ -43,28 +43,8 @@ export class LureListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
   readonly lures = signal<Lure[]>([]);
-  readonly selectMode = signal(false);
   readonly selectedIds = signal(new Set<number>());
-
-  toggleSelectMode(): void {
-    this.selectMode.update(v => !v);
-    if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  toggleSelect(uid: number): void {
-    const current = new Set(this.selectedIds());
-    current.has(uid) ? current.delete(uid) : current.add(uid);
-    this.selectedIds.set(current);
-  }
-
-  selectAll(): void {
-    const ids = new Set(this.lures().map(i => i.uid));
-    this.selectedIds.set(ids);
-  }
-
-  deselectAll(): void {
-    this.selectedIds.set(new Set());
-  }
+  readonly selectMode = signal(false);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -147,6 +127,10 @@ export class LureListComponent implements OnInit {
       });
   }
 
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
   editLure(lure: Lure): void {
     this.dialog
       .open(LureEditDialogComponent, { width: '600px', data: lure, maxHeight: '90vh' })
@@ -158,10 +142,6 @@ export class LureListComponent implements OnInit {
 
   formatDistance(meters: number): string {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
-  }
-
-  getLureIcon(lureId: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
   }
 
   getLureColor(id: number): string {
@@ -181,6 +161,10 @@ export class LureListComponent implements OnInit {
       default:
         return '#9E9E9E';
     }
+  }
+
+  getLureIcon(lureId: number): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
   }
 
   getLureName(id: number): string {
@@ -227,6 +211,22 @@ export class LureListComponent implements OnInit {
       .subscribe(r => {
         if (r) this.loadLures();
       });
+  }
+
+  selectAll(): void {
+    const ids = new Set(this.lures().map(i => i.uid));
+    this.selectedIds.set(ids);
+  }
+
+  toggleSelect(uid: number): void {
+    const current = new Set(this.selectedIds());
+    current.has(uid) ? current.delete(uid) : current.add(uid);
+    this.selectedIds.set(current);
+  }
+
+  toggleSelectMode(): void {
+    this.selectMode.update(v => !v);
+    if (!this.selectMode()) this.selectedIds.set(new Set());
   }
 
   updateAllDistance(): void {

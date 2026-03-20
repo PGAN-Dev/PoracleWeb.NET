@@ -47,28 +47,8 @@ export class NestListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
   readonly nests = signal<Nest[]>([]);
-  readonly selectMode = signal(false);
   readonly selectedIds = signal(new Set<number>());
-
-  toggleSelectMode(): void {
-    this.selectMode.update(v => !v);
-    if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  toggleSelect(uid: number): void {
-    const current = new Set(this.selectedIds());
-    current.has(uid) ? current.delete(uid) : current.add(uid);
-    this.selectedIds.set(current);
-  }
-
-  selectAll(): void {
-    const ids = new Set(this.nests().map(i => i.uid));
-    this.selectedIds.set(ids);
-  }
-
-  deselectAll(): void {
-    this.selectedIds.set(new Set());
-  }
+  readonly selectMode = signal(false);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -151,6 +131,10 @@ export class NestListComponent implements OnInit {
       });
   }
 
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
   editNest(nest: Nest): void {
     this.dialog
       .open(NestEditDialogComponent, { width: '600px', data: nest, maxHeight: '90vh' })
@@ -202,6 +186,22 @@ export class NestListComponent implements OnInit {
       .subscribe(r => {
         if (r) this.loadNests();
       });
+  }
+
+  selectAll(): void {
+    const ids = new Set(this.nests().map(i => i.uid));
+    this.selectedIds.set(ids);
+  }
+
+  toggleSelect(uid: number): void {
+    const current = new Set(this.selectedIds());
+    current.has(uid) ? current.delete(uid) : current.add(uid);
+    this.selectedIds.set(current);
+  }
+
+  toggleSelectMode(): void {
+    this.selectMode.update(v => !v);
+    if (!this.selectMode()) this.selectedIds.set(new Set());
   }
 
   updateAllDistance(): void {

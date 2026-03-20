@@ -24,6 +24,15 @@ export class MasterDataService {
   private pokemonMap = new Map<number, string>();
   private readonly ready$ = new ReplaySubject<boolean>(1);
 
+  getAllItems(): { id: number; name: string }[] {
+    const entries: { id: number; name: string }[] = [];
+    this.itemMap.forEach((name, id) => {
+      entries.push({ id, name });
+    });
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    return entries;
+  }
+
   getAllPokemon(): PokemonEntry[] {
     const entries: PokemonEntry[] = [{ id: 0, name: 'All Pokemon' }];
     this.pokemonMap.forEach((name, id) => {
@@ -51,15 +60,6 @@ export class MasterDataService {
 
   getFormsForPokemon(pokemonId: number): { id: number; name: string }[] {
     return this.formsMap().get(pokemonId) ?? [];
-  }
-
-  getAllItems(): { id: number; name: string }[] {
-    const entries: { id: number; name: string }[] = [];
-    this.itemMap.forEach((name, id) => {
-      entries.push({ id, name });
-    });
-    entries.sort((a, b) => a.name.localeCompare(b.name));
-    return entries;
   }
 
   getItemName(id: number): string {

@@ -39,10 +39,40 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
   templateUrl: './invasion-edit-dialog.component.html',
 })
 export class InvasionEditDialogComponent {
+  private static readonly INVASION_ID: Record<string, number> = {
+    Decoy: 50,
+    Giovanni: 44,
+    mixed: 41,
+  };
+
+  private static readonly TYPE_ID: Record<string, number> = {
+    Bug: 7,
+    Dark: 17,
+    Dragon: 16,
+    Electric: 13,
+    Fairy: 18,
+    Fighting: 2,
+    Fire: 10,
+    Flying: 3,
+    Ghost: 8,
+    Grass: 12,
+    Ground: 5,
+    Ice: 15,
+    Metal: 9,
+    Normal: 1,
+    Poison: 4,
+    Psychic: 14,
+    Rock: 6,
+    Water: 11,
+  };
+
+  private static readonly UICONS = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
   private readonly fb = inject(FormBuilder);
   private readonly invasionService = inject(InvasionService);
   private readonly snackBar = inject(MatSnackBar);
+
   readonly data = inject<Invasion>(MAT_DIALOG_DATA);
+
   readonly dialogRef = inject(MatDialogRef<InvasionEditDialogComponent>);
   form = this.fb.group({
     clean: [this.data.clean === 1],
@@ -55,26 +85,7 @@ export class InvasionEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  private static readonly TYPE_ID: Record<string, number> = {
-    Bug: 7, Dark: 17, Dragon: 16, Electric: 13, Fairy: 18, Fighting: 2,
-    Fire: 10, Flying: 3, Ghost: 8, Grass: 12, Ground: 5, Ice: 15,
-    Metal: 9, Normal: 1, Poison: 4, Psychic: 14, Rock: 6, Water: 11,
-  };
-  private static readonly INVASION_ID: Record<string, number> = {
-    mixed: 41, Giovanni: 44, Decoy: 50,
-  };
-  private static readonly UICONS = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
-
   saving = signal(false);
-
-  getGruntIcon(): string {
-    const type = this.data.gruntType ?? '';
-    const typeId = InvasionEditDialogComponent.TYPE_ID[type];
-    if (typeId) return `${InvasionEditDialogComponent.UICONS}/type/${typeId}.png`;
-    const invasionId = InvasionEditDialogComponent.INVASION_ID[type];
-    if (invasionId) return `${InvasionEditDialogComponent.UICONS}/invasion/${invasionId}.png`;
-    return '';
-  }
 
   getGenderLabel(): string {
     switch (this.data.gender) {
@@ -85,6 +96,15 @@ export class InvasionEditDialogComponent {
       default:
         return 'Any Gender';
     }
+  }
+
+  getGruntIcon(): string {
+    const type = this.data.gruntType ?? '';
+    const typeId = InvasionEditDialogComponent.TYPE_ID[type];
+    if (typeId) return `${InvasionEditDialogComponent.UICONS}/type/${typeId}.png`;
+    const invasionId = InvasionEditDialogComponent.INVASION_ID[type];
+    if (invasionId) return `${InvasionEditDialogComponent.UICONS}/invasion/${invasionId}.png`;
+    return '';
   }
 
   onDistanceModeChange(): void {

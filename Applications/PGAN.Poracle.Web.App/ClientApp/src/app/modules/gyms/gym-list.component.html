@@ -11,10 +11,11 @@
   <div class="filter-bar">
     <span class="result-count">{{ gyms().length }} alarms</span>
     <div class="bulk-spacer"></div>
-    <button mat-icon-button
-            (click)="toggleSelectMode()"
-            [class.select-mode-active]="selectMode()"
-            matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+    <button
+      mat-icon-button
+      (click)="toggleSelectMode()"
+      [class.select-mode-active]="selectMode()"
+      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -25,9 +26,7 @@
     @if (selectedIds().size > 0) {
       <span class="bulk-count">{{ selectedIds().size }} selected</span>
     }
-    <button mat-stroked-button (click)="selectAll()">
-      <mat-icon>select_all</mat-icon> Select All
-    </button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
     @if (selectedIds().size > 0) {
       <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
     }
@@ -51,10 +50,14 @@
     @for (gym of gyms(); track gym.uid) {
       <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(gym.uid)">
         @if (selectMode()) {
-          <mat-checkbox [checked]="selectedIds().has(gym.uid)" (change)="toggleSelect(gym.uid)" (click)="$event.stopPropagation()" class="card-checkbox"></mat-checkbox>
+          <mat-checkbox
+            [checked]="selectedIds().has(gym.uid)"
+            (change)="toggleSelect(gym.uid)"
+            (click)="$event.stopPropagation()"
+            class="card-checkbox"></mat-checkbox>
         }
         <div class="card-top" [style.border-top-color]="getTeamColor(gym.team)">
-          <img [src]="getGymIcon(gym.team)" class="gym-img" alt="" (error)="$any($event.target).style.display='none'" />
+          <img [src]="getGymIcon(gym.team)" class="gym-img" alt="" (error)="$any($event.target).style.display = 'none'" />
           <div class="item-info">
             <h3>{{ getTeamName(gym.team) }}</h3>
             <div class="change-indicators">

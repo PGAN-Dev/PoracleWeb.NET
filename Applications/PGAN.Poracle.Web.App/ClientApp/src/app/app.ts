@@ -51,8 +51,19 @@ interface NavItem {
   templateUrl: './app.html',
 })
 export class App implements OnInit {
+  private readonly ACCENT_COLORS: Record<string, { primary: string; start: string; end: string; light: string }> = {
+    raids: { end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)', primary: '#f44336', start: '#c62828' },
+    instinct: { end: '#f57f17', light: 'rgba(255, 193, 7, 0.1)', primary: '#ffc107', start: '#f9a825' },
+    mystic: { end: '#0d47a1', light: 'rgba(33, 150, 243, 0.1)', primary: '#2196f3', start: '#1565c0' },
+    pokemon: { end: '#1b5e20', light: 'rgba(76, 175, 80, 0.1)', primary: '#4caf50', start: '#2e7d32' },
+    valor: { end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)', primary: '#f44336', start: '#d32f2f' },
+  };
+
   private readonly dashboardService = inject(DashboardService);
   private readonly settingsService = inject(SettingsService);
+
+  protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
+
   protected readonly auth = inject(AuthService);
 
   protected readonly navItems: NavItem[] = [
@@ -156,34 +167,10 @@ export class App implements OnInit {
     return { icon, label, url };
   });
 
-  protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
-
-  private readonly ACCENT_COLORS: Record<string, { primary: string; start: string; end: string; light: string }> = {
-    pokemon: { primary: '#4caf50', start: '#2e7d32', end: '#1b5e20', light: 'rgba(76, 175, 80, 0.1)' },
-    raids: { primary: '#f44336', start: '#c62828', end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)' },
-    mystic: { primary: '#2196f3', start: '#1565c0', end: '#0d47a1', light: 'rgba(33, 150, 243, 0.1)' },
-    valor: { primary: '#f44336', start: '#d32f2f', end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)' },
-    instinct: { primary: '#ffc107', start: '#f9a825', end: '#f57f17', light: 'rgba(255, 193, 7, 0.1)' },
-  };
-
-  protected readonly toolbarGradient = computed(() => {
-    const accent = this.accentTheme();
-    const colors = this.ACCENT_COLORS[accent];
-    if (colors) {
-      return `linear-gradient(135deg, ${colors.start} 0%, ${colors.end} 100%)`;
-    }
-    return this.darkMode()
-      ? 'linear-gradient(135deg, #0d47a1 0%, #1a237e 100%)'
-      : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)';
-  });
-
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
-  protected readonly showShortcutHelp = signal(false);
-
-  protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
-
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
+
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
 
   protected readonly isMobile = signal(window.innerWidth < 768);
@@ -197,9 +184,22 @@ export class App implements OnInit {
     ),
   );
 
+  protected readonly showShortcutHelp = signal(false);
+
+  protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
+
   protected readonly sidenavOpened = signal(!this.isMobile());
 
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'PoGO Alerts Network');
+
+  protected readonly toolbarGradient = computed(() => {
+    const accent = this.accentTheme();
+    const colors = this.ACCENT_COLORS[accent];
+    if (colors) {
+      return `linear-gradient(135deg, ${colors.start} 0%, ${colors.end} 100%)`;
+    }
+    return this.darkMode() ? 'linear-gradient(135deg, #0d47a1 0%, #1a237e 100%)' : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)';
+  });
 
   protected readonly webhookNavItems = computed(() =>
     this.navItems.filter(item => item.group === 'webhooks' && (!item.delegateOnly || this.auth.hasManagedWebhooks())),
@@ -228,12 +228,6 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     this.settingsService.loadOnce().subscribe();
-  }
-
-  onNavClick(): void {
-    if (this.isMobile()) {
-      this.sidenavOpened.set(false);
-    }
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -273,6 +267,12 @@ export class App implements OnInit {
     }
   }
 
+  onNavClick(): void {
+    if (this.isMobile()) {
+      this.sidenavOpened.set(false);
+    }
+  }
+
   @HostListener('window:resize')
   onResize(): void {
     const mobile = window.innerWidth < 768;
@@ -280,6 +280,12 @@ export class App implements OnInit {
     if (mobile) {
       this.sidenavOpened.set(false);
     }
+  }
+
+  setAccentTheme(theme: string): void {
+    this.accentTheme.set(theme);
+    localStorage.setItem('poracle-accent', theme);
+    this.applyAccentTheme();
   }
 
   stopImpersonating(): void {
@@ -305,12 +311,6 @@ export class App implements OnInit {
   toggleTheme(): void {
     this.darkMode.update(v => !v);
     this.applyTheme();
-  }
-
-  setAccentTheme(theme: string): void {
-    this.accentTheme.set(theme);
-    localStorage.setItem('poracle-accent', theme);
-    this.applyAccentTheme();
   }
 
   private applyAccentTheme(): void {

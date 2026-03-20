@@ -1,106 +1,21 @@
-import { Component, inject, OnInit, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, output, signal, computed } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
-import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
+
 import { AreaService } from '../../../core/services/area.service';
 import { DashboardService } from '../../../core/services/dashboard.service';
 import { LocationService } from '../../../core/services/location.service';
+import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 @Component({
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatStepperModule, RouterLink],
   selector: 'app-onboarding',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatStepperModule, RouterLink],
-  template: `
-    <div class="onboarding-overlay">
-      <div class="onboarding-card" role="dialog" aria-label="Welcome onboarding">
-        <div class="onboarding-header">
-          <h2>{{ allComplete() ? 'You\\'re All Set!' : 'Welcome to PoGO Alerts!' }}</h2>
-          <p>{{ allComplete() ? 'Everything is configured — you\\'re ready to go' : 'Let\\'s get you set up in a few quick steps' }}</p>
-        </div>
-
-        <div class="steps">
-          @for (step of steps; track step.id; let i = $index) {
-            <div
-              class="step"
-              [class.active]="currentStep() === i"
-              [class.completed]="stepComplete(i)"
-            >
-              <div class="step-indicator">
-                @if (stepComplete(i)) {
-                  <mat-icon>check_circle</mat-icon>
-                } @else {
-                  <span class="step-number">{{ i + 1 }}</span>
-                }
-              </div>
-              <div class="step-content">
-                <h3>{{ step.title }}</h3>
-                <p>{{ stepComplete(i) ? step.doneDescription : step.description }}</p>
-                @if (currentStep() === i) {
-                  <div class="step-action">
-                    @if (step.id === 'location') {
-                      <button mat-flat-button color="primary" (click)="openLocationDialog()">
-                        <mat-icon>my_location</mat-icon>
-                        {{ locationSet() ? 'Update Location' : 'Set Location' }}
-                      </button>
-                    } @else if (step.id === 'areas') {
-                      <a
-                        mat-flat-button
-                        color="primary"
-                        [routerLink]="step.route"
-                        (click)="navigateAway()"
-                      >
-                        <mat-icon>map</mat-icon>
-                        {{ areasSet() ? 'Edit Areas' : 'Choose Areas' }}
-                      </a>
-                    } @else if (step.id === 'alarm') {
-                      <a
-                        mat-flat-button
-                        color="primary"
-                        [routerLink]="step.route"
-                        (click)="navigateAway()"
-                      >
-                        <mat-icon>add_alert</mat-icon>
-                        {{ alarmsExist() ? 'Manage Alarms' : 'Add Alarm' }}
-                      </a>
-                    }
-                    <button mat-button (click)="nextStep()">
-                      {{ stepComplete(i) ? 'Next' : (i < steps.length - 1 ? 'Skip' : 'Get Started!') }}
-                    </button>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="onboarding-footer">
-          <button mat-button (click)="dismiss()">
-            {{ allComplete() ? 'Close' : 'Skip Setup' }}
-          </button>
-          @if (allComplete()) {
-            <button mat-flat-button color="primary" (click)="dismiss()">
-              Let's Go!
-            </button>
-          } @else {
-            <div class="step-dots">
-              @for (step of steps; track step.id; let i = $index) {
-                <div
-                  class="dot"
-                  [class.active]="currentStep() === i"
-                  [class.completed]="stepComplete(i)"
-                ></div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  `,
   styles: [
     `
       .onboarding-overlay {
@@ -240,6 +155,72 @@ import { LocationService } from '../../../core/services/location.service';
       }
     `,
   ],
+  template: `
+    <div class="onboarding-overlay">
+      <div class="onboarding-card" role="dialog" aria-label="Welcome onboarding">
+        <div class="onboarding-header">
+          <h2>{{ allComplete() ? "You're All Set!" : 'Welcome to PoGO Alerts!' }}</h2>
+          <p>{{ allComplete() ? "Everything is configured — you're ready to go" : "Let's get you set up in a few quick steps" }}</p>
+        </div>
+
+        <div class="steps">
+          @for (step of steps; track step.id; let i = $index) {
+            <div class="step" [class.active]="currentStep() === i" [class.completed]="stepComplete(i)">
+              <div class="step-indicator">
+                @if (stepComplete(i)) {
+                  <mat-icon>check_circle</mat-icon>
+                } @else {
+                  <span class="step-number">{{ i + 1 }}</span>
+                }
+              </div>
+              <div class="step-content">
+                <h3>{{ step.title }}</h3>
+                <p>{{ stepComplete(i) ? step.doneDescription : step.description }}</p>
+                @if (currentStep() === i) {
+                  <div class="step-action">
+                    @if (step.id === 'location') {
+                      <button mat-flat-button color="primary" (click)="openLocationDialog()">
+                        <mat-icon>my_location</mat-icon>
+                        {{ locationSet() ? 'Update Location' : 'Set Location' }}
+                      </button>
+                    } @else if (step.id === 'areas') {
+                      <a mat-flat-button color="primary" [routerLink]="step.route" (click)="navigateAway()">
+                        <mat-icon>map</mat-icon>
+                        {{ areasSet() ? 'Edit Areas' : 'Choose Areas' }}
+                      </a>
+                    } @else if (step.id === 'alarm') {
+                      <a mat-flat-button color="primary" [routerLink]="step.route" (click)="navigateAway()">
+                        <mat-icon>add_alert</mat-icon>
+                        {{ alarmsExist() ? 'Manage Alarms' : 'Add Alarm' }}
+                      </a>
+                    }
+                    <button mat-button (click)="nextStep()">
+                      {{ stepComplete(i) ? 'Next' : i < steps.length - 1 ? 'Skip' : 'Get Started!' }}
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="onboarding-footer">
+          <button mat-button (click)="dismiss()">
+            {{ allComplete() ? 'Close' : 'Skip Setup' }}
+          </button>
+          @if (allComplete()) {
+            <button mat-flat-button color="primary" (click)="dismiss()">Let's Go!</button>
+          } @else {
+            <div class="step-dots">
+              @for (step of steps; track step.id; let i = $index) {
+                <div class="dot" [class.active]="currentStep() === i" [class.completed]="stepComplete(i)"></div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  `,
 })
 export class OnboardingComponent implements OnInit {
   private readonly areaService = inject(AreaService);
@@ -247,51 +228,68 @@ export class OnboardingComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly locationService = inject(LocationService);
 
-  completed = output<void>();
-  navigatedAway = output<void>();
-  currentStep = signal(0);
-  locationSet = signal(false);
-  areasSet = signal(false);
   alarmsExist = signal(false);
-
+  areasSet = signal(false);
+  locationSet = signal(false);
   allComplete = computed(() => this.locationSet() && this.areasSet() && this.alarmsExist());
+  completed = output<void>();
+  currentStep = signal(0);
+
+  navigatedAway = output<void>();
 
   steps = [
     {
       id: 'location',
-      title: 'Set Your Location',
+      actionText: 'Set Location',
       description:
         'Your location is used to calculate distances for nearby notifications. Click below to search by address, enter coordinates, or use your device GPS.',
       doneDescription: 'Location is configured',
       route: null,
-      actionText: 'Set Location',
+      title: 'Set Your Location',
     },
     {
       id: 'areas',
-      title: 'Choose Your Areas',
+      actionText: 'Choose Areas',
       description: 'Select the geographic areas you want to receive alerts from',
       doneDescription: 'Areas are configured',
       route: '/areas',
-      actionText: 'Choose Areas',
+      title: 'Choose Your Areas',
     },
     {
       id: 'alarm',
-      title: 'Add Your First Alarm',
-      description:
-        'Set up a Pokemon, Raid, or Quest alarm to start getting notified',
+      actionText: 'Add Alarm',
+      description: 'Set up a Pokemon, Raid, or Quest alarm to start getting notified',
       doneDescription: 'You have active alarms',
       route: '/pokemon',
-      actionText: 'Add Alarm',
+      title: 'Add Your First Alarm',
     },
   ];
 
+  dismiss() {
+    localStorage.setItem('poracle-onboarding-complete', 'true');
+    this.completed.emit();
+  }
+
+  navigateAway() {
+    this.navigatedAway.emit();
+  }
+
+  nextStep() {
+    if (this.currentStep() < this.steps.length - 1) {
+      this.currentStep.update(s => s + 1);
+    } else {
+      this.dismiss();
+    }
+  }
+
   ngOnInit() {
     forkJoin({
-      location: this.locationService.getLocation().pipe(catchError(() => of(null))),
       areas: this.areaService.getSelected().pipe(catchError(() => of([]))),
       counts: this.dashboardService.getCounts().pipe(catchError(() => of(null))),
+      location: this.locationService.getLocation().pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ location, areas, counts }) => {
+      error: () => {},
+      next: ({ areas, counts, location }) => {
         const hasLocation = !!(location && (location.latitude !== 0 || location.longitude !== 0));
         const hasAreas = !!(areas && areas.length > 0);
         const hasAlarms = !!(counts && Object.values(counts).some(c => (c as number) > 0));
@@ -312,21 +310,7 @@ export class OnboardingComponent implements OnInit {
           this.currentStep.set(0);
         }
       },
-      error: () => {},
     });
-  }
-
-  stepComplete(index: number): boolean {
-    switch (index) {
-      case 0:
-        return this.locationSet();
-      case 1:
-        return this.areasSet();
-      case 2:
-        return this.alarmsExist();
-      default:
-        return false;
-    }
   }
 
   async openLocationDialog() {
@@ -341,20 +325,16 @@ export class OnboardingComponent implements OnInit {
     }
   }
 
-  nextStep() {
-    if (this.currentStep() < this.steps.length - 1) {
-      this.currentStep.update(s => s + 1);
-    } else {
-      this.dismiss();
+  stepComplete(index: number): boolean {
+    switch (index) {
+      case 0:
+        return this.locationSet();
+      case 1:
+        return this.areasSet();
+      case 2:
+        return this.alarmsExist();
+      default:
+        return false;
     }
-  }
-
-  navigateAway() {
-    this.navigatedAway.emit();
-  }
-
-  dismiss() {
-    localStorage.setItem('poracle-onboarding-complete', 'true');
-    this.completed.emit();
   }
 }

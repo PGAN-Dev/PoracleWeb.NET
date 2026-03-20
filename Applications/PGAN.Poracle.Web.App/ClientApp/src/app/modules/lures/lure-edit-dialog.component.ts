@@ -86,7 +86,13 @@ export class LureEditDialogComponent {
     const v = this.form.getRawValue();
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     this.lureService
-      .update(this.data.uid, { clean: v.clean ? 1 : 0, distance: dist, lureId: this.data.lureId, ping: v.ping || null, template: v.template || null } as LureUpdate)
+      .update(this.data.uid, {
+        clean: v.clean ? 1 : 0,
+        distance: dist,
+        lureId: this.data.lureId,
+        ping: v.ping || null,
+        template: v.template || null,
+      } as LureUpdate)
       .subscribe({
         error: () => {
           this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });

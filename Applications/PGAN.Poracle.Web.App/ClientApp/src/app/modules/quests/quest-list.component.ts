@@ -39,38 +39,22 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
   templateUrl: './quest-list.component.html',
 })
 export class QuestListComponent implements OnInit {
+  private static readonly FALLBACK =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
+
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
-  private readonly snackBar = inject(MatSnackBar);
 
+  private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
   readonly quests = signal<Quest[]>([]);
-  readonly selectMode = signal(false);
   readonly selectedIds = signal(new Set<number>());
+  readonly selectMode = signal(false);
+
   readonly skeletonCards = Array.from({ length: 6 });
-
-  toggleSelectMode(): void {
-    this.selectMode.update(v => !v);
-    if (!this.selectMode()) this.selectedIds.set(new Set());
-  }
-
-  toggleSelect(uid: number): void {
-    const current = new Set(this.selectedIds());
-    current.has(uid) ? current.delete(uid) : current.add(uid);
-    this.selectedIds.set(current);
-  }
-
-  selectAll(): void {
-    const ids = new Set(this.quests().map(i => i.uid));
-    this.selectedIds.set(ids);
-  }
-
-  deselectAll(): void {
-    this.selectedIds.set(new Set());
-  }
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -153,6 +137,10 @@ export class QuestListComponent implements OnInit {
         });
       }
     });
+  }
+
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
   }
 
   editQuest(quest: Quest): void {
@@ -264,13 +252,13 @@ export class QuestListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.loadQuests();
-    });
+    this.masterData
+      .loadData()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.loadQuests();
+      });
   }
-
-  private static readonly FALLBACK =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).style.display = 'none';
@@ -288,6 +276,22 @@ export class QuestListComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (result) this.loadQuests();
     });
+  }
+
+  selectAll(): void {
+    const ids = new Set(this.quests().map(i => i.uid));
+    this.selectedIds.set(ids);
+  }
+
+  toggleSelect(uid: number): void {
+    const current = new Set(this.selectedIds());
+    current.has(uid) ? current.delete(uid) : current.add(uid);
+    this.selectedIds.set(current);
+  }
+
+  toggleSelectMode(): void {
+    this.selectMode.update(v => !v);
+    if (!this.selectMode()) this.selectedIds.set(new Set());
   }
 
   updateAllDistance(): void {

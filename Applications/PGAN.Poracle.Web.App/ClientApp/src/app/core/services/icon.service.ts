@@ -10,15 +10,13 @@ export class IconService {
 
   private readonly gymBase = computed(() => (this.settings.siteSettings()['uicons_gym'] || `${DEFAULT_UICONS}/gym`).replace(/\/$/, ''));
 
+  private readonly itemBase = computed(() => (this.settings.siteSettings()['uicons_item'] || `${DEFAULT_UICONS}/item`).replace(/\/$/, ''));
+
   private readonly pkmnBase = computed(() =>
     (this.settings.siteSettings()['uicons_pkmn'] || `${DEFAULT_UICONS}/pokemon`).replace(/\/$/, ''),
   );
 
   private readonly raidBase = computed(() => (this.settings.siteSettings()['uicons_raid'] || `${DEFAULT_UICONS}/raid`).replace(/\/$/, ''));
-
-  private readonly itemBase = computed(() =>
-    (this.settings.siteSettings()['uicons_item'] || `${DEFAULT_UICONS}/item`).replace(/\/$/, ''),
-  );
 
   private readonly rewardBase = computed(() =>
     (this.settings.siteSettings()['uicons_reward'] || `${DEFAULT_UICONS}/reward`).replace(/\/$/, ''),
@@ -34,12 +32,12 @@ export class IconService {
     };
   }
 
-  getItemUrl(id: number): string {
-    return `${this.rewardBase()}/item/${id}.png`;
-  }
-
   getGymUrl(team: number): string {
     return `${this.gymBase()}/${team}.png`;
+  }
+
+  getItemUrl(id: number): string {
+    return `${this.rewardBase()}/item/${id}.png`;
   }
 
   getPokemonFallbackUrl(id: number): string {

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Moq;
+using PGAN.Poracle.Web.Api.Configuration;
 using PGAN.Poracle.Web.Api.Controllers;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
 using PGAN.Poracle.Web.Core.Models;
@@ -14,7 +16,8 @@ public class ProfileControllerTests : ControllerTestBase
 
     public ProfileControllerTests()
     {
-        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object);
+        var jwtSettings = Options.Create(new JwtSettings { Secret = "test-secret-key-that-is-long-enough", Issuer = "test", Audience = "test" });
+        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, jwtSettings);
         SetupUser(this._sut);
     }
 

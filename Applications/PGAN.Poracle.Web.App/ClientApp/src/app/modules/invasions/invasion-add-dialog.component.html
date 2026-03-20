@@ -8,9 +8,7 @@
         <span class="tab-label">Grunts</span>
       </ng-template>
       <div class="tab-content">
-        <mat-slide-toggle [checked]="trackAll()" (change)="trackAll.set($event.checked)">
-          Track all invasions
-        </mat-slide-toggle>
+        <mat-slide-toggle [checked]="trackAll()" (change)="trackAll.set($event.checked)"> Track all invasions </mat-slide-toggle>
         <p class="track-all-hint">Creates a single alarm for every grunt type, leader, and Giovanni.</p>
 
         @if (!trackAll()) {

@@ -14,10 +14,11 @@
   <div class="filter-bar">
     <span class="result-count">{{ quests().length }} alarms</span>
     <div class="bulk-spacer"></div>
-    <button mat-icon-button
-            (click)="toggleSelectMode()"
-            [class.select-mode-active]="selectMode()"
-            matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+    <button
+      mat-icon-button
+      (click)="toggleSelectMode()"
+      [class.select-mode-active]="selectMode()"
+      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -28,9 +29,7 @@
     @if (selectedIds().size > 0) {
       <span class="bulk-count">{{ selectedIds().size }} selected</span>
     }
-    <button mat-stroked-button (click)="selectAll()">
-      <mat-icon>select_all</mat-icon> Select All
-    </button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
     @if (selectedIds().size > 0) {
       <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
     }
@@ -66,7 +65,11 @@
     @for (quest of quests(); track quest.uid) {
       <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(quest.uid)">
         @if (selectMode()) {
-          <mat-checkbox [checked]="selectedIds().has(quest.uid)" (change)="toggleSelect(quest.uid)" (click)="$event.stopPropagation()" class="card-checkbox"></mat-checkbox>
+          <mat-checkbox
+            [checked]="selectedIds().has(quest.uid)"
+            (change)="toggleSelect(quest.uid)"
+            (click)="$event.stopPropagation()"
+            class="card-checkbox"></mat-checkbox>
         }
         <div class="card-top" [style.border-top-color]="getRewardColor(quest.rewardType)">
           @if (getQuestImage(quest)) {
@@ -102,17 +105,17 @@
       <div class="empty-state">
         <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
           <!-- Pokestop pole -->
-          <line x1="60" y1="115" x2="60" y2="60" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+          <line x1="60" y1="115" x2="60" y2="60" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.15" />
           <!-- Disc / top piece -->
-          <ellipse cx="60" cy="48" rx="30" ry="12" stroke="currentColor" stroke-width="3" opacity="0.15"/>
-          <ellipse cx="60" cy="44" rx="30" ry="12" fill="currentColor" opacity="0.06"/>
+          <ellipse cx="60" cy="48" rx="30" ry="12" stroke="currentColor" stroke-width="3" opacity="0.15" />
+          <ellipse cx="60" cy="44" rx="30" ry="12" fill="currentColor" opacity="0.06" />
           <!-- Center circle -->
-          <circle cx="60" cy="46" r="8" stroke="currentColor" stroke-width="2" opacity="0.15"/>
-          <circle cx="60" cy="46" r="4" fill="currentColor" opacity="0.1"/>
+          <circle cx="60" cy="46" r="8" stroke="currentColor" stroke-width="2" opacity="0.15" />
+          <circle cx="60" cy="46" r="4" fill="currentColor" opacity="0.1" />
           <!-- Sparkles -->
-          <line x1="28" y1="30" x2="24" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1"/>
-          <line x1="92" y1="30" x2="96" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1"/>
-          <line x1="60" y1="22" x2="60" y2="16" stroke="currentColor" stroke-width="2" opacity="0.1"/>
+          <line x1="28" y1="30" x2="24" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
+          <line x1="92" y1="30" x2="96" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
+          <line x1="60" y1="22" x2="60" y2="16" stroke="currentColor" stroke-width="2" opacity="0.1" />
         </svg>
         <h2 class="empty-title">No Quest Alarms Configured</h2>
         <p class="empty-subtitle">Track field research tasks by reward type</p>

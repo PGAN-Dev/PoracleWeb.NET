@@ -21,15 +21,15 @@ export interface ConfirmDialogResult {
 }
 
 @Component({
+  host: {
+    'aria-describedby': 'confirm-dialog-message',
+    role: 'alertdialog',
+  },
   imports: [MatDialogModule, MatButtonModule, MatIconModule, MatCheckboxModule, FormsModule],
   selector: 'app-confirm-dialog',
   standalone: true,
   styleUrl: './confirm-dialog.component.scss',
   templateUrl: './confirm-dialog.component.html',
-  host: {
-    role: 'alertdialog',
-    'aria-describedby': 'confirm-dialog-message',
-  },
 })
 export class ConfirmDialogComponent {
   readonly data = inject<ConfirmDialogData>(MAT_DIALOG_DATA);
