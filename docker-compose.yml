@@ -1,8 +1,9 @@
 services:
   poracle-web:
-    image: poracleweb-local:latest
-    # To build from source instead, uncomment below and comment out image:
-    # build:
+    image: ghcr.io/pgan-dev/poracleweb.net:latest
+    # Alternatives:
+    # image: poracleweb-local:latest          # Use a locally built image
+    # build:                                   # Build from source directly
     #   context: .
     #   dockerfile: Dockerfile
     ports:
