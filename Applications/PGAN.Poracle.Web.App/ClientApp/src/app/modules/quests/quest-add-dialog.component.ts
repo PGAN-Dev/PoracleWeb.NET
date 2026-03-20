@@ -13,6 +13,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { MasterDataService, PokemonEntry } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
@@ -55,6 +56,11 @@ export class QuestAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+  private readonly masterData = inject(MasterDataService);
+
+  /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
+  readonly questItems = signal<{ id: number; name: string }[]>([]);
+
   itemForm = this.fb.group({
     reward: [0],
   });
@@ -66,6 +72,21 @@ export class QuestAddDialogComponent {
   selectedPokemonIds = signal<number[]>([]);
 
   tabIndex = 0;
+
+  constructor() {
+    this.masterData.loadData().subscribe(() => {
+      // Filter to quest-relevant items (exclude tickets, passes, storage, etc.)
+      const excluded = new Set([
+        800, 801, 802, 803, 901, 902, 903, 904, 905, 1001, 1002, 1003,
+        1401, 1402, 1405, 1406, 1407, 1408, 1410, 1411,
+      ]);
+      this.questItems.set(
+        this.masterData.getAllItems().filter(i =>
+          !excluded.has(i.id) && !i.name.includes('Ticket') && !i.name.includes('Pass Points'),
+        ),
+      );
+    });
+  }
 
   canSave(): boolean {
     switch (this.tabIndex) {
