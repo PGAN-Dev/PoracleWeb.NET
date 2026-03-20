@@ -70,7 +70,24 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_BOT_USERNAME=
 ```
 
-### 2. Start with pre-built image
+### 2. Start with pre-built image from GitHub Container Registry
+
+Pull the latest image from `ghcr.io` and start:
+
+```bash
+docker pull ghcr.io/pgan-dev/poracleweb.net:latest
+```
+
+Update `docker-compose.yml` to use the registry image:
+
+```yaml
+services:
+  poracle-web:
+    image: ghcr.io/pgan-dev/poracleweb.net:latest
+    # ...rest of config
+```
+
+Then start:
 
 ```bash
 docker compose up -d
@@ -86,6 +103,9 @@ If you want to build the Docker image locally instead of pulling from the regist
 # Build and tag the image
 docker build -t poracleweb-local:latest .
 
+# Update docker-compose.yml to use local image:
+#   image: poracleweb-local:latest
+
 # Start the container
 docker compose up -d
 ```
@@ -100,9 +120,9 @@ docker compose up -d --force-recreate
 ### Updating
 
 ```bash
-# If using pre-built images:
-docker compose pull
-docker compose up -d
+# If using ghcr.io image:
+docker pull ghcr.io/pgan-dev/poracleweb.net:latest
+docker compose up -d --force-recreate
 
 # If building from source:
 git pull
@@ -283,7 +303,7 @@ The `docker-compose.yml` configures:
 Two GitHub Actions workflows run on push to `main` and pull requests:
 
 - **ci.yml**: Builds backend (.NET 10), runs backend tests, builds frontend (Angular), runs lint/prettier/jest
-- **docker-publish.yml**: Builds Docker image and publishes to `ghcr.io` with `latest` and commit SHA tags
+- **docker-publish.yml**: Builds Docker image and publishes to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net) with `latest` and commit SHA tags
 
 ## Features
 
