@@ -26,6 +26,10 @@ export interface ConfirmDialogResult {
   standalone: true,
   styleUrl: './confirm-dialog.component.scss',
   templateUrl: './confirm-dialog.component.html',
+  host: {
+    role: 'alertdialog',
+    'aria-describedby': 'confirm-dialog-message',
+  },
 })
 export class ConfirmDialogComponent {
   readonly data = inject<ConfirmDialogData>(MAT_DIALOG_DATA);

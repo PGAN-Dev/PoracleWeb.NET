@@ -1,3 +1,7 @@
+@if (showOnboarding()) {
+  <app-onboarding (completed)="showOnboarding.set(false)" />
+}
+
 <div class="page-header">
   <div class="page-header-text">
     <h1>Dashboard</h1>

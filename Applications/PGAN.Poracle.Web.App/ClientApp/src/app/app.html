@@ -22,7 +22,7 @@
 }
 @if (auth.isLoggedIn()) {
   <mat-toolbar class="app-toolbar">
-    <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation">
+    <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation menu">
       <mat-icon>menu</mat-icon>
     </button>
     @if (!hideHeaderLogo()) {
@@ -45,14 +45,14 @@
     </div>
     <span class="toolbar-spacer"></span>
     @if (customNavLink(); as link) {
-      <a mat-icon-button [href]="link.url" target="_blank" [matTooltip]="link.label">
+      <a mat-icon-button [href]="link.url" target="_blank" [matTooltip]="link.label" [attr.aria-label]="link.label">
         <mat-icon>{{ link.icon || 'launch' }}</mat-icon>
       </a>
     }
-    <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkMode() ? 'Switch to light mode' : 'Switch to dark mode'">
+    <button mat-icon-button (click)="toggleTheme()" [matTooltip]="darkMode() ? 'Switch to light mode' : 'Switch to dark mode'" aria-label="Toggle dark mode">
       <mat-icon>{{ darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger">
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger" aria-label="User menu">
       @if (auth.user()?.avatarUrl) {
         <img [src]="auth.user()!.avatarUrl!" class="user-avatar" alt="avatar" />
       } @else {
@@ -136,6 +136,7 @@
       [opened]="sidenavOpened()"
       (openedChange)="sidenavOpened.set($event)"
       class="app-sidenav">
+      <nav aria-label="Main navigation">
       <mat-nav-list>
         <!-- Alarms Section -->
         <div class="nav-group-label">Alarms</div>
@@ -183,10 +184,13 @@
           }
         }
       </mat-nav-list>
+      </nav>
     </mat-sidenav>
 
     <mat-sidenav-content class="app-content">
-      <router-outlet />
+      <main>
+        <router-outlet />
+      </main>
     </mat-sidenav-content>
   </mat-sidenav-container>
 } @else {
