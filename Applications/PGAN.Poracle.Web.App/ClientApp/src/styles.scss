@@ -280,15 +280,19 @@ body.dark-theme .app-toolbar {
     overflow-y: auto !important;
   }
 
+  // Title: safe area top + extra padding
   [mat-dialog-title],
   .mat-mdc-dialog-title {
     flex-shrink: 0 !important;
+    padding-top: calc(env(safe-area-inset-top, 8px) + 12px) !important;
   }
 
+  // Actions: safe area bottom + extra padding
   [mat-dialog-actions],
   mat-dialog-actions,
   .mat-mdc-dialog-actions {
     flex-shrink: 0 !important;
+    padding-bottom: calc(env(safe-area-inset-bottom, 8px) + 12px) !important;
   }
 }
 
