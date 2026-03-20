@@ -365,3 +365,76 @@ body.dark-theme .app-toolbar {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   line-height: 1.4;
 }
+
+// ─── Card micro-interactions ────────────────────────────────────────
+
+.card-removing {
+  animation: cardRemove 0.3s ease forwards;
+}
+@keyframes cardRemove {
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
+.card-entering {
+  animation: cardEnter 0.3s ease;
+}
+@keyframes cardEnter {
+  from {
+    transform: translateY(-8px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+// ─── Staggered grid load animation ─────────────────────────────────
+
+.alarm-grid > * {
+  animation: fadeSlideIn 0.25s ease both;
+}
+
+@for $i from 1 through 12 {
+  .alarm-grid > *:nth-child(#{$i}) {
+    animation-delay: #{$i * 30}ms;
+  }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ─── Tab transition enhancement ─────────────────────────────────────
+
+.mat-mdc-tab-body-content {
+  animation: tabFadeIn 0.2s ease;
+}
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ─── Toggle animation for alarm enable/disable ─────────────────────
+
+.mat-mdc-slide-toggle {
+  transition: opacity 0.2s ease;
+}
