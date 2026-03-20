@@ -2,6 +2,13 @@ mat-dialog-content {
   min-width: 400px;
   max-width: 600px;
 }
+.option-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 8px;
+}
 .alarm-tabs {
   margin: 0 -24px;
 }
