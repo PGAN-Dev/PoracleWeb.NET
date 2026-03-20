@@ -108,10 +108,15 @@ export class RaidEditDialogComponent {
     const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
 
     if (this.data.type === 'raid') {
+      const raid = this.data.item as Raid;
       const update: RaidUpdate = {
         clean: values.clean ? 1 : 0,
         distance: distanceMeters,
+        exclusive: raid.exclusive,
+        form: raid.form,
+        level: raid.level,
         ping: values.ping || null,
+        pokemonId: raid.pokemonId,
         team: values.team ?? 0,
         template: values.template || null,
       };
@@ -126,9 +131,12 @@ export class RaidEditDialogComponent {
         },
       });
     } else {
+      const egg = this.data.item as Egg;
       const update: EggUpdate = {
         clean: values.clean ? 1 : 0,
         distance: distanceMeters,
+        exclusive: egg.exclusive,
+        level: egg.level,
         ping: values.ping || null,
         team: values.team ?? 0,
         template: values.template || null,

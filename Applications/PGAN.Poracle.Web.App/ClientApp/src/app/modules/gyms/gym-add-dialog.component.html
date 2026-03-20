@@ -19,8 +19,7 @@
         @if (selectedTeamIds().length > 0) {
           <p class="selection-count">{{ selectedTeamIds().length }} team(s) selected</p>
         }
-        <mat-slide-toggle [formControl]="form.controls.slot_changes">Track Slot Changes</mat-slide-toggle>
-        <mat-slide-toggle [formControl]="form.controls.battle_changes">Track Battle Changes</mat-slide-toggle>
+        <mat-slide-toggle [formControl]="form.controls.slotChanges">Track Slot Changes</mat-slide-toggle>
       </div>
     </mat-tab>
 
