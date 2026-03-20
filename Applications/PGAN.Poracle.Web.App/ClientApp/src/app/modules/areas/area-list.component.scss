@@ -163,8 +163,8 @@
 // ─── Map View ─────────────────────────────────────────
 .map-container {
   border-radius: 12px;
-  overflow: hidden;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  overflow: visible;
 }
 
 .map-hint {

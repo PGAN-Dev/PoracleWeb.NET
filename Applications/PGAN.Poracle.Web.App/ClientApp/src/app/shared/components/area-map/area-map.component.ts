@@ -229,7 +229,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       legend.push({ color, group });
     });
     legend.sort((a, b) => a.group.localeCompare(b.group));
-    this.visibleLegend.set(legend.slice(0, 30)); // limit legend to 30 entries
+    this.visibleLegend.set(legend);
 
     const allBounds: L.LatLngExpression[] = [];
 
