@@ -115,26 +115,42 @@ export class QuestListComponent implements OnInit {
   }
 
   getQuestImage(quest: Quest): string {
-    if (quest.rewardType === 7 && quest.pokemonId > 0) {
-      return this.iconService.getPokemonUrl(quest.pokemonId);
+    // Pokemon encounter: ID may be in pokemonId or reward field
+    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
+    if (quest.rewardType === 7 && pokemonId > 0) {
+      return this.iconService.getPokemonUrl(pokemonId);
+    }
+    if (quest.rewardType === 12 && pokemonId > 0) {
+      return this.iconService.getPokemonUrl(pokemonId);
+    }
+    if (quest.rewardType === 4 && pokemonId > 0) {
+      return this.iconService.getPokemonUrl(pokemonId);
     }
     return this.iconService.getRewardUrl('quest', quest.rewardType);
   }
 
   getQuestTitle(quest: Quest): string {
-    if (quest.rewardType === 7 && quest.pokemonId > 0) {
-      return this.masterData.getPokemonName(quest.pokemonId);
+    // Pokemon encounter: ID may be in pokemonId or reward field
+    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
+    if (quest.rewardType === 7 && pokemonId > 0) {
+      return this.masterData.getPokemonName(pokemonId);
     }
-    if (quest.rewardType === 12 && quest.pokemonId > 0) {
-      return `${this.masterData.getPokemonName(quest.pokemonId)} Mega Energy`;
+    if (quest.rewardType === 7 && pokemonId === 0) {
+      return 'Any Pokemon Encounter';
     }
-    if (quest.rewardType === 4 && quest.pokemonId > 0) {
-      return `${this.masterData.getPokemonName(quest.pokemonId)} Candy`;
+    if (quest.rewardType === 12 && pokemonId > 0) {
+      return `${this.masterData.getPokemonName(pokemonId)} Mega Energy`;
+    }
+    if (quest.rewardType === 4 && pokemonId > 0) {
+      return `${this.masterData.getPokemonName(pokemonId)} Candy`;
     }
     if (quest.rewardType === 2) {
       return this.masterData.getItemName(quest.reward);
     }
-    return `Quest Reward #${quest.reward}`;
+    if (quest.rewardType === 3) {
+      return quest.reward > 0 ? `${quest.reward}+ Stardust` : 'Stardust';
+    }
+    return this.getRewardTypeLabel(quest.rewardType);
   }
 
   getRewardColor(rewardType: number): string {
