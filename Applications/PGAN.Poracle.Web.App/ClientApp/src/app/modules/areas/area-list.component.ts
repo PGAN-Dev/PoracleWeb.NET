@@ -1,3 +1,4 @@
+import { SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -33,6 +34,7 @@ interface GroupInfo {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    SlicePipe,
     FormsModule,
     MatAutocompleteModule,
     MatButtonModule,
