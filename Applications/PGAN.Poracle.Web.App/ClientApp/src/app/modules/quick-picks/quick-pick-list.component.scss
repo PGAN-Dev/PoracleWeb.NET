@@ -79,6 +79,21 @@
   font-size: 14px;
 }
 
+.pick-group {
+  margin-bottom: 8px;
+}
+
+.group-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.64));
+  margin: 0 0 12px;
+  padding: 0 24px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+}
+
 .alarm-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));

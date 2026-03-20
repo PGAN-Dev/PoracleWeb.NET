@@ -62,6 +62,17 @@ export class QuickPickListComponent implements OnInit {
     return all.filter(p => p.definition.category === cat);
   });
 
+  readonly groupedPicks = computed(() => {
+    const picks = this.filteredPicks();
+    const groups = new Map<string, QuickPickSummary[]>();
+    for (const pick of picks) {
+      const cat = pick.definition.category || 'Other';
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(pick);
+    }
+    return [...groups.entries()].map(([category, items]) => ({ category, items }));
+  });
+
   readonly isAdmin = computed(() => this.auth.isAdmin());
 
   readonly loading = signal(true);
