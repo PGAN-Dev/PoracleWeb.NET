@@ -213,6 +213,14 @@
   background: #9c27b0 !important;
   color: white !important;
 }
+.filter-bar { display: flex; align-items: center; gap: 12px; padding: 8px 24px; }
+.result-count { font-size: 13px; color: var(--text-secondary, rgba(0, 0, 0, 0.54)); }
+.bulk-spacer { flex: 1; }
+.select-mode-active { color: #1976d2; }
+.bulk-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 24px; background: var(--card-bg, #fff); border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08)); flex-wrap: wrap; }
+.bulk-count { font-weight: 500; font-size: 14px; color: #1976d2; }
+.card-checkbox { position: absolute; top: 8px; right: 8px; z-index: 1; }
+.card-selected { outline: 2px solid #1976d2; outline-offset: -2px; }
 
 // Skeleton loading
 @keyframes pulse {
