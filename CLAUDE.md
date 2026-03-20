@@ -13,7 +13,7 @@ This is a full-stack web application for configuring Pokemon GO DM notification 
 - **Mapping**: AutoMapper for Entity-to-Model conversions
 - **Maps**: Leaflet 1.9 for interactive geofence display
 - **Auth**: JWT bearer tokens, Discord OAuth2, Telegram Bot Login
-- **Testing**: Vitest (frontend)
+- **Testing**: Jest (frontend), xUnit (backend)
 
 ## Solution Structure
 
@@ -34,8 +34,8 @@ PGAN.Poracle.Web.slnx
 |
 +-- Applications/
 |   +-- Web.Api/                 ASP.NET Core host
-|   |   +-- Controllers/         20 API controllers (REST, all under /api/)
-|   |   +-- Configuration/       DI registration (ServiceCollectionExtensions)
+|   |   +-- Controllers/         20+ API controllers (REST, all under /api/)
+|   |   +-- Configuration/       DI registration, JwtSettings, DiscordSettings, etc.
 |   |   +-- Services/            Background services: AvatarCacheService, DtsCacheService
 |   +-- Web.App/
 |       +-- ClientApp/           Angular 21 SPA
@@ -43,11 +43,14 @@ PGAN.Poracle.Web.slnx
 |               +-- core/        Guards (auth, admin), services, interceptors, models
 |               +-- modules/     Feature modules: auth, dashboard, pokemon, raids,
 |               |                quests, invasions, lures, nests, gyms, areas,
-|               |                profiles, cleaning, admin
+|               |                profiles, cleaning, quick-picks, admin
 |               +-- shared/      Reusable components: area-map, pokemon-selector,
 |                                template-selector, delivery-preview, location-dialog,
 |                                discord-avatar, alarm-info, confirm-dialog,
-|                                language-selector
+|                                language-selector, distance-dialog, onboarding
+|
++-- Tests/
+    +-- PGAN.Poracle.Web.Tests/  xUnit backend tests (controllers, services, mappings)
 ```
 
 ## Key Patterns
@@ -55,6 +58,18 @@ PGAN.Poracle.Web.slnx
 ### Repository Layer
 - `BaseRepository<TEntity, TModel>` uses expression-based filters and AutoMapper projections.
 - `EnsureNotNullDefaults()` method handles MySQL `NOT NULL` text columns that EF Core maps as nullable strings. Call this before saving to avoid constraint violations.
+- `UpdateDistanceByUidsAsync()` does targeted distance-only SQL updates without touching other fields -- use this for bulk distance operations instead of the generic `UpdateAsync`.
+
+### AutoMapper Update Models
+- All `*Update` models (MonsterUpdate, RaidUpdate, etc.) use **nullable `int?`** properties so partial updates don't zero out unset fields.
+- The mapping profile uses `.ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null))` to skip null properties.
+- **Important**: When calling the PUT `/{uid}` endpoint from the frontend, always spread the full alarm object (`{ ...alarm, distance }`) rather than sending a partial `{ distance }`. This ensures existing values like `clean`, `template`, and filter settings are preserved.
+
+### Bulk Operations
+- Each alarm controller has three distance endpoints:
+  - `PUT /{uid}` -- Update a single alarm (full object)
+  - `PUT /distance` -- Update ALL alarms' distance for the current user/profile
+  - `PUT /distance/bulk` -- Update distance for specific UIDs: `{ uids: number[], distance: number }`. This does a targeted `SetDistance()` on matching entities, bypassing AutoMapper entirely -- safe for bulk operations.
 
 ### Poracle API Proxy
 - `IPoracleApiProxy` / `PoracleApiProxy` wraps HttpClient calls to the external Poracle REST API.
@@ -85,9 +100,19 @@ PGAN.Poracle.Web.slnx
 - Lazy-loaded routes in `app.routes.ts`.
 - Services in `core/services/` use `HttpClient` to call the .NET API.
 
+### UI Patterns
+- **Alarm lists**: Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance.
+- **Bulk operations**: Select mode toggle (checklist icon) on each alarm list, bulk toolbar with Select All, Update Distance, Delete.
+- **Skeleton loading**: Animated skeleton card placeholders on Pokemon, Raids, Quests pages.
+- **Staggered animations**: Grid items fade in with 30ms stagger delay.
+- **Accent themes**: Toolbar gradient, sidenav active link, and UI accent colors are customizable via user menu. Colors are applied as CSS custom properties on `document.body.style` to work across Angular's view encapsulation.
+- **Dark/light mode**: CSS variables bridge Material tokens to component styles. Theme stored in `localStorage('poracle-theme')`.
+- **Onboarding wizard**: Shows on dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.
+
 ## Configuration
 
 - **Secrets**: `appsettings.Development.json` (gitignored) holds all connection strings, JWT secret, Discord/Telegram credentials, Poracle API address/secret.
+- **Docker**: Environment variables configured in `.env` file, mapped in `docker-compose.yml`.
 - **Poracle API**: Address comes from `pweb_settings` table or `appsettings.json` `Poracle:ApiAddress`.
 - **Discord Bot Token**: Sourced from PoracleJS server's `config/local-discord.json`.
 - **Admin IDs**: Comma-separated Discord user IDs in `Poracle:AdminIds`.
@@ -110,6 +135,9 @@ Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core ma
 ### Scanner DB is Optional
 The `ScannerDb` connection string is optional. If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses.
 
+### Bulk Update Preserving Fields
+When updating alarms in bulk, **never** send partial objects to `PUT /{uid}`. AutoMapper maps all fields from the Update model onto the existing entity -- `int` properties default to `0` when absent from JSON, which overwrites existing values like `clean` and filter settings. Use the dedicated `PUT /distance/bulk` endpoint for distance changes, or spread the full alarm: `{ ...alarm, distance }`.
+
 ## Build & Run
 
 ```bash
@@ -127,17 +155,33 @@ npm start              # alias for ng serve
 npm run watch          # watch mode for development
 npm run build          # production build
 
-# Run frontend tests (Vitest via Angular CLI builder)
+# Run frontend tests (Jest)
 cd Applications/PGAN.Poracle.Web.App/ClientApp
 npm test
 
-# Docker (maps host:8082 → container:8080)
-docker compose up -d --build
+# Run backend tests (xUnit)
+dotnet test
+
+# Lint and format
+cd Applications/PGAN.Poracle.Web.App/ClientApp
+npm run lint           # ESLint check
+npm run prettier-check # Prettier check
+npx eslint --fix src/  # Auto-fix lint
+npm run prettier-format # Auto-format
+
+# Docker — build from source
+docker build -t poracleweb-local:latest .
+docker compose up -d
+
+# Docker — force clean rebuild
+docker build --no-cache -t poracleweb-local:latest .
+docker compose up -d --force-recreate
 ```
 
 ## Code Style
 
-- **Prettier**: 100-char print width, single quotes, configured in `.prettierrc`
+- **Prettier**: 140-char print width, single quotes, 2-space indent, configured in `.prettierrc`
+- **ESLint**: Configured with Angular, perfectionist (sorted class members), and Prettier plugins
 - **EditorConfig**: 2-space indent, UTF-8, in `ClientApp/.editorconfig`
 
 ## File Locations
@@ -148,6 +192,7 @@ docker compose up -d --build
 | EF Core DbContext | `Data/PGAN.Poracle.Web.Data/PoracleContext.cs` |
 | API Controllers | `Applications/PGAN.Poracle.Web.Api/Controllers/` |
 | DI Registration | `Applications/PGAN.Poracle.Web.Api/Configuration/ServiceCollectionExtensions.cs` |
+| Settings Classes | `Applications/PGAN.Poracle.Web.Api/Configuration/` (JwtSettings, DiscordSettings, etc.) |
 | Angular App Root | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/` |
 | Angular Routes | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/app.routes.ts` |
 | Angular Services | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/core/services/` |
@@ -158,8 +203,12 @@ docker compose up -d --build
 | Repository Base | `Core/PGAN.Poracle.Web.Core.Repositories/` |
 | Service Layer | `Core/PGAN.Poracle.Web.Core.Services/` |
 | Abstractions | `Core/PGAN.Poracle.Web.Core.Abstractions/` |
+| Backend Tests | `Tests/PGAN.Poracle.Web.Tests/` |
+| CI Workflows | `.github/workflows/` (ci.yml, docker-publish.yml) |
+| Docker Config | `Dockerfile`, `docker-compose.yml`, `.env.example` |
 
 ## Testing
 
-- Frontend tests use **Vitest** (not Karma/Jasmine). Run with `npx vitest` from the `ClientApp/` directory.
-- No backend test projects are currently set up.
+- **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, and dialogs.
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings.
+- **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.
