@@ -7,13 +7,6 @@
     </p>
   </div>
   <div class="header-actions">
-    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions">
-      <mat-icon>more_vert</mat-icon>
-    </button>
-    <mat-menu #bulkMenu="matMenu">
-      <button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button>
-      <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
-    </mat-menu>
     <button mat-fab (click)="openAddDialog()" [style.background-color]="'#4caf50'" [style.color]="'white'">
       <mat-icon>add</mat-icon>
     </button>
@@ -88,13 +81,22 @@
     }
   </div>
 
-  @if (selectMode() && selectedIds().size > 0) {
+  @if (selectMode()) {
     <div class="bulk-toolbar">
-      <span class="bulk-count">{{ selectedIds().size }} selected</span>
-      <button mat-stroked-button (click)="selectAll()">Select All</button>
-      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      @if (selectedIds().size > 0) {
+        <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      }
+      <button mat-stroked-button (click)="selectAll()">
+        <mat-icon>select_all</mat-icon> Select All
+      </button>
+      @if (selectedIds().size > 0) {
+        <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      }
       <div class="bulk-spacer"></div>
-      <button mat-flat-button color="warn" (click)="bulkDelete()">
+      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+        <mat-icon>straighten</mat-icon> Update Distance
+      </button>
+      <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
         <mat-icon>delete</mat-icon> Delete
       </button>
     </div>
