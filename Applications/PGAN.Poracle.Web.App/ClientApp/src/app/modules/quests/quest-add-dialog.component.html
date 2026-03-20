@@ -25,7 +25,11 @@
                   <mat-option [value]="0">Any Item</mat-option>
                   @for (item of questItems(); track item.id) {
                     <mat-option [value]="item.id">
-                      <img [src]="iconService.getItemUrl(item.id)" class="option-icon" (error)="$any($event.target).style.display='none'" />
+                      <img
+                        [src]="iconService.getItemUrl(item.id)"
+                        class="option-icon"
+                        (error)="$any($event.target).style.display='none'; $any($event.target).nextElementSibling.style.display='inline'" />
+                      <mat-icon class="option-icon-fallback" style="display: none">help_outline</mat-icon>
                       {{ item.name }}
                     </mat-option>
                   }

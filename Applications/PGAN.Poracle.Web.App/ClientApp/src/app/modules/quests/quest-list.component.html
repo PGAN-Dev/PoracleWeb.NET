@@ -28,7 +28,12 @@
       <mat-card class="alarm-card">
         <div class="card-top" [style.border-top-color]="getRewardColor(quest.rewardType)">
           @if (getQuestImage(quest)) {
-            <img [src]="getQuestImage(quest)" [alt]="getQuestTitle(quest)" class="item-img" (error)="onImageError($event)" />
+            <img
+              [src]="getQuestImage(quest)"
+              [alt]="getQuestTitle(quest)"
+              class="item-img"
+              (error)="$any($event.target).style.display='none'; $any($event.target).nextElementSibling.style.display='flex'" />
+            <mat-icon class="quest-fallback-icon" style="display: none">help_outline</mat-icon>
           } @else {
             <mat-icon class="quest-fallback-icon">catching_pokemon</mat-icon>
           }
