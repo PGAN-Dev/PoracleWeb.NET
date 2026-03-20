@@ -67,6 +67,9 @@ export class QuestEditDialogComponent {
     if ((this.data.rewardType === 7 || this.data.rewardType === 12 || this.data.rewardType === 4) && pid > 0) {
       return this.iconService.getPokemonUrl(pid);
     }
+    if (this.data.rewardType === 7 && pid === 0) {
+      return '';
+    }
     if (this.data.rewardType === 2 && this.data.reward > 0) {
       return this.iconService.getItemUrl(this.data.reward);
     }

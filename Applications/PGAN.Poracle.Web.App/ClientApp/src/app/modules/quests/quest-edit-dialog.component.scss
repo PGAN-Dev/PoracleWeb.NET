@@ -13,6 +13,16 @@ mat-dialog-content {
   height: 64px;
   object-fit: contain;
 }
+.quest-fallback-icon {
+  width: 64px;
+  height: 64px;
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-hint, rgba(0, 0, 0, 0.3));
+  flex-shrink: 0;
+}
 .item-header h3 {
   margin: 0;
 }

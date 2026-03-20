@@ -1,7 +1,11 @@
 <h2 mat-dialog-title>Edit Quest Alarm</h2>
 <mat-dialog-content>
   <div class="item-header">
-    <img [src]="getImage()" [alt]="getTitle()" class="item-img" (error)="onImageError($event)" />
+    @if (getImage()) {
+      <img [src]="getImage()" [alt]="getTitle()" class="item-img" (error)="onImageError($event)" />
+    } @else {
+      <mat-icon class="quest-fallback-icon">catching_pokemon</mat-icon>
+    }
     <div>
       <h3>{{ getTitle() }}</h3>
       <span class="item-subtitle">{{ getRewardTypeLabel() }}</span>

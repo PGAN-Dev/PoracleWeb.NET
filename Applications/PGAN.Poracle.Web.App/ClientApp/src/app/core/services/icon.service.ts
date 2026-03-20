@@ -35,7 +35,7 @@ export class IconService {
   }
 
   getItemUrl(id: number): string {
-    return `${this.itemBase()}/${id}.png`;
+    return `${this.rewardBase()}/item/${id}.png`;
   }
 
   getGymUrl(team: number): string {
