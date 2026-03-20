@@ -54,10 +54,17 @@
               }
             </span>
           </div>
-          <button mat-stroked-button class="method-action" (click)="openLocationDialog()">
-            <mat-icon>edit_location</mat-icon>
-            {{ location() ? 'Change' : 'Set' }}
-          </button>
+          <div class="method-actions">
+            @if (location()) {
+              <button mat-button color="warn" (click)="clearLocation()">
+                <mat-icon>location_off</mat-icon> Clear
+              </button>
+            }
+            <button mat-stroked-button (click)="openLocationDialog()">
+              <mat-icon>edit_location</mat-icon>
+              {{ location() ? 'Change' : 'Set' }}
+            </button>
+          </div>
         </div>
         <p class="method-description">
           Get notified about anything within a set distance from your pinned location. Set alarms to <strong>"Set Distance"</strong> (e.g.,

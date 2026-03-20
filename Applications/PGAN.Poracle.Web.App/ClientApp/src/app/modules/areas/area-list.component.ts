@@ -169,6 +169,21 @@ export class AreaListComponent implements OnInit {
     this.selectedAreas.set([...this.savedSelection]);
   }
 
+  clearLocation(): void {
+    this.locationService
+      .setLocation({ latitude: 0, longitude: 0 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.snackBar.open('Failed to clear location', 'OK', { duration: 3000 }),
+        next: () => {
+          this.location.set(null);
+          this.locationAddress.set('');
+          this.locationMapUrl.set('');
+          this.snackBar.open('Location cleared', 'OK', { duration: 3000 });
+        },
+      });
+  }
+
   clearAllAreas(): void {
     for (const a of this.areas()) a.selected = false;
     this.syncSelectedFromAreas();
