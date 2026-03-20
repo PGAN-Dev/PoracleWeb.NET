@@ -2,12 +2,14 @@ import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { firstValueFrom } from 'rxjs';
 
 import { LureAddDialogComponent } from './lure-add-dialog.component';
 import { LureEditDialogComponent } from './lure-edit-dialog.component';
@@ -21,6 +23,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
   imports: [
     MatCardModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
@@ -40,6 +43,61 @@ export class LureListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
   readonly lures = signal<Lure[]>([]);
+  readonly selectMode = signal(false);
+  readonly selectedIds = signal(new Set<number>());
+
+  toggleSelectMode(): void {
+    this.selectMode.update(v => !v);
+    if (!this.selectMode()) this.selectedIds.set(new Set());
+  }
+
+  toggleSelect(uid: number): void {
+    const current = new Set(this.selectedIds());
+    current.has(uid) ? current.delete(uid) : current.add(uid);
+    this.selectedIds.set(current);
+  }
+
+  selectAll(): void {
+    const ids = new Set(this.lures().map(i => i.uid));
+    this.selectedIds.set(ids);
+  }
+
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  async bulkDelete(): Promise<void> {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: 'Delete Selected',
+        message: `Delete ${this.selectedIds().size} alarms?`,
+        title: 'Delete Selected Alarms',
+        warn: true,
+      } as ConfirmDialogData,
+    });
+    const result = await firstValueFrom(ref.afterClosed());
+    if (result) {
+      const ids = [...this.selectedIds()];
+      for (const uid of ids) await firstValueFrom(this.lureService.delete(uid));
+      this.selectedIds.set(new Set());
+      this.selectMode.set(false);
+      this.loadLures();
+      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+    }
+  }
+
+  async bulkUpdateDistance(): Promise<void> {
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const distance = await firstValueFrom(ref.afterClosed());
+    if (distance !== null && distance !== undefined) {
+      const ids = [...this.selectedIds()];
+      for (const uid of ids) await firstValueFrom(this.lureService.update(uid, { distance }));
+      this.selectedIds.set(new Set());
+      this.selectMode.set(false);
+      this.loadLures();
+      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+    }
+  }
 
   deleteAll(): void {
     this.dialog
