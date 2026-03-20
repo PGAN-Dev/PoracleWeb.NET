@@ -365,3 +365,36 @@ body.dark-theme .app-toolbar {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   line-height: 1.4;
 }
+
+// ─── Accessibility ──────────────────────────────────────────────────
+
+// Focus visible styles for keyboard navigation
+*:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+// Reduce motion for users who prefer it
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// Improve color contrast for high-contrast mode
+@media (prefers-contrast: high) {
+  body {
+    --text-secondary: rgba(0, 0, 0, 0.7);
+    --text-muted: rgba(0, 0, 0, 0.65);
+    --text-hint: rgba(0, 0, 0, 0.55);
+  }
+  body.dark-theme {
+    --text-secondary: rgba(255, 255, 255, 0.85);
+    --text-muted: rgba(255, 255, 255, 0.75);
+    --text-hint: rgba(255, 255, 255, 0.6);
+  }
+}
