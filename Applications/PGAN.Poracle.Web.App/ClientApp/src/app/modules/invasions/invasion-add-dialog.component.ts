@@ -27,7 +27,7 @@ interface GruntOption {
   typeId: number;
 }
 
-const INVASION_ICON_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/invasion';
+const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
 
 @Component({
   imports: [
@@ -102,8 +102,11 @@ export class InvasionAddDialogComponent implements OnInit {
     );
   }
 
-  getGruntIcon(invasionId: number): string {
-    return `${INVASION_ICON_BASE}/${invasionId}.png`;
+  getGruntIcon(grunt: GruntOption): string {
+    if (grunt.typeId > 0) {
+      return `${UICONS_BASE}/type/${grunt.typeId}.png`;
+    }
+    return `${UICONS_BASE}/invasion/${grunt.invasionId}.png`;
   }
 
   onDistanceModeChange(): void {
