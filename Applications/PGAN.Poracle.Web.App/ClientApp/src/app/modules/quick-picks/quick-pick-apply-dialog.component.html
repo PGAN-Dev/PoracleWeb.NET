@@ -15,29 +15,28 @@
       </ng-template>
       <div class="tab-content">
         @if (showExclusions) {
-          <h4>Exclusions</h4>
-          <mat-expansion-panel class="exclusion-panel">
-            <mat-expansion-panel-header>
-              <mat-panel-title>
-                <mat-icon>block</mat-icon>
-                Exclude Pokemon
-                @if (excludedPokemonIds().length > 0) {
-                  <span class="exclusion-count">({{ excludedPokemonIds().length }})</span>
-                }
-              </mat-panel-title>
-              <mat-panel-description>Optional — choose Pokemon to skip</mat-panel-description>
-            </mat-expansion-panel-header>
-            <app-pokemon-selector [multi]="true" (selectionChange)="onExcludedPokemonChange($event)" />
-          </mat-expansion-panel>
+          <div class="exclusion-toggle">
+            <mat-slide-toggle [checked]="excludeEnabled()" (change)="excludeEnabled.set($event.checked)">
+              Exclude specific Pokemon
+            </mat-slide-toggle>
+            <p class="exclusion-hint">Skip certain Pokemon from this quick pick. Without exclusions, a single "all" alarm is created.</p>
+          </div>
 
-          @if (willTrackIndividually()) {
-            <div class="individual-warning">
-              <mat-icon>info</mat-icon>
-              <span>
-                Exclusions require tracking individually. This will create
-                <strong>{{ individualAlarmCount() }}</strong> individual alarm rows. This may take a moment to apply.
-              </span>
-            </div>
+          @if (excludeEnabled()) {
+            <app-pokemon-selector [multi]="true" (selectionChange)="onExcludedPokemonChange($event)" />
+
+            @if (excludedPokemonIds().length > 0) {
+              <p class="exclusion-summary">{{ excludedPokemonIds().length }} Pokemon excluded</p>
+            }
+
+            @if (willTrackIndividually()) {
+              <div class="individual-warning">
+                <mat-icon>info</mat-icon>
+                <span>
+                  This will create <strong>{{ individualAlarmCount() }}</strong> individual alarm rows. This may take a moment.
+                </span>
+              </div>
+            }
           }
         } @else {
           <div class="no-options-hint">
