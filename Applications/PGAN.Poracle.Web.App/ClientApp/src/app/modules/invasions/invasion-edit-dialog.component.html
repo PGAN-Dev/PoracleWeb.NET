@@ -1,7 +1,11 @@
 <h2 mat-dialog-title>Edit Invasion Alarm</h2>
 <mat-dialog-content>
   <div class="item-header">
-    <mat-icon class="rocket-icon">security</mat-icon>
+    @if (getGruntIcon()) {
+      <img [src]="getGruntIcon()" class="grunt-img" alt="" />
+    } @else {
+      <mat-icon class="rocket-icon">security</mat-icon>
+    }
     <div>
       <h3>{{ data.gruntType || 'Unknown Grunt' }}</h3>
       <span class="item-subtitle">{{ getGenderLabel() }}</span>

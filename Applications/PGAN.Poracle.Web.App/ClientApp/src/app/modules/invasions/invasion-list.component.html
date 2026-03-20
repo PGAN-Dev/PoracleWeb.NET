@@ -22,7 +22,11 @@
     @for (invasion of invasions(); track invasion.uid) {
       <mat-card class="alarm-card">
         <div class="card-top">
-          <mat-icon class="rocket-icon">security</mat-icon>
+          @if (getGruntIcon(invasion.gruntType)) {
+            <img [src]="getGruntIcon(invasion.gruntType)" class="grunt-img" alt="" />
+          } @else {
+            <mat-icon class="rocket-icon">security</mat-icon>
+          }
           <div class="item-info">
             <h3>{{ invasion.gruntType || 'Unknown Grunt' }}</h3>
             <span class="gender-label">

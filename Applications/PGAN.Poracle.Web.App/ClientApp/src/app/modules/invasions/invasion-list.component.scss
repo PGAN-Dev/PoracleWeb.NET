@@ -98,11 +98,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.grunt-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .rocket-icon {
   font-size: 48px;
   width: 48px;
   height: 48px;
-  color: #424242;
+  color: var(--text-secondary, #424242);
 }
 .item-info h3 {
   margin: 0;

@@ -10,6 +10,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
+
+const INVASION_ICON_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/invasion';
+const GRUNT_TYPE_TO_ID: Record<string, number> = {
+  Bug: 1, Dark: 2, Dragon: 3, Electric: 4, Fairy: 5, Fighting: 6,
+  Fire: 7, Flying: 8, Ghost: 9, Grass: 10, Ground: 11, Ice: 12,
+  Metal: 13, Normal: 14, Poison: 15, Psychic: 16, Rock: 17, Water: 18,
+  mixed: 41, Giovanni: 44, Decoy: 50,
+};
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
 import { Invasion } from '../../core/models';
 import { InvasionService } from '../../core/services/invasion.service';
@@ -96,6 +104,11 @@ export class InvasionListComponent implements OnInit {
       .subscribe(r => {
         if (r) this.loadInvasions();
       });
+  }
+
+  getGruntIcon(gruntType: string | null): string {
+    const id = GRUNT_TYPE_TO_ID[gruntType ?? ''] ?? 0;
+    return id > 0 ? `${INVASION_ICON_BASE}/${id}.png` : '';
   }
 
   formatDistance(meters: number): string {
