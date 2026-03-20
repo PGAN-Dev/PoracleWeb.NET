@@ -1,19 +1,21 @@
 <div class="map-toolbar">
   <mat-form-field appearance="outline" class="region-select">
     <mat-label>Jump to Region</mat-label>
-    <mat-select (selectionChange)="onRegionSelected($event.value)" [value]="selectedRegion()">
+    <input
+      matInput
+      [matAutocomplete]="regionAuto"
+      [value]="regionSearchText"
+      (input)="regionSearchText = $any($event.target).value"
+      placeholder="Type to search..." />
+    <mat-autocomplete #regionAuto="matAutocomplete" (optionSelected)="onRegionSelected($event.option.value)">
       <mat-option value="">All Regions</mat-option>
-      @for (group of regionGroups(); track group.label) {
-        <mat-optgroup [label]="group.label">
-          @for (region of group.regions; track region.label) {
-            <mat-option [value]="region.label"> {{ region.shortLabel }} ({{ region.areaCount }}) </mat-option>
-          }
-        </mat-optgroup>
+      @for (region of filteredRegions(); track region.label) {
+        <mat-option [value]="region.label">{{ region.shortLabel }} ({{ region.areaCount }})</mat-option>
       }
-    </mat-select>
+    </mat-autocomplete>
   </mat-form-field>
-  <button mat-icon-button matTooltip="Fit all areas" (click)="fitAll()">
-    <mat-icon>zoom_out_map</mat-icon>
+  <button mat-icon-button matTooltip="Reset zoom to show all areas" (click)="fitAll()">
+    <mat-icon>fit_screen</mat-icon>
   </button>
   @if (selectedRegion()) {
     <mat-chip highlighted color="primary" (removed)="clearRegion()">

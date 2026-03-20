@@ -12,11 +12,13 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import * as L from 'leaflet';
 
 import { GeofenceData } from '../../../core/models';
@@ -52,7 +54,7 @@ interface RegionGrouping {
 }
 
 @Component({
-  imports: [FormsModule, MatFormFieldModule, MatSelectModule, MatIconModule, MatButtonModule, MatChipsModule],
+  imports: [FormsModule, MatAutocompleteModule, MatFormFieldModule, MatInputModule, MatIconModule, MatButtonModule, MatChipsModule, MatTooltipModule],
   selector: 'app-area-map',
   standalone: true,
   styleUrl: './area-map.component.scss',
@@ -76,13 +78,23 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   readonly regionGroups = signal<RegionGrouping[]>([]);
   readonly regions = signal<RegionEntry[]>([]);
 
+  regionSearchText = '';
+
   @Input() selectedAreas: string[] = [];
   readonly selectedRegion = signal('');
   @Input() userLocation?: { lat: number; lng: number };
   readonly visibleLegend = signal<{ group: string; color: string }[]>([]);
 
+  filteredRegions(): RegionEntry[] {
+    const search = this.regionSearchText.toLowerCase();
+    const all = this.regions();
+    if (!search) return all;
+    return all.filter(r => r.label.toLowerCase().includes(search) || r.shortLabel.toLowerCase().includes(search));
+  }
+
   clearRegion(): void {
     this.selectedRegion.set('');
+    this.regionSearchText = '';
     this.fitAll();
   }
 
@@ -120,6 +132,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   onRegionSelected(regionLabel: string): void {
     this.selectedRegion.set(regionLabel);
+    this.regionSearchText = '';
 
     if (!regionLabel || !this.map) {
       this.fitAll();

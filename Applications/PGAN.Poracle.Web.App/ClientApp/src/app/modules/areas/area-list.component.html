@@ -51,6 +51,11 @@
         </button>
       </div>
       <span class="selection-summary">{{ selectedAreas().length }} area(s) selected</span>
+      @if (selectedAreas().length > 0) {
+        <button mat-button color="warn" (click)="clearAllAreas()">
+          <mat-icon>delete_sweep</mat-icon> Clear All
+        </button>
+      }
     </div>
 
     <!-- Selected Areas Chips -->

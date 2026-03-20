@@ -156,6 +156,11 @@ export class AreaListComponent implements OnInit {
     // Triggers visibleAreas recomputation via searchText binding
   }
 
+  clearAllAreas(): void {
+    for (const a of this.areas()) a.selected = false;
+    this.syncSelectedFromAreas();
+  }
+
   cancelChanges(): void {
     const savedSet = new Set(this.savedSelection.map(s => s.toLowerCase()));
     for (const a of this.areas()) {
