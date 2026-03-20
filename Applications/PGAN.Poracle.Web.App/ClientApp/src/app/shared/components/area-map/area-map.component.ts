@@ -181,7 +181,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   toggleFullscreen(): void {
-    const el = this.mapElement.nativeElement.closest('.map-container') as HTMLElement | null;
+    const el = this.mapElement.nativeElement.closest('app-area-map') as HTMLElement | null;
     if (!el) return;
 
     if (!document.fullscreenElement) {

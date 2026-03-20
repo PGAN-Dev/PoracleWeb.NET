@@ -1,3 +1,21 @@
+:host:fullscreen {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, #fff);
+  padding: 8px;
+
+  .map-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .area-map-container {
+    flex: 1;
+    height: auto !important;
+  }
+}
+
 .map-toolbar {
   display: flex;
   align-items: center;
