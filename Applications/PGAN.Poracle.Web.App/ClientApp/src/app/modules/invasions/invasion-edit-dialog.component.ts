@@ -101,6 +101,7 @@ export class InvasionEditDialogComponent {
         clean: v.clean ? 1 : 0,
         distance: dist,
         gender: v.gender ?? 0,
+        gruntType: this.data.gruntType,
         ping: v.ping || null,
         template: v.template || null,
       } as InvasionUpdate)
