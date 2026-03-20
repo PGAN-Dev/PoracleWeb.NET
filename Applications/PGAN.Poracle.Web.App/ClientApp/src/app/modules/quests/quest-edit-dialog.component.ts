@@ -146,6 +146,10 @@ export class QuestEditDialogComponent {
       clean: values.clean ? 1 : 0,
       distance: distanceMeters,
       ping: values.ping || null,
+      pokemonId: this.data.pokemonId,
+      reward: this.data.reward,
+      rewardType: this.data.rewardType,
+      shiny: this.data.shiny,
       template: values.template || null,
     };
 
