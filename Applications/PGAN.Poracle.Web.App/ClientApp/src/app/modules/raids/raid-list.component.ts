@@ -196,6 +196,10 @@ export class RaidListComponent implements OnInit {
     return `Level ${raid.level} Raid`;
   }
 
+  getGymIcon(team: number): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
+  }
+
   getTeamColor(team: number): string {
     switch (team) {
       case 1:
