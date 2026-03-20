@@ -23,11 +23,3 @@
   }
 </div>
 <div #mapContainer class="area-map-container"></div>
-<div class="map-legend">
-  @for (entry of visibleLegend(); track entry.group) {
-    <span class="legend-item" (click)="onRegionSelected(entry.group)">
-      <span class="legend-swatch" [style.background]="entry.color"></span>
-      <span class="legend-label">{{ entry.group || 'Ungrouped' }}</span>
-    </span>
-  }
-</div>
