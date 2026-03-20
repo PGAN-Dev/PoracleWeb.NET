@@ -33,6 +33,71 @@
   align-items: center;
   gap: 8px;
 }
+
+// ─── Filter Bar ─────────────────────────────────────────────────────────────────
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--card-bg, #fff);
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+  margin: 0 0 0;
+
+  &.sticky {
+    position: sticky;
+    top: 56px;
+    z-index: 10;
+  }
+}
+
+.search-field {
+  flex: 1;
+  min-width: 200px;
+  max-width: 350px;
+}
+
+.search-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.quick-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-filters button {
+  border-radius: 20px;
+  font-size: 13px;
+  height: 36px;
+}
+
+.filter-active {
+  background-color: rgba(25, 118, 210, 0.1) !important;
+  border-color: #1976d2 !important;
+  color: #1976d2 !important;
+}
+
+.filter-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.result-count {
+  font-size: 13px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  white-space: nowrap;
+}
+
+.select-mode-active {
+  color: #1976d2;
+}
+
+// ─── Generation Filter Bar ──────────────────────────────────────────────────────
 .gen-filter-bar {
   display: flex;
   align-items: center;
@@ -85,6 +150,26 @@
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   margin-left: 4px;
 }
+
+// ─── Bulk Toolbar ───────────────────────────────────────────────────────────────
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: color-mix(in srgb, #1976d2 6%, var(--card-bg, #fff));
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+}
+.bulk-count {
+  font-weight: 500;
+  font-size: 14px;
+  color: #1976d2;
+}
+.bulk-spacer {
+  flex: 1;
+}
+
+// ─── Loading ────────────────────────────────────────────────────────────────────
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -97,6 +182,8 @@
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-size: 14px;
 }
+
+// ─── Alarm Grid & Cards ─────────────────────────────────────────────────────────
 .alarm-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -117,8 +204,18 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
+.alarm-card.card-selected {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
+}
 .all-pokemon-card {
   border-left: 4px solid #9e9e9e;
+}
+.card-checkbox {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
 }
 .card-top {
   display: flex;
@@ -266,6 +363,8 @@
   width: 16px;
   height: 16px;
 }
+
+// ─── Empty State ────────────────────────────────────────────────────────────────
 .empty-state {
   grid-column: 1 / -1;
   display: flex;
@@ -289,4 +388,23 @@
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   margin: 0 0 24px;
   max-width: 400px;
+}
+
+// ─── Responsive ─────────────────────────────────────────────────────────────────
+@media (max-width: 599px) {
+  .filter-bar {
+    padding: 8px 16px;
+  }
+  .search-field {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .filter-meta {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+  .bulk-toolbar {
+    padding: 8px 16px;
+    flex-wrap: wrap;
+  }
 }

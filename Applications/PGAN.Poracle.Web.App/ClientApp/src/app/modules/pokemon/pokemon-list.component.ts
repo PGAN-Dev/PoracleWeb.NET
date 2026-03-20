@@ -1,7 +1,18 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  DestroyRef,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -12,6 +23,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { firstValueFrom } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
@@ -19,14 +31,20 @@ import { Monster } from '../../core/models';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
-import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
+    MatButtonToggleModule,
+    MatCheckboxModule,
     MatIconModule,
     MatMenuModule,
     MatDialogModule,
@@ -54,9 +72,21 @@ export class PokemonListComponent implements OnInit {
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
   readonly monsters = signal<Monster[]>([]);
   readonly sortBy = signal<'name' | 'id' | 'evolution' | 'generation'>('name');
+
+  // Search & quick filters
+  readonly searchControl = new FormControl('');
+  private readonly searchValue = toSignal(this.searchControl.valueChanges, { initialValue: '' });
+  readonly activeFilter = signal<string | null>(null);
+
+  // Bulk operations
+  readonly selectMode = signal(false);
+  readonly selectedIds = signal(new Set<number>());
+
   readonly filteredMonsters = computed(() => {
     const gen = this.activeGen();
     const sort = this.sortBy();
+    const search = (this.searchValue() ?? '').toLowerCase();
+    const filter = this.activeFilter();
     let list = this.monsters();
 
     // Filter by generation
@@ -67,6 +97,24 @@ export class PokemonListComponent implements OnInit {
       });
     }
 
+    // Search filter
+    if (search) {
+      list = list.filter(m => {
+        const name = this.getPokemonName(m.pokemonId).toLowerCase();
+        const id = String(m.pokemonId);
+        return name.includes(search) || id.includes(search);
+      });
+    }
+
+    // Quick filters
+    if (filter === 'highiv') {
+      list = list.filter(m => m.minIv >= 90);
+    } else if (filter === 'pvp') {
+      list = list.filter(m => m.pvpRankingLeague > 0);
+    } else if (filter === 'distance') {
+      list = list.filter(m => m.distance > 0);
+    }
+
     // Separate "All Pokemon" (id=0) alarms to keep at the top
     const allPokemon = list.filter(m => m.pokemonId === 0);
     const specific = list.filter(m => m.pokemonId !== 0);
@@ -74,7 +122,9 @@ export class PokemonListComponent implements OnInit {
     // Sort specific alarms
     specific.sort((a, b) => {
       if (sort === 'name') {
-        return this.getPokemonName(a.pokemonId).localeCompare(this.getPokemonName(b.pokemonId));
+        return this.getPokemonName(a.pokemonId).localeCompare(
+          this.getPokemonName(b.pokemonId)
+        );
       } else if (sort === 'id') {
         return a.pokemonId - b.pokemonId;
       } else if (sort === 'generation') {
@@ -82,7 +132,9 @@ export class PokemonListComponent implements OnInit {
         const genA = this.getGenNumber(a.pokemonId);
         const genB = this.getGenNumber(b.pokemonId);
         if (genA !== genB) return genA - genB;
-        return this.getPokemonName(a.pokemonId).localeCompare(this.getPokemonName(b.pokemonId));
+        return this.getPokemonName(a.pokemonId).localeCompare(
+          this.getPokemonName(b.pokemonId)
+        );
       } else {
         // Evolution line: sort by base evolution Pokemon ID
         const baseA = this.getBaseEvolution(a.pokemonId);
@@ -273,6 +325,59 @@ export class PokemonListComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (result) this.loadMonsters();
     });
+  }
+
+  toggleFilter(filter: string): void {
+    this.activeFilter.set(this.activeFilter() === filter ? null : filter);
+  }
+
+  // Bulk operations
+  toggleSelectMode(): void {
+    this.selectMode.update(v => !v);
+    if (!this.selectMode()) {
+      this.selectedIds.set(new Set());
+    }
+  }
+
+  toggleSelect(uid: number): void {
+    const current = new Set(this.selectedIds());
+    if (current.has(uid)) {
+      current.delete(uid);
+    } else {
+      current.add(uid);
+    }
+    this.selectedIds.set(current);
+  }
+
+  selectAll(): void {
+    const ids = new Set(this.filteredMonsters().map(m => m.uid));
+    this.selectedIds.set(ids);
+  }
+
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  async bulkDelete(): Promise<void> {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: 'Delete All',
+        message: `Are you sure you want to delete ${this.selectedIds().size} alarms?`,
+        title: 'Delete Selected Alarms',
+        warn: true,
+      } as ConfirmDialogData,
+    });
+    const result = await firstValueFrom(ref.afterClosed());
+    if (result) {
+      const ids = [...this.selectedIds()];
+      for (const uid of ids) {
+        await firstValueFrom(this.monsterService.delete(uid));
+      }
+      this.selectedIds.set(new Set());
+      this.selectMode.set(false);
+      this.loadMonsters();
+      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+    }
   }
 
   updateAllDistance(): void {
