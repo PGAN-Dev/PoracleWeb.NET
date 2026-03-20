@@ -27,7 +27,11 @@
     @for (quest of quests(); track quest.uid) {
       <mat-card class="alarm-card">
         <div class="card-top" [style.border-top-color]="getRewardColor(quest.rewardType)">
-          <img [src]="getQuestImage(quest)" [alt]="getQuestTitle(quest)" class="item-img" (error)="onImageError($event)" />
+          @if (getQuestImage(quest)) {
+            <img [src]="getQuestImage(quest)" [alt]="getQuestTitle(quest)" class="item-img" (error)="onImageError($event)" />
+          } @else {
+            <mat-icon class="quest-fallback-icon">catching_pokemon</mat-icon>
+          }
           <div class="item-info">
             <h3>{{ getQuestTitle(quest) }}</h3>
             <span class="reward-badge" [style.background]="getRewardColor(quest.rewardType)">

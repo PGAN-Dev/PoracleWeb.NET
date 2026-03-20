@@ -16,6 +16,10 @@ export class IconService {
 
   private readonly raidBase = computed(() => (this.settings.siteSettings()['uicons_raid'] || `${DEFAULT_UICONS}/raid`).replace(/\/$/, ''));
 
+  private readonly itemBase = computed(() =>
+    (this.settings.siteSettings()['uicons_item'] || `${DEFAULT_UICONS}/item`).replace(/\/$/, ''),
+  );
+
   private readonly rewardBase = computed(() =>
     (this.settings.siteSettings()['uicons_reward'] || `${DEFAULT_UICONS}/reward`).replace(/\/$/, ''),
   );
@@ -28,6 +32,10 @@ export class IconService {
       pokemon: this.pkmnBase(),
       reward: this.rewardBase(),
     };
+  }
+
+  getItemUrl(id: number): string {
+    return `${this.itemBase()}/${id}.png`;
   }
 
   getGymUrl(team: number): string {

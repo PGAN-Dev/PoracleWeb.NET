@@ -117,14 +117,19 @@ export class QuestListComponent implements OnInit {
   getQuestImage(quest: Quest): string {
     // Pokemon encounter: ID may be in pokemonId or reward field
     const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
-    if (quest.rewardType === 7 && pokemonId > 0) {
+    if ((quest.rewardType === 7 || quest.rewardType === 12 || quest.rewardType === 4) && pokemonId > 0) {
       return this.iconService.getPokemonUrl(pokemonId);
     }
-    if (quest.rewardType === 12 && pokemonId > 0) {
-      return this.iconService.getPokemonUrl(pokemonId);
+    if (quest.rewardType === 7 && pokemonId === 0) {
+      return ''; // fallback icon in template
     }
-    if (quest.rewardType === 4 && pokemonId > 0) {
-      return this.iconService.getPokemonUrl(pokemonId);
+    // Item reward — show the item icon
+    if (quest.rewardType === 2 && quest.reward > 0) {
+      return this.iconService.getItemUrl(quest.reward);
+    }
+    // Stardust
+    if (quest.rewardType === 3) {
+      return this.iconService.getRewardUrl('stardust', quest.reward || 0);
     }
     return this.iconService.getRewardUrl('quest', quest.rewardType);
   }
