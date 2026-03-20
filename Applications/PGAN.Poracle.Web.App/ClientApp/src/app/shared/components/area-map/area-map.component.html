@@ -37,4 +37,11 @@
     </div>
   </div>
 }
-<div #mapContainer class="area-map-container"></div>
+<div class="map-wrapper">
+  <div #mapContainer class="area-map-container"></div>
+  @if (selectedAreas.length > 0) {
+    <div class="map-selection-badge">
+      {{ selectedAreas.length }} area{{ selectedAreas.length !== 1 ? 's' : '' }} selected
+    </div>
+  }
+</div>
