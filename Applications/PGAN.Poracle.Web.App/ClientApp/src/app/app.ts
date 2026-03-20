@@ -158,6 +158,10 @@ export class App implements OnInit {
 
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
+  protected readonly showShortcutHelp = signal(false);
+
+  protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
+
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
 
@@ -210,6 +214,43 @@ export class App implements OnInit {
     }
   }
 
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    const tag = (event.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (document.querySelector('.cdk-overlay-pane')) {
+      if (event.key === 'Escape') {
+        this.showShortcutHelp.set(false);
+      }
+      return;
+    }
+
+    switch (event.key) {
+      case '?':
+        this.showShortcutHelp.update(v => !v);
+        break;
+      case 'Escape':
+        if (this.showShortcutHelp()) {
+          this.showShortcutHelp.set(false);
+        } else if (this.isMobile() && this.sidenavOpened()) {
+          this.sidenavOpened.set(false);
+        }
+        break;
+      case '[':
+        if (!this.isMobile()) {
+          this.sidenavCollapsed.set(true);
+          localStorage.setItem('poracle-sidenav-collapsed', 'true');
+        }
+        break;
+      case ']':
+        if (!this.isMobile()) {
+          this.sidenavCollapsed.set(false);
+          localStorage.setItem('poracle-sidenav-collapsed', 'false');
+        }
+        break;
+    }
+  }
+
   @HostListener('window:resize')
   onResize(): void {
     const mobile = window.innerWidth < 768;
@@ -232,6 +273,11 @@ export class App implements OnInit {
 
   toggleSidenav(): void {
     this.sidenavOpened.update(v => !v);
+  }
+
+  toggleSidenavCollapse(): void {
+    this.sidenavCollapsed.update(v => !v);
+    localStorage.setItem('poracle-sidenav-collapsed', String(this.sidenavCollapsed()));
   }
 
   toggleTheme(): void {
