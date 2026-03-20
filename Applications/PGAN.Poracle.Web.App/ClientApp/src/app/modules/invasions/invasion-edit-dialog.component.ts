@@ -55,7 +55,20 @@ export class InvasionEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  private static readonly GRUNT_MAP: Record<string, number> = {
+    Bug: 1, Dark: 2, Dragon: 3, Electric: 4, Fairy: 5, Fighting: 6,
+    Fire: 7, Flying: 8, Ghost: 9, Grass: 10, Ground: 11, Ice: 12,
+    Metal: 13, Normal: 14, Poison: 15, Psychic: 16, Rock: 17, Water: 18,
+    mixed: 41, Giovanni: 44, Decoy: 50,
+  };
+
   saving = signal(false);
+
+  getGruntIcon(): string {
+    const id = InvasionEditDialogComponent.GRUNT_MAP[this.data.gruntType ?? ''] ?? 0;
+    return id > 0 ? `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/invasion/${id}.png` : '';
+  }
+
   getGenderLabel(): string {
     switch (this.data.gender) {
       case 1:

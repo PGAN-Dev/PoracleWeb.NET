@@ -20,13 +20,14 @@ import { DeliveryPreviewComponent } from '../../shared/components/delivery-previ
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 interface GruntOption {
+  invasionId: number;
   key: string;
   name: string;
   selected: boolean;
   typeId: number;
 }
 
-const TYPE_ICON_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/type';
+const INVASION_ICON_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/invasion';
 
 @Component({
   imports: [
@@ -71,28 +72,28 @@ export class InvasionAddDialogComponent implements OnInit {
   saving = signal(false);
   selectedCount = signal(0);
 
-  private static readonly GRUNT_TYPES: { key: string; name: string; typeId: number }[] = [
-    { key: 'Bug', name: 'Bug', typeId: 7 },
-    { key: 'Dark', name: 'Dark', typeId: 17 },
-    { key: 'Dragon', name: 'Dragon', typeId: 16 },
-    { key: 'Electric', name: 'Electric', typeId: 13 },
-    { key: 'Fairy', name: 'Fairy', typeId: 18 },
-    { key: 'Fighting', name: 'Fighting', typeId: 2 },
-    { key: 'Fire', name: 'Fire', typeId: 10 },
-    { key: 'Flying', name: 'Flying', typeId: 3 },
-    { key: 'Ghost', name: 'Ghost', typeId: 8 },
-    { key: 'Grass', name: 'Grass', typeId: 12 },
-    { key: 'Ground', name: 'Ground', typeId: 5 },
-    { key: 'Ice', name: 'Ice', typeId: 15 },
-    { key: 'Metal', name: 'Steel', typeId: 9 },
-    { key: 'Normal', name: 'Normal', typeId: 1 },
-    { key: 'Poison', name: 'Poison', typeId: 4 },
-    { key: 'Psychic', name: 'Psychic', typeId: 14 },
-    { key: 'Rock', name: 'Rock', typeId: 6 },
-    { key: 'Water', name: 'Water', typeId: 11 },
-    { key: 'mixed', name: 'Rocket Leader', typeId: 0 },
-    { key: 'Giovanni', name: 'Giovanni', typeId: 0 },
-    { key: 'Decoy', name: 'Decoy Grunt', typeId: 0 },
+  private static readonly GRUNT_TYPES: { key: string; name: string; typeId: number; invasionId: number }[] = [
+    { key: 'Bug', name: 'Bug', typeId: 7, invasionId: 1 },
+    { key: 'Dark', name: 'Dark', typeId: 17, invasionId: 2 },
+    { key: 'Dragon', name: 'Dragon', typeId: 16, invasionId: 3 },
+    { key: 'Electric', name: 'Electric', typeId: 13, invasionId: 4 },
+    { key: 'Fairy', name: 'Fairy', typeId: 18, invasionId: 5 },
+    { key: 'Fighting', name: 'Fighting', typeId: 2, invasionId: 6 },
+    { key: 'Fire', name: 'Fire', typeId: 10, invasionId: 7 },
+    { key: 'Flying', name: 'Flying', typeId: 3, invasionId: 8 },
+    { key: 'Ghost', name: 'Ghost', typeId: 8, invasionId: 9 },
+    { key: 'Grass', name: 'Grass', typeId: 12, invasionId: 10 },
+    { key: 'Ground', name: 'Ground', typeId: 5, invasionId: 11 },
+    { key: 'Ice', name: 'Ice', typeId: 15, invasionId: 12 },
+    { key: 'Metal', name: 'Steel', typeId: 9, invasionId: 13 },
+    { key: 'Normal', name: 'Normal', typeId: 1, invasionId: 14 },
+    { key: 'Poison', name: 'Poison', typeId: 4, invasionId: 15 },
+    { key: 'Psychic', name: 'Psychic', typeId: 14, invasionId: 16 },
+    { key: 'Rock', name: 'Rock', typeId: 6, invasionId: 17 },
+    { key: 'Water', name: 'Water', typeId: 11, invasionId: 18 },
+    { key: 'mixed', name: 'Rocket Leader', typeId: 0, invasionId: 41 },
+    { key: 'Giovanni', name: 'Giovanni', typeId: 0, invasionId: 44 },
+    { key: 'Decoy', name: 'Decoy Grunt', typeId: 0, invasionId: 50 },
   ];
 
   ngOnInit(): void {
@@ -101,9 +102,8 @@ export class InvasionAddDialogComponent implements OnInit {
     );
   }
 
-  getTypeIcon(typeId: number): string {
-    if (typeId === 0) return '';
-    return `${TYPE_ICON_BASE}/${typeId}.png`;
+  getGruntIcon(invasionId: number): string {
+    return `${INVASION_ICON_BASE}/${invasionId}.png`;
   }
 
   onDistanceModeChange(): void {

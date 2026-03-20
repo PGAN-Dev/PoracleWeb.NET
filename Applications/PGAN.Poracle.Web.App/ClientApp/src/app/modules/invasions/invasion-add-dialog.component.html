@@ -12,11 +12,7 @@
         <div class="grunt-grid">
           @for (grunt of gruntOptions(); track grunt.key) {
             <mat-checkbox [checked]="grunt.selected" (change)="toggleGrunt(grunt.key)">
-              @if (getTypeIcon(grunt.typeId)) {
-                <img [src]="getTypeIcon(grunt.typeId)" class="grunt-type-icon" />
-              } @else {
-                <mat-icon class="grunt-leader-icon">security</mat-icon>
-              }
+              <img [src]="getGruntIcon(grunt.invasionId)" class="grunt-type-icon" />
               {{ grunt.name }}
             </mat-checkbox>
           }

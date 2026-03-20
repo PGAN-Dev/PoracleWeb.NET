@@ -20,6 +20,12 @@ mat-dialog-content {
   gap: 16px;
   margin-bottom: 16px;
 }
+.grunt-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .rocket-icon {
   font-size: 48px;
   width: 48px;
