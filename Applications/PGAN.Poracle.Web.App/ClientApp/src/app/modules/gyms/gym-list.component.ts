@@ -99,6 +99,10 @@ export class GymListComponent implements OnInit {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
 
+  getGymIcon(team: number): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
+  }
+
   getTeamColor(team: number): string {
     switch (team) {
       case 0:

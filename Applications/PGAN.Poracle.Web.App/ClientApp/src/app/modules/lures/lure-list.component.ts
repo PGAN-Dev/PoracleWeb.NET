@@ -100,6 +100,10 @@ export class LureListComponent implements OnInit {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
 
+  getLureIcon(lureId: number): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
+  }
+
   getLureColor(id: number): string {
     switch (id) {
       case 501:

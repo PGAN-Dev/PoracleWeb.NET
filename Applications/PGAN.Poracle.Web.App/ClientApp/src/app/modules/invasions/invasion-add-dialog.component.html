@@ -8,17 +8,24 @@
         <span class="tab-label">Grunts</span>
       </ng-template>
       <div class="tab-content">
-        <h4>Grunt Types</h4>
-        <div class="grunt-grid">
-          @for (grunt of gruntOptions(); track grunt.key) {
-            <mat-checkbox [checked]="grunt.selected" (change)="toggleGrunt(grunt.key)">
-              <img [src]="getGruntIcon(grunt)" class="grunt-type-icon" />
-              {{ grunt.name }}
-            </mat-checkbox>
+        <mat-slide-toggle [checked]="trackAll()" (change)="trackAll.set($event.checked)">
+          Track all invasions
+        </mat-slide-toggle>
+        <p class="track-all-hint">Creates a single alarm for every grunt type, leader, and Giovanni.</p>
+
+        @if (!trackAll()) {
+          <h4>Grunt Types</h4>
+          <div class="grunt-grid">
+            @for (grunt of gruntOptions(); track grunt.key) {
+              <mat-checkbox [checked]="grunt.selected" (change)="toggleGrunt(grunt.key)">
+                <img [src]="getGruntIcon(grunt)" class="grunt-type-icon" />
+                {{ grunt.name }}
+              </mat-checkbox>
+            }
+          </div>
+          @if (selectedCount() > 0) {
+            <p class="selection-count">{{ selectedCount() }} grunt type(s) selected</p>
           }
-        </div>
-        @if (selectedCount() > 0) {
-          <p class="selection-count">{{ selectedCount() }} grunt type(s) selected</p>
         }
         <h4>Gender</h4>
         <mat-form-field appearance="outline" class="full-width"
@@ -89,7 +96,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">Cancel</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || selectedCount() === 0">
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave()">
     {{ saving() ? 'Saving...' : 'Save' }}
   </button>
 </mat-dialog-actions>

@@ -71,6 +71,7 @@ export class InvasionAddDialogComponent implements OnInit {
   readonly isWebhook = inject(AuthService).isImpersonating();
   saving = signal(false);
   selectedCount = signal(0);
+  readonly trackAll = signal(false);
 
   private static readonly GRUNT_TYPES: { key: string; name: string; typeId: number; invasionId: number }[] = [
     { key: 'Bug', name: 'Bug', typeId: 7, invasionId: 1 },
@@ -96,6 +97,10 @@ export class InvasionAddDialogComponent implements OnInit {
     { key: 'Decoy', name: 'Decoy Grunt', typeId: 0, invasionId: 50 },
   ];
 
+  canSave(): boolean {
+    return this.trackAll() || this.selectedCount() > 0;
+  }
+
   ngOnInit(): void {
     this.gruntOptions.set(
       InvasionAddDialogComponent.GRUNT_TYPES.map(g => ({ ...g, selected: false })),
@@ -115,6 +120,33 @@ export class InvasionAddDialogComponent implements OnInit {
   }
 
   save(): void {
+    if (!this.canSave()) return;
+
+    if (this.trackAll()) {
+      this.saving.set(true);
+      const v = this.form.getRawValue();
+      const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+      this.invasionService.create({
+        clean: v.clean ? 1 : 0,
+        distance: dist,
+        gender: v.gender ?? 0,
+        gruntType: null,
+        ping: v.ping || null,
+        profileNo: 1,
+        template: v.template || null,
+      }).subscribe({
+        error: () => {
+          this.snackBar.open('Failed to create alarm', 'OK', { duration: 3000 });
+          this.saving.set(false);
+        },
+        next: () => {
+          this.snackBar.open('All invasions alarm created', 'OK', { duration: 3000 });
+          this.dialogRef.close(true);
+        },
+      });
+      return;
+    }
+
     const selected = this.gruntOptions().filter(o => o.selected);
     if (selected.length === 0) return;
     this.saving.set(true);

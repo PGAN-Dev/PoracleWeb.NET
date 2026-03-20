@@ -22,7 +22,7 @@
     @for (gym of gyms(); track gym.uid) {
       <mat-card class="alarm-card">
         <div class="card-top" [style.border-top-color]="getTeamColor(gym.team)">
-          <span class="team-dot" [style.background]="getTeamColor(gym.team)"></span>
+          <img [src]="getGymIcon(gym.team)" class="gym-img" alt="" (error)="$any($event.target).style.display='none'" />
           <div class="item-info">
             <h3>{{ getTeamName(gym.team) }}</h3>
             <div class="change-indicators">

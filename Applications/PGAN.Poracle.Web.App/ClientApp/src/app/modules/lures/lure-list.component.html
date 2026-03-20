@@ -22,10 +22,9 @@
     @for (lure of lures(); track lure.uid) {
       <mat-card class="alarm-card">
         <div class="card-top" [style.border-top-color]="getLureColor(lure.lureId)">
-          <span class="lure-dot" [style.background]="getLureColor(lure.lureId)"></span>
+          <img [src]="getLureIcon(lure.lureId)" class="lure-img" alt="" (error)="$any($event.target).style.display='none'" />
           <div class="item-info">
             <h3>{{ getLureName(lure.lureId) }} Lure</h3>
-            <span class="lure-id">ID: {{ lure.lureId }}</span>
           </div>
           <div class="card-top-actions">
             @if (lure.clean === 1) {

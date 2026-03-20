@@ -105,6 +105,12 @@
   display: inline-block;
   flex-shrink: 0;
 }
+.lure-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .item-info h3 {
   margin: 0;
   font-size: 18px;
