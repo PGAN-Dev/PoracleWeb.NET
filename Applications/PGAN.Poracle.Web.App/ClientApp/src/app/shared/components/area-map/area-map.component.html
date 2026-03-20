@@ -10,7 +10,7 @@
     <mat-autocomplete #regionAuto="matAutocomplete" (optionSelected)="onRegionSelected($event.option.value)">
       <mat-option value="">All Regions</mat-option>
       @for (region of filteredRegions(); track region.label) {
-        <mat-option [value]="region.label">{{ region.shortLabel }} ({{ region.areaCount }})</mat-option>
+        <mat-option [value]="region.label">{{ region.label }} ({{ region.areaCount }})</mat-option>
       }
     </mat-autocomplete>
   </mat-form-field>
