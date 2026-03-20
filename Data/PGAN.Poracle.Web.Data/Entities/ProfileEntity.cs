@@ -21,10 +21,7 @@ public class ProfileEntity
     }
 
     [Column("area")]
-    public string? Area
-    {
-        get; set;
-    }
+    public string Area { get; set; } = "[]";
 
     [Column("latitude")]
     public double Latitude
