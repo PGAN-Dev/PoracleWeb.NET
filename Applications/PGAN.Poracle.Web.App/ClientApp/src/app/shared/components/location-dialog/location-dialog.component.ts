@@ -239,7 +239,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     }).addTo(this.map);
 
     if (lat !== 0 || lng !== 0) {
-      this.marker = L.marker([lat, lng]).addTo(this.map);
+      this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
     }
 
     this.map.on('click', (e: L.LeafletMouseEvent) => {
@@ -277,6 +277,13 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     this.updateMarker();
   }
 
+  private readonly locationIcon = L.divIcon({
+    className: 'location-pin-marker',
+    html: '<div style="width:16px;height:16px;background:#1976D2;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
+    iconAnchor: [11, 11],
+    iconSize: [22, 22],
+  });
+
   private updateMarker(): void {
     if (!this.map) return;
     const lat = this.latitude;
@@ -284,7 +291,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     if (this.marker) {
       this.marker.setLatLng([lat, lng]);
     } else {
-      this.marker = L.marker([lat, lng]).addTo(this.map);
+      this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
     }
   }
 }
