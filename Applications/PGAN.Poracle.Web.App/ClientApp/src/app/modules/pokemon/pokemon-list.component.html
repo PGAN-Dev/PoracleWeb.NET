@@ -21,6 +21,46 @@
 </div>
 
 @if (!loading() && monsters().length > 0) {
+  <div class="filter-bar" [class.sticky]="monsters().length > 6">
+    <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput placeholder="Search by name or #..." [formControl]="searchControl" />
+      @if (searchControl.value) {
+        <button matSuffix mat-icon-button (click)="searchControl.reset()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <div class="quick-filters">
+      <button mat-stroked-button
+              [class.filter-active]="activeFilter() === 'highiv'"
+              (click)="toggleFilter('highiv')">
+        <mat-icon>stars</mat-icon> High IV
+      </button>
+      <button mat-stroked-button
+              [class.filter-active]="activeFilter() === 'pvp'"
+              (click)="toggleFilter('pvp')">
+        <mat-icon>shield</mat-icon> PVP
+      </button>
+      <button mat-stroked-button
+              [class.filter-active]="activeFilter() === 'distance'"
+              (click)="toggleFilter('distance')">
+        <mat-icon>straighten</mat-icon> Distance
+      </button>
+    </div>
+
+    <div class="filter-meta">
+      <span class="result-count">{{ filteredMonsters().length }} of {{ monsters().length }} alarms</span>
+      <button mat-icon-button
+              (click)="toggleSelectMode()"
+              [class.select-mode-active]="selectMode()"
+              matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+        <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
+      </button>
+    </div>
+  </div>
+
   <div class="gen-filter-bar">
     <button class="gen-chip" [class.gen-active]="activeGen() === null" (click)="activeGen.set(null)">All</button>
     @for (gen of generations; track gen.label) {
@@ -38,7 +78,7 @@
       <mat-icon matPrefix>sort</mat-icon>
       <mat-select [value]="sortBy()" (valueChange)="sortBy.set($event)">
         <mat-option value="name">Name</mat-option>
-        <mat-option value="id">Pokédex #</mat-option>
+        <mat-option value="id">Pokedex #</mat-option>
         <mat-option value="generation">Generation</mat-option>
         <mat-option value="evolution">Evolution</mat-option>
       </mat-select>
@@ -47,6 +87,18 @@
       <span class="gen-count">{{ filteredMonsters().length }} alarm{{ filteredMonsters().length === 1 ? '' : 's' }}</span>
     }
   </div>
+
+  @if (selectMode() && selectedIds().size > 0) {
+    <div class="bulk-toolbar">
+      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      <button mat-stroked-button (click)="selectAll()">Select All</button>
+      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      <div class="bulk-spacer"></div>
+      <button mat-flat-button color="warn" (click)="bulkDelete()">
+        <mat-icon>delete</mat-icon> Delete
+      </button>
+    </div>
+  }
 }
 
 @if (loading()) {
@@ -73,7 +125,15 @@
 } @else {
   <div class="alarm-grid">
     @for (monster of filteredMonsters(); track monster.uid) {
-      <mat-card class="alarm-card" [class.all-pokemon-card]="monster.pokemonId === 0" [style.border-left-color]="getTypeColor(monster.pokemonId)">
+      <mat-card class="alarm-card" [class.all-pokemon-card]="monster.pokemonId === 0" [style.border-left-color]="getTypeColor(monster.pokemonId)" [class.card-selected]="selectMode() && selectedIds().has(monster.uid)">
+        @if (selectMode()) {
+          <mat-checkbox
+            [checked]="selectedIds().has(monster.uid)"
+            (change)="toggleSelect(monster.uid)"
+            (click)="$event.stopPropagation()"
+            class="card-checkbox">
+          </mat-checkbox>
+        }
         <div class="card-top" [style.border-top-color]="getTypeColor(monster.pokemonId)">
           @if (monster.pokemonId === 0) {
             <div class="all-pokemon-icon">
