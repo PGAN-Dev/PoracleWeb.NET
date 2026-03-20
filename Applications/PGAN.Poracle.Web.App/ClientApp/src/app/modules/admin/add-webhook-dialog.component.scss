@@ -8,3 +8,8 @@
 .full-width {
   width: 100%;
 }
+@media (max-width: 599px) {
+  mat-dialog-content {
+    min-width: 0;
+  }
+}

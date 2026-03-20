@@ -69,3 +69,8 @@ mat-expansion-panel {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-weight: normal;
 }
+@media (max-width: 599px) {
+  mat-dialog-content {
+    min-width: 0;
+  }
+}

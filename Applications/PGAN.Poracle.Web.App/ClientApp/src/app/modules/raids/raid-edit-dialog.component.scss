@@ -74,3 +74,8 @@ mat-slide-toggle {
   border-radius: 50%;
   flex-shrink: 0;
 }
+@media (max-width: 599px) {
+  mat-dialog-content {
+    min-width: 0;
+  }
+}

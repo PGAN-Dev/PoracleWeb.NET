@@ -97,3 +97,8 @@ mat-expansion-panel {
   display: inline-block;
   margin-right: 8px;
 }
+@media (max-width: 599px) {
+  mat-dialog-content {
+    min-width: 0;
+  }
+}

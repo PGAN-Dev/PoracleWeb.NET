@@ -294,12 +294,44 @@ body.dark-theme .app-toolbar {
     flex: 1 1 100% !important;
   }
 
+  // Tabs: hide label text, show icon only to save space
+  .tab-label {
+    display: none !important;
+  }
+
+  // Tabs: hide label text on mobile, show icon only
+  .tab-label {
+    display: none !important;
+  }
+
   // Tabs should not overflow
   .mat-mdc-tab-group,
   .mat-mdc-tab-body-wrapper,
   .mat-mdc-tab-body-content {
     max-width: 100% !important;
     overflow-x: hidden !important;
+  }
+
+  // Reduce tab body padding on mobile
+  .alarm-tabs .mat-mdc-tab-body-wrapper {
+    padding: 0 16px !important;
+  }
+
+  // Reduce dialog content padding on mobile
+  .mat-mdc-dialog-content {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  // Reduce tab body padding on mobile
+  .alarm-tabs .mat-mdc-tab-body-wrapper {
+    padding: 0 16px !important;
+  }
+
+  // Reduce dialog content padding on mobile
+  .mat-mdc-dialog-content {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 
   // Title: safe area top + extra padding

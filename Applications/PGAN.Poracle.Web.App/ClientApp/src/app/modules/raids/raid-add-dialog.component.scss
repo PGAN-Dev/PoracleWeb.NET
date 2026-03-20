@@ -24,6 +24,9 @@ mat-dialog-content {
   .level-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  mat-dialog-content {
+    min-width: 0;
+  }
 }
 .full-width {
   width: 100%;
