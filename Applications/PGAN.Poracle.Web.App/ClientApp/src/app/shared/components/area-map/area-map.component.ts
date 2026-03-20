@@ -98,6 +98,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.fitAll();
   }
 
+  readonly isFullscreen = signal(false);
+
   fitAll(): void {
     this.selectedRegion.set('');
     if (this.map && this.allBoundsRect) {
@@ -105,10 +107,35 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
   }
 
+  toggleFullscreen(): void {
+    const el = this.mapElement.nativeElement.closest('.map-container') as HTMLElement | null;
+    if (!el) return;
+
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => {
+        this.isFullscreen.set(true);
+        setTimeout(() => this.map?.invalidateSize(), 100);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        this.isFullscreen.set(false);
+        setTimeout(() => this.map?.invalidateSize(), 100);
+      });
+    }
+  }
+
+  private fullscreenHandler = () => {
+    if (!document.fullscreenElement) {
+      this.isFullscreen.set(false);
+      setTimeout(() => this.map?.invalidateSize(), 100);
+    }
+  };
+
   ngAfterViewInit(): void {
     this.initMap();
     this.initialized = true;
     this.drawPolygons();
+    document.addEventListener('fullscreenchange', this.fullscreenHandler);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -124,6 +151,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    document.removeEventListener('fullscreenchange', this.fullscreenHandler);
     if (this.map) {
       this.map.remove();
       this.map = null;

@@ -337,6 +337,27 @@ body.dark-theme .app-toolbar {
   }
 }
 
+// ─── Fullscreen map ───────────────────────────────────────────────
+.map-container:fullscreen {
+  background: var(--mat-sys-surface, #fff);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+
+  app-area-map {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .area-map-container {
+    flex: 1 !important;
+    height: auto !important;
+    border-radius: 0 !important;
+  }
+}
+
 // Clean mode hint text in alarm dialogs
 .clean-hint {
   margin: 4px 0 0;

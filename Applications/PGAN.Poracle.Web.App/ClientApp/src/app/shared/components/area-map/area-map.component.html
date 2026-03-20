@@ -17,6 +17,9 @@
   <button mat-icon-button matTooltip="Reset zoom to show all areas" (click)="fitAll()">
     <mat-icon>fit_screen</mat-icon>
   </button>
+  <button mat-icon-button [matTooltip]="isFullscreen() ? 'Exit fullscreen' : 'Fullscreen map'" (click)="toggleFullscreen()">
+    <mat-icon>{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
+  </button>
   @if (selectedRegion()) {
     <mat-chip highlighted color="primary" (removed)="clearRegion()">
       {{ selectedRegion() }}
