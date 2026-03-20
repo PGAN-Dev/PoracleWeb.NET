@@ -1,5 +1,5 @@
 @if (showOnboarding()) {
-  <app-onboarding (completed)="showOnboarding.set(false)" />
+  <app-onboarding (completed)="showOnboarding.set(false)" (navigatedAway)="showOnboarding.set(false)" />
 }
 
 <div class="page-header">
