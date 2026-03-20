@@ -1,12 +1,14 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, inject, OnInit, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
 import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
+import { AreaService } from '../../../core/services/area.service';
+import { DashboardService } from '../../../core/services/dashboard.service';
 import { LocationService } from '../../../core/services/location.service';
 
 @Component({
@@ -235,13 +237,49 @@ import { LocationService } from '../../../core/services/location.service';
     `,
   ],
 })
-export class OnboardingComponent {
+export class OnboardingComponent implements OnInit {
+  private readonly areaService = inject(AreaService);
+  private readonly dashboardService = inject(DashboardService);
   private readonly dialog = inject(MatDialog);
   private readonly locationService = inject(LocationService);
 
   completed = output<void>();
   currentStep = signal(0);
   locationSet = signal(false);
+  areasSet = signal(false);
+  alarmsExist = signal(false);
+
+  ngOnInit() {
+    forkJoin({
+      location: this.locationService.getLocation(),
+      areas: this.areaService.getSelected(),
+      counts: this.dashboardService.getCounts(),
+    }).subscribe({
+      next: ({ location, areas, counts }) => {
+        const hasLocation = location && (location.latitude !== 0 || location.longitude !== 0);
+        const hasAreas = areas && areas.length > 0;
+        const hasAlarms = counts && Object.values(counts).some(c => (c as number) > 0);
+
+        if (hasLocation) this.locationSet.set(true);
+        if (hasAreas) this.areasSet.set(true);
+        if (hasAlarms) this.alarmsExist.set(true);
+
+        // If everything is already done, skip the wizard entirely
+        if (hasLocation && hasAreas && hasAlarms) {
+          this.dismiss();
+          return;
+        }
+
+        // Auto-advance to first incomplete step
+        if (hasLocation && hasAreas) {
+          this.currentStep.set(2);
+        } else if (hasLocation) {
+          this.currentStep.set(1);
+        }
+      },
+      error: () => {},
+    });
+  }
 
   steps = [
     {
