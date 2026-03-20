@@ -53,6 +53,15 @@ export class MasterDataService {
     return this.formsMap().get(pokemonId) ?? [];
   }
 
+  getAllItems(): { id: number; name: string }[] {
+    const entries: { id: number; name: string }[] = [];
+    this.itemMap.forEach((name, id) => {
+      entries.push({ id, name });
+    });
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    return entries;
+  }
+
   getItemName(id: number): string {
     return this.itemMap.get(id) ?? `Item #${id}`;
   }

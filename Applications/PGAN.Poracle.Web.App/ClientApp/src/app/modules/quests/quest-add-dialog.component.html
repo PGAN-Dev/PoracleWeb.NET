@@ -23,24 +23,9 @@
                 <mat-label>Item Reward</mat-label>
                 <mat-select [formControl]="itemForm.controls.reward">
                   <mat-option [value]="0">Any Item</mat-option>
-                  <mat-option [value]="1">Poke Ball</mat-option>
-                  <mat-option [value]="2">Great Ball</mat-option>
-                  <mat-option [value]="3">Ultra Ball</mat-option>
-                  <mat-option [value]="101">Potion</mat-option>
-                  <mat-option [value]="102">Super Potion</mat-option>
-                  <mat-option [value]="103">Hyper Potion</mat-option>
-                  <mat-option [value]="104">Max Potion</mat-option>
-                  <mat-option [value]="201">Revive</mat-option>
-                  <mat-option [value]="202">Max Revive</mat-option>
-                  <mat-option [value]="301">Rare Candy</mat-option>
-                  <mat-option [value]="401">Silver Pinap Berry</mat-option>
-                  <mat-option [value]="501">Star Piece</mat-option>
-                  <mat-option [value]="502">Lucky Egg</mat-option>
-                  <mat-option [value]="503">Incense</mat-option>
-                  <mat-option [value]="504">Lure Module</mat-option>
-                  <mat-option [value]="705">Rocket Radar</mat-option>
-                  <mat-option [value]="1301">Stardust</mat-option>
-                  <mat-option [value]="1402">XL Candy</mat-option>
+                  @for (item of questItems(); track item.id) {
+                    <mat-option [value]="item.id">{{ item.name }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
             </div>
