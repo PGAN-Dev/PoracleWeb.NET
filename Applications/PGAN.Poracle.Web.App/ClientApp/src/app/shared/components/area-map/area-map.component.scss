@@ -88,3 +88,21 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+.map-wrapper {
+  position: relative;
+}
+.map-selection-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: #1976d2;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}

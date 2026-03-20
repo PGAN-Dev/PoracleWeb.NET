@@ -86,6 +86,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private polygonByName = new Map<string, L.Polygon>();
 
   private polygonLayers: L.Polygon[] = [];
+  private userCircle: L.Circle | null = null;
   private userMarker: L.Marker | null = null;
   @Output() areaClicked = new EventEmitter<string>();
   @Input() geofence: GeofenceData[] = [];
@@ -310,6 +311,16 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         sticky: true,
       });
 
+      const originalWeight = isSelected ? 3 : 1;
+      const originalFillOpacity = isSelected ? 0.35 : 0.08;
+
+      polygon.on('mouseover', () => {
+        polygon.setStyle({ weight: 3, fillOpacity: 0.4 });
+      });
+      polygon.on('mouseout', () => {
+        polygon.setStyle({ weight: originalWeight, fillOpacity: originalFillOpacity });
+      });
+
       polygon.on('click', () => {
         this.areaClicked.emit(fence.name);
       });
@@ -350,6 +361,11 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.userMarker = null;
     }
 
+    if (this.userCircle) {
+      this.map.removeLayer(this.userCircle);
+      this.userCircle = null;
+    }
+
     if (this.userLocation) {
       this.userMarker = L.marker([this.userLocation.lat, this.userLocation.lng], {
         icon: L.divIcon({
@@ -361,6 +377,19 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       })
         .bindTooltip('Your Location', { direction: 'top' })
         .addTo(this.map);
+
+      this.userCircle = L.circle(
+        [this.userLocation.lat, this.userLocation.lng],
+        {
+          radius: 5000,
+          color: '#1976d2',
+          fillColor: '#1976d2',
+          fillOpacity: 0.06,
+          weight: 1.5,
+          dashArray: '5, 5',
+          interactive: false,
+        }
+      ).addTo(this.map);
     }
   }
 }
