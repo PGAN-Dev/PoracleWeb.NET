@@ -184,8 +184,9 @@ export class QuestListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
-    this.loadQuests();
+    this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.loadQuests();
+    });
   }
 
   onImageError(event: Event): void {
