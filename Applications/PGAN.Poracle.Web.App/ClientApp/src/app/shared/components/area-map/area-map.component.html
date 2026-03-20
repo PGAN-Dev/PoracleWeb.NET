@@ -27,4 +27,14 @@
     </mat-chip>
   }
 </div>
+@if (isFullscreen() && selectedAreas.length > 0) {
+  <div class="fullscreen-selected">
+    <span class="fs-selected-label">{{ selectedAreas.length }} selected:</span>
+    <div class="fs-selected-chips">
+      @for (area of selectedAreas; track area) {
+        <span class="fs-chip">{{ area }}</span>
+      }
+    </div>
+  </div>
+}
 <div #mapContainer class="area-map-container"></div>
