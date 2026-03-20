@@ -23,6 +23,7 @@ describe('ToastService', () => {
       expect(snackBar.open).toHaveBeenCalledWith('Item saved!', 'OK', {
         duration: 3000,
         panelClass: ['toast-success'],
+        verticalPosition: 'top',
       });
     });
   });
@@ -34,6 +35,7 @@ describe('ToastService', () => {
       expect(snackBar.open).toHaveBeenCalledWith('Something failed', 'Dismiss', {
         duration: 5000,
         panelClass: ['toast-error'],
+        verticalPosition: 'top',
       });
     });
   });
@@ -45,6 +47,7 @@ describe('ToastService', () => {
       expect(snackBar.open).toHaveBeenCalledWith('FYI', 'OK', {
         duration: 3000,
         panelClass: ['toast-info'],
+        verticalPosition: 'top',
       });
     });
   });

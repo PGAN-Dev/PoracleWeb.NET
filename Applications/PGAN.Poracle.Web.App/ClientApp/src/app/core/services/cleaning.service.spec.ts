@@ -21,12 +21,14 @@ describe('CleaningService', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('should clean all alarms', () => {
-    service.cleanAll().subscribe();
+  it('should enable clean for all alarms', () => {
+    service.toggleAll(true).subscribe(result => {
+      expect(result.updated).toBe(10);
+    });
 
-    const req = httpMock.expectOne(`${API}/api/cleaning/all`);
-    expect(req.request.method).toBe('DELETE');
-    req.flush(null);
+    const req = httpMock.expectOne(`${API}/api/cleaning/all/1`);
+    expect(req.request.method).toBe('PUT');
+    req.flush({ updated: 10 });
   });
 
   it('should enable clean for a specific type', () => {
