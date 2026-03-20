@@ -135,26 +135,36 @@
       [mode]="isMobile() ? 'over' : 'side'"
       [opened]="sidenavOpened()"
       (openedChange)="sidenavOpened.set($event)"
-      class="app-sidenav">
+      [style.width]="sidenavCollapsed() && !isMobile() ? '64px' : '250px'"
+      class="app-sidenav"
+      [class.collapsed]="sidenavCollapsed() && !isMobile()">
       <nav aria-label="Main navigation">
       <mat-nav-list>
         <!-- Alarms Section -->
-        <div class="nav-group-label">Alarms</div>
+        @if (!sidenavCollapsed() || isMobile()) {
+          <div class="nav-group-label">Alarms</div>
+        }
         @for (item of alarmNavItems(); track item.route) {
-          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
+          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
             <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
+            @if (!sidenavCollapsed() || isMobile()) {
+              <span matListItemTitle>{{ item.label }}</span>
+            }
           </a>
         }
 
         <mat-divider class="nav-divider"></mat-divider>
 
         <!-- Settings Section -->
-        <div class="nav-group-label">Settings</div>
+        @if (!sidenavCollapsed() || isMobile()) {
+          <div class="nav-group-label">Settings</div>
+        }
         @for (item of settingsNavItems(); track item.route) {
-          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
+          <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
             <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
+            @if (!sidenavCollapsed() || isMobile()) {
+              <span matListItemTitle>{{ item.label }}</span>
+            }
           </a>
         }
 
@@ -162,11 +172,15 @@
           <mat-divider class="nav-divider"></mat-divider>
 
           <!-- Admin Section -->
-          <div class="nav-group-label">Admin</div>
+          @if (!sidenavCollapsed() || isMobile()) {
+            <div class="nav-group-label">Admin</div>
+          }
           @for (item of adminNavItems(); track item.route) {
-            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-              <span matListItemTitle>{{ item.label }}</span>
+              @if (!sidenavCollapsed() || isMobile()) {
+                <span matListItemTitle>{{ item.label }}</span>
+              }
             </a>
           }
         }
@@ -175,15 +189,28 @@
           <mat-divider class="nav-divider"></mat-divider>
 
           <!-- Webhooks Section (for delegates) -->
-          <div class="nav-group-label">Webhooks</div>
+          @if (!sidenavCollapsed() || isMobile()) {
+            <div class="nav-group-label">Webhooks</div>
+          }
           @for (item of webhookNavItems(); track item.route) {
-            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item">
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="active-link" (click)="onNavClick()" class="nav-item" [matTooltip]="item.label" [matTooltipDisabled]="!sidenavCollapsed() || isMobile()" matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
-              <span matListItemTitle>{{ item.label }}</span>
+              @if (!sidenavCollapsed() || isMobile()) {
+                <span matListItemTitle>{{ item.label }}</span>
+              }
             </a>
           }
         }
       </mat-nav-list>
+
+      <!-- Collapse toggle (desktop only) -->
+      @if (!isMobile()) {
+        <div class="sidenav-collapse-toggle">
+          <button mat-icon-button (click)="toggleSidenavCollapse()" [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+            <mat-icon>{{ sidenavCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+          </button>
+        </div>
+      }
       </nav>
     </mat-sidenav>
 
@@ -195,4 +222,16 @@
   </mat-sidenav-container>
 } @else {
   <router-outlet />
+}
+
+@if (showShortcutHelp()) {
+  <div class="shortcut-overlay" (click)="showShortcutHelp.set(false)">
+    <div class="shortcut-card" (click)="$event.stopPropagation()">
+      <h3>Keyboard Shortcuts</h3>
+      <div class="shortcut-row"><kbd>?</kbd> <span>Show this help</span></div>
+      <div class="shortcut-row"><kbd>Esc</kbd> <span>Close menu / help</span></div>
+      <div class="shortcut-row"><kbd>[</kbd> <span>Collapse sidebar</span></div>
+      <div class="shortcut-row"><kbd>]</kbd> <span>Expand sidebar</span></div>
+    </div>
+  </div>
 }

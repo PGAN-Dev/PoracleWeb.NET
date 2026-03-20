@@ -126,9 +126,32 @@
 
 .app-sidenav {
   width: 250px;
+  transition: width 0.2s ease;
   border-right: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.08));
   background: linear-gradient(180deg, rgba(21, 101, 192, 0.03) 0%, rgba(0, 188, 212, 0.02) 50%, var(--mat-sys-surface, #fff) 100%);
   background-color: var(--mat-sys-surface, #fff);
+  display: flex;
+  flex-direction: column;
+
+  mat-nav-list {
+    flex: 1;
+    overflow-x: hidden;
+  }
+
+  &.collapsed .nav-item {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  &.collapsed .active-link {
+    border-radius: 0 !important;
+    margin-right: 0;
+  }
+
+  &.collapsed .nav-divider {
+    margin: 4px 8px;
+  }
 }
 
 body.dark-theme .app-sidenav {
@@ -292,6 +315,69 @@ body.dark-theme .app-content::after {
   word-break: break-all;
   max-width: 480px !important;
   white-space: pre-wrap;
+}
+
+// ─── Sidenav collapse toggle ─────────────────────────────────
+
+.sidenav-collapse-toggle {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  border-top: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+  margin-top: auto;
+}
+
+// ─── Keyboard shortcuts overlay ──────────────────────────────
+
+.shortcut-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.shortcut-card {
+  background: var(--card-bg, #fff);
+  border-radius: 16px;
+  padding: 24px 32px;
+  min-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+  h3 {
+    margin: 0 0 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+  }
+}
+
+body.dark-theme .shortcut-card {
+  background: var(--mat-sys-surface, #2c2c2c);
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 // ─── Responsive ───────────────────────────────────────────────
