@@ -26,11 +26,8 @@
           <div class="item-info">
             <h3>{{ getTeamName(gym.team) }}</h3>
             <div class="change-indicators">
-              @if (gym.slot_changes === 1) {
+              @if (gym.slotChanges === 1) {
                 <span class="change-badge" matTooltip="Tracking slot changes"><mat-icon>swap_vert</mat-icon> Slots</span>
-              }
-              @if (gym.battle_changes === 1) {
-                <span class="change-badge" matTooltip="Tracking battle changes"><mat-icon>sports_mma</mat-icon> Battles</span>
               }
             </div>
           </div>

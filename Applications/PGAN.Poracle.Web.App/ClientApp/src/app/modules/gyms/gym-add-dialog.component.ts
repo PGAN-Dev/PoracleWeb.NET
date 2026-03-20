@@ -50,12 +50,11 @@ export class GymAddDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<GymAddDialogComponent>);
   form = this.fb.group({
-    battle_changes: [false],
     clean: [false],
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     ping: [''],
-    slot_changes: [false],
+    slotChanges: [false],
     template: [''],
   });
 
@@ -86,13 +85,12 @@ export class GymAddDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     const creates = this.selectedTeamIds().map(team =>
       this.gymService.create({
-        battle_changes: v.battle_changes ? 1 : 0,
         clean: v.clean ? 1 : 0,
         distance: dist,
         gymId: null,
         ping: v.ping || null,
         profileNo: 1,
-        slot_changes: v.slot_changes ? 1 : 0,
+        slotChanges: v.slotChanges ? 1 : 0,
         team,
         template: v.template || null,
       }),

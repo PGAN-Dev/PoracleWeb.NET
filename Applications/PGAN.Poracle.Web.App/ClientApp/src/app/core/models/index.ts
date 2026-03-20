@@ -153,14 +153,13 @@ export type NestUpdate = Partial<NestCreate>;
 // ─── Gym ───────────────────────────────────────────────────────────────────────
 
 export interface Gym {
-  battle_changes: number;
   clean: number;
   distance: number;
   gymId: string | null;
   id: string;
   ping: string | null;
   profileNo: number;
-  slot_changes: number;
+  slotChanges: number;
   team: number;
   template: string | null;
   uid: number;

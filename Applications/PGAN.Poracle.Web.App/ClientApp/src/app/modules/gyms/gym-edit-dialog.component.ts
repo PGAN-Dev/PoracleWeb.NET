@@ -43,12 +43,11 @@ export class GymEditDialogComponent {
   readonly data = inject<Gym>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
   form = this.fb.group({
-    battle_changes: [this.data.battle_changes === 1],
     clean: [this.data.clean === 1],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.ping ?? ''],
-    slot_changes: [this.data.slot_changes === 1],
+    slotChanges: [this.data.slotChanges === 1],
     template: [this.data.template ?? ''],
   });
 
@@ -85,11 +84,10 @@ export class GymEditDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     this.gymService
       .update(this.data.uid, {
-        battle_changes: v.battle_changes ? 1 : 0,
         clean: v.clean ? 1 : 0,
         distance: dist,
         ping: v.ping || null,
-        slot_changes: v.slot_changes ? 1 : 0,
+        slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,
         template: v.template || null,
       } as GymUpdate)
