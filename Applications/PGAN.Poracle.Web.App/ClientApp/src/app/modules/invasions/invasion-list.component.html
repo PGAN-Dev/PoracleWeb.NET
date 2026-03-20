@@ -37,10 +37,7 @@
           </div>
           <div class="card-top-actions">
             @if (invasion.clean === 1) {
-              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
-            }
-            @if (invasion.template) {
-              <span class="template-chip" matTooltip="Template: {{ invasion.template }}">{{ invasion.template }}</span>
+              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
             }
           </div>
         </div>

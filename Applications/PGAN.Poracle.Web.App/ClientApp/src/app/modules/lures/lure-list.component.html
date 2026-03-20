@@ -29,10 +29,7 @@
           </div>
           <div class="card-top-actions">
             @if (lure.clean === 1) {
-              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
-            }
-            @if (lure.template) {
-              <span class="template-chip" matTooltip="Template: {{ lure.template }}">{{ lure.template }}</span>
+              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
             }
           </div>
         </div>

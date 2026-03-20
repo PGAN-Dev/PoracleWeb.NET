@@ -33,10 +33,7 @@
           </div>
           <div class="card-top-actions">
             @if (nest.clean === 1) {
-              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
-            }
-            @if (nest.template) {
-              <span class="template-chip" matTooltip="Template: {{ nest.template }}">{{ nest.template }}</span>
+              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
             }
           </div>
         </div>
