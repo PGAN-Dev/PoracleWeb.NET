@@ -19,6 +19,16 @@ html {
   );
 }
 
+// ─── Heading typography ─────────────────────────────────────────────
+
+h1, h2, h3, h4, h5, h6,
+.mat-mdc-dialog-title,
+.page-title,
+.section-header h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
+}
+
 body {
   // Support both light and dark mode based on user preference
   color-scheme: light dark;
@@ -64,6 +74,34 @@ body:not(.dark-theme) {
   --divider: rgba(0, 0, 0, 0.08);
   --skeleton-bg: rgba(0, 0, 0, 0.08);
   --hover-overlay: rgba(0, 0, 0, 0.04);
+}
+
+// ─── Accent theme variants ─────────────────────────────────────────
+
+body.accent-pokemon {
+  --accent-primary: #4caf50;
+  --accent-gradient-start: #2e7d32;
+  --accent-gradient-end: #1b5e20;
+}
+body.accent-raids {
+  --accent-primary: #f44336;
+  --accent-gradient-start: #c62828;
+  --accent-gradient-end: #b71c1c;
+}
+body.accent-mystic {
+  --accent-primary: #2196f3;
+  --accent-gradient-start: #1565c0;
+  --accent-gradient-end: #0d47a1;
+}
+body.accent-valor {
+  --accent-primary: #f44336;
+  --accent-gradient-start: #d32f2f;
+  --accent-gradient-end: #b71c1c;
+}
+body.accent-instinct {
+  --accent-primary: #ffc107;
+  --accent-gradient-start: #f9a825;
+  --accent-gradient-end: #f57f17;
 }
 
 // ─── Pokeball loading spinner ──────────────────────────────────────
@@ -128,6 +166,10 @@ body:not(.dark-theme) {
 }
 
 // ─── Toast / Snackbar styles ────────────────────────────────────────
+
+.mat-mdc-snack-bar-container {
+  margin-top: 16px !important;
+}
 
 .toast-success .mdc-snackbar__surface {
   background-color: #2e7d32 !important;
@@ -364,4 +406,15 @@ body.dark-theme .app-toolbar {
   font-size: 12px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   line-height: 1.4;
+}
+
+// ─── Standardized dialog sizes ─────────────────────────────────────
+
+.dialog-sm .mat-mdc-dialog-surface { max-width: 400px; }
+.dialog-md .mat-mdc-dialog-surface { max-width: 560px; }
+.dialog-lg .mat-mdc-dialog-surface { max-width: 720px; }
+
+// Ensure consistent padding
+.mat-mdc-dialog-content {
+  padding: 16px 24px !important;
 }

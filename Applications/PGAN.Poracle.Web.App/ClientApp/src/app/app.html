@@ -92,9 +92,40 @@
         <span>Cleaning</span>
       </button>
       <mat-divider></mat-divider>
+      <button mat-menu-item [matMenuTriggerFor]="accentMenu">
+        <mat-icon>palette</mat-icon>
+        <span>Accent Theme</span>
+      </button>
+      <mat-divider></mat-divider>
       <button mat-menu-item (click)="logout()">
         <mat-icon>logout</mat-icon>
         <span>Logout</span>
+      </button>
+    </mat-menu>
+    <mat-menu #accentMenu="matMenu">
+      <button mat-menu-item (click)="setAccentTheme('')">
+        <mat-icon>format_color_reset</mat-icon>
+        <span>Default</span>
+      </button>
+      <button mat-menu-item (click)="setAccentTheme('pokemon')">
+        <mat-icon style="color: #4caf50">catching_pokemon</mat-icon>
+        <span>Pokemon</span>
+      </button>
+      <button mat-menu-item (click)="setAccentTheme('raids')">
+        <mat-icon style="color: #f44336">shield</mat-icon>
+        <span>Raids</span>
+      </button>
+      <button mat-menu-item (click)="setAccentTheme('mystic')">
+        <mat-icon style="color: #2196f3">water_drop</mat-icon>
+        <span>Mystic</span>
+      </button>
+      <button mat-menu-item (click)="setAccentTheme('valor')">
+        <mat-icon style="color: #f44336">local_fire_department</mat-icon>
+        <span>Valor</span>
+      </button>
+      <button mat-menu-item (click)="setAccentTheme('instinct')">
+        <mat-icon style="color: #ffc107">bolt</mat-icon>
+        <span>Instinct</span>
       </button>
     </mat-menu>
   </mat-toolbar>

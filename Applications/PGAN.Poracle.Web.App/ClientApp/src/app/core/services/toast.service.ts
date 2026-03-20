@@ -9,6 +9,7 @@ export class ToastService {
     this.snackBar.open(message, 'Dismiss', {
       duration: 5000,
       panelClass: ['toast-error'],
+      verticalPosition: 'top',
     });
   }
 
@@ -59,6 +60,7 @@ export class ToastService {
     this.snackBar.open(message, 'OK', {
       duration: 3000,
       panelClass: ['toast-info'],
+      verticalPosition: 'top',
     });
   }
 
@@ -66,6 +68,7 @@ export class ToastService {
     this.snackBar.open(message, 'OK', {
       duration: 3000,
       panelClass: ['toast-success'],
+      verticalPosition: 'top',
     });
   }
 }

@@ -156,6 +156,8 @@ export class App implements OnInit {
     return { icon, label, url };
   });
 
+  protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
+
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
@@ -182,6 +184,7 @@ export class App implements OnInit {
 
   constructor() {
     this.applyTheme();
+    this.applyAccentTheme();
   }
 
   getCount(item: NavItem): number {
@@ -237,6 +240,24 @@ export class App implements OnInit {
   toggleTheme(): void {
     this.darkMode.update(v => !v);
     this.applyTheme();
+  }
+
+  setAccentTheme(theme: string): void {
+    this.accentTheme.set(theme);
+    localStorage.setItem('poracle-accent', theme);
+    this.applyAccentTheme();
+  }
+
+  private applyAccentTheme(): void {
+    const classes = document.body.classList;
+    // Remove all existing accent-* classes
+    Array.from(classes)
+      .filter(c => c.startsWith('accent-'))
+      .forEach(c => classes.remove(c));
+    const accent = this.accentTheme();
+    if (accent) {
+      classes.add(`accent-${accent}`);
+    }
   }
 
   private applyTheme(): void {
