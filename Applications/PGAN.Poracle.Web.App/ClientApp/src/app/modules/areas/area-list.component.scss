@@ -202,12 +202,27 @@
   gap: 8px;
 }
 
-.search-field {
-  width: 100%;
+.list-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
 }
 
-.search-field .mat-mdc-form-field-subscript-wrapper {
+.search-field {
+  flex: 1;
+}
+
+.region-filter-field {
+  flex: 0 0 250px;
+}
+
+.search-field .mat-mdc-form-field-subscript-wrapper,
+.region-filter-field .mat-mdc-form-field-subscript-wrapper {
   display: none;
+}
+
+.active-filter-chips {
+  margin-bottom: 4px;
 }
 
 .group-chips {
