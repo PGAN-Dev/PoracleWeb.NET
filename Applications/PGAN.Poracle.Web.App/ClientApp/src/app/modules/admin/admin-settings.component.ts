@@ -46,7 +46,7 @@ const SETTING_GROUPS: SettingGroup[] = [
         description: 'Hide the Pokeball/logo from the header entirely.',
         key: 'hide_header_logo',
         label: 'Hide Header Logo',
-        type: 'toggle',
+        type: 'boolean',
       },
       {
         description: 'Label for the custom navigation link (e.g. "Back To Map").',
