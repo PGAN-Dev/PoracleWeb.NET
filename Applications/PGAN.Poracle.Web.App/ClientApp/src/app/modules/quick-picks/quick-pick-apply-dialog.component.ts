@@ -10,6 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
@@ -32,6 +33,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatRadioModule,
     MatSlideToggleModule,
     MatSnackBarModule,
+    MatTabsModule,
     MatProgressSpinnerModule,
     PokemonSelectorComponent,
     TemplateSelectorComponent,

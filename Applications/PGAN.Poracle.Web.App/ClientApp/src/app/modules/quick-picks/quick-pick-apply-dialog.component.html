@@ -6,75 +6,105 @@
 <mat-dialog-content>
   <p class="pick-description">{{ data.definition.description }}</p>
 
-  @if (showExclusions) {
-    <mat-expansion-panel class="exclusion-panel">
-      <mat-expansion-panel-header>
-        <mat-panel-title>
-          <mat-icon>block</mat-icon>
-          Exclude Pokemon
-          @if (excludedPokemonIds().length > 0) {
-            <span class="exclusion-count">({{ excludedPokemonIds().length }})</span>
+  <mat-tab-group animationDuration="200ms" class="alarm-tabs">
+    <!-- Tab 1: Options -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>tune</mat-icon>
+        <span class="tab-label">Options</span>
+      </ng-template>
+      <div class="tab-content">
+        @if (showExclusions) {
+          <h4>Exclusions</h4>
+          <mat-expansion-panel class="exclusion-panel">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>block</mat-icon>
+                Exclude Pokemon
+                @if (excludedPokemonIds().length > 0) {
+                  <span class="exclusion-count">({{ excludedPokemonIds().length }})</span>
+                }
+              </mat-panel-title>
+              <mat-panel-description>Optional — choose Pokemon to skip</mat-panel-description>
+            </mat-expansion-panel-header>
+            <app-pokemon-selector [multi]="true" (selectionChange)="onExcludedPokemonChange($event)" />
+          </mat-expansion-panel>
+
+          @if (willTrackIndividually()) {
+            <div class="individual-warning">
+              <mat-icon>info</mat-icon>
+              <span>
+                Exclusions require tracking individually. This will create
+                <strong>{{ individualAlarmCount() }}</strong> individual alarm rows. This may take a moment to apply.
+              </span>
+            </div>
           }
-        </mat-panel-title>
-        <mat-panel-description>Optional — choose Pokemon to skip</mat-panel-description>
-      </mat-expansion-panel-header>
-      <app-pokemon-selector [multi]="true" (selectionChange)="onExcludedPokemonChange($event)" />
-    </mat-expansion-panel>
-
-    @if (willTrackIndividually()) {
-      <div class="individual-warning">
-        <mat-icon>info</mat-icon>
-        <span>
-          Exclusions require tracking individually. This will create
-          <strong>{{ individualAlarmCount() }}</strong> individual alarm rows. This may take a moment to apply.
-        </span>
+        } @else {
+          <div class="no-options-hint">
+            <mat-icon>check_circle</mat-icon>
+            <p>No additional options for this quick pick. Switch to the Delivery tab to configure notification settings.</p>
+          </div>
+        }
       </div>
-    }
-  }
+    </mat-tab>
 
-  <h4>Delivery Settings</h4>
+    <!-- Tab 2: Delivery -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>notifications</mat-icon>
+        <span class="tab-label">Delivery</span>
+      </ng-template>
+      <div class="tab-content">
+        <h4>Location Mode</h4>
+        <mat-radio-group
+          [formControl]="deliveryForm.controls.distanceMode"
+          class="distance-radio-group"
+          (change)="onDistanceModeChange()">
+          <mat-radio-button value="areas">
+            <div class="radio-label">
+              <mat-icon>map</mat-icon>
+              <div>
+                <strong>Use Areas</strong>
+                <p class="radio-hint">Notify based on your configured geofence areas</p>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button value="distance">
+            <div class="radio-label">
+              <mat-icon>straighten</mat-icon>
+              <div>
+                <strong>Set Distance</strong>
+                <p class="radio-hint">Notify within a radius from your location</p>
+              </div>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
 
-  <mat-radio-group [formControl]="deliveryForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
-    <mat-radio-button value="areas">
-      <div class="radio-label">
-        <mat-icon>map</mat-icon>
-        <div>
-          <strong>Use Areas</strong>
-          <p class="radio-hint">Notify based on your configured geofence areas</p>
-        </div>
+        @if (deliveryForm.controls.distanceMode.value === 'distance') {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Distance</mat-label>
+            <input matInput type="number" [formControl]="deliveryForm.controls.distanceKm" min="0" step="0.1" />
+            <span matSuffix>km</span>
+          </mat-form-field>
+        }
+
+        <app-delivery-preview
+          [mode]="deliveryForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
+          [distanceKm]="deliveryForm.controls.distanceKm.value ?? 0">
+        </app-delivery-preview>
+
+        <h4>Message Settings</h4>
+        <app-template-selector
+          [alarmType]="data.definition.alarmType"
+          [value]="deliveryForm.controls.template.value ?? ''"
+          (valueChange)="deliveryForm.controls.template.setValue($event)">
+        </app-template-selector>
+
+        <mat-slide-toggle [formControl]="deliveryForm.controls.clean"> Clean mode </mat-slide-toggle>
+        <p class="clean-hint">Automatically deletes the notification from Discord after expiry</p>
       </div>
-    </mat-radio-button>
-    <mat-radio-button value="distance">
-      <div class="radio-label">
-        <mat-icon>straighten</mat-icon>
-        <div>
-          <strong>Set Distance</strong>
-          <p class="radio-hint">Notify within a radius from your location</p>
-        </div>
-      </div>
-    </mat-radio-button>
-  </mat-radio-group>
-
-  @if (deliveryForm.controls.distanceMode.value === 'distance') {
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Distance</mat-label>
-      <input matInput type="number" [formControl]="deliveryForm.controls.distanceKm" min="0" step="0.1" />
-      <span matSuffix>km</span>
-    </mat-form-field>
-  }
-
-  <app-delivery-preview
-    [mode]="deliveryForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
-    [distanceKm]="deliveryForm.controls.distanceKm.value ?? 0">
-  </app-delivery-preview>
-
-  <app-template-selector
-    [alarmType]="data.definition.alarmType"
-    [value]="deliveryForm.controls.template.value ?? ''"
-    (valueChange)="deliveryForm.controls.template.setValue($event)">
-  </app-template-selector>
-
-  <mat-slide-toggle [formControl]="deliveryForm.controls.clean"> Clean mode — auto-delete notification after expiry </mat-slide-toggle>
+    </mat-tab>
+  </mat-tab-group>
 </mat-dialog-content>
 
 @if (applying()) {

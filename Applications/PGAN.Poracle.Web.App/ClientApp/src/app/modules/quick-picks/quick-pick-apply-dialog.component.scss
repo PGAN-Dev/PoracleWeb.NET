@@ -33,6 +33,49 @@
   }
 }
 
+.alarm-tabs {
+  margin: 0 -24px;
+}
+
+:host ::ng-deep .alarm-tabs .mat-mdc-tab-body-wrapper {
+  padding: 0 24px;
+}
+
+.tab-content {
+  padding: 16px 0;
+}
+
+.tab-label {
+  margin-left: 6px;
+}
+
+h4 {
+  margin: 16px 0 8px;
+  color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.no-options-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px 16px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+
+  mat-icon {
+    color: #4caf50;
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
 .distance-radio-group {
   display: flex;
   flex-direction: column;
