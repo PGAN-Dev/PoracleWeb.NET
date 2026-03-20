@@ -218,6 +218,9 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Re-check on each visit so wizard reappears after navigating away
+    this.showOnboarding.set(!localStorage.getItem('poracle-onboarding-complete'));
+
     this.dashboardService
       .getCounts()
       .pipe(takeUntilDestroyed(this.destroyRef))

@@ -52,7 +52,7 @@ import { LocationService } from '../../../core/services/location.service';
                         mat-flat-button
                         color="primary"
                         [routerLink]="step.route"
-                        (click)="dismiss()"
+                        (click)="navigateAway()"
                       >
                         <mat-icon>map</mat-icon>
                         {{ areasSet() ? 'Edit Areas' : 'Choose Areas' }}
@@ -62,7 +62,7 @@ import { LocationService } from '../../../core/services/location.service';
                         mat-flat-button
                         color="primary"
                         [routerLink]="step.route"
-                        (click)="dismiss()"
+                        (click)="navigateAway()"
                       >
                         <mat-icon>add_alert</mat-icon>
                         {{ alarmsExist() ? 'Manage Alarms' : 'Add Alarm' }}
@@ -248,6 +248,7 @@ export class OnboardingComponent implements OnInit {
   private readonly locationService = inject(LocationService);
 
   completed = output<void>();
+  navigatedAway = output<void>();
   currentStep = signal(0);
   locationSet = signal(false);
   areasSet = signal(false);
@@ -346,6 +347,10 @@ export class OnboardingComponent implements OnInit {
     } else {
       this.dismiss();
     }
+  }
+
+  navigateAway() {
+    this.navigatedAway.emit();
   }
 
   dismiss() {
