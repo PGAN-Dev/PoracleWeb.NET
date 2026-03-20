@@ -71,14 +71,14 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddFixedWindowLimiter("auth", limiterOptions =>
     {
-        limiterOptions.PermitLimit = 10;
+        limiterOptions.PermitLimit = 30;
         limiterOptions.Window = TimeSpan.FromSeconds(60);
-        limiterOptions.QueueLimit = 0;
+        limiterOptions.QueueLimit = 2;
         limiterOptions.AutoReplenishment = true;
     });
     options.AddFixedWindowLimiter("auth-read", limiterOptions =>
     {
-        limiterOptions.PermitLimit = 60;
+        limiterOptions.PermitLimit = 120;
         limiterOptions.Window = TimeSpan.FromSeconds(60);
         limiterOptions.QueueLimit = 0;
         limiterOptions.AutoReplenishment = true;
