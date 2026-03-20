@@ -95,31 +95,46 @@
     <!-- List View -->
     @if (viewMode() === 'list') {
       <div class="list-view">
-        <!-- Search -->
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-icon matPrefix>search</mat-icon>
-          <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" placeholder="Search areas..." />
-          @if (searchText) {
-            <button mat-icon-button matSuffix (click)="clearSearch()">
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-        </mat-form-field>
-
-        <!-- Group Filter Chips -->
-        @if (hasMultipleGroups()) {
-          <div class="group-chips">
-            <button class="group-chip" [class.group-active]="!activeGroup()" (click)="activeGroup.set(null)">All</button>
-            @for (group of allGroups(); track group.name) {
-              <button
-                class="group-chip"
-                [class.group-active]="activeGroup() === group.name"
-                (click)="activeGroup.set(activeGroup() === group.name ? null : group.name)">
-                {{ group.name }}
-                <span class="group-chip-count">{{ group.selectedCount }}/{{ group.totalCount }}</span>
+        <!-- Search + Region Filter -->
+        <div class="list-filter-bar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" placeholder="Search areas..." />
+            @if (searchText) {
+              <button mat-icon-button matSuffix (click)="clearSearch()">
+                <mat-icon>close</mat-icon>
               </button>
             }
-          </div>
+          </mat-form-field>
+
+          @if (hasMultipleGroups()) {
+            <mat-form-field appearance="outline" class="region-filter-field">
+              <mat-label>Region</mat-label>
+              <input
+                matInput
+                [matAutocomplete]="groupAuto"
+                [value]="groupSearchText"
+                (input)="groupSearchText = $any($event.target).value"
+                placeholder="Filter by region..." />
+              <mat-autocomplete #groupAuto="matAutocomplete" (optionSelected)="onGroupFilterSelected($event.option.value)">
+                <mat-option value="">All Regions</mat-option>
+                @for (group of filteredGroupOptions(); track group.name) {
+                  <mat-option [value]="group.name">
+                    {{ group.name }} ({{ group.selectedCount }}/{{ group.totalCount }})
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+          }
+        </div>
+
+        @if (activeGroup()) {
+          <mat-chip-set class="active-filter-chips">
+            <mat-chip highlighted color="accent" (removed)="activeGroup.set(null); groupSearchText = ''">
+              Region: {{ activeGroup() }}
+              <button matChipRemove><mat-icon>cancel</mat-icon></button>
+            </mat-chip>
+          </mat-chip-set>
         }
 
         <!-- Checklist -->

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
@@ -33,6 +34,7 @@ interface GroupInfo {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
+    MatAutocompleteModule,
     MatButtonModule,
     MatCheckboxModule,
     MatChipsModule,
@@ -117,11 +119,24 @@ export class AreaListComponent implements OnInit {
 
   readonly locationMapUrl = signal<string>('');
 
+  groupSearchText = '';
   manualAreaName = '';
 
   readonly saving = signal(false);
 
   searchText = '';
+
+  filteredGroupOptions(): GroupInfo[] {
+    const search = this.groupSearchText.toLowerCase();
+    const all = this.allGroups();
+    if (!search) return all;
+    return all.filter(g => g.name.toLowerCase().includes(search));
+  }
+
+  onGroupFilterSelected(value: string): void {
+    this.activeGroup.set(value || null);
+    this.groupSearchText = '';
+  }
 
   readonly userLocationForMap = computed(() => {
     const loc = this.location();
