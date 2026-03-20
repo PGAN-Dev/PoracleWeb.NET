@@ -15,6 +15,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
 import { MonsterCreate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -51,7 +52,6 @@ export class PokemonAddDialogComponent {
   private readonly monsterService = inject(MonsterService);
   private readonly snackBar = inject(MatSnackBar);
   selectedPokemonIds = signal<number[]>([]);
-
   readonly availableForms = computed(() => {
     const ids = this.selectedPokemonIds();
     if (ids.length !== 1 || ids[0] === 0) return [];
@@ -78,6 +78,8 @@ export class PokemonAddDialogComponent {
     minWeight: [0],
     sta: [0, [Validators.min(0), Validators.max(15)]],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   notifForm = this.fb.group({
     clean: [false],

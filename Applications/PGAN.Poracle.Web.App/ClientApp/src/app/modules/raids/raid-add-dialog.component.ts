@@ -15,6 +15,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
 import { RaidCreate, EggCreate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -64,6 +65,8 @@ export class RaidAddDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<RaidAddDialogComponent>);
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
   levels = [1, 2, 3, 4, 5, 6];
   saving = signal(false);
   selectedEggLevels = signal<number[]>([]);

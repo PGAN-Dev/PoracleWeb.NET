@@ -13,6 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 
 import { Monster, MonsterUpdate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
@@ -81,6 +82,8 @@ export class PokemonEditDialogComponent {
     sta: [this.data.sta],
     template: [this.data.template ?? ''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   pokemonName = this.data.pokemonId === 0 ? 'All Pokemon' : this.masterData.getPokemonName(this.data.pokemonId);
 

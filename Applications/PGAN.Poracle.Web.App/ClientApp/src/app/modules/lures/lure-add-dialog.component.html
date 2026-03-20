@@ -63,9 +63,11 @@
           [distanceKm]="form.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
         <h4>Common Settings</h4>
-        <mat-form-field appearance="outline" class="full-width"
-          ><mat-label>Ping / Role</mat-label><input matInput [formControl]="form.controls.ping" placeholder="e.g. @role or empty"
-        /></mat-form-field>
+        @if (isWebhook) {
+          <mat-form-field appearance="outline" class="full-width"
+            ><mat-label>Ping / Role</mat-label><input matInput [formControl]="form.controls.ping" placeholder="e.g. @role or empty"
+          /></mat-form-field>
+        }
         <app-template-selector
           [alarmType]="'lure'"
           [value]="form.controls.template.value ?? ''"

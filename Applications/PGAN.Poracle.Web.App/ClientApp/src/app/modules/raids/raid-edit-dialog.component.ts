@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 
 import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { IconService } from '../../core/services/icon.service';
 import { RaidService } from '../../core/services/raid.service';
@@ -52,7 +53,6 @@ export class RaidEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
-
   form = this.fb.group({
     clean: [this.data.item.clean === 1],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
@@ -61,6 +61,8 @@ export class RaidEditDialogComponent {
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
 

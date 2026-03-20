@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
+import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -57,6 +58,8 @@ export class GymAddDialogComponent {
     slot_changes: [false],
     template: [''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
   selectedTeamIds = signal<number[]>([]);

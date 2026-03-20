@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 
 import { Invasion, InvasionUpdate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -51,6 +52,8 @@ export class InvasionEditDialogComponent {
     ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
   getGenderLabel(): string {

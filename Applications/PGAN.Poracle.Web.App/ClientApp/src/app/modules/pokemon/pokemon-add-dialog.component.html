@@ -243,11 +243,13 @@
         </app-delivery-preview>
 
         <h4>Message Settings</h4>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Ping / Role</mat-label>
-          <input matInput [formControl]="notifForm.controls.ping" placeholder="e.g. @Pokemon or leave empty" />
-          <mat-hint>Discord role to mention in the notification</mat-hint>
-        </mat-form-field>
+        @if (isWebhook) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Ping / Role</mat-label>
+            <input matInput [formControl]="notifForm.controls.ping" placeholder="e.g. @Pokemon or leave empty" />
+            <mat-hint>Discord role to mention in the notification</mat-hint>
+          </mat-form-field>
+        }
 
         <app-template-selector
           [alarmType]="'monster'"

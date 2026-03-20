@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 
 import { Nest, NestUpdate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
@@ -53,6 +54,8 @@ export class NestEditDialogComponent {
     ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   pokemonName = this.masterData.getPokemonName(this.data.pokemonId);
   saving = signal(false);

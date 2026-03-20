@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
+import { AuthService } from '../../core/services/auth.service';
 import { QuestService } from '../../core/services/quest.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
@@ -52,6 +53,8 @@ export class QuestAddDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
   itemForm = this.fb.group({
     reward: [0],
   });

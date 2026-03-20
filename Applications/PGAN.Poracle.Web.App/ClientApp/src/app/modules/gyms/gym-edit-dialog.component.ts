@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 
 import { Gym, GymUpdate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -50,6 +51,8 @@ export class GymEditDialogComponent {
     slot_changes: [this.data.slot_changes === 1],
     template: [this.data.template ?? ''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
   getTeamColor(team: number): string {

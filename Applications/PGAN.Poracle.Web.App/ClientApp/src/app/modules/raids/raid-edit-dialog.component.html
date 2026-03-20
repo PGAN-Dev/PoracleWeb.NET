@@ -78,10 +78,12 @@
         <span class="tab-label">Delivery</span>
       </ng-template>
       <div class="tab-content">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Ping / Role</mat-label>
-          <input matInput [formControl]="form.controls.ping" />
-        </mat-form-field>
+        @if (isWebhook) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Ping / Role</mat-label>
+            <input matInput [formControl]="form.controls.ping" />
+          </mat-form-field>
+        }
 
         <app-template-selector
           [alarmType]="data.type === 'egg' ? 'egg' : 'raid'"

@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
+import { AuthService } from '../../core/services/auth.service';
 import { NestService } from '../../core/services/nest.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
@@ -50,6 +51,8 @@ export class NestAddDialogComponent {
     ping: [''],
     template: [''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
   selectedPokemonIds = signal<number[]>([]);

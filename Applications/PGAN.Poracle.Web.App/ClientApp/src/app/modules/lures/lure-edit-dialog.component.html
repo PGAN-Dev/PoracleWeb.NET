@@ -39,9 +39,11 @@
     [mode]="form.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
     [distanceKm]="form.controls.distanceKm.value ?? 0">
   </app-delivery-preview>
-  <mat-form-field appearance="outline" class="full-width"
-    ><mat-label>Ping / Role</mat-label><input matInput [formControl]="form.controls.ping"
-  /></mat-form-field>
+  @if (isWebhook) {
+    <mat-form-field appearance="outline" class="full-width"
+      ><mat-label>Ping / Role</mat-label><input matInput [formControl]="form.controls.ping"
+    /></mat-form-field>
+  }
   <app-template-selector
     [alarmType]="'lure'"
     [value]="form.controls.template.value ?? ''"

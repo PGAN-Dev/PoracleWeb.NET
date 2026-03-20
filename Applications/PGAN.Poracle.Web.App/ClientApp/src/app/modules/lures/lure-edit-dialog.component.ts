@@ -10,6 +10,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { Lure, LureUpdate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -46,6 +47,8 @@ export class LureEditDialogComponent {
     ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
   getLureColor(id: number): string {

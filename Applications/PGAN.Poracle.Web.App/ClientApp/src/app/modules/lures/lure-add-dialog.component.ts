@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
+import { AuthService } from '../../core/services/auth.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -49,6 +50,7 @@ export class LureAddDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
   form = this.fb.group({ clean: [false], distanceKm: [1], distanceMode: ['areas' as 'areas' | 'distance'], ping: [''], template: [''] });
+  readonly isWebhook = inject(AuthService).isImpersonating();
   lureTypes: LureOption[] = [
     { id: 501, name: 'Normal', color: '#FF9800' },
     { id: 502, name: 'Glacial', color: '#03A9F4' },

@@ -10,6 +10,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { Quest, QuestUpdate } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
@@ -43,7 +44,6 @@ export class QuestEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Quest>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<QuestEditDialogComponent>);
-
   form = this.fb.group({
     clean: [this.data.clean === 1],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
@@ -51,6 +51,8 @@ export class QuestEditDialogComponent {
     ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
 

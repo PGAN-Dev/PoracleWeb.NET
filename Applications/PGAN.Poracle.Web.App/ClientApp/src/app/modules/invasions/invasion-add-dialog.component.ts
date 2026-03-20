@@ -13,6 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
+import { AuthService } from '../../core/services/auth.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -62,6 +63,8 @@ export class InvasionAddDialogComponent implements OnInit {
   });
 
   gruntOptions = signal<GruntOption[]>([]);
+
+  readonly isWebhook = inject(AuthService).isImpersonating();
   saving = signal(false);
   selectedCount = signal(0);
 
