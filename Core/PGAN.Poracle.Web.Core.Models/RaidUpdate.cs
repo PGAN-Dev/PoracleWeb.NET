@@ -11,31 +11,31 @@ public class RaidUpdate
     }
 
     [Range(0, int.MaxValue)]
-    public int Distance
+    public int? Distance
     {
         get; set;
     }
 
     [Range(0, 4)]
-    public int Team
+    public int? Team
     {
         get; set;
     }
 
     [Range(0, 10)]
-    public int Level
+    public int? Level
     {
         get; set;
     }
 
     [Range(0, int.MaxValue)]
-    public int Form
+    public int? Form
     {
         get; set;
     }
 
     [Range(0, 1)]
-    public int Clean
+    public int? Clean
     {
         get; set;
     }

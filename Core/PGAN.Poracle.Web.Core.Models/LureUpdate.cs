@@ -11,19 +11,19 @@ public class LureUpdate
     }
 
     [Range(0, int.MaxValue)]
-    public int Distance
+    public int? Distance
     {
         get; set;
     }
 
     [Range(0, int.MaxValue)]
-    public int LureId
+    public int? LureId
     {
         get; set;
     }
 
     [Range(0, 1)]
-    public int Clean
+    public int? Clean
     {
         get; set;
     }

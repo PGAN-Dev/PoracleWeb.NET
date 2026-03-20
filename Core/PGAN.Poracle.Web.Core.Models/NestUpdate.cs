@@ -11,25 +11,25 @@ public class NestUpdate
     }
 
     [Range(0, int.MaxValue)]
-    public int Distance
+    public int? Distance
     {
         get; set;
     }
 
     [Range(0, int.MaxValue)]
-    public int MinSpawnAvg
+    public int? MinSpawnAvg
     {
         get; set;
     }
 
     [Range(0, int.MaxValue)]
-    public int Form
+    public int? Form
     {
         get; set;
     }
 
     [Range(0, 1)]
-    public int Clean
+    public int? Clean
     {
         get; set;
     }

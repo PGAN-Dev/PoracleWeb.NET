@@ -11,13 +11,13 @@ public class InvasionUpdate
     }
 
     [Range(0, int.MaxValue)]
-    public int Distance
+    public int? Distance
     {
         get; set;
     }
 
     [Range(0, 3)]
-    public int Gender
+    public int? Gender
     {
         get; set;
     }
@@ -29,7 +29,7 @@ public class InvasionUpdate
     }
 
     [Range(0, 1)]
-    public int Clean
+    public int? Clean
     {
         get; set;
     }

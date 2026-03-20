@@ -11,31 +11,31 @@ public class QuestUpdate
     }
 
     [Range(0, int.MaxValue)]
-    public int Distance
+    public int? Distance
     {
         get; set;
     }
 
     [Range(0, int.MaxValue)]
-    public int Reward
+    public int? Reward
     {
         get; set;
     }
 
     [Range(0, int.MaxValue)]
-    public int RewardType
+    public int? RewardType
     {
         get; set;
     }
 
     [Range(0, 1)]
-    public int Shiny
+    public int? Shiny
     {
         get; set;
     }
 
     [Range(0, 1)]
-    public int Clean
+    public int? Clean
     {
         get; set;
     }
@@ -47,7 +47,7 @@ public class QuestUpdate
     }
 
     [Range(0, int.MaxValue)]
-    public int Form
+    public int? Form
     {
         get; set;
     }

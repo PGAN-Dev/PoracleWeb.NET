@@ -11,25 +11,25 @@ public class GymUpdate
     }
 
     [Range(0, int.MaxValue)]
-    public int Distance
+    public int? Distance
     {
         get; set;
     }
 
     [Range(0, 4)]
-    public int Team
+    public int? Team
     {
         get; set;
     }
 
     [Range(0, 1)]
-    public int SlotChanges
+    public int? SlotChanges
     {
         get; set;
     }
 
     [Range(0, 1)]
-    public int Clean
+    public int? Clean
     {
         get; set;
     }
