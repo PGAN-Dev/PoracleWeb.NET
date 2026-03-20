@@ -28,8 +28,7 @@
                       <img
                         [src]="iconService.getItemUrl(item.id)"
                         class="option-icon"
-                        (error)="$any($event.target).style.display='none'; $any($event.target).nextElementSibling.style.display='inline'" />
-                      <mat-icon class="option-icon-fallback" style="display: none">help_outline</mat-icon>
+                        (error)="onOptionIconError($event)" />
                       {{ item.name }}
                     </mat-option>
                   }
