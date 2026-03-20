@@ -21,6 +21,12 @@ public class ProfileController(IProfileService profileService, IHumanService hum
     public async Task<IActionResult> Create([FromBody] Profile profile)
     {
         profile.Id = this.UserId;
+
+        // Assign next available profile number
+        var existing = await this._profileService.GetByUserAsync(this.UserId);
+        var maxNo = existing.Any() ? existing.Max(p => p.ProfileNo) : 0;
+        profile.ProfileNo = maxNo + 1;
+
         var result = await this._profileService.CreateAsync(profile);
         return this.CreatedAtAction(nameof(GetAll), result);
     }
