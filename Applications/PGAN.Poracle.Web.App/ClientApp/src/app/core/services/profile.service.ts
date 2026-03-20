@@ -29,8 +29,8 @@ export class ProfileService {
     return this.http.get<Profile[]>(`${this.config.apiHost}/api/profiles`);
   }
 
-  switchProfile(profileNo: number): Observable<Profile> {
-    return this.http.put<Profile>(`${this.config.apiHost}/api/profiles/switch/${profileNo}`, {});
+  switchProfile(profileNo: number): Observable<{ profile: Profile; token: string }> {
+    return this.http.put<{ profile: Profile; token: string }>(`${this.config.apiHost}/api/profiles/switch/${profileNo}`, {});
   }
 
   update(profileNo: number, name: string): Observable<Profile> {

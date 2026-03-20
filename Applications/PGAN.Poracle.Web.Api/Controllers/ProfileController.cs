@@ -1,14 +1,24 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using PGAN.Poracle.Web.Api.Configuration;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
 using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/profiles")]
-public class ProfileController(IProfileService profileService, IHumanService humanService) : BaseApiController
+public class ProfileController(
+    IProfileService profileService,
+    IHumanService humanService,
+    IOptions<JwtSettings> jwtSettings) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -71,7 +81,10 @@ public class ProfileController(IProfileService profileService, IHumanService hum
         human.CurrentProfileNo = profileNo;
         await this._humanService.UpdateAsync(human);
 
-        return this.Ok(profile);
+        // Issue a new JWT with the updated profileNo so all subsequent API calls use it
+        var newToken = this.GenerateTokenWithProfile(profileNo);
+
+        return this.Ok(new { profile, token = newToken });
     }
 
     [HttpDelete("{profileNo:int}")]
@@ -84,5 +97,29 @@ public class ProfileController(IProfileService profileService, IHumanService hum
         }
 
         return this.NoContent();
+    }
+
+    private string GenerateTokenWithProfile(int profileNo)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        // Copy all existing claims but replace profileNo
+        var claims = new List<Claim>();
+        foreach (var claim in this.User.Claims)
+        {
+            if (claim.Type == "profileNo") continue;
+            claims.Add(new Claim(claim.Type, claim.Value));
+        }
+        claims.Add(new Claim("profileNo", profileNo.ToString()));
+
+        var token = new JwtSecurityToken(
+            issuer: this._jwtSettings.Issuer,
+            audience: this._jwtSettings.Audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

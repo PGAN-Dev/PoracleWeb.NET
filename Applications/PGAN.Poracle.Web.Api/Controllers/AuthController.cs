@@ -302,7 +302,7 @@ public class AuthController(
             Type = this.User.FindFirstValue("type") ?? string.Empty,
             IsAdmin = this.IsAdmin,
             Enabled = enabled,
-            ProfileNo = this.ProfileNo,
+            ProfileNo = human?.CurrentProfileNo ?? this.ProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
             ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null
         };
