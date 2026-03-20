@@ -1,9 +1,13 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
+import { LocationService } from '../../../core/services/location.service';
 
 @Component({
   selector: 'app-onboarding',
@@ -36,7 +40,17 @@ import { RouterLink } from '@angular/router';
                 <p>{{ step.description }}</p>
                 @if (currentStep() === i) {
                   <div class="step-action">
-                    @if (step.route) {
+                    @if (step.id === 'location') {
+                      <button mat-flat-button color="primary" (click)="openLocationDialog()">
+                        <mat-icon>my_location</mat-icon>
+                        {{ locationSet() ? 'Update Location' : 'Set Location' }}
+                      </button>
+                      @if (locationSet()) {
+                        <span class="step-success">
+                          <mat-icon>check_circle</mat-icon> Location saved
+                        </span>
+                      }
+                    } @else if (step.route) {
                       <a
                         mat-flat-button
                         color="primary"
@@ -47,7 +61,7 @@ import { RouterLink } from '@angular/router';
                       </a>
                     }
                     <button mat-button (click)="nextStep()">
-                      {{ i < steps.length - 1 ? 'Skip' : 'Get Started!' }}
+                      {{ i < steps.length - 1 ? (step.id === 'location' && locationSet() ? 'Next' : 'Skip') : 'Get Started!' }}
                     </button>
                   </div>
                 }
@@ -169,6 +183,20 @@ import { RouterLink } from '@angular/router';
         display: flex;
         gap: 8px;
         align-items: center;
+        flex-wrap: wrap;
+      }
+      .step-success {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #2e7d32;
+      }
+      .step-success mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
       }
       .onboarding-footer {
         display: flex;
@@ -208,14 +236,19 @@ import { RouterLink } from '@angular/router';
   ],
 })
 export class OnboardingComponent {
+  private readonly dialog = inject(MatDialog);
+  private readonly locationService = inject(LocationService);
+
   completed = output<void>();
   currentStep = signal(0);
+  locationSet = signal(false);
 
   steps = [
     {
       id: 'location',
       title: 'Set Your Location',
-      description: 'We need your location to send nearby notifications',
+      description:
+        'Your location is used to calculate distances for nearby notifications. Click the button below to search by address, enter coordinates, or use your device GPS.',
       route: null,
       actionText: 'Set Location',
     },
@@ -235,6 +268,18 @@ export class OnboardingComponent {
       actionText: 'Add Alarm',
     },
   ];
+
+  async openLocationDialog() {
+    const dialogRef = this.dialog.open(LocationDialogComponent, {
+      width: '600px',
+      data: null,
+    });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (result && (result.latitude !== 0 || result.longitude !== 0)) {
+      await firstValueFrom(this.locationService.setLocation(result));
+      this.locationSet.set(true);
+    }
+  }
 
   nextStep() {
     if (this.currentStep() < this.steps.length - 1) {
