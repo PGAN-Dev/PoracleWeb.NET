@@ -68,10 +68,34 @@ export class InvasionAddDialogComponent implements OnInit {
   saving = signal(false);
   selectedCount = signal(0);
 
+  private static readonly GRUNT_TYPES: { key: string; name: string }[] = [
+    { key: 'Bug', name: 'Bug' },
+    { key: 'Dark', name: 'Dark' },
+    { key: 'Dragon', name: 'Dragon' },
+    { key: 'Electric', name: 'Electric' },
+    { key: 'Fairy', name: 'Fairy' },
+    { key: 'Fighting', name: 'Fighting' },
+    { key: 'Fire', name: 'Fire' },
+    { key: 'Flying', name: 'Flying' },
+    { key: 'Ghost', name: 'Ghost' },
+    { key: 'Grass', name: 'Grass' },
+    { key: 'Ground', name: 'Ground' },
+    { key: 'Ice', name: 'Ice' },
+    { key: 'Metal', name: 'Steel' },
+    { key: 'Normal', name: 'Normal' },
+    { key: 'Poison', name: 'Poison' },
+    { key: 'Psychic', name: 'Psychic' },
+    { key: 'Rock', name: 'Rock' },
+    { key: 'Water', name: 'Water' },
+    { key: 'mixed', name: 'Rocket Leader (mixed)' },
+    { key: 'Giovanni', name: 'Giovanni' },
+    { key: 'Decoy', name: 'Decoy Grunt' },
+  ];
+
   ngOnInit(): void {
-    this.masterData.loadData().subscribe(() => {
-      // TODO: Load grunt options from /api/masterdata/grunts when Poracle API is available
-    });
+    this.gruntOptions.set(
+      InvasionAddDialogComponent.GRUNT_TYPES.map(g => ({ ...g, selected: false })),
+    );
   }
 
   onDistanceModeChange(): void {
