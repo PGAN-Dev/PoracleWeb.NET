@@ -156,13 +156,14 @@
       </mat-card>
     } @empty {
       <div class="empty-state">
-        <svg viewBox="0 0 100 100" width="72" height="72" class="empty-icon">
-          <circle cx="50" cy="50" r="46" fill="none" stroke="#4caf50" stroke-width="4" />
-          <path d="M4 50 H36" stroke="#4caf50" stroke-width="4" />
-          <path d="M64 50 H96" stroke="#4caf50" stroke-width="4" />
-          <path d="M4 50 A46 46 0 0 1 96 50" fill="#4caf50" opacity="0.15" />
-          <circle cx="50" cy="50" r="14" fill="none" stroke="#4caf50" stroke-width="4" />
-          <circle cx="50" cy="50" r="7" fill="#4caf50" opacity="0.5" />
+        <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
+          <circle cx="60" cy="60" r="56" stroke="currentColor" stroke-width="3" opacity="0.15"/>
+          <path d="M4 60h112" stroke="currentColor" stroke-width="3" opacity="0.15"/>
+          <circle cx="60" cy="60" r="14" stroke="currentColor" stroke-width="3" opacity="0.15"/>
+          <circle cx="60" cy="60" r="8" fill="currentColor" opacity="0.08"/>
+          <text x="85" y="30" font-size="18" fill="currentColor" opacity="0.2" font-weight="600">Z</text>
+          <text x="95" y="22" font-size="14" fill="currentColor" opacity="0.15" font-weight="600">z</text>
+          <text x="102" y="16" font-size="10" fill="currentColor" opacity="0.1" font-weight="600">z</text>
         </svg>
         <h2 class="empty-title">No Pokemon Alarms Configured</h2>
         <p class="empty-subtitle">Track wild spawns with custom IV, CP, and level filters</p>

@@ -4,6 +4,29 @@
   align-items: flex-start;
   padding: 16px 24px;
   gap: 16px;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, rgba(76, 175, 80, 0.02) 100%);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(76, 175, 80, 0.12) 0%,
+      rgba(76, 175, 80, 0.06) 45%,
+      transparent 46%,
+      transparent 52%,
+      rgba(76, 175, 80, 0.04) 53%,
+      transparent 54%
+    );
+  }
 }
 .page-header-text {
   flex: 1;
@@ -278,6 +301,10 @@
 .empty-icon {
   margin-bottom: 16px;
   opacity: 0.8;
+}
+.empty-illustration {
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  margin-bottom: 8px;
 }
 .empty-title {
   font-size: 20px;

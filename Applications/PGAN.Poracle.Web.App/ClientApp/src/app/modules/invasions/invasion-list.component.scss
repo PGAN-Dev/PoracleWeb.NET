@@ -4,6 +4,24 @@
   align-items: flex-start;
   padding: 16px 24px;
   gap: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(96, 125, 139, 0.08) 0%,
+    rgba(96, 125, 139, 0.02) 100%
+  );
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(96, 125, 139, 0.15) 30%, transparent 31%);
+  }
 }
 .page-header-text {
   flex: 1;
