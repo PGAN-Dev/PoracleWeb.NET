@@ -5,7 +5,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -29,7 +28,6 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
-    MatProgressSpinnerModule,
     AlarmInfoComponent,
   ],
   selector: 'app-quest-list',
@@ -47,6 +45,7 @@ export class QuestListComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly quests = signal<Quest[]>([]);
+  readonly skeletonCards = Array.from({ length: 6 });
 
   deleteAll(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {

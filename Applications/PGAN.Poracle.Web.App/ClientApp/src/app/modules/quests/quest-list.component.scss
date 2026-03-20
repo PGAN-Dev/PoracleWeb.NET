@@ -195,3 +195,49 @@
   background: #9c27b0 !important;
   color: white !important;
 }
+
+// Skeleton loading
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.skeleton-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  border-left: 4px solid var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  padding: 16px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.skeleton-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.skeleton-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+  flex-shrink: 0;
+}
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeleton-line {
+  height: 14px;
+  border-radius: 7px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+}
+.skeleton-pill {
+  width: 64px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+}
+.skeleton-footer {
+  margin-top: 10px;
+}

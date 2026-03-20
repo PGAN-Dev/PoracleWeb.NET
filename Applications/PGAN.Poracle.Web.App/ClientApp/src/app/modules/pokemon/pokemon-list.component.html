@@ -50,14 +50,30 @@
 }
 
 @if (loading()) {
-  <div class="loading-container">
-    <mat-spinner diameter="48"></mat-spinner>
-    <p class="loading-text">Loading alarms...</p>
+  <div class="alarm-grid">
+    @for (i of skeletonCards; track i) {
+      <div class="skeleton-card">
+        <div class="skeleton-header">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line" style="width: 60%"></div>
+            <div class="skeleton-line" style="width: 40%"></div>
+          </div>
+        </div>
+        <div class="skeleton-pills">
+          <div class="skeleton-pill"></div>
+          <div class="skeleton-pill" style="width: 50px"></div>
+        </div>
+        <div class="skeleton-footer">
+          <div class="skeleton-pill" style="width: 70px"></div>
+        </div>
+      </div>
+    }
   </div>
 } @else {
   <div class="alarm-grid">
     @for (monster of filteredMonsters(); track monster.uid) {
-      <mat-card class="alarm-card" [class.all-pokemon-card]="monster.pokemonId === 0">
+      <mat-card class="alarm-card" [class.all-pokemon-card]="monster.pokemonId === 0" [style.border-left-color]="getTypeColor(monster.pokemonId)">
         <div class="card-top" [style.border-top-color]="getTypeColor(monster.pokemonId)">
           @if (monster.pokemonId === 0) {
             <div class="all-pokemon-icon">
@@ -86,23 +102,25 @@
           </div>
         </div>
         <mat-card-content>
-          <div class="stat-grid">
-            <div class="stat">
-              <span class="stat-label">IV</span>
-              <span class="stat-value">{{ getIvDisplay(monster.minIv, monster.maxIv) }}</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">CP</span>
-              <span class="stat-value">{{ monster.minCp }}-{{ monster.maxCp }}</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">Level</span>
-              <span class="stat-value">{{ monster.minLevel }}-{{ monster.maxLevel }}</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">Gender</span>
-              <span class="stat-value">{{ getGenderDisplay(monster.gender) }}</span>
-            </div>
+          <div class="filter-pills">
+            @if (monster.minIv !== -1 && (monster.minIv !== 0 || monster.maxIv !== 100)) {
+              <span class="filter-pill iv-pill">IV {{ monster.minIv }}-{{ monster.maxIv }}%</span>
+            }
+            @if (monster.minIv === -1) {
+              <span class="filter-pill iv-pill iv-disabled">No IV Filter</span>
+            }
+            @if (monster.minCp > 0 || monster.maxCp < 9000) {
+              <span class="filter-pill cp-pill">CP {{ monster.minCp }}-{{ monster.maxCp }}</span>
+            }
+            @if (monster.minLevel > 0 || monster.maxLevel < 35) {
+              <span class="filter-pill level-pill">L{{ monster.minLevel }}-{{ monster.maxLevel }}</span>
+            }
+            @if (monster.pvpRankingLeague > 0) {
+              <span class="filter-pill pvp-pill">PVP {{ monster.pvpRankingLeague === 1500 ? 'GL' : monster.pvpRankingLeague === 2500 ? 'UL' : monster.pvpRankingLeague === 500 ? 'LC' : 'ML' }}</span>
+            }
+            @if (monster.gender > 0) {
+              <span class="filter-pill gender-pill">{{ monster.gender === 1 ? '\u2642' : monster.gender === 2 ? '\u2640' : 'Genderless' }}</span>
+            }
           </div>
           <div class="distance-chip-row">
             @if (monster.distance === 0) {
