@@ -1,11 +1,11 @@
-import { Component, inject, OnInit, output, signal } from '@angular/core';
+import { Component, inject, OnInit, output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
 import { RouterLink } from '@angular/router';
-import { firstValueFrom, forkJoin } from 'rxjs';
+import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 import { AreaService } from '../../../core/services/area.service';
 import { DashboardService } from '../../../core/services/dashboard.service';
@@ -19,8 +19,8 @@ import { LocationService } from '../../../core/services/location.service';
     <div class="onboarding-overlay">
       <div class="onboarding-card" role="dialog" aria-label="Welcome onboarding">
         <div class="onboarding-header">
-          <h2>Welcome to PoGO Alerts!</h2>
-          <p>Let's get you set up in a few quick steps</p>
+          <h2>{{ allComplete() ? 'You\\'re All Set!' : 'Welcome to PoGO Alerts!' }}</h2>
+          <p>{{ allComplete() ? 'Everything is configured — you\\'re ready to go' : 'Let\\'s get you set up in a few quick steps' }}</p>
         </div>
 
         <div class="steps">
@@ -28,10 +28,10 @@ import { LocationService } from '../../../core/services/location.service';
             <div
               class="step"
               [class.active]="currentStep() === i"
-              [class.completed]="i < currentStep()"
+              [class.completed]="stepComplete(i)"
             >
               <div class="step-indicator">
-                @if (i < currentStep()) {
+                @if (stepComplete(i)) {
                   <mat-icon>check_circle</mat-icon>
                 } @else {
                   <span class="step-number">{{ i + 1 }}</span>
@@ -39,7 +39,7 @@ import { LocationService } from '../../../core/services/location.service';
               </div>
               <div class="step-content">
                 <h3>{{ step.title }}</h3>
-                <p>{{ step.description }}</p>
+                <p>{{ stepComplete(i) ? step.doneDescription : step.description }}</p>
                 @if (currentStep() === i) {
                   <div class="step-action">
                     @if (step.id === 'location') {
@@ -47,23 +47,29 @@ import { LocationService } from '../../../core/services/location.service';
                         <mat-icon>my_location</mat-icon>
                         {{ locationSet() ? 'Update Location' : 'Set Location' }}
                       </button>
-                      @if (locationSet()) {
-                        <span class="step-success">
-                          <mat-icon>check_circle</mat-icon> Location saved
-                        </span>
-                      }
-                    } @else if (step.route) {
+                    } @else if (step.id === 'areas') {
                       <a
                         mat-flat-button
                         color="primary"
                         [routerLink]="step.route"
-                        (click)="nextStep()"
+                        (click)="dismiss()"
                       >
-                        {{ step.actionText }}
+                        <mat-icon>map</mat-icon>
+                        {{ areasSet() ? 'Edit Areas' : 'Choose Areas' }}
+                      </a>
+                    } @else if (step.id === 'alarm') {
+                      <a
+                        mat-flat-button
+                        color="primary"
+                        [routerLink]="step.route"
+                        (click)="dismiss()"
+                      >
+                        <mat-icon>add_alert</mat-icon>
+                        {{ alarmsExist() ? 'Manage Alarms' : 'Add Alarm' }}
                       </a>
                     }
                     <button mat-button (click)="nextStep()">
-                      {{ i < steps.length - 1 ? (step.id === 'location' && locationSet() ? 'Next' : 'Skip') : 'Get Started!' }}
+                      {{ stepComplete(i) ? 'Next' : (i < steps.length - 1 ? 'Skip' : 'Get Started!') }}
                     </button>
                   </div>
                 }
@@ -73,16 +79,24 @@ import { LocationService } from '../../../core/services/location.service';
         </div>
 
         <div class="onboarding-footer">
-          <button mat-button (click)="dismiss()">Skip Setup</button>
-          <div class="step-dots">
-            @for (step of steps; track step.id; let i = $index) {
-              <div
-                class="dot"
-                [class.active]="currentStep() === i"
-                [class.completed]="i < currentStep()"
-              ></div>
-            }
-          </div>
+          <button mat-button (click)="dismiss()">
+            {{ allComplete() ? 'Close' : 'Skip Setup' }}
+          </button>
+          @if (allComplete()) {
+            <button mat-flat-button color="primary" (click)="dismiss()">
+              Let's Go!
+            </button>
+          } @else {
+            <div class="step-dots">
+              @for (step of steps; track step.id; let i = $index) {
+                <div
+                  class="dot"
+                  [class.active]="currentStep() === i"
+                  [class.completed]="stepComplete(i)"
+                ></div>
+              }
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -141,7 +155,10 @@ import { LocationService } from '../../../core/services/location.service';
         opacity: 1;
       }
       .step.completed {
-        opacity: 0.7;
+        opacity: 0.8;
+      }
+      .step.completed:not(.active) .step-content p {
+        color: #2e7d32;
       }
       .step-indicator {
         flex-shrink: 0;
@@ -186,19 +203,6 @@ import { LocationService } from '../../../core/services/location.service';
         gap: 8px;
         align-items: center;
         flex-wrap: wrap;
-      }
-      .step-success {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 13px;
-        font-weight: 500;
-        color: #2e7d32;
-      }
-      .step-success mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
       }
       .onboarding-footer {
         display: flex;
@@ -249,51 +253,23 @@ export class OnboardingComponent implements OnInit {
   areasSet = signal(false);
   alarmsExist = signal(false);
 
-  ngOnInit() {
-    forkJoin({
-      location: this.locationService.getLocation(),
-      areas: this.areaService.getSelected(),
-      counts: this.dashboardService.getCounts(),
-    }).subscribe({
-      next: ({ location, areas, counts }) => {
-        const hasLocation = location && (location.latitude !== 0 || location.longitude !== 0);
-        const hasAreas = areas && areas.length > 0;
-        const hasAlarms = counts && Object.values(counts).some(c => (c as number) > 0);
-
-        if (hasLocation) this.locationSet.set(true);
-        if (hasAreas) this.areasSet.set(true);
-        if (hasAlarms) this.alarmsExist.set(true);
-
-        // If everything is already done, skip the wizard entirely
-        if (hasLocation && hasAreas && hasAlarms) {
-          this.dismiss();
-          return;
-        }
-
-        // Auto-advance to first incomplete step
-        if (hasLocation && hasAreas) {
-          this.currentStep.set(2);
-        } else if (hasLocation) {
-          this.currentStep.set(1);
-        }
-      },
-      error: () => {},
-    });
-  }
+  allComplete = computed(() => this.locationSet() && this.areasSet() && this.alarmsExist());
 
   steps = [
     {
       id: 'location',
       title: 'Set Your Location',
       description:
-        'Your location is used to calculate distances for nearby notifications. Click the button below to search by address, enter coordinates, or use your device GPS.',
+        'Your location is used to calculate distances for nearby notifications. Click below to search by address, enter coordinates, or use your device GPS.',
+      doneDescription: 'Location is configured',
       route: null,
       actionText: 'Set Location',
     },
     {
       id: 'areas',
       title: 'Choose Your Areas',
-      description: 'Select the areas you want to receive alerts from',
+      description: 'Select the geographic areas you want to receive alerts from',
+      doneDescription: 'Areas are configured',
       route: '/areas',
       actionText: 'Choose Areas',
     },
@@ -302,10 +278,55 @@ export class OnboardingComponent implements OnInit {
       title: 'Add Your First Alarm',
       description:
         'Set up a Pokemon, Raid, or Quest alarm to start getting notified',
+      doneDescription: 'You have active alarms',
       route: '/pokemon',
       actionText: 'Add Alarm',
     },
   ];
+
+  ngOnInit() {
+    forkJoin({
+      location: this.locationService.getLocation().pipe(catchError(() => of(null))),
+      areas: this.areaService.getSelected().pipe(catchError(() => of([]))),
+      counts: this.dashboardService.getCounts().pipe(catchError(() => of(null))),
+    }).subscribe({
+      next: ({ location, areas, counts }) => {
+        const hasLocation = !!(location && (location.latitude !== 0 || location.longitude !== 0));
+        const hasAreas = !!(areas && areas.length > 0);
+        const hasAlarms = !!(counts && Object.values(counts).some(c => (c as number) > 0));
+
+        if (hasLocation) this.locationSet.set(true);
+        if (hasAreas) this.areasSet.set(true);
+        if (hasAlarms) this.alarmsExist.set(true);
+
+        // Auto-advance to first incomplete step
+        if (!hasLocation) {
+          this.currentStep.set(0);
+        } else if (!hasAreas) {
+          this.currentStep.set(1);
+        } else if (!hasAlarms) {
+          this.currentStep.set(2);
+        } else {
+          // All complete — show step 0 so user sees everything checked off
+          this.currentStep.set(0);
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  stepComplete(index: number): boolean {
+    switch (index) {
+      case 0:
+        return this.locationSet();
+      case 1:
+        return this.areasSet();
+      case 2:
+        return this.alarmsExist();
+      default:
+        return false;
+    }
+  }
 
   async openLocationDialog() {
     const dialogRef = this.dialog.open(LocationDialogComponent, {
