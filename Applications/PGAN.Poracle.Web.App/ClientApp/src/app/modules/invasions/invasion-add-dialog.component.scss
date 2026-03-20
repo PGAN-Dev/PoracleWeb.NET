@@ -28,6 +28,9 @@ mat-dialog-content {
 h4 {
   margin: 16px 0 8px;
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 mat-slide-toggle {
   margin: 16px 0;
