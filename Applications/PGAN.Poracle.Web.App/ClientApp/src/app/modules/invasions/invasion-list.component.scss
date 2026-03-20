@@ -115,16 +115,26 @@
   font-size: 18px;
 }
 .gender-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: rgba(0, 0, 0, 0.54);
-  font-size: 13px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--divider, rgba(0, 0, 0, 0.06));
+  margin-top: 4px;
 }
 .gender-icon {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+.gender-icon.male {
+  color: #2196f3;
+}
+.gender-icon.female {
+  color: #e91e63;
 }
 .distance-chip-row {
   margin-top: 12px;
