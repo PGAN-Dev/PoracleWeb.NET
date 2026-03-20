@@ -4,11 +4,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { forkJoin } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
@@ -27,7 +27,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
+    MatCheckboxModule,
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
@@ -51,7 +51,56 @@ export class RaidListComponent implements OnInit {
   readonly eggs = signal<Egg[]>([]);
   readonly loading = signal(true);
   readonly raids = signal<Raid[]>([]);
+  readonly selectMode = signal(false);
+  readonly selectedIds = signal(new Set<number>());
   readonly skeletonCards = Array.from({ length: 6 });
+
+  async bulkDelete(): Promise<void> {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: 'Delete Selected',
+        message: `Are you sure you want to delete ${this.selectedIds().size} alarms?`,
+        title: 'Delete Selected Alarms',
+        warn: true,
+      } as ConfirmDialogData,
+    });
+    const result = await firstValueFrom(ref.afterClosed());
+    if (result) {
+      const ids = [...this.selectedIds()];
+      const raidUids = new Set(this.raids().map(r => r.uid));
+      for (const uid of ids) {
+        if (raidUids.has(uid)) {
+          await firstValueFrom(this.raidService.delete(uid));
+        } else {
+          await firstValueFrom(this.eggService.delete(uid));
+        }
+      }
+      this.selectedIds.set(new Set());
+      this.selectMode.set(false);
+      this.loadData();
+      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+    }
+  }
+
+  async bulkUpdateDistance(): Promise<void> {
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const distance = await firstValueFrom(ref.afterClosed());
+    if (distance !== null && distance !== undefined) {
+      const ids = [...this.selectedIds()];
+      const raidUids = new Set(this.raids().map(r => r.uid));
+      for (const uid of ids) {
+        if (raidUids.has(uid)) {
+          await firstValueFrom(this.raidService.update(uid, { distance }));
+        } else {
+          await firstValueFrom(this.eggService.update(uid, { distance }));
+        }
+      }
+      this.selectedIds.set(new Set());
+      this.selectMode.set(false);
+      this.loadData();
+      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+    }
+  }
 
   deleteAll(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -258,6 +307,34 @@ export class RaidListComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (result) this.loadData();
     });
+  }
+
+  selectAll(): void {
+    const ids = new Set<number>();
+    this.raids().forEach(r => ids.add(r.uid));
+    this.eggs().forEach(e => ids.add(e.uid));
+    this.selectedIds.set(ids);
+  }
+
+  deselectAll(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  toggleSelect(uid: number): void {
+    const current = new Set(this.selectedIds());
+    if (current.has(uid)) {
+      current.delete(uid);
+    } else {
+      current.add(uid);
+    }
+    this.selectedIds.set(current);
+  }
+
+  toggleSelectMode(): void {
+    this.selectMode.update(v => !v);
+    if (!this.selectMode()) {
+      this.selectedIds.set(new Set());
+    }
   }
 
   updateAllDistance(): void {

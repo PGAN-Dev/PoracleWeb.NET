@@ -6,18 +6,45 @@
     </p>
   </div>
   <div class="header-actions">
-    <button mat-icon-button [matMenuTriggerFor]="bulkMenu" matTooltip="Bulk Actions">
-      <mat-icon>more_vert</mat-icon>
-    </button>
-    <mat-menu #bulkMenu="matMenu">
-      <button mat-menu-item (click)="updateAllDistance()"><mat-icon>straighten</mat-icon> Update All Distance</button>
-      <button mat-menu-item (click)="deleteAll()"><mat-icon color="warn">delete_sweep</mat-icon> Delete All</button>
-    </mat-menu>
     <button mat-fab (click)="openAddDialog()" [style.background-color]="'#f44336'" [style.color]="'white'">
       <mat-icon>add</mat-icon>
     </button>
   </div>
 </div>
+
+@if (!loading() && (raids().length > 0 || eggs().length > 0)) {
+  <div class="filter-bar">
+    <span class="result-count">{{ raids().length + eggs().length }} alarms</span>
+    <div class="bulk-spacer"></div>
+    <button mat-icon-button
+            (click)="toggleSelectMode()"
+            [class.select-mode-active]="selectMode()"
+            matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
+    </button>
+  </div>
+}
+
+@if (selectMode()) {
+  <div class="bulk-toolbar">
+    @if (selectedIds().size > 0) {
+      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+    }
+    <button mat-stroked-button (click)="selectAll()">
+      <mat-icon>select_all</mat-icon> Select All
+    </button>
+    @if (selectedIds().size > 0) {
+      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+    }
+    <div class="bulk-spacer"></div>
+    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+      <mat-icon>straighten</mat-icon> Update Distance
+    </button>
+    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
+      <mat-icon>delete</mat-icon> Delete
+    </button>
+  </div>
+}
 
 @if (loading()) {
   <div class="alarm-grid">
@@ -49,7 +76,15 @@
       </ng-template>
       <div class="alarm-grid">
         @for (raid of raids(); track raid.uid) {
-          <mat-card class="alarm-card">
+          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(raid.uid)">
+            @if (selectMode()) {
+              <mat-checkbox
+                [checked]="selectedIds().has(raid.uid)"
+                (change)="toggleSelect(raid.uid)"
+                (click)="$event.stopPropagation()"
+                class="card-checkbox">
+              </mat-checkbox>
+            }
             <div class="card-top" [style.border-top-color]="getLevelColor(raid.level)">
               <img [src]="getRaidImage(raid)" [alt]="getRaidTitle(raid)" class="item-img" (error)="onImageError($event)" />
               <div class="item-info">
@@ -115,7 +150,15 @@
       </ng-template>
       <div class="alarm-grid">
         @for (egg of eggs(); track egg.uid) {
-          <mat-card class="alarm-card">
+          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(egg.uid)">
+            @if (selectMode()) {
+              <mat-checkbox
+                [checked]="selectedIds().has(egg.uid)"
+                (change)="toggleSelect(egg.uid)"
+                (click)="$event.stopPropagation()"
+                class="card-checkbox">
+              </mat-checkbox>
+            }
             <div class="card-top" [style.border-top-color]="getLevelColor(egg.level)">
               <img [src]="getEggImage(egg.level)" [alt]="'Level ' + egg.level + ' Egg'" class="item-img" (error)="onImageError($event)" />
               <div class="item-info">
