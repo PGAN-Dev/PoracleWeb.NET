@@ -11,11 +11,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
 
-const INVASION_ICON_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/invasion';
-const GRUNT_TYPE_TO_ID: Record<string, number> = {
-  Bug: 1, Dark: 2, Dragon: 3, Electric: 4, Fairy: 5, Fighting: 6,
-  Fire: 7, Flying: 8, Ghost: 9, Grass: 10, Ground: 11, Ice: 12,
-  Metal: 13, Normal: 14, Poison: 15, Psychic: 16, Rock: 17, Water: 18,
+const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
+const GRUNT_TYPE_ID: Record<string, number> = {
+  Bug: 7, Dark: 17, Dragon: 16, Electric: 13, Fairy: 18, Fighting: 2,
+  Fire: 10, Flying: 3, Ghost: 8, Grass: 12, Ground: 5, Ice: 15,
+  Metal: 9, Normal: 1, Poison: 4, Psychic: 14, Rock: 6, Water: 11,
+};
+const GRUNT_INVASION_ID: Record<string, number> = {
   mixed: 41, Giovanni: 44, Decoy: 50,
 };
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
@@ -107,8 +109,12 @@ export class InvasionListComponent implements OnInit {
   }
 
   getGruntIcon(gruntType: string | null): string {
-    const id = GRUNT_TYPE_TO_ID[gruntType ?? ''] ?? 0;
-    return id > 0 ? `${INVASION_ICON_BASE}/${id}.png` : '';
+    const type = gruntType ?? '';
+    const typeId = GRUNT_TYPE_ID[type];
+    if (typeId) return `${UICONS_BASE}/type/${typeId}.png`;
+    const invasionId = GRUNT_INVASION_ID[type];
+    if (invasionId) return `${UICONS_BASE}/invasion/${invasionId}.png`;
+    return '';
   }
 
   formatDistance(meters: number): string {
