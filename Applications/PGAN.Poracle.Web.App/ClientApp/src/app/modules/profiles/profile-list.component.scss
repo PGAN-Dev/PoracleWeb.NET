@@ -129,3 +129,29 @@
   background-color: #7b1fa2 !important;
   color: white !important;
 }
+.drag-handle {
+  cursor: grab;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  margin: -4px 0 -4px -4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.drag-handle:hover {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+.profile-card.cdk-drag-preview {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+}
+.profile-card.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+.profile-card.cdk-drag-animating {
+  transition: transform 200ms ease;
+}
+.cdk-drop-list-dragging .profile-card:not(.cdk-drag-placeholder) {
+  transition: transform 200ms ease;
+}
