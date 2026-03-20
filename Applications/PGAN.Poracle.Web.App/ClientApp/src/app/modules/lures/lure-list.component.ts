@@ -90,15 +90,14 @@ export class LureListComponent implements OnInit {
     const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const ids = [...this.selectedIds()];
-      for (const uid of ids) {
-        const lure = this.lures().find(l => l.uid === uid);
-        if (lure) await firstValueFrom(this.lureService.update(uid, { ...lure, distance }));
-      }
+      const uids = [...this.selectedIds()];
+      await firstValueFrom(this.lureService.updateBulkDistance(uids, distance));
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadLures();
-      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+        duration: 3000,
+      });
     }
   }
 

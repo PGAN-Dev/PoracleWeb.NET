@@ -33,4 +33,11 @@ export class MonsterService {
   updateAllDistance(distance: number): Observable<void> {
     return this.http.put<void>(`${this.config.apiHost}/api/monsters/distance`, { distance });
   }
+
+  updateBulkDistance(uids: number[], distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/monsters/distance/bulk`, {
+      uids,
+      distance,
+    });
+  }
 }

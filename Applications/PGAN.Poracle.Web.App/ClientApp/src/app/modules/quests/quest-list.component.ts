@@ -96,15 +96,14 @@ export class QuestListComponent implements OnInit {
     const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const ids = [...this.selectedIds()];
-      for (const uid of ids) {
-        const quest = this.quests().find(q => q.uid === uid);
-        if (quest) await firstValueFrom(this.questService.update(uid, { ...quest, distance }));
-      }
+      const uids = [...this.selectedIds()];
+      await firstValueFrom(this.questService.updateBulkDistance(uids, distance));
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadQuests();
-      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+        duration: 3000,
+      });
     }
   }
 

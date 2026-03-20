@@ -33,4 +33,11 @@ export class LureService {
   updateAllDistance(distance: number): Observable<void> {
     return this.http.put<void>(`${this.config.apiHost}/api/lures/distance`, distance);
   }
+
+  updateBulkDistance(uids: number[], distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/lures/distance/bulk`, {
+      uids,
+      distance,
+    });
+  }
 }

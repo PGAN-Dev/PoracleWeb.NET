@@ -33,4 +33,11 @@ export class RaidService {
   updateAllDistance(distance: number): Observable<void> {
     return this.http.put<void>(`${this.config.apiHost}/api/raids/distance`, distance);
   }
+
+  updateBulkDistance(uids: number[], distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/raids/distance/bulk`, {
+      uids,
+      distance,
+    });
+  }
 }

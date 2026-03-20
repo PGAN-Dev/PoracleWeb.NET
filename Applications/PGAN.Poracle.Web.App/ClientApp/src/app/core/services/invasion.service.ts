@@ -33,4 +33,11 @@ export class InvasionService {
   updateAllDistance(distance: number): Observable<void> {
     return this.http.put<void>(`${this.config.apiHost}/api/invasions/distance`, distance);
   }
+
+  updateBulkDistance(uids: number[], distance: number): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/invasions/distance/bulk`, {
+      uids,
+      distance,
+    });
+  }
 }
