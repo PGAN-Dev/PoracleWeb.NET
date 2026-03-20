@@ -158,19 +158,19 @@ export class App implements OnInit {
 
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
 
-  private readonly ACCENT_GRADIENTS: Record<string, [string, string]> = {
-    pokemon: ['#2e7d32', '#1b5e20'],
-    raids: ['#c62828', '#b71c1c'],
-    mystic: ['#1565c0', '#0d47a1'],
-    valor: ['#d32f2f', '#b71c1c'],
-    instinct: ['#f9a825', '#f57f17'],
+  private readonly ACCENT_COLORS: Record<string, { primary: string; start: string; end: string; light: string }> = {
+    pokemon: { primary: '#4caf50', start: '#2e7d32', end: '#1b5e20', light: 'rgba(76, 175, 80, 0.1)' },
+    raids: { primary: '#f44336', start: '#c62828', end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)' },
+    mystic: { primary: '#2196f3', start: '#1565c0', end: '#0d47a1', light: 'rgba(33, 150, 243, 0.1)' },
+    valor: { primary: '#f44336', start: '#d32f2f', end: '#b71c1c', light: 'rgba(244, 67, 54, 0.1)' },
+    instinct: { primary: '#ffc107', start: '#f9a825', end: '#f57f17', light: 'rgba(255, 193, 7, 0.1)' },
   };
 
   protected readonly toolbarGradient = computed(() => {
     const accent = this.accentTheme();
-    const colors = this.ACCENT_GRADIENTS[accent];
+    const colors = this.ACCENT_COLORS[accent];
     if (colors) {
-      return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+      return `linear-gradient(135deg, ${colors.start} 0%, ${colors.end} 100%)`;
     }
     return this.darkMode()
       ? 'linear-gradient(135deg, #0d47a1 0%, #1a237e 100%)'
@@ -314,14 +314,20 @@ export class App implements OnInit {
   }
 
   private applyAccentTheme(): void {
-    const classes = document.body.classList;
-    // Remove all existing accent-* classes
-    Array.from(classes)
-      .filter(c => c.startsWith('accent-'))
-      .forEach(c => classes.remove(c));
     const accent = this.accentTheme();
-    if (accent) {
-      classes.add(`accent-${accent}`);
+    const colors = this.ACCENT_COLORS[accent];
+    const body = document.body;
+
+    if (colors) {
+      body.style.setProperty('--accent-primary', colors.primary);
+      body.style.setProperty('--accent-gradient-start', colors.start);
+      body.style.setProperty('--accent-gradient-end', colors.end);
+      body.style.setProperty('--accent-light', colors.light);
+    } else {
+      body.style.removeProperty('--accent-primary');
+      body.style.removeProperty('--accent-gradient-start');
+      body.style.removeProperty('--accent-gradient-end');
+      body.style.removeProperty('--accent-light');
     }
   }
 

@@ -215,11 +215,12 @@ body.dark-theme .app-content::after {
 }
 
 .active-link {
-  background-color: rgba(25, 118, 210, 0.1) !important;
+  background-color: var(--accent-light, rgba(25, 118, 210, 0.1)) !important;
   border-radius: 0 24px 24px 0 !important;
   margin-right: 12px;
-  border-left-color: currentColor !important;
+  border-left-color: var(--accent-primary, currentColor) !important;
   font-weight: 500;
+  color: var(--accent-primary, inherit);
 }
 
 .nav-badge {
