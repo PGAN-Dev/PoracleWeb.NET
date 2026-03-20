@@ -278,6 +278,7 @@ body.dark-theme .app-toolbar {
     flex: 1 1 auto !important;
     max-height: none !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 
   // Title: safe area top + extra padding
