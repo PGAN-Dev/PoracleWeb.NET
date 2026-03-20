@@ -24,7 +24,10 @@
                 <mat-select [formControl]="itemForm.controls.reward">
                   <mat-option [value]="0">Any Item</mat-option>
                   @for (item of questItems(); track item.id) {
-                    <mat-option [value]="item.id">{{ item.name }}</mat-option>
+                    <mat-option [value]="item.id">
+                      <img [src]="iconService.getItemUrl(item.id)" class="option-icon" (error)="$any($event.target).style.display='none'" />
+                      {{ item.name }}
+                    </mat-option>
                   }
                 </mat-select>
               </mat-form-field>

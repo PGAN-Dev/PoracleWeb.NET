@@ -13,6 +13,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { IconService } from '../../core/services/icon.service';
 import { MasterDataService, PokemonEntry } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -55,6 +56,7 @@ export class QuestAddDialogComponent {
 
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
 
+  readonly iconService = inject(IconService);
   readonly isWebhook = inject(AuthService).isImpersonating();
   private readonly masterData = inject(MasterDataService);
 
