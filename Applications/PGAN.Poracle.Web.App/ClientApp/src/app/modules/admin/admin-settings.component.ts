@@ -37,6 +37,18 @@ const SETTING_GROUPS: SettingGroup[] = [
     settings: [
       { description: 'Name shown in the browser tab and page header.', key: 'custom_title', label: 'Site Title', type: 'text' },
       {
+        description: 'URL for a custom logo image in the header (replaces the Pokeball). Leave empty for default.',
+        key: 'header_logo_url',
+        label: 'Header Logo URL',
+        type: 'url',
+      },
+      {
+        description: 'Hide the Pokeball/logo from the header entirely.',
+        key: 'hide_header_logo',
+        label: 'Hide Header Logo',
+        type: 'toggle',
+      },
+      {
         description: 'Label for the custom navigation link (e.g. "Back To Map").',
         key: 'custom_page_name',
         label: 'Nav Link Label',
@@ -237,6 +249,9 @@ export class AdminSettingsComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly internalPrefixes = [
     'webhook_delegates:',
+    'quick_pick:',
+    'user_quick_pick:',
+    'qp_applied:',
     'scan_db',
     'cf_',
     'api_address',

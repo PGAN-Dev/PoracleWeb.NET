@@ -25,14 +25,20 @@
     <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation">
       <mat-icon>menu</mat-icon>
     </button>
-    <svg viewBox="0 0 100 100" width="24" height="24" class="toolbar-pokeball">
-      <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="6" />
-      <path d="M2 50 H38" stroke="currentColor" stroke-width="6" />
-      <path d="M62 50 H98" stroke="currentColor" stroke-width="6" />
-      <path d="M2 50 A48 48 0 0 1 98 50" fill="currentColor" opacity="0.3" />
-      <circle cx="50" cy="50" r="16" fill="none" stroke="currentColor" stroke-width="6" />
-      <circle cx="50" cy="50" r="8" fill="currentColor" />
-    </svg>
+    @if (!hideHeaderLogo()) {
+      @if (headerLogoUrl()) {
+        <img [src]="headerLogoUrl()" alt="Logo" class="toolbar-logo" />
+      } @else {
+        <svg viewBox="0 0 100 100" width="24" height="24" class="toolbar-pokeball">
+          <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="6" />
+          <path d="M2 50 H38" stroke="currentColor" stroke-width="6" />
+          <path d="M62 50 H98" stroke="currentColor" stroke-width="6" />
+          <path d="M2 50 A48 48 0 0 1 98 50" fill="currentColor" opacity="0.3" />
+          <circle cx="50" cy="50" r="16" fill="none" stroke="currentColor" stroke-width="6" />
+          <circle cx="50" cy="50" r="8" fill="currentColor" />
+        </svg>
+      }
+    }
     <div class="app-title-block">
       <span class="app-title">{{ siteTitle() }}</span>
       <span class="app-subtitle">DM Alerts Configuration</span>

@@ -158,6 +158,9 @@ export class App implements OnInit {
 
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
+  protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
+  protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
+
   protected readonly isMobile = signal(window.innerWidth < 768);
 
   protected readonly settingsNavItems = computed(() =>

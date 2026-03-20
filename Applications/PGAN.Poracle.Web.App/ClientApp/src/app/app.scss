@@ -108,6 +108,14 @@
   opacity: 0.85;
 }
 
+.toolbar-logo {
+  height: 28px;
+  width: auto;
+  flex-shrink: 0;
+  margin-left: 8px;
+  object-fit: contain;
+}
+
 .toolbar-spacer {
   flex: 1 1 auto;
 }
