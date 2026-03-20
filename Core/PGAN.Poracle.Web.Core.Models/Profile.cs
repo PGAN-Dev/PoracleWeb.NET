@@ -11,10 +11,7 @@ public class Profile
     {
         get; set;
     }
-    public string? Area
-    {
-        get; set;
-    }
+    public string Area { get; set; } = "[]";
     public double Latitude
     {
         get; set;
