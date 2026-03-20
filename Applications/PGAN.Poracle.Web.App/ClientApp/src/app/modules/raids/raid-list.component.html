@@ -47,10 +47,7 @@
               </div>
               <div class="card-top-actions">
                 @if (raid.clean === 1) {
-                  <span class="clean-dot" matTooltip="Clean mode enabled"></span>
-                }
-                @if (raid.template) {
-                  <span class="template-chip" matTooltip="Template: {{ raid.template }}">{{ raid.template }}</span>
+                  <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
                 }
               </div>
             </div>
@@ -112,10 +109,7 @@
               </div>
               <div class="card-top-actions">
                 @if (egg.clean === 1) {
-                  <span class="clean-dot" matTooltip="Clean mode enabled"></span>
-                }
-                @if (egg.template) {
-                  <span class="template-chip" matTooltip="Template: {{ egg.template }}">{{ egg.template }}</span>
+                  <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
                 }
               </div>
             </div>

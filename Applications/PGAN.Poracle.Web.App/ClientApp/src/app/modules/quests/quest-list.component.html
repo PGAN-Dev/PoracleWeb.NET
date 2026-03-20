@@ -36,10 +36,7 @@
           </div>
           <div class="card-top-actions">
             @if (quest.clean === 1) {
-              <span class="clean-dot" matTooltip="Clean mode enabled"></span>
-            }
-            @if (quest.template) {
-              <span class="template-chip" matTooltip="Template: {{ quest.template }}">{{ quest.template }}</span>
+              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
             }
           </div>
         </div>

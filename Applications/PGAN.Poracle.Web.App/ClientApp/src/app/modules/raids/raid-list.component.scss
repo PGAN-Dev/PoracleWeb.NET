@@ -75,13 +75,18 @@
   align-items: center;
   gap: 6px;
 }
-.clean-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #4caf50;
+.clean-tag {
   display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: #4caf50;
+  color: #fff;
   flex-shrink: 0;
+  line-height: 16px;
 }
 .template-chip {
   display: inline-block;
