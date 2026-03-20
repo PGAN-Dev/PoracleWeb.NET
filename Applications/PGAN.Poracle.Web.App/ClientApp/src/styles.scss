@@ -249,17 +249,19 @@ body.dark-theme .app-toolbar {
 // ─── Mobile dialog fullscreen ──────────────────────────────────────
 
 @media (max-width: 599px) {
+  // Overlay fills entire viewport
   .cdk-overlay-pane:has(mat-dialog-container) {
     max-width: 100vw !important;
     width: 100vw !important;
-    max-height: 100vh !important;
-    height: 100vh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
   }
 
+  // Dialog surface fills overlay with flex layout
   mat-dialog-container .mat-mdc-dialog-surface {
     border-radius: 0 !important;
-    max-height: 100vh !important;
-    height: 100vh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
     display: flex !important;
     flex-direction: column !important;
   }
@@ -272,19 +274,23 @@ body.dark-theme .app-toolbar {
     flex-direction: column !important;
   }
 
+  // Content area scrolls vertically, fills remaining space
   [mat-dialog-content],
   mat-dialog-content,
   .mat-mdc-dialog-content {
     flex: 1 1 auto !important;
     max-height: none !important;
     min-width: 0 !important;
+    width: 100% !important;
     max-width: 100% !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     box-sizing: border-box !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 
-  // Prevent form rows from overflowing on narrow screens
+  // Form rows stack vertically
   .form-row {
     flex-wrap: wrap !important;
   }
@@ -294,17 +300,12 @@ body.dark-theme .app-toolbar {
     flex: 1 1 100% !important;
   }
 
-  // Tabs: hide label text, show icon only to save space
+  // Tabs: icon-only labels on mobile
   .tab-label {
     display: none !important;
   }
 
-  // Tabs: hide label text on mobile, show icon only
-  .tab-label {
-    display: none !important;
-  }
-
-  // Tabs should not overflow
+  // Constrain tabs
   .mat-mdc-tab-group,
   .mat-mdc-tab-body-wrapper,
   .mat-mdc-tab-body-content {
@@ -312,41 +313,27 @@ body.dark-theme .app-toolbar {
     overflow-x: hidden !important;
   }
 
-  // Reduce tab body padding on mobile
   .alarm-tabs .mat-mdc-tab-body-wrapper {
     padding: 0 16px !important;
   }
 
-  // Reduce dialog content padding on mobile
-  .mat-mdc-dialog-content {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
-
-  // Reduce tab body padding on mobile
-  .alarm-tabs .mat-mdc-tab-body-wrapper {
-    padding: 0 16px !important;
-  }
-
-  // Reduce dialog content padding on mobile
-  .mat-mdc-dialog-content {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
-
-  // Title: safe area top + extra padding
+  // Title: pinned top with safe area padding
   [mat-dialog-title],
   .mat-mdc-dialog-title {
     flex-shrink: 0 !important;
-    padding-top: calc(env(safe-area-inset-top, 8px) + 12px) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 
-  // Actions: safe area bottom + extra padding
+  // Actions: pinned bottom with generous padding for phone nav bar
   [mat-dialog-actions],
   mat-dialog-actions,
   .mat-mdc-dialog-actions {
     flex-shrink: 0 !important;
-    padding-bottom: calc(env(safe-area-inset-bottom, 8px) + 12px) !important;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px) !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 }
 
