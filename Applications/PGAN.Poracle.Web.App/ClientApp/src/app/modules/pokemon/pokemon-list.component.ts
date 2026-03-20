@@ -379,6 +379,21 @@ export class PokemonListComponent implements OnInit {
     }
   }
 
+  async bulkUpdateDistance(): Promise<void> {
+    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
+    const distance = await firstValueFrom(ref.afterClosed());
+    if (distance !== null && distance !== undefined) {
+      const ids = [...this.selectedIds()];
+      for (const uid of ids) {
+        await firstValueFrom(this.monsterService.update(uid, { distance }));
+      }
+      this.selectedIds.set(new Set());
+      this.selectMode.set(false);
+      this.loadMonsters();
+      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+    }
+  }
+
   updateAllDistance(): void {
     const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
     ref.afterClosed().subscribe(distance => {
