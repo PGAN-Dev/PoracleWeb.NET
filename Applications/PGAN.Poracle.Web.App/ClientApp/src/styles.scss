@@ -76,32 +76,36 @@ body:not(.dark-theme) {
   --hover-overlay: rgba(0, 0, 0, 0.04);
 }
 
-// ─── Accent theme variants ─────────────────────────────────────────
+// ─── Accent theme integration ─────────────────────────────────────
+// CSS variables --accent-primary, --accent-light, --accent-gradient-start,
+// --accent-gradient-end are set inline on <body> by app.ts applyAccentTheme().
 
-body.accent-pokemon {
-  --accent-primary: #4caf50;
-  --accent-gradient-start: #2e7d32;
-  --accent-gradient-end: #1b5e20;
+// Active filter chips use accent color
+.filter-active {
+  background-color: var(--accent-light, rgba(25, 118, 210, 0.1)) !important;
+  border-color: var(--accent-primary, #1976d2) !important;
+  color: var(--accent-primary, #1976d2) !important;
 }
-body.accent-raids {
-  --accent-primary: #f44336;
-  --accent-gradient-start: #c62828;
-  --accent-gradient-end: #b71c1c;
+
+// Select mode toggle active state
+.select-mode-active {
+  color: var(--accent-primary, #1976d2) !important;
 }
-body.accent-mystic {
-  --accent-primary: #2196f3;
-  --accent-gradient-start: #1565c0;
-  --accent-gradient-end: #0d47a1;
+
+// Bulk count text
+.bulk-count {
+  color: var(--accent-primary, #1976d2);
 }
-body.accent-valor {
-  --accent-primary: #f44336;
-  --accent-gradient-start: #d32f2f;
-  --accent-gradient-end: #b71c1c;
+
+// Selected card outline
+.card-selected {
+  outline-color: var(--accent-primary, #1976d2) !important;
 }
-body.accent-instinct {
-  --accent-primary: #ffc107;
-  --accent-gradient-start: #f9a825;
-  --accent-gradient-end: #f57f17;
+
+// Focus visible outline
+*:focus-visible {
+  outline: 2px solid var(--accent-primary, #1976d2);
+  outline-offset: 2px;
 }
 
 // ─── Pokeball loading spinner ──────────────────────────────────────
@@ -493,12 +497,6 @@ body.dark-theme .app-toolbar {
 }
 
 // ─── Accessibility ──────────────────────────────────────────────────
-
-// Focus visible styles for keyboard navigation
-*:focus-visible {
-  outline: 2px solid #1976d2;
-  outline-offset: 2px;
-}
 
 // Reduce motion for users who prefer it
 @media (prefers-reduced-motion: reduce) {
