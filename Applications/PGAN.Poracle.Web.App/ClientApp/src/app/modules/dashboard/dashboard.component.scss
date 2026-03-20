@@ -380,6 +380,74 @@
   margin-bottom: 8px;
 }
 
+/* Tips Section */
+.tips-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.tip-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid;
+}
+.tip-warning {
+  background: rgba(255, 152, 0, 0.08);
+  border-color: rgba(255, 152, 0, 0.3);
+  color: #e65100;
+}
+.tip-info {
+  background: rgba(33, 150, 243, 0.08);
+  border-color: rgba(33, 150, 243, 0.3);
+  color: #1565c0;
+}
+.tip-content {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  font-size: 14px;
+}
+.tip-action {
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tip-warning .tip-action {
+  color: #e65100;
+}
+.tip-info .tip-action {
+  color: #1565c0;
+}
+
+/* Card View All Link */
+.card-view-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.card-view-all mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+.dashboard-card:hover .card-view-all {
+  opacity: 1;
+}
+
 /* Quick Actions */
 .quick-actions {
   display: flex;
