@@ -158,6 +158,25 @@ export class App implements OnInit {
 
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
 
+  private readonly ACCENT_GRADIENTS: Record<string, [string, string]> = {
+    pokemon: ['#2e7d32', '#1b5e20'],
+    raids: ['#c62828', '#b71c1c'],
+    mystic: ['#1565c0', '#0d47a1'],
+    valor: ['#d32f2f', '#b71c1c'],
+    instinct: ['#f9a825', '#f57f17'],
+  };
+
+  protected readonly toolbarGradient = computed(() => {
+    const accent = this.accentTheme();
+    const colors = this.ACCENT_GRADIENTS[accent];
+    if (colors) {
+      return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+    }
+    return this.darkMode()
+      ? 'linear-gradient(135deg, #0d47a1 0%, #1a237e 100%)'
+      : 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)';
+  });
+
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
   protected readonly showShortcutHelp = signal(false);
