@@ -207,7 +207,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     if (this.geofence.length === 0) return;
 
-    const selectedSet = new Set(this.selectedAreas);
+    // Case-insensitive match: DB stores lowercase, geofence names may be mixed case
+    const selectedSet = new Set(this.selectedAreas.map(a => a.toLowerCase()));
 
     // Build group-to-color mapping
     this.groupColorMap.clear();
@@ -239,17 +240,17 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       const latLngs: L.LatLngExpression[] = fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
       allBounds.push(...latLngs);
 
-      const isSelected = selectedSet.has(fence.name);
+      const isSelected = selectedSet.has(fence.name.toLowerCase());
       const group = this.groupMapping.get(fence.name) || '';
       const color = this.groupColorMap.get(group) || GROUP_COLORS[0];
 
       const polygon = L.polygon(latLngs, {
-        color: color,
+        color: isSelected ? '#4caf50' : color,
         dashArray: isSelected ? undefined : '5, 5',
-        fillColor: color,
-        fillOpacity: isSelected ? 0.4 : 0.1,
-        opacity: isSelected ? 0.9 : 0.5,
-        weight: isSelected ? 3 : 1.5,
+        fillColor: isSelected ? '#4caf50' : color,
+        fillOpacity: isSelected ? 0.35 : 0.08,
+        opacity: isSelected ? 1 : 0.4,
+        weight: isSelected ? 3 : 1,
       });
 
       polygon.bindTooltip(fence.name, {
