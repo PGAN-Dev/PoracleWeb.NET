@@ -136,6 +136,21 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
         return entities.Count;
     }
 
+    public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, int distance)
+    {
+        var entities = await this.DbSet
+            .Where(e => uids.Contains(EF.Property<int>(e, "Uid")))
+            .ToListAsync();
+
+        foreach (var entity in entities)
+        {
+            SetDistance(entity, distance);
+        }
+
+        await this.Context.SaveChangesAsync();
+        return entities.Count;
+    }
+
     public async Task<int> BulkUpdateCleanAsync(string userId, int profileNo, int clean)
     {
         var entities = await this.DbSet

@@ -28,6 +28,8 @@ public class MonsterService(IMonsterRepository repository) : IMonsterService
 
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance) => await this._repository.UpdateDistanceByUserAsync(userId, profileNo, distance);
 
+    public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, int distance) => await this._repository.UpdateDistanceByUidsAsync(uids, distance);
+
     public async Task<int> CountByUserAsync(string userId, int profileNo) => await this._repository.CountByUserAsync(userId, profileNo);
 
     public async Task<IEnumerable<Monster>> BulkCreateAsync(string userId, IEnumerable<Monster> models)

@@ -16,6 +16,9 @@ npm-debug.log*
 .env
 appsettings.*.local.json
 
+## Claude Code
+.claude/worktrees/
+
 ## IDE
 .idea/
 .vscode/

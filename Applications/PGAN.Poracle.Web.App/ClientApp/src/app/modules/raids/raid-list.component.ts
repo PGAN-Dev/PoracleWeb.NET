@@ -87,20 +87,19 @@ export class RaidListComponent implements OnInit {
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const ids = [...this.selectedIds()];
-      const raidUids = new Set(this.raids().map(r => r.uid));
-      for (const uid of ids) {
-        if (raidUids.has(uid)) {
-          const raid = this.raids().find(r => r.uid === uid);
-          if (raid) await firstValueFrom(this.raidService.update(uid, { ...raid, distance }));
-        } else {
-          const egg = this.eggs().find(e => e.uid === uid);
-          if (egg) await firstValueFrom(this.eggService.update(uid, { ...egg, distance }));
-        }
-      }
+      const raidUids = this.raids().map(r => r.uid);
+      const selectedRaidUids = ids.filter(id => raidUids.includes(id));
+      const selectedEggUids = ids.filter(id => !raidUids.includes(id));
+      if (selectedRaidUids.length > 0)
+        await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
+      if (selectedEggUids.length > 0)
+        await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', {
+        duration: 3000,
+      });
     }
   }
 

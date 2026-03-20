@@ -9,6 +9,7 @@ public interface IBaseRepository<TModel> where TModel : class
     public Task<bool> DeleteAsync(int uid);
     public Task<int> DeleteAllByUserAsync(string userId, int profileNo);
     public Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
+    public Task<int> UpdateDistanceByUidsAsync(List<int> uids, int distance);
     public Task<int> CountByUserAsync(string userId, int profileNo);
     public Task<int> BulkUpdateCleanAsync(string userId, int profileNo, int clean);
     public Task<IEnumerable<TModel>> BulkCreateAsync(IEnumerable<TModel> models);

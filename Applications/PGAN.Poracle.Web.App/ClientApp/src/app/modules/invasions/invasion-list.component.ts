@@ -102,15 +102,14 @@ export class InvasionListComponent implements OnInit {
     const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const ids = [...this.selectedIds()];
-      for (const uid of ids) {
-        const invasion = this.invasions().find(i => i.uid === uid);
-        if (invasion) await firstValueFrom(this.invasionService.update(uid, { ...invasion, distance }));
-      }
+      const uids = [...this.selectedIds()];
+      await firstValueFrom(this.invasionService.updateBulkDistance(uids, distance));
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadInvasions();
-      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+        duration: 3000,
+      });
     }
   }
 
