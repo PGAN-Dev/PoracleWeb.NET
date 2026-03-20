@@ -62,6 +62,11 @@ export class LureAddDialogComponent {
 
   saving = signal(false);
   selectedLureIds = signal<number[]>([]);
+
+  getLureIcon(lureId: number): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
+  }
+
   onDistanceModeChange(): void {
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
     else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);

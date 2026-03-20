@@ -1,7 +1,7 @@
 <h2 mat-dialog-title>Edit Lure Alarm</h2>
 <mat-dialog-content>
   <div class="item-header">
-    <span class="lure-dot" [style.background]="getLureColor(data.lureId)"></span>
+    <img [src]="getLureIcon()" class="lure-img" alt="" />
     <div>
       <h3>{{ getLureName(data.lureId) }} Lure</h3>
     </div>

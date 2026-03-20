@@ -53,23 +53,8 @@ export class LureEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
-  getLureColor(id: number): string {
-    switch (id) {
-      case 501:
-        return '#FF9800';
-      case 502:
-        return '#03A9F4';
-      case 503:
-        return '#4CAF50';
-      case 504:
-        return '#9E9E9E';
-      case 505:
-        return '#2196F3';
-      case 506:
-        return '#FFC107';
-      default:
-        return '#9E9E9E';
-    }
+  getLureIcon(): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${this.data.lureId}.png`;
   }
 
   getLureName(id: number): string {

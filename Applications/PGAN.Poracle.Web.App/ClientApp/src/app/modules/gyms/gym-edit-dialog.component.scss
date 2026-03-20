@@ -20,11 +20,11 @@ mat-dialog-content {
   gap: 16px;
   margin-bottom: 16px;
 }
-.team-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: inline-block;
+.gym-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .item-header h3 {
   margin: 0;

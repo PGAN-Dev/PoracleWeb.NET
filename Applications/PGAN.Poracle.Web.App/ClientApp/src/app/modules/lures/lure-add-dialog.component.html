@@ -12,7 +12,7 @@
         <div class="lure-grid">
           @for (lure of lureTypes; track lure.id) {
             <mat-checkbox [checked]="selectedLureIds().includes(lure.id)" (change)="toggleLure(lure.id)">
-              <span class="lure-label"><span class="lure-dot" [style.background]="lure.color"></span>{{ lure.name }}</span>
+              <span class="lure-label"><img [src]="getLureIcon(lure.id)" class="lure-option-icon" />{{ lure.name }}</span>
             </mat-checkbox>
           }
         </div>

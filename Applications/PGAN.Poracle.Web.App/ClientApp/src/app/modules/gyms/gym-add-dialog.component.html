@@ -12,7 +12,7 @@
         <div class="team-grid">
           @for (team of teams; track team.id) {
             <mat-checkbox [checked]="selectedTeamIds().includes(team.id)" (change)="toggleTeam(team.id)">
-              <span class="team-label"><span class="team-dot" [style.background]="team.color"></span>{{ team.name }}</span>
+              <span class="team-label"><img [src]="getGymIcon(team.id)" class="team-option-icon" />{{ team.name }}</span>
             </mat-checkbox>
           }
         </div>

@@ -70,6 +70,10 @@ export class GymAddDialogComponent {
     { id: 3, name: 'Instinct (Yellow)', color: '#FFC107' },
   ];
 
+  getGymIcon(team: number): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
+  }
+
   onDistanceModeChange(): void {
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
     else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);

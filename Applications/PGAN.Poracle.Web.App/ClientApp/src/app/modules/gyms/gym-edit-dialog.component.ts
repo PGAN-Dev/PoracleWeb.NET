@@ -55,19 +55,8 @@ export class GymEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
-  getTeamColor(team: number): string {
-    switch (team) {
-      case 0:
-        return '#9E9E9E';
-      case 1:
-        return '#2196F3';
-      case 2:
-        return '#F44336';
-      case 3:
-        return '#FFC107';
-      default:
-        return '#9E9E9E';
-    }
+  getGymIcon(): string {
+    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${this.data.team}.png`;
   }
 
   getTeamName(team: number): string {
