@@ -36,97 +36,102 @@
     <mat-spinner diameter="48"></mat-spinner>
     <p class="loading-text">Loading quick picks...</p>
   </div>
-} @else {
-  <div class="alarm-grid">
-    @for (pick of filteredPicks(); track pick.definition.id) {
-      <mat-card class="alarm-card" [class.applied-card]="pick.appliedState">
-        <div class="card-top" [style.border-top-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
-          <div class="pick-icon-wrap" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
-            <mat-icon>{{ pick.definition.icon }}</mat-icon>
-          </div>
-          <div class="pick-info">
-            <h3>
-              {{ pick.definition.name }}
-              @if (pick.definition.scope === 'global') {
-                <mat-icon class="scope-icon" matTooltip="Admin preset">lock</mat-icon>
-              } @else {
-                <mat-icon class="scope-icon" matTooltip="Personal preset">person</mat-icon>
-              }
-            </h3>
-            <span class="pick-description">{{ pick.definition.description }}</span>
-          </div>
-          <div class="card-top-actions">
-            <span class="alarm-type-chip" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
-              {{ pick.definition.alarmType }}
-            </span>
-          </div>
-        </div>
-        <mat-card-content>
-          @if (pick.appliedState) {
-            <div class="applied-info">
-              <mat-icon>check_circle</mat-icon>
-              <span>
-                Applied — {{ pick.appliedState.trackedUids.length }} alarm(s)
-                @if (pick.appliedState.excludePokemonIds?.length) {
-                  · {{ pick.appliedState.excludePokemonIds.length }} excluded
-                }
-              </span>
-            </div>
-          }
-        </mat-card-content>
-        <mat-card-actions align="end">
-          @if (removing() === pick.definition.id) {
-            <span class="removing-label">
-              <mat-spinner diameter="16"></mat-spinner>
-              Removing...
-            </span>
-          } @else if (pick.appliedState) {
-            <button mat-button (click)="onApply(pick)" matTooltip="Update delivery settings and re-apply">
-              <mat-icon>refresh</mat-icon>
-              Re-apply
-            </button>
-            <button mat-button color="warn" (click)="onRemove(pick)" matTooltip="Remove alarms created by this pick">
-              <mat-icon>delete_outline</mat-icon>
-              Remove
-            </button>
-          } @else {
-            <button
-              mat-flat-button
-              (click)="onApply(pick)"
-              [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'"
-              style="color: white">
-              <mat-icon>add</mat-icon>
-              Apply
-            </button>
-          }
-          @if (isAdmin() || pick.definition.scope === 'user') {
-            <button mat-icon-button [matMenuTriggerFor]="pickMenu">
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #pickMenu="matMenu">
-              <button mat-menu-item (click)="onEdit(pick)">
-                <mat-icon>edit</mat-icon>
-                <span>Edit</span>
-              </button>
-              <button mat-menu-item (click)="onDelete(pick)">
-                <mat-icon>delete</mat-icon>
-                <span>Delete</span>
-              </button>
-            </mat-menu>
-          }
-        </mat-card-actions>
-      </mat-card>
-    } @empty {
-      <div class="empty-state">
-        <mat-icon class="empty-icon">bolt</mat-icon>
-        <h2 class="empty-title">No Quick Picks Available</h2>
-        <p class="empty-subtitle">Quick picks let you apply alarm presets with a single click</p>
-        @if (isAdmin()) {
-          <button mat-flat-button style="background-color: #ff6f00; color: white" (click)="onAddNew()">
-            <mat-icon>add</mat-icon> Create Quick Pick
-          </button>
-        }
-      </div>
+} @else if (groupedPicks().length === 0) {
+  <div class="empty-state">
+    <mat-icon class="empty-icon">bolt</mat-icon>
+    <h2 class="empty-title">No Quick Picks Available</h2>
+    <p class="empty-subtitle">Quick picks let you apply alarm presets with a single click</p>
+    @if (isAdmin()) {
+      <button mat-flat-button style="background-color: #ff6f00; color: white" (click)="onAddNew()">
+        <mat-icon>add</mat-icon> Create Quick Pick
+      </button>
     }
   </div>
+} @else {
+  @for (group of groupedPicks(); track group.category) {
+    <div class="pick-group">
+      <h2 class="group-title">{{ group.category }}</h2>
+      <div class="alarm-grid">
+        @for (pick of group.items; track pick.definition.id) {
+          <mat-card class="alarm-card" [class.applied-card]="pick.appliedState">
+            <div class="card-top" [style.border-top-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
+              <div class="pick-icon-wrap" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
+                <mat-icon>{{ pick.definition.icon }}</mat-icon>
+              </div>
+              <div class="pick-info">
+                <h3>
+                  {{ pick.definition.name }}
+                  @if (pick.definition.scope === 'global') {
+                    <mat-icon class="scope-icon" matTooltip="Admin preset">lock</mat-icon>
+                  } @else {
+                    <mat-icon class="scope-icon" matTooltip="Personal preset">person</mat-icon>
+                  }
+                </h3>
+                <span class="pick-description">{{ pick.definition.description }}</span>
+              </div>
+              <div class="card-top-actions">
+                <span class="alarm-type-chip" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
+                  {{ pick.definition.alarmType }}
+                </span>
+              </div>
+            </div>
+            <mat-card-content>
+              @if (pick.appliedState) {
+                <div class="applied-info">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>
+                    Applied — {{ pick.appliedState.trackedUids.length }} alarm(s)
+                    @if (pick.appliedState.excludePokemonIds?.length) {
+                      · {{ pick.appliedState.excludePokemonIds.length }} excluded
+                    }
+                  </span>
+                </div>
+              }
+            </mat-card-content>
+            <mat-card-actions align="end">
+              @if (removing() === pick.definition.id) {
+                <span class="removing-label">
+                  <mat-spinner diameter="16"></mat-spinner>
+                  Removing...
+                </span>
+              } @else if (pick.appliedState) {
+                <button mat-button (click)="onApply(pick)" matTooltip="Update delivery settings and re-apply">
+                  <mat-icon>refresh</mat-icon>
+                  Re-apply
+                </button>
+                <button mat-button color="warn" (click)="onRemove(pick)" matTooltip="Remove alarms created by this pick">
+                  <mat-icon>delete_outline</mat-icon>
+                  Remove
+                </button>
+              } @else {
+                <button
+                  mat-flat-button
+                  (click)="onApply(pick)"
+                  [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'"
+                  style="color: white">
+                  <mat-icon>add</mat-icon>
+                  Apply
+                </button>
+              }
+              @if (isAdmin() || pick.definition.scope === 'user') {
+                <button mat-icon-button [matMenuTriggerFor]="pickMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #pickMenu="matMenu">
+                  <button mat-menu-item (click)="onEdit(pick)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button mat-menu-item (click)="onDelete(pick)">
+                    <mat-icon>delete</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              }
+            </mat-card-actions>
+          </mat-card>
+        }
+      </div>
+    </div>
+  }
 }
