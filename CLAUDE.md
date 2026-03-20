@@ -88,6 +88,13 @@ PGAN.Poracle.Web.slnx
 - `humans.current_profile_no` (not `profile_no`) tracks the active profile.
 - All alarm tables reference `profile_no` to filter by active profile.
 
+### Rate Limiting
+- Auth endpoints use **per-IP** partitioned rate limiting (not global).
+- `auth` policy: 30 requests per 60s per IP (login, callback, token exchange).
+- `auth-read` policy: 120 requests per 60s per IP (current user, profile switch).
+- Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
+- **Important**: Never use global (non-partitioned) `AddFixedWindowLimiter` for auth -- multiple users sharing one bucket causes cascading login failures.
+
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
 - `DashboardService` runs sequential DB queries (not `Task.WhenAll`) because it uses a single scoped `DbContext` instance which is not thread-safe.
