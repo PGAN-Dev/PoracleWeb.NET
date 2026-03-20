@@ -1,19 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Areas</h1>
-    <p class="page-description">
-      Choose which geographic areas you receive notifications for. Click areas on the map or use the list below.
-    </p>
-  </div>
-  <div class="header-actions">
-    <button mat-stroked-button (click)="openLocationDialog()">
-      <mat-icon>my_location</mat-icon>
-      @if (location(); as loc) {
-        {{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}
-      } @else {
-        Set Location
-      }
-    </button>
+    <h1>Areas & Location</h1>
+    <p class="page-description">Choose which geographic areas you receive notifications for.</p>
   </div>
 </div>
 
@@ -23,21 +11,51 @@
   </div>
 } @else {
   <div class="areas-page">
-    <!-- Interactive Map -->
-    @if (geofenceData().length > 0) {
-      <div class="map-container">
-        <app-area-map
-          [geofence]="geofenceData()"
-          [selectedAreas]="selectedAreas()"
-          [userLocation]="userLocationForMap()"
-          [groupMapping]="groupMapping()"
-          (areaClicked)="onMapAreaClicked($event)"></app-area-map>
+    <!-- Location Card (always visible, compact) -->
+    <div class="location-bar">
+      <mat-icon class="location-icon">my_location</mat-icon>
+      <div class="location-info">
+        <span class="location-label">Your Location</span>
+        @if (location(); as loc) {
+          <span class="location-value">
+            @if (locationAddress()) {
+              {{ locationAddress() }}
+            } @else {
+              {{ loc.latitude.toFixed(5) }}, {{ loc.longitude.toFixed(5) }}
+            }
+          </span>
+        } @else {
+          <span class="location-value location-unset">Not set — needed for distance-based alerts</span>
+        }
       </div>
-    }
+      <button mat-stroked-button (click)="openLocationDialog()">
+        <mat-icon>edit_location</mat-icon>
+        {{ location() ? 'Change' : 'Set' }}
+      </button>
+    </div>
+
+    <!-- Mode Toggle -->
+    <div class="mode-bar">
+      <div class="mode-toggle">
+        <button
+          class="mode-btn"
+          [class.mode-active]="viewMode() === 'map'"
+          (click)="viewMode.set('map')"
+          [disabled]="geofenceData().length === 0">
+          <mat-icon>public</mat-icon>
+          Map
+        </button>
+        <button class="mode-btn" [class.mode-active]="viewMode() === 'list'" (click)="viewMode.set('list')">
+          <mat-icon>list</mat-icon>
+          List
+        </button>
+      </div>
+      <span class="selection-summary">{{ selectedAreas().length }} area(s) selected</span>
+    </div>
 
     <!-- Selected Areas Chips -->
-    <div class="selected-bar">
-      @if (selectedAreas().length > 0) {
+    @if (selectedAreas().length > 0) {
+      <div class="selected-bar">
         <mat-chip-set class="selected-chips">
           @for (area of selectedAreas(); track area) {
             <mat-chip highlighted color="primary" (removed)="removeAreaDirect(area)">
@@ -46,73 +64,99 @@
             </mat-chip>
           }
         </mat-chip-set>
-      } @else {
-        <p class="no-areas-hint">No areas selected — pick areas from the map or list below</p>
-      }
-    </div>
-
-    <!-- Search + Group Filter -->
-    <div class="filter-bar">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-icon matPrefix>search</mat-icon>
-        <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" placeholder="Search areas..." />
-        @if (searchText) {
-          <button mat-icon-button matSuffix (click)="clearSearch()">
-            <mat-icon>close</mat-icon>
-          </button>
-        }
-      </mat-form-field>
-    </div>
-
-    @if (hasMultipleGroups()) {
-      <div class="group-chips">
-        <button class="group-chip" [class.group-active]="!activeGroup()" (click)="activeGroup.set(null)">All</button>
-        @for (group of allGroups(); track group.name) {
-          <button
-            class="group-chip"
-            [class.group-active]="activeGroup() === group.name"
-            (click)="activeGroup.set(activeGroup() === group.name ? null : group.name)">
-            {{ group.name }}
-            <span class="group-chip-count">{{ group.selectedCount }}/{{ group.totalCount }}</span>
-          </button>
-        }
       </div>
     }
 
-    <!-- Area Checklist -->
-    @if (availableAreas().length === 0) {
-      <div class="api-offline-notice">
-        <mat-icon class="warning-icon">cloud_off</mat-icon>
-        <p>Area geofences are not available. The Poracle API may be offline.</p>
-        <mat-form-field appearance="outline" class="manual-input">
-          <mat-label>Add area name manually</mat-label>
-          <input matInput [(ngModel)]="manualAreaName" (keyup.enter)="addManualArea()" placeholder="Type an area name and press Enter" />
-          <button mat-icon-button matSuffix (click)="addManualArea()" [disabled]="!manualAreaName.trim()">
-            <mat-icon>add_circle</mat-icon>
-          </button>
+    <!-- Map View -->
+    @if (viewMode() === 'map') {
+      @if (geofenceData().length > 0) {
+        <div class="map-container">
+          <app-area-map
+            [geofence]="geofenceData()"
+            [selectedAreas]="selectedAreas()"
+            [userLocation]="userLocationForMap()"
+            [groupMapping]="groupMapping()"
+            (areaClicked)="onMapAreaClicked($event)"></app-area-map>
+        </div>
+        <p class="map-hint">Click an area on the map to toggle it</p>
+      } @else {
+        <div class="empty-map">
+          <mat-icon>map</mat-icon>
+          <p>No geofence data available. Use the List view to select areas.</p>
+        </div>
+      }
+    }
+
+    <!-- List View -->
+    @if (viewMode() === 'list') {
+      <div class="list-view">
+        <!-- Search -->
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" placeholder="Search areas..." />
+          @if (searchText) {
+            <button mat-icon-button matSuffix (click)="clearSearch()">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
         </mat-form-field>
-      </div>
-    } @else {
-      <div class="area-checklist">
-        @for (area of visibleAreas(); track area.name) {
-          <div class="area-row" [class.area-row-selected]="area.selected" (click)="toggleAreaDirect(area)">
-            <mat-checkbox [checked]="area.selected" (click)="$event.stopPropagation()" (change)="toggleAreaDirect(area)"></mat-checkbox>
-            <span class="area-row-name">{{ area.name }}</span>
-            @if (hasMultipleGroups() && !activeGroup()) {
-              <span class="area-row-group">{{ area.group }}</span>
+
+        <!-- Group Filter Chips -->
+        @if (hasMultipleGroups()) {
+          <div class="group-chips">
+            <button class="group-chip" [class.group-active]="!activeGroup()" (click)="activeGroup.set(null)">All</button>
+            @for (group of allGroups(); track group.name) {
+              <button
+                class="group-chip"
+                [class.group-active]="activeGroup() === group.name"
+                (click)="activeGroup.set(activeGroup() === group.name ? null : group.name)">
+                {{ group.name }}
+                <span class="group-chip-count">{{ group.selectedCount }}/{{ group.totalCount }}</span>
+              </button>
             }
           </div>
-        } @empty {
-          @if (searchText) {
-            <p class="no-results">No areas match "{{ searchText }}"</p>
-          }
         }
-      </div>
 
-      <div class="list-actions">
-        <button mat-button color="primary" (click)="selectAllVisible()"><mat-icon>select_all</mat-icon> Select All</button>
-        <button mat-button (click)="deselectAllVisible()"><mat-icon>deselect</mat-icon> Deselect All</button>
-        <span class="selection-count">{{ selectedAreas().length }} of {{ availableAreas().length }} selected</span>
+        <!-- Checklist -->
+        @if (availableAreas().length === 0) {
+          <div class="api-offline-notice">
+            <mat-icon class="warning-icon">cloud_off</mat-icon>
+            <p>Area geofences are not available. The Poracle API may be offline.</p>
+            <mat-form-field appearance="outline" class="manual-input">
+              <mat-label>Add area name manually</mat-label>
+              <input
+                matInput
+                [(ngModel)]="manualAreaName"
+                (keyup.enter)="addManualArea()"
+                placeholder="Type an area name and press Enter" />
+              <button mat-icon-button matSuffix (click)="addManualArea()" [disabled]="!manualAreaName.trim()">
+                <mat-icon>add_circle</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
+        } @else {
+          <!-- Bulk actions -->
+          <div class="list-actions">
+            <button mat-button color="primary" (click)="selectAllVisible()"><mat-icon>select_all</mat-icon> Select All</button>
+            <button mat-button (click)="deselectAllVisible()"><mat-icon>deselect</mat-icon> Deselect All</button>
+          </div>
+
+          <div class="area-checklist">
+            @for (area of visibleAreas(); track area.name) {
+              <div class="area-row" [class.area-row-selected]="area.selected" (click)="toggleAreaDirect(area)">
+                <mat-checkbox [checked]="area.selected" (click)="$event.stopPropagation()" (change)="toggleAreaDirect(area)"></mat-checkbox>
+                <span class="area-row-name">{{ area.name }}</span>
+                @if (hasMultipleGroups() && !activeGroup()) {
+                  <span class="area-row-group">{{ area.group }}</span>
+                }
+              </div>
+            } @empty {
+              @if (searchText) {
+                <p class="no-results">No areas match "{{ searchText }}"</p>
+              }
+            }
+          </div>
+        }
       </div>
     }
 

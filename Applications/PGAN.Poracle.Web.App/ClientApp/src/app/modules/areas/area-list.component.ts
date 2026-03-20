@@ -79,6 +79,7 @@ export class AreaListComponent implements OnInit {
   });
 
   readonly availableAreas = signal<AreaDefinition[]>([]);
+
   readonly geofenceData = computed(() => {
     const available = this.availableAreas();
     const raw = this.rawGeofenceData();
@@ -96,6 +97,7 @@ export class AreaListComponent implements OnInit {
   });
 
   readonly selectedAreas = signal<string[]>([]);
+
   readonly hasChanges = computed(() => {
     const current = [...this.selectedAreas()].sort();
     const saved = [...this.savedSelection].sort();
@@ -109,8 +111,8 @@ export class AreaListComponent implements OnInit {
   });
 
   readonly loading = signal(true);
-  readonly location = signal<Location | null>(null);
 
+  readonly location = signal<Location | null>(null);
   readonly locationAddress = signal<string>('');
 
   readonly locationMapUrl = signal<string>('');
@@ -128,6 +130,8 @@ export class AreaListComponent implements OnInit {
     }
     return undefined;
   });
+
+  readonly viewMode = signal<'map' | 'list'>('map');
 
   readonly visibleAreas = computed(() => {
     const search = this.searchText.toLowerCase();
