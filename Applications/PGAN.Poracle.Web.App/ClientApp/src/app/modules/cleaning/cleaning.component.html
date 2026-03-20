@@ -1,41 +1,56 @@
-<div class="cleaning-container">
-  <div class="page-header">
-    <div class="page-header-text">
-      <h1>Cleaning Settings</h1>
-      <p class="page-description">
-        Enable auto-cleanup to automatically remove expired notification alarms. When enabled, alarms that have been triggered will be
-        automatically cleaned up.
-      </p>
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Clean Mode</h1>
+    <p class="page-description">
+      When enabled, Poracle will automatically delete notification messages from your Discord after they expire (e.g. a Pokemon despawns, a
+      raid ends). This keeps your DMs or channel clean instead of filling up with outdated alerts.
+    </p>
+  </div>
+  <div class="header-actions">
+    <button
+      mat-stroked-button
+      [disabled]="loading() || toggling()"
+      (click)="toggleAll(!allEnabled())"
+      [matTooltip]="allEnabled() ? 'Disable clean mode for all alarm types' : 'Enable clean mode for all alarm types'">
+      <mat-icon>{{ allEnabled() ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+      {{ allEnabled() ? 'Disable All' : 'Enable All' }}
+    </button>
+  </div>
+</div>
+
+@if (!allEnabled() && !loading()) {
+  <div class="recommendation-banner">
+    <mat-icon>lightbulb</mat-icon>
+    <div>
+      <strong>Recommended:</strong> Enable clean mode to keep your notifications tidy. Without it, expired alerts stay in your DMs forever
+      and can't be bulk-deleted.
     </div>
   </div>
+}
 
-  @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-    </div>
-  } @else {
-    <div class="cleaning-content">
-      <mat-card class="cleaning-card">
-        <div class="section-header">
-          <mat-icon>auto_delete</mat-icon>
-          <span>Auto-Cleanup by Alarm Type</span>
-        </div>
-        @for (item of cleaningItems; track item.type) {
-          <div class="cleaning-row">
-            <div class="cleaning-label">
-              <mat-icon [style.color]="item.color">{{ item.icon }}</mat-icon>
-              <div class="label-text">
-                <span class="label-name">{{ item.label }}</span>
-                @if (!item.hasAlarms()) {
-                  <span class="label-hint">No alarms configured</span>
-                }
-              </div>
-            </div>
-            <mat-slide-toggle [checked]="item.enabled()" [disabled]="toggling()" (change)="toggleClean(item, $event.checked)">
-            </mat-slide-toggle>
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+} @else {
+  <div class="cleaning-content">
+    @for (item of cleaningItems; track item.type) {
+      <div class="cleaning-row" [class.disabled-row]="!item.hasAlarms()">
+        <div class="cleaning-label">
+          <div class="icon-wrap" [style.background-color]="item.color">
+            <mat-icon>{{ item.icon }}</mat-icon>
           </div>
-        }
-      </mat-card>
-    </div>
-  }
-</div>
+          <div class="label-text">
+            <span class="label-name">{{ item.label }}</span>
+            <span class="label-description">{{ item.description }}</span>
+            @if (!item.hasAlarms()) {
+              <span class="label-hint">No alarms configured</span>
+            }
+          </div>
+        </div>
+        <mat-slide-toggle [checked]="item.enabled()" [disabled]="toggling()" (change)="toggleClean(item, $event.checked)">
+        </mat-slide-toggle>
+      </div>
+    }
+  </div>
+}

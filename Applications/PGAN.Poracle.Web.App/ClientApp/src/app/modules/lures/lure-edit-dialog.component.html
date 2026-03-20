@@ -46,7 +46,8 @@
     [alarmType]="'lure'"
     [value]="form.controls.template.value ?? ''"
     (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
-  <mat-slide-toggle [formControl]="form.controls.clean">Clean mode</mat-slide-toggle>
+  <mat-slide-toggle [formControl]="form.controls.clean"> Clean mode </mat-slide-toggle>
+  <p class="clean-hint">Automatically deletes the notification from Discord after the lure expires</p>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)">Cancel</button>

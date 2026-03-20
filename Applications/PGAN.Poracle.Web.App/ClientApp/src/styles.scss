@@ -259,5 +259,43 @@ body.dark-theme .app-toolbar {
   mat-dialog-container .mat-mdc-dialog-surface {
     border-radius: 0 !important;
     max-height: 100vh !important;
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
+
+  mat-dialog-container .mdc-dialog__container,
+  mat-dialog-container .mdc-dialog__surface {
+    height: 100% !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  [mat-dialog-content],
+  mat-dialog-content,
+  .mat-mdc-dialog-content {
+    flex: 1 1 auto !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+  }
+
+  [mat-dialog-title],
+  .mat-mdc-dialog-title {
+    flex-shrink: 0 !important;
+  }
+
+  [mat-dialog-actions],
+  mat-dialog-actions,
+  .mat-mdc-dialog-actions {
+    flex-shrink: 0 !important;
+  }
+}
+
+// Clean mode hint text in alarm dialogs
+.clean-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  line-height: 1.4;
 }

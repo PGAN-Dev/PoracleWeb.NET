@@ -66,7 +66,8 @@
           [alarmType]="'nest'"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
-        <mat-slide-toggle [formControl]="form.controls.clean">Clean mode (auto-delete after nest migration)</mat-slide-toggle>
+        <mat-slide-toggle [formControl]="form.controls.clean"> Clean mode </mat-slide-toggle>
+        <p class="clean-hint">Automatically deletes the notification from Discord when nests migrate</p>
       </div>
     </mat-tab>
   </mat-tab-group>

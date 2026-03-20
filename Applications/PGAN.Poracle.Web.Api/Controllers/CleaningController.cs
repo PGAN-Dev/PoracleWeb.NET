@@ -8,6 +8,28 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
 {
     private readonly ICleaningService _cleaningService = cleaningService;
 
+    [HttpGet("status")]
+    public async Task<IActionResult> GetStatus()
+    {
+        var status = await this._cleaningService.GetCleanStatusAsync(this.UserId, this.ProfileNo);
+        return this.Ok(status);
+    }
+
+    [HttpPut("all/{enabled:int}")]
+    public async Task<IActionResult> ToggleAll(int enabled)
+    {
+        var total = 0;
+        total += await this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanRaidsAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanEggsAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanQuestsAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanInvasionsAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanLuresAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled);
+        return this.Ok(new { updated = total });
+    }
+
     [HttpPut("{alarmType}/{enabled:int}")]
     public async Task<IActionResult> ToggleClean(string alarmType, int enabled)
     {
