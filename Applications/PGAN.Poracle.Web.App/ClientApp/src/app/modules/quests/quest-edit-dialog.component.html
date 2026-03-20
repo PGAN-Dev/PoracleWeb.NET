@@ -2,12 +2,7 @@
 <mat-dialog-content>
   <div class="item-header">
     @if (getImage()) {
-      <img
-        [src]="getImage()"
-        [alt]="getTitle()"
-        class="item-img"
-        (error)="$any($event.target).style.display='none'; $any($event.target).nextElementSibling.style.display='flex'" />
-      <mat-icon class="quest-fallback-icon" style="display: none">help_outline</mat-icon>
+      <img [src]="getImage()" [alt]="getTitle()" class="item-img" (error)="onImgFallback($event)" />
     } @else {
       <mat-icon class="quest-fallback-icon">catching_pokemon</mat-icon>
     }
