@@ -268,11 +268,7 @@ router-outlet + * {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
-// ─── Dark mode toolbar ─────────────────────────────────────────────
-
-body.dark-theme .app-toolbar {
-  background: linear-gradient(135deg, #0d47a1 0%, #1a237e 100%) !important;
-}
+// Dark mode toolbar default is handled by toolbarGradient computed signal in app.ts
 
 // ─── Responsive helpers ─────────────────────────────────────────────
 
