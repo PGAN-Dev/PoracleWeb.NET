@@ -20,9 +20,24 @@
 </div>
 
 @if (loading()) {
-  <div class="loading-container">
-    <mat-spinner diameter="48"></mat-spinner>
-    <p class="loading-text">Loading alarms...</p>
+  <div class="alarm-grid">
+    @for (i of skeletonCards; track i) {
+      <div class="skeleton-card">
+        <div class="skeleton-header">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line" style="width: 55%"></div>
+            <div class="skeleton-line short" style="width: 30%"></div>
+          </div>
+        </div>
+        <div class="skeleton-stats">
+          <div class="skeleton-pill" style="width: 80px"></div>
+        </div>
+        <div class="skeleton-footer">
+          <div class="skeleton-pill" style="width: 90px"></div>
+        </div>
+      </div>
+    }
   </div>
 } @else {
   <mat-tab-group>
