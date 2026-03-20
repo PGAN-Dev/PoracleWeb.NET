@@ -14,7 +14,7 @@
   <!-- Status Overview Row -->
   <div class="status-row">
     <!-- Location Card -->
-    <mat-card class="status-card location-card-full" (click)="navigate('/areas')">
+    <mat-card class="status-card location-card-full" (click)="openLocationDialog()">
       @if (locationMapUrl()) {
         <img [src]="locationMapUrl()" class="location-map-thumb" alt="Location" loading="lazy" />
       }
@@ -86,6 +86,28 @@
     </mat-card>
   }
 
+  <!-- Tips Section -->
+  @if (tips().length > 0) {
+    <div class="tips-section">
+      @for (tip of tips(); track tip.id) {
+        <div class="tip-card" [class]="'tip-' + tip.type">
+          <mat-icon>{{ tip.icon }}</mat-icon>
+          <div class="tip-content">
+            <span>{{ tip.message }}</span>
+            @if (tip.route) {
+              <a [routerLink]="tip.route" class="tip-action">{{ tip.action }}</a>
+            } @else {
+              <a class="tip-action" (click)="handleTipAction(tip); $event.stopPropagation()">{{ tip.action }}</a>
+            }
+          </div>
+          <button mat-icon-button (click)="dismissTip(tip)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
   <!-- Quick Actions -->
   <div class="section-header">
     <h2>Quick Actions</h2>
@@ -122,6 +144,10 @@
             <span class="label">{{ card.label }}</span>
             <span class="subtitle">{{ card.subtitle }}</span>
           </mat-card-content>
+          <div class="card-view-all">
+            <span>View all</span>
+            <mat-icon>arrow_forward</mat-icon>
+          </div>
         </mat-card>
       }
     } @else {
