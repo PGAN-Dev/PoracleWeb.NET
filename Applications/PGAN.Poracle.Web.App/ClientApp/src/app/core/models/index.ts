@@ -320,6 +320,34 @@ export interface PwebSetting {
   value: string | null;
 }
 
+// ─── User Geofence ───────────────────────────────────────────────────────────
+
+export interface UserGeofence {
+  createdAt: string;
+  displayName: string;
+  geofenceName: string;
+  groupName: string;
+  humanId: string;
+  id: number;
+  parentId: number;
+  polygonJson: string;
+  profileNo: number;
+  updatedAt: string;
+}
+
+export interface UserGeofenceCreate {
+  displayName: string;
+  groupName: string;
+  parentId: number;
+  polygon: [number, number][]; // [lat, lng] pairs
+}
+
+export interface GeofenceRegion {
+  displayName: string;
+  id: number;
+  name: string;
+}
+
 // ─── Quick Picks ──────────────────────────────────────────────────────────────
 
 export interface QuickPickDefinition {

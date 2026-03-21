@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IHumanRepository, HumanRepository>();
         services.AddScoped<IProfileRepository, ProfileRepository>();
         services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
+        services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
 
         // Register Unit of Work
         services.AddScoped<IPoracleUnitOfWork, PoracleUnitOfWork>();
@@ -58,6 +59,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPwebSettingService, PwebSettingService>();
         services.AddSingleton<IMasterDataService, MasterDataService>();
         services.AddScoped<IQuickPickService, QuickPickService>();
+        services.AddScoped<IUserGeofenceService, UserGeofenceService>();
 
         // Register Scanner DB (optional - only if connection string is configured)
         var scannerConnectionString = configuration.GetConnectionString("ScannerDb");
@@ -71,11 +73,23 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Poracle API
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
+        // Register HttpClient for Koji API
+        var kojiToken = configuration["Koji:BearerToken"] ?? string.Empty;
+        services.AddHttpClient<IKojiService, KojiService>(client =>
+        {
+            if (!string.IsNullOrEmpty(kojiToken))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", kojiToken);
+            }
+        });
+
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));
         services.Configure<TelegramSettings>(configuration.GetSection("Telegram"));
         services.Configure<PoracleSettings>(configuration.GetSection("Poracle"));
+        services.Configure<KojiSettings>(configuration.GetSection("Koji"));
 
         return services;
     }

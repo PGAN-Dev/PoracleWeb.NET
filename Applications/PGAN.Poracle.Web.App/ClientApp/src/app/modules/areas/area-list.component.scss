@@ -187,6 +187,288 @@
   }
 }
 
+// ─── Custom Geofences ────────────────────────────────
+.geofence-limit-badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--divider, rgba(0, 0, 0, 0.08));
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+
+.geofence-limit-badge.limit-reached {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.draw-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #2196f3 8%, transparent);
+  border: 1px solid color-mix(in srgb, #2196f3 25%, transparent);
+  animation: fadeIn 0.2s ease-out;
+
+  > mat-icon {
+    color: #2196f3;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+}
+
+.draw-mode-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-size: 14px;
+    color: #1565c0;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.64));
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.geofence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.geofence-card {
+  position: relative;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.geofence-card-accent {
+  height: 4px;
+  background: #2196f3;
+}
+
+.geofence-card-body {
+  padding: 14px 16px 10px;
+}
+
+.geofence-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.geofence-card-icon {
+  color: #2196f3;
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.geofence-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.geofence-card-name {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geofence-card-group {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geofence-card-meta {
+  margin-bottom: 4px;
+}
+
+.geofence-card-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.geofence-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0;
+  margin: 0 -8px -4px 0;
+}
+
+.geofence-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  border: 2px dashed var(--card-border, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  background: var(--card-bg, rgba(0, 0, 0, 0.01));
+}
+
+.geofence-empty-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.2));
+  margin-bottom: 8px;
+}
+
+.geofence-empty-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.64));
+}
+
+.geofence-empty-subtitle {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.45));
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+.draw-geofence-btn {
+  align-self: flex-start;
+}
+
+.geofence-limit-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #ff9800;
+  }
+}
+
+.geofence-saving-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  font-size: 14px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.64));
+}
+
+// ─── Skeleton Geofence Cards ─────────────────────────
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.skeleton-geofence-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  border-top: 4px solid var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  padding: 14px 16px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-gf-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.skeleton-gf-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+  flex-shrink: 0;
+}
+
+.skeleton-gf-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-gf-footer {
+  margin-top: 10px;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+}
+
+.skeleton-pill {
+  width: 64px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.08));
+}
+
 // ─── Mode Toggle ──────────────────────────────────────
 .mode-bar {
   display: flex;
@@ -501,5 +783,13 @@
   .save-bar {
     padding: 12px 16px;
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+
+  .geofence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .draw-mode-banner {
+    flex-wrap: wrap;
   }
 }

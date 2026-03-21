@@ -1,0 +1,21 @@
+mat-dialog-content {
+  min-width: 360px;
+  max-width: 440px;
+}
+.full-width {
+  width: 100%;
+}
+.region-section {
+  margin-top: 16px;
+}
+.region-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-bottom: 8px;
+  display: block;
+}
+.detected-region {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

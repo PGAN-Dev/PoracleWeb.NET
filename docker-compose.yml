@@ -29,6 +29,10 @@ services:
       - Poracle__ApiAddress=${PORACLE_API_ADDRESS}
       - Poracle__ApiSecret=${PORACLE_API_SECRET}
       - Poracle__AdminIds=${PORACLE_ADMIN_IDS}
+      # Koji Geofence API
+      - Koji__ApiAddress=${KOJI_API_ADDRESS:-}
+      - Koji__BearerToken=${KOJI_BEARER_TOKEN:-}
+      - Koji__ProjectId=${KOJI_PROJECT_ID:-0}
       # CORS (comma-separated origins, leave empty to allow all)
       - Cors__AllowedOrigins__0=${CORS_ORIGIN:-}
       # DTS source path (inside container)

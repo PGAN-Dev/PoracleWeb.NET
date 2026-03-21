@@ -15,4 +15,5 @@ public interface IPoracleApiProxy
     public Task<string?> GetAllGeofenceDataAsync();
     public Task<string?> GetLocationMapUrlAsync(double lat, double lon);
     public Task<string?> GetDistanceMapUrlAsync(double lat, double lon, int distance);
+    public Task ReloadGeofencesAsync();
 }

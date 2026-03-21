@@ -1,14 +1,17 @@
 import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
   AfterViewInit,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
   OnChanges,
   OnDestroy,
-  ElementRef,
-  ViewChild,
+  Output,
   SimpleChanges,
+  ViewChild,
+  effect,
+  input,
+  output,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +23,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as L from 'leaflet';
+import 'leaflet-draw';
 
 import { GeofenceData } from '../../../core/models';
 
@@ -71,6 +75,9 @@ interface RegionGrouping {
 })
 export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private allBoundsRect: L.LatLngBounds | null = null;
+  private customGeofenceLayer: L.LayerGroup = L.layerGroup();
+
+  private drawControl: L.Control.Draw | null = null;
 
   private fullscreenHandler = () => {
     if (!document.fullscreenElement) {
@@ -83,16 +90,28 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private initialized = false;
   private map: L.Map | null = null;
 
+  private onDrawCreated = (event: L.LeafletEvent): void => {
+    const drawEvent = event as L.DrawEvents.Created;
+    const layer = drawEvent.layer as L.Polygon;
+    const latLngs = (layer.getLatLngs()[0] as L.LatLng[]).map(ll => [ll.lat, ll.lng] as [number, number]);
+
+    this.polygonDrawn.emit(latLngs);
+    // Do not add to map -- parent component handles saving and re-rendering
+  };
+
   private polygonByName = new Map<string, L.Polygon>();
 
   private polygonLayers: L.Polygon[] = [];
   private userCircle: L.Circle | null = null;
   private userMarker: L.Marker | null = null;
   @Output() areaClicked = new EventEmitter<string>();
+  customGeofences = input<GeofenceData[]>([]);
+  drawMode = input(false);
   @Input() geofence: GeofenceData[] = [];
   @Input() groupMapping: Map<string, string> = new Map();
   readonly isFullscreen = signal(false);
   @ViewChild('mapContainer', { static: true }) mapElement!: ElementRef<HTMLDivElement>;
+  polygonDrawn = output<[number, number][]>();
 
   readonly regionGroups = signal<RegionGrouping[]>([]);
 
@@ -104,6 +123,26 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() userLocation?: { lat: number; lng: number };
 
   readonly visibleLegend = signal<{ group: string; color: string }[]>([]);
+
+  constructor() {
+    // React to drawMode changes
+    effect(() => {
+      const enabled = this.drawMode();
+      if (!this.map) return;
+
+      if (enabled) {
+        this.addDrawControl();
+      } else {
+        this.removeDrawControl();
+      }
+    });
+
+    // React to customGeofences changes
+    effect(() => {
+      const geofences = this.customGeofences();
+      this.renderCustomGeofences(geofences);
+    });
+  }
 
   clearRegion(): void {
     this.selectedRegion.set('');
@@ -146,6 +185,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
+    this.removeDrawControl();
     if (this.map) {
       this.map.remove();
       this.map = null;
@@ -195,6 +235,32 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         setTimeout(() => this.map?.invalidateSize(), 100);
       });
     }
+  }
+
+  private addDrawControl(): void {
+    if (!this.map || this.drawControl) return;
+
+    this.drawControl = new L.Control.Draw({
+      draw: {
+        circle: false,
+        circlemarker: false,
+        marker: false,
+        polygon: {
+          shapeOptions: {
+            color: '#2196f3',
+            fillOpacity: 0.15,
+            weight: 2,
+          },
+        },
+        polyline: false,
+        rectangle: false,
+      },
+      edit: false as any,
+    });
+
+    this.map.addControl(this.drawControl);
+
+    this.map.on(L.Draw.Event.CREATED, this.onDrawCreated);
   }
 
   private buildRegions(): void {
@@ -351,6 +417,44 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       maxZoom: 19,
       subdomains: 'abcd',
     }).addTo(this.map);
+
+    this.customGeofenceLayer.addTo(this.map);
+  }
+
+  private removeDrawControl(): void {
+    if (!this.map) return;
+
+    if (this.drawControl) {
+      this.map.removeControl(this.drawControl);
+      this.drawControl = null;
+    }
+
+    this.map.off(L.Draw.Event.CREATED, this.onDrawCreated);
+  }
+
+  private renderCustomGeofences(geofences: GeofenceData[]): void {
+    this.customGeofenceLayer.clearLayers();
+
+    for (const fence of geofences) {
+      if (!fence.path || fence.path.length < 3) continue;
+
+      const latLngs: L.LatLngExpression[] = fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
+
+      const polygon = L.polygon(latLngs, {
+        color: '#2196f3',
+        fillColor: '#2196f3',
+        fillOpacity: 0.2,
+        weight: 2,
+      });
+
+      polygon.bindTooltip(fence.name, {
+        className: 'area-tooltip',
+        direction: 'top',
+        sticky: true,
+      });
+
+      this.customGeofenceLayer.addLayer(polygon);
+    }
   }
 
   private updateUserMarker(): void {

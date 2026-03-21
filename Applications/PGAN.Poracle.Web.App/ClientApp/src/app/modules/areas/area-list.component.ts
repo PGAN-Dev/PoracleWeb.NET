@@ -1,4 +1,4 @@
-import { SlicePipe } from '@angular/common';
+import { DatePipe, SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -12,12 +12,22 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { firstValueFrom } from 'rxjs';
 
-import { AreaDefinition, GeofenceData, Location } from '../../core/models';
+import { AreaDefinition, GeofenceData, GeofenceRegion, Location, UserGeofence } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { LocationService } from '../../core/services/location.service';
+import { UserGeofenceService } from '../../core/services/user-geofence.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import {
+  GeofenceNameDialogComponent,
+  GeofenceNameDialogData,
+  GeofenceNameDialogResult,
+} from '../../shared/components/geofence-name-dialog/geofence-name-dialog.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
+import { detectRegion } from '../../shared/utils/geo.utils';
 
 interface AreaItem {
   group: string;
@@ -31,9 +41,12 @@ interface GroupInfo {
   totalCount: number;
 }
 
+const MAX_CUSTOM_GEOFENCES = 10;
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    DatePipe,
     SlicePipe,
     FormsModule,
     MatAutocompleteModule,
@@ -46,6 +59,7 @@ interface GroupInfo {
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
     AreaMapComponent,
   ],
   selector: 'app-area-list',
@@ -59,11 +73,12 @@ export class AreaListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly locationService = inject(LocationService);
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
-
   // Saved state (what's in the DB)
   private savedSelection: string[] = [];
 
   private readonly snackBar = inject(MatSnackBar);
+
+  private readonly userGeofenceService = inject(UserGeofenceService);
 
   readonly activeGroup = signal<string | null>(null);
   readonly areas = signal<AreaItem[]>([]);
@@ -84,6 +99,21 @@ export class AreaListComponent implements OnInit {
 
   readonly availableAreas = signal<AreaDefinition[]>([]);
 
+  // Custom geofences
+  readonly customGeofences = signal<UserGeofence[]>([]);
+  readonly customGeofenceMapData = computed((): GeofenceData[] => {
+    return this.customGeofences()
+      .filter(g => g.polygonJson)
+      .map(g => ({
+        id: g.id,
+        name: g.displayName,
+        path: JSON.parse(g.polygonJson) as [number, number][],
+      }));
+  });
+
+  readonly customGeofencesLoading = signal(false);
+
+  readonly drawMode = signal(false);
   readonly geofenceData = computed(() => {
     const available = this.availableAreas();
     const raw = this.rawGeofenceData();
@@ -91,6 +121,10 @@ export class AreaListComponent implements OnInit {
     const accessibleNames = new Set(available.map(a => a.name));
     return raw.filter(g => accessibleNames.has(g.name));
   });
+
+  readonly geofenceLimitText = computed(() => `${this.customGeofences().length} of ${MAX_CUSTOM_GEOFENCES}`);
+
+  readonly geofenceRegions = signal<GeofenceRegion[]>([]);
 
   readonly groupMapping = computed(() => {
     const map = new Map<string, string>();
@@ -116,6 +150,8 @@ export class AreaListComponent implements OnInit {
     return groups.size > 1;
   });
 
+  readonly hasReachedLimit = computed(() => this.customGeofences().length >= MAX_CUSTOM_GEOFENCES);
+
   readonly loading = signal(true);
   readonly location = signal<Location | null>(null);
 
@@ -124,9 +160,26 @@ export class AreaListComponent implements OnInit {
   readonly locationMapUrl = signal<string>('');
   manualAreaName = '';
 
+  readonly maxCustomGeofences = MAX_CUSTOM_GEOFENCES;
+
+  /** Build region data for auto-detection from raw geofence data */
+  readonly regionDetectionData = computed(() => {
+    const regions = this.geofenceRegions();
+    const raw = this.rawGeofenceData();
+    return regions
+      .map(r => {
+        const fence = raw.find(f => f.name.toLowerCase() === r.name.toLowerCase());
+        return fence ? { id: r.id, name: r.name, displayName: r.displayName, path: fence.path } : null;
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+  });
+
   readonly saving = signal(false);
+  readonly savingGeofence = signal(false);
 
   searchText = '';
+
+  readonly skeletonGeofences = Array.from({ length: 3 });
 
   readonly userLocationForMap = computed(() => {
     const loc = this.location();
@@ -193,9 +246,72 @@ export class AreaListComponent implements OnInit {
     this.searchText = '';
   }
 
+  async deleteGeofence(geofence: UserGeofence): Promise<void> {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: 'Delete',
+        message: `Are you sure you want to delete "${geofence.displayName}"? This geofence will be removed from all alarms using it.`,
+        title: 'Delete Custom Geofence',
+        warn: true,
+      } as ConfirmDialogData,
+    });
+    const confirmed = await firstValueFrom(ref.afterClosed());
+    if (confirmed) {
+      this.userGeofenceService
+        .deleteGeofence(geofence.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          error: () => this.snackBar.open('Failed to delete geofence', 'OK', { duration: 3000 }),
+          next: () => {
+            this.customGeofences.update(list => list.filter(g => g.id !== geofence.id));
+            this.snackBar.open('Geofence deleted', 'OK', { duration: 3000 });
+          },
+        });
+    }
+  }
+
   deselectAllVisible(): void {
     for (const a of this.visibleAreas()) a.selected = false;
     this.syncSelectedFromAreas();
+  }
+
+  editGeofence(geofence: UserGeofence): void {
+    const ref = this.dialog.open(GeofenceNameDialogComponent, {
+      width: '440px',
+      data: {
+        detectedRegion: null,
+        regions: this.geofenceRegions(),
+      } as GeofenceNameDialogData,
+    });
+    // Pre-fill dialog with existing values -- component sets these after inject
+    const instance = ref.componentInstance;
+    instance.displayName = geofence.displayName;
+    const region = this.geofenceRegions().find(r => r.name === geofence.groupName);
+    if (region) {
+      instance.selectedRegionId = region.id;
+    }
+
+    ref.afterClosed().subscribe((result: GeofenceNameDialogResult | null) => {
+      if (!result) return;
+
+      const polygon: [number, number][] = JSON.parse(geofence.polygonJson);
+
+      this.userGeofenceService
+        .updateGeofence(geofence.id, {
+          displayName: result.displayName,
+          groupName: result.groupName,
+          parentId: result.parentId,
+          polygon,
+        })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          error: () => this.snackBar.open('Failed to update geofence', 'OK', { duration: 3000 }),
+          next: updated => {
+            this.customGeofences.update(list => list.map(g => (g.id === updated.id ? updated : g)));
+            this.snackBar.open('Geofence updated', 'OK', { duration: 3000 });
+          },
+        });
+    });
   }
 
   filteredGroupOptions(): GroupInfo[] {
@@ -207,6 +323,54 @@ export class AreaListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadCustomGeofences();
+    this.loadRegions();
+  }
+
+  onDrawComplete(polygon: [number, number][]): void {
+    // Exit draw mode
+    this.drawMode.set(false);
+
+    if (polygon.length < 3) {
+      this.snackBar.open('A geofence needs at least 3 points', 'OK', { duration: 3000 });
+      return;
+    }
+
+    // Auto-detect which region this polygon is in
+    const detected = detectRegion(polygon, this.regionDetectionData());
+
+    const ref = this.dialog.open(GeofenceNameDialogComponent, {
+      width: '440px',
+      data: {
+        detectedRegion: detected,
+        regions: this.geofenceRegions(),
+      } as GeofenceNameDialogData,
+    });
+
+    ref.afterClosed().subscribe((result: GeofenceNameDialogResult | null) => {
+      if (!result) return;
+
+      this.savingGeofence.set(true);
+      this.userGeofenceService
+        .createGeofence({
+          displayName: result.displayName,
+          groupName: result.groupName,
+          parentId: result.parentId,
+          polygon,
+        })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          error: () => {
+            this.savingGeofence.set(false);
+            this.snackBar.open('Failed to save geofence', 'OK', { duration: 3000 });
+          },
+          next: created => {
+            this.savingGeofence.set(false);
+            this.customGeofences.update(list => [...list, created]);
+            this.snackBar.open(`Geofence "${created.displayName}" created`, 'OK', { duration: 3000 });
+          },
+        });
+    });
   }
 
   onGroupFilterSelected(value: string): void {
@@ -215,6 +379,7 @@ export class AreaListComponent implements OnInit {
   }
 
   onMapAreaClicked(name: string): void {
+    if (this.drawMode()) return; // Ignore area clicks during draw mode
     const lowerName = name.toLowerCase();
     const area = this.areas().find(a => a.name.toLowerCase() === lowerName);
     if (area) {
@@ -292,6 +457,17 @@ export class AreaListComponent implements OnInit {
     this.syncSelectedFromAreas();
   }
 
+  toggleDrawMode(): void {
+    if (this.hasReachedLimit() && !this.drawMode()) {
+      this.snackBar.open(`Maximum of ${MAX_CUSTOM_GEOFENCES} custom geofences reached`, 'OK', { duration: 3000 });
+      return;
+    }
+    this.drawMode.update(v => !v);
+    if (this.drawMode()) {
+      this.viewMode.set('map');
+    }
+  }
+
   private buildAreaList(): void {
     // DB stores lowercase area names, API may return mixed case
     const selectedSet = new Set(this.selectedAreas().map(a => a.toLowerCase()));
@@ -305,6 +481,20 @@ export class AreaListComponent implements OnInit {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
+  }
+
+  private loadCustomGeofences(): void {
+    this.customGeofencesLoading.set(true);
+    this.userGeofenceService
+      .getCustomGeofences()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.customGeofencesLoading.set(false),
+        next: geofences => {
+          this.customGeofences.set(geofences);
+          this.customGeofencesLoading.set(false);
+        },
+      });
   }
 
   private loadData(): void {
@@ -372,6 +562,16 @@ export class AreaListComponent implements OnInit {
       .subscribe({
         error: () => {},
         next: data => this.rawGeofenceData.set(data),
+      });
+  }
+
+  private loadRegions(): void {
+    this.userGeofenceService
+      .getRegions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {},
+        next: regions => this.geofenceRegions.set(regions),
       });
   }
 

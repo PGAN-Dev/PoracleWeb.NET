@@ -306,6 +306,13 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         return null;
     }
 
+    public async Task ReloadGeofencesAsync()
+    {
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/geofence/reload");
+        var response = await this._httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
+
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
     {
         var request = new HttpRequestMessage(method, url);

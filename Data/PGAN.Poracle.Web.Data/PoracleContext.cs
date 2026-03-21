@@ -16,6 +16,7 @@ public class PoracleContext(DbContextOptions<PoracleContext> options) : DbContex
     public DbSet<NestEntity> Nests => this.Set<NestEntity>();
     public DbSet<GymEntity> Gyms => this.Set<GymEntity>();
     public DbSet<PwebSettingEntity> PwebSettings => this.Set<PwebSettingEntity>();
+    public DbSet<UserGeofenceEntity> UserGeofences => this.Set<UserGeofenceEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

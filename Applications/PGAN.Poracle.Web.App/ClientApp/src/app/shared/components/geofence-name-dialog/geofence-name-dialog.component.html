@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>Name Your Geofence</h2>
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Geofence Name</mat-label>
+    <input matInput [(ngModel)]="displayName" maxlength="50" placeholder="e.g. My Park Route" required />
+    <mat-hint align="end">{{ displayName.length }} / 50</mat-hint>
+    @if (displayName.length > 0 && displayName.trim().length === 0) {
+      <mat-error>Name cannot be only whitespace</mat-error>
+    }
+  </mat-form-field>
+
+  <div class="region-section">
+    <label class="region-label">Region</label>
+    @if (!manualSelect()) {
+      <div class="detected-region">
+        <mat-chip-set>
+          <mat-chip highlighted>
+            <mat-icon matChipAvatar>map</mat-icon>
+            {{ data.detectedRegion!.displayName }}
+          </mat-chip>
+        </mat-chip-set>
+        <button mat-button color="primary" (click)="onChangeRegion()">Change</button>
+      </div>
+    } @else {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Select Region</mat-label>
+        <mat-select [(ngModel)]="selectedRegionId" required>
+          @for (region of data.regions; track region.id) {
+            <mat-option [value]="region.id">{{ region.displayName }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close(null)">Cancel</button>
+  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="save()">Save</button>
+</mat-dialog-actions>

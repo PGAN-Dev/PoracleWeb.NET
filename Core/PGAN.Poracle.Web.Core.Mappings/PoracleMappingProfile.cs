@@ -71,5 +71,9 @@ public class PoracleMappingProfile : AutoMapper.Profile
 
         // PwebSetting mappings
         this.CreateMap<PwebSettingEntity, PwebSetting>().ReverseMap();
+
+        // UserGeofence mappings
+        this.CreateMap<UserGeofenceEntity, UserGeofence>();
+        this.CreateMap<UserGeofence, UserGeofenceEntity>();
     }
 }
