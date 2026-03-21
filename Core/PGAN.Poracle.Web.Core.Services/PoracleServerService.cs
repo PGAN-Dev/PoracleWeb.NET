@@ -103,7 +103,7 @@ public partial class PoracleServerService(
 
         try
         {
-            var sshArgs = $"-o StrictHostKeyChecking=no -o ConnectTimeout=10 -i {this._sshKeyPath} {server.SshUser}@{server.Host} \"{server.RestartCommand}\"";
+            var sshArgs = $"-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o SendEnv=none -i {this._sshKeyPath} {server.SshUser}@{server.Host} \"{server.RestartCommand}\"";
 
             this._logger.LogInformation("Executing SSH restart command for server {Host}", server.Host);
 
@@ -117,6 +117,11 @@ public partial class PoracleServerService(
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+
+            // Clear environment to prevent Windows PATH from leaking to remote shell
+            process.StartInfo.Environment.Clear();
+            process.StartInfo.Environment["PATH"] = "/usr/bin:/usr/local/bin:/bin";
+            process.StartInfo.Environment["HOME"] = "/home/appuser";
 
             process.Start();
 
