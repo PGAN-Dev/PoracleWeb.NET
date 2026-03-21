@@ -65,16 +65,17 @@ public class PoracleServerServiceTests
     }
 
     [Fact]
-    public async Task GetServersAsyncMarksOfflineWhenHttpFails()
+    public async Task GetServersAsyncMarksOnlineForAnyHttpResponse()
     {
+        // Any HTTP response (even 401/500) means the server is running
         var (sut, handler) = CreateService(TwoServerConfig());
         handler.ResponseFactory = _ => new HttpResponseMessage(HttpStatusCode.InternalServerError);
 
         var result = await sut.GetServersAsync();
 
         Assert.Equal(2, result.Count);
-        Assert.False(result[0].Online);
-        Assert.False(result[1].Online);
+        Assert.True(result[0].Online);
+        Assert.True(result[1].Online);
     }
 
     [Fact]
