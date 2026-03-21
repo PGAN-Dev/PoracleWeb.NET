@@ -26,9 +26,9 @@ public class UserGeofenceControllerTests : ControllerTestBase
     {
         var geofences = new List<UserGeofence>
         {
-            new() { Id = 1, HumanId = "123456789", GeofenceName = "pweb_123456789_downtown", DisplayName = "Downtown" }
+            new() { Id = 1, KojiName = "pweb_123456789_downtown", DisplayName = "Downtown" }
         };
-        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync(geofences);
+        this._service.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync(geofences);
 
         var result = await this._sut.GetCustomGeofences();
 
@@ -39,7 +39,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task GetCustomGeofencesReturnsOkWithEmptyList()
     {
-        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync(new List<UserGeofence>());
+        this._service.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync(new List<UserGeofence>());
 
         var result = await this._sut.GetCustomGeofences();
 
@@ -49,14 +49,14 @@ public class UserGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetCustomGeofencesUsesUserIdAndProfileNoFromClaims()
+    public async Task GetCustomGeofencesUsesUserIdFromClaims()
     {
         SetupUser(this._sut, userId: "987654321", profileNo: 3);
-        this._service.Setup(s => s.GetByUserAsync("987654321", 3)).ReturnsAsync(new List<UserGeofence>());
+        this._service.Setup(s => s.GetByUserAsync("987654321")).ReturnsAsync(new List<UserGeofence>());
 
         await this._sut.GetCustomGeofences();
 
-        this._service.Verify(s => s.GetByUserAsync("987654321", 3), Times.Once);
+        this._service.Verify(s => s.GetByUserAsync("987654321"), Times.Once);
     }
 
     // --- CreateGeofence ---
@@ -73,9 +73,8 @@ public class UserGeofenceControllerTests : ControllerTestBase
         };
         var created = new UserGeofence
         {
-            Id = 1,
-            HumanId = "123456789",
-            GeofenceName = "pweb_123456789_my_area",
+            Id = 0,
+            KojiName = "pweb_123456789_my_area",
             DisplayName = "My Area"
         };
         this._service.Setup(s => s.CreateAsync("123456789", 1, model)).ReturnsAsync(created);
@@ -111,64 +110,25 @@ public class UserGeofenceControllerTests : ControllerTestBase
         this._service.Verify(s => s.CreateAsync("555", 2, model), Times.Once);
     }
 
-    // --- UpdateGeofence ---
-
-    [Fact]
-    public async Task UpdateGeofenceReturnsOkWithUpdatedGeofence()
-    {
-        var model = new UserGeofenceCreate { DisplayName = "Updated" };
-        var updated = new UserGeofence { Id = 1, DisplayName = "Updated" };
-        this._service.Setup(s => s.UpdateAsync("123456789", 1, model)).ReturnsAsync(updated);
-
-        var result = await this._sut.UpdateGeofence(1, model);
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(updated, ok.Value);
-    }
-
-    [Fact]
-    public async Task UpdateGeofenceReturnsNotFoundWhenGeofenceMissing()
-    {
-        var model = new UserGeofenceCreate { DisplayName = "Updated" };
-        this._service.Setup(s => s.UpdateAsync("123456789", 999, model))
-            .ThrowsAsync(new InvalidOperationException("Geofence with id 999 not found."));
-
-        var result = await this._sut.UpdateGeofence(999, model);
-
-        Assert.IsType<NotFoundObjectResult>(result);
-    }
-
-    [Fact]
-    public async Task UpdateGeofenceReturnsForbidWhenNotOwned()
-    {
-        var model = new UserGeofenceCreate { DisplayName = "Updated" };
-        this._service.Setup(s => s.UpdateAsync("123456789", 1, model))
-            .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
-
-        var result = await this._sut.UpdateGeofence(1, model);
-
-        Assert.IsType<ForbidResult>(result);
-    }
-
     // --- DeleteGeofence ---
 
     [Fact]
     public async Task DeleteGeofenceReturnsNoContent()
     {
-        this._service.Setup(s => s.DeleteAsync("123456789", 1, 5)).Returns(Task.CompletedTask);
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42)).Returns(Task.CompletedTask);
 
-        var result = await this._sut.DeleteGeofence(5);
+        var result = await this._sut.DeleteGeofence(42);
 
         Assert.IsType<NoContentResult>(result);
     }
 
     [Fact]
-    public async Task DeleteGeofenceReturnsNotFoundWhenMissing()
+    public async Task DeleteGeofenceReturnsNotFoundWhenNotExists()
     {
-        this._service.Setup(s => s.DeleteAsync("123456789", 1, 999))
-            .ThrowsAsync(new InvalidOperationException("Geofence with id 999 not found."));
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 99))
+            .ThrowsAsync(new InvalidOperationException("Geofence with ID 99 not found."));
 
-        var result = await this._sut.DeleteGeofence(999);
+        var result = await this._sut.DeleteGeofence(99);
 
         Assert.IsType<NotFoundObjectResult>(result);
     }
@@ -176,10 +136,10 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteGeofenceReturnsForbidWhenNotOwned()
     {
-        this._service.Setup(s => s.DeleteAsync("123456789", 1, 1))
+        this._service.Setup(s => s.DeleteAsync("123456789", 1, 42))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
-        var result = await this._sut.DeleteGeofence(1);
+        var result = await this._sut.DeleteGeofence(42);
 
         Assert.IsType<ForbidResult>(result);
     }
@@ -193,6 +153,42 @@ public class UserGeofenceControllerTests : ControllerTestBase
         await this._sut.DeleteGeofence(10);
 
         this._service.Verify(s => s.DeleteAsync("777", 4, 10), Times.Once);
+    }
+
+    // --- SubmitForReview ---
+
+    [Fact]
+    public async Task SubmitForReviewReturnsOkWithUpdatedGeofence()
+    {
+        var updated = new UserGeofence { Id = 1, KojiName = "pweb_123456789_downtown", Status = "pending_review" };
+        this._service.Setup(s => s.SubmitForReviewAsync("123456789", "pweb_123456789_downtown")).ReturnsAsync(updated);
+
+        var result = await this._sut.SubmitForReview("pweb_123456789_downtown");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(updated, ok.Value);
+    }
+
+    [Fact]
+    public async Task SubmitForReviewReturnsBadRequestWhenInvalidStatus()
+    {
+        this._service.Setup(s => s.SubmitForReviewAsync("123456789", "pweb_123456789_downtown"))
+            .ThrowsAsync(new InvalidOperationException("Geofence must be in 'active' status."));
+
+        var result = await this._sut.SubmitForReview("pweb_123456789_downtown");
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task SubmitForReviewReturnsForbidWhenNotOwned()
+    {
+        this._service.Setup(s => s.SubmitForReviewAsync("123456789", "pweb_other_downtown"))
+            .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
+
+        var result = await this._sut.SubmitForReview("pweb_other_downtown");
+
+        Assert.IsType<ForbidResult>(result);
     }
 
     // --- GetRegions ---

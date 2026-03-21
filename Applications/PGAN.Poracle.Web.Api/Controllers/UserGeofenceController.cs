@@ -13,7 +13,7 @@ public class UserGeofenceController(IUserGeofenceService userGeofenceService, IL
     [HttpGet("custom")]
     public async Task<IActionResult> GetCustomGeofences()
     {
-        var geofences = await this._userGeofenceService.GetByUserAsync(this.UserId, this.ProfileNo);
+        var geofences = await this._userGeofenceService.GetByUserAsync(this.UserId);
         return this.Ok(geofences);
     }
 
@@ -32,25 +32,6 @@ public class UserGeofenceController(IUserGeofenceService userGeofenceService, IL
         }
     }
 
-    [HttpPut("custom/{id:int}")]
-    public async Task<IActionResult> UpdateGeofence(int id, [FromBody] UserGeofenceCreate model)
-    {
-        try
-        {
-            var result = await this._userGeofenceService.UpdateAsync(this.UserId, id, model);
-            return this.Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return this.NotFound(new { error = ex.Message });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            this._logger.LogWarning(ex, "User {UserId} attempted to update geofence {Id} they don't own", this.UserId, id);
-            return this.Forbid();
-        }
-    }
-
     [HttpDelete("custom/{id:int}")]
     public async Task<IActionResult> DeleteGeofence(int id)
     {
@@ -65,7 +46,26 @@ public class UserGeofenceController(IUserGeofenceService userGeofenceService, IL
         }
         catch (UnauthorizedAccessException ex)
         {
-            this._logger.LogWarning(ex, "User {UserId} attempted to delete geofence {Id} they don't own", this.UserId, id);
+            this._logger.LogWarning(ex, "User {UserId} attempted to delete geofence ID {Id} they don't own", this.UserId, id);
+            return this.Forbid();
+        }
+    }
+
+    [HttpPost("custom/{kojiName}/submit")]
+    public async Task<IActionResult> SubmitForReview(string kojiName)
+    {
+        try
+        {
+            var result = await this._userGeofenceService.SubmitForReviewAsync(this.UserId, kojiName);
+            return this.Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            this._logger.LogWarning(ex, "User {UserId} attempted to submit geofence '{KojiName}' they don't own", this.UserId, kojiName);
             return this.Forbid();
         }
     }

@@ -15,29 +15,38 @@ public class UserGeofenceEntity
     [Required]
     public string HumanId { get; set; } = string.Empty;
 
-    [Column("profile_no")]
+    [Column("koji_name")]
     [Required]
-    public int ProfileNo { get; set; }
-
-    [Column("geofence_name")]
-    [Required]
-    public string GeofenceName { get; set; } = string.Empty;
+    public string KojiName { get; set; } = string.Empty;
 
     [Column("display_name")]
     [Required]
     public string DisplayName { get; set; } = string.Empty;
 
     [Column("group_name")]
-    [Required]
     public string GroupName { get; set; } = string.Empty;
 
     [Column("parent_id")]
-    [Required]
     public int ParentId { get; set; }
 
-    [Column("polygon_json")]
+    [Column("status")]
     [Required]
-    public string PolygonJson { get; set; } = string.Empty;
+    public string Status { get; set; } = "active";
+
+    [Column("submitted_at")]
+    public DateTime? SubmittedAt { get; set; }
+
+    [Column("reviewed_by")]
+    public string? ReviewedBy { get; set; }
+
+    [Column("reviewed_at")]
+    public DateTime? ReviewedAt { get; set; }
+
+    [Column("review_notes")]
+    public string? ReviewNotes { get; set; }
+
+    [Column("promoted_name")]
+    public string? PromotedName { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

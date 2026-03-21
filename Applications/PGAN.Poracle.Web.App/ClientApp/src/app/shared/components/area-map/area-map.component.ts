@@ -260,7 +260,9 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     this.map.addControl(this.drawControl);
 
-    this.map.on(L.Draw.Event.CREATED, this.onDrawCreated);
+    if (L.Draw?.Event?.CREATED) {
+      this.map.on(L.Draw.Event.CREATED, this.onDrawCreated);
+    }
   }
 
   private buildRegions(): void {
@@ -429,10 +431,13 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.drawControl = null;
     }
 
-    this.map.off(L.Draw.Event.CREATED, this.onDrawCreated);
+    if (L.Draw?.Event?.CREATED) {
+      this.map.off(L.Draw.Event.CREATED, this.onDrawCreated);
+    }
   }
 
   private renderCustomGeofences(geofences: GeofenceData[]): void {
+    if (!this.map) return;
     this.customGeofenceLayer.clearLayers();
 
     for (const fence of geofences) {

@@ -1,0 +1,60 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Geofence Reviews</h1>
+    <p class="page-description">Review and approve or reject user-submitted custom geofences for promotion to server-wide areas.</p>
+  </div>
+</div>
+
+<div class="page-content">
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    @if (submissions().length > 0) {
+      <div class="submissions-grid">
+        @for (geofence of submissions(); track geofence.id) {
+          <div class="submission-card">
+            <div class="submission-card-accent"></div>
+            <div class="submission-card-body">
+              <div class="submission-card-header">
+                <mat-icon class="submission-card-icon">pentagon</mat-icon>
+                <div class="submission-card-info">
+                  <span class="submission-card-name">{{ geofence.displayName }}</span>
+                  <span class="submission-card-group">{{ geofence.groupName }}</span>
+                </div>
+                <span class="status-chip status-pending">Pending</span>
+              </div>
+              <div class="submission-card-meta">
+                @if (geofence.submittedAt) {
+                  <div class="meta-item">
+                    <mat-icon>schedule</mat-icon>
+                    <span>Submitted {{ geofence.submittedAt | date: 'mediumDate' }}</span>
+                  </div>
+                }
+                @if (geofence.polygon) {
+                  <div class="meta-item">
+                    <mat-icon>straighten</mat-icon>
+                    <span>{{ geofence.polygon.length }} points</span>
+                  </div>
+                }
+              </div>
+              <div class="submission-card-actions">
+                <button mat-raised-button color="primary" (click)="openReviewDialog(geofence)" matTooltip="Review this submission">
+                  <mat-icon>rate_review</mat-icon>
+                  Review
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <mat-icon class="empty-icon">rate_review</mat-icon>
+        <h2>No pending submissions</h2>
+        <p>All geofence submissions have been reviewed. New submissions from users will appear here.</p>
+      </div>
+    }
+  }
+</div>

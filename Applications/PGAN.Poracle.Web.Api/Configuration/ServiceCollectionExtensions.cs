@@ -20,6 +20,11 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<PoracleContext>(options =>
             options.UseMySQL(connectionString!));
 
+        // Register PoracleWebContext for the poracle_web database (owned by this app)
+        var webConnectionString = configuration.GetConnectionString("PoracleWebDb");
+        services.AddDbContext<PoracleWebContext>(options =>
+            options.UseMySQL(webConnectionString!));
+
         // Register MemoryCache
         services.AddMemoryCache();
 

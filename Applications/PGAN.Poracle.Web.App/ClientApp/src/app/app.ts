@@ -133,11 +133,13 @@ export class App implements OnInit {
       route: '/gyms',
     },
     { disableKey: 'disable_areas', group: 'settings', icon: 'map', iconColor: '#ff9800', label: 'Areas', route: '/areas' },
+    { group: 'settings', icon: 'draw', iconColor: '#2196f3', label: 'My Geofences', route: '/geofences' },
     { disableKey: 'disable_profiles', group: 'settings', icon: 'person', iconColor: '#7b1fa2', label: 'Profiles', route: '/profiles' },
     { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'Cleaning', route: '/cleaning' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'Users', route: '/admin/users' },
     { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'Webhooks', route: '/admin/webhooks' },
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'Settings', route: '/admin/settings' },
+    { adminOnly: true, group: 'admin', icon: 'rate_review', iconColor: '#ff9800', label: 'Geofence Reviews', route: '/admin/geofence-submissions' },
     { delegateOnly: true, group: 'webhooks', icon: 'webhook', iconColor: '#00897b', label: 'My Webhooks', route: '/my-webhooks' },
   ];
 

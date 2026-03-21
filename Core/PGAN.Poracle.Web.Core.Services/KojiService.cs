@@ -8,6 +8,8 @@ namespace PGAN.Poracle.Web.Core.Services;
 
 public class KojiService(HttpClient httpClient, IConfiguration configuration, ILogger<KojiService> logger) : IKojiService
 {
+    private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     private readonly HttpClient _httpClient = httpClient;
     private readonly string _apiAddress = (configuration["Koji:ApiAddress"] ?? string.Empty).TrimEnd('/');
     private readonly int _projectId = int.TryParse(configuration["Koji:ProjectId"], out var id) ? id : 0;
@@ -40,14 +42,16 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                             ["__parent"] = parentId,
                             ["name"] = displayName,
                             ["group"] = group,
-                            ["parent"] = group
+                            ["parent"] = group,
+                            ["userSelectable"] = false,
+                            ["displayInMatches"] = false
                         }
                     }
                 }
             }
         };
 
-        var json = JsonSerializer.Serialize(body, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(body, s_jsonOptions);
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
@@ -56,9 +60,18 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
         this._logger.LogInformation("Saved geofence '{GeofenceName}' to Koji project {ProjectId}", geofenceName, this._projectId);
     }
 
-    public async Task RemoveGeofenceFromProjectAsync(string geofenceName, double[][] polygon)
+    public async Task RemoveGeofenceFromProjectAsync(string geofenceName)
     {
-        var coordinates = polygon.Select(p => new[] { p[1], p[0] }).ToArray(); // Convert lat,lon to GeoJSON lon,lat
+        // Fetch existing geometry from Koji so we can re-save with empty projects
+        var featureJson = await this._httpClient.GetStringAsync(
+            $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(geofenceName)}?rt=feature");
+        using var featureDoc = JsonDocument.Parse(featureJson);
+        var feature = featureDoc.RootElement.GetProperty("data");
+        var geometry = feature.GetProperty("geometry");
+        var coordinates = geometry.GetProperty("coordinates");
+
+        // Clone the existing coordinates to preserve them
+        var existingCoords = coordinates.Clone();
 
         var body = new
         {
@@ -73,7 +86,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                         geometry = new
                         {
                             type = "Polygon",
-                            coordinates = new[] { coordinates }
+                            coordinates = existingCoords
                         },
                         properties = new Dictionary<string, object>
                         {
@@ -87,7 +100,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
             }
         };
 
-        var json = JsonSerializer.Serialize(body, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.Serialize(body, s_jsonOptions);
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
@@ -144,5 +157,165 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
         }
 
         return regions;
+    }
+
+    public async Task<List<UserGeofence>> GetUserGeofencesAsync(string humanId)
+    {
+        var prefix = $"pweb_{humanId}_";
+
+        // Step 1: Get reference data to find user's geofences by name prefix
+        var referenceJson = await this._httpClient.GetStringAsync($"{this._apiAddress}/api/v1/geofence/reference");
+        using var referenceDoc = JsonDocument.Parse(referenceJson);
+
+        var userGeofences = new List<UserGeofence>();
+
+        if (!referenceDoc.RootElement.TryGetProperty("data", out var allRefs) || allRefs.ValueKind != JsonValueKind.Array)
+        {
+            return userGeofences;
+        }
+
+        foreach (var item in allRefs.EnumerateArray())
+        {
+            var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? "" : "";
+            if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var kojiId = item.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : 0;
+            var parentId = item.TryGetProperty("parent", out var parentEl) && parentEl.ValueKind == JsonValueKind.Number
+                ? parentEl.GetInt32() : 0;
+
+            // Step 2: Get full feature with geometry and custom properties
+            try
+            {
+                var featureJson = await this._httpClient.GetStringAsync(
+                    $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(name)}?rt=feature");
+                using var featureDoc = JsonDocument.Parse(featureJson);
+                var feature = featureDoc.RootElement.GetProperty("data");
+
+                // Extract custom properties
+                var props = feature.GetProperty("properties");
+                var displayName = props.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? name : name;
+                var groupName = props.TryGetProperty("group", out var groupEl) ? groupEl.GetString() ?? "" : "";
+
+                // Extract polygon coordinates (GeoJSON format: [[[lon,lat],...]])
+                var geometry = feature.GetProperty("geometry");
+                var coordinates = geometry.GetProperty("coordinates");
+                var ring = coordinates[0]; // First ring of polygon
+                var polygon = new double[ring.GetArrayLength()][];
+                for (int i = 0; i < ring.GetArrayLength(); i++)
+                {
+                    var coord = ring[i];
+                    // GeoJSON is [lon, lat], convert to [lat, lon] for frontend
+                    polygon[i] = [coord[1].GetDouble(), coord[0].GetDouble()];
+                }
+
+                userGeofences.Add(new UserGeofence
+                {
+                    KojiName = name,
+                    DisplayName = displayName,
+                    GroupName = groupName,
+                    ParentId = parentId,
+                    Polygon = polygon,
+                });
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to fetch feature details for geofence '{GeofenceName}'", name);
+            }
+        }
+
+        return userGeofences;
+    }
+
+    public async Task PromoteGeofenceAsync(string currentName, string? newName, string displayName, string group, int parentId)
+    {
+        // Fetch existing geometry from Koji
+        var featureJson = await this._httpClient.GetStringAsync(
+            $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(currentName)}?rt=feature");
+        using var featureDoc = JsonDocument.Parse(featureJson);
+        var feature = featureDoc.RootElement.GetProperty("data");
+        var geometry = feature.GetProperty("geometry");
+        var existingCoords = geometry.GetProperty("coordinates").Clone();
+
+        var targetName = newName ?? currentName;
+
+        var body = new
+        {
+            area = new
+            {
+                type = "FeatureCollection",
+                features = new[]
+                {
+                    new
+                    {
+                        type = "Feature",
+                        geometry = new
+                        {
+                            type = "Polygon",
+                            coordinates = existingCoords
+                        },
+                        properties = new Dictionary<string, object>
+                        {
+                            ["__name"] = targetName,
+                            ["__mode"] = "unset",
+                            ["__projects"] = new[] { this._projectId },
+                            ["__parent"] = parentId,
+                            ["userSelectable"] = true,
+                            ["displayInMatches"] = true,
+                            ["name"] = displayName,
+                            ["group"] = group,
+                            ["parent"] = group
+                        }
+                    }
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(body, s_jsonOptions);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
+        response.EnsureSuccessStatusCode();
+
+        // If renaming, remove the old geofence from the project
+        if (newName != null && !string.Equals(newName, currentName, StringComparison.Ordinal))
+        {
+            await this.RemoveGeofenceFromProjectAsync(currentName);
+        }
+
+        this._logger.LogInformation(
+            "Promoted geofence '{CurrentName}' as '{TargetName}' with display name '{DisplayName}' in group '{Group}'",
+            currentName, targetName, displayName, group);
+    }
+
+    public async Task<double[][]?> GetGeofencePolygonAsync(string geofenceName)
+    {
+        try
+        {
+            var featureJson = await this._httpClient.GetStringAsync(
+                $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(geofenceName)}?rt=feature");
+            using var featureDoc = JsonDocument.Parse(featureJson);
+            var feature = featureDoc.RootElement.GetProperty("data");
+            var geometry = feature.GetProperty("geometry");
+            var coordinates = geometry.GetProperty("coordinates");
+            var ring = coordinates[0]; // First ring of polygon
+
+            var polygon = new double[ring.GetArrayLength()][];
+            for (int i = 0; i < ring.GetArrayLength(); i++)
+            {
+                var coord = ring[i];
+                // GeoJSON is [lon, lat], convert to [lat, lon]
+                polygon[i] = [coord[1].GetDouble(), coord[0].GetDouble()];
+            }
+
+            return polygon;
+        }
+        catch (HttpRequestException ex)
+        {
+            this._logger.LogWarning(ex, "Geofence '{GeofenceName}' not found in Koji", geofenceName);
+            return null;
+        }
     }
 }

@@ -26,7 +26,10 @@ export class UserGeofenceService {
     return this.http.get<GeofenceRegion[]>(`${this.config.apiHost}/api/geofences/regions`);
   }
 
-  updateGeofence(id: number, data: UserGeofenceCreate): Observable<UserGeofence> {
-    return this.http.put<UserGeofence>(`${this.config.apiHost}/api/geofences/custom/${id}`, data);
+  submitForReview(kojiName: string): Observable<UserGeofence> {
+    return this.http.post<UserGeofence>(
+      `${this.config.apiHost}/api/geofences/custom/${encodeURIComponent(kojiName)}/submit`,
+      {}
+    );
   }
 }

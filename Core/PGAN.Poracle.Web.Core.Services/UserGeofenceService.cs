@@ -8,7 +8,7 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Core.Services;
 
 public partial class UserGeofenceService(
-    IUserGeofenceRepository userGeofenceRepository,
+    IUserGeofenceRepository repository,
     IKojiService kojiService,
     IPoracleApiProxy poracleApiProxy,
     IHumanRepository humanRepository,
@@ -17,117 +17,209 @@ public partial class UserGeofenceService(
     private const int MaxGeofencesPerUser = 10;
     private const int MaxSlugLength = 30;
 
-    private readonly IUserGeofenceRepository _userGeofenceRepository = userGeofenceRepository;
+    private readonly IUserGeofenceRepository _repository = repository;
     private readonly IKojiService _kojiService = kojiService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHumanRepository _humanRepository = humanRepository;
     private readonly ILogger<UserGeofenceService> _logger = logger;
 
-    public async Task<List<UserGeofence>> GetByUserAsync(string humanId, int profileNo)
+    public async Task<List<UserGeofence>> GetByUserAsync(string humanId)
     {
-        return await this._userGeofenceRepository.GetByHumanIdAsync(humanId, profileNo);
+        var geofences = await this._repository.GetByHumanIdAsync(humanId);
+
+        var tasks = geofences.Select(async g =>
+        {
+            try
+            {
+                g.Polygon = await this._kojiService.GetGeofencePolygonAsync(g.KojiName);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to fetch polygon for geofence '{KojiName}'", g.KojiName);
+            }
+        });
+        await Task.WhenAll(tasks);
+
+        return geofences;
     }
 
     public async Task<UserGeofence> CreateAsync(string humanId, int profileNo, UserGeofenceCreate model)
     {
-        // Check count limit
-        var count = await this._userGeofenceRepository.GetCountByHumanIdAsync(humanId);
+        // Check count limit via local DB
+        var count = await this._repository.GetCountByHumanIdAsync(humanId);
         if (count >= MaxGeofencesPerUser)
         {
             throw new InvalidOperationException($"Maximum of {MaxGeofencesPerUser} custom geofences per user reached.");
         }
 
-        // Generate namespaced name
-        var slug = GenerateSlug(model.DisplayName);
-        var geofenceName = $"pweb_{humanId}_{slug}";
+        // Validate polygon point count
+        if (model.Polygon.Length > 500)
+        {
+            throw new InvalidOperationException("Polygon cannot exceed 500 points.");
+        }
 
-        // Serialize polygon to GeoJSON for local storage
-        var polygonJson = JsonSerializer.Serialize(model.Polygon);
+        if (model.Polygon.Length < 3)
+        {
+            throw new InvalidOperationException("Polygon must have at least 3 points.");
+        }
+
+        // Generate namespaced name with uniqueness check
+        var slug = GenerateSlug(model.DisplayName);
+        var kojiName = $"pweb_{humanId}_{slug}";
+
+        var existing = await this._repository.GetByKojiNameAsync(kojiName);
+        if (existing != null)
+        {
+            var baseName = kojiName;
+            var found = false;
+            for (int i = 2; i <= 10; i++)
+            {
+                kojiName = $"{baseName}_{i}";
+                existing = await this._repository.GetByKojiNameAsync(kojiName);
+                if (existing == null)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                throw new InvalidOperationException($"Unable to generate a unique geofence name for '{model.DisplayName}'. Please choose a different name.");
+            }
+        }
 
         // Save to Koji
-        await this._kojiService.SaveGeofenceAsync(geofenceName, model.DisplayName, model.GroupName, model.ParentId, model.Polygon);
+        await this._kojiService.SaveGeofenceAsync(kojiName, model.DisplayName, model.GroupName, model.ParentId, model.Polygon);
 
-        // Save local tracking record
-        var geofence = new UserGeofence
+        // Create local DB record
+        var geofence = await this._repository.CreateAsync(new UserGeofence
         {
             HumanId = humanId,
-            ProfileNo = profileNo,
-            GeofenceName = geofenceName,
+            KojiName = kojiName,
             DisplayName = model.DisplayName,
             GroupName = model.GroupName,
             ParentId = model.ParentId,
-            PolygonJson = polygonJson,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+            Status = "active",
+        });
 
-        var created = await this._userGeofenceRepository.CreateAsync(geofence);
-
-        // Add geofence name to user's humans.area JSON array
-        await this.AddAreaToHumanAsync(humanId, profileNo, geofenceName);
+        // Add kojiName to user's humans.area JSON array
+        await this.AddAreaToHumanAsync(humanId, profileNo, kojiName);
 
         // Reload Poracle geofences
         await this.ReloadGeofencesSafeAsync();
 
-        this._logger.LogInformation("Created custom geofence '{GeofenceName}' for user {HumanId}", geofenceName, humanId);
-
-        return created;
-    }
-
-    public async Task<UserGeofence> UpdateAsync(string humanId, int id, UserGeofenceCreate model)
-    {
-        var existing = await this._userGeofenceRepository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"Geofence with id {id} not found.");
-
-        if (existing.HumanId != humanId)
+        // Fetch polygon from Koji and set on result
+        try
         {
-            throw new UnauthorizedAccessException("Geofence does not belong to this user.");
+            geofence.Polygon = await this._kojiService.GetGeofencePolygonAsync(kojiName);
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogWarning(ex, "Failed to fetch polygon for newly created geofence '{KojiName}'", kojiName);
+            geofence.Polygon = model.Polygon;
         }
 
-        // Update polygon in Koji (same name, updated geometry)
-        var polygonJson = JsonSerializer.Serialize(model.Polygon);
-        await this._kojiService.SaveGeofenceAsync(existing.GeofenceName, model.DisplayName, model.GroupName, model.ParentId, model.Polygon);
+        this._logger.LogInformation("Created custom geofence '{KojiName}' for user {HumanId}", kojiName, humanId);
 
-        // Update local record
-        existing.DisplayName = model.DisplayName;
-        existing.GroupName = model.GroupName;
-        existing.ParentId = model.ParentId;
-        existing.PolygonJson = polygonJson;
-
-        var updated = await this._userGeofenceRepository.UpdateAsync(existing);
-
-        // Reload Poracle geofences
-        await this.ReloadGeofencesSafeAsync();
-
-        this._logger.LogInformation("Updated custom geofence '{GeofenceName}' for user {HumanId}", existing.GeofenceName, humanId);
-
-        return updated;
+        return geofence;
     }
 
     public async Task DeleteAsync(string humanId, int profileNo, int id)
     {
-        var existing = await this._userGeofenceRepository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"Geofence with id {id} not found.");
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
 
-        if (existing.HumanId != humanId)
+        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // Deserialize polygon to remove from Koji
-        var polygon = JsonSerializer.Deserialize<double[][]>(existing.PolygonJson) ?? [];
-        await this._kojiService.RemoveGeofenceFromProjectAsync(existing.GeofenceName, polygon);
+        // Remove from Koji project
+        await this._kojiService.RemoveGeofenceFromProjectAsync(geofence.KojiName);
 
-        // Remove geofence name from user's humans.area JSON array
-        await this.RemoveAreaFromHumanAsync(humanId, profileNo, existing.GeofenceName);
+        // Remove kojiName from user's humans.area JSON array
+        await this.RemoveAreaFromHumanAsync(humanId, profileNo, geofence.KojiName);
 
-        // Delete local tracking record
-        await this._userGeofenceRepository.DeleteAsync(id);
+        // Delete from local DB
+        await this._repository.DeleteAsync(id);
 
         // Reload Poracle geofences
         await this.ReloadGeofencesSafeAsync();
 
-        this._logger.LogInformation("Deleted custom geofence '{GeofenceName}' for user {HumanId}", existing.GeofenceName, humanId);
+        this._logger.LogInformation("Deleted custom geofence '{KojiName}' (ID {Id}) for user {HumanId}", geofence.KojiName, id, humanId);
+    }
+
+    public async Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName)
+    {
+        var geofence = await this._repository.GetByKojiNameAsync(kojiName)
+            ?? throw new InvalidOperationException($"Geofence '{kojiName}' not found.");
+
+        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Geofence does not belong to this user.");
+        }
+
+        if (geofence.Status != "active")
+        {
+            throw new InvalidOperationException($"Geofence must be in 'active' status to submit for review. Current status: '{geofence.Status}'.");
+        }
+
+        geofence.Status = "pending_review";
+        geofence.SubmittedAt = DateTime.UtcNow;
+
+        var updated = await this._repository.UpdateAsync(geofence);
+
+        this._logger.LogInformation("User {HumanId} submitted geofence '{KojiName}' for review", humanId, kojiName);
+
+        return updated;
+    }
+
+    public async Task<List<UserGeofence>> GetPendingSubmissionsAsync()
+    {
+        return await this._repository.GetByStatusAsync("pending_review");
+    }
+
+    public async Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName)
+    {
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
+
+        // Promote in Koji
+        await this._kojiService.PromoteGeofenceAsync(geofence.KojiName, promotedName, geofence.DisplayName, geofence.GroupName, geofence.ParentId);
+
+        // Update local record
+        geofence.Status = "approved";
+        geofence.ReviewedBy = adminId;
+        geofence.ReviewedAt = DateTime.UtcNow;
+        geofence.PromotedName = promotedName;
+
+        var updated = await this._repository.UpdateAsync(geofence);
+
+        // Reload Poracle geofences
+        await this.ReloadGeofencesSafeAsync();
+
+        this._logger.LogInformation("Admin {AdminId} approved geofence '{KojiName}' (ID {Id}), promotedName: {PromotedName}",
+            adminId, geofence.KojiName, id, promotedName);
+
+        return updated;
+    }
+
+    public async Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes)
+    {
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
+
+        geofence.Status = "rejected";
+        geofence.ReviewedBy = adminId;
+        geofence.ReviewedAt = DateTime.UtcNow;
+        geofence.ReviewNotes = reviewNotes;
+
+        var updated = await this._repository.UpdateAsync(geofence);
+
+        this._logger.LogInformation("Admin {AdminId} rejected geofence '{KojiName}' (ID {Id})", adminId, geofence.KojiName, id);
+
+        return updated;
     }
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync()

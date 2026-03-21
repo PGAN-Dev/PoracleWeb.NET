@@ -325,13 +325,17 @@ export interface PwebSetting {
 export interface UserGeofence {
   createdAt: string;
   displayName: string;
-  geofenceName: string;
   groupName: string;
-  humanId: string;
   id: number;
+  kojiName: string;
   parentId: number;
-  polygonJson: string;
-  profileNo: number;
+  polygon?: [number, number][];
+  promotedName?: string;
+  reviewNotes?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  status: 'active' | 'pending_review' | 'approved' | 'rejected';
+  submittedAt?: string;
   updatedAt: string;
 }
 

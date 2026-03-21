@@ -23,14 +23,14 @@ describe('UserGeofenceService', () => {
 
   it('should fetch custom geofences', () => {
     const geofences = [
-      { id: 1, displayName: 'My Park', geofenceName: 'my_park', groupName: 'downtown', humanId: '123', parentId: 1, polygonJson: '[]', profileNo: 1, createdAt: '', updatedAt: '' },
-      { id: 2, displayName: 'Route 2', geofenceName: 'route_2', groupName: 'suburbs', humanId: '123', parentId: 2, polygonJson: '[]', profileNo: 1, createdAt: '', updatedAt: '' },
+      { kojiId: 1, displayName: 'My Park', geofenceName: 'pweb_123_my_park', groupName: 'downtown', parentId: 1, polygon: [] },
+      { kojiId: 2, displayName: 'Route 2', geofenceName: 'pweb_123_route_2', groupName: 'suburbs', parentId: 2, polygon: [] },
     ];
 
     service.getCustomGeofences().subscribe(result => {
       expect(result).toHaveLength(2);
       expect(result[0].displayName).toBe('My Park');
-      expect(result[1].id).toBe(2);
+      expect(result[1].kojiId).toBe(2);
     });
 
     httpMock.expectOne(`${API}/api/geofences/custom`).flush(geofences);
@@ -45,20 +45,16 @@ describe('UserGeofenceService', () => {
     };
 
     const created = {
-      id: 3,
+      kojiId: 0,
       displayName: 'New Fence',
-      geofenceName: 'new_fence',
+      geofenceName: 'pweb_123_new_fence',
       groupName: 'downtown',
-      humanId: '123',
       parentId: 1,
-      polygonJson: '[[40,-74],[41,-74],[41,-73],[40,-73]]',
-      profileNo: 1,
-      createdAt: '2026-01-01',
-      updatedAt: '2026-01-01',
+      polygon: [[40, -74], [41, -74], [41, -73], [40, -73]],
     };
 
     service.createGeofence(createData).subscribe(result => {
-      expect(result.id).toBe(3);
+      expect(result.geofenceName).toBe('pweb_123_new_fence');
       expect(result.displayName).toBe('New Fence');
     });
 
@@ -68,41 +64,11 @@ describe('UserGeofenceService', () => {
     req.flush(created);
   });
 
-  it('should update a geofence', () => {
-    const updateData = {
-      displayName: 'Updated Fence',
-      groupName: 'suburbs',
-      parentId: 2,
-      polygon: [[42, -75], [43, -75], [43, -74], [42, -74]] as [number, number][],
-    };
+  it('should delete a geofence by id', () => {
+    const geofenceId = 42;
+    service.deleteGeofence(geofenceId).subscribe();
 
-    const updated = {
-      id: 5,
-      displayName: 'Updated Fence',
-      geofenceName: 'updated_fence',
-      groupName: 'suburbs',
-      humanId: '123',
-      parentId: 2,
-      polygonJson: '[]',
-      profileNo: 1,
-      createdAt: '2026-01-01',
-      updatedAt: '2026-01-02',
-    };
-
-    service.updateGeofence(5, updateData).subscribe(result => {
-      expect(result.displayName).toBe('Updated Fence');
-    });
-
-    const req = httpMock.expectOne(`${API}/api/geofences/custom/5`);
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual(updateData);
-    req.flush(updated);
-  });
-
-  it('should delete a geofence', () => {
-    service.deleteGeofence(7).subscribe();
-
-    const req = httpMock.expectOne(`${API}/api/geofences/custom/7`);
+    const req = httpMock.expectOne(`${API}/api/geofences/custom/${geofenceId}`);
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
@@ -120,5 +86,26 @@ describe('UserGeofenceService', () => {
     });
 
     httpMock.expectOne(`${API}/api/geofences/regions`).flush(regions);
+  });
+
+  it('should submit a geofence for review', () => {
+    const kojiName = 'pweb_123_my_park';
+    const submitted = {
+      id: 1,
+      kojiName,
+      displayName: 'My Park',
+      status: 'pending_review',
+      submittedAt: '2026-03-21T00:00:00Z',
+    };
+
+    service.submitForReview(kojiName).subscribe(result => {
+      expect(result.status).toBe('pending_review');
+      expect(result.submittedAt).toBeTruthy();
+    });
+
+    const req = httpMock.expectOne(`${API}/api/geofences/custom/${encodeURIComponent(kojiName)}/submit`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    req.flush(submitted);
   });
 });
