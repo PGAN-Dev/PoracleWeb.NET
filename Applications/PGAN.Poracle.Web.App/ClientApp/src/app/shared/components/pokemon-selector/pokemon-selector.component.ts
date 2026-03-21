@@ -29,34 +29,46 @@ export class PokemonSelectorComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
 
   activeGen = signal<GenRange | null>(null);
+  activeType = signal<string | null>(null);
   allPokemon = signal<PokemonEntry[]>([]);
+  availableTypes = computed(() => this.masterData.getAllTypes());
 
   searchText = signal('');
+  selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
   selectedPokemon = signal<PokemonEntry[]>([]);
+  showTileGrid = computed(() => this.multi() && (this.activeGen() != null || this.activeType() != null));
   filteredPokemon = computed(() => {
     const search = this.searchText().toLowerCase();
-    const selected = new Set(this.selectedPokemon().map(p => p.id));
+    const selected = this.selectedIds();
     const gen = this.activeGen();
+    const type = this.activeType();
+    const tileMode = this.showTileGrid();
     const all = this.allPokemon();
 
     if (!all.length) return [];
 
     return all
       .filter(p => {
-        if (this.multi() && selected.has(p.id)) return false;
-        // When a generation is active, show all Pokemon in that range (plus "All Pokemon")
+        // In tile grid mode, keep selected pokemon visible (they show as selected tiles)
+        // In autocomplete mode, hide already-selected from dropdown
+        if (this.multi() && !tileMode && selected.has(p.id)) return false;
+        if (p.id === 0) return !tileMode && (gen != null || type != null || !search);
+        // Type filter
+        if (type) {
+          const pokemonTypes = this.masterData.getPokemonTypes(p.id);
+          if (!pokemonTypes.includes(type)) return false;
+        }
+        // Generation filter
         if (gen) {
-          if (p.id === 0) return true;
           const inGen = p.id >= gen.min && p.id <= gen.max;
           if (!inGen) return false;
-          if (search) return p.name.toLowerCase().includes(search) || p.id.toString() === search;
-          return true;
         }
-        // No gen filter: original behavior
-        if (!search) return p.id === 0;
-        return p.name.toLowerCase().includes(search) || p.id.toString() === search;
+        // Search filter
+        if (search) return p.name.toLowerCase().includes(search) || p.id.toString() === search;
+        // Show all when a filter is active, otherwise require search
+        return gen != null || type != null;
       })
-      .slice(0, 100);
+      .slice(0, 200);
   });
 
   readonly generations: GenRange[] = [
@@ -128,8 +140,27 @@ export class PokemonSelectorComponent implements OnInit {
     this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
   }
 
+  toggleTile(pokemon: PokemonEntry): void {
+    if (this.selectedIds().has(pokemon.id)) {
+      this.removePokemon(pokemon.id);
+    } else {
+      this.selectedPokemon.update(list => [...list, pokemon]);
+      this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
+    }
+  }
+
   toggleGen(gen: GenRange): void {
     this.activeGen.update(current => (current === gen ? null : gen));
+    this.searchControl.setValue('');
+    this.searchText.set('');
+  }
+
+  getTypeIcon(type: string): string {
+    return this.iconService.getTypeUrl(type);
+  }
+
+  toggleType(type: string): void {
+    this.activeType.update(current => (current === type ? null : type));
     this.searchControl.setValue('');
     this.searchText.set('');
   }
