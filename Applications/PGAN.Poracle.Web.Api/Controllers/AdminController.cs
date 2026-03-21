@@ -594,12 +594,18 @@ public class AdminController(
         }
         catch (InvalidOperationException ex)
         {
-            return this.NotFound(new { error = ex.Message });
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
         }
         catch (Exception ex)
         {
             this._logger.LogError(ex, "Failed to restart Poracle server {Host}", host);
-            return this.StatusCode(500, new { error = "Failed to restart server" });
+            return this.StatusCode(500, new
+            {
+                error = "Failed to restart server"
+            });
         }
     }
 

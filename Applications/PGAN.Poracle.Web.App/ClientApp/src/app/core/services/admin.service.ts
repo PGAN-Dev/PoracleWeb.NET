@@ -45,12 +45,12 @@ export class AdminService {
     return this.http.get<Record<string, string[]>>(`${this.config.apiHost}/api/admin/webhook-delegates/all`);
   }
 
-  getPoracleServers(): Observable<PoracleServerStatus[]> {
-    return this.http.get<PoracleServerStatus[]>(`${this.config.apiHost}/api/admin/poracle/servers`);
-  }
-
   getPoracleAdmins(): Observable<string[]> {
     return this.http.get<string[]>(`${this.config.apiHost}/api/admin/poracle-admins`);
+  }
+
+  getPoracleServers(): Observable<PoracleServerStatus[]> {
+    return this.http.get<PoracleServerStatus[]>(`${this.config.apiHost}/api/admin/poracle/servers`);
   }
 
   getPorocleDelegates(): Observable<Record<string, string[]>> {
@@ -92,10 +92,7 @@ export class AdminService {
   }
 
   restartServer(host: string): Observable<PoracleServerStatus> {
-    return this.http.post<PoracleServerStatus>(
-      `${this.config.apiHost}/api/admin/poracle/servers/${encodeURIComponent(host)}/restart`,
-      {},
-    );
+    return this.http.post<PoracleServerStatus>(`${this.config.apiHost}/api/admin/poracle/servers/${encodeURIComponent(host)}/restart`, {});
   }
 
   resumeUser(userId: string): Observable<Human> {

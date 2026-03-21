@@ -183,8 +183,5 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
         Assert.IsType<NotFoundResult>(await this._sut.GetDistanceMap(0, 0, 0));
     }
 
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
-    }
+    public void Dispose() => GC.SuppressFinalize(this);
 }

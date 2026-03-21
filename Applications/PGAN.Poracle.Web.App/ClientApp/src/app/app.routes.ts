@@ -110,8 +110,7 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard, adminGuard],
-    loadComponent: () =>
-      import('./modules/admin/poracle-servers/poracle-servers.component').then(m => m.PoracleServersComponent),
+    loadComponent: () => import('./modules/admin/poracle-servers/poracle-servers.component').then(m => m.PoracleServersComponent),
     path: 'admin/poracle-servers',
   },
   {

@@ -194,4 +194,53 @@ describe('AdminService', () => {
 
     httpMock.expectOne(`${API}/api/admin/users/user%40special`).flush(mockHuman);
   });
+
+  it('should fetch poracle servers', () => {
+    const mockServers = [
+      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', name: 'Server1', online: true },
+      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', name: 'Server2', online: false },
+    ];
+
+    service.getPoracleServers().subscribe(servers => {
+      expect(servers).toHaveLength(2);
+      expect(servers[0].online).toBe(true);
+      expect(servers[1].online).toBe(false);
+    });
+
+    httpMock.expectOne(`${API}/api/admin/poracle/servers`).flush(mockServers);
+  });
+
+  it('should restart a single server', () => {
+    const mockStatus = { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', message: 'restarted', name: 'Server1', online: true };
+
+    service.restartServer('10.0.0.1').subscribe(status => {
+      expect(status.online).toBe(true);
+      expect(status.message).toBe('restarted');
+    });
+
+    const req = httpMock.expectOne(`${API}/api/admin/poracle/servers/10.0.0.1/restart`);
+    expect(req.request.method).toBe('POST');
+    req.flush(mockStatus);
+  });
+
+  it('should restart all servers', () => {
+    const mockStatuses = [
+      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', name: 'Server1', online: true },
+      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', name: 'Server2', online: true },
+    ];
+
+    service.restartAllServers().subscribe(statuses => {
+      expect(statuses).toHaveLength(2);
+    });
+
+    const req = httpMock.expectOne(`${API}/api/admin/poracle/servers/restart-all`);
+    expect(req.request.method).toBe('POST');
+    req.flush(mockStatuses);
+  });
+
+  it('should encode special characters in server host for restart', () => {
+    service.restartServer('host:with@chars').subscribe();
+
+    httpMock.expectOne(`${API}/api/admin/poracle/servers/host%3Awith%40chars/restart`).flush({});
+  });
 });

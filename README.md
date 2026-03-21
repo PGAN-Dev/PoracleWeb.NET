@@ -310,6 +310,8 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | `Koji:ApiAddress` | `Koji__ApiAddress` | No | Koji geofence server URL. Required for custom geofences feature. |
 | `Koji:BearerToken` | `Koji__BearerToken` | No | Koji API bearer token for authentication |
 | `Koji:ProjectId` | `Koji__ProjectId` | No | Koji project ID for admin-promoted geofences (default: 0) |
+| `Poracle:Servers` | `Poracle__Servers__0__Name`, etc. | No | Array of PoracleJS server configs (name, host, API address, SSH user) for remote management |
+| `Poracle:SshKeyPath` | `Poracle__SshKeyPath` | No | Path to SSH private key inside container (default `/app/ssh_key`) |
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0` | No | Allowed CORS origin (empty = allow all) |
 
 ## Docker Compose Details
@@ -356,4 +358,5 @@ Two GitHub Actions workflows run on push to `main` and pull requests:
 - **Onboarding Wizard**: First-run setup guide for new users
 - **Keyboard Shortcuts**: `?` for help, `[`/`]` for sidebar collapse
 - **18 Languages**: Pokemon name localization
+- **Poracle Server Management**: Monitor health and restart PoracleJS instances remotely from the admin panel, with multi-server support and SSH + PM2 integration
 - **Admin Panel**: User management, webhook configuration, site settings, geofence submission review

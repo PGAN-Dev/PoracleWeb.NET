@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
@@ -6,7 +7,7 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class PoracleServerService(
+public partial class PoracleServerService(
     HttpClient httpClient,
     IConfiguration configuration,
     ILogger<PoracleServerService> logger) : IPoracleServerService
@@ -15,7 +16,10 @@ public class PoracleServerService(
     private readonly ILogger<PoracleServerService> _logger = logger;
     private readonly string _sshKeyPath = configuration["Poracle:SshKeyPath"] ?? "/app/ssh_key";
 
-    private record ServerConfig(string Name, string Host, string ApiAddress, string SshUser);
+    private sealed record ServerConfig(string Name, string Host, string ApiAddress, string SshUser);
+
+    [GeneratedRegex(@"^[a-zA-Z0-9._\-]+$")]
+    private static partial Regex SafeHostnameRegex();
 
     private List<ServerConfig> GetServers()
     {
@@ -38,12 +42,19 @@ public class PoracleServerService(
         return servers;
     }
 
+    private static void ValidateHostname(string value, string paramName)
+    {
+        if (!SafeHostnameRegex().IsMatch(value))
+        {
+            throw new ArgumentException($"Invalid characters in {paramName}: '{value}'", paramName);
+        }
+    }
+
     public async Task<List<PoracleServerStatus>> GetServersAsync()
     {
         var servers = this.GetServers();
-        var statuses = new List<PoracleServerStatus>();
 
-        foreach (var server in servers)
+        var tasks = servers.Select(async server =>
         {
             var status = new PoracleServerStatus
             {
@@ -64,10 +75,11 @@ public class PoracleServerService(
             }
 
             status.CheckedAt = DateTime.UtcNow;
-            statuses.Add(status);
-        }
+            return status;
+        });
 
-        return statuses;
+        var results = await Task.WhenAll(tasks);
+        return [.. results];
     }
 
     public async Task<PoracleServerStatus> RestartServerAsync(string host)
@@ -76,6 +88,10 @@ public class PoracleServerService(
         var server = servers.FirstOrDefault(s =>
             s.Host.Equals(host, StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException($"Server with host '{host}' not found in configuration.");
+
+        // Validate host and SSH user to prevent command injection
+        ValidateHostname(server.Host, "host");
+        ValidateHostname(server.SshUser, "sshUser");
 
         var status = new PoracleServerStatus
         {
@@ -105,12 +121,17 @@ public class PoracleServerService(
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
 
-            var exited = await process.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token)
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var exited = await process.WaitForExitAsync(cts.Token)
                 .ContinueWith(t => !t.IsCanceled);
 
             if (!exited)
             {
-                try { process.Kill(); } catch { /* best effort */ }
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch { /* best effort */ }
                 status.Online = false;
                 status.Message = "SSH command timed out after 30 seconds";
                 this._logger.LogWarning("SSH restart timed out for server {Host}", server.Host);

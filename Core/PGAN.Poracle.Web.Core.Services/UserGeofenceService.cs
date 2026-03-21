@@ -7,7 +7,7 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class UserGeofenceService(
+public partial class UserGeofenceService(
     IUserGeofenceRepository repository,
     IKojiService kojiService,
     IPoracleApiProxy poracleApiProxy,
@@ -62,7 +62,7 @@ public class UserGeofenceService(
             throw new InvalidOperationException("Display name must be between 1 and 50 characters.");
         }
 
-        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedName, @"^[a-zA-Z0-9 \-'.()&]+$"))
+        if (!MyRegex().IsMatch(trimmedName))
         {
             throw new InvalidOperationException("Display name contains invalid characters.");
         }
@@ -441,4 +441,6 @@ public class UserGeofenceService(
         }
     }
 
+    [System.Text.RegularExpressions.GeneratedRegex(@"^[a-zA-Z0-9 \-'.()&]+$")]
+    private static partial System.Text.RegularExpressions.Regex MyRegex();
 }

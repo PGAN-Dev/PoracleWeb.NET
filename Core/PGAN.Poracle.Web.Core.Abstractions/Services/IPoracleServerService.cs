@@ -4,7 +4,7 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IPoracleServerService
 {
-    Task<List<PoracleServerStatus>> GetServersAsync();
-    Task<PoracleServerStatus> RestartServerAsync(string host);
-    Task<List<PoracleServerStatus>> RestartAllAsync();
+    public Task<List<PoracleServerStatus>> GetServersAsync();
+    public Task<PoracleServerStatus> RestartServerAsync(string host);
+    public Task<List<PoracleServerStatus>> RestartAllAsync();
 }

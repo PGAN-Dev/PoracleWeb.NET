@@ -82,7 +82,11 @@ public static class ServiceCollectionExtensions
         services.Configure<PoracleServerSettings>(config =>
         {
             var servers = configuration.GetSection("Poracle:Servers").Get<List<PoracleServerConfig>>();
-            if (servers != null) config.Servers = servers;
+            if (servers != null)
+            {
+                config.Servers = servers;
+            }
+
             config.SshKeyPath = configuration["Poracle:SshKeyPath"] ?? "/app/ssh_key";
         });
         services.AddHttpClient<IPoracleServerService, PoracleServerService>();

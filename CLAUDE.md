@@ -27,7 +27,7 @@ PGAN.Poracle.Web.slnx
 |   +-- Core.Repositories/       BaseRepository<TEntity, TModel> implementations
 |   +-- Core.Services/           Business logic (MonsterService, DashboardService,
 |   |                            UserGeofenceService, KojiService,
-|   |                            DiscordNotificationService, etc.)
+|   |                            DiscordNotificationService, PoracleServerService, etc.)
 |   +-- Core.UnitsOfWork/        PoracleUnitOfWork wrapping DbContext.SaveChangesAsync()
 |
 +-- Data/
@@ -107,6 +107,12 @@ PGAN.Poracle.Web.slnx
 - Geofence statuses: `active` (private, user-only), `pending_review` (submitted for admin review), `approved` (promoted to Koji as public), `rejected` (remains private with review notes).
 - `KojiService` fetches region (parent) geofences from Koji's reference API and serves them to the frontend `region-selector` component for auto-detection of which region a drawn polygon belongs to.
 
+### Poracle Server Management
+- Servers configured via `Poracle:Servers` array in appsettings (name, host, API address, SSH user).
+- Health check pings each server's API endpoint to determine online/offline status.
+- Restart executes `ssh user@host "pm2 restart all"` via `System.Diagnostics.Process`.
+- SSH key mounted as read-only volume at `/app/ssh_key` (path configurable via `Poracle:SshKeyPath`).
+
 ### PoracleWeb Database
 - Second `DbContext`: `PoracleWebContext` using `ConnectionStrings:PoracleWebDb`.
 - Separate `poracle_web` MariaDB/MySQL database for application-owned data (not managed by PoracleJS).
@@ -159,6 +165,8 @@ PGAN.Poracle.Web.slnx
   - `Koji:BearerToken` -- Koji API authentication token.
   - `Koji:ProjectId` -- Koji project ID for admin-promoted geofences. Settings class: `KojiSettings`.
 - **Discord Geofence Forum**: `Discord:GeofenceForumChannelId` -- Discord forum channel ID where geofence submission threads are created.
+- **Poracle Servers**: `Poracle:Servers` -- array of PoracleJS server configs (name, host, API address, SSH user) for multi-server management.
+- **SSH Key Path**: `Poracle:SshKeyPath` -- path to SSH private key inside the container (default `/app/ssh_key`).
 - **PoracleJS config**: `geofence.path` in PoracleJS config must be an array containing both the Koji URL and the PoracleWeb feed URL (e.g., `["http://koji:8080/api/v1/geofence/poracle/project-id", "http://poracleweb:8080/api/geofence-feed"]`).
 
 ## Common Issues
@@ -250,7 +258,7 @@ docker compose up -d --force-recreate
 | Admin Geofence Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/AdminGeofenceController.cs` |
 | User Geofence Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/UserGeofenceController.cs` |
 | DI Registration | `Applications/PGAN.Poracle.Web.Api/Configuration/ServiceCollectionExtensions.cs` |
-| Settings Classes | `Applications/PGAN.Poracle.Web.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, etc.) |
+| Settings Classes | `Applications/PGAN.Poracle.Web.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, PoracleServerSettings, etc.) |
 | Angular App Root | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/` |
 | Angular Routes | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/app.routes.ts` |
 | Angular Services | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/core/services/` |
@@ -269,6 +277,9 @@ docker compose up -d --force-recreate
 | UserGeofenceService | `Core/PGAN.Poracle.Web.Core.Services/UserGeofenceService.cs` |
 | KojiService | `Core/PGAN.Poracle.Web.Core.Services/KojiService.cs` |
 | DiscordNotificationService | `Core/PGAN.Poracle.Web.Core.Services/DiscordNotificationService.cs` |
+| IPoracleServerService | `Core/PGAN.Poracle.Web.Core.Abstractions/Services/` |
+| PoracleServerService | `Core/PGAN.Poracle.Web.Core.Services/PoracleServerService.cs` |
+| Poracle Servers Page | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/admin/poracle-servers/` |
 | Abstractions | `Core/PGAN.Poracle.Web.Core.Abstractions/` |
 | Backend Tests | `Tests/PGAN.Poracle.Web.Tests/` |
 | CI Workflows | `.github/workflows/` (ci.yml, docker-publish.yml) |
