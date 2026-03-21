@@ -55,6 +55,18 @@ public class UserGeofenceService(
             throw new InvalidOperationException($"Maximum of {MaxGeofencesPerUser} custom geofences per user reached.");
         }
 
+        // Validate display name (server-side, matching frontend regex)
+        var trimmedName = model.DisplayName?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmedName) || trimmedName.Length > 50)
+        {
+            throw new InvalidOperationException("Display name must be between 1 and 50 characters.");
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmedName, @"^[a-zA-Z0-9 \-'.()&]+$"))
+        {
+            throw new InvalidOperationException("Display name contains invalid characters.");
+        }
+
         // Validate polygon point count
         if (model.Polygon.Length > 500)
         {

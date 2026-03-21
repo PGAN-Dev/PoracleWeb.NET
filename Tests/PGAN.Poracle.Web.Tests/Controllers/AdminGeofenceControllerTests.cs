@@ -19,6 +19,81 @@ public class AdminGeofenceControllerTests : ControllerTestBase
         SetupUser(this._sut, isAdmin: true);
     }
 
+    // --- GetAll ---
+
+    [Fact]
+    public async Task GetAllReturnsOkWithList()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "downtown", DisplayName = "Downtown", Status = "active" },
+            new() { Id = 2, KojiName = "park", DisplayName = "Park", Status = "approved" }
+        };
+        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync(geofences);
+
+        var result = await this._sut.GetAll();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(geofences, ok.Value);
+    }
+
+    [Fact]
+    public async Task GetAllReturnsForbidWhenNotAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+
+        var result = await this._sut.GetAll();
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task GetAllReturnsEmptyListWhenNoGeofences()
+    {
+        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        var result = await this._sut.GetAll();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsType<List<UserGeofence>>(ok.Value);
+        Assert.Empty(list);
+    }
+
+    // --- AdminDelete ---
+
+    [Fact]
+    public async Task AdminDeleteReturnsNoContent()
+    {
+        this._service.Setup(s => s.AdminDeleteAsync("123456789", 1)).Returns(Task.CompletedTask);
+
+        var result = await this._sut.AdminDelete(1);
+
+        Assert.IsType<NoContentResult>(result);
+        this._service.Verify(s => s.AdminDeleteAsync("123456789", 1), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteReturnsNotFoundWhenNotExists()
+    {
+        this._service.Setup(s => s.AdminDeleteAsync("123456789", 99))
+            .ThrowsAsync(new InvalidOperationException("Geofence with ID 99 not found."));
+
+        var result = await this._sut.AdminDelete(99);
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.NotNull(notFound.Value);
+    }
+
+    [Fact]
+    public async Task AdminDeleteReturnsForbidWhenNotAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+
+        var result = await this._sut.AdminDelete(1);
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
     // --- GetSubmissions ---
 
     [Fact]

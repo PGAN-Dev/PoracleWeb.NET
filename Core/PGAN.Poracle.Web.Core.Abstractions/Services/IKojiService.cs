@@ -7,13 +7,6 @@ public interface IKojiService
     public Task SaveGeofenceAsync(string geofenceName, string displayName, string group, int parentId, double[][] polygon, bool isPublic = false);
     public Task RemoveGeofenceFromProjectAsync(string geofenceName);
     public Task<List<GeofenceRegion>> GetRegionsAsync();
-    public Task<List<UserGeofence>> GetUserGeofencesAsync(string humanId);
-
-    /// <summary>
-    /// Promotes a user geofence to be publicly visible by setting userSelectable and displayInMatches to true.
-    /// Optionally renames it (drops the pweb_ prefix).
-    /// </summary>
-    public Task PromoteGeofenceAsync(string currentName, string? newName, string displayName, string group, int parentId);
 
     /// <summary>
     /// Gets the polygon coordinates for a specific geofence from Koji.

@@ -23,15 +23,15 @@ public class DiscordNotificationService(
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    // Cached tag IDs
-    private string? _pendingTagId;
-    private string? _approvedTagId;
-    private string? _rejectedTagId;
-    private bool _tagsInitialized;
+    // Cached tag IDs (static so they persist across transient HttpClient instances)
+    private static string? s_pendingTagId;
+    private static string? s_approvedTagId;
+    private static string? s_rejectedTagId;
+    private static bool s_tagsInitialized;
 
     public async Task EnsureForumTagsExistAsync()
     {
-        if (this._tagsInitialized)
+        if (s_tagsInitialized)
         {
             return;
         }
@@ -67,13 +67,13 @@ public class DiscordNotificationService(
                 switch (name)
                 {
                     case "Geofence - Pending":
-                        this._pendingTagId = id;
+                        s_pendingTagId = id;
                         break;
                     case "Geofence - Approved":
-                        this._approvedTagId = id;
+                        s_approvedTagId = id;
                         break;
                     case "Geofence - Rejected":
-                        this._rejectedTagId = id;
+                        s_rejectedTagId = id;
                         break;
                     default:
                         break;
@@ -81,7 +81,7 @@ public class DiscordNotificationService(
             }
 
             // Build new tags list if any are missing
-            if (this._pendingTagId == null || this._approvedTagId == null || this._rejectedTagId == null)
+            if (s_pendingTagId == null || s_approvedTagId == null || s_rejectedTagId == null)
             {
                 var tagsToKeep = new List<object>();
 
@@ -95,7 +95,7 @@ public class DiscordNotificationService(
                     });
                 }
 
-                if (this._pendingTagId == null)
+                if (s_pendingTagId == null)
                 {
                     tagsToKeep.Add(new Dictionary<string, object?>
                     {
@@ -104,7 +104,7 @@ public class DiscordNotificationService(
                     });
                 }
 
-                if (this._approvedTagId == null)
+                if (s_approvedTagId == null)
                 {
                     tagsToKeep.Add(new Dictionary<string, object?>
                     {
@@ -113,7 +113,7 @@ public class DiscordNotificationService(
                     });
                 }
 
-                if (this._rejectedTagId == null)
+                if (s_rejectedTagId == null)
                 {
                     tagsToKeep.Add(new Dictionary<string, object?>
                     {
@@ -144,13 +144,13 @@ public class DiscordNotificationService(
                         switch (name)
                         {
                             case "Geofence - Pending":
-                                this._pendingTagId = id;
+                                s_pendingTagId = id;
                                 break;
                             case "Geofence - Approved":
-                                this._approvedTagId = id;
+                                s_approvedTagId = id;
                                 break;
                             case "Geofence - Rejected":
-                                this._rejectedTagId = id;
+                                s_rejectedTagId = id;
                                 break;
                             default:
                                 break;
@@ -159,9 +159,9 @@ public class DiscordNotificationService(
                 }
             }
 
-            this._tagsInitialized = true;
+            s_tagsInitialized = true;
             this._logger.LogInformation("Discord forum tags initialized: Pending={PendingId}, Approved={ApprovedId}, Rejected={RejectedId}",
-                this._pendingTagId, this._approvedTagId, this._rejectedTagId);
+                s_pendingTagId, s_approvedTagId, s_rejectedTagId);
         }
         catch (Exception ex)
         {
@@ -181,7 +181,7 @@ public class DiscordNotificationService(
 
         try
         {
-            var appliedTags = this._pendingTagId != null ? [this._pendingTagId] : Array.Empty<string>();
+            var appliedTags = s_pendingTagId != null ? [s_pendingTagId] : Array.Empty<string>();
 
             var embeds = new List<object>
             {
@@ -243,7 +243,7 @@ public class DiscordNotificationService(
 
             // Update tags and lock/archive the thread
             await this.EnsureForumTagsExistAsync();
-            var appliedTags = this._approvedTagId != null ? [this._approvedTagId] : Array.Empty<string>();
+            var appliedTags = s_approvedTagId != null ? [s_approvedTagId] : Array.Empty<string>();
             var patchBody = new
             {
                 applied_tags = appliedTags,
@@ -275,7 +275,7 @@ public class DiscordNotificationService(
 
             // Update tags and lock/archive the thread
             await this.EnsureForumTagsExistAsync();
-            var appliedTags = this._rejectedTagId != null ? [this._rejectedTagId] : Array.Empty<string>();
+            var appliedTags = s_rejectedTagId != null ? [s_rejectedTagId] : Array.Empty<string>();
             var patchBody = new
             {
                 applied_tags = appliedTags,

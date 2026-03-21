@@ -108,4 +108,37 @@ describe('GeofenceApprovalDialogComponent', () => {
     component.reviewNotes = 'Some reason';
     expect(component.reviewNotes.trim()).toBeTruthy();
   });
+
+  it('should trim whitespace from reviewNotes on reject', () => {
+    component.mode = 'reject';
+    component.reviewNotes = '  Needs work  ';
+    component.onReject();
+
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      action: 'reject',
+      reviewNotes: 'Needs work',
+    } as GeofenceApprovalDialogResult);
+  });
+
+  it('should trim promotedName on approve', () => {
+    component.promotedName = '  Downtown Official  ';
+    component.onApprove();
+
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      action: 'approve',
+      promotedName: 'Downtown Official',
+    } as GeofenceApprovalDialogResult);
+  });
+
+  it('should switch between approve and reject modes', () => {
+    expect(component.mode).toBe('approve');
+    component.mode = 'reject';
+    expect(component.mode).toBe('reject');
+    component.mode = 'approve';
+    expect(component.mode).toBe('approve');
+  });
+
+  it('should initialize reviewNotes as empty string', () => {
+    expect(component.reviewNotes).toBe('');
+  });
 });

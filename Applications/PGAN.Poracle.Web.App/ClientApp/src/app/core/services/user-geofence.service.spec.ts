@@ -141,4 +141,19 @@ describe('UserGeofenceService', () => {
     expect(req.request.body).toEqual({});
     req.flush(submitted);
   });
+
+  it('should URL-encode special characters in kojiName for submit', () => {
+    const kojiName = 'pweb_123_my park&fence';
+    service.submitForReview(kojiName).subscribe();
+
+    httpMock.expectOne(`${API}/api/geofences/custom/${encodeURIComponent(kojiName)}/submit`);
+  });
+
+  it('should handle empty geofences list', () => {
+    service.getCustomGeofences().subscribe(result => {
+      expect(result).toEqual([]);
+    });
+
+    httpMock.expectOne(`${API}/api/geofences/custom`).flush([]);
+  });
 });

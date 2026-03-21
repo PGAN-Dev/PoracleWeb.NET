@@ -138,4 +138,82 @@ describe('GeofenceNameDialogComponent', () => {
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
   });
+
+  describe('invalid characters', () => {
+    beforeEach(() => {
+      setup({
+        detectedRegion: { id: 1, name: 'downtown', displayName: 'Downtown' },
+        regions,
+      });
+    });
+
+    it('should flag invalid characters in the name', () => {
+      component.displayName = 'Fence<>!';
+      expect(component.hasInvalidChars).toBe(true);
+    });
+
+    it('should not flag valid characters', () => {
+      component.displayName = "My Fence - North (A&B's)";
+      expect(component.hasInvalidChars).toBe(false);
+    });
+
+    it('should be invalid when name has invalid characters', () => {
+      component.displayName = 'Bad@Name#';
+      expect(component.isValid).toBe(false);
+    });
+
+    it('should not flag empty name as having invalid chars', () => {
+      component.displayName = '';
+      expect(component.hasInvalidChars).toBe(false);
+    });
+
+    it('should not flag whitespace-only name as having invalid chars', () => {
+      component.displayName = '   ';
+      expect(component.hasInvalidChars).toBe(false);
+    });
+
+    it('should be invalid when name exceeds 50 characters', () => {
+      component.displayName = 'A'.repeat(51);
+      expect(component.isValid).toBe(false);
+    });
+
+    it('should be valid when name is exactly 50 characters', () => {
+      component.displayName = 'A'.repeat(50);
+      expect(component.isValid).toBe(true);
+    });
+  });
+
+  describe('onRegionPicked', () => {
+    beforeEach(() => {
+      setup({
+        detectedRegion: null,
+        regions,
+      });
+    });
+
+    it('should set selectedRegionId from picked option', () => {
+      component.onRegionPicked({ id: 2, label: 'Suburbs' });
+      expect(component.selectedRegionId).toBe(2);
+    });
+
+    it('should set selectedRegionId to null when option has no id', () => {
+      component.onRegionPicked({ label: '' });
+      expect(component.selectedRegionId).toBeNull();
+    });
+  });
+
+  describe('regionOptions', () => {
+    beforeEach(() => {
+      setup({
+        detectedRegion: null,
+        regions,
+      });
+    });
+
+    it('should map regions to RegionOption format', () => {
+      expect(component.regionOptions).toHaveLength(2);
+      expect(component.regionOptions[0]).toEqual({ id: 1, label: 'Downtown', shortLabel: 'Downtown' });
+      expect(component.regionOptions[1]).toEqual({ id: 2, label: 'Suburbs', shortLabel: 'Suburbs' });
+    });
+  });
 });
