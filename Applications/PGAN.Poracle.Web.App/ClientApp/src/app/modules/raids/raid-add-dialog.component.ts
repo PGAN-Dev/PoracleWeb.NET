@@ -118,7 +118,6 @@ export class RaidAddDialogComponent {
           move: 0,
           ping: common.ping || null,
           pokemonId: 9000,
-          profileNo: 1,
           team: common.team ?? 0,
           template: common.template || null,
         };
@@ -131,7 +130,6 @@ export class RaidAddDialogComponent {
           exclusive: 0,
           level,
           ping: common.ping || null,
-          profileNo: 1,
           team: common.team ?? 0,
           template: common.template || null,
         };
@@ -151,7 +149,6 @@ export class RaidAddDialogComponent {
           move: 0,
           ping: common.ping || null,
           pokemonId,
-          profileNo: 1,
           team: common.team ?? 0,
           template: common.template || null,
         };

@@ -34,6 +34,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Create([FromBody] RaidCreate model)
     {
         var raid = this._mapper.Map<Raid>(model);
+        raid.ProfileNo = this.ProfileNo;
         var result = await this._raidService.CreateAsync(this.UserId, raid);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

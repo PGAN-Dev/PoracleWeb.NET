@@ -34,6 +34,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> Create([FromBody] EggCreate model)
     {
         var egg = this._mapper.Map<Egg>(model);
+        egg.ProfileNo = this.ProfileNo;
         var result = await this._eggService.CreateAsync(this.UserId, egg);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

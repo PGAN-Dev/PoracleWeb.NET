@@ -34,6 +34,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     public async Task<IActionResult> Create([FromBody] MonsterCreate model)
     {
         var monster = this._mapper.Map<Monster>(model);
+        monster.ProfileNo = this.ProfileNo;
         var result = await this._monsterService.CreateAsync(this.UserId, monster);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

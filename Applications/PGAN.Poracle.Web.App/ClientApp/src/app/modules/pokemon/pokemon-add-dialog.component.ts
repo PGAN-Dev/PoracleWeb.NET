@@ -144,7 +144,6 @@ export class PokemonAddDialogComponent {
         minWeight: filters.minWeight ?? 0,
         ping: notif.ping || null,
         pokemonId,
-        profileNo: 1,
         pvpRankingBest: pvp.pvpRankingBest ?? 1,
         pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
         pvpRankingMinCp: pvp.pvpRankingMinCp ?? 0,

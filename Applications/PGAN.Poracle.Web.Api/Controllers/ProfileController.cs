@@ -79,6 +79,8 @@ public class ProfileController(
         }
 
         human.CurrentProfileNo = profileNo;
+        human.Latitude = profile.Latitude;
+        human.Longitude = profile.Longitude;
         await this._humanService.UpdateAsync(human);
 
         // Issue a new JWT with the updated profileNo so all subsequent API calls use it

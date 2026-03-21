@@ -1,51 +1,69 @@
 using Microsoft.AspNetCore.Mvc;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
+using PGAN.Poracle.Web.Data;
 
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/location")]
 public class LocationController(
     IHumanService humanService,
+    IProfileService profileService,
     IPoracleApiProxy poracleApiProxy,
-    IHttpClientFactory httpClientFactory) : BaseApiController
+    IHttpClientFactory httpClientFactory,
+    PoracleContext dbContext) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IProfileService _profileService = profileService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly PoracleContext _dbContext = dbContext;
 
     [HttpGet]
     public async Task<IActionResult> GetLocation()
     {
-        var human = await this._humanService.GetByIdAndProfileAsync(this.UserId, this.ProfileNo);
-        if (human == null)
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile == null)
         {
             return this.NotFound();
         }
 
         return this.Ok(new
         {
-            latitude = human.Latitude,
-            longitude = human.Longitude
+            latitude = profile.Latitude,
+            longitude = profile.Longitude
         });
     }
 
     [HttpPut]
     public async Task<IActionResult> UpdateLocation([FromBody] LocationUpdateRequest request)
     {
-        var human = await this._humanService.GetByIdAndProfileAsync(this.UserId, this.ProfileNo);
-        if (human == null)
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile == null)
         {
             return this.NotFound();
         }
 
-        human.Latitude = request.Latitude;
-        human.Longitude = request.Longitude;
-        await this._humanService.UpdateAsync(human);
+        profile.Latitude = request.Latitude;
+        profile.Longitude = request.Longitude;
+
+        // Update both profiles and humans tables atomically so PoracleJS always has consistent location
+        await using var transaction = await this._dbContext.Database.BeginTransactionAsync();
+        await this._profileService.UpdateAsync(profile);
+
+        var human = await this._humanService.GetByIdAsync(this.UserId);
+        if (human != null)
+        {
+            human.Latitude = request.Latitude;
+            human.Longitude = request.Longitude;
+            await this._humanService.UpdateAsync(human);
+        }
+
+        await transaction.CommitAsync();
 
         return this.Ok(new
         {
-            latitude = human.Latitude,
-            longitude = human.Longitude
+            latitude = profile.Latitude,
+            longitude = profile.Longitude
         });
     }
 

@@ -31,7 +31,7 @@ export interface Monster {
   uid: number;
 }
 
-export type MonsterCreate = Omit<Monster, 'uid' | 'id'>;
+export type MonsterCreate = Omit<Monster, 'uid' | 'id' | 'profileNo'>;
 
 export type MonsterUpdate = Partial<MonsterCreate>;
 
@@ -54,7 +54,7 @@ export interface Raid {
   uid: number;
 }
 
-export type RaidCreate = Omit<Raid, 'uid' | 'id'>;
+export type RaidCreate = Omit<Raid, 'uid' | 'id' | 'profileNo'>;
 
 export type RaidUpdate = Partial<RaidCreate>;
 
@@ -73,7 +73,7 @@ export interface Egg {
   uid: number;
 }
 
-export type EggCreate = Omit<Egg, 'uid' | 'id'>;
+export type EggCreate = Omit<Egg, 'uid' | 'id' | 'profileNo'>;
 
 export type EggUpdate = Partial<EggCreate>;
 
@@ -93,7 +93,7 @@ export interface Quest {
   uid: number;
 }
 
-export type QuestCreate = Omit<Quest, 'uid' | 'id'>;
+export type QuestCreate = Omit<Quest, 'uid' | 'id' | 'profileNo'>;
 
 export type QuestUpdate = Partial<QuestCreate>;
 
@@ -111,7 +111,7 @@ export interface Invasion {
   uid: number;
 }
 
-export type InvasionCreate = Omit<Invasion, 'uid' | 'id'>;
+export type InvasionCreate = Omit<Invasion, 'uid' | 'id' | 'profileNo'>;
 
 export type InvasionUpdate = Partial<InvasionCreate>;
 
@@ -128,7 +128,7 @@ export interface Lure {
   uid: number;
 }
 
-export type LureCreate = Omit<Lure, 'uid' | 'id'>;
+export type LureCreate = Omit<Lure, 'uid' | 'id' | 'profileNo'>;
 
 export type LureUpdate = Partial<LureCreate>;
 
@@ -146,7 +146,7 @@ export interface Nest {
   uid: number;
 }
 
-export type NestCreate = Omit<Nest, 'uid' | 'id'>;
+export type NestCreate = Omit<Nest, 'uid' | 'id' | 'profileNo'>;
 
 export type NestUpdate = Partial<NestCreate>;
 
@@ -165,7 +165,7 @@ export interface Gym {
   uid: number;
 }
 
-export type GymCreate = Omit<Gym, 'uid' | 'id'>;
+export type GymCreate = Omit<Gym, 'uid' | 'id' | 'profileNo'>;
 
 export type GymUpdate = Partial<GymCreate>;
 

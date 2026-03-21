@@ -34,6 +34,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Create([FromBody] LureCreate model)
     {
         var lure = this._mapper.Map<Lure>(model);
+        lure.ProfileNo = this.ProfileNo;
         var result = await this._lureService.CreateAsync(this.UserId, lure);
         return this.CreatedAtAction(nameof(GetByUid), new
         {
