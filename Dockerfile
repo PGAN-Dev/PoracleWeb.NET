@@ -28,11 +28,12 @@ RUN dotnet publish Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj
 # Stage 3: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-client && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --no-create-home appuser
 COPY --from=dotnet-build /app/publish .
 COPY --from=angular-build /app/angular/dist/ClientApp/browser wwwroot/
 
-RUN mkdir -p /app/data && chown appuser /app/data
+RUN mkdir -p /app/data /home/appuser/.ssh && chown -R appuser /app/data /home/appuser/.ssh
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080

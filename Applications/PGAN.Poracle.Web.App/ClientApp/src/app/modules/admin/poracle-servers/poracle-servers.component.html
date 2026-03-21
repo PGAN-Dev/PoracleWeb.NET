@@ -1,0 +1,82 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Poracle Servers</h1>
+    <p class="page-description">Monitor server status and restart Poracle instances.</p>
+  </div>
+  <div class="page-header-actions">
+    <button mat-raised-button (click)="refreshServers()" [disabled]="loading()" matTooltip="Refresh server status">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+    <button
+      mat-raised-button
+      color="warn"
+      (click)="restartAll()"
+      [disabled]="loading() || restartingAll()"
+      matTooltip="Restart all Poracle servers">
+      @if (restartingAll()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <mat-icon>restart_alt</mat-icon>
+      }
+      Restart All
+    </button>
+  </div>
+</div>
+
+<div class="page-content">
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    @if (servers().length > 0) {
+      <div class="servers-grid">
+        @for (server of servers(); track server.host) {
+          <div class="server-card">
+            <div class="server-card-accent" [class.accent-online]="server.online" [class.accent-offline]="!server.online"></div>
+            <div class="server-card-body">
+              <div class="server-card-header">
+                <span class="status-dot" [class.online]="server.online" [class.offline]="!server.online"></span>
+                <div class="server-card-info">
+                  <span class="server-card-name">{{ server.name }}</span>
+                  <span class="server-card-host">{{ server.host }}</span>
+                </div>
+                <span class="status-chip" [class.status-online]="server.online" [class.status-offline]="!server.online">
+                  {{ server.online ? 'Online' : 'Offline' }}
+                </span>
+              </div>
+              <div class="server-card-meta">
+                <div class="meta-item">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Checked {{ server.checkedAt | date: 'medium' }}</span>
+                </div>
+              </div>
+              <div class="server-card-actions">
+                @if (restarting()[server.host]) {
+                  <mat-spinner diameter="24"></mat-spinner>
+                } @else {
+                  <button
+                    mat-raised-button
+                    color="warn"
+                    (click)="restartServer(server)"
+                    [disabled]="restartingAll()"
+                    matTooltip="Restart this server">
+                    <mat-icon>restart_alt</mat-icon>
+                    Restart
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <mat-icon class="empty-icon">dns</mat-icon>
+        <h2>No Poracle servers found</h2>
+        <p>No Poracle server instances are configured.</p>
+      </div>
+    }
+  }
+</div>

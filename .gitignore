@@ -32,3 +32,5 @@ avatar-cache.json
 *.http
 *.mjs
 screenshot-*.png
+Applications/PGAN.Poracle.Web.Api/cookies.txt
+beta-discord-messages.txt

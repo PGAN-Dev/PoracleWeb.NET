@@ -78,6 +78,19 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Poracle API
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
+        // Register Poracle Server settings and service (multi-server restart)
+        services.Configure<PoracleServerSettings>(config =>
+        {
+            var servers = configuration.GetSection("Poracle:Servers").Get<List<PoracleServerConfig>>();
+            if (servers != null)
+            {
+                config.Servers = servers;
+            }
+
+            config.SshKeyPath = configuration["Poracle:SshKeyPath"] ?? "/app/ssh_key";
+        });
+        services.AddHttpClient<IPoracleServerService, PoracleServerService>();
+
         // Register HttpClient for Discord notification service
         services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>
         {

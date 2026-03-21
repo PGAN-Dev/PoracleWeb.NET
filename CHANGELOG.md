@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - User-drawn custom geofences with admin review workflow ([PR #6](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/6))
+- **Admin Poracle Server Management** — Monitor and restart PoracleJS instances remotely from the admin panel
+  - Multi-server support with configurable servers (name, host, SSH user)
+  - Real-time health status indicators (online/offline)
+  - Per-server restart via SSH + PM2 with confirm dialog
+  - Restart All option with warning about alert disruption
+  - Dedicated "Poracle Servers" admin page
 - **User Custom Geofences** — Draw polygon boundaries on a dedicated map page for precise notification zones ([#5](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/5))
   - Dedicated "My Geofences" page with Leaflet Draw polygon tools
   - Region auto-detection from polygon centroid

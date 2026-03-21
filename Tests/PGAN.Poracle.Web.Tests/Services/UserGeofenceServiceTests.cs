@@ -284,11 +284,16 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task ApproveSubmissionAsyncSavesToKojiAndUpdatesStatus()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofence = new UserGeofence
         {
-            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown",
-            GroupName = "City", ParentId = 5, Status = "pending_review",
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            GroupName = "City",
+            ParentId = 5,
+            Status = "pending_review",
             PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
@@ -306,11 +311,16 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task ApproveSubmissionAsyncUsesPromotedNameForKoji()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofence = new UserGeofence
         {
-            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown",
-            GroupName = "City", ParentId = 5, Status = "pending_review",
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            GroupName = "City",
+            ParentId = 5,
+            Status = "pending_review",
             PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
@@ -327,11 +337,16 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task ApproveSubmissionAsyncSwapsAreaNameWhenPromotedNameDiffers()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofence = new UserGeofence
         {
-            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown",
-            GroupName = "City", ParentId = 5, Status = "pending_review",
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            GroupName = "City",
+            ParentId = 5,
+            Status = "pending_review",
             PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
         };
         var human = new Human { Id = "u1", Area = "[\"downtown\",\"other\"]" };
@@ -368,11 +383,16 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task ApproveSubmissionAsyncPostsDiscordApprovalWhenThreadExists()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofence = new UserGeofence
         {
-            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown",
-            GroupName = "City", Status = "pending_review", DiscordThreadId = "thread_456",
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            GroupName = "City",
+            Status = "pending_review",
+            DiscordThreadId = "thread_456",
             PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
@@ -413,8 +433,12 @@ public class UserGeofenceServiceTests
     {
         var geofence = new UserGeofence
         {
-            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown",
-            Status = "pending_review", DiscordThreadId = "thread_789"
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            Status = "pending_review",
+            DiscordThreadId = "thread_789"
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);

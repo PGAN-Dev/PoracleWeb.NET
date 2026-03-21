@@ -354,6 +354,16 @@ export interface GeofenceRegion {
   polygon?: [number, number][];
 }
 
+// ─── Poracle Server ──────────────────────────────────────────────────────────
+
+export interface PoracleServerStatus {
+  checkedAt: string;
+  host: string;
+  message?: string;
+  name: string;
+  online: boolean;
+}
+
 // ─── Quick Picks ──────────────────────────────────────────────────────────────
 
 export interface QuickPickDefinition {

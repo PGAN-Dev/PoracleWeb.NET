@@ -14,6 +14,7 @@ public class AdminControllerTests : ControllerTestBase
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IPwebSettingService> _pwebSettingService = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
+    private readonly Mock<IPoracleServerService> _poracleServerService = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
     private readonly AdminController _sut;
 
@@ -27,7 +28,7 @@ public class AdminControllerTests : ControllerTestBase
             Audience = "test",
             ExpirationMinutes = 60
         });
-        this._sut = new AdminController(this._humanService.Object, this._pwebSettingService.Object, this._proxy.Object, poracleSettings, jwtSettings, this._logger.Object);
+        this._sut = new AdminController(this._humanService.Object, this._pwebSettingService.Object, this._proxy.Object, this._poracleServerService.Object, poracleSettings, jwtSettings, this._logger.Object);
     }
 
     // --- GetAllUsers ---
@@ -418,5 +419,99 @@ public class AdminControllerTests : ControllerTestBase
         var result = await this._sut.GetPoracleAdmins();
         // Should still return OK with just configured admin IDs
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    // --- GetPoracleServers ---
+
+    [Fact]
+    public async Task GetPoracleServersReturnsForbidWhenNotAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.GetPoracleServers());
+    }
+
+    [Fact]
+    public async Task GetPoracleServersReturnsOkWithStatuses()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var statuses = new List<PoracleServerStatus>
+        {
+            new() { Name = "Server1", Host = "10.0.0.1", Online = true },
+            new() { Name = "Server2", Host = "10.0.0.2", Online = false }
+        };
+        this._poracleServerService.Setup(s => s.GetServersAsync()).ReturnsAsync(statuses);
+
+        var result = await this._sut.GetPoracleServers();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(statuses, ok.Value);
+    }
+
+    // --- RestartPoracleServer ---
+
+    [Fact]
+    public async Task RestartPoracleServerReturnsForbidWhenNotAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.RestartPoracleServer("10.0.0.1"));
+    }
+
+    [Fact]
+    public async Task RestartPoracleServerReturnsOkWithStatus()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var status = new PoracleServerStatus { Name = "Server1", Host = "10.0.0.1", Online = true, Message = "pm2 restarted" };
+        this._poracleServerService.Setup(s => s.RestartServerAsync("10.0.0.1")).ReturnsAsync(status);
+
+        var result = await this._sut.RestartPoracleServer("10.0.0.1");
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(status, ok.Value);
+    }
+
+    [Fact]
+    public async Task RestartPoracleServerReturnsNotFoundWhenHostUnknown()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._poracleServerService.Setup(s => s.RestartServerAsync("unknown"))
+            .ThrowsAsync(new InvalidOperationException("Server with host 'unknown' not found in configuration."));
+
+        var result = await this._sut.RestartPoracleServer("unknown");
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task RestartPoracleServerReturns500OnUnexpectedError()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._poracleServerService.Setup(s => s.RestartServerAsync("10.0.0.1"))
+            .ThrowsAsync(new Exception("unexpected"));
+
+        var result = await this._sut.RestartPoracleServer("10.0.0.1");
+        var statusCode = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, statusCode.StatusCode);
+    }
+
+    // --- RestartAllPoracleServers ---
+
+    [Fact]
+    public async Task RestartAllPoracleServersReturnsForbidWhenNotAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(await this._sut.RestartAllPoracleServers());
+    }
+
+    [Fact]
+    public async Task RestartAllPoracleServersReturnsOkWithStatuses()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var statuses = new List<PoracleServerStatus>
+        {
+            new() { Name = "Server1", Host = "10.0.0.1", Online = true },
+            new() { Name = "Server2", Host = "10.0.0.2", Online = true }
+        };
+        this._poracleServerService.Setup(s => s.RestartAllAsync()).ReturnsAsync(statuses);
+
+        var result = await this._sut.RestartAllPoracleServers();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(statuses, ok.Value);
     }
 }

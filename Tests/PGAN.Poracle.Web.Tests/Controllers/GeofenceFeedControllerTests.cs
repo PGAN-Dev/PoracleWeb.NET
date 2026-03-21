@@ -14,15 +14,12 @@ public class GeofenceFeedControllerTests
     private readonly Mock<ILogger<GeofenceFeedController>> _logger = new();
     private readonly GeofenceFeedController _sut;
 
-    public GeofenceFeedControllerTests()
-    {
-        this._sut = new GeofenceFeedController(this._repository.Object, this._logger.Object);
-    }
+    public GeofenceFeedControllerTests() => this._sut = new GeofenceFeedController(this._repository.Object, this._logger.Object);
 
     [Fact]
     public async Task GetPoracleFeedReturnsOkWithDataArray()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofences = new List<UserGeofence>
         {
             new()
@@ -96,7 +93,7 @@ public class GeofenceFeedControllerTests
     [Fact]
     public async Task GetPoracleFeedFiltersOutPolygonsWithFewerThan3Points()
     {
-        var twoPoints = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 } };
+        var twoPoints = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0] };
         var geofences = new List<UserGeofence>
         {
             new() { Id = 1, KojiName = "too_few", PolygonJson = JsonSerializer.Serialize(twoPoints), Status = "active" }
@@ -114,7 +111,7 @@ public class GeofenceFeedControllerTests
     [Fact]
     public async Task GetPoracleFeedResponseFormatMatchesPoracleExpectations()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofences = new List<UserGeofence>
         {
             new()
@@ -149,7 +146,7 @@ public class GeofenceFeedControllerTests
     [Fact]
     public async Task GetPoracleFeedIncludesMultipleValidGeofences()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var polygonJson = JsonSerializer.Serialize(polygon);
         var geofences = new List<UserGeofence>
         {
