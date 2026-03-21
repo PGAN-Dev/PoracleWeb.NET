@@ -13,10 +13,10 @@ describe('GeofenceApprovalDialogComponent', () => {
   let dialogRef: { close: jest.Mock };
 
   const mockGeofence: UserGeofence = {
+    id: 1,
     createdAt: '2026-03-20T00:00:00Z',
     displayName: 'Downtown',
     groupName: 'City Center',
-    id: 1,
     kojiName: 'pweb_111_downtown',
     parentId: 5,
     status: 'pending_review',
@@ -29,11 +29,11 @@ describe('GeofenceApprovalDialogComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [GeofenceApprovalDialogComponent],
       providers: [
         { provide: MAT_DIALOG_DATA, useValue: { geofence: mockGeofence, ...data } },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
+      imports: [GeofenceApprovalDialogComponent],
     });
 
     const fixture = TestBed.createComponent(GeofenceApprovalDialogComponent);

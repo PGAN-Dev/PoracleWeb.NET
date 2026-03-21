@@ -4,13 +4,14 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Repositories;
 
 public interface IUserGeofenceRepository
 {
-    Task<List<UserGeofence>> GetByHumanIdAsync(string humanId);
-    Task<UserGeofence?> GetByIdAsync(int id);
-    Task<UserGeofence?> GetByKojiNameAsync(string kojiName);
-    Task<int> GetCountByHumanIdAsync(string humanId);
-    Task<List<UserGeofence>> GetByStatusAsync(string status);
-    Task<List<UserGeofence>> GetAllActiveAsync();
-    Task<UserGeofence> CreateAsync(UserGeofence geofence);
-    Task<UserGeofence> UpdateAsync(UserGeofence geofence);
-    Task DeleteAsync(int id);
+    public Task<List<UserGeofence>> GetByHumanIdAsync(string humanId);
+    public Task<UserGeofence?> GetByIdAsync(int id);
+    public Task<UserGeofence?> GetByKojiNameAsync(string kojiName);
+    public Task<int> GetCountByHumanIdAsync(string humanId);
+    public Task<List<UserGeofence>> GetByStatusAsync(string status);
+    public Task<List<UserGeofence>> GetAllActiveAsync();
+    public Task<List<UserGeofence>> GetAllAsync();
+    public Task<UserGeofence> CreateAsync(UserGeofence geofence);
+    public Task<UserGeofence> UpdateAsync(UserGeofence geofence);
+    public Task DeleteAsync(int id);
 }

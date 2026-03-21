@@ -2,8 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { UserGeofenceService } from './user-geofence.service';
 import { ConfigService } from './config.service';
+import { UserGeofenceService } from './user-geofence.service';
 
 describe('UserGeofenceService', () => {
   let service: UserGeofenceService;
@@ -23,8 +23,28 @@ describe('UserGeofenceService', () => {
 
   it('should fetch custom geofences', () => {
     const geofences = [
-      { id: 1, kojiName: 'pweb_123_my_park', displayName: 'My Park', groupName: 'downtown', parentId: 1, polygon: [], status: 'active', createdAt: '2026-03-21T00:00:00Z', updatedAt: '2026-03-21T00:00:00Z' },
-      { id: 2, kojiName: 'pweb_123_route_2', displayName: 'Route 2', groupName: 'suburbs', parentId: 2, polygon: [], status: 'active', createdAt: '2026-03-21T00:00:00Z', updatedAt: '2026-03-21T00:00:00Z' },
+      {
+        id: 1,
+        createdAt: '2026-03-21T00:00:00Z',
+        displayName: 'My Park',
+        groupName: 'downtown',
+        kojiName: 'pweb_123_my_park',
+        parentId: 1,
+        polygon: [],
+        status: 'active',
+        updatedAt: '2026-03-21T00:00:00Z',
+      },
+      {
+        id: 2,
+        createdAt: '2026-03-21T00:00:00Z',
+        displayName: 'Route 2',
+        groupName: 'suburbs',
+        kojiName: 'pweb_123_route_2',
+        parentId: 2,
+        polygon: [],
+        status: 'active',
+        updatedAt: '2026-03-21T00:00:00Z',
+      },
     ];
 
     service.getCustomGeofences().subscribe(result => {
@@ -41,18 +61,28 @@ describe('UserGeofenceService', () => {
       displayName: 'New Fence',
       groupName: 'downtown',
       parentId: 1,
-      polygon: [[40, -74], [41, -74], [41, -73], [40, -73]] as [number, number][],
+      polygon: [
+        [40, -74],
+        [41, -74],
+        [41, -73],
+        [40, -73],
+      ] as [number, number][],
     };
 
     const created = {
       id: 1,
-      kojiName: 'pweb_123_new_fence',
+      createdAt: '2026-03-21T00:00:00Z',
       displayName: 'New Fence',
       groupName: 'downtown',
+      kojiName: 'pweb_123_new_fence',
       parentId: 1,
-      polygon: [[40, -74], [41, -74], [41, -73], [40, -73]],
+      polygon: [
+        [40, -74],
+        [41, -74],
+        [41, -73],
+        [40, -73],
+      ],
       status: 'active',
-      createdAt: '2026-03-21T00:00:00Z',
       updatedAt: '2026-03-21T00:00:00Z',
     };
 
@@ -95,8 +125,8 @@ describe('UserGeofenceService', () => {
     const kojiName = 'pweb_123_my_park';
     const submitted = {
       id: 1,
-      kojiName,
       displayName: 'My Park',
+      kojiName,
       status: 'pending_review',
       submittedAt: '2026-03-21T00:00:00Z',
     };

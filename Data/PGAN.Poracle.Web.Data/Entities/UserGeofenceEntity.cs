@@ -9,7 +9,10 @@ public class UserGeofenceEntity
     [Key]
     [Column("id")]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public int Id { get; set; }
+    public int Id
+    {
+        get; set;
+    }
 
     [Column("human_id")]
     [Required]
@@ -27,32 +30,56 @@ public class UserGeofenceEntity
     public string GroupName { get; set; } = string.Empty;
 
     [Column("parent_id")]
-    public int ParentId { get; set; }
+    public int ParentId
+    {
+        get; set;
+    }
 
     [Column("polygon_json")]
-    public string? PolygonJson { get; set; }
+    public string? PolygonJson
+    {
+        get; set;
+    }
 
     [Column("status")]
     [Required]
     public string Status { get; set; } = "active";
 
     [Column("submitted_at")]
-    public DateTime? SubmittedAt { get; set; }
+    public DateTime? SubmittedAt
+    {
+        get; set;
+    }
 
     [Column("reviewed_by")]
-    public string? ReviewedBy { get; set; }
+    public string? ReviewedBy
+    {
+        get; set;
+    }
 
     [Column("reviewed_at")]
-    public DateTime? ReviewedAt { get; set; }
+    public DateTime? ReviewedAt
+    {
+        get; set;
+    }
 
     [Column("review_notes")]
-    public string? ReviewNotes { get; set; }
+    public string? ReviewNotes
+    {
+        get; set;
+    }
 
     [Column("promoted_name")]
-    public string? PromotedName { get; set; }
+    public string? PromotedName
+    {
+        get; set;
+    }
 
     [Column("discord_thread_id")]
-    public string? DiscordThreadId { get; set; }
+    public string? DiscordThreadId
+    {
+        get; set;
+    }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

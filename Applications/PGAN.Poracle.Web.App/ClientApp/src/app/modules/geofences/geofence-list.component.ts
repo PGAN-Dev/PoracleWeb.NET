@@ -49,7 +49,9 @@ export class GeofenceListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly userGeofenceService = inject(UserGeofenceService);
 
+  readonly availableAreas = signal<AreaDefinition[]>([]);
   readonly customGeofences = signal<UserGeofence[]>([]);
+
   readonly customGeofenceMapData = computed((): GeofenceData[] => {
     return this.customGeofences()
       .filter((g): g is UserGeofence & { polygon: [number, number][] } => !!g.polygon && g.polygon.length > 0)
@@ -61,9 +63,8 @@ export class GeofenceListComponent implements OnInit {
   });
 
   readonly customGeofencesLoading = signal(false);
-  readonly drawMode = signal(false);
 
-  readonly availableAreas = signal<AreaDefinition[]>([]);
+  readonly drawMode = signal(false);
   readonly geofenceData = computed(() => {
     const available = this.availableAreas();
     const raw = this.rawGeofenceData();
@@ -72,6 +73,9 @@ export class GeofenceListComponent implements OnInit {
     return raw.filter(g => accessibleNames.has(g.name));
   });
 
+  readonly geofenceLimitText = computed(() => `${this.customGeofences().length} of ${MAX_CUSTOM_GEOFENCES}`);
+
+  readonly geofenceRegions = signal<GeofenceRegion[]>([]);
   readonly groupMapping = computed(() => {
     const map = new Map<string, string>();
     for (const area of this.availableAreas()) {
@@ -79,9 +83,6 @@ export class GeofenceListComponent implements OnInit {
     }
     return map;
   });
-
-  readonly geofenceLimitText = computed(() => `${this.customGeofences().length} of ${MAX_CUSTOM_GEOFENCES}`);
-  readonly geofenceRegions = signal<GeofenceRegion[]>([]);
 
   readonly hasReachedLimit = computed(() => this.customGeofences().length >= MAX_CUSTOM_GEOFENCES);
 
@@ -94,8 +95,8 @@ export class GeofenceListComponent implements OnInit {
       .map(r => ({ id: r.id, name: r.name, displayName: r.displayName, path: r.polygon! }));
   });
 
-  readonly selectedMapRegion = signal<{ id: number; name: string; displayName: string } | null>(null);
   readonly savingGeofence = signal(false);
+  readonly selectedMapRegion = signal<{ id: number; name: string; displayName: string } | null>(null);
   readonly skeletonGeofences = Array.from({ length: 3 });
 
   async deleteGeofence(geofence: UserGeofence): Promise<void> {
@@ -167,39 +168,13 @@ export class GeofenceListComponent implements OnInit {
                 },
                 next: created => {
                   this.savingGeofence.set(false);
-                  this.customGeofences.update(list => [
-                    ...list.filter(g => g.id !== geofence.id),
-                    created,
-                  ]);
+                  this.customGeofences.update(list => [...list.filter(g => g.id !== geofence.id), created]);
                   this.snackBar.open('Geofence updated', 'OK', { duration: 3000 });
                 },
               });
           },
         });
     });
-  }
-
-  async submitGeofence(geofence: UserGeofence): Promise<void> {
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        confirmText: 'Submit for Review',
-        message: `This will send "${geofence.displayName}" to the admin team for review. If approved, your geofence will be promoted to a public area that all users can select and receive notifications from. Your private geofence will continue to work while the review is pending.`,
-        title: 'Submit Geofence for Public Review',
-      } as ConfirmDialogData,
-    });
-    const confirmed = await firstValueFrom(ref.afterClosed());
-    if (confirmed) {
-      this.userGeofenceService
-        .submitForReview(geofence.kojiName)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          error: () => this.snackBar.open('Failed to submit geofence', 'OK', { duration: 3000 }),
-          next: updated => {
-            this.customGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
-            this.snackBar.open('Geofence submitted for review', 'OK', { duration: 3000 });
-          },
-        });
-    }
   }
 
   ngOnInit(): void {
@@ -260,11 +235,32 @@ export class GeofenceListComponent implements OnInit {
       return;
     }
     // Find the matching GeofenceRegion to get the id
-    const region = this.geofenceRegions().find(
-      r => r.displayName === option.label || r.name === option.label,
-    );
+    const region = this.geofenceRegions().find(r => r.displayName === option.label || r.name === option.label);
     if (region) {
       this.selectedMapRegion.set({ id: region.id, name: region.name, displayName: region.displayName });
+    }
+  }
+
+  async submitGeofence(geofence: UserGeofence): Promise<void> {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        confirmText: 'Submit for Review',
+        message: `This will send "${geofence.displayName}" to the admin team for review. If approved, your geofence will be promoted to a public area that all users can select and receive notifications from. Your private geofence will continue to work while the review is pending.`,
+        title: 'Submit Geofence for Public Review',
+      } as ConfirmDialogData,
+    });
+    const confirmed = await firstValueFrom(ref.afterClosed());
+    if (confirmed) {
+      this.userGeofenceService
+        .submitForReview(geofence.kojiName)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          error: () => this.snackBar.open('Failed to submit geofence', 'OK', { duration: 3000 }),
+          next: updated => {
+            this.customGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
+            this.snackBar.open('Geofence submitted for review', 'OK', { duration: 3000 });
+          },
+        });
     }
   }
 
@@ -274,6 +270,16 @@ export class GeofenceListComponent implements OnInit {
       return;
     }
     this.drawMode.update(v => !v);
+  }
+
+  private loadAvailableAreas(): void {
+    this.areaService
+      .getAvailable()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {},
+        next: areas => this.availableAreas.set(areas.filter(a => a.userSelectable !== false)),
+      });
   }
 
   private loadCustomGeofences(): void {
@@ -287,16 +293,6 @@ export class GeofenceListComponent implements OnInit {
           this.customGeofences.set(geofences);
           this.customGeofencesLoading.set(false);
         },
-      });
-  }
-
-  private loadAvailableAreas(): void {
-    this.areaService
-      .getAvailable()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        error: () => {},
-        next: areas => this.availableAreas.set(areas.filter(a => a.userSelectable !== false)),
       });
   }
 

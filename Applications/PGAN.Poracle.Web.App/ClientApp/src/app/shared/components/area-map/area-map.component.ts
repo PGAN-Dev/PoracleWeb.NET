@@ -97,6 +97,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   polygonDrawn = output<[number, number][]>();
   regionChanged = output<RegionOption>();
 
+  readonly regions = signal<RegionEntry[]>([]);
+
   readonly regionOptions = computed((): RegionOption[] => {
     return this.regions().map(r => ({
       count: r.areaCount,
@@ -105,7 +107,6 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }));
   });
 
-  readonly regions = signal<RegionEntry[]>([]);
   @Input() selectedAreas: string[] = [];
   readonly selectedRegion = signal('');
 

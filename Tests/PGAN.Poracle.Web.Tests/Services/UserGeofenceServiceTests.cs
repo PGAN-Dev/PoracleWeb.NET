@@ -17,23 +17,20 @@ public class UserGeofenceServiceTests
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
 
-    public UserGeofenceServiceTests()
-    {
-        this._sut = new UserGeofenceService(
+    public UserGeofenceServiceTests() => this._sut = new UserGeofenceService(
             this._repository.Object,
             this._kojiService.Object,
             this._poracleApiProxy.Object,
             this._humanRepo.Object,
             this._discordNotificationService.Object,
             this._logger.Object);
-    }
 
     // --- GetByUserAsync ---
 
     [Fact]
     public async Task GetByUserAsyncReturnsGeofencesFromRepositoryWithPolygons()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0] };
         var polygonJson = System.Text.Json.JsonSerializer.Serialize(polygon);
         var geofences = new List<UserGeofence>
         {
@@ -54,7 +51,7 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task CreateAsyncStoresPolygonJsonOnRecord()
     {
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var model = new UserGeofenceCreate
         {
             DisplayName = "Downtown",

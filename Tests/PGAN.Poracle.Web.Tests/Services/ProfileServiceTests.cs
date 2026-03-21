@@ -15,11 +15,11 @@ public class ProfileServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsProfiles()
     {
-        this._repository.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync(new List<Profile>
-        {
+        this._repository.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync(
+        [
             new() { Id = "u1", ProfileNo = 1, Name = "Default" },
             new() { Id = "u1", ProfileNo = 2, Name = "PvP" }
-        });
+        ]);
 
         var result = (await this._sut.GetByUserAsync("u1")).ToList();
 

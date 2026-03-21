@@ -82,7 +82,10 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
         var count = await this._eggService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
-        return this.Ok(new { updated = count });
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 
     [HttpPut("distance")]

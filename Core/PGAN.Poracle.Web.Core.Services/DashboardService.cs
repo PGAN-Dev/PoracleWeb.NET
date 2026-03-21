@@ -25,7 +25,7 @@ public class DashboardService(
 
     public async Task<DashboardCounts> GetCountsAsync(string userId, int profileNo) =>
         // Sequential to avoid DbContext concurrency issues (single scoped context)
-        new DashboardCounts
+        new()
         {
             Monsters = await this._monsterRepository.CountByUserAsync(userId, profileNo),
             Raids = await this._raidRepository.CountByUserAsync(userId, profileNo),

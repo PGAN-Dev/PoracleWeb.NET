@@ -28,7 +28,10 @@ public class UserGeofenceController(IUserGeofenceService userGeofenceService, IL
         catch (InvalidOperationException ex)
         {
             this._logger.LogWarning(ex, "Failed to create custom geofence for user {UserId}", this.UserId);
-            return this.BadRequest(new { error = ex.Message });
+            return this.BadRequest(new
+            {
+                error = ex.Message
+            });
         }
     }
 
@@ -42,7 +45,10 @@ public class UserGeofenceController(IUserGeofenceService userGeofenceService, IL
         }
         catch (InvalidOperationException ex)
         {
-            return this.NotFound(new { error = ex.Message });
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -61,7 +67,10 @@ public class UserGeofenceController(IUserGeofenceService userGeofenceService, IL
         }
         catch (InvalidOperationException ex)
         {
-            return this.BadRequest(new { error = ex.Message });
+            return this.BadRequest(new
+            {
+                error = ex.Message
+            });
         }
         catch (UnauthorizedAccessException ex)
         {

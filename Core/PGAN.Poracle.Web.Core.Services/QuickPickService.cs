@@ -685,7 +685,10 @@ public class QuickPickService(
                 "gym" => await this._gymService.GetByUidAsync(uid) != null,
                 _ => false,
             };
-            if (exists) count++;
+            if (exists)
+            {
+                count++;
+            }
         }
 
         return count;
@@ -708,7 +711,10 @@ public class QuickPickService(
                 "gym" => await this._gymService.GetByUidAsync(uid) != null,
                 _ => false,
             };
-            if (exists) valid.Add(uid);
+            if (exists)
+            {
+                valid.Add(uid);
+            }
         }
 
         return valid;

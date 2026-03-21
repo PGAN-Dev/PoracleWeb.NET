@@ -100,7 +100,10 @@
               <span class="geofence-card-date">Created {{ geofence.createdAt | date: 'mediumDate' }}</span>
               <div class="geofence-card-actions">
                 @if (geofence.status === 'active') {
-                  <button mat-icon-button matTooltip="Submit to admins for promotion as a public geofence" (click)="submitGeofence(geofence)">
+                  <button
+                    mat-icon-button
+                    matTooltip="Submit to admins for promotion as a public geofence"
+                    (click)="submitGeofence(geofence)">
                     <mat-icon>send</mat-icon>
                   </button>
                 }

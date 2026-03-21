@@ -18,13 +18,13 @@ export class MasterDataService {
   private formsLoaded = false;
   private formsLoadRequested = false;
   private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
-  private readonly typesMap = signal(new Map<number, string[]>());
   private readonly http = inject(HttpClient);
   private itemMap = new Map<number, string>();
   private loaded = false;
   private loadRequested = false;
   private pokemonMap = new Map<number, string>();
   private readonly ready$ = new ReplaySubject<boolean>(1);
+  private readonly typesMap = signal(new Map<number, string[]>());
 
   getAllItems(): { id: number; name: string }[] {
     const entries: { id: number; name: string }[] = [];
@@ -49,17 +49,17 @@ export class MasterDataService {
     return this.loadData().pipe(map(() => this.getAllPokemon()));
   }
 
-  /** Get the base (first stage) evolution ID for a Pokemon. Returns the ID itself if no chain found. */
-  getBaseEvolution(id: number): number {
-    return this.evoBaseMap.get(id) ?? id;
-  }
-
   getAllTypes(): string[] {
     const typeSet = new Set<string>();
     for (const types of this.typesMap().values()) {
       for (const t of types) typeSet.add(t);
     }
     return [...typeSet].sort();
+  }
+
+  /** Get the base (first stage) evolution ID for a Pokemon. Returns the ID itself if no chain found. */
+  getBaseEvolution(id: number): number {
+    return this.evoBaseMap.get(id) ?? id;
   }
 
   getFormName(pokemonId: number, formId: number): string {
@@ -77,13 +77,13 @@ export class MasterDataService {
     return this.itemMap.get(id) ?? `Item #${id}`;
   }
 
-  getPokemonTypes(id: number): string[] {
-    return this.typesMap().get(id) ?? [];
-  }
-
   getPokemonName(id: number): string {
     if (id === 0) return 'All Pokemon';
     return this.pokemonMap.get(id) ?? `Pokemon #${id}`;
+  }
+
+  getPokemonTypes(id: number): string[] {
+    return this.typesMap().get(id) ?? [];
   }
 
   isLoaded(): boolean {

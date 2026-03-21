@@ -8,11 +8,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 
 export interface RegionOption {
+  count?: number;
   id?: number;
   label: string;
-  shortLabel?: string;
-  count?: number;
   selectedCount?: number;
+  shortLabel?: string;
   totalCount?: number;
 }
 
@@ -29,17 +29,8 @@ export interface RegionGroup {
   templateUrl: './region-selector.component.html',
 })
 export class RegionSelectorComponent {
-  readonly label = input('Select Region');
-  readonly placeholder = input('Search regions...');
   readonly regions = input<RegionOption[]>([]);
-  readonly selectedValue = input<string | number | null>(null);
-  readonly showCounts = input(false);
-
-  readonly regionSelected = output<RegionOption>();
-
   readonly searchText = signal('');
-  readonly selectedOption = signal<RegionOption | null>(null);
-
   readonly filteredGroups = computed((): RegionGroup[] => {
     const search = this.searchText().toLowerCase();
     const all = this.regions();
@@ -56,10 +47,18 @@ export class RegionSelectorComponent {
       groupMap.get(groupKey)!.push(region);
     }
 
-    return [...groupMap.entries()]
-      .map(([label, regions]) => ({ label, regions }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    return [...groupMap.entries()].map(([label, regions]) => ({ label, regions })).sort((a, b) => a.label.localeCompare(b.label));
   });
+
+  readonly label = input('Select Region');
+  readonly placeholder = input('Search regions...');
+
+  readonly regionSelected = output<RegionOption>();
+
+  readonly selectedOption = signal<RegionOption | null>(null);
+  readonly selectedValue = input<string | number | null>(null);
+
+  readonly showCounts = input(false);
 
   clearSelection(): void {
     this.selectedOption.set(null);
@@ -71,6 +70,10 @@ export class RegionSelectorComponent {
     return option?.shortLabel ?? option?.label ?? '';
   }
 
+  onClearInput(): void {
+    this.searchText.set('');
+  }
+
   onInputChange(value: string): void {
     this.searchText.set(value);
   }
@@ -79,9 +82,5 @@ export class RegionSelectorComponent {
     this.selectedOption.set(option);
     this.searchText.set('');
     this.regionSelected.emit(option);
-  }
-
-  onClearInput(): void {
-    this.searchText.set('');
   }
 }

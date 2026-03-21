@@ -13,11 +13,11 @@ public interface IKojiService
     /// Promotes a user geofence to be publicly visible by setting userSelectable and displayInMatches to true.
     /// Optionally renames it (drops the pweb_ prefix).
     /// </summary>
-    Task PromoteGeofenceAsync(string currentName, string? newName, string displayName, string group, int parentId);
+    public Task PromoteGeofenceAsync(string currentName, string? newName, string displayName, string group, int parentId);
 
     /// <summary>
     /// Gets the polygon coordinates for a specific geofence from Koji.
     /// Returns [lat,lon] pairs or null if not found.
     /// </summary>
-    Task<double[][]?> GetGeofencePolygonAsync(string geofenceName);
+    public Task<double[][]?> GetGeofencePolygonAsync(string geofenceName);
 }

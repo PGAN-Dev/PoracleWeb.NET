@@ -82,7 +82,10 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
         var count = await this._invasionService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
-        return this.Ok(new { updated = count });
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 
     [HttpPut("distance")]

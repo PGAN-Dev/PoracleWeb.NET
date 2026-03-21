@@ -21,7 +21,16 @@ export interface GeofenceApprovalDialogResult {
 }
 
 @Component({
-  imports: [DatePipe, FormsModule, MatButtonModule, MatButtonToggleModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [
+    DatePipe,
+    FormsModule,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+  ],
   selector: 'app-geofence-approval-dialog',
   standalone: true,
   styleUrl: './geofence-approval-dialog.component.scss',

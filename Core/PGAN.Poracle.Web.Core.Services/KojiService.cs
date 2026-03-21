@@ -167,7 +167,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                     {
                         var ring = coordinates[0];
                         polygon = new double[ring.GetArrayLength()][];
-                        for (int i = 0; i < ring.GetArrayLength(); i++)
+                        for (var i = 0; i < ring.GetArrayLength(); i++)
                         {
                             var coord = ring[i];
                             polygon[i] = [coord[1].GetDouble(), coord[0].GetDouble()];
@@ -239,7 +239,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                 var coordinates = geometry.GetProperty("coordinates");
                 var ring = coordinates[0]; // First ring of polygon
                 var polygon = new double[ring.GetArrayLength()][];
-                for (int i = 0; i < ring.GetArrayLength(); i++)
+                for (var i = 0; i < ring.GetArrayLength(); i++)
                 {
                     var coord = ring[i];
                     // GeoJSON is [lon, lat], convert to [lat, lon] for frontend
@@ -337,7 +337,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
             var ring = coordinates[0]; // First ring of polygon
 
             var polygon = new double[ring.GetArrayLength()][];
-            for (int i = 0; i < ring.GetArrayLength(); i++)
+            for (var i = 0; i < ring.GetArrayLength(); i++)
             {
                 var coord = ring[i];
                 // GeoJSON is [lon, lat], convert to [lat, lon]

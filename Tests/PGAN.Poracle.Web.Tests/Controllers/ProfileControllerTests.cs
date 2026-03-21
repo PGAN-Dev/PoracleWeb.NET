@@ -24,7 +24,7 @@ public class ProfileControllerTests : ControllerTestBase
     [Fact]
     public async Task GetAllReturnsOkWithProfiles()
     {
-        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync(new List<Profile> { new() { ProfileNo = 1 } });
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([new() { ProfileNo = 1 }]);
         var result = await this._sut.GetAll();
         Assert.IsType<OkObjectResult>(result);
     }

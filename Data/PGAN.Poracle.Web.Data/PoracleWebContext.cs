@@ -5,5 +5,8 @@ namespace PGAN.Poracle.Web.Data;
 
 public class PoracleWebContext(DbContextOptions<PoracleWebContext> options) : DbContext(options)
 {
-    public DbSet<UserGeofenceEntity> UserGeofences { get; set; }
+    public DbSet<UserGeofenceEntity> UserGeofences
+    {
+        get; set;
+    }
 }

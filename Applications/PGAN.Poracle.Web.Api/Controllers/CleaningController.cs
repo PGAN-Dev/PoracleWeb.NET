@@ -27,7 +27,10 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
         total += await this._cleaningService.ToggleCleanLuresAsync(this.UserId, this.ProfileNo, enabled);
         total += await this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, enabled);
         total += await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled);
-        return this.Ok(new { updated = total });
+        return this.Ok(new
+        {
+            updated = total
+        });
     }
 
     [HttpPut("{alarmType}/{enabled:int}")]

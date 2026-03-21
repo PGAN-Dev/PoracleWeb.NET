@@ -23,8 +23,8 @@ describe('AdminGeofenceService', () => {
 
   it('should fetch pending submissions', () => {
     const submissions = [
-      { id: 1, kojiName: 'pweb_111_downtown', displayName: 'Downtown', status: 'pending_review' },
-      { id: 2, kojiName: 'pweb_222_park', displayName: 'Park', status: 'pending_review' },
+      { id: 1, displayName: 'Downtown', kojiName: 'pweb_111_downtown', status: 'pending_review' },
+      { id: 2, displayName: 'Park', kojiName: 'pweb_222_park', status: 'pending_review' },
     ];
 
     service.getSubmissions().subscribe(result => {
@@ -39,7 +39,13 @@ describe('AdminGeofenceService', () => {
   });
 
   it('should approve a submission', () => {
-    const approved = { id: 1, kojiName: 'pweb_111_downtown', displayName: 'Downtown', status: 'approved', promotedName: 'Downtown Official' };
+    const approved = {
+      id: 1,
+      displayName: 'Downtown',
+      kojiName: 'pweb_111_downtown',
+      promotedName: 'Downtown Official',
+      status: 'approved',
+    };
     const body = { promotedName: 'Downtown Official' };
 
     service.approveSubmission(1, body).subscribe(result => {
@@ -54,7 +60,7 @@ describe('AdminGeofenceService', () => {
   });
 
   it('should reject a submission', () => {
-    const rejected = { id: 1, kojiName: 'pweb_111_downtown', displayName: 'Downtown', status: 'rejected', reviewNotes: 'Area too large' };
+    const rejected = { id: 1, displayName: 'Downtown', kojiName: 'pweb_111_downtown', reviewNotes: 'Area too large', status: 'rejected' };
     const body = { reviewNotes: 'Area too large' };
 
     service.rejectSubmission(1, body).subscribe(result => {

@@ -86,7 +86,11 @@ public class ProfileController(
         // Issue a new JWT with the updated profileNo so all subsequent API calls use it
         var newToken = this.GenerateTokenWithProfile(profileNo);
 
-        return this.Ok(new { profile, token = newToken });
+        return this.Ok(new
+        {
+            profile,
+            token = newToken
+        });
     }
 
     [HttpDelete("{profileNo:int}")]
@@ -110,7 +114,11 @@ public class ProfileController(
         var claims = new List<Claim>();
         foreach (var claim in this.User.Claims)
         {
-            if (claim.Type == "profileNo") continue;
+            if (claim.Type == "profileNo")
+            {
+                continue;
+            }
+
             claims.Add(new Claim(claim.Type, claim.Value));
         }
         claims.Add(new Claim("profileNo", profileNo.ToString()));

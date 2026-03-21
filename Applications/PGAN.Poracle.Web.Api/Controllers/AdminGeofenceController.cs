@@ -9,6 +9,18 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
     private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
     private readonly ILogger<AdminGeofenceController> _logger = logger;
 
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAll()
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var geofences = await this._userGeofenceService.GetAllAsync();
+        return this.Ok(geofences);
+    }
+
     [HttpGet("submissions")]
     public async Task<IActionResult> GetSubmissions()
     {
@@ -19,6 +31,29 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
 
         var submissions = await this._userGeofenceService.GetPendingSubmissionsAsync();
         return this.Ok(submissions);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> AdminDelete(int id)
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        try
+        {
+            await this._userGeofenceService.AdminDeleteAsync(this.UserId, id);
+            return this.NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            this._logger.LogWarning(ex, "Failed to admin delete geofence {Id}", id);
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
     }
 
     [HttpPost("submissions/{id:int}/approve")]
@@ -37,7 +72,10 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
         catch (InvalidOperationException ex)
         {
             this._logger.LogWarning(ex, "Failed to approve geofence submission {Id}", id);
-            return this.NotFound(new { error = ex.Message });
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
         }
     }
 
@@ -57,13 +95,19 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
         catch (InvalidOperationException ex)
         {
             this._logger.LogWarning(ex, "Failed to reject geofence submission {Id}", id);
-            return this.NotFound(new { error = ex.Message });
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
         }
     }
 
     public class ApproveRequest
     {
-        public string? PromotedName { get; set; }
+        public string? PromotedName
+        {
+            get; set;
+        }
     }
 
     public class RejectRequest

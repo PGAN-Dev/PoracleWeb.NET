@@ -31,21 +31,21 @@ public class DiscordNotificationService(
 
     public async Task EnsureForumTagsExistAsync()
     {
-        if (_tagsInitialized)
+        if (this._tagsInitialized)
         {
             return;
         }
 
-        if (string.IsNullOrEmpty(_forumChannelId))
+        if (string.IsNullOrEmpty(this._forumChannelId))
         {
-            _logger.LogWarning("Discord GeofenceForumChannelId is not configured; skipping forum tag setup");
+            this._logger.LogWarning("Discord GeofenceForumChannelId is not configured; skipping forum tag setup");
             return;
         }
 
         try
         {
             // GET the forum channel to read existing tags
-            var response = await _httpClient.GetAsync($"channels/{_forumChannelId}");
+            var response = await this._httpClient.GetAsync($"channels/{this._forumChannelId}");
             response.EnsureSuccessStatusCode();
 
             var channelJson = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -67,19 +67,21 @@ public class DiscordNotificationService(
                 switch (name)
                 {
                     case "Geofence - Pending":
-                        _pendingTagId = id;
+                        this._pendingTagId = id;
                         break;
                     case "Geofence - Approved":
-                        _approvedTagId = id;
+                        this._approvedTagId = id;
                         break;
                     case "Geofence - Rejected":
-                        _rejectedTagId = id;
+                        this._rejectedTagId = id;
+                        break;
+                    default:
                         break;
                 }
             }
 
             // Build new tags list if any are missing
-            if (_pendingTagId == null || _approvedTagId == null || _rejectedTagId == null)
+            if (this._pendingTagId == null || this._approvedTagId == null || this._rejectedTagId == null)
             {
                 var tagsToKeep = new List<object>();
 
@@ -93,7 +95,7 @@ public class DiscordNotificationService(
                     });
                 }
 
-                if (_pendingTagId == null)
+                if (this._pendingTagId == null)
                 {
                     tagsToKeep.Add(new Dictionary<string, object?>
                     {
@@ -102,7 +104,7 @@ public class DiscordNotificationService(
                     });
                 }
 
-                if (_approvedTagId == null)
+                if (this._approvedTagId == null)
                 {
                     tagsToKeep.Add(new Dictionary<string, object?>
                     {
@@ -111,7 +113,7 @@ public class DiscordNotificationService(
                     });
                 }
 
-                if (_rejectedTagId == null)
+                if (this._rejectedTagId == null)
                 {
                     tagsToKeep.Add(new Dictionary<string, object?>
                     {
@@ -121,12 +123,15 @@ public class DiscordNotificationService(
                 }
 
                 // PATCH the channel with updated tags
-                var patchBody = new { available_tags = tagsToKeep };
-                var patchResponse = await _httpClient.PatchAsJsonAsync($"channels/{_forumChannelId}", patchBody);
+                var patchBody = new
+                {
+                    available_tags = tagsToKeep
+                };
+                var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{this._forumChannelId}", patchBody);
                 patchResponse.EnsureSuccessStatusCode();
 
                 // Re-read the channel to get the newly assigned tag IDs
-                var refreshResponse = await _httpClient.GetAsync($"channels/{_forumChannelId}");
+                var refreshResponse = await this._httpClient.GetAsync($"channels/{this._forumChannelId}");
                 refreshResponse.EnsureSuccessStatusCode();
 
                 var refreshedChannel = await refreshResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -139,42 +144,44 @@ public class DiscordNotificationService(
                         switch (name)
                         {
                             case "Geofence - Pending":
-                                _pendingTagId = id;
+                                this._pendingTagId = id;
                                 break;
                             case "Geofence - Approved":
-                                _approvedTagId = id;
+                                this._approvedTagId = id;
                                 break;
                             case "Geofence - Rejected":
-                                _rejectedTagId = id;
+                                this._rejectedTagId = id;
+                                break;
+                            default:
                                 break;
                         }
                     }
                 }
             }
 
-            _tagsInitialized = true;
-            _logger.LogInformation("Discord forum tags initialized: Pending={PendingId}, Approved={ApprovedId}, Rejected={RejectedId}",
-                _pendingTagId, _approvedTagId, _rejectedTagId);
+            this._tagsInitialized = true;
+            this._logger.LogInformation("Discord forum tags initialized: Pending={PendingId}, Approved={ApprovedId}, Rejected={RejectedId}",
+                this._pendingTagId, this._approvedTagId, this._rejectedTagId);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to initialize Discord forum tags");
+            this._logger.LogWarning(ex, "Failed to initialize Discord forum tags");
         }
     }
 
     public async Task<string?> CreateGeofenceSubmissionPostAsync(string userId, string userName, string geofenceName, string groupName, int polygonPoints, string? mapImageUrl)
     {
-        if (string.IsNullOrEmpty(_forumChannelId))
+        if (string.IsNullOrEmpty(this._forumChannelId))
         {
-            _logger.LogDebug("Discord GeofenceForumChannelId is not configured; skipping submission post");
+            this._logger.LogDebug("Discord GeofenceForumChannelId is not configured; skipping submission post");
             return null;
         }
 
-        await EnsureForumTagsExistAsync();
+        await this.EnsureForumTagsExistAsync();
 
         try
         {
-            var appliedTags = _pendingTagId != null ? new[] { _pendingTagId } : Array.Empty<string>();
+            var appliedTags = this._pendingTagId != null ? [this._pendingTagId] : Array.Empty<string>();
 
             var embeds = new List<object>
             {
@@ -205,19 +212,19 @@ public class DiscordNotificationService(
                 },
             };
 
-            var response = await _httpClient.PostAsJsonAsync($"channels/{_forumChannelId}/threads", body);
+            var response = await this._httpClient.PostAsJsonAsync($"channels/{this._forumChannelId}/threads", body);
             response.EnsureSuccessStatusCode();
 
             var threadJson = await response.Content.ReadFromJsonAsync<JsonElement>();
             var threadId = threadJson.GetProperty("id").GetString();
 
-            _logger.LogInformation("Created Discord forum post for geofence '{GeofenceName}', threadId={ThreadId}", geofenceName, threadId);
+            this._logger.LogInformation("Created Discord forum post for geofence '{GeofenceName}', threadId={ThreadId}", geofenceName, threadId);
 
             return threadId;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to create Discord forum post for geofence '{GeofenceName}'", geofenceName);
+            this._logger.LogWarning(ex, "Failed to create Discord forum post for geofence '{GeofenceName}'", geofenceName);
             return null;
         }
     }
@@ -231,26 +238,26 @@ public class DiscordNotificationService(
             {
                 content = $"\u2705 **Approved!** This geofence has been published as **{promotedName}** and is now available to all users on the Areas page.",
             };
-            var messageResponse = await _httpClient.PostAsJsonAsync($"channels/{threadId}/messages", messageBody);
+            var messageResponse = await this._httpClient.PostAsJsonAsync($"channels/{threadId}/messages", messageBody);
             messageResponse.EnsureSuccessStatusCode();
 
             // Update tags and lock/archive the thread
-            await EnsureForumTagsExistAsync();
-            var appliedTags = _approvedTagId != null ? new[] { _approvedTagId } : Array.Empty<string>();
+            await this.EnsureForumTagsExistAsync();
+            var appliedTags = this._approvedTagId != null ? [this._approvedTagId] : Array.Empty<string>();
             var patchBody = new
             {
                 applied_tags = appliedTags,
                 locked = true,
                 archived = true,
             };
-            var patchResponse = await _httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
+            var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
             patchResponse.EnsureSuccessStatusCode();
 
-            _logger.LogInformation("Posted approval to Discord thread {ThreadId} for geofence '{GeofenceName}'", threadId, geofenceName);
+            this._logger.LogInformation("Posted approval to Discord thread {ThreadId} for geofence '{GeofenceName}'", threadId, geofenceName);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to post approval to Discord thread {ThreadId}", threadId);
+            this._logger.LogWarning(ex, "Failed to post approval to Discord thread {ThreadId}", threadId);
         }
     }
 
@@ -263,26 +270,26 @@ public class DiscordNotificationService(
             {
                 content = $"\u274C **Rejected.** {reason}\n\nYour geofence will continue to work privately for your own alerts.",
             };
-            var messageResponse = await _httpClient.PostAsJsonAsync($"channels/{threadId}/messages", messageBody);
+            var messageResponse = await this._httpClient.PostAsJsonAsync($"channels/{threadId}/messages", messageBody);
             messageResponse.EnsureSuccessStatusCode();
 
             // Update tags and lock/archive the thread
-            await EnsureForumTagsExistAsync();
-            var appliedTags = _rejectedTagId != null ? new[] { _rejectedTagId } : Array.Empty<string>();
+            await this.EnsureForumTagsExistAsync();
+            var appliedTags = this._rejectedTagId != null ? [this._rejectedTagId] : Array.Empty<string>();
             var patchBody = new
             {
                 applied_tags = appliedTags,
                 locked = true,
                 archived = true,
             };
-            var patchResponse = await _httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
+            var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
             patchResponse.EnsureSuccessStatusCode();
 
-            _logger.LogInformation("Posted rejection to Discord thread {ThreadId} for geofence '{GeofenceName}'", threadId, geofenceName);
+            this._logger.LogInformation("Posted rejection to Discord thread {ThreadId} for geofence '{GeofenceName}'", threadId, geofenceName);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to post rejection to Discord thread {ThreadId}", threadId);
+            this._logger.LogWarning(ex, "Failed to post rejection to Discord thread {ThreadId}", threadId);
         }
     }
 }

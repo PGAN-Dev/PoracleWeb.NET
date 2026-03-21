@@ -22,7 +22,16 @@ export interface GeofenceNameDialogResult {
 }
 
 @Component({
-  imports: [FormsModule, MatButtonModule, MatChipsModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule, RegionSelectorComponent],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    RegionSelectorComponent,
+  ],
   selector: 'app-geofence-name-dialog',
   standalone: true,
   styleUrl: './geofence-name-dialog.component.scss',

@@ -74,9 +74,7 @@ describe('GeofenceNameDialogComponent', () => {
       component.displayName = '  Padded Name  ';
       component.save();
 
-      expect(dialogRef.close).toHaveBeenCalledWith(
-        expect.objectContaining({ displayName: 'Padded Name' }),
-      );
+      expect(dialogRef.close).toHaveBeenCalledWith(expect.objectContaining({ displayName: 'Padded Name' }));
     });
 
     it('should switch to manual select when onChangeRegion is called', () => {

@@ -42,12 +42,9 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
         return entity is null ? null : this._mapper.Map<UserGeofence>(entity);
     }
 
-    public async Task<int> GetCountByHumanIdAsync(string humanId)
-    {
-        return await this._context.UserGeofences
+    public async Task<int> GetCountByHumanIdAsync(string humanId) => await this._context.UserGeofences
             .AsNoTracking()
             .CountAsync(g => g.HumanId == humanId);
-    }
 
     public async Task<List<UserGeofence>> GetByStatusAsync(string status)
     {
@@ -66,6 +63,16 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .AsNoTracking()
             .Where(g => g.Status == "active" || g.Status == "pending_review")
             .OrderBy(g => g.KojiName)
+            .ToListAsync();
+
+        return this._mapper.Map<List<UserGeofence>>(entities);
+    }
+
+    public async Task<List<UserGeofence>> GetAllAsync()
+    {
+        var entities = await this._context.UserGeofences
+            .AsNoTracking()
+            .OrderByDescending(g => g.CreatedAt)
             .ToListAsync();
 
         return this._mapper.Map<List<UserGeofence>>(entities);

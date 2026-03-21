@@ -15,7 +15,7 @@ public class EggServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsEggs()
     {
-        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync(new List<Egg> { new() { Uid = 1 } });
+        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync([new() { Uid = 1 }]);
         var result = await this._sut.GetByUserAsync("u1", 1);
         Assert.Single(result);
     }

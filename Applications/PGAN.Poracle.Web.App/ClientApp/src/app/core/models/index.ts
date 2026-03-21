@@ -326,14 +326,15 @@ export interface UserGeofence {
   createdAt: string;
   displayName: string;
   groupName: string;
+  humanId: string;
   id: number;
   kojiName: string;
   parentId: number;
   polygon?: [number, number][];
   promotedName?: string;
-  reviewNotes?: string;
   reviewedAt?: string;
   reviewedBy?: string;
+  reviewNotes?: string;
   status: 'active' | 'pending_review' | 'approved' | 'rejected';
   submittedAt?: string;
   updatedAt: string;

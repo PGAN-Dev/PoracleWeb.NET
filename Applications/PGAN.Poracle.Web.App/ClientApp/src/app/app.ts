@@ -139,7 +139,14 @@ export class App implements OnInit {
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'Users', route: '/admin/users' },
     { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'Webhooks', route: '/admin/webhooks' },
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'Settings', route: '/admin/settings' },
-    { adminOnly: true, group: 'admin', icon: 'rate_review', iconColor: '#ff9800', label: 'Geofence Reviews', route: '/admin/geofence-submissions' },
+    {
+      adminOnly: true,
+      group: 'admin',
+      icon: 'rate_review',
+      iconColor: '#ff9800',
+      label: 'Geofence Management',
+      route: '/admin/geofence-submissions',
+    },
     { delegateOnly: true, group: 'webhooks', icon: 'webhook', iconColor: '#00897b', label: 'My Webhooks', route: '/my-webhooks' },
   ];
 

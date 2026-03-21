@@ -6,7 +6,7 @@ using PGAN.Poracle.Web.Core.Abstractions.Repositories;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [ApiController]
-[Route("api/geofences")]
+[Route("api/geofence-feed")]
 public class GeofenceFeedController(IUserGeofenceRepository repository, ILogger<GeofenceFeedController> logger) : ControllerBase
 {
     private readonly IUserGeofenceRepository _repository = repository;
@@ -16,7 +16,7 @@ public class GeofenceFeedController(IUserGeofenceRepository repository, ILogger<
     /// Returns all active/pending_review user geofences in Poracle-compatible format.
     /// PoracleJS loads from this URL alongside Koji as a geofence.path source.
     /// </summary>
-    [HttpGet("poracle-feed")]
+    [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetPoracleFeed()
     {
@@ -53,6 +53,10 @@ public class GeofenceFeedController(IUserGeofenceRepository repository, ILogger<
             .Where(g => g != null)
             .ToList();
 
-        return this.Ok(new { status = "ok", data = poracleFormat });
+        return this.Ok(new
+        {
+            status = "ok",
+            data = poracleFormat
+        });
     }
 }

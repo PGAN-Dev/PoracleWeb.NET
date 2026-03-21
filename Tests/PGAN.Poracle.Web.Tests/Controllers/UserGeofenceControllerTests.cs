@@ -39,7 +39,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task GetCustomGeofencesReturnsOkWithEmptyList()
     {
-        this._service.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync(new List<UserGeofence>());
+        this._service.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([]);
 
         var result = await this._sut.GetCustomGeofences();
 
@@ -52,7 +52,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     public async Task GetCustomGeofencesUsesUserIdFromClaims()
     {
         SetupUser(this._sut, userId: "987654321", profileNo: 3);
-        this._service.Setup(s => s.GetByUserAsync("987654321")).ReturnsAsync(new List<UserGeofence>());
+        this._service.Setup(s => s.GetByUserAsync("987654321")).ReturnsAsync([]);
 
         await this._sut.GetCustomGeofences();
 

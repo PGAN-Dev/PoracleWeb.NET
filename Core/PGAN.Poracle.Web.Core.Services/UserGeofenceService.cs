@@ -77,7 +77,7 @@ public class UserGeofenceService(
         {
             var baseName = kojiName;
             var found = false;
-            for (int i = 2; i <= 10; i++)
+            for (var i = 2; i <= 10; i++)
             {
                 kojiName = $"{baseName} {i}";
                 existing = await this._repository.GetByKojiNameAsync(kojiName);
@@ -143,6 +143,47 @@ public class UserGeofenceService(
         await this.ReloadGeofencesSafeAsync();
 
         this._logger.LogInformation("Deleted custom geofence '{KojiName}' (ID {Id}) for user {HumanId}", geofence.KojiName, id, humanId);
+    }
+
+    public async Task<List<UserGeofence>> GetAllAsync() => await this._repository.GetAllAsync();
+
+    public async Task AdminDeleteAsync(string adminId, int id)
+    {
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
+
+        // If approved (promoted to Koji), remove from Koji too
+        if (geofence.Status == "approved")
+        {
+            try
+            {
+                var name = geofence.PromotedName ?? geofence.KojiName;
+                await this._kojiService.RemoveGeofenceFromProjectAsync(name);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to remove approved geofence '{KojiName}' from Koji during admin delete", geofence.KojiName);
+            }
+        }
+
+        // Remove from user's humans.area
+        try
+        {
+            var areaName = geofence.Status == "approved" && geofence.PromotedName != null
+                ? geofence.PromotedName.ToLowerInvariant()
+                : geofence.KojiName;
+            await this.RemoveAreaFromHumanAsync(geofence.HumanId, 1, areaName);
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogWarning(ex, "Failed to remove area for geofence '{KojiName}' during admin delete", geofence.KojiName);
+        }
+
+        await this._repository.DeleteAsync(id);
+        await this.ReloadGeofencesSafeAsync();
+
+        this._logger.LogInformation("Admin {AdminId} deleted geofence '{KojiName}' (ID {Id}, status: {Status})",
+            adminId, geofence.KojiName, id, geofence.Status);
     }
 
     public async Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName)
@@ -215,10 +256,7 @@ public class UserGeofenceService(
         return updated;
     }
 
-    public async Task<List<UserGeofence>> GetPendingSubmissionsAsync()
-    {
-        return await this._repository.GetByStatusAsync("pending_review");
-    }
+    public async Task<List<UserGeofence>> GetPendingSubmissionsAsync() => await this._repository.GetByStatusAsync("pending_review");
 
     public async Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName)
     {
@@ -320,10 +358,7 @@ public class UserGeofenceService(
         return updated;
     }
 
-    public async Task<List<GeofenceRegion>> GetRegionsAsync()
-    {
-        return await this._kojiService.GetRegionsAsync();
-    }
+    public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
     private async Task AddAreaToHumanAsync(string humanId, int profileNo, string geofenceName)
     {

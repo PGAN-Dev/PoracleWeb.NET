@@ -4,12 +4,14 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IUserGeofenceService
 {
-    Task<List<UserGeofence>> GetByUserAsync(string humanId);
-    Task<UserGeofence> CreateAsync(string humanId, int profileNo, UserGeofenceCreate model);
-    Task DeleteAsync(string humanId, int profileNo, int id);
-    Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName);
-    Task<List<UserGeofence>> GetPendingSubmissionsAsync();
-    Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName);
-    Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes);
-    Task<List<GeofenceRegion>> GetRegionsAsync();
+    public Task<List<UserGeofence>> GetByUserAsync(string humanId);
+    public Task<UserGeofence> CreateAsync(string humanId, int profileNo, UserGeofenceCreate model);
+    public Task DeleteAsync(string humanId, int profileNo, int id);
+    public Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName);
+    public Task<List<UserGeofence>> GetAllAsync();
+    public Task<List<UserGeofence>> GetPendingSubmissionsAsync();
+    public Task AdminDeleteAsync(string adminId, int id);
+    public Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName);
+    public Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes);
+    public Task<List<GeofenceRegion>> GetRegionsAsync();
 }

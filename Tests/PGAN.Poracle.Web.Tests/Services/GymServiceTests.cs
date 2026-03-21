@@ -15,7 +15,7 @@ public class GymServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsGyms()
     {
-        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync(new List<Gym> { new() { Uid = 1 } });
+        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync([new() { Uid = 1 }]);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
 

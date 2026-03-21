@@ -27,9 +27,6 @@ export class UserGeofenceService {
   }
 
   submitForReview(kojiName: string): Observable<UserGeofence> {
-    return this.http.post<UserGeofence>(
-      `${this.config.apiHost}/api/geofences/custom/${encodeURIComponent(kojiName)}/submit`,
-      {}
-    );
+    return this.http.post<UserGeofence>(`${this.config.apiHost}/api/geofences/custom/${encodeURIComponent(kojiName)}/submit`, {});
   }
 }
