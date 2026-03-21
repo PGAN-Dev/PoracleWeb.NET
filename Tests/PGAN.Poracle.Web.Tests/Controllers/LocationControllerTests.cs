@@ -185,6 +185,6 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        GC.SuppressFinalize(this);
     }
 }
