@@ -132,7 +132,6 @@ export class InvasionAddDialogComponent implements OnInit {
           gender: v.gender ?? 0,
           gruntType: null,
           ping: v.ping || null,
-          profileNo: 1,
           template: v.template || null,
         })
         .subscribe({
@@ -160,7 +159,6 @@ export class InvasionAddDialogComponent implements OnInit {
         gender: v.gender ?? 0,
         gruntType: g.key,
         ping: v.ping || null,
-        profileNo: 1,
         template: v.template || null,
       }),
     );

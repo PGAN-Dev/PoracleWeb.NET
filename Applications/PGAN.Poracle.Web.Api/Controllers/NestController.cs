@@ -34,6 +34,7 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Create([FromBody] NestCreate model)
     {
         var nest = this._mapper.Map<Nest>(model);
+        nest.ProfileNo = this.ProfileNo;
         var result = await this._nestService.CreateAsync(this.UserId, nest);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

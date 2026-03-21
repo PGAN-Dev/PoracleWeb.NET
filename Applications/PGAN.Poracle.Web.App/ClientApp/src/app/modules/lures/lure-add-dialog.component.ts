@@ -83,7 +83,6 @@ export class LureAddDialogComponent {
         distance: dist,
         lureId,
         ping: v.ping || null,
-        profileNo: 1,
         template: v.template || null,
       }),
     );

@@ -45,10 +45,4 @@ public class NestCreate
     {
         get; set;
     }
-
-    [Range(1, int.MaxValue)]
-    public int ProfileNo
-    {
-        get; set;
-    }
 }

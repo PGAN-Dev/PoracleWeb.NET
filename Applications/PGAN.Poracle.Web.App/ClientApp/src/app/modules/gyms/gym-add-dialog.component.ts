@@ -89,7 +89,6 @@ export class GymAddDialogComponent {
         distance: dist,
         gymId: null,
         ping: v.ping || null,
-        profileNo: 1,
         slotChanges: v.slotChanges ? 1 : 0,
         team,
         template: v.template || null,

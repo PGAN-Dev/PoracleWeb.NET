@@ -34,6 +34,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     public async Task<IActionResult> Create([FromBody] QuestCreate model)
     {
         var quest = this._mapper.Map<Quest>(model);
+        quest.ProfileNo = this.ProfileNo;
         var result = await this._questService.CreateAsync(this.UserId, quest);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

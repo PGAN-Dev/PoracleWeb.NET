@@ -77,7 +77,6 @@ export class NestAddDialogComponent {
         minSpawnAvg: v.minSpawnAvg ?? 0,
         ping: v.ping || null,
         pokemonId,
-        profileNo: 1,
         template: v.template || null,
       }),
     );

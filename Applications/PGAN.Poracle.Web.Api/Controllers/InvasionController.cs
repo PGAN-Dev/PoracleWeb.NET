@@ -34,6 +34,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     public async Task<IActionResult> Create([FromBody] InvasionCreate model)
     {
         var invasion = this._mapper.Map<Invasion>(model);
+        invasion.ProfileNo = this.ProfileNo;
         var result = await this._invasionService.CreateAsync(this.UserId, invasion);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

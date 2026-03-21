@@ -34,6 +34,7 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> Create([FromBody] GymCreate model)
     {
         var gym = this._mapper.Map<Gym>(model);
+        gym.ProfileNo = this.ProfileNo;
         var result = await this._gymService.CreateAsync(this.UserId, gym);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

@@ -6,46 +6,57 @@ namespace PGAN.Poracle.Web.Api.Controllers;
 [Route("api/location")]
 public class LocationController(
     IHumanService humanService,
+    IProfileService profileService,
     IPoracleApiProxy poracleApiProxy,
     IHttpClientFactory httpClientFactory) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IProfileService _profileService = profileService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
     [HttpGet]
     public async Task<IActionResult> GetLocation()
     {
-        var human = await this._humanService.GetByIdAndProfileAsync(this.UserId, this.ProfileNo);
-        if (human == null)
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile == null)
         {
             return this.NotFound();
         }
 
         return this.Ok(new
         {
-            latitude = human.Latitude,
-            longitude = human.Longitude
+            latitude = profile.Latitude,
+            longitude = profile.Longitude
         });
     }
 
     [HttpPut]
     public async Task<IActionResult> UpdateLocation([FromBody] LocationUpdateRequest request)
     {
-        var human = await this._humanService.GetByIdAndProfileAsync(this.UserId, this.ProfileNo);
-        if (human == null)
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile == null)
         {
             return this.NotFound();
         }
 
-        human.Latitude = request.Latitude;
-        human.Longitude = request.Longitude;
-        await this._humanService.UpdateAsync(human);
+        profile.Latitude = request.Latitude;
+        profile.Longitude = request.Longitude;
+        await this._profileService.UpdateAsync(profile);
+
+        // Also update humans table so PoracleJS can read the active profile's location
+        var human = await this._humanService.GetByIdAsync(this.UserId);
+        if (human != null)
+        {
+            human.Latitude = request.Latitude;
+            human.Longitude = request.Longitude;
+            await this._humanService.UpdateAsync(human);
+        }
 
         return this.Ok(new
         {
-            latitude = human.Latitude,
-            longitude = human.Longitude
+            latitude = profile.Latitude,
+            longitude = profile.Longitude
         });
     }
 
