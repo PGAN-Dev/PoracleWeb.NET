@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Admin remote Poracle server restart ([PR #8](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/8))
 - User-drawn custom geofences with admin review workflow ([PR #6](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/6))
 - **Admin Poracle Server Management** — Monitor and restart PoracleJS instances remotely from the admin panel
   - Multi-server support with configurable servers (name, host, SSH user)
@@ -60,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pokemon IV validation**: ATK/DEF/STA fields now enforce 0-15 range with error messages ([#3](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/3), [PR #4](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/4))
 
 ### Added
+- Admin remote Poracle server restart ([PR #8](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/8))
 - User-drawn custom geofences with admin review workflow ([PR #6](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/6))
 - **Pokemon type filter**: Filter by Pokemon type with UICONS type icons from masterfile ([#3](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/3), [PR #4](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/4))
 - **Tile grid selector**: Clickable tile grid for bulk Pokemon selection when gen/type filter is active
@@ -77,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-03-20
 
 ### Added
+- Admin remote Poracle server restart ([PR #8](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/8))
 - User-drawn custom geofences with admin review workflow ([PR #6](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/6))
 - Initial release of PoracleWeb
 - Discord OAuth2 and Telegram authentication
