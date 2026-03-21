@@ -4,6 +4,27 @@ import { SettingsService } from './settings.service';
 
 const DEFAULT_UICONS = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
 
+const TYPE_IDS: Record<string, number> = {
+  Normal: 1,
+  Fighting: 2,
+  Flying: 3,
+  Poison: 4,
+  Ground: 5,
+  Rock: 6,
+  Bug: 7,
+  Ghost: 8,
+  Steel: 9,
+  Fire: 10,
+  Water: 11,
+  Grass: 12,
+  Electric: 13,
+  Psychic: 14,
+  Ice: 15,
+  Dragon: 16,
+  Dark: 17,
+  Fairy: 18,
+};
+
 @Injectable({ providedIn: 'root' })
 export class IconService {
   private readonly settings = inject(SettingsService);
@@ -15,6 +36,8 @@ export class IconService {
   private readonly pkmnBase = computed(() =>
     (this.settings.siteSettings()['uicons_pkmn'] || `${DEFAULT_UICONS}/pokemon`).replace(/\/$/, ''),
   );
+
+  private readonly typeBase = computed(() => (this.settings.siteSettings()['uicons_type'] || `${DEFAULT_UICONS}/type`).replace(/\/$/, ''));
 
   private readonly raidBase = computed(() => (this.settings.siteSettings()['uicons_raid'] || `${DEFAULT_UICONS}/raid`).replace(/\/$/, ''));
 
@@ -57,5 +80,10 @@ export class IconService {
 
   getRewardUrl(type: string, id: number): string {
     return `${this.rewardBase()}/${type}/${id}.png`;
+  }
+
+  getTypeUrl(typeName: string): string {
+    const id = TYPE_IDS[typeName];
+    return id ? `${this.typeBase()}/${id}.png` : '';
   }
 }

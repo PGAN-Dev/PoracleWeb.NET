@@ -70,29 +70,47 @@
         <div class="form-row triple">
           <mat-form-field appearance="outline">
             <mat-label>Min ATK</mat-label>
-            <input matInput type="number" [formControl]="filtersForm.controls.atk" />
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.atk" />
+            @if (filtersForm.controls.atk.invalid) {
+              <mat-error>0-15</mat-error>
+            }
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Min DEF</mat-label>
-            <input matInput type="number" [formControl]="filtersForm.controls.def" />
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.def" />
+            @if (filtersForm.controls.def.invalid) {
+              <mat-error>0-15</mat-error>
+            }
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Min STA</mat-label>
-            <input matInput type="number" [formControl]="filtersForm.controls.sta" />
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.sta" />
+            @if (filtersForm.controls.sta.invalid) {
+              <mat-error>0-15</mat-error>
+            }
           </mat-form-field>
         </div>
         <div class="form-row triple">
           <mat-form-field appearance="outline">
             <mat-label>Max ATK</mat-label>
-            <input matInput type="number" [formControl]="filtersForm.controls.maxAtk" />
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.maxAtk" />
+            @if (filtersForm.controls.maxAtk.invalid) {
+              <mat-error>0-15</mat-error>
+            }
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Max DEF</mat-label>
-            <input matInput type="number" [formControl]="filtersForm.controls.maxDef" />
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.maxDef" />
+            @if (filtersForm.controls.maxDef.invalid) {
+              <mat-error>0-15</mat-error>
+            }
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Max STA</mat-label>
-            <input matInput type="number" [formControl]="filtersForm.controls.maxSta" />
+            <input matInput type="number" min="0" max="15" [formControl]="filtersForm.controls.maxSta" />
+            @if (filtersForm.controls.maxSta.invalid) {
+              <mat-error>0-15</mat-error>
+            }
           </mat-form-field>
         </div>
 

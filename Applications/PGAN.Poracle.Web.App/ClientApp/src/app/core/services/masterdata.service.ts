@@ -7,6 +7,7 @@ import { ConfigService } from './config.service';
 export interface PokemonEntry {
   id: number;
   name: string;
+  types?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -17,6 +18,7 @@ export class MasterDataService {
   private formsLoaded = false;
   private formsLoadRequested = false;
   private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
+  private readonly typesMap = signal(new Map<number, string[]>());
   private readonly http = inject(HttpClient);
   private itemMap = new Map<number, string>();
   private loaded = false;
@@ -34,9 +36,10 @@ export class MasterDataService {
   }
 
   getAllPokemon(): PokemonEntry[] {
+    const types = this.typesMap();
     const entries: PokemonEntry[] = [{ id: 0, name: 'All Pokemon' }];
     this.pokemonMap.forEach((name, id) => {
-      entries.push({ id, name });
+      entries.push({ id, name, types: types.get(id) });
     });
     entries.sort((a, b) => a.id - b.id);
     return entries;
@@ -49,6 +52,14 @@ export class MasterDataService {
   /** Get the base (first stage) evolution ID for a Pokemon. Returns the ID itself if no chain found. */
   getBaseEvolution(id: number): number {
     return this.evoBaseMap.get(id) ?? id;
+  }
+
+  getAllTypes(): string[] {
+    const typeSet = new Set<string>();
+    for (const types of this.typesMap().values()) {
+      for (const t of types) typeSet.add(t);
+    }
+    return [...typeSet].sort();
   }
 
   getFormName(pokemonId: number, formId: number): string {
@@ -64,6 +75,10 @@ export class MasterDataService {
 
   getItemName(id: number): string {
     return this.itemMap.get(id) ?? `Item #${id}`;
+  }
+
+  getPokemonTypes(id: number): string[] {
+    return this.typesMap().get(id) ?? [];
   }
 
   getPokemonName(id: number): string {
@@ -126,7 +141,16 @@ export class MasterDataService {
       },
       next: data => {
         const monsters = data['monsters'] as
-          | Record<string, { id: number; name: string; form?: { id: number; name: string }; evolutions?: { evoId: number }[] }>
+          | Record<
+              string,
+              {
+                id: number;
+                name: string;
+                form?: { id: number; name: string };
+                evolutions?: { evoId: number }[];
+                types?: { id: number; name: string }[];
+              }
+            >
           | undefined;
         if (!monsters) {
           this.formsLoaded = true;
@@ -152,6 +176,16 @@ export class MasterDataService {
           forms.sort((a, b) => a.name.localeCompare(b.name));
         }
         this.formsMap.set(grouped);
+
+        // Build types map: Pokemon ID → type names (use base form only, skip form variants)
+        const typeMap = new Map<number, string[]>();
+        for (const entry of Object.values(monsters)) {
+          if (typeMap.has(entry.id)) continue;
+          if (entry.types?.length) {
+            typeMap.set(entry.id, entry.types.map(t => t.name));
+          }
+        }
+        this.typesMap.set(typeMap);
 
         // Build evolution base map: evolved Pokemon → base (first stage) Pokemon ID
         const evolvesFrom = new Map<number, number>(); // child → parent

@@ -5,27 +5,55 @@
   }
 </div>
 
+@if (availableTypes().length > 0) {
+  <div class="gen-filter type-filter">
+    <span class="gen-label">Type</span>
+    @for (type of availableTypes(); track type) {
+      <button class="gen-chip type-chip" [class.gen-active]="activeType() === type" (click)="toggleType(type)">
+        <img [src]="getTypeIcon(type)" [alt]="type" class="type-icon" (error)="onImageError($event)" />{{ type }}
+      </button>
+    }
+  </div>
+}
+
 <mat-form-field class="full-width" appearance="outline">
   <mat-label>Search Pokemon</mat-label>
   <input matInput [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Type name or ID..." />
   <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSelected($event)">
-    @for (pokemon of filteredPokemon(); track pokemon.id) {
-      <mat-option [value]="pokemon" [class.all-pokemon-option]="pokemon.id === 0">
-        <div class="pokemon-option">
-          @if (pokemon.id === 0) {
-            <mat-icon class="all-pokemon-icon">select_all</mat-icon>
-          } @else {
-            <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="pokemon-option-img" (error)="onImageError($event)" />
-          }
-          <span>{{ formatPokemonName(pokemon) }}</span>
-          @if (pokemon.id > 0) {
-            <span class="pokemon-option-id">#{{ padId(pokemon.id) }}</span>
-          }
-        </div>
-      </mat-option>
+    @if (!showTileGrid()) {
+      @for (pokemon of filteredPokemon(); track pokemon.id) {
+        <mat-option [value]="pokemon" [class.all-pokemon-option]="pokemon.id === 0">
+          <div class="pokemon-option">
+            @if (pokemon.id === 0) {
+              <mat-icon class="all-pokemon-icon">select_all</mat-icon>
+            } @else {
+              <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="pokemon-option-img" (error)="onImageError($event)" />
+            }
+            <span>{{ formatPokemonName(pokemon) }}</span>
+            @if (pokemon.id > 0) {
+              <span class="pokemon-option-id">#{{ padId(pokemon.id) }}</span>
+            }
+          </div>
+        </mat-option>
+      }
     }
   </mat-autocomplete>
 </mat-form-field>
+
+@if (showTileGrid()) {
+  <div class="tile-grid">
+    @for (pokemon of filteredPokemon(); track pokemon.id) {
+      <button
+        class="pokemon-tile"
+        [class.tile-selected]="selectedIds().has(pokemon.id)"
+        (click)="toggleTile(pokemon)"
+        [title]="pokemon.name">
+        <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="tile-img" (error)="onImageError($event)" />
+        <span class="tile-name">{{ pokemon.name }}</span>
+      </button>
+    }
+  </div>
+}
 
 @if (multi()) {
   <mat-chip-set class="selected-chips">
