@@ -52,11 +52,6 @@
                   <span>Checked {{ server.checkedAt | date: 'medium' }}</span>
                 </div>
               </div>
-              @if (server.message) {
-                <div class="server-message">
-                  <code>{{ server.message }}</code>
-                </div>
-              }
               <div class="server-card-actions">
                 @if (restarting()[server.host]) {
                   <mat-spinner diameter="24"></mat-spinner>

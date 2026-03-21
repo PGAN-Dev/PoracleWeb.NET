@@ -177,22 +177,6 @@
   }
 }
 
-// ─── Server Message ──────────────────────────────────
-.server-message {
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background: var(--code-bg, rgba(0, 0, 0, 0.04));
-  border-radius: 6px;
-  overflow-x: auto;
-
-  code {
-    font-size: 12px;
-    white-space: pre-wrap;
-    word-break: break-all;
-    color: var(--text-primary, rgba(0, 0, 0, 0.87));
-  }
-}
-
 // ─── Actions ─────────────────────────────────────────
 .server-card-actions {
   display: flex;
