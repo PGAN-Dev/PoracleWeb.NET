@@ -9,6 +9,7 @@ public interface IUserGeofenceRepository
     Task<UserGeofence?> GetByKojiNameAsync(string kojiName);
     Task<int> GetCountByHumanIdAsync(string humanId);
     Task<List<UserGeofence>> GetByStatusAsync(string status);
+    Task<List<UserGeofence>> GetAllActiveAsync();
     Task<UserGeofence> CreateAsync(UserGeofence geofence);
     Task<UserGeofence> UpdateAsync(UserGeofence geofence);
     Task DeleteAsync(int id);

@@ -60,6 +60,17 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
         return this._mapper.Map<List<UserGeofence>>(entities);
     }
 
+    public async Task<List<UserGeofence>> GetAllActiveAsync()
+    {
+        var entities = await this._context.UserGeofences
+            .AsNoTracking()
+            .Where(g => g.Status == "active" || g.Status == "pending_review")
+            .OrderBy(g => g.KojiName)
+            .ToListAsync();
+
+        return this._mapper.Map<List<UserGeofence>>(entities);
+    }
+
     public async Task<UserGeofence> CreateAsync(UserGeofence geofence)
     {
         var entity = this._mapper.Map<UserGeofenceEntity>(geofence);

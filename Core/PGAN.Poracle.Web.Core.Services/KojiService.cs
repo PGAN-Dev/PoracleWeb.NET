@@ -15,7 +15,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
     private readonly int _projectId = int.TryParse(configuration["Koji:ProjectId"], out var id) ? id : 0;
     private readonly ILogger<KojiService> _logger = logger;
 
-    public async Task SaveGeofenceAsync(string geofenceName, string displayName, string group, int parentId, double[][] polygon)
+    public async Task SaveGeofenceAsync(string geofenceName, string displayName, string group, int parentId, double[][] polygon, bool isPublic = false)
     {
         var coordinates = polygon.Select(p => new[] { p[1], p[0] }).ToArray(); // Convert lat,lon to GeoJSON lon,lat
 
@@ -43,8 +43,8 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                             ["name"] = displayName,
                             ["group"] = group,
                             ["parent"] = group,
-                            ["userSelectable"] = false,
-                            ["displayInMatches"] = false
+                            ["userSelectable"] = isPublic,
+                            ["displayInMatches"] = isPublic
                         }
                     }
                 }

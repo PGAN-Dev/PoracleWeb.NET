@@ -4,7 +4,7 @@ namespace PGAN.Poracle.Web.Core.Abstractions.Services;
 
 public interface IKojiService
 {
-    public Task SaveGeofenceAsync(string geofenceName, string displayName, string group, int parentId, double[][] polygon);
+    public Task SaveGeofenceAsync(string geofenceName, string displayName, string group, int parentId, double[][] polygon, bool isPublic = false);
     public Task RemoveGeofenceFromProjectAsync(string geofenceName);
     public Task<List<GeofenceRegion>> GetRegionsAsync();
     public Task<List<UserGeofence>> GetUserGeofencesAsync(string humanId);

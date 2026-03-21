@@ -33,24 +33,26 @@ public class UserGeofenceServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsGeofencesFromRepositoryWithPolygons()
     {
+        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 } };
+        var polygonJson = System.Text.Json.JsonSerializer.Serialize(polygon);
         var geofences = new List<UserGeofence>
         {
-            new() { Id = 1, KojiName = "pweb_u1_downtown" }
+            new() { Id = 1, KojiName = "downtown", PolygonJson = polygonJson }
         };
-        var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 } };
         this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(geofences);
-        this._kojiService.Setup(k => k.GetGeofencePolygonAsync("pweb_u1_downtown")).ReturnsAsync(polygon);
 
         var result = await this._sut.GetByUserAsync("u1");
 
         Assert.Single(result);
-        Assert.Equal(polygon, result[0].Polygon);
+        Assert.Equal(polygon.Length, result[0].Polygon!.Length);
+        Assert.Equal(polygon[0][0], result[0].Polygon![0][0]);
+        Assert.Equal(polygon[0][1], result[0].Polygon![0][1]);
     }
 
     // --- CreateAsync ---
 
     [Fact]
-    public async Task CreateAsyncCallsKojiServiceWithCorrectParams()
+    public async Task CreateAsyncStoresPolygonJsonOnRecord()
     {
         var polygon = new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 }, new[] { 5.0, 6.0 } };
         var model = new UserGeofenceCreate
@@ -68,7 +70,8 @@ public class UserGeofenceServiceTests
 
         await this._sut.CreateAsync("u1", 1, model);
 
-        this._kojiService.Verify(k => k.SaveGeofenceAsync("pweb_u1_downtown", "Downtown", "City", 5, polygon), Times.Once);
+        this._repository.Verify(r => r.CreateAsync(It.Is<UserGeofence>(g =>
+            !string.IsNullOrEmpty(g.PolygonJson))), Times.Once);
     }
 
     [Fact]
@@ -89,7 +92,7 @@ public class UserGeofenceServiceTests
 
         var result = await this._sut.CreateAsync("u1", 1, model);
 
-        Assert.Equal("pweb_u1_my_zone", result.KojiName);
+        Assert.Equal("my zone", result.KojiName);
         Assert.Equal("My Zone", result.DisplayName);
         Assert.Equal("Region", result.GroupName);
         Assert.Equal(3, result.ParentId);
@@ -113,7 +116,7 @@ public class UserGeofenceServiceTests
         await this._sut.CreateAsync("u1", 1, model);
 
         Assert.Contains("existing_area", human.Area);
-        Assert.Contains("pweb_u1_park", human.Area);
+        Assert.Contains("park", human.Area);
         this._humanRepo.Verify(r => r.UpdateAsync(human), Times.Once);
     }
 
@@ -144,7 +147,7 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
-    public async Task CreateAsyncGeneratesCorrectSlugFromDisplayName()
+    public async Task CreateAsyncGeneratesKojiNameAsLowercaseDisplayName()
     {
         var model = new UserGeofenceCreate
         {
@@ -159,11 +162,11 @@ public class UserGeofenceServiceTests
 
         var result = await this._sut.CreateAsync("u1", 1, model);
 
-        Assert.Equal("pweb_u1_my_cool_area", result.KojiName);
+        Assert.Equal("my cool area!", result.KojiName);
     }
 
     [Fact]
-    public async Task CreateAsyncTruncatesLongSlug()
+    public async Task CreateAsyncUsesLowercaseDisplayNameAsKojiName()
     {
         var model = new UserGeofenceCreate
         {
@@ -178,26 +181,23 @@ public class UserGeofenceServiceTests
 
         var result = await this._sut.CreateAsync("u1", 1, model);
 
-        // Slug part (after pweb_u1_) should be at most 30 characters
-        var slug = result.KojiName.Replace("pweb_u1_", "");
-        Assert.True(slug.Length <= 30);
+        Assert.Equal(model.DisplayName.ToLowerInvariant(), result.KojiName);
     }
 
     // --- DeleteAsync ---
 
     [Fact]
-    public async Task DeleteAsyncRemovesFromKojiAndHumanArea()
+    public async Task DeleteAsyncRemovesFromHumanAreaAndDeletesRecord()
     {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "pweb_u1_downtown" };
-        var human = new Human { Id = "u1", Area = "[\"pweb_u1_downtown\",\"other_area\"]" };
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        var human = new Human { Id = "u1", Area = "[\"downtown\",\"other_area\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
         this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
 
         await this._sut.DeleteAsync("u1", 1, 1);
 
-        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("pweb_u1_downtown"), Times.Once);
-        Assert.DoesNotContain("pweb_u1_downtown", human.Area);
+        Assert.DoesNotContain("downtown", human.Area);
         Assert.Contains("other_area", human.Area);
         this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);

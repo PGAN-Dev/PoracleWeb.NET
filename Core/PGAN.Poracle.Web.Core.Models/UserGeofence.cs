@@ -8,6 +8,7 @@ public class UserGeofence
     public string DisplayName { get; set; } = string.Empty;
     public string GroupName { get; set; } = string.Empty;
     public int ParentId { get; set; }
+    public string? PolygonJson { get; set; }
     public string Status { get; set; } = "active";
     public DateTime? SubmittedAt { get; set; }
     public string? ReviewedBy { get; set; }
@@ -18,6 +19,6 @@ public class UserGeofence
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    // Polygon data from Koji (not stored in DB)
+    // Parsed from PolygonJson for API responses
     public double[][]? Polygon { get; set; }
 }

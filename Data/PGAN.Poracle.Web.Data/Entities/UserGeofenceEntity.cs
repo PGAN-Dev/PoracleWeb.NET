@@ -29,6 +29,9 @@ public class UserGeofenceEntity
     [Column("parent_id")]
     public int ParentId { get; set; }
 
+    [Column("polygon_json")]
+    public string? PolygonJson { get; set; }
+
     [Column("status")]
     [Required]
     public string Status { get; set; } = "active";

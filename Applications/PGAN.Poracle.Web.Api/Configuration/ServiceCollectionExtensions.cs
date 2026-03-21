@@ -81,7 +81,7 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Discord notification service
         services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>
         {
-            client.BaseAddress = new Uri("https://discordapp.com/api/v10/");
+            client.BaseAddress = new Uri("https://discordapp.com/api/v9/");
             var botToken = configuration["Discord:BotToken"];
             if (!string.IsNullOrEmpty(botToken))
             {

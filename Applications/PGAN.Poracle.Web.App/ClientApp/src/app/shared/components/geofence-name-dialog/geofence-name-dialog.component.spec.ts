@@ -65,7 +65,7 @@ describe('GeofenceNameDialogComponent', () => {
 
       expect(dialogRef.close).toHaveBeenCalledWith({
         displayName: 'My Custom Fence',
-        groupName: 'downtown',
+        groupName: 'Downtown',
         parentId: 1,
       } as GeofenceNameDialogResult);
     });
@@ -127,7 +127,7 @@ describe('GeofenceNameDialogComponent', () => {
 
       expect(dialogRef.close).toHaveBeenCalledWith({
         displayName: 'Suburb Fence',
-        groupName: 'suburbs',
+        groupName: 'Suburbs',
         parentId: 2,
       } as GeofenceNameDialogResult);
     });

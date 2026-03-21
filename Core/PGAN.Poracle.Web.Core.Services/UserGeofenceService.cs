@@ -28,18 +28,20 @@ public class UserGeofenceService(
     {
         var geofences = await this._repository.GetByHumanIdAsync(humanId);
 
-        var tasks = geofences.Select(async g =>
+        foreach (var g in geofences)
         {
-            try
+            if (!string.IsNullOrEmpty(g.PolygonJson))
             {
-                g.Polygon = await this._kojiService.GetGeofencePolygonAsync(g.KojiName);
+                try
+                {
+                    g.Polygon = JsonSerializer.Deserialize<double[][]>(g.PolygonJson);
+                }
+                catch (JsonException ex)
+                {
+                    this._logger.LogWarning(ex, "Failed to deserialize polygon for geofence '{KojiName}'", g.KojiName);
+                }
             }
-            catch (Exception ex)
-            {
-                this._logger.LogWarning(ex, "Failed to fetch polygon for geofence '{KojiName}'", g.KojiName);
-            }
-        });
-        await Task.WhenAll(tasks);
+        }
 
         return geofences;
     }
@@ -92,10 +94,10 @@ public class UserGeofenceService(
             }
         }
 
-        // Save to Koji
-        await this._kojiService.SaveGeofenceAsync(kojiName, model.DisplayName, model.GroupName, model.ParentId, model.Polygon);
+        // Serialize polygon to JSON and store locally (not in Koji)
+        var polygonJson = JsonSerializer.Serialize(model.Polygon);
 
-        // Create local DB record
+        // Create local DB record with polygon data
         var geofence = await this._repository.CreateAsync(new UserGeofence
         {
             HumanId = humanId,
@@ -103,25 +105,18 @@ public class UserGeofenceService(
             DisplayName = model.DisplayName,
             GroupName = model.GroupName,
             ParentId = model.ParentId,
+            PolygonJson = polygonJson,
             Status = "active",
         });
 
         // Add kojiName to user's humans.area JSON array
         await this.AddAreaToHumanAsync(humanId, profileNo, kojiName);
 
-        // Reload Poracle geofences
+        // Reload Poracle geofences (Poracle reads from our feed + Koji)
         await this.ReloadGeofencesSafeAsync();
 
-        // Fetch polygon from Koji and set on result
-        try
-        {
-            geofence.Polygon = await this._kojiService.GetGeofencePolygonAsync(kojiName);
-        }
-        catch (Exception ex)
-        {
-            this._logger.LogWarning(ex, "Failed to fetch polygon for newly created geofence '{KojiName}'", kojiName);
-            geofence.Polygon = model.Polygon;
-        }
+        // Set polygon on result from input
+        geofence.Polygon = model.Polygon;
 
         this._logger.LogInformation("Created custom geofence '{KojiName}' for user {HumanId}", kojiName, humanId);
 
@@ -137,9 +132,6 @@ public class UserGeofenceService(
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
-
-        // Remove from Koji project
-        await this._kojiService.RemoveGeofenceFromProjectAsync(geofence.KojiName);
 
         // Remove kojiName from user's humans.area JSON array
         await this.RemoveAreaFromHumanAsync(humanId, profileNo, geofence.KojiName);
@@ -182,14 +174,17 @@ public class UserGeofenceService(
             // Get polygon point count and static map from Poracle
             var polygonPoints = 0;
             string? mapImageUrl = null;
-            try
+            if (!string.IsNullOrEmpty(geofence.PolygonJson))
             {
-                var polygon = await this._kojiService.GetGeofencePolygonAsync(geofence.KojiName);
-                polygonPoints = polygon?.Length ?? 0;
-            }
-            catch (Exception ex)
-            {
-                this._logger.LogWarning(ex, "Failed to fetch polygon point count for geofence '{KojiName}'", geofence.KojiName);
+                try
+                {
+                    var polygon = JsonSerializer.Deserialize<double[][]>(geofence.PolygonJson);
+                    polygonPoints = polygon?.Length ?? 0;
+                }
+                catch (JsonException ex)
+                {
+                    this._logger.LogWarning(ex, "Failed to deserialize polygon for geofence '{KojiName}'", geofence.KojiName);
+                }
             }
 
             try
@@ -230,8 +225,38 @@ public class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
 
-        // Promote in Koji
-        await this._kojiService.PromoteGeofenceAsync(geofence.KojiName, promotedName, geofence.DisplayName, geofence.GroupName, geofence.ParentId);
+        // Parse polygon from local DB
+        if (string.IsNullOrEmpty(geofence.PolygonJson))
+        {
+            throw new InvalidOperationException($"Geofence '{geofence.KojiName}' has no polygon data stored locally.");
+        }
+
+        var polygon = JsonSerializer.Deserialize<double[][]>(geofence.PolygonJson)
+            ?? throw new InvalidOperationException($"Failed to deserialize polygon for geofence '{geofence.KojiName}'.");
+
+        // Save to Koji as a public geofence (userSelectable + displayInMatches = true)
+        var targetName = promotedName ?? geofence.KojiName;
+        await this._kojiService.SaveGeofenceAsync(
+            targetName, geofence.DisplayName, geofence.GroupName, geofence.ParentId, polygon, isPublic: true);
+
+        // If the name changed, update the user's humans.area
+        if (promotedName != null && !string.Equals(promotedName, geofence.KojiName, StringComparison.Ordinal))
+        {
+            // Find the owning user's human record and swap area names
+            var human = await this._humanRepository.GetByIdAndProfileAsync(geofence.HumanId, 1);
+            if (human != null)
+            {
+                var areas = ParseAreas(human.Area);
+                var oldLower = geofence.KojiName.ToLowerInvariant();
+                var newLower = promotedName.ToLowerInvariant();
+                if (areas.Remove(oldLower))
+                {
+                    areas.Add(newLower);
+                    human.Area = JsonSerializer.Serialize(areas);
+                    await this._humanRepository.UpdateAsync(human);
+                }
+            }
+        }
 
         // Update local record
         geofence.Status = "approved";
