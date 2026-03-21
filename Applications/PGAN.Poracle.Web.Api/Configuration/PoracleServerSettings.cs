@@ -6,6 +6,7 @@ public class PoracleServerConfig
     public string Host { get; set; } = string.Empty;
     public string ApiAddress { get; set; } = string.Empty;
     public string SshUser { get; set; } = "root";
+    public string RestartCommand { get; set; } = "pm2 restart all";
 }
 
 public class PoracleServerSettings

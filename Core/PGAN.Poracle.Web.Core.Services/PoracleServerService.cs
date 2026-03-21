@@ -16,7 +16,7 @@ public partial class PoracleServerService(
     private readonly ILogger<PoracleServerService> _logger = logger;
     private readonly string _sshKeyPath = configuration["Poracle:SshKeyPath"] ?? "/app/ssh_key";
 
-    private sealed record ServerConfig(string Name, string Host, string ApiAddress, string SshUser);
+    private sealed record ServerConfig(string Name, string Host, string ApiAddress, string SshUser, string RestartCommand);
 
     [GeneratedRegex(@"^[a-zA-Z0-9._\-]+$")]
     private static partial Regex SafeHostnameRegex();
@@ -32,10 +32,11 @@ public partial class PoracleServerService(
             var host = child["Host"] ?? string.Empty;
             var apiAddress = child["ApiAddress"] ?? string.Empty;
             var sshUser = child["SshUser"] ?? "root";
+            var restartCommand = child["RestartCommand"] ?? "pm2 restart all";
 
             if (!string.IsNullOrWhiteSpace(host))
             {
-                servers.Add(new ServerConfig(name, host, apiAddress, sshUser));
+                servers.Add(new ServerConfig(name, host, apiAddress, sshUser, restartCommand));
             }
         }
 
@@ -101,7 +102,7 @@ public partial class PoracleServerService(
 
         try
         {
-            var sshArgs = $"-o StrictHostKeyChecking=no -o ConnectTimeout=10 -i {this._sshKeyPath} {server.SshUser}@{server.Host} \"pm2 restart all\"";
+            var sshArgs = $"-o StrictHostKeyChecking=no -o ConnectTimeout=10 -i {this._sshKeyPath} {server.SshUser}@{server.Host} \"{server.RestartCommand}\"";
 
             this._logger.LogInformation("Executing SSH restart command for server {Host}", server.Host);
 
