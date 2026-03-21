@@ -9,7 +9,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
-import { GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
+import { AreaDefinition, GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { UserGeofenceService } from '../../core/services/user-geofence.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
@@ -19,6 +19,7 @@ import {
   GeofenceNameDialogData,
   GeofenceNameDialogResult,
 } from '../../shared/components/geofence-name-dialog/geofence-name-dialog.component';
+import { RegionOption } from '../../shared/components/region-selector/region-selector.component';
 import { detectRegion } from '../../shared/utils/geo.utils';
 
 const MAX_CUSTOM_GEOFENCES = 10;
@@ -62,7 +63,22 @@ export class GeofenceListComponent implements OnInit {
   readonly customGeofencesLoading = signal(false);
   readonly drawMode = signal(false);
 
-  readonly geofenceData = computed(() => this.rawGeofenceData());
+  readonly availableAreas = signal<AreaDefinition[]>([]);
+  readonly geofenceData = computed(() => {
+    const available = this.availableAreas();
+    const raw = this.rawGeofenceData();
+    if (available.length === 0) return [];
+    const accessibleNames = new Set(available.map(a => a.name));
+    return raw.filter(g => accessibleNames.has(g.name));
+  });
+
+  readonly groupMapping = computed(() => {
+    const map = new Map<string, string>();
+    for (const area of this.availableAreas()) {
+      map.set(area.name, area.group ?? '');
+    }
+    return map;
+  });
 
   readonly geofenceLimitText = computed(() => `${this.customGeofences().length} of ${MAX_CUSTOM_GEOFENCES}`);
   readonly geofenceRegions = signal<GeofenceRegion[]>([]);
@@ -71,18 +87,14 @@ export class GeofenceListComponent implements OnInit {
 
   readonly maxCustomGeofences = MAX_CUSTOM_GEOFENCES;
 
-  /** Build region data for auto-detection from raw geofence data */
+  /** Build region data for auto-detection from region polygons */
   readonly regionDetectionData = computed(() => {
-    const regions = this.geofenceRegions();
-    const raw = this.rawGeofenceData();
-    return regions
-      .map(r => {
-        const fence = raw.find(f => f.name.toLowerCase() === r.name.toLowerCase());
-        return fence ? { id: r.id, name: r.name, displayName: r.displayName, path: fence.path } : null;
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
+    return this.geofenceRegions()
+      .filter(r => r.polygon && r.polygon.length > 0)
+      .map(r => ({ id: r.id, name: r.name, displayName: r.displayName, path: r.polygon! }));
   });
 
+  readonly selectedMapRegion = signal<{ id: number; name: string; displayName: string } | null>(null);
   readonly savingGeofence = signal(false);
   readonly skeletonGeofences = Array.from({ length: 3 });
 
@@ -170,9 +182,9 @@ export class GeofenceListComponent implements OnInit {
   async submitGeofence(geofence: UserGeofence): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Submit',
-        message: 'Submit this geofence for admin review? If approved, it will become available to all users.',
-        title: 'Submit for Review',
+        confirmText: 'Submit for Review',
+        message: `This will send "${geofence.displayName}" to the admin team for review. If approved, your geofence will be promoted to a public area that all users can select and receive notifications from. Your private geofence will continue to work while the review is pending.`,
+        title: 'Submit Geofence for Public Review',
       } as ConfirmDialogData,
     });
     const confirmed = await firstValueFrom(ref.afterClosed());
@@ -194,6 +206,7 @@ export class GeofenceListComponent implements OnInit {
     this.loadCustomGeofences();
     this.loadRegions();
     this.loadGeofencePolygons();
+    this.loadAvailableAreas();
   }
 
   onDrawComplete(polygon: [number, number][]): void {
@@ -204,7 +217,8 @@ export class GeofenceListComponent implements OnInit {
       return;
     }
 
-    const detected = detectRegion(polygon, this.regionDetectionData());
+    // Use centroid-based auto-detection first, fall back to map's selected region
+    const detected = detectRegion(polygon, this.regionDetectionData()) ?? this.selectedMapRegion();
 
     const ref = this.dialog.open(GeofenceNameDialogComponent, {
       width: '440px',
@@ -240,6 +254,20 @@ export class GeofenceListComponent implements OnInit {
     });
   }
 
+  onMapRegionChanged(option: RegionOption): void {
+    if (!option.label) {
+      this.selectedMapRegion.set(null);
+      return;
+    }
+    // Find the matching GeofenceRegion to get the id
+    const region = this.geofenceRegions().find(
+      r => r.displayName === option.label || r.name === option.label,
+    );
+    if (region) {
+      this.selectedMapRegion.set({ id: region.id, name: region.name, displayName: region.displayName });
+    }
+  }
+
   toggleDrawMode(): void {
     if (this.hasReachedLimit() && !this.drawMode()) {
       this.snackBar.open(`Maximum of ${MAX_CUSTOM_GEOFENCES} custom geofences reached`, 'OK', { duration: 3000 });
@@ -259,6 +287,16 @@ export class GeofenceListComponent implements OnInit {
           this.customGeofences.set(geofences);
           this.customGeofencesLoading.set(false);
         },
+      });
+  }
+
+  private loadAvailableAreas(): void {
+    this.areaService
+      .getAvailable()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {},
+        next: areas => this.availableAreas.set(areas.filter(a => a.userSelectable !== false)),
       });
   }
 

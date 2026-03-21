@@ -22,6 +22,7 @@ services:
       - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
       - Discord__BotToken=${DISCORD_BOT_TOKEN:-}
       - Discord__GuildId=${DISCORD_GUILD_ID:-}
+      - Discord__GeofenceForumChannelId=${DISCORD_GEOFENCE_FORUM_CHANNEL_ID:-}
       # Telegram
       - Telegram__Enabled=${TELEGRAM_ENABLED:-false}
       - Telegram__BotToken=${TELEGRAM_BOT_TOKEN:-}

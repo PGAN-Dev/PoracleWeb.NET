@@ -350,6 +350,7 @@ export interface GeofenceRegion {
   displayName: string;
   id: number;
   name: string;
+  polygon?: [number, number][];
 }
 
 // ─── Quick Picks ──────────────────────────────────────────────────────────────

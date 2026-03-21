@@ -14,6 +14,7 @@ public class UserGeofence
     public DateTime? ReviewedAt { get; set; }
     public string? ReviewNotes { get; set; }
     public string? PromotedName { get; set; }
+    public string? DiscordThreadId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 

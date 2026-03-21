@@ -1,5 +1,5 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
+
 using Microsoft.Extensions.Logging;
 using PGAN.Poracle.Web.Core.Abstractions.Repositories;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
@@ -7,20 +7,21 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public partial class UserGeofenceService(
+public class UserGeofenceService(
     IUserGeofenceRepository repository,
     IKojiService kojiService,
     IPoracleApiProxy poracleApiProxy,
     IHumanRepository humanRepository,
+    IDiscordNotificationService discordNotificationService,
     ILogger<UserGeofenceService> logger) : IUserGeofenceService
 {
     private const int MaxGeofencesPerUser = 10;
-    private const int MaxSlugLength = 30;
 
     private readonly IUserGeofenceRepository _repository = repository;
     private readonly IKojiService _kojiService = kojiService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHumanRepository _humanRepository = humanRepository;
+    private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly ILogger<UserGeofenceService> _logger = logger;
 
     public async Task<List<UserGeofence>> GetByUserAsync(string humanId)
@@ -63,10 +64,12 @@ public partial class UserGeofenceService(
             throw new InvalidOperationException("Polygon must have at least 3 points.");
         }
 
-        // Generate namespaced name with uniqueness check
-        var slug = GenerateSlug(model.DisplayName);
-        var kojiName = $"pweb_{humanId}_{slug}";
+        // Use lowercase display name as the Koji geofence name
+        // Must be lowercase because Poracle does case-sensitive area matching
+        // and humans.area stores names in lowercase
+        var kojiName = model.DisplayName.Trim().ToLowerInvariant();
 
+        // Check for collision with existing geofences (our DB + Koji)
         var existing = await this._repository.GetByKojiNameAsync(kojiName);
         if (existing != null)
         {
@@ -74,7 +77,7 @@ public partial class UserGeofenceService(
             var found = false;
             for (int i = 2; i <= 10; i++)
             {
-                kojiName = $"{baseName}_{i}";
+                kojiName = $"{baseName} {i}";
                 existing = await this._repository.GetByKojiNameAsync(kojiName);
                 if (existing == null)
                 {
@@ -170,6 +173,48 @@ public partial class UserGeofenceService(
 
         var updated = await this._repository.UpdateAsync(geofence);
 
+        // Create Discord forum post for the submission
+        try
+        {
+            var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, 1);
+            var userName = human?.Name ?? humanId;
+
+            // Get polygon point count and static map from Poracle
+            var polygonPoints = 0;
+            string? mapImageUrl = null;
+            try
+            {
+                var polygon = await this._kojiService.GetGeofencePolygonAsync(geofence.KojiName);
+                polygonPoints = polygon?.Length ?? 0;
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to fetch polygon point count for geofence '{KojiName}'", geofence.KojiName);
+            }
+
+            try
+            {
+                mapImageUrl = await this._poracleApiProxy.GetAreaMapUrlAsync(geofence.KojiName);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to fetch static map for geofence '{KojiName}'", geofence.KojiName);
+            }
+
+            var threadId = await this._discordNotificationService.CreateGeofenceSubmissionPostAsync(
+                humanId, userName, geofence.DisplayName, geofence.GroupName, polygonPoints, mapImageUrl);
+
+            if (threadId != null)
+            {
+                updated.DiscordThreadId = threadId;
+                updated = await this._repository.UpdateAsync(updated);
+            }
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogWarning(ex, "Failed to create Discord forum post for geofence submission '{KojiName}'", kojiName);
+        }
+
         this._logger.LogInformation("User {HumanId} submitted geofence '{KojiName}' for review", humanId, kojiName);
 
         return updated;
@@ -199,6 +244,20 @@ public partial class UserGeofenceService(
         // Reload Poracle geofences
         await this.ReloadGeofencesSafeAsync();
 
+        // Notify Discord forum thread
+        if (!string.IsNullOrEmpty(geofence.DiscordThreadId))
+        {
+            try
+            {
+                await this._discordNotificationService.PostApprovalMessageAsync(
+                    geofence.DiscordThreadId, geofence.DisplayName, promotedName ?? geofence.DisplayName);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to post approval to Discord thread {ThreadId}", geofence.DiscordThreadId);
+            }
+        }
+
         this._logger.LogInformation("Admin {AdminId} approved geofence '{KojiName}' (ID {Id}), promotedName: {PromotedName}",
             adminId, geofence.KojiName, id, promotedName);
 
@@ -216,6 +275,20 @@ public partial class UserGeofenceService(
         geofence.ReviewNotes = reviewNotes;
 
         var updated = await this._repository.UpdateAsync(geofence);
+
+        // Notify Discord forum thread
+        if (!string.IsNullOrEmpty(geofence.DiscordThreadId))
+        {
+            try
+            {
+                await this._discordNotificationService.PostRejectionMessageAsync(
+                    geofence.DiscordThreadId, geofence.DisplayName, reviewNotes);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to post rejection to Discord thread {ThreadId}", geofence.DiscordThreadId);
+            }
+        }
 
         this._logger.LogInformation("Admin {AdminId} rejected geofence '{KojiName}' (ID {Id})", adminId, geofence.KojiName, id);
 
@@ -237,9 +310,10 @@ public partial class UserGeofenceService(
         }
 
         var areas = ParseAreas(human.Area);
-        if (!areas.Contains(geofenceName))
+        var lowerName = geofenceName.ToLowerInvariant();
+        if (!areas.Contains(lowerName))
         {
-            areas.Add(geofenceName);
+            areas.Add(lowerName);
         }
 
         human.Area = JsonSerializer.Serialize(areas);
@@ -256,7 +330,7 @@ public partial class UserGeofenceService(
         }
 
         var areas = ParseAreas(human.Area);
-        areas.Remove(geofenceName);
+        areas.Remove(geofenceName.ToLowerInvariant());
 
         human.Area = areas.Count > 0
             ? JsonSerializer.Serialize(areas)
@@ -295,19 +369,4 @@ public partial class UserGeofenceService(
         }
     }
 
-    private static string GenerateSlug(string displayName)
-    {
-        var slug = displayName.ToLowerInvariant().Replace(' ', '_');
-        slug = SlugRegex().Replace(slug, string.Empty);
-
-        if (slug.Length > MaxSlugLength)
-        {
-            slug = slug[..MaxSlugLength];
-        }
-
-        return slug;
-    }
-
-    [GeneratedRegex("[^a-z0-9_]")]
-    private static partial Regex SlugRegex();
 }

@@ -62,16 +62,16 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
 
     public async Task RemoveGeofenceFromProjectAsync(string geofenceName)
     {
-        // Fetch existing geometry from Koji so we can re-save with empty projects
-        var featureJson = await this._httpClient.GetStringAsync(
-            $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(geofenceName)}?rt=feature");
-        using var featureDoc = JsonDocument.Parse(featureJson);
-        var feature = featureDoc.RootElement.GetProperty("data");
-        var geometry = feature.GetProperty("geometry");
-        var coordinates = geometry.GetProperty("coordinates");
+        // Fetch existing polygon from Koji
+        var polygon = await this.GetGeofencePolygonAsync(geofenceName);
+        if (polygon == null || polygon.Length < 3)
+        {
+            this._logger.LogWarning("Cannot remove geofence '{GeofenceName}': not found or invalid polygon", geofenceName);
+            return;
+        }
 
-        // Clone the existing coordinates to preserve them
-        var existingCoords = coordinates.Clone();
+        // Convert [lat,lon] back to GeoJSON [lon,lat]
+        var coordinates = polygon.Select(p => new[] { p[1], p[0] }).ToArray();
 
         var body = new
         {
@@ -86,14 +86,13 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                         geometry = new
                         {
                             type = "Polygon",
-                            coordinates = existingCoords
+                            coordinates = new[] { coordinates }
                         },
                         properties = new Dictionary<string, object>
                         {
                             ["__name"] = geofenceName,
                             ["__mode"] = "unset",
-                            ["__projects"] = Array.Empty<int>(),
-                            ["__parent"] = 0
+                            ["__projects"] = Array.Empty<int>()
                         }
                     }
                 }
@@ -142,18 +141,54 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
             }
 
             // Regions are entries that are used as parents by other geofences
-            foreach (var (id, name) in entries)
+            var regionEntries = entries.Where(e => parentIds.Contains(e.Id)).ToList();
+
+            // Fetch friendly display names from Koji custom properties in parallel
+            var fetchTasks = regionEntries.Select(async entry =>
             {
-                if (parentIds.Contains(id))
+                var displayName = entry.Name;
+                double[][]? polygon = null;
+                try
                 {
-                    regions.Add(new GeofenceRegion
+                    var featureJson = await this._httpClient.GetStringAsync(
+                        $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(entry.Name)}?rt=feature");
+                    using var featureDoc = JsonDocument.Parse(featureJson);
+                    var feature = featureDoc.RootElement.GetProperty("data");
+                    if (feature.TryGetProperty("properties", out var props) &&
+                        props.TryGetProperty("name", out var nameEl))
                     {
-                        Id = id,
-                        Name = name,
-                        DisplayName = name
-                    });
+                        displayName = nameEl.GetString() ?? entry.Name;
+                    }
+
+                    // Extract polygon for region detection
+                    if (feature.TryGetProperty("geometry", out var geometry) &&
+                        geometry.TryGetProperty("coordinates", out var coordinates) &&
+                        coordinates.GetArrayLength() > 0)
+                    {
+                        var ring = coordinates[0];
+                        polygon = new double[ring.GetArrayLength()][];
+                        for (int i = 0; i < ring.GetArrayLength(); i++)
+                        {
+                            var coord = ring[i];
+                            polygon[i] = [coord[1].GetDouble(), coord[0].GetDouble()];
+                        }
+                    }
                 }
-            }
+                catch
+                {
+                    // Fall back to internal name, no polygon
+                }
+
+                return new GeofenceRegion
+                {
+                    Id = entry.Id,
+                    Name = entry.Name,
+                    DisplayName = displayName,
+                    Polygon = polygon
+                };
+            });
+
+            regions.AddRange(await Task.WhenAll(fetchTasks));
         }
 
         return regions;
@@ -231,13 +266,12 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
 
     public async Task PromoteGeofenceAsync(string currentName, string? newName, string displayName, string group, int parentId)
     {
-        // Fetch existing geometry from Koji
-        var featureJson = await this._httpClient.GetStringAsync(
-            $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(currentName)}?rt=feature");
-        using var featureDoc = JsonDocument.Parse(featureJson);
-        var feature = featureDoc.RootElement.GetProperty("data");
-        var geometry = feature.GetProperty("geometry");
-        var existingCoords = geometry.GetProperty("coordinates").Clone();
+        // Fetch existing polygon from Koji
+        var polygon = await this.GetGeofencePolygonAsync(currentName)
+            ?? throw new InvalidOperationException($"Geofence '{currentName}' not found in Koji");
+
+        // Convert [lat,lon] back to GeoJSON [lon,lat]
+        var geoJsonCoords = polygon.Select(p => new[] { p[1], p[0] }).ToArray();
 
         var targetName = newName ?? currentName;
 
@@ -254,7 +288,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                         geometry = new
                         {
                             type = "Polygon",
-                            coordinates = existingCoords
+                            coordinates = new[] { geoJsonCoords }
                         },
                         properties = new Dictionary<string, object>
                         {
@@ -263,7 +297,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
                             ["__projects"] = new[] { this._projectId },
                             ["__parent"] = parentId,
                             ["userSelectable"] = true,
-                            ["displayInMatches"] = true,
+                            ["displayInMatches"] = false,
                             ["name"] = displayName,
                             ["group"] = group,
                             ["parent"] = group

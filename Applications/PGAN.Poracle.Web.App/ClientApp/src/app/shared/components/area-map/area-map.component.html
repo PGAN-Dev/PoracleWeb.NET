@@ -1,31 +1,17 @@
 <div class="map-toolbar">
-  <mat-form-field appearance="outline" class="region-select">
-    <mat-label>Jump to Region</mat-label>
-    <input
-      matInput
-      [matAutocomplete]="regionAuto"
-      [value]="regionSearchText"
-      (input)="regionSearchText = $any($event.target).value"
-      placeholder="Type to search..." />
-    <mat-autocomplete #regionAuto="matAutocomplete" (optionSelected)="onRegionSelected($event.option.value)">
-      <mat-option value="">All Regions</mat-option>
-      @for (region of filteredRegions(); track region.label) {
-        <mat-option [value]="region.label">{{ region.label }} ({{ region.areaCount }})</mat-option>
-      }
-    </mat-autocomplete>
-  </mat-form-field>
+  <div class="region-select">
+    <app-region-selector
+      [regions]="regionOptions()"
+      label="Jump to Region"
+      placeholder="Type to search..."
+      (regionSelected)="onRegionSelected($event)"></app-region-selector>
+  </div>
   <button mat-icon-button matTooltip="Reset zoom to show all areas" (click)="fitAll()">
     <mat-icon>fit_screen</mat-icon>
   </button>
   <button mat-icon-button [matTooltip]="isFullscreen() ? 'Exit fullscreen' : 'Fullscreen map'" (click)="toggleFullscreen()">
     <mat-icon>{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
   </button>
-  @if (selectedRegion()) {
-    <mat-chip highlighted color="primary" (removed)="clearRegion()">
-      {{ selectedRegion() }}
-      <button matChipRemove><mat-icon>cancel</mat-icon></button>
-    </mat-chip>
-  }
 </div>
 @if (isFullscreen() && selectedAreas.length > 0) {
   <div class="fullscreen-selected">

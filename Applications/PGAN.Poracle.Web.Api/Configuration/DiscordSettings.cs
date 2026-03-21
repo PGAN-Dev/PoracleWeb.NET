@@ -8,4 +8,5 @@ public class DiscordSettings
     public string FrontendUrl { get; set; } = "http://localhost:4200";
     public string BotToken { get; set; } = string.Empty;
     public string GuildId { get; set; } = string.Empty;
+    public string GeofenceForumChannelId { get; set; } = string.Empty;
 }
