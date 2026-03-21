@@ -79,6 +79,21 @@ public class ProfileControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task SwitchProfileSyncsLocationToHumans()
+    {
+        var profile = new Profile { Id = "123456789", ProfileNo = 2, Latitude = 40.7128, Longitude = -74.006 };
+        var human = new Human { Id = "123456789", CurrentProfileNo = 1, Latitude = 0, Longitude = 0 };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(profile);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+
+        await this._sut.SwitchProfile(2);
+
+        Assert.Equal(40.7128, human.Latitude);
+        Assert.Equal(-74.006, human.Longitude);
+    }
+
+    [Fact]
     public async Task SwitchProfileReturnsNotFoundWhenProfileMissing()
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99)).ReturnsAsync((Profile?)null);

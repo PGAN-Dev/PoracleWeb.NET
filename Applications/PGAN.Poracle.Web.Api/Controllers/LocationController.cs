@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
+using PGAN.Poracle.Web.Data;
 
 namespace PGAN.Poracle.Web.Api.Controllers;
 
@@ -8,12 +9,14 @@ public class LocationController(
     IHumanService humanService,
     IProfileService profileService,
     IPoracleApiProxy poracleApiProxy,
-    IHttpClientFactory httpClientFactory) : BaseApiController
+    IHttpClientFactory httpClientFactory,
+    PoracleContext dbContext) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly PoracleContext _dbContext = dbContext;
 
     [HttpGet]
     public async Task<IActionResult> GetLocation()
@@ -42,9 +45,11 @@ public class LocationController(
 
         profile.Latitude = request.Latitude;
         profile.Longitude = request.Longitude;
+
+        // Update both profiles and humans tables atomically so PoracleJS always has consistent location
+        await using var transaction = await this._dbContext.Database.BeginTransactionAsync();
         await this._profileService.UpdateAsync(profile);
 
-        // Also update humans table so PoracleJS can read the active profile's location
         var human = await this._humanService.GetByIdAsync(this.UserId);
         if (human != null)
         {
@@ -52,6 +57,8 @@ public class LocationController(
             human.Longitude = request.Longitude;
             await this._humanService.UpdateAsync(human);
         }
+
+        await transaction.CommitAsync();
 
         return this.Ok(new
         {

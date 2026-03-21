@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Moq;
 using PGAN.Poracle.Web.Api.Controllers;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
 using PGAN.Poracle.Web.Core.Models;
+using PGAN.Poracle.Web.Data;
 
 namespace PGAN.Poracle.Web.Tests.Controllers;
 
@@ -12,11 +15,17 @@ public class LocationControllerTests : ControllerTestBase
     private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
+    private readonly PoracleContext _dbContext;
     private readonly LocationController _sut;
 
     public LocationControllerTests()
     {
-        this._sut = new LocationController(this._humanService.Object, this._profileService.Object, this._proxy.Object, this._httpClientFactory.Object);
+        var options = new DbContextOptionsBuilder<PoracleContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        this._dbContext = new PoracleContext(options);
+        this._sut = new LocationController(this._humanService.Object, this._profileService.Object, this._proxy.Object, this._httpClientFactory.Object, this._dbContext);
         SetupUser(this._sut);
     }
 
