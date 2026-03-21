@@ -15,11 +15,11 @@ public class PwebSettingServiceTests
     [Fact]
     public async Task GetAllAsyncReturnsSettings()
     {
-        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<PwebSetting>
-        {
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(
+        [
             new() { Setting = "key1", Value = "val1" },
             new() { Setting = "key2", Value = "val2" }
-        });
+        ]);
 
         var result = (await this._sut.GetAllAsync()).ToList();
         Assert.Equal(2, result.Count);

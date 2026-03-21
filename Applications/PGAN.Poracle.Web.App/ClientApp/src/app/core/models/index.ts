@@ -320,6 +320,40 @@ export interface PwebSetting {
   value: string | null;
 }
 
+// ─── User Geofence ───────────────────────────────────────────────────────────
+
+export interface UserGeofence {
+  createdAt: string;
+  displayName: string;
+  groupName: string;
+  humanId: string;
+  id: number;
+  kojiName: string;
+  parentId: number;
+  polygon?: [number, number][];
+  promotedName?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
+  status: 'active' | 'pending_review' | 'approved' | 'rejected';
+  submittedAt?: string;
+  updatedAt: string;
+}
+
+export interface UserGeofenceCreate {
+  displayName: string;
+  groupName: string;
+  parentId: number;
+  polygon: [number, number][]; // [lat, lng] pairs
+}
+
+export interface GeofenceRegion {
+  displayName: string;
+  id: number;
+  name: string;
+  polygon?: [number, number][];
+}
+
 // ─── Quick Picks ──────────────────────────────────────────────────────────────
 
 export interface QuickPickDefinition {

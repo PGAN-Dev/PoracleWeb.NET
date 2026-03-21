@@ -22,7 +22,7 @@ public class RaidControllerTests : ControllerTestBase
     [Fact]
     public async Task GetAllReturnsOk()
     {
-        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync(new List<Raid> { new() { Uid = 1 } });
+        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync([new() { Uid = 1 }]);
         var result = await this._sut.GetAll();
         Assert.IsType<OkObjectResult>(result);
     }

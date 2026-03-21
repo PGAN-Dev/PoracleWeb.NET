@@ -15,7 +15,7 @@ public class LureServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsLures()
     {
-        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync(new List<Lure> { new() { Uid = 1 } });
+        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync([new() { Uid = 1 }]);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
 

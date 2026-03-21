@@ -1,0 +1,121 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Geofence Management</h1>
+    <p class="page-description">Review submissions, manage user geofences, and clean up records.</p>
+  </div>
+</div>
+
+<div class="page-content">
+  <!-- Status filter tabs -->
+  <mat-button-toggle-group [value]="activeFilter()" (change)="activeFilter.set($event.value)" class="filter-tabs">
+    <mat-button-toggle value="all">All ({{ statusCounts().all }})</mat-button-toggle>
+    <mat-button-toggle value="pending_review">Pending ({{ statusCounts().pending_review }})</mat-button-toggle>
+    <mat-button-toggle value="active">Active ({{ statusCounts().active }})</mat-button-toggle>
+    <mat-button-toggle value="approved">Approved ({{ statusCounts().approved }})</mat-button-toggle>
+    <mat-button-toggle value="rejected">Rejected ({{ statusCounts().rejected }})</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    @if (filteredGeofences().length > 0) {
+      <div class="submissions-grid">
+        @for (geofence of filteredGeofences(); track geofence.id) {
+          <div class="submission-card">
+            <div
+              class="submission-card-accent"
+              [class.accent-pending]="geofence.status === 'pending_review'"
+              [class.accent-active]="geofence.status === 'active'"
+              [class.accent-approved]="geofence.status === 'approved'"
+              [class.accent-rejected]="geofence.status === 'rejected'"></div>
+            <div class="submission-card-body">
+              <div class="submission-card-header">
+                <mat-icon class="submission-card-icon">pentagon</mat-icon>
+                <div class="submission-card-info">
+                  <span class="submission-card-name">{{ geofence.displayName }}</span>
+                  <span class="submission-card-group">{{ geofence.groupName }}</span>
+                  <span class="submission-card-owner">Owner: {{ geofence.humanId }}</span>
+                </div>
+                @switch (geofence.status) {
+                  @case ('pending_review') {
+                    <span class="status-chip status-pending">Pending</span>
+                  }
+                  @case ('active') {
+                    <span class="status-chip status-active">Active</span>
+                  }
+                  @case ('approved') {
+                    <span class="status-chip status-approved">Approved</span>
+                  }
+                  @case ('rejected') {
+                    <span class="status-chip status-rejected">Rejected</span>
+                  }
+                }
+              </div>
+              <div class="submission-card-meta">
+                <div class="meta-item">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Created {{ geofence.createdAt | date: 'mediumDate' }}</span>
+                </div>
+                @if (geofence.submittedAt) {
+                  <div class="meta-item">
+                    <mat-icon>send</mat-icon>
+                    <span>Submitted {{ geofence.submittedAt | date: 'mediumDate' }}</span>
+                  </div>
+                }
+                @if (geofence.reviewedBy) {
+                  <div class="meta-item">
+                    <mat-icon>person</mat-icon>
+                    <span>Reviewed by {{ geofence.reviewedBy }}</span>
+                  </div>
+                }
+                @if (geofence.reviewNotes) {
+                  <div class="meta-item">
+                    <mat-icon>notes</mat-icon>
+                    <span>{{ geofence.reviewNotes }}</span>
+                  </div>
+                }
+                @if (geofence.promotedName) {
+                  <div class="meta-item">
+                    <mat-icon>published_with_changes</mat-icon>
+                    <span>Promoted as: {{ geofence.promotedName }}</span>
+                  </div>
+                }
+              </div>
+              <div class="submission-card-actions">
+                @if (geofence.status === 'pending_review') {
+                  <button mat-raised-button color="primary" (click)="openReviewDialog(geofence)" matTooltip="Review this submission">
+                    <mat-icon>rate_review</mat-icon>
+                    Review
+                  </button>
+                }
+                <button mat-icon-button color="warn" (click)="adminDelete(geofence)" matTooltip="Delete geofence and clean up">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <mat-icon class="empty-icon">{{ activeFilter() === 'pending_review' ? 'rate_review' : 'pentagon' }}</mat-icon>
+        <h2>No {{ activeFilter() === 'all' ? '' : activeFilter().replace('_', ' ') }} geofences</h2>
+        <p>
+          @switch (activeFilter()) {
+            @case ('pending_review') {
+              No submissions are waiting for review.
+            }
+            @case ('all') {
+              No user-created geofences exist yet.
+            }
+            @default {
+              No geofences with this status.
+            }
+          }
+        </p>
+      </div>
+    }
+  }
+</div>

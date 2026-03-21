@@ -1,0 +1,63 @@
+<h2 mat-dialog-title class="dialog-title">
+  <mat-icon class="title-icon">rate_review</mat-icon>
+  Review Geofence
+</h2>
+<mat-dialog-content>
+  <div class="geofence-summary">
+    <div class="summary-row">
+      <span class="summary-label">Name</span>
+      <span class="summary-value">{{ data.geofence.displayName }}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">Group</span>
+      <span class="summary-value">{{ data.geofence.groupName }}</span>
+    </div>
+    @if (data.geofence.submittedAt) {
+      <div class="summary-row">
+        <span class="summary-label">Submitted</span>
+        <span class="summary-value">{{ data.geofence.submittedAt | date: 'medium' }}</span>
+      </div>
+    }
+  </div>
+
+  <mat-button-toggle-group [(ngModel)]="mode" class="mode-toggle" hideSingleSelectionIndicator>
+    <mat-button-toggle value="approve">
+      <mat-icon>check_circle</mat-icon>
+      Approve
+    </mat-button-toggle>
+    <mat-button-toggle value="reject">
+      <mat-icon>cancel</mat-icon>
+      Reject
+    </mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (mode === 'approve') {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Promoted name</mat-label>
+      <input matInput [(ngModel)]="promotedName" placeholder="Name for the promoted geofence" />
+      <mat-hint>Optional. Defaults to the current display name.</mat-hint>
+    </mat-form-field>
+  }
+
+  @if (mode === 'reject') {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Reason for rejection</mat-label>
+      <textarea matInput [(ngModel)]="reviewNotes" rows="3" placeholder="Explain why this geofence is being rejected..."></textarea>
+    </mat-form-field>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  @if (mode === 'approve') {
+    <button mat-raised-button color="primary" (click)="onApprove()">
+      <mat-icon>check_circle</mat-icon>
+      Approve
+    </button>
+  }
+  @if (mode === 'reject') {
+    <button mat-raised-button color="warn" (click)="onReject()" [disabled]="!reviewNotes.trim()">
+      <mat-icon>cancel</mat-icon>
+      Reject
+    </button>
+  }
+</mat-dialog-actions>

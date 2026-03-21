@@ -17,6 +17,7 @@ A web application for managing Poracle Pokemon GO notification alarms. Users aut
 | MySQL | 5.7+ or 8.0+ | Poracle database (existing Poracle installation) |
 | Poracle | PoracleJS | Running instance with REST API enabled |
 | Discord App | - | OAuth2 application for user authentication |
+| Koji | - | Geofence management server (required for custom geofences feature) |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |
 | Node.js | 22+ | Frontend development (not needed for Docker) |
 | Docker | 20+ | Production deployment |
@@ -60,6 +61,21 @@ PORACLE_ADMIN_IDS=your_discord_user_id         # Comma-separated admin Discord I
 
 # Poracle config directory — mount for DTS template previews
 PORACLE_CONFIG_DIR=/path/to/PoracleJS/config
+
+# Optional: PoracleWeb DB for custom geofences (separate from Poracle DB)
+WEB_DB_HOST=host.docker.internal
+WEB_DB_PORT=3306
+WEB_DB_NAME=poracle_web
+WEB_DB_USER=root
+WEB_DB_PASSWORD=your_db_password
+
+# Optional: Koji geofence API (required for custom geofences)
+KOJI_API_ADDRESS=http://host.docker.internal:8080
+KOJI_BEARER_TOKEN=your_koji_bearer_token
+KOJI_PROJECT_ID=1
+
+# Optional: Discord forum channel for geofence submission threads
+DISCORD_GEOFENCE_FORUM_CHANNEL_ID=
 
 # Optional: Scanner DB for nest/Pokemon data
 # SCANNER_DB_CONNECTION=Server=host.docker.internal;Port=3306;Database=rdmdb;User=root;Password=your_password
@@ -152,6 +168,7 @@ Create `Applications/PGAN.Poracle.Web.Api/appsettings.Development.json` (gitigno
 {
   "ConnectionStrings": {
     "PoracleDb": "Server=localhost;Port=3306;Database=poracle;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
+    "PoracleWebDb": "Server=localhost;Port=3306;Database=poracle_web;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
     "ScannerDb": ""
   },
   "Jwt": {
@@ -163,7 +180,8 @@ Create `Applications/PGAN.Poracle.Web.Api/appsettings.Development.json` (gitigno
     "RedirectUri": "http://localhost:4200/auth/discord/callback",
     "FrontendUrl": "http://localhost:4200",
     "BotToken": "your_discord_bot_token",
-    "GuildId": "your_discord_guild_id"
+    "GuildId": "your_discord_guild_id",
+    "GeofenceForumChannelId": ""
   },
   "Telegram": {
     "Enabled": false,
@@ -174,6 +192,11 @@ Create `Applications/PGAN.Poracle.Web.Api/appsettings.Development.json` (gitigno
     "ApiAddress": "http://localhost:3030",
     "ApiSecret": "your_poracle_secret",
     "AdminIds": "your_discord_user_id"
+  },
+  "Koji": {
+    "ApiAddress": "http://localhost:8080",
+    "BearerToken": "your_koji_bearer_token",
+    "ProjectId": 1
   }
 }
 ```
@@ -234,22 +257,29 @@ PGAN.Poracle.Web.slnx
 ├── Applications/
 │   ├── Web.Api/                    ASP.NET Core host
 │   │   ├── Controllers/            REST API controllers (all under /api/)
-│   │   ├── Configuration/          DI registration, settings classes
+│   │   │                           incl. UserGeofenceController, AdminGeofenceController,
+│   │   │                           GeofenceFeedController
+│   │   ├── Configuration/          DI registration, settings classes (incl. KojiSettings)
 │   │   └── Services/               Background services (avatar cache, DTS cache)
 │   └── Web.App/ClientApp/          Angular 21 SPA
 │       └── src/app/
 │           ├── core/               Guards, services, interceptors, models
-│           ├── modules/            Feature pages (dashboard, pokemon, raids, etc.)
-│           └── shared/             Reusable components (area-map, pokemon-selector, etc.)
+│           ├── modules/            Feature pages (dashboard, pokemon, raids, geofences, etc.)
+│           └── shared/             Reusable components (area-map, pokemon-selector,
+│                                   region-selector, geofence-name-dialog,
+│                                   geofence-approval-dialog, etc.)
+│                                   utils/ (geo.utils: point-in-polygon, centroid)
 ├── Core/
 │   ├── Core.Abstractions/          Interfaces (IRepository, IService, IUnitOfWork)
 │   ├── Core.Models/                DTOs passed between layers
 │   ├── Core.Mappings/              AutoMapper profiles
 │   ├── Core.Repositories/          Data access implementations
-│   ├── Core.Services/              Business logic
+│   ├── Core.Services/              Business logic (incl. UserGeofenceService, KojiService,
+│   │                               DiscordNotificationService)
 │   └── Core.UnitsOfWork/           Unit of work pattern
 ├── Data/
-│   ├── Data/                       EF Core DbContext, Entities, Configurations
+│   ├── Data/                       EF Core DbContexts (PoracleContext, PoracleWebContext),
+│   │                               Entities (incl. UserGeofenceEntity), Configurations
 │   └── Data.Scanner/               Optional scanner DB context (RDM)
 └── Tests/
     └── PGAN.Poracle.Web.Tests/     xUnit backend tests
@@ -262,6 +292,7 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | Setting | Env Variable | Required | Description |
 |---|---|---|---|
 | `ConnectionStrings:PoracleDb` | `ConnectionStrings__PoracleDb` | Yes | MySQL connection to Poracle database |
+| `ConnectionStrings:PoracleWebDb` | `ConnectionStrings__PoracleWebDb` | No | MySQL connection to PoracleWeb database (user geofences). Required for custom geofences feature. |
 | `ConnectionStrings:ScannerDb` | `ConnectionStrings__ScannerDb` | No | Scanner database connection (RDM) |
 | `Jwt:Secret` | `Jwt__Secret` | Yes | JWT signing key (minimum 32 characters) |
 | `Jwt:ExpirationMinutes` | `Jwt__ExpirationMinutes` | No | Token expiry, default 1440 (24 hours) |
@@ -269,12 +300,16 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | `Discord:ClientSecret` | `Discord__ClientSecret` | Yes | Discord OAuth2 application client secret |
 | `Discord:BotToken` | `Discord__BotToken` | No | Enables Discord avatar display |
 | `Discord:GuildId` | `Discord__GuildId` | No | Discord server ID |
+| `Discord:GeofenceForumChannelId` | `Discord__GeofenceForumChannelId` | No | Discord forum channel for geofence submission threads |
 | `Telegram:Enabled` | `Telegram__Enabled` | No | Enable Telegram authentication (default: false) |
 | `Telegram:BotToken` | `Telegram__BotToken` | No | Telegram bot token |
 | `Telegram:BotUsername` | `Telegram__BotUsername` | No | Telegram bot username |
 | `Poracle:ApiAddress` | `Poracle__ApiAddress` | Yes | Poracle API base URL |
 | `Poracle:ApiSecret` | `Poracle__ApiSecret` | Yes | Poracle API shared secret |
 | `Poracle:AdminIds` | `Poracle__AdminIds` | Yes | Comma-separated Discord admin user IDs |
+| `Koji:ApiAddress` | `Koji__ApiAddress` | No | Koji geofence server URL. Required for custom geofences feature. |
+| `Koji:BearerToken` | `Koji__BearerToken` | No | Koji API bearer token for authentication |
+| `Koji:ProjectId` | `Koji__ProjectId` | No | Koji project ID for admin-promoted geofences (default: 0) |
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0` | No | Allowed CORS origin (empty = allow all) |
 
 ## Docker Compose Details
@@ -311,6 +346,8 @@ Two GitHub Actions workflows run on push to `main` and pull requests:
 - **Bulk Operations**: Multi-select alarms with bulk delete and bulk distance update
 - **Quick Picks**: Admin-defined alarm templates users can apply with one click
 - **Area Management**: Interactive Leaflet map for selecting geofence areas
+- **Custom Geofences**: Users can draw custom geofence polygons on a map, which are automatically added to their active areas. Geofences are served to PoracleJS via a built-in feed endpoint. Users can submit geofences for admin review to be promoted to public areas.
+- **Geofence Admin Review**: Admins can review, approve, or reject user-submitted geofences. Approved geofences are promoted to Koji as public areas. Discord forum integration provides threaded discussion for each submission with auto-tagging (Pending/Approved/Rejected).
 - **Profile Switching**: Multiple alarm profiles per user
 - **Discord Notification Preview**: Live preview of DTS templates with Handlebars evaluation
 - **Dark/Light Mode**: Theme toggle with localStorage persistence
@@ -319,4 +356,4 @@ Two GitHub Actions workflows run on push to `main` and pull requests:
 - **Onboarding Wizard**: First-run setup guide for new users
 - **Keyboard Shortcuts**: `?` for help, `[`/`]` for sidebar collapse
 - **18 Languages**: Pokemon name localization
-- **Admin Panel**: User management, webhook configuration, site settings
+- **Admin Panel**: User management, webhook configuration, site settings, geofence submission review

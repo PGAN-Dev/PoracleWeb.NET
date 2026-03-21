@@ -1,0 +1,63 @@
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-icon {
+  color: #ff9800;
+}
+
+.geofence-summary {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--card-bg, rgba(0, 0, 0, 0.02));
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+
+  & + .summary-row {
+    border-top: 1px solid var(--divider, rgba(0, 0, 0, 0.06));
+  }
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  min-width: 72px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 14px;
+  flex: 1;
+}
+
+.mode-toggle {
+  display: flex;
+  margin-bottom: 16px;
+  width: 100%;
+
+  mat-button-toggle {
+    flex: 1;
+
+    mat-icon {
+      margin-right: 4px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.full-width {
+  width: 100%;
+}

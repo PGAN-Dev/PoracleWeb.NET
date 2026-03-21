@@ -9,7 +9,7 @@ using PGAN.Poracle.Web.Data;
 
 namespace PGAN.Poracle.Web.Tests.Controllers;
 
-public class LocationControllerTests : ControllerTestBase
+public class LocationControllerTests : ControllerTestBase, IDisposable
 {
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IProfileService> _profileService = new();
@@ -181,5 +181,10 @@ public class LocationControllerTests : ControllerTestBase
         this._proxy.Setup(p => p.GetDistanceMapUrlAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<int>()))
             .ThrowsAsync(new Exception());
         Assert.IsType<NotFoundResult>(await this._sut.GetDistanceMap(0, 0, 0));
+    }
+
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
     }
 }

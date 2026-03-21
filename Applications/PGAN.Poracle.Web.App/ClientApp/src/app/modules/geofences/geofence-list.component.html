@@ -1,0 +1,150 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>My Geofences</h1>
+    <p class="page-description">Draw custom geofence boundaries for precise notification zones</p>
+  </div>
+  <button
+    mat-fab
+    extended
+    color="primary"
+    class="draw-fab"
+    (click)="toggleDrawMode()"
+    [disabled]="hasReachedLimit() && !drawMode()"
+    matTooltip="Draw a custom geofence on the map">
+    <mat-icon>{{ drawMode() ? 'close' : 'draw' }}</mat-icon>
+    {{ drawMode() ? 'Cancel Drawing' : 'Draw Geofence' }}
+  </button>
+</div>
+
+<!-- Draw mode banner -->
+@if (drawMode()) {
+  <div class="draw-mode-banner">
+    <mat-icon>touch_app</mat-icon>
+    <div class="draw-mode-text">
+      <strong>Draw Mode Active</strong>
+      <span>Click on the map to place polygon points. Click the first point to close the shape.</span>
+    </div>
+    <button mat-stroked-button (click)="toggleDrawMode()"><mat-icon>close</mat-icon> Cancel</button>
+  </div>
+}
+
+<!-- Map -->
+<div class="map-container">
+  <app-area-map
+    [geofence]="geofenceData()"
+    [groupMapping]="groupMapping()"
+    [drawMode]="drawMode()"
+    [customGeofences]="customGeofenceMapData()"
+    (polygonDrawn)="onDrawComplete($event)"
+    (regionChanged)="onMapRegionChanged($event)"></app-area-map>
+</div>
+
+@if (savingGeofence()) {
+  <div class="geofence-saving-overlay">
+    <mat-spinner diameter="24"></mat-spinner>
+    <span>Saving geofence...</span>
+  </div>
+}
+
+<!-- Geofence list header -->
+<div class="section-header">
+  <h2 class="section-title">
+    <mat-icon>pentagon</mat-icon>
+    My Geofences
+    <span class="geofence-limit-badge" [class.limit-reached]="hasReachedLimit()">
+      {{ geofenceLimitText() }}
+    </span>
+  </h2>
+</div>
+
+@if (customGeofencesLoading()) {
+  <!-- Skeleton loading -->
+  <div class="geofence-grid">
+    @for (i of skeletonGeofences; track i) {
+      <div class="skeleton-geofence-card">
+        <div class="skeleton-gf-header">
+          <div class="skeleton-gf-icon"></div>
+          <div class="skeleton-gf-lines">
+            <div class="skeleton-line" style="width: 65%"></div>
+            <div class="skeleton-line" style="width: 40%"></div>
+          </div>
+        </div>
+        <div class="skeleton-gf-footer">
+          <div class="skeleton-pill" style="width: 80px"></div>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  @if (customGeofences().length > 0) {
+    <div class="geofence-grid">
+      @for (geofence of customGeofences(); track geofence.id) {
+        <div class="geofence-card">
+          <div class="geofence-card-accent"></div>
+          <div class="geofence-card-body">
+            <div class="geofence-card-header">
+              <mat-icon class="geofence-card-icon">pentagon</mat-icon>
+              <div class="geofence-card-info">
+                <span class="geofence-card-name">{{ geofence.displayName }}</span>
+                <span class="geofence-card-group">{{ geofence.groupName }}</span>
+                @if (geofence.status === 'pending_review') {
+                  <span class="status-badge status-pending">Pending Review</span>
+                } @else if (geofence.status === 'approved') {
+                  <span class="status-badge status-approved">Approved - Shared</span>
+                } @else if (geofence.status === 'rejected') {
+                  <span class="status-badge status-rejected" [matTooltip]="geofence.reviewNotes ?? ''">Rejected</span>
+                }
+              </div>
+            </div>
+            <div class="geofence-card-footer">
+              <span class="geofence-card-date">Created {{ geofence.createdAt | date: 'mediumDate' }}</span>
+              <div class="geofence-card-actions">
+                @if (geofence.status === 'active') {
+                  <button
+                    mat-icon-button
+                    matTooltip="Submit to admins for promotion as a public geofence"
+                    (click)="submitGeofence(geofence)">
+                    <mat-icon>send</mat-icon>
+                  </button>
+                }
+                <button mat-icon-button matTooltip="Rename" (click)="editGeofence(geofence)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                @if (geofence.status !== 'pending_review' && geofence.status !== 'approved') {
+                  <button mat-icon-button matTooltip="Delete" color="warn" (click)="deleteGeofence(geofence)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Empty state -->
+    @if (!drawMode()) {
+      <div class="geofence-empty-state">
+        <mat-icon class="geofence-empty-icon">draw</mat-icon>
+        <p class="geofence-empty-title">No custom geofences yet</p>
+        <p class="geofence-empty-subtitle">
+          Draw your own boundaries on the map to create custom notification zones, like your favorite park or local route.
+        </p>
+        <button mat-stroked-button color="primary" (click)="toggleDrawMode()"><mat-icon>add</mat-icon> Draw a Geofence</button>
+      </div>
+    }
+  }
+
+  <!-- Draw button (when not empty and not in draw mode) -->
+  @if (customGeofences().length > 0 && !drawMode() && !hasReachedLimit()) {
+    <button mat-stroked-button color="primary" class="draw-geofence-btn" (click)="toggleDrawMode()">
+      <mat-icon>add</mat-icon> Draw New Geofence
+    </button>
+  }
+  @if (hasReachedLimit() && !drawMode()) {
+    <p class="geofence-limit-notice">
+      <mat-icon>info</mat-icon>
+      You've reached the maximum of {{ maxCustomGeofences }} custom geofences.
+    </p>
+  }
+}

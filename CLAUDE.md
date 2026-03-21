@@ -25,17 +25,22 @@ PGAN.Poracle.Web.slnx
 |   +-- Core.Models/             DTOs passed between layers (not EF entities)
 |   +-- Core.Mappings/           AutoMapper PoracleMappingProfile
 |   +-- Core.Repositories/       BaseRepository<TEntity, TModel> implementations
-|   +-- Core.Services/           Business logic (MonsterService, DashboardService, etc.)
+|   +-- Core.Services/           Business logic (MonsterService, DashboardService,
+|   |                            UserGeofenceService, KojiService,
+|   |                            DiscordNotificationService, etc.)
 |   +-- Core.UnitsOfWork/        PoracleUnitOfWork wrapping DbContext.SaveChangesAsync()
 |
 +-- Data/
-|   +-- Data/                    PoracleContext (EF Core), Entities/, Configurations/
+|   +-- Data/                    PoracleContext (EF Core), PoracleWebContext (app-owned DB),
+|   |                            Entities/ (incl. UserGeofenceEntity), Configurations/
 |   +-- Data.Scanner/            RdmScannerContext for optional scanner DB
 |
 +-- Applications/
 |   +-- Web.Api/                 ASP.NET Core host
 |   |   +-- Controllers/         20+ API controllers (REST, all under /api/)
-|   |   +-- Configuration/       DI registration, JwtSettings, DiscordSettings, etc.
+|   |   |                        incl. UserGeofenceController, AdminGeofenceController,
+|   |   |                        GeofenceFeedController
+|   |   +-- Configuration/       DI registration, JwtSettings, DiscordSettings, KojiSettings, etc.
 |   |   +-- Services/            Background services: AvatarCacheService, DtsCacheService
 |   +-- Web.App/
 |       +-- ClientApp/           Angular 21 SPA
@@ -43,11 +48,14 @@ PGAN.Poracle.Web.slnx
 |               +-- core/        Guards (auth, admin), services, interceptors, models
 |               +-- modules/     Feature modules: auth, dashboard, pokemon, raids,
 |               |                quests, invasions, lures, nests, gyms, areas,
-|               |                profiles, cleaning, quick-picks, admin
+|               |                profiles, cleaning, quick-picks, admin, geofences
 |               +-- shared/      Reusable components: area-map, pokemon-selector,
 |                                template-selector, delivery-preview, location-dialog,
 |                                discord-avatar, alarm-info, confirm-dialog,
-|                                language-selector, distance-dialog, onboarding
+|                                language-selector, distance-dialog, onboarding,
+|                                region-selector, geofence-name-dialog,
+|                                geofence-approval-dialog
+|                                utils/: geo.utils (point-in-polygon, centroid)
 |
 +-- Tests/
     +-- PGAN.Poracle.Web.Tests/  xUnit backend tests (controllers, services, mappings)
@@ -83,6 +91,28 @@ PGAN.Poracle.Web.slnx
 ### Areas
 - User areas are stored as JSON arrays in the `humans.area` column: `["west end", "downtown"]`.
 - Geofence polygons come from the Poracle API, not the database.
+
+### Custom Geofences
+- User geofences are stored in `poracle_web.user_geofences` (separate database from Poracle, see "PoracleWeb Database" below).
+- PoracleWeb serves user geofences via `GET /api/geofence-feed` (`[AllowAnonymous]`, intended for internal network access by PoracleJS).
+- PoracleJS loads geofences from both Koji (admin-managed areas) AND the PoracleWeb feed (user-drawn geofences) via its `geofence.path` array config.
+- User geofences are served with `displayInMatches: false` and `userSelectable: false` -- names are hidden from all DMs and are not selectable on the Poracle bot's area list.
+- On admin approval, the geofence polygon is pushed to Koji with `isPublic: true` (`userSelectable: true`), making it a proper public area.
+- Koji is used only for admin/approved public geofences; user-drawn private geofences remain in the PoracleWeb feed.
+- Geofence names (the `kojiName` field) are always **lowercase** because Poracle does case-sensitive area matching and `humans.area` stores names in lowercase.
+- Geofence names are auto-generated from the user-provided display name (lowercased). Collisions are resolved by appending a numeric suffix.
+- Maximum 10 custom geofences per user. Polygons limited to 500 points.
+- Discord forum posts are created on submission via the bot API (`discordapp.com/api/v9`). Forum tags (Pending, Approved, Rejected) are auto-created.
+- On approval/rejection, the Discord forum thread is updated with a status message, tagged, locked, and archived.
+- Geofence statuses: `active` (private, user-only), `pending_review` (submitted for admin review), `approved` (promoted to Koji as public), `rejected` (remains private with review notes).
+- `KojiService` fetches region (parent) geofences from Koji's reference API and serves them to the frontend `region-selector` component for auto-detection of which region a drawn polygon belongs to.
+
+### PoracleWeb Database
+- Second `DbContext`: `PoracleWebContext` using `ConnectionStrings:PoracleWebDb`.
+- Separate `poracle_web` MariaDB/MySQL database for application-owned data (not managed by PoracleJS).
+- Does **not** modify the Poracle DB schema -- the Poracle database remains exclusively managed by PoracleJS.
+- Currently stores: `user_geofences` table.
+- Uses EF Core `EnsureCreated()` or migrations for schema management.
 
 ### Profiles
 - `humans.current_profile_no` (not `profile_no`) tracks the active profile.
@@ -123,6 +153,13 @@ PGAN.Poracle.Web.slnx
 - **Poracle API**: Address comes from `pweb_settings` table or `appsettings.json` `Poracle:ApiAddress`.
 - **Discord Bot Token**: Sourced from PoracleJS server's `config/local-discord.json`.
 - **Admin IDs**: Comma-separated Discord user IDs in `Poracle:AdminIds`.
+- **PoracleWeb DB**: `ConnectionStrings:PoracleWebDb` -- connection string for the `poracle_web` database (user geofences and app-owned data).
+- **Koji Geofence API**:
+  - `Koji:ApiAddress` -- Koji geofence server URL (e.g., `http://localhost:8080`).
+  - `Koji:BearerToken` -- Koji API authentication token.
+  - `Koji:ProjectId` -- Koji project ID for admin-promoted geofences. Settings class: `KojiSettings`.
+- **Discord Geofence Forum**: `Discord:GeofenceForumChannelId` -- Discord forum channel ID where geofence submission threads are created.
+- **PoracleJS config**: `geofence.path` in PoracleJS config must be an array containing both the Koji URL and the PoracleWeb feed URL (e.g., `["http://koji:8080/api/v1/geofence/poracle/project-id", "http://poracleweb:8080/api/geofence-feed"]`).
 
 ## Common Issues
 
@@ -144,6 +181,15 @@ The `ScannerDb` connection string is optional. If not configured, `IScannerServi
 
 ### Bulk Update Preserving Fields
 When updating alarms in bulk, **never** send partial objects to `PUT /{uid}`. AutoMapper maps all fields from the Update model onto the existing entity -- `int` properties default to `0` when absent from JSON, which overwrites existing values like `clean` and filter settings. Use the dedicated `PUT /distance/bulk` endpoint for distance changes, or spread the full alarm: `{ ...alarm, distance }`.
+
+### Discord API Version for Geofence Notifications
+Use `discordapp.com/api/v9` (not v10) -- v10 is not supported on the `discordapp.com` domain. The `DiscordNotificationService` HttpClient is configured with base address `https://discordapp.com/api/v9/`.
+
+### Poracle Area Case Sensitivity
+Poracle does **case-sensitive** area matching. Geofence names stored in `humans.area` and the `kojiName` field in `user_geofences` must always be lowercase. The `UserGeofenceService.CreateAsync()` method enforces this with `ToLowerInvariant()`.
+
+### Koji displayInMatches Limitation
+Koji's `displayInMatches` custom property is not reliably honored by all Poracle format serializers. To ensure user geofence names are hidden from DMs, serve user geofences from the PoracleWeb feed endpoint (`/api/geofence-feed`) instead of pushing them to Koji. Only promote to Koji when an admin approves a geofence for public use.
 
 ## Build & Run
 
@@ -196,19 +242,33 @@ docker compose up -d --force-recreate
 | What | Path |
 |---|---|
 | EF Core Entities | `Data/PGAN.Poracle.Web.Data/Entities/` |
-| EF Core DbContext | `Data/PGAN.Poracle.Web.Data/PoracleContext.cs` |
+| EF Core DbContext (Poracle) | `Data/PGAN.Poracle.Web.Data/PoracleContext.cs` |
+| EF Core DbContext (PoracleWeb) | `Data/PGAN.Poracle.Web.Data/PoracleWebContext.cs` |
+| User Geofence Entity | `Data/PGAN.Poracle.Web.Data/Entities/UserGeofenceEntity.cs` |
 | API Controllers | `Applications/PGAN.Poracle.Web.Api/Controllers/` |
+| Geofence Feed Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/GeofenceFeedController.cs` |
+| Admin Geofence Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/AdminGeofenceController.cs` |
+| User Geofence Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/UserGeofenceController.cs` |
 | DI Registration | `Applications/PGAN.Poracle.Web.Api/Configuration/ServiceCollectionExtensions.cs` |
-| Settings Classes | `Applications/PGAN.Poracle.Web.Api/Configuration/` (JwtSettings, DiscordSettings, etc.) |
+| Settings Classes | `Applications/PGAN.Poracle.Web.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, etc.) |
 | Angular App Root | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/` |
 | Angular Routes | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/app.routes.ts` |
 | Angular Services | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/core/services/` |
 | Angular Guards | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/core/guards/` |
 | Shared Components | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/` |
 | Feature Modules | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/` |
+| Geofences Module | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/geofences/` |
+| Admin Geofence Submissions | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/admin/geofence-submissions/` |
+| Region Selector Component | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/region-selector/` |
+| Geofence Name Dialog | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/geofence-name-dialog/` |
+| Geofence Approval Dialog | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/geofence-approval-dialog/` |
+| Geo Utilities | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
 | AutoMapper Profile | `Core/PGAN.Poracle.Web.Core.Mappings/PoracleMappingProfile.cs` |
 | Repository Base | `Core/PGAN.Poracle.Web.Core.Repositories/` |
 | Service Layer | `Core/PGAN.Poracle.Web.Core.Services/` |
+| UserGeofenceService | `Core/PGAN.Poracle.Web.Core.Services/UserGeofenceService.cs` |
+| KojiService | `Core/PGAN.Poracle.Web.Core.Services/KojiService.cs` |
+| DiscordNotificationService | `Core/PGAN.Poracle.Web.Core.Services/DiscordNotificationService.cs` |
 | Abstractions | `Core/PGAN.Poracle.Web.Core.Abstractions/` |
 | Backend Tests | `Tests/PGAN.Poracle.Web.Tests/` |
 | CI Workflows | `.github/workflows/` (ci.yml, docker-publish.yml) |
@@ -216,6 +276,6 @@ docker compose up -d --force-recreate
 
 ## Testing
 
-- **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, and dialogs.
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings.
+- **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`).
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings (including `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`).
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.

@@ -17,7 +17,7 @@ public class SettingsControllerTests : ControllerTestBase
     public async Task GetAllReturnsOk()
     {
         SetupUser(this._sut);
-        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<PwebSetting> { new() { Setting = "k", Value = "v" } });
+        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Setting = "k", Value = "v" }]);
         Assert.IsType<OkObjectResult>(await this._sut.GetAll());
     }
 

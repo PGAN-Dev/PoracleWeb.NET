@@ -15,11 +15,11 @@ public class HumanServiceTests
     [Fact]
     public async Task GetAllAsyncReturnsHumans()
     {
-        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Human>
-        {
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(
+        [
             new() { Id = "u1", Name = "User1" },
             new() { Id = "u2", Name = "User2" }
-        });
+        ]);
 
         var result = (await this._sut.GetAllAsync()).ToList();
         Assert.Equal(2, result.Count);

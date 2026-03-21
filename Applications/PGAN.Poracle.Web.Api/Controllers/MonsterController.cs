@@ -82,7 +82,10 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
         var count = await this._monsterService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
-        return this.Ok(new { updated = count });
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 
     [HttpPut("distance")]

@@ -13,15 +13,24 @@ public class QuickPickApplyRequest
     /// <summary>
     /// Override distance (in meters). Null = use default (0 = areas mode).
     /// </summary>
-    public int? Distance { get; set; }
+    public int? Distance
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Override clean flag. Null = use default.
     /// </summary>
-    public int? Clean { get; set; }
+    public int? Clean
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Override template name. Null = use default.
     /// </summary>
-    public string? Template { get; set; }
+    public string? Template
+    {
+        get; set;
+    }
 }

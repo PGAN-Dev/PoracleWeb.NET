@@ -22,7 +22,7 @@ public class InvasionControllerTests : ControllerTestBase
     [Fact]
     public async Task GetAllOk()
     {
-        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync(new List<Invasion>());
+        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync([]);
         Assert.IsType<OkObjectResult>(await this._sut.GetAll());
     }
     [Fact]

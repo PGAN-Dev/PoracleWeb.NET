@@ -34,9 +34,11 @@ export class PokemonSelectorComponent implements OnInit {
   availableTypes = computed(() => this.masterData.getAllTypes());
 
   searchText = signal('');
-  selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
   selectedPokemon = signal<PokemonEntry[]>([]);
+  selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
+  multi = input(false);
   showTileGrid = computed(() => this.multi() && (this.activeGen() != null || this.activeType() != null));
+
   filteredPokemon = computed(() => {
     const search = this.searchText().toLowerCase();
     const selected = this.selectedIds();
@@ -83,8 +85,6 @@ export class PokemonSelectorComponent implements OnInit {
     { label: '9', max: 1025, min: 906 },
   ];
 
-  multi = input(false);
-
   searchControl = new FormControl('');
 
   selectionChange = output<number[]>();
@@ -96,6 +96,10 @@ export class PokemonSelectorComponent implements OnInit {
 
   getPokemonImage(id: number): string {
     return this.iconService.getPokemonUrl(id);
+  }
+
+  getTypeIcon(type: string): string {
+    return this.iconService.getTypeUrl(type);
   }
 
   ngOnInit(): void {
@@ -140,6 +144,12 @@ export class PokemonSelectorComponent implements OnInit {
     this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
   }
 
+  toggleGen(gen: GenRange): void {
+    this.activeGen.update(current => (current === gen ? null : gen));
+    this.searchControl.setValue('');
+    this.searchText.set('');
+  }
+
   toggleTile(pokemon: PokemonEntry): void {
     if (this.selectedIds().has(pokemon.id)) {
       this.removePokemon(pokemon.id);
@@ -147,16 +157,6 @@ export class PokemonSelectorComponent implements OnInit {
       this.selectedPokemon.update(list => [...list, pokemon]);
       this.selectionChange.emit(this.selectedPokemon().map(p => p.id));
     }
-  }
-
-  toggleGen(gen: GenRange): void {
-    this.activeGen.update(current => (current === gen ? null : gen));
-    this.searchControl.setValue('');
-    this.searchText.set('');
-  }
-
-  getTypeIcon(type: string): string {
-    return this.iconService.getTypeUrl(type);
   }
 
   toggleType(type: string): void {

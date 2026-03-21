@@ -69,6 +69,11 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard],
+    loadComponent: () => import('./modules/geofences/geofence-list.component').then(m => m.GeofenceListComponent),
+    path: 'geofences',
+  },
+  {
+    canActivate: [authGuard],
     loadComponent: () => import('./modules/profiles/profile-list.component').then(m => m.ProfileListComponent),
     path: 'profiles',
   },
@@ -96,6 +101,12 @@ export const routes: Routes = [
     canActivate: [authGuard, adminGuard],
     loadComponent: () => import('./modules/admin/admin-settings.component').then(m => m.AdminSettingsComponent),
     path: 'admin/settings',
+  },
+  {
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./modules/admin/geofence-submissions/geofence-submissions.component').then(m => m.GeofenceSubmissionsComponent),
+    path: 'admin/geofence-submissions',
   },
   {
     canActivate: [authGuard],

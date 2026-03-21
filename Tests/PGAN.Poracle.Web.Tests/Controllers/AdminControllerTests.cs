@@ -43,11 +43,11 @@ public class AdminControllerTests : ControllerTestBase
     public async Task GetAllUsersReturnsOkWhenAdmin()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<Human>
-        {
+        this._humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
             new() { Id = "u1", Name = "User1", Type = "discord:user" },
             new() { Id = "u2", Name = "User2", Type = "telegram:user" }
-        });
+        ]);
 
         var result = await this._sut.GetAllUsers();
         Assert.IsType<OkObjectResult>(result);
@@ -311,12 +311,12 @@ public class AdminControllerTests : ControllerTestBase
     public async Task GetAllWebhookDelegatesReturnsFilteredSettings()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<PwebSetting>
-        {
+        this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
             new() { Setting = "webhook_delegates:wh1", Value = "u1,u2" },
             new() { Setting = "webhook_delegates:wh2", Value = "u3" },
             new() { Setting = "other_setting", Value = "ignored" }
-        });
+        ]);
 
         var result = await this._sut.GetAllWebhookDelegates();
         Assert.IsType<OkObjectResult>(result);

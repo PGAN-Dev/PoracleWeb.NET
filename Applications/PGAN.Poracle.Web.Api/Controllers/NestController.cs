@@ -82,7 +82,10 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
         var count = await this._nestService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
-        return this.Ok(new { updated = count });
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 
     [HttpPut("distance")]

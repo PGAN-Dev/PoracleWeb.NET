@@ -1,16 +1,18 @@
 services:
   poracle-web:
-    image: ghcr.io/pgan-dev/poracleweb.net:latest
+    # image: ghcr.io/pgan-dev/poracleweb.net:latest
     # Alternatives:
-    # image: poracleweb-local:latest          # Use a locally built image
+    image: poracleweb-local:latest          # Use a locally built image
     # build:                                   # Build from source directly
     #   context: .
     #   dockerfile: Dockerfile
     ports:
       - "8082:8080"
     environment:
-      # Database
+      # Database (Poracle — existing PoracleJS database, read/write)
       - ConnectionStrings__PoracleDb=Server=${DB_HOST:-host.docker.internal};Port=${DB_PORT:-3309};Database=${DB_NAME:-poracle};User=${DB_USER:-root};Password=${DB_PASSWORD};AllowZeroDateTime=true;ConvertZeroDateTime=true
+      # PoracleWeb DB (app-owned database for user geofences — separate from Poracle DB)
+      - ConnectionStrings__PoracleWebDb=Server=${WEB_DB_HOST:-host.docker.internal};Port=${WEB_DB_PORT:-3309};Database=${WEB_DB_NAME:-poracle_web};User=${WEB_DB_USER:-root};Password=${WEB_DB_PASSWORD};AllowZeroDateTime=true;ConvertZeroDateTime=true
       - ConnectionStrings__ScannerDb=${SCANNER_DB_CONNECTION:-}
       # JWT
       - Jwt__Secret=${JWT_SECRET}
@@ -21,6 +23,8 @@ services:
       - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
       - Discord__BotToken=${DISCORD_BOT_TOKEN:-}
       - Discord__GuildId=${DISCORD_GUILD_ID:-}
+      # Forum channel for geofence submission threads (optional)
+      - Discord__GeofenceForumChannelId=${DISCORD_GEOFENCE_FORUM_CHANNEL_ID:-}
       # Telegram
       - Telegram__Enabled=${TELEGRAM_ENABLED:-false}
       - Telegram__BotToken=${TELEGRAM_BOT_TOKEN:-}
@@ -29,6 +33,10 @@ services:
       - Poracle__ApiAddress=${PORACLE_API_ADDRESS}
       - Poracle__ApiSecret=${PORACLE_API_SECRET}
       - Poracle__AdminIds=${PORACLE_ADMIN_IDS}
+      # Koji Geofence API (required for custom geofences: region detection, promotion to public)
+      - Koji__ApiAddress=${KOJI_API_ADDRESS:-}
+      - Koji__BearerToken=${KOJI_BEARER_TOKEN:-}
+      - Koji__ProjectId=${KOJI_PROJECT_ID:-0}  # Koji project ID for admin-promoted geofences
       # CORS (comma-separated origins, leave empty to allow all)
       - Cors__AllowedOrigins__0=${CORS_ORIGIN:-}
       # DTS source path (inside container)

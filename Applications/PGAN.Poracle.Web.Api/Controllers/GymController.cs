@@ -82,7 +82,10 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
         var count = await this._gymService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
-        return this.Ok(new { updated = count });
+        return this.Ok(new
+        {
+            updated = count
+        });
     }
 
     [HttpPut("distance")]

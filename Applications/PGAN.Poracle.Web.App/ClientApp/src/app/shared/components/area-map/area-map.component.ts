@@ -1,27 +1,28 @@
 import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
   AfterViewInit,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
   OnChanges,
   OnDestroy,
-  ElementRef,
-  ViewChild,
+  Output,
   SimpleChanges,
+  ViewChild,
+  computed,
+  effect,
+  input,
+  output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as L from 'leaflet';
+import 'leaflet-draw';
 
 import { GeofenceData } from '../../../core/models';
+import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 const GROUP_COLORS = [
   '#e53935',
@@ -48,22 +49,8 @@ interface RegionEntry {
   shortLabel: string;
 }
 
-interface RegionGrouping {
-  label: string;
-  regions: RegionEntry[];
-}
-
 @Component({
-  imports: [
-    FormsModule,
-    MatAutocompleteModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatButtonModule,
-    MatChipsModule,
-    MatTooltipModule,
-  ],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, RegionSelectorComponent],
   selector: 'app-area-map',
   standalone: true,
   styleUrl: './area-map.component.scss',
@@ -71,6 +58,9 @@ interface RegionGrouping {
 })
 export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private allBoundsRect: L.LatLngBounds | null = null;
+  private customGeofenceLayer: L.LayerGroup = L.layerGroup();
+
+  private drawControl: L.Control.Draw | null = null;
 
   private fullscreenHandler = () => {
     if (!document.fullscreenElement) {
@@ -83,21 +73,40 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private initialized = false;
   private map: L.Map | null = null;
 
+  private onDrawCreated = (event: L.LeafletEvent): void => {
+    const drawEvent = event as L.DrawEvents.Created;
+    const layer = drawEvent.layer as L.Polygon;
+    const latLngs = (layer.getLatLngs()[0] as L.LatLng[]).map(ll => [ll.lat, ll.lng] as [number, number]);
+
+    this.polygonDrawn.emit(latLngs);
+    // Do not add to map -- parent component handles saving and re-rendering
+  };
+
   private polygonByName = new Map<string, L.Polygon>();
 
   private polygonLayers: L.Polygon[] = [];
   private userCircle: L.Circle | null = null;
   private userMarker: L.Marker | null = null;
   @Output() areaClicked = new EventEmitter<string>();
+  customGeofences = input<GeofenceData[]>([]);
+  drawMode = input(false);
   @Input() geofence: GeofenceData[] = [];
   @Input() groupMapping: Map<string, string> = new Map();
   readonly isFullscreen = signal(false);
   @ViewChild('mapContainer', { static: true }) mapElement!: ElementRef<HTMLDivElement>;
-
-  readonly regionGroups = signal<RegionGrouping[]>([]);
+  polygonDrawn = output<[number, number][]>();
+  regionChanged = output<RegionOption>();
 
   readonly regions = signal<RegionEntry[]>([]);
-  regionSearchText = '';
+
+  readonly regionOptions = computed((): RegionOption[] => {
+    return this.regions().map(r => ({
+      count: r.areaCount,
+      label: r.label,
+      shortLabel: r.shortLabel,
+    }));
+  });
+
   @Input() selectedAreas: string[] = [];
   readonly selectedRegion = signal('');
 
@@ -105,17 +114,29 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   readonly visibleLegend = signal<{ group: string; color: string }[]>([]);
 
-  clearRegion(): void {
-    this.selectedRegion.set('');
-    this.regionSearchText = '';
-    this.fitAll();
+  constructor() {
+    // React to drawMode changes
+    effect(() => {
+      const enabled = this.drawMode();
+      if (!this.map) return;
+
+      if (enabled) {
+        this.addDrawControl();
+      } else {
+        this.removeDrawControl();
+      }
+    });
+
+    // React to customGeofences changes
+    effect(() => {
+      const geofences = this.customGeofences();
+      this.renderCustomGeofences(geofences);
+    });
   }
 
-  filteredRegions(): RegionEntry[] {
-    const search = this.regionSearchText.toLowerCase();
-    const all = this.regions();
-    if (!search) return all;
-    return all.filter(r => r.label.toLowerCase().includes(search) || r.shortLabel.toLowerCase().includes(search));
+  clearRegion(): void {
+    this.selectedRegion.set('');
+    this.fitAll();
   }
 
   fitAll(): void {
@@ -146,15 +167,17 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
+    this.removeDrawControl();
     if (this.map) {
       this.map.remove();
       this.map = null;
     }
   }
 
-  onRegionSelected(regionLabel: string): void {
+  onRegionSelected(option: RegionOption): void {
+    const regionLabel = option.label;
     this.selectedRegion.set(regionLabel);
-    this.regionSearchText = '';
+    this.regionChanged.emit(option);
 
     if (!regionLabel || !this.map) {
       this.fitAll();
@@ -197,6 +220,32 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
   }
 
+  private addDrawControl(): void {
+    if (!this.map || this.drawControl) return;
+
+    this.drawControl = new L.Control.Draw({
+      draw: {
+        circle: false,
+        circlemarker: false,
+        marker: false,
+        polygon: {
+          shapeOptions: {
+            color: '#2196f3',
+            fillOpacity: 0.15,
+            weight: 2,
+          },
+        },
+        polyline: false,
+        rectangle: false,
+      },
+      edit: false as any,
+    });
+
+    this.map.addControl(this.drawControl);
+
+    this.map.on('draw:created', this.onDrawCreated);
+  }
+
   private buildRegions(): void {
     // Group names follow pattern "US - State - City" (3 parts) or "KOR - City" (2 parts)
     // Region = full group name (all 3 parts for US, all 2 parts for KOR/AUS)
@@ -230,22 +279,6 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     regions.sort((a, b) => a.label.localeCompare(b.label));
     this.regions.set(regions);
-
-    // Build hierarchical groups: "US - VA" -> [Richmond, Hampton Roads, ...]
-    const hierMap = new Map<string, RegionEntry[]>();
-    for (const region of regions) {
-      const parts = region.label.split(' - ');
-      const parentKey = parts.length >= 2 ? parts.slice(0, 2).join(' - ').trim() : parts[0] || 'Other';
-      if (!hierMap.has(parentKey)) hierMap.set(parentKey, []);
-      hierMap.get(parentKey)!.push(region);
-    }
-
-    const groups: RegionGrouping[] = [];
-    hierMap.forEach((entries, label) => {
-      groups.push({ label, regions: entries });
-    });
-    groups.sort((a, b) => a.label.localeCompare(b.label));
-    this.regionGroups.set(groups);
   }
 
   private drawPolygons(): void {
@@ -351,6 +384,45 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       maxZoom: 19,
       subdomains: 'abcd',
     }).addTo(this.map);
+
+    this.customGeofenceLayer.addTo(this.map);
+  }
+
+  private removeDrawControl(): void {
+    if (!this.map) return;
+
+    if (this.drawControl) {
+      this.map.removeControl(this.drawControl);
+      this.drawControl = null;
+    }
+
+    this.map.off('draw:created', this.onDrawCreated);
+  }
+
+  private renderCustomGeofences(geofences: GeofenceData[]): void {
+    if (!this.map) return;
+    this.customGeofenceLayer.clearLayers();
+
+    for (const fence of geofences) {
+      if (!fence.path || fence.path.length < 3) continue;
+
+      const latLngs: L.LatLngExpression[] = fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
+
+      const polygon = L.polygon(latLngs, {
+        color: '#2196f3',
+        fillColor: '#2196f3',
+        fillOpacity: 0.2,
+        weight: 2,
+      });
+
+      polygon.bindTooltip(fence.name, {
+        className: 'area-tooltip',
+        direction: 'top',
+        sticky: true,
+      });
+
+      this.customGeofenceLayer.addLayer(polygon);
+    }
   }
 
   private updateUserMarker(): void {

@@ -22,7 +22,7 @@ public class QuestControllerTests : ControllerTestBase
     [Fact]
     public async Task GetAllReturnsOk()
     {
-        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync(new List<Quest>());
+        this._service.Setup(s => s.GetByUserAsync("123456789", 1)).ReturnsAsync([]);
         Assert.IsType<OkObjectResult>(await this._sut.GetAll());
     }
     [Fact]

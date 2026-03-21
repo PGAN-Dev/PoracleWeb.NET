@@ -293,7 +293,7 @@ public class AuthController(
     {
         // Read enabled status from DB (not JWT) so it reflects real-time changes
         var human = await this._humanService.GetByIdAsync(this.UserId);
-        var enabled = human == null || human.Enabled == 1 && human.AdminDisable == 0;
+        var enabled = human == null || (human.Enabled == 1 && human.AdminDisable == 0);
 
         var userInfo = new UserInfo
         {

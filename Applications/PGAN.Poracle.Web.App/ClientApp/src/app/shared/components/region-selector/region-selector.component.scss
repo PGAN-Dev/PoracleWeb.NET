@@ -1,0 +1,13 @@
+.region-field {
+  width: 100%;
+}
+
+:host ::ng-deep .region-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.region-count {
+  margin-left: 4px;
+  opacity: 0.6;
+  font-size: 12px;
+}
