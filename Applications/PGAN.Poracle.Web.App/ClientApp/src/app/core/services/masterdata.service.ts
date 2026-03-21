@@ -182,7 +182,10 @@ export class MasterDataService {
         for (const entry of Object.values(monsters)) {
           if (typeMap.has(entry.id)) continue;
           if (entry.types?.length) {
-            typeMap.set(entry.id, entry.types.map(t => t.name));
+            typeMap.set(
+              entry.id,
+              entry.types.map(t => t.name),
+            );
           }
         }
         this.typesMap.set(typeMap);
