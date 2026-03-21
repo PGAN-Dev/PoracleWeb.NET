@@ -68,7 +68,8 @@ public partial class PoracleServerService(
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 var response = await this._httpClient.GetAsync(
                     $"{server.ApiAddress}/api/config/poracleWeb", cts.Token);
-                status.Online = response.IsSuccessStatusCode;
+                // Any HTTP response means the server is running (even 401/403 auth errors)
+                status.Online = true;
             }
             catch
             {
