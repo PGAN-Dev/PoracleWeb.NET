@@ -78,6 +78,18 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Poracle API
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
+        // Register HttpClient for Discord notification service
+        services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>
+        {
+            client.BaseAddress = new Uri("https://discordapp.com/api/v10/");
+            var botToken = configuration["Discord:BotToken"];
+            if (!string.IsNullOrEmpty(botToken))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", botToken);
+            }
+        });
+
         // Register HttpClient for Koji API
         var kojiToken = configuration["Koji:BearerToken"] ?? string.Empty;
         services.AddHttpClient<IKojiService, KojiService>(client =>

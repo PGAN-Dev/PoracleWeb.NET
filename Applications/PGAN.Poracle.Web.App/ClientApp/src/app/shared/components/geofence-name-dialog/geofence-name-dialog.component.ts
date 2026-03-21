@@ -6,9 +6,9 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 
 import { GeofenceRegion } from '../../../core/models';
+import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 export interface GeofenceNameDialogData {
   detectedRegion: { id: number; name: string; displayName: string } | null;
@@ -22,16 +22,7 @@ export interface GeofenceNameDialogResult {
 }
 
 @Component({
-  imports: [
-    FormsModule,
-    MatButtonModule,
-    MatChipsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatSelectModule,
-  ],
+  imports: [FormsModule, MatButtonModule, MatChipsModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule, RegionSelectorComponent],
   selector: 'app-geofence-name-dialog',
   standalone: true,
   styleUrl: './geofence-name-dialog.component.scss',
@@ -43,14 +34,31 @@ export class GeofenceNameDialogComponent {
 
   displayName = '';
   readonly manualSelect = signal(!this.data.detectedRegion);
+  readonly namePattern = /^[a-zA-Z0-9 \-'.()&]+$/;
+
+  readonly regionOptions: RegionOption[] = this.data.regions.map(r => ({
+    id: r.id,
+    label: r.displayName,
+    shortLabel: r.displayName,
+  }));
+
   selectedRegionId: number | null = this.data.detectedRegion?.id ?? null;
 
+  get hasInvalidChars(): boolean {
+    return this.displayName.trim().length > 0 && !this.namePattern.test(this.displayName.trim());
+  }
+
   get isValid(): boolean {
-    return this.displayName.trim().length > 0 && this.displayName.trim().length <= 50 && this.selectedRegionId !== null;
+    const name = this.displayName.trim();
+    return name.length > 0 && name.length <= 50 && !this.hasInvalidChars && this.selectedRegionId !== null;
   }
 
   onChangeRegion(): void {
     this.manualSelect.set(true);
+  }
+
+  onRegionPicked(option: RegionOption): void {
+    this.selectedRegionId = option.id ?? null;
   }
 
   save(): void {
@@ -61,7 +69,7 @@ export class GeofenceNameDialogComponent {
 
     this.dialogRef.close({
       displayName: this.displayName.trim(),
-      groupName: region.name,
+      groupName: region.displayName,
       parentId: region.id,
     } as GeofenceNameDialogResult);
   }

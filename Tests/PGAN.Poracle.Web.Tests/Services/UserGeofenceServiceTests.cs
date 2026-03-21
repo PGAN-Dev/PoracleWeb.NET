@@ -13,6 +13,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IKojiService> _kojiService = new();
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
     private readonly Mock<IHumanRepository> _humanRepo = new();
+    private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
 
@@ -23,6 +24,7 @@ public class UserGeofenceServiceTests
             this._kojiService.Object,
             this._poracleApiProxy.Object,
             this._humanRepo.Object,
+            this._discordNotificationService.Object,
             this._logger.Object);
     }
 

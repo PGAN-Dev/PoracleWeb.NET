@@ -7,6 +7,9 @@
     @if (displayName.length > 0 && displayName.trim().length === 0) {
       <mat-error>Name cannot be only whitespace</mat-error>
     }
+    @if (hasInvalidChars) {
+      <mat-error>Only letters, numbers, spaces, hyphens, apostrophes, and parentheses allowed</mat-error>
+    }
   </mat-form-field>
 
   <div class="region-section">
@@ -22,14 +25,12 @@
         <button mat-button color="primary" (click)="onChangeRegion()">Change</button>
       </div>
     } @else {
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Select Region</mat-label>
-        <mat-select [(ngModel)]="selectedRegionId" required>
-          @for (region of data.regions; track region.id) {
-            <mat-option [value]="region.id">{{ region.displayName }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <app-region-selector
+        [regions]="regionOptions"
+        label="Select Region"
+        placeholder="Search regions..."
+        [selectedValue]="selectedRegionId"
+        (regionSelected)="onRegionPicked($event)"></app-region-selector>
     }
   </div>
 </mat-dialog-content>

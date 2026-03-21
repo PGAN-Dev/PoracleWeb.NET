@@ -2,7 +2,6 @@ import { SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
@@ -18,6 +17,7 @@ import { AreaService } from '../../core/services/area.service';
 import { LocationService } from '../../core/services/location.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
+import { RegionOption, RegionSelectorComponent } from '../../shared/components/region-selector/region-selector.component';
 
 interface AreaItem {
   group: string;
@@ -36,7 +36,6 @@ interface GroupInfo {
   imports: [
     SlicePipe,
     FormsModule,
-    MatAutocompleteModule,
     MatButtonModule,
     MatCheckboxModule,
     MatChipsModule,
@@ -47,6 +46,7 @@ interface GroupInfo {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     AreaMapComponent,
+    RegionSelectorComponent,
   ],
   selector: 'app-area-list',
   standalone: true,
@@ -86,7 +86,7 @@ export class AreaListComponent implements OnInit {
   readonly geofenceData = computed(() => {
     const available = this.availableAreas();
     const raw = this.rawGeofenceData();
-    if (available.length === 0) return raw;
+    if (available.length === 0) return [];
     const accessibleNames = new Set(available.map(a => a.name));
     return raw.filter(g => accessibleNames.has(g.name));
   });
@@ -99,7 +99,13 @@ export class AreaListComponent implements OnInit {
     return map;
   });
 
-  groupSearchText = '';
+  readonly groupOptions = computed((): RegionOption[] => {
+    return this.allGroups().map(g => ({
+      label: g.name,
+      selectedCount: g.selectedCount,
+      totalCount: g.totalCount,
+    }));
+  });
 
   readonly selectedAreas = signal<string[]>([]);
 
@@ -197,20 +203,12 @@ export class AreaListComponent implements OnInit {
     this.syncSelectedFromAreas();
   }
 
-  filteredGroupOptions(): GroupInfo[] {
-    const search = this.groupSearchText.toLowerCase();
-    const all = this.allGroups();
-    if (!search) return all;
-    return all.filter(g => g.name.toLowerCase().includes(search));
-  }
-
   ngOnInit(): void {
     this.loadData();
   }
 
-  onGroupFilterSelected(value: string): void {
-    this.activeGroup.set(value || null);
-    this.groupSearchText = '';
+  onGroupFilterSelected(option: RegionOption): void {
+    this.activeGroup.set(option.label || null);
   }
 
   onMapAreaClicked(name: string): void {

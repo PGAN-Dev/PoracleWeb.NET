@@ -48,6 +48,9 @@ public class UserGeofenceEntity
     [Column("promoted_name")]
     public string? PromotedName { get; set; }
 
+    [Column("discord_thread_id")]
+    public string? DiscordThreadId { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

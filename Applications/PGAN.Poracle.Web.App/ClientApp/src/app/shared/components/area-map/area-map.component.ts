@@ -9,23 +9,20 @@ import {
   Output,
   SimpleChanges,
   ViewChild,
+  computed,
   effect,
   input,
   output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 
 import { GeofenceData } from '../../../core/models';
+import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 const GROUP_COLORS = [
   '#e53935',
@@ -52,22 +49,8 @@ interface RegionEntry {
   shortLabel: string;
 }
 
-interface RegionGrouping {
-  label: string;
-  regions: RegionEntry[];
-}
-
 @Component({
-  imports: [
-    FormsModule,
-    MatAutocompleteModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatButtonModule,
-    MatChipsModule,
-    MatTooltipModule,
-  ],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, RegionSelectorComponent],
   selector: 'app-area-map',
   standalone: true,
   styleUrl: './area-map.component.scss',
@@ -112,11 +95,17 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   readonly isFullscreen = signal(false);
   @ViewChild('mapContainer', { static: true }) mapElement!: ElementRef<HTMLDivElement>;
   polygonDrawn = output<[number, number][]>();
+  regionChanged = output<RegionOption>();
 
-  readonly regionGroups = signal<RegionGrouping[]>([]);
+  readonly regionOptions = computed((): RegionOption[] => {
+    return this.regions().map(r => ({
+      count: r.areaCount,
+      label: r.label,
+      shortLabel: r.shortLabel,
+    }));
+  });
 
   readonly regions = signal<RegionEntry[]>([]);
-  regionSearchText = '';
   @Input() selectedAreas: string[] = [];
   readonly selectedRegion = signal('');
 
@@ -146,15 +135,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   clearRegion(): void {
     this.selectedRegion.set('');
-    this.regionSearchText = '';
     this.fitAll();
-  }
-
-  filteredRegions(): RegionEntry[] {
-    const search = this.regionSearchText.toLowerCase();
-    const all = this.regions();
-    if (!search) return all;
-    return all.filter(r => r.label.toLowerCase().includes(search) || r.shortLabel.toLowerCase().includes(search));
   }
 
   fitAll(): void {
@@ -192,9 +173,10 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
   }
 
-  onRegionSelected(regionLabel: string): void {
+  onRegionSelected(option: RegionOption): void {
+    const regionLabel = option.label;
     this.selectedRegion.set(regionLabel);
-    this.regionSearchText = '';
+    this.regionChanged.emit(option);
 
     if (!regionLabel || !this.map) {
       this.fitAll();
@@ -260,9 +242,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     this.map.addControl(this.drawControl);
 
-    if (L.Draw?.Event?.CREATED) {
-      this.map.on(L.Draw.Event.CREATED, this.onDrawCreated);
-    }
+    this.map.on('draw:created', this.onDrawCreated);
   }
 
   private buildRegions(): void {
@@ -298,22 +278,6 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     regions.sort((a, b) => a.label.localeCompare(b.label));
     this.regions.set(regions);
-
-    // Build hierarchical groups: "US - VA" -> [Richmond, Hampton Roads, ...]
-    const hierMap = new Map<string, RegionEntry[]>();
-    for (const region of regions) {
-      const parts = region.label.split(' - ');
-      const parentKey = parts.length >= 2 ? parts.slice(0, 2).join(' - ').trim() : parts[0] || 'Other';
-      if (!hierMap.has(parentKey)) hierMap.set(parentKey, []);
-      hierMap.get(parentKey)!.push(region);
-    }
-
-    const groups: RegionGrouping[] = [];
-    hierMap.forEach((entries, label) => {
-      groups.push({ label, regions: entries });
-    });
-    groups.sort((a, b) => a.label.localeCompare(b.label));
-    this.regionGroups.set(groups);
   }
 
   private drawPolygons(): void {
@@ -431,9 +395,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.drawControl = null;
     }
 
-    if (L.Draw?.Event?.CREATED) {
-      this.map.off(L.Draw.Event.CREATED, this.onDrawCreated);
-    }
+    this.map.off('draw:created', this.onDrawCreated);
   }
 
   private renderCustomGeofences(geofences: GeofenceData[]): void {

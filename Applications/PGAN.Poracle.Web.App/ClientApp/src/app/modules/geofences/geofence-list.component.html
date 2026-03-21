@@ -32,9 +32,11 @@
 <div class="map-container">
   <app-area-map
     [geofence]="geofenceData()"
+    [groupMapping]="groupMapping()"
     [drawMode]="drawMode()"
     [customGeofences]="customGeofenceMapData()"
-    (polygonDrawn)="onDrawComplete($event)"></app-area-map>
+    (polygonDrawn)="onDrawComplete($event)"
+    (regionChanged)="onMapRegionChanged($event)"></app-area-map>
 </div>
 
 @if (savingGeofence()) {
@@ -98,7 +100,7 @@
               <span class="geofence-card-date">Created {{ geofence.createdAt | date: 'mediumDate' }}</span>
               <div class="geofence-card-actions">
                 @if (geofence.status === 'active') {
-                  <button mat-icon-button matTooltip="Submit for Review" (click)="submitGeofence(geofence)">
+                  <button mat-icon-button matTooltip="Submit to admins for promotion as a public geofence" (click)="submitGeofence(geofence)">
                     <mat-icon>send</mat-icon>
                   </button>
                 }

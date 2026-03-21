@@ -1,0 +1,41 @@
+@if (selectedOption(); as selected) {
+  <mat-chip-set>
+    <mat-chip highlighted color="primary" (removed)="clearSelection()">
+      {{ selected.shortLabel || selected.label }}
+      <button matChipRemove><mat-icon>cancel</mat-icon></button>
+    </mat-chip>
+  </mat-chip-set>
+} @else {
+  <mat-form-field appearance="outline" class="region-field">
+    <mat-label>{{ label() }}</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input
+      matInput
+      [matAutocomplete]="regionAuto"
+      [value]="searchText()"
+      (input)="onInputChange($any($event.target).value)"
+      [placeholder]="placeholder()" />
+    @if (searchText()) {
+      <button mat-icon-button matSuffix (click)="onClearInput()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+    <mat-autocomplete #regionAuto="matAutocomplete" (optionSelected)="onOptionSelected($event.option.value)">
+      <mat-option [value]="{ label: '' }">All Regions</mat-option>
+      @for (group of filteredGroups(); track group.label) {
+        <mat-optgroup [label]="group.label">
+          @for (region of group.regions; track region.label) {
+            <mat-option [value]="region">
+              {{ region.shortLabel || region.label }}
+              @if (showCounts() && region.totalCount !== undefined) {
+                <span class="region-count">({{ region.selectedCount ?? 0 }}/{{ region.totalCount }})</span>
+              } @else if (region.count !== undefined) {
+                <span class="region-count">({{ region.count }})</span>
+              }
+            </mat-option>
+          }
+        </mat-optgroup>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+}
