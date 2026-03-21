@@ -15,6 +15,7 @@ public class AdminController(
     IHumanService humanService,
     IPwebSettingService pwebSettingService,
     IPoracleApiProxy poracleApiProxy,
+    IPoracleServerService poracleServerService,
     IOptions<PoracleSettings> poracleSettings,
     IOptions<JwtSettings> jwtSettings,
     ILogger<AdminController> logger) : BaseApiController
@@ -22,6 +23,7 @@ public class AdminController(
     private readonly IHumanService _humanService = humanService;
     private readonly IPwebSettingService _pwebSettingService = pwebSettingService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly ILogger<AdminController> _logger = logger;
@@ -562,6 +564,56 @@ public class AdminController(
         {
             token = jwt
         });
+    }
+
+    [HttpGet("poracle/servers")]
+    public async Task<IActionResult> GetPoracleServers()
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var servers = await this._poracleServerService.GetServersAsync();
+        return this.Ok(servers);
+    }
+
+    [HttpPost("poracle/servers/{host}/restart")]
+    public async Task<IActionResult> RestartPoracleServer(string host)
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        try
+        {
+            this._logger.LogInformation("Admin {AdminId} restarting Poracle server {Host}", this.UserId, host);
+            var status = await this._poracleServerService.RestartServerAsync(host);
+            return this.Ok(status);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogError(ex, "Failed to restart Poracle server {Host}", host);
+            return this.StatusCode(500, new { error = "Failed to restart server" });
+        }
+    }
+
+    [HttpPost("poracle/servers/restart-all")]
+    public async Task<IActionResult> RestartAllPoracleServers()
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        this._logger.LogInformation("Admin {AdminId} restarting all Poracle servers", this.UserId);
+        var statuses = await this._poracleServerService.RestartAllAsync();
+        return this.Ok(statuses);
     }
 
     private static string GetDefaultAvatarUrl(string userId, string? type)

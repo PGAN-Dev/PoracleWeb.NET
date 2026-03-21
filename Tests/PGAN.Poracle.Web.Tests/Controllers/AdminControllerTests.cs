@@ -14,6 +14,7 @@ public class AdminControllerTests : ControllerTestBase
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IPwebSettingService> _pwebSettingService = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
+    private readonly Mock<IPoracleServerService> _poracleServerService = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
     private readonly AdminController _sut;
 
@@ -27,7 +28,7 @@ public class AdminControllerTests : ControllerTestBase
             Audience = "test",
             ExpirationMinutes = 60
         });
-        this._sut = new AdminController(this._humanService.Object, this._pwebSettingService.Object, this._proxy.Object, poracleSettings, jwtSettings, this._logger.Object);
+        this._sut = new AdminController(this._humanService.Object, this._pwebSettingService.Object, this._proxy.Object, this._poracleServerService.Object, poracleSettings, jwtSettings, this._logger.Object);
     }
 
     // --- GetAllUsers ---

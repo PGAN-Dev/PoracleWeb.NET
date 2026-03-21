@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { AdminUser, Human } from '../models';
+import { AdminUser, Human, PoracleServerStatus } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -45,6 +45,10 @@ export class AdminService {
     return this.http.get<Record<string, string[]>>(`${this.config.apiHost}/api/admin/webhook-delegates/all`);
   }
 
+  getPoracleServers(): Observable<PoracleServerStatus[]> {
+    return this.http.get<PoracleServerStatus[]>(`${this.config.apiHost}/api/admin/poracle/servers`);
+  }
+
   getPoracleAdmins(): Observable<string[]> {
     return this.http.get<string[]>(`${this.config.apiHost}/api/admin/poracle-admins`);
   }
@@ -81,6 +85,17 @@ export class AdminService {
     return this.http.delete<string[]>(`${this.config.apiHost}/api/admin/webhook-delegates`, {
       body: { userId, webhookId },
     });
+  }
+
+  restartAllServers(): Observable<PoracleServerStatus[]> {
+    return this.http.post<PoracleServerStatus[]>(`${this.config.apiHost}/api/admin/poracle/servers/restart-all`, {});
+  }
+
+  restartServer(host: string): Observable<PoracleServerStatus> {
+    return this.http.post<PoracleServerStatus>(
+      `${this.config.apiHost}/api/admin/poracle/servers/${encodeURIComponent(host)}/restart`,
+      {},
+    );
   }
 
   resumeUser(userId: string): Observable<Human> {

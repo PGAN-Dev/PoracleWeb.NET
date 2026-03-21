@@ -1,0 +1,248 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(96, 125, 139, 0.06) 0%, rgba(96, 125, 139, 0.02) 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.page-description {
+  margin: 4px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 3px solid #607d8b;
+  padding-left: 12px;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.page-content {
+  padding: 0 24px 24px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 64px;
+}
+
+// ─── Servers Grid ────────────────────────────────────
+.servers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+// ─── Server Card ─────────────────────────────────────
+.server-card {
+  position: relative;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.server-card-accent {
+  height: 4px;
+  background: #9e9e9e;
+
+  &.accent-online {
+    background: #4caf50;
+  }
+  &.accent-offline {
+    background: #f44336;
+  }
+}
+
+.server-card-body {
+  padding: 16px;
+}
+
+.server-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+
+  &.online {
+    background: #4caf50;
+  }
+  &.offline {
+    background: #f44336;
+  }
+}
+
+.server-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.server-card-name {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server-card-host {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ─── Status Chip ─────────────────────────────────────
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.status-online {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-offline {
+  background: #ffebee;
+  color: #c62828;
+}
+
+// ─── Meta ────────────────────────────────────────────
+.server-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  }
+}
+
+// ─── Server Message ──────────────────────────────────
+.server-message {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--code-bg, rgba(0, 0, 0, 0.04));
+  border-radius: 6px;
+  overflow-x: auto;
+
+  code {
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-primary, rgba(0, 0, 0, 0.87));
+  }
+}
+
+// ─── Actions ─────────────────────────────────────────
+.server-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+// ─── Empty State ─────────────────────────────────────
+.empty-state {
+  text-align: center;
+  padding: 64px 16px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.24));
+}
+
+.empty-state h2 {
+  margin: 16px 0 8px;
+  font-weight: 400;
+}
+
+.empty-state p {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+// ─── Responsive ──────────────────────────────────────
+@media (max-width: 599px) {
+  .page-header {
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .page-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .page-content {
+    padding: 0 16px 16px;
+  }
+
+  .servers-grid {
+    grid-template-columns: 1fr;
+  }
+}

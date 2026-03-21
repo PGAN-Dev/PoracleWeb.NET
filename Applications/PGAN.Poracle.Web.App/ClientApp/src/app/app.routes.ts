@@ -109,6 +109,12 @@ export const routes: Routes = [
     path: 'admin/geofence-submissions',
   },
   {
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () =>
+      import('./modules/admin/poracle-servers/poracle-servers.component').then(m => m.PoracleServersComponent),
+    path: 'admin/poracle-servers',
+  },
+  {
     canActivate: [authGuard],
     loadComponent: () => import('./modules/admin/my-webhooks.component').then(m => m.MyWebhooksComponent),
     path: 'my-webhooks',
