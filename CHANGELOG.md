@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-03-22
+
+### Added
+- **Dashboard profile quick-switch** — profile card now shows actual profile name with a dropdown menu to switch profiles without leaving the dashboard ([#19](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/19), [PR #22](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/22))
 
 ### Fixed
-- LocationController falls back to humans table when profile missing ([PR #20](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/20))
-- changelog workflow inserts entries in wrong section + double-v prefix ([PR #21](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/21))
-## [0.5.3] - 2026-03-22
+- **Location 404 for users without profile records** — `GET /api/location` now falls back to `humans` table coordinates when no profile exists, and `PUT /api/location` auto-creates a default profile. Affected 99% of users. ([#17](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/17), [PR #20](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/20))
+- **Changelog workflow inserting entries under wrong release** — replaced grep/sed with awk scoped to the `[Unreleased]` block; fixed double-v prefix in release commit messages ([#18](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/18), [PR #21](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/21))
 
 ## [0.5.3] - 2026-03-22
 
@@ -35,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2026-03-22
 
 ### Added
-- dashboard profile card shows name with quick-switch dropdown ([PR #22](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/22))
 - **Unified Geofence Proxy Feed** — PoracleWeb is now the single geofence source for PoracleJS ([#10](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/10), [PR #11](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/11))
   - Fetches admin geofences from Koji, resolves groups from parent chain, merges user geofences
   - PoracleJS uses a single URL — no direct Koji connection needed, no `group_map.json` required
@@ -50,7 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2026-03-22
 
 ### Added
-- dashboard profile card shows name with quick-switch dropdown ([PR #22](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/22))
 - **Admin Poracle Server Management** — Monitor and restart PoracleJS instances remotely from the admin panel
   - Multi-server support with configurable servers (name, host, SSH user)
   - Real-time health status indicators (online/offline)
@@ -105,7 +106,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pokemon IV validation**: ATK/DEF/STA fields now enforce 0-15 range with error messages ([#3](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/3), [PR #4](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/4))
 
 ### Added
-- dashboard profile card shows name with quick-switch dropdown ([PR #22](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/22))
 - **Pokemon type filter**: Filter by Pokemon type with UICONS type icons from masterfile ([#3](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/3), [PR #4](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/4))
 - **Tile grid selector**: Clickable tile grid for bulk Pokemon selection when gen/type filter is active
 
@@ -122,7 +122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-03-20
 
 ### Added
-- dashboard profile card shows name with quick-switch dropdown ([PR #22](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/22))
 - Initial release of PoracleWeb
 - Discord OAuth2 and Telegram authentication
 - Pokemon, Raid, Quest, Invasion, Lure, Nest, Gym alarm management
@@ -137,8 +136,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...HEAD
-[0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...HEAD
+[0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.0...v0.5.1
