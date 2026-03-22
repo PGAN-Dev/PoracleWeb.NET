@@ -96,9 +96,10 @@ export class DashboardComponent implements OnInit {
   readonly profiles = signal<Profile[]>([]);
   readonly profileName = computed(() => {
     const profiles = this.profiles();
+    if (profiles.length === 0) return 'Default';
     const no = this.profileNo();
     const match = profiles.find(p => p.profileNo === no);
-    return match?.name ?? `Profile ${no}`;
+    return match?.name ?? 'Default';
   });
 
   readonly selectedAreas = signal<string[]>([]);
