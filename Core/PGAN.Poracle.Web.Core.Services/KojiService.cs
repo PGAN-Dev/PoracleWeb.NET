@@ -472,7 +472,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
 
         // Step 3: Fetch Poracle format geofences for the project
         var poracleJson = await this._httpClient.GetStringAsync(
-            $"{this._apiAddress}/api/v1/geofence/poracle/{Uri.EscapeDataString(this._projectName)}");
+            $"{this._apiAddress}/api/v1/geofence/poracle/{Uri.EscapeDataString(this._projectName)}?name=true");
         using var poracleDoc = JsonDocument.Parse(poracleJson);
 
         if (!poracleDoc.RootElement.TryGetProperty("data", out var poracleData) || poracleData.ValueKind != JsonValueKind.Array)
