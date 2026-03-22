@@ -43,9 +43,23 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
     }
 
     [Fact]
-    public async Task GetLocationReturnsNotFoundWhenProfileMissing()
+    public async Task GetLocationFallsBackToHumanWhenProfileMissing()
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { Id = "123456789", Latitude = 41.235, Longitude = -96.174 });
+
+        var result = await this._sut.GetLocation();
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetLocationReturnsNotFoundWhenProfileAndHumanMissing()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
+
         Assert.IsType<NotFoundResult>(await this._sut.GetLocation());
     }
 
@@ -72,9 +86,30 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
     }
 
     [Fact]
-    public async Task UpdateLocationReturnsNotFoundWhenProfileMissing()
+    public async Task UpdateLocationAutoCreatesProfileWhenMissing()
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
+        var human = new Human { Id = "123456789", Name = "testuser", Area = "[]", Latitude = 0, Longitude = 0 };
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._profileService.Setup(s => s.CreateAsync(It.IsAny<Profile>()))
+            .ReturnsAsync((Profile p) => p);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+
+        var result = await this._sut.UpdateLocation(
+            new LocationController.LocationUpdateRequest { Latitude = 51.5, Longitude = -0.12 });
+
+        Assert.IsType<OkObjectResult>(result);
+        this._profileService.Verify(s => s.CreateAsync(It.Is<Profile>(p => p.Id == "123456789" && p.ProfileNo == 1)), Times.Once);
+        Assert.Equal(51.5, human.Latitude);
+        Assert.Equal(-0.12, human.Longitude);
+    }
+
+    [Fact]
+    public async Task UpdateLocationReturnsNotFoundWhenProfileAndHumanMissing()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
+
         Assert.IsType<NotFoundResult>(
             await this._sut.UpdateLocation(new LocationController.LocationUpdateRequest { Latitude = 0, Longitude = 0 }));
     }
