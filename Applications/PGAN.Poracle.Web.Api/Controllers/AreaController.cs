@@ -30,7 +30,7 @@ public partial class AreaController(IHumanService humanService, IPoracleApiProxy
             }
             catch (Exception ex)
             {
-                LogParseAreaJsonFailed(_logger, ex, this.UserId);
+                LogParseAreaJsonFailed(this._logger, ex, this.UserId);
                 // Fallback: treat as comma-separated
                 areas = human.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
@@ -52,7 +52,7 @@ public partial class AreaController(IHumanService humanService, IPoracleApiProxy
         }
         catch (Exception ex)
         {
-            LogFetchAvailableAreasFailed(_logger, ex, this.UserId);
+            LogFetchAvailableAreasFailed(this._logger, ex, this.UserId);
         }
 
         return this.Ok(Array.Empty<object>());
@@ -94,7 +94,7 @@ public partial class AreaController(IHumanService humanService, IPoracleApiProxy
         }
         catch (Exception ex)
         {
-            LogFetchGeofenceDataFailed(_logger, ex);
+            LogFetchGeofenceDataFailed(this._logger, ex);
         }
 
         return this.Ok(new
@@ -120,7 +120,7 @@ public partial class AreaController(IHumanService humanService, IPoracleApiProxy
         }
         catch (Exception ex)
         {
-            LogFetchAreaMapFailed(_logger, ex, areaName);
+            LogFetchAreaMapFailed(this._logger, ex, areaName);
         }
 
         return this.NotFound();
