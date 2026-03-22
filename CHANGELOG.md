@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-22
+
 ### Fixed
-- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
-- **Nested polygon selection on area map** — smaller polygons inside larger ones (e.g. "mikes" inside "west end") can now be clicked; polygons are sorted by area so smaller ones render on top ([#12](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/12))
+- **Nested polygon selection on area map** — smaller polygons inside larger ones (e.g. "mikes" inside "west end") can now be clicked; polygons are sorted by area so smaller ones render on top ([#12](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/12), [PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
+
+### Changed
+- Convert all logger calls to `[LoggerMessage]` source generators for improved performance ([#14](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/14), [PR #15](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/15))
+- Fix locale-sensitive `ToString`/`Parse`/`StartsWith` calls, use typed HTTP header properties, replace generic exceptions in tests
 
 ## [0.5.1] - 2026-03-22
 
@@ -114,7 +119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.4.0...v0.5.1
 [0.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.3.0...v0.5.0
 [0.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.2.0...v0.4.0
