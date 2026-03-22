@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-03-22
 
 ### Fixed
-- dashboard profile card shows 'Default' when no profiles exist ([PR #24](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/24))
-## [0.5.4] - 2026-03-22
+- **Dashboard profile card shows 'Default' when no profiles exist** — instead of the misleading "Profile 1" fallback ([#23](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/23), [PR #24](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/24))
 
 ## [0.5.4] - 2026-03-22
 
@@ -141,8 +141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...HEAD
-[0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...v0.5.2
