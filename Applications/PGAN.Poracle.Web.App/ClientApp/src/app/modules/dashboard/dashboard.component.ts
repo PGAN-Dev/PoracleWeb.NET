@@ -6,15 +6,18 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { switchMap, EMPTY } from 'rxjs';
 
-import { DashboardCounts, Location } from '../../core/models';
+import { DashboardCounts, Location, Profile } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { LocationService } from '../../core/services/location.service';
+import { ProfileService } from '../../core/services/profile.service';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
 
@@ -42,6 +45,8 @@ interface Tip {
     MatCardModule,
     MatIconModule,
     MatButtonModule,
+    MatMenuModule,
+    MatSnackBarModule,
     MatTooltipModule,
     MatChipsModule,
     MatDividerModule,
@@ -60,7 +65,9 @@ export class DashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly locationService = inject(LocationService);
+  private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
+  private readonly snackBar = inject(MatSnackBar);
 
   readonly alertsPaused = computed(() => {
     const user = this.authService.user();
@@ -86,6 +93,14 @@ export class DashboardComponent implements OnInit {
   readonly locationMapUrl = signal<string>('');
 
   readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
+  readonly profiles = signal<Profile[]>([]);
+  readonly profileName = computed(() => {
+    const profiles = this.profiles();
+    const no = this.profileNo();
+    const match = profiles.find(p => p.profileNo === no);
+    return match?.name ?? `Profile ${no}`;
+  });
+
   readonly selectedAreas = signal<string[]>([]);
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
 
@@ -180,41 +195,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     // Re-check on each visit so wizard reappears after navigating away
     this.showOnboarding.set(!localStorage.getItem('poracle-onboarding-complete'));
-
-    this.dashboardService
-      .getCounts()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(c => this.counts.set(c));
-
-    this.areaService
-      .getSelected()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(a => this.selectedAreas.set(a));
-
-    this.locationService
-      .getLocation()
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap(loc => {
-          this.location.set(loc);
-          if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
-            this.locationService
-              .reverseGeocode(loc.latitude, loc.longitude)
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe(result => {
-                if (result?.display_name) this.locationAddress.set(result.display_name);
-              });
-            this.locationService
-              .getStaticMapUrl(loc.latitude, loc.longitude)
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe(result => {
-                if (result?.url) this.locationMapUrl.set(result.url);
-              });
-          }
-          return EMPTY;
-        }),
-      )
-      .subscribe();
+    this.loadDashboardData();
   }
 
   openLocationDialog(): void {
@@ -252,5 +233,72 @@ export class DashboardComponent implements OnInit {
             });
         }
       });
+  }
+
+  switchProfile(profile: Profile): void {
+    if (profile.active) return;
+    this.profileService
+      .switchProfile(profile.profileNo)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.snackBar.open('Failed to switch profile', 'OK', { duration: 3000 }),
+        next: res => {
+          if (res.token) {
+            this.authService.setToken(res.token);
+          }
+          this.snackBar.open(`Switched to "${profile.name}"`, 'OK', { duration: 3000 });
+          this.authService.loadCurrentUser();
+          // Reload all dashboard data for the new profile
+          this.loadDashboardData();
+        },
+      });
+  }
+
+  private loadDashboardData(): void {
+    this.dashboardService
+      .getCounts()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(c => this.counts.set(c));
+
+    this.areaService
+      .getSelected()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(a => this.selectedAreas.set(a));
+
+    this.profileService
+      .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(p => this.profiles.set(p));
+
+    this.loadLocation();
+  }
+
+  private loadLocation(): void {
+    this.locationAddress.set('');
+    this.locationMapUrl.set('');
+    this.locationService
+      .getLocation()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(loc => {
+          this.location.set(loc);
+          if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
+            this.locationService
+              .reverseGeocode(loc.latitude, loc.longitude)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe(result => {
+                if (result?.display_name) this.locationAddress.set(result.display_name);
+              });
+            this.locationService
+              .getStaticMapUrl(loc.latitude, loc.longitude)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe(result => {
+                if (result?.url) this.locationMapUrl.set(result.url);
+              });
+          }
+          return EMPTY;
+        }),
+      )
+      .subscribe();
   }
 }
