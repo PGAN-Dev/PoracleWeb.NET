@@ -106,7 +106,7 @@ public partial class PoracleServerService(
         {
             var sshArgs = $"-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o SendEnv=none -i {this._sshKeyPath} {server.SshUser}@{server.Host} \"{server.RestartCommand}\"";
 
-            this._logger.LogInformation("Executing SSH restart command for server {Host}", server.Host);
+            LogExecutingSshRestart(this._logger, server.Host);
 
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo
@@ -142,7 +142,7 @@ public partial class PoracleServerService(
                 catch { /* best effort */ }
                 status.Online = false;
                 status.Message = "SSH command timed out after 30 seconds";
-                this._logger.LogWarning("SSH restart timed out for server {Host}", server.Host);
+                LogSshRestartTimedOut(this._logger, server.Host);
             }
             else
             {
@@ -153,16 +153,14 @@ public partial class PoracleServerService(
                 status.Online = process.ExitCode == 0;
                 status.Message = output;
 
-                this._logger.LogInformation(
-                    "SSH restart for server {Host} completed with exit code {ExitCode}: {Output}",
-                    server.Host, process.ExitCode, output);
+                LogSshRestartCompleted(this._logger, server.Host, process.ExitCode, output);
             }
         }
         catch (Exception ex)
         {
             status.Online = false;
             status.Message = $"Failed to execute SSH command: {ex.Message}";
-            this._logger.LogError(ex, "Failed to restart server {Host} via SSH", server.Host);
+            LogRestartFailed(this._logger, ex, server.Host);
         }
 
         status.CheckedAt = DateTime.UtcNow;
@@ -222,18 +220,39 @@ public partial class PoracleServerService(
 
                 if (process.ExitCode == 0)
                 {
-                    this._logger.LogInformation("Updated group_map.json on {Host}: {Name} -> {Group}", server.Host, geofenceName, group);
+                    LogGroupMapUpdated(this._logger, server.Host, geofenceName, group);
                 }
                 else
                 {
                     var stderr = await process.StandardError.ReadToEndAsync();
-                    this._logger.LogWarning("Failed to update group_map.json on {Host}: {Error}", server.Host, stderr);
+                    LogGroupMapUpdateFailed(this._logger, server.Host, stderr);
                 }
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to update group_map.json on {Host}", server.Host);
+                LogGroupMapUpdateException(this._logger, ex, server.Host);
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Executing SSH restart command for server {Host}")]
+    private static partial void LogExecutingSshRestart(ILogger logger, string host);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "SSH restart timed out for server {Host}")]
+    private static partial void LogSshRestartTimedOut(ILogger logger, string host);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "SSH restart for server {Host} completed with exit code {ExitCode}: {Output}")]
+    private static partial void LogSshRestartCompleted(ILogger logger, string host, int exitCode, string output);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to restart server {Host} via SSH")]
+    private static partial void LogRestartFailed(ILogger logger, Exception ex, string host);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Updated group_map.json on {Host}: {Name} -> {Group}")]
+    private static partial void LogGroupMapUpdated(ILogger logger, string host, string name, string group);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to update group_map.json on {Host}: {Error}")]
+    private static partial void LogGroupMapUpdateFailed(ILogger logger, string host, string error);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to update group_map.json on {Host}")]
+    private static partial void LogGroupMapUpdateException(ILogger logger, Exception ex, string host);
 }

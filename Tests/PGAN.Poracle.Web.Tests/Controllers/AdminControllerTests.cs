@@ -414,7 +414,7 @@ public class AdminControllerTests : ControllerTestBase
     public async Task GetPoracleAdminsHandlesProxyFailure()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new Exception("fail"));
+        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new InvalidOperationException("fail"));
 
         var result = await this._sut.GetPoracleAdmins();
         // Should still return OK with just configured admin IDs
@@ -483,7 +483,7 @@ public class AdminControllerTests : ControllerTestBase
     {
         SetupUser(this._sut, isAdmin: true);
         this._poracleServerService.Setup(s => s.RestartServerAsync("10.0.0.1"))
-            .ThrowsAsync(new Exception("unexpected"));
+            .ThrowsAsync(new ApplicationException("unexpected"));
 
         var result = await this._sut.RestartPoracleServer("10.0.0.1");
         var statusCode = Assert.IsType<ObjectResult>(result);

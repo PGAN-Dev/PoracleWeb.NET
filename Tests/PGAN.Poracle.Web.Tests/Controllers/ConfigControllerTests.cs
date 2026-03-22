@@ -85,7 +85,7 @@ public class ConfigControllerTests : ControllerTestBase
     [Fact]
     public async Task GetConfigReturnsFallbackConfigWhenExceptionThrown()
     {
-        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new Exception("fail"));
+        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new InvalidOperationException("fail"));
 
         var result = await this._sut.GetConfig();
 

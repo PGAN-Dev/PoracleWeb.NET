@@ -4,7 +4,7 @@ using PGAN.Poracle.Web.Core.Abstractions.Services;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/admin/geofences")]
-public class AdminGeofenceController(IUserGeofenceService userGeofenceService, ILogger<AdminGeofenceController> logger) : BaseApiController
+public partial class AdminGeofenceController(IUserGeofenceService userGeofenceService, ILogger<AdminGeofenceController> logger) : BaseApiController
 {
     private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
     private readonly ILogger<AdminGeofenceController> _logger = logger;
@@ -48,7 +48,7 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
         }
         catch (InvalidOperationException ex)
         {
-            this._logger.LogWarning(ex, "Failed to admin delete geofence {Id}", id);
+            LogAdminDeleteFailed(_logger, ex, id);
             return this.NotFound(new
             {
                 error = ex.Message
@@ -71,7 +71,7 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
         }
         catch (InvalidOperationException ex)
         {
-            this._logger.LogWarning(ex, "Failed to approve geofence submission {Id}", id);
+            LogApproveSubmissionFailed(_logger, ex, id);
             return this.NotFound(new
             {
                 error = ex.Message
@@ -94,7 +94,7 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
         }
         catch (InvalidOperationException ex)
         {
-            this._logger.LogWarning(ex, "Failed to reject geofence submission {Id}", id);
+            LogRejectSubmissionFailed(_logger, ex, id);
             return this.NotFound(new
             {
                 error = ex.Message
@@ -114,4 +114,13 @@ public class AdminGeofenceController(IUserGeofenceService userGeofenceService, I
     {
         public string ReviewNotes { get; set; } = string.Empty;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to admin delete geofence {Id}")]
+    private static partial void LogAdminDeleteFailed(ILogger logger, Exception ex, int id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to approve geofence submission {Id}")]
+    private static partial void LogApproveSubmissionFailed(ILogger logger, Exception ex, int id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reject geofence submission {Id}")]
+    private static partial void LogRejectSubmissionFailed(ILogger logger, Exception ex, int id);
 }

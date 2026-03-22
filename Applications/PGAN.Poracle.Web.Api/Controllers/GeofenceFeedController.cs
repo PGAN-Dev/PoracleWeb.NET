@@ -8,7 +8,7 @@ namespace PGAN.Poracle.Web.Api.Controllers;
 
 [ApiController]
 [Route("api/geofence-feed")]
-public class GeofenceFeedController(
+public partial class GeofenceFeedController(
     IUserGeofenceRepository repository,
     IKojiService kojiService,
     ILogger<GeofenceFeedController> logger) : ControllerBase
@@ -45,7 +45,7 @@ public class GeofenceFeedController(
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Failed to fetch admin geofences from Koji — serving user geofences only");
+            LogFetchAdminGeofencesFailed(_logger, ex);
         }
 
         // User geofences from local DB (not user-selectable, not displayed in matches)
@@ -61,7 +61,7 @@ public class GeofenceFeedController(
                 }
                 catch (JsonException ex)
                 {
-                    this._logger.LogWarning(ex, "Failed to deserialize polygon for geofence '{KojiName}' (ID {Id})", g.KojiName, g.Id);
+                    LogDeserializePolygonFailed(_logger, ex, g.KojiName, g.Id);
                 }
 
                 if (polygon == null || polygon.Length < 3)
@@ -88,4 +88,10 @@ public class GeofenceFeedController(
             data = combined,
         });
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to fetch admin geofences from Koji — serving user geofences only")]
+    private static partial void LogFetchAdminGeofencesFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to deserialize polygon for geofence '{KojiName}' (ID {Id})")]
+    private static partial void LogDeserializePolygonFailed(ILogger logger, Exception ex, string? kojiName, int id);
 }

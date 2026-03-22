@@ -212,7 +212,7 @@ public class UserGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task GetRegionsReturnsEmptyArrayWhenServiceThrows()
     {
-        this._service.Setup(s => s.GetRegionsAsync()).ThrowsAsync(new Exception("Koji unreachable"));
+        this._service.Setup(s => s.GetRegionsAsync()).ThrowsAsync(new InvalidOperationException("Koji unreachable"));
 
         var result = await this._sut.GetRegions();
 

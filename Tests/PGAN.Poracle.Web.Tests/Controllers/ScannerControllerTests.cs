@@ -59,6 +59,6 @@ public class ScannerControllerTests : ControllerTestBase
         var result = await sut.GetActiveRaids();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Single(Assert.IsAssignableFrom<IEnumerable<RaidData>>(ok.Value));
+        Assert.Single(Assert.IsType<IEnumerable<RaidData>>(ok.Value, exactMatch: false));
     }
 }

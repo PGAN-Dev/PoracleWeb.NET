@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/auth")]
 [EnableRateLimiting("auth")]
-public class AuthController(
+public partial class AuthController(
     IHumanService humanService,
     IPoracleApiProxy poracleApiProxy,
     IPwebSettingService pwebSettingService,
@@ -112,7 +113,7 @@ public class AuthController(
         if (!tokenResponse.IsSuccessStatusCode)
         {
             var errorBody = await tokenResponse.Content.ReadAsStringAsync();
-            this._logger.LogWarning("Discord token exchange failed: {Status} {Body}", tokenResponse.StatusCode, errorBody);
+            LogDiscordTokenExchangeFailed(this._logger, tokenResponse.StatusCode, errorBody);
             return this.Redirect($"{frontendUrl}/login#error=token_exchange_failed");
         }
 
@@ -355,7 +356,7 @@ public class AuthController(
             new("type", user.Type),
             new("isAdmin", user.IsAdmin.ToString().ToLowerInvariant()),
             new("enabled", user.Enabled.ToString().ToLowerInvariant()),
-            new("profileNo", user.ProfileNo.ToString()),
+            new("profileNo", user.ProfileNo.ToString(CultureInfo.InvariantCulture)),
         };
 
         if (!string.IsNullOrEmpty(user.AvatarUrl))
@@ -407,7 +408,7 @@ public class AuthController(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch Poracle config for admin check for {UserId}.", userId);
+            LogPoracleConfigFetchFailed(this._logger, ex, userId);
         }
 
         // Call getAdministrationRoles once — resolves delegation including Discord guild roles
@@ -455,7 +456,7 @@ public class AuthController(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch administration roles for {UserId}.", userId);
+            LogAdminRolesFetchFailed(this._logger, ex, userId);
         }
 
         if (isAdmin)
@@ -470,7 +471,7 @@ public class AuthController(
             const string prefix = "webhook_delegates:";
             foreach (var setting in allSettings)
             {
-                if (setting.Setting?.StartsWith(prefix) == true)
+                if (setting.Setting?.StartsWith(prefix, StringComparison.Ordinal) == true)
                 {
                     var delegates = setting.Value?.Split(',',
                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
@@ -483,7 +484,7 @@ public class AuthController(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch pweb_settings delegates for {UserId}.", userId);
+            LogPwebDelegatesFetchFailed(this._logger, ex, userId);
         }
 
         return (false, managed.Count > 0 ? managed.ToArray() : null);
@@ -520,7 +521,7 @@ public class AuthController(
             // Need bot token and guild ID to check roles
             if (string.IsNullOrEmpty(this._discordSettings.BotToken) || string.IsNullOrEmpty(this._discordSettings.GuildId))
             {
-                this._logger.LogWarning("Role-based access enabled but Discord BotToken or GuildId not configured.");
+                LogRoleMisconfigured(this._logger);
                 return null; // Misconfigured, fail open
             }
 
@@ -535,8 +536,7 @@ public class AuthController(
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                this._logger.LogWarning("Failed to fetch guild member {UserId}: {Status} {Body}",
-                    discordId, response.StatusCode, errorBody);
+                LogGuildMemberFetchFailed(this._logger, discordId, response.StatusCode, errorBody);
                 // 404 = not in guild, 403 = bot doesn't have access
                 return response.StatusCode == System.Net.HttpStatusCode.NotFound
                     ? "not_in_guild"
@@ -557,11 +557,12 @@ public class AuthController(
                 }
             }
 
-            this._logger.LogInformation(
-                "Role check for {UserId}: required=[{Required}], user=[{UserRoles}]",
-                discordId,
-                string.Join(", ", allowedRoles),
-                string.Join(", ", userRoles));
+            if (this._logger.IsEnabled(LogLevel.Information))
+            {
+#pragma warning disable CA1873 // args are only evaluated inside IsEnabled guard
+                LogRoleCheck(this._logger, discordId, string.Join(", ", allowedRoles), string.Join(", ", userRoles));
+#pragma warning restore CA1873
+            }
 
             // User must have ALL of the allowed roles
             if (allowedRoles.IsSubsetOf(userRoles))
@@ -569,12 +570,12 @@ public class AuthController(
                 return null;
             }
 
-            this._logger.LogInformation("User {UserId} denied: missing required roles.", discordId);
+            LogRoleDenied(this._logger, discordId);
             return "missing_required_role";
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Role check failed for {UserId}, denying access.", discordId);
+            LogRoleCheckFailed(this._logger, ex, discordId);
             return "role_check_failed";
         }
     }
@@ -593,4 +594,30 @@ public class AuthController(
         return $"{this.Request.Scheme}://{this.Request.Host}";
     }
 
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Role-based access enabled but Discord BotToken or GuildId not configured.")]
+    private static partial void LogRoleMisconfigured(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch guild member {UserId}: {Status} {Body}")]
+    private static partial void LogGuildMemberFetchFailed(ILogger logger, string userId, System.Net.HttpStatusCode status, string body);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Role check for {UserId}: required=[{Required}], user=[{UserRoles}]")]
+    private static partial void LogRoleCheck(ILogger logger, string userId, string required, string userRoles);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "User {UserId} denied: missing required roles.")]
+    private static partial void LogRoleDenied(ILogger logger, string userId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Role check failed for {UserId}, denying access.")]
+    private static partial void LogRoleCheckFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Discord token exchange failed: {Status} {Body}")]
+    private static partial void LogDiscordTokenExchangeFailed(ILogger logger, System.Net.HttpStatusCode status, string body);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
+    private static partial void LogPoracleConfigFetchFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch administration roles for {UserId}.")]
+    private static partial void LogAdminRolesFetchFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch pweb_settings delegates for {UserId}.")]
+    private static partial void LogPwebDelegatesFetchFailed(ILogger logger, Exception ex, string userId);
 }
