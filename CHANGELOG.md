@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.3] - 2026-03-22
 
+## [0.5.3] - 2026-03-22
+
 ### Fixed
 - **Nested polygon click priority** — explicitly call `bringToFront()` on smaller polygons after rendering to ensure Leaflet SVG hit detection works correctly ([PR #16](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/16))
 
@@ -128,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment with Watchtower auto-updates
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
 [0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.0...v0.5.1
