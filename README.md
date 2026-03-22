@@ -329,102 +329,55 @@ Users can draw custom polygon geofences on the "My Geofences" page for precise n
 
 ### Component Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         PoracleWeb                                  │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────────┐  ┌───────────────────────┐ │
-│  │  My Geofences│  │  Geofence Mgmt   │  │  GeofenceFeedController│ │
-│  │  (Angular)   │  │  (Admin Angular) │  │  GET /api/geofence-feed│ │
-│  │  - Draw poly │  │  - Approve/Reject│  │  (AllowAnonymous)      │ │
-│  │  - Name/Rgn  │  │  - Delete        │  └──────────┬────────────┘ │
-│  │  - Submit    │  │  - Status filter │             │              │
-│  └──────┬───────┘  └──────┬──────────┘             │              │
-│         │                 │                         │              │
-│  ┌──────▼─────────────────▼──────┐                  │              │
-│  │     UserGeofenceService       │                  │              │
-│  │  - Create/Delete/Submit       │                  │              │
-│  │  - Approve → push to Koji    │                  │              │
-│  │  - humans.area management    │                  │              │
-│  └──────┬────────────┬──────────┘                  │              │
-│         │            │                              │              │
-│  ┌──────▼──────┐ ┌───▼──────────┐  ┌───────────┐  │              │
-│  │ poracle_web │ │ KojiService  │  │ Discord   │  │              │
-│  │ (MariaDB)   │ │ (approved   │  │ Notifier  │  │              │
-│  │ user_       │ │  geofences) │  │ (forum    │  │              │
-│  │ geofences   │ │             │  │  posts)   │  │              │
-│  └──────┬──────┘ └──────┬──────┘  └─────┬─────┘  │              │
-│         │               │               │         │              │
-└─────────┼───────────────┼───────────────┼─────────┼──────────────┘
-          │               │               │         │
-          │               │               │         │
-┌─────────▼──┐  ┌─────────▼──┐  ┌────────▼──┐  ┌──▼──────────────┐
-│ poracle_web│  │    Koji    │  │  Discord  │  │   PoracleJS     │
-│  Database  │  │ Geofence   │  │  Forum    │  │                 │
-│            │  │ Server     │  │  Channel  │  │ Loads from:     │
-│ Stores:    │  │            │  │           │  │ 1. Koji (admin) │
-│ - polygon  │  │ Stores:    │  │ Stores:   │  │ 2. PoracleWeb   │
-│ - status   │  │ - approved │  │ - threads │  │    feed (user)  │
-│ - owner    │  │   public   │  │ - tags    │  │                 │
-│ - review   │  │   areas    │  │ - maps    │  │ Matches spawns  │
-│            │  │            │  │           │  │ against polygons│
-└────────────┘  └────────────┘  └───────────┘  └─────────────────┘
+```mermaid
+graph TB
+    subgraph PoracleWeb
+        UI1[My Geofences Page<br/>Draw / Name / Submit]
+        UI2[Geofence Mgmt<br/>Approve / Reject / Delete]
+        Feed[GeofenceFeedController<br/>GET /api/geofence-feed]
+        Svc[UserGeofenceService<br/>Create / Delete / Submit / Approve]
+        Koji[KojiService<br/>Approved geofences only]
+        Discord[DiscordNotificationService<br/>Forum posts + maps]
+    end
+
+    DB[(poracle_web DB<br/>user_geofences)]
+    KojiServer[(Koji Server<br/>Public areas)]
+    DiscordForum[(Discord Forum<br/>Threads + Tags)]
+    Poracle[PoracleJS<br/>Loads from Koji + Feed]
+
+    UI1 --> Svc
+    UI2 --> Svc
+    Svc --> DB
+    Svc --> Koji
+    Svc --> Discord
+    Feed --> DB
+    Koji --> KojiServer
+    Discord --> DiscordForum
+    Feed -.->|user geofences| Poracle
+    KojiServer -.->|admin geofences| Poracle
 ```
 
 ### Geofence Lifecycle Flow
 
-```
-User draws polygon          Admin reviews
-on My Geofences page        on Geofence Mgmt page
-        │                           │
-        ▼                           │
-  ┌───────────┐                     │
-  │  CREATE   │                     │
-  │           │                     │
-  │ • Save to │                     │
-  │   local DB│                     │
-  │ • Add to  │                     │
-  │   area    │                     │
-  │ • Reload  │                     │
-  │   Poracle │                     │
-  └─────┬─────┘                     │
-        │                           │
-        ▼                           │
-  ┌───────────┐                     │
-  │  ACTIVE   │ ◄── Alerts work     │
-  │ (private) │     via feed        │
-  └─────┬─────┘     endpoint        │
-        │                           │
-        ▼                           │
-  ┌───────────┐   Discord forum     │
-  │  SUBMIT   │──post + map───►     │
-  └─────┬─────┘                     │
-        │                           │
-        ▼                           │
-  ┌───────────┐                     │
-  │ PENDING   │ ◄── Still works     │
-  │ REVIEW    │     privately       │
-  └─────┬─────┘                     │
-        │                    ┌──────▼──────┐
-        ├───────────────────►│   APPROVE   │
-        │                    │             │
-        │                    │ • Push to   │
-        │                    │   Koji      │
-        │                    │ • Public    │
-        │                    │   area      │
-        │                    │ • Lock      │
-        │                    │   thread    │
-        │                    └─────────────┘
-        │
-        │                    ┌─────────────┐
-        └───────────────────►│   REJECT    │
-                             │             │
-                             │ • Add notes │
-                             │ • Stays     │
-                             │   private   │
-                             │ • Lock      │
-                             │   thread    │
-                             └─────────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> Create : User draws polygon
+    Create --> Active : Save to DB + add to area + reload Poracle
+
+    Active --> Active : Alerts work via feed endpoint
+    Active --> Submitted : User clicks Submit for Review
+
+    Submitted --> PendingReview : Discord forum post created with map
+    PendingReview --> PendingReview : Still works privately
+
+    PendingReview --> Approved : Admin approves
+    PendingReview --> Rejected : Admin rejects
+
+    Approved --> [*] : Push to Koji as public area\nLock Discord thread
+    Rejected --> Active : Stays private with review notes\nLock Discord thread
+
+    note right of Active : Private — only owner\ngets alerts.\nName hidden from\nall DMs.
+    note right of Approved : Public — all users\ncan select it on\nthe Areas page.
 ```
 
 ### Requirements
@@ -465,71 +418,38 @@ Admins can monitor and restart PoracleJS instances remotely from the "Poracle Se
 
 ### Component Diagram
 
-```
-┌──────────────────────────────────────────────────┐
-│                  PoracleWeb                       │
-│                                                   │
-│  ┌─────────────────┐   ┌──────────────────────┐  │
-│  │ Poracle Servers  │   │ PoracleServerService │  │
-│  │ (Admin Angular)  │   │                      │  │
-│  │ - Status cards   │   │ - Health check (HTTP)│  │
-│  │ - Restart button │──►│ - Restart (SSH+PM2)  │  │
-│  │ - Restart All    │   │ - Configurable cmd   │  │
-│  └─────────────────┘   └───────┬──────────────┘  │
-│                                │                  │
-└────────────────────────────────┼──────────────────┘
-                                 │
-                    ┌────────────┼────────────┐
-                    │            │            │
-              ┌─────▼─────┐ ┌───▼───────┐    │
-              │  Health   │ │   SSH     │    │
-              │  Check    │ │  Restart  │    │
-              │  (HTTP)   │ │  (PM2)    │    │
-              └─────┬─────┘ └───┬───────┘    │
-                    │           │             │
-         ┌──────────▼───┐ ┌────▼────────┐    │
-         │ Main Server  │ │ Secondary   │   ...
-         │ 10.0.3.178   │ │ 10.0.6.107  │
-         │ Linux / root │ │ macOS       │
-         │ pm2 restart  │ │ PATH=...    │
-         │ all          │ │ pm2 restart │
-         │              │ │ all         │
-         │ API :3030    │ │ API :3035   │
-         └──────────────┘ └─────────────┘
+```mermaid
+graph TB
+    subgraph PoracleWeb
+        UI[Poracle Servers Page<br/>Status cards + Restart buttons]
+        Svc[PoracleServerService<br/>Health check + SSH restart]
+    end
+
+    UI --> Svc
+
+    subgraph Servers
+        S1[Main Server<br/>10.0.3.178 · Linux<br/>API :3030 · root]
+        S2[Secondary Server<br/>10.0.6.107 · macOS<br/>API :3035 · hokiepokedad]
+    end
+
+    Svc -->|HTTP health check| S1
+    Svc -->|HTTP health check| S2
+    Svc -->|SSH + pm2 restart all| S1
+    Svc -->|SSH + PATH=... pm2 restart all| S2
 ```
 
 ### Restart Flow
 
-```
-Admin clicks "Restart"
-        │
-        ▼
-┌─────────────────┐     ┌──────────────────┐
-│ Confirm Dialog  │────►│ POST /api/admin/ │
-│ "Are you sure?" │     │ poracle/servers/ │
-└─────────────────┘     │ {host}/restart   │
-                        └────────┬─────────┘
-                                 │
-                                 ▼
-                        ┌──────────────────┐
-                        │ SSH to server    │
-                        │ ssh -i key       │
-                        │ user@host        │
-                        │ "restart cmd"    │
-                        │ (30s timeout)    │
-                        └────────┬─────────┘
-                                 │
-                    ┌────────────┼────────────┐
-                    │            │            │
-              ┌─────▼─────┐ ┌───▼───────┐ ┌──▼──────────┐
-              │  Success  │ │  Timeout  │ │  SSH Error  │
-              │  exit 0   │ │  30s      │ │  key/host   │
-              │           │ │           │ │             │
-              │  Snackbar │ │  Kill     │ │  Snackbar   │
-              │  "Server  │ │  process  │ │  "Failed"   │
-              │  restarted│ │  tree     │ │             │
-              │"          │ │           │ │             │
-              └───────────┘ └───────────┘ └─────────────┘
+```mermaid
+flowchart TD
+    A[Admin clicks Restart] --> B{Confirm Dialog}
+    B -->|Cancel| Z[No action]
+    B -->|Confirm| C[POST /api/admin/poracle/servers/host/restart]
+    C --> D[SSH to server with key<br/>30 second timeout]
+    D --> E{Result}
+    E -->|Exit code 0| F[✅ Snackbar: Server restarted<br/>Status refreshed]
+    E -->|Timeout 30s| G[⚠️ Kill process tree<br/>Snackbar: Timed out]
+    E -->|SSH error| H[❌ Snackbar: Failed<br/>Check key/host]
 ```
 
 ### Requirements
