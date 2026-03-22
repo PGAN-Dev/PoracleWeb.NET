@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- changelog workflow inserts entries in wrong section + double-v prefix ([PR #21](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/21))
 ## [0.5.3] - 2026-03-22
 
 ## [0.5.3] - 2026-03-22
