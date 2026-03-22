@@ -195,46 +195,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     // Re-check on each visit so wizard reappears after navigating away
     this.showOnboarding.set(!localStorage.getItem('poracle-onboarding-complete'));
-
-    this.dashboardService
-      .getCounts()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(c => this.counts.set(c));
-
-    this.areaService
-      .getSelected()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(a => this.selectedAreas.set(a));
-
-    this.profileService
-      .getAll()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(p => this.profiles.set(p));
-
-    this.locationService
-      .getLocation()
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        switchMap(loc => {
-          this.location.set(loc);
-          if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
-            this.locationService
-              .reverseGeocode(loc.latitude, loc.longitude)
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe(result => {
-                if (result?.display_name) this.locationAddress.set(result.display_name);
-              });
-            this.locationService
-              .getStaticMapUrl(loc.latitude, loc.longitude)
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe(result => {
-                if (result?.url) this.locationMapUrl.set(result.url);
-              });
-          }
-          return EMPTY;
-        }),
-      )
-      .subscribe();
+    this.loadDashboardData();
   }
 
   openLocationDialog(): void {
@@ -283,20 +244,61 @@ export class DashboardComponent implements OnInit {
         error: () => this.snackBar.open('Failed to switch profile', 'OK', { duration: 3000 }),
         next: res => {
           if (res.token) {
-            localStorage.setItem('poracle_token', res.token);
+            this.authService.setToken(res.token);
           }
           this.snackBar.open(`Switched to "${profile.name}"`, 'OK', { duration: 3000 });
           this.authService.loadCurrentUser();
-          this.profileService
-            .getAll()
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(p => this.profiles.set(p));
-          // Reload dashboard data for new profile
-          this.dashboardService
-            .getCounts()
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(c => this.counts.set(c));
+          // Reload all dashboard data for the new profile
+          this.loadDashboardData();
         },
       });
+  }
+
+  private loadDashboardData(): void {
+    this.dashboardService
+      .getCounts()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(c => this.counts.set(c));
+
+    this.areaService
+      .getSelected()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(a => this.selectedAreas.set(a));
+
+    this.profileService
+      .getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(p => this.profiles.set(p));
+
+    this.loadLocation();
+  }
+
+  private loadLocation(): void {
+    this.locationAddress.set('');
+    this.locationMapUrl.set('');
+    this.locationService
+      .getLocation()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(loc => {
+          this.location.set(loc);
+          if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
+            this.locationService
+              .reverseGeocode(loc.latitude, loc.longitude)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe(result => {
+                if (result?.display_name) this.locationAddress.set(result.display_name);
+              });
+            this.locationService
+              .getStaticMapUrl(loc.latitude, loc.longitude)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe(result => {
+                if (result?.url) this.locationMapUrl.set(result.url);
+              });
+          }
+          return EMPTY;
+        }),
+      )
+      .subscribe();
   }
 }

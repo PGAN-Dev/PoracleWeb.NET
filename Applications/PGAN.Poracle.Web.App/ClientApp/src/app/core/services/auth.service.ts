@@ -103,6 +103,11 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
+  /** Store a new JWT token (e.g. after profile switch). */
+  setToken(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+
   /** Restore the admin's original token. */
   async stopImpersonating(): Promise<void> {
     const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);

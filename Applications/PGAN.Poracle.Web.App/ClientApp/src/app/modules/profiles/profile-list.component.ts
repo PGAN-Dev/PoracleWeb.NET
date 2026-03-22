@@ -124,7 +124,7 @@ export class ProfileListComponent implements OnInit {
           this.switching.set(false);
           // Save the new JWT with updated profileNo
           if (res.token) {
-            localStorage.setItem('poracle_token', res.token);
+            this.authService.setToken(res.token);
           }
           this.snackBar.open(`Switched to profile "${profile.name}"`, 'OK', {
             duration: 3000,

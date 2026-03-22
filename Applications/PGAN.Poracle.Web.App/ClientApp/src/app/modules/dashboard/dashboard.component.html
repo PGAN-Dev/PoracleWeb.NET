@@ -57,28 +57,41 @@
     </mat-card>
 
     <!-- Profile Card -->
-    <mat-card class="status-card profile-card" [matMenuTriggerFor]="profileMenu">
-      <div class="status-icon-wrap profile-icon">
-        <mat-icon>person</mat-icon>
-      </div>
-      <div class="status-info">
-        <span class="status-label">Profile</span>
-        <span class="status-value">{{ profileName() }}</span>
-      </div>
-      <mat-icon class="status-arrow">expand_more</mat-icon>
-    </mat-card>
-    <mat-menu #profileMenu="matMenu">
-      @for (profile of profiles(); track profile.profileNo) {
-        <button mat-menu-item [class.active-profile]="profile.active" (click)="switchProfile(profile)">
-          <mat-icon>{{ profile.active ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
-          <span>{{ profile.name }}</span>
+    @if (profiles().length > 1) {
+      <mat-card class="status-card profile-card" [matMenuTriggerFor]="profileMenu">
+        <div class="status-icon-wrap profile-icon">
+          <mat-icon>person</mat-icon>
+        </div>
+        <div class="status-info">
+          <span class="status-label">Profile</span>
+          <span class="status-value">{{ profileName() }}</span>
+        </div>
+        <mat-icon class="status-arrow">expand_more</mat-icon>
+      </mat-card>
+      <mat-menu #profileMenu="matMenu">
+        @for (profile of profiles(); track profile.profileNo) {
+          <button mat-menu-item [class.active-profile]="profile.active" (click)="switchProfile(profile)">
+            <mat-icon>{{ profile.active ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
+            <span>{{ profile.name }}</span>
+          </button>
+        }
+        <button mat-menu-item (click)="navigate('/profiles')">
+          <mat-icon>settings</mat-icon>
+          <span>Manage Profiles</span>
         </button>
-      }
-      <button mat-menu-item (click)="navigate('/profiles')">
-        <mat-icon>settings</mat-icon>
-        <span>Manage Profiles</span>
-      </button>
-    </mat-menu>
+      </mat-menu>
+    } @else {
+      <mat-card class="status-card profile-card" (click)="navigate('/profiles')">
+        <div class="status-icon-wrap profile-icon">
+          <mat-icon>person</mat-icon>
+        </div>
+        <div class="status-info">
+          <span class="status-label">Profile</span>
+          <span class="status-value">{{ profileName() }}</span>
+        </div>
+        <mat-icon class="status-arrow">chevron_right</mat-icon>
+      </mat-card>
+    }
   </div>
 
   <!-- Areas Chips -->
