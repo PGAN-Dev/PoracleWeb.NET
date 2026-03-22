@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-03-22
+
+### Fixed
+- **Nested polygon click priority** — explicitly call `bringToFront()` on smaller polygons after rendering to ensure Leaflet SVG hit detection works correctly ([PR #16](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/16))
+
 ## [0.5.2] - 2026-03-22
 
 ### Fixed
-- explicitly bringToFront smaller polygons for click priority ([PR #16](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/16))
 - **Nested polygon selection on area map** — smaller polygons inside larger ones (e.g. "mikes" inside "west end") can now be clicked; polygons are sorted by area so smaller ones render on top ([#12](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/12), [PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 
 ### Changed
@@ -20,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.1] - 2026-03-22
 
 ### Fixed
-- explicitly bringToFront smaller polygons for click priority ([PR #16](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/16))
 - Koji Poracle format URL missing `?name=true` — geofence names were empty in the unified feed
 
 ## [0.5.0] - 2026-03-22
@@ -40,9 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2026-03-22
 
 ### Added
-- Unified geofence proxy feed — PoracleWeb as single geofence source ([PR #11](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/11))
-- Admin remote Poracle server restart ([PR #8](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/8))
-- User-drawn custom geofences with admin review workflow ([PR #6](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/6))
 - **Admin Poracle Server Management** — Monitor and restart PoracleJS instances remotely from the admin panel
   - Multi-server support with configurable servers (name, host, SSH user)
   - Real-time health status indicators (online/offline)
@@ -84,8 +84,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Geofence names stored lowercase for Poracle case-sensitive matching
 
 ### Fixed
-- explicitly bringToFront smaller polygons for click priority ([PR #16](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/16))
-- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 - Leaflet Draw `draw:created` event binding uses string literal instead of `L.Draw.Event.CREATED`
 - `displayInMatches` set to `false` on user geofences to prevent name leaking in DMs
 - Discord notification tag cache now uses static fields (persists across transient instances)
@@ -96,22 +94,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-03-21
 
 ### Fixed
-- explicitly bringToFront smaller polygons for click priority ([PR #16](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/16))
-- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 - **Pokemon IV validation**: ATK/DEF/STA fields now enforce 0-15 range with error messages ([#3](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/3), [PR #4](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/4))
 
 ### Added
-- Unified geofence proxy feed — PoracleWeb as single geofence source ([PR #11](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/11))
-- Admin remote Poracle server restart ([PR #8](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/8))
-- User-drawn custom geofences with admin review workflow ([PR #6](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/6))
 - **Pokemon type filter**: Filter by Pokemon type with UICONS type icons from masterfile ([#3](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/3), [PR #4](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/4))
 - **Tile grid selector**: Clickable tile grid for bulk Pokemon selection when gen/type filter is active
 
 ## [0.2.0] - 2026-03-21
 
 ### Fixed
-- explicitly bringToFront smaller polygons for click priority ([PR #16](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/16))
-- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 - **Alerts saving to wrong profile**: All alarm types now use profile from JWT claim instead of hardcoded profile 1 ([#1](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1), [PR #2](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/2))
 - **Location not profile-scoped**: Location reads/writes from profiles table with dual-write to humans for PoracleJS compatibility ([#1](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1), [PR #2](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/2))
 
@@ -122,9 +113,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-03-20
 
 ### Added
-- Unified geofence proxy feed — PoracleWeb as single geofence source ([PR #11](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/11))
-- Admin remote Poracle server restart ([PR #8](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/8))
-- User-drawn custom geofences with admin review workflow ([PR #6](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/6))
 - Initial release of PoracleWeb
 - Discord OAuth2 and Telegram authentication
 - Pokemon, Raid, Quest, Invasion, Lure, Nest, Gym alarm management
@@ -139,11 +127,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.0...v0.5.1
-[0.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.3.0...v0.5.0
-[0.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.2.0...v0.4.0
+[0.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/releases/tag/v0.1.0
