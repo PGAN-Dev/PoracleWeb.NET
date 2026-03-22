@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.4] - 2026-03-22
 
+## [0.5.4] - 2026-03-22
+
 ### Added
 - **Dashboard profile quick-switch** — profile card now shows actual profile name with a dropdown menu to switch profiles without leaving the dashboard ([#19](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/19), [PR #22](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/22))
 
@@ -137,6 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment with Watchtower auto-updates
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...HEAD
+[0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
 [0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...v0.5.2
