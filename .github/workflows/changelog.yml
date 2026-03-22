@@ -84,8 +84,11 @@ jobs:
           fi
 
           # Use awk to insert entry under [Unreleased] only (not older release sections)
-          awk -v category="### $CATEGORY" -v entry="- $ENTRY ([PR #$PR_NUM]($PR_URL))" '
-          BEGIN { found_unreleased=0; inserted=0 }
+          # Pass values via environment to avoid awk -v escaping issues with special characters
+          export AWK_CATEGORY="### $CATEGORY"
+          export AWK_ENTRY="- $ENTRY ([PR #$PR_NUM]($PR_URL))"
+          awk '
+          BEGIN { category=ENVIRON["AWK_CATEGORY"]; entry=ENVIRON["AWK_ENTRY"]; found_unreleased=0; inserted=0 }
           /^## \[Unreleased\]/ { found_unreleased=1; print; next }
           # If we hit the next version section, unreleased block is over
           found_unreleased && /^## \[/ {
@@ -121,7 +124,14 @@ jobs:
               print entry
             }
           }
-          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+          ' CHANGELOG.md > CHANGELOG.tmp
+          if [ -s CHANGELOG.tmp ]; then
+            mv CHANGELOG.tmp CHANGELOG.md
+          else
+            echo "::error::awk produced empty output — CHANGELOG.md not modified"
+            rm -f CHANGELOG.tmp
+            exit 1
+          fi
 
       - name: Commit and push
         if: steps.categorize.outputs.skip != 'true'
