@@ -48,7 +48,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         }
         catch (InvalidOperationException ex)
         {
-            LogAdminDeleteFailed(_logger, ex, id);
+            LogAdminDeleteFailed(this._logger, ex, id);
             return this.NotFound(new
             {
                 error = ex.Message
@@ -71,7 +71,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         }
         catch (InvalidOperationException ex)
         {
-            LogApproveSubmissionFailed(_logger, ex, id);
+            LogApproveSubmissionFailed(this._logger, ex, id);
             return this.NotFound(new
             {
                 error = ex.Message
@@ -94,7 +94,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         }
         catch (InvalidOperationException ex)
         {
-            LogRejectSubmissionFailed(_logger, ex, id);
+            LogRejectSubmissionFailed(this._logger, ex, id);
             return this.NotFound(new
             {
                 error = ex.Message

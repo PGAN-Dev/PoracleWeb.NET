@@ -27,7 +27,7 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
         }
         catch (InvalidOperationException ex)
         {
-            LogCreateGeofenceFailed(_logger, ex, this.UserId);
+            LogCreateGeofenceFailed(this._logger, ex, this.UserId);
             return this.BadRequest(new
             {
                 error = ex.Message
@@ -52,7 +52,7 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogDeleteGeofenceUnauthorized(_logger, ex, this.UserId, id);
+            LogDeleteGeofenceUnauthorized(this._logger, ex, this.UserId, id);
             return this.Forbid();
         }
     }
@@ -74,7 +74,7 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
         }
         catch (UnauthorizedAccessException ex)
         {
-            LogSubmitGeofenceUnauthorized(_logger, ex, this.UserId, kojiName);
+            LogSubmitGeofenceUnauthorized(this._logger, ex, this.UserId, kojiName);
             return this.Forbid();
         }
     }
@@ -89,7 +89,7 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
         }
         catch (Exception ex)
         {
-            LogFetchRegionsFailed(_logger, ex);
+            LogFetchRegionsFailed(this._logger, ex);
             return this.Ok(Array.Empty<object>());
         }
     }
