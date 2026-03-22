@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 - **Nested polygon selection on area map** — smaller polygons inside larger ones (e.g. "mikes" inside "west end") can now be clicked; polygons are sorted by area so smaller ones render on top ([#12](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/12))
 
 ## [0.5.1] - 2026-03-22
@@ -61,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Geofence names stored lowercase for Poracle case-sensitive matching
 
 ### Fixed
+- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 - Leaflet Draw `draw:created` event binding uses string literal instead of `L.Draw.Event.CREATED`
 - `displayInMatches` set to `false` on user geofences to prevent name leaking in DMs
 - Discord notification tag cache now uses static fields (persists across transient instances)
@@ -71,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-03-21
 
 ### Fixed
+- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 - **Pokemon IV validation**: ATK/DEF/STA fields now enforce 0-15 range with error messages ([#3](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/3), [PR #4](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/4))
 
 ### Added
@@ -83,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-03-21
 
 ### Fixed
+- nested polygon selection on area map ([PR #13](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/13))
 - **Alerts saving to wrong profile**: All alarm types now use profile from JWT claim instead of hardcoded profile 1 ([#1](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1), [PR #2](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/2))
 - **Location not profile-scoped**: Location reads/writes from profiles table with dual-write to humans for PoracleJS compatibility ([#1](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/1), [PR #2](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/2))
 
