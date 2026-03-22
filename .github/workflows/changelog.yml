@@ -83,13 +83,54 @@ jobs:
           INIT
           fi
 
-          # Check if the category section exists under [Unreleased]
-          if grep -q "^### $CATEGORY" CHANGELOG.md; then
-            # Add entry after the category header
-            sed -i "/^### $CATEGORY/a - $ENTRY ([PR #$PR_NUM]($PR_URL))" CHANGELOG.md
+          # Use awk to insert entry under [Unreleased] only (not older release sections)
+          # Pass values via environment to avoid awk -v escaping issues with special characters
+          export AWK_CATEGORY="### $CATEGORY"
+          export AWK_ENTRY="- $ENTRY ([PR #$PR_NUM]($PR_URL))"
+          awk '
+          BEGIN { category=ENVIRON["AWK_CATEGORY"]; entry=ENVIRON["AWK_ENTRY"]; found_unreleased=0; inserted=0 }
+          /^## \[Unreleased\]/ { found_unreleased=1; print; next }
+          # If we hit the next version section, unreleased block is over
+          found_unreleased && /^## \[/ {
+            if (!inserted) {
+              print ""
+              print category
+              print entry
+              inserted=1
+            }
+            found_unreleased=0
+            print; next
+          }
+          # Found existing category header under [Unreleased]
+          found_unreleased && !inserted && $0 == category {
+            print
+            print entry
+            inserted=1
+            next
+          }
+          # Hit a different category or blank line before any matching category — insert new section before it
+          found_unreleased && !inserted && /^### / {
+            print category
+            print entry
+            print ""
+            inserted=1
+            print; next
+          }
+          { print }
+          END {
+            if (!inserted) {
+              print ""
+              print category
+              print entry
+            }
+          }
+          ' CHANGELOG.md > CHANGELOG.tmp
+          if [ -s CHANGELOG.tmp ]; then
+            mv CHANGELOG.tmp CHANGELOG.md
           else
-            # Add new category section after [Unreleased] header
-            sed -i "/^## \[Unreleased\]/a \\\n### $CATEGORY\n- $ENTRY ([PR #$PR_NUM]($PR_URL))" CHANGELOG.md
+            echo "::error::awk produced empty output — CHANGELOG.md not modified"
+            rm -f CHANGELOG.tmp
+            exit 1
           fi
 
       - name: Commit and push
