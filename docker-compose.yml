@@ -51,6 +51,7 @@ services:
       - Koji__ApiAddress=${KOJI_API_ADDRESS:-}
       - Koji__BearerToken=${KOJI_BEARER_TOKEN:-}
       - Koji__ProjectId=${KOJI_PROJECT_ID:-0}  # Koji project ID for admin-promoted geofences
+      - Koji__ProjectName=${KOJI_PROJECT_NAME:-}  # Koji project name for Poracle format endpoint
       # CORS (comma-separated origins, leave empty to allow all)
       - Cors__AllowedOrigins__0=${CORS_ORIGIN:-}
       # DTS source path (inside container)

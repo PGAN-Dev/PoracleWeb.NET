@@ -321,11 +321,12 @@ Users can draw custom polygon geofences on the "My Geofences" page for precise n
 ### How it works
 
 1. User draws a polygon on the map → saved to the PoracleWeb database
-2. PoracleWeb serves user geofences via `GET /api/geofence-feed` in Poracle format
-3. PoracleJS loads geofences from both **Koji** (admin areas) and **PoracleWeb** (user geofences)
+2. PoracleWeb serves a **unified geofence feed** via `GET /api/geofence-feed` — merges admin geofences from Koji with user-drawn geofences, resolving group names from the Koji parent chain
+3. PoracleJS loads **all** geofences from a single PoracleWeb URL (no direct Koji connection needed)
 4. User geofences have `displayInMatches: false` — names are hidden from all DMs for privacy
-5. Users can submit geofences for admin review → creates a Discord forum post with a static map
-6. Admins approve → geofence promoted to Koji as a public area visible to all users
+5. Admin geofences have `displayInMatches: true` and `group` populated from Koji parent hierarchy
+6. Users can submit geofences for admin review → creates a Discord forum post with a static map
+7. Admins approve → geofence promoted to Koji as a public area visible to all users
 
 ### Component Diagram
 
@@ -334,16 +335,16 @@ graph TB
     subgraph PoracleWeb
         UI1[My Geofences Page<br/>Draw / Name / Submit]
         UI2[Geofence Mgmt<br/>Approve / Reject / Delete]
-        Feed[GeofenceFeedController<br/>GET /api/geofence-feed]
+        Feed[GeofenceFeedController<br/>GET /api/geofence-feed<br/>Unified proxy]
         Svc[UserGeofenceService<br/>Create / Delete / Submit / Approve]
-        Koji[KojiService<br/>Approved geofences only]
+        Koji[KojiService<br/>Fetch admin geofences + approve]
         Discord[DiscordNotificationService<br/>Forum posts + maps]
     end
 
     DB[(poracle_web DB<br/>user_geofences)]
     KojiServer[(Koji Server<br/>Public areas)]
     DiscordForum[(Discord Forum<br/>Threads + Tags)]
-    Poracle[PoracleJS<br/>Loads from Koji + Feed]
+    Poracle[PoracleJS<br/>Single URL to PoracleWeb]
 
     UI1 --> Svc
     UI2 --> Svc
@@ -351,10 +352,10 @@ graph TB
     Svc --> Koji
     Svc --> Discord
     Feed --> DB
+    Feed --> Koji
     Koji --> KojiServer
     Discord --> DiscordForum
-    Feed -.->|user geofences| Poracle
-    KojiServer -.->|admin geofences| Poracle
+    Feed -.->|admin + user geofences| Poracle
 ```
 
 ### Geofence Lifecycle Flow
@@ -390,18 +391,16 @@ stateDiagram-v2
 
 2. **Koji** — required for region detection and promoting approved geofences. Set `Koji:ApiAddress`, `Koji:BearerToken`, and `Koji:ProjectId`.
 
-3. **PoracleJS config** — update `geofence.path` to load from both Koji and PoracleWeb:
+3. **PoracleJS config** — update `geofence.path` to load from PoracleWeb's unified feed endpoint. PoracleWeb proxies admin geofences from Koji and merges them with user geofences, so PoracleJS only needs a single URL:
    ```json
    "geofence": {
-     "path": [
-       "http://koji-host:8080/api/v1/geofence/poracle/YourProject?name=true&group=true",
-       "http://poracleweb-host:8082/api/geofence-feed"
-     ],
+     "path": "http://poracleweb-host:8082/api/geofence-feed",
      "kojiOptions": {
        "bearerToken": "your-koji-token"
      }
    }
    ```
+   The `kojiOptions.bearerToken` is harmless (PoracleWeb ignores it) but can be left for backward compatibility.
    Restart PoracleJS after changing: `pm2 restart all`
 
 4. **Discord forum channel** (optional) — for geofence submission discussions. Set `Discord:GeofenceForumChannelId` and give the bot **View Channel**, **Send Messages in Threads**, and **Manage Threads** permissions on the channel. Forum tags (Pending/Approved/Rejected) are auto-created if the bot has **Manage Channels** permission, or create them manually.

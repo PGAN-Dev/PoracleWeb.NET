@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Status badges on geofence cards (Pending, Approved, Rejected)
 
 ### Changed
+- PoracleWeb now serves as unified geofence proxy — PoracleJS loads all geofences from a single PoracleWeb endpoint instead of dual Koji+PoracleWeb sources. Groups resolved from Koji parent chain. Removes need for custom group_map.json in PoracleJS.
 - Areas page no longer shows user-created geofences (privacy fix)
 - Geofence names stored lowercase for Poracle case-sensitive matching
 

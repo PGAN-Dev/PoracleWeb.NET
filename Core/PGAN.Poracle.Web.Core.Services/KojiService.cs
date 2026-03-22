@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
@@ -6,13 +7,17 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class KojiService(HttpClient httpClient, IConfiguration configuration, ILogger<KojiService> logger) : IKojiService
+public class KojiService(HttpClient httpClient, IConfiguration configuration, IMemoryCache memoryCache, ILogger<KojiService> logger) : IKojiService
 {
+    private const string AdminGeofenceCacheKey = "koji_admin_geofences";
+    private static readonly TimeSpan s_cacheDuration = TimeSpan.FromMinutes(5);
     private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private readonly HttpClient _httpClient = httpClient;
+    private readonly IMemoryCache _memoryCache = memoryCache;
     private readonly string _apiAddress = (configuration["Koji:ApiAddress"] ?? string.Empty).TrimEnd('/');
     private readonly int _projectId = int.TryParse(configuration["Koji:ProjectId"], out var id) ? id : 0;
+    private readonly string _projectName = configuration["Koji:ProjectName"] ?? string.Empty;
     private readonly ILogger<KojiService> _logger = logger;
 
     public async Task SaveGeofenceAsync(string geofenceName, string displayName, string group, int parentId, double[][] polygon, bool isPublic = false)
@@ -351,5 +356,193 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IL
             this._logger.LogWarning(ex, "Geofence '{GeofenceName}' not found in Koji", geofenceName);
             return null;
         }
+    }
+
+    public async Task<List<AdminGeofence>> GetAdminGeofencesAsync()
+    {
+        if (this._memoryCache.TryGetValue(AdminGeofenceCacheKey, out List<AdminGeofence>? cached) && cached != null)
+        {
+            return cached;
+        }
+
+        var result = await this.FetchAdminGeofencesFromKojiAsync();
+        this._memoryCache.Set(AdminGeofenceCacheKey, result, s_cacheDuration);
+        return result;
+    }
+
+    public void InvalidateAdminGeofenceCache()
+    {
+        this._memoryCache.Remove(AdminGeofenceCacheKey);
+        this._logger.LogInformation("Admin geofence cache invalidated");
+    }
+
+    private async Task<List<AdminGeofence>> FetchAdminGeofencesFromKojiAsync()
+    {
+        if (string.IsNullOrEmpty(this._projectName))
+        {
+            this._logger.LogWarning("Koji:ProjectName is not configured — cannot fetch admin geofences");
+            return [];
+        }
+
+        // Step 1: Fetch reference data to get parent IDs
+        var referenceJson = await this._httpClient.GetStringAsync($"{this._apiAddress}/api/v1/geofence/reference");
+        using var referenceDoc = JsonDocument.Parse(referenceJson);
+
+        if (!referenceDoc.RootElement.TryGetProperty("data", out var refData) || refData.ValueKind != JsonValueKind.Array)
+        {
+            this._logger.LogWarning("Koji reference endpoint returned no data array");
+            return [];
+        }
+
+        // Build id→name map and identify parent IDs
+        var idToName = new Dictionary<int, string>();
+        var parentIds = new HashSet<int>();
+
+        foreach (var entry in refData.EnumerateArray())
+        {
+            var id = entry.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : 0;
+            var name = entry.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
+            var parent = entry.TryGetProperty("parent", out var parentProp) && parentProp.ValueKind == JsonValueKind.Number
+                ? parentProp.GetInt32()
+                : (int?)null;
+
+            idToName[id] = name;
+
+            if (parent.HasValue)
+            {
+                parentIds.Add(parent.Value);
+            }
+        }
+
+        // Step 2: Fetch friendly display names for parent geofences (these become group names)
+        var parentIdToGroupName = new Dictionary<int, string>();
+        var parentFetchTasks = parentIds.Select(async parentId =>
+        {
+            if (!idToName.TryGetValue(parentId, out var parentInternalName))
+            {
+                return;
+            }
+
+            try
+            {
+                var featureJson = await this._httpClient.GetStringAsync(
+                    $"{this._apiAddress}/api/v1/geofence/area/{Uri.EscapeDataString(parentInternalName)}?rt=feature");
+                using var featureDoc = JsonDocument.Parse(featureJson);
+                var feature = featureDoc.RootElement.GetProperty("data");
+
+                var displayName = parentInternalName;
+                if (feature.TryGetProperty("properties", out var props) &&
+                    props.TryGetProperty("name", out var nameEl))
+                {
+                    displayName = nameEl.GetString() ?? parentInternalName;
+                }
+
+                lock (parentIdToGroupName)
+                {
+                    parentIdToGroupName[parentId] = displayName;
+                }
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to fetch parent geofence display name for '{ParentName}' (ID {ParentId})",
+                    parentInternalName, parentId);
+                lock (parentIdToGroupName)
+                {
+                    parentIdToGroupName[parentId] = parentInternalName;
+                }
+            }
+        });
+
+        await Task.WhenAll(parentFetchTasks);
+
+        // Build parent-to-child map from reference data for filtering
+        var childParentMap = new Dictionary<string, int>();
+        foreach (var entry in refData.EnumerateArray())
+        {
+            var name = entry.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
+            var parent = entry.TryGetProperty("parent", out var parentProp) && parentProp.ValueKind == JsonValueKind.Number
+                ? parentProp.GetInt32()
+                : 0;
+
+            if (parent > 0)
+            {
+                childParentMap[name] = parent;
+            }
+        }
+
+        // Step 3: Fetch Poracle format geofences for the project
+        var poracleJson = await this._httpClient.GetStringAsync(
+            $"{this._apiAddress}/api/v1/geofence/poracle/{Uri.EscapeDataString(this._projectName)}");
+        using var poracleDoc = JsonDocument.Parse(poracleJson);
+
+        if (!poracleDoc.RootElement.TryGetProperty("data", out var poracleData) || poracleData.ValueKind != JsonValueKind.Array)
+        {
+            this._logger.LogWarning("Koji Poracle endpoint returned no data array for project '{ProjectName}'", this._projectName);
+            return [];
+        }
+
+        var adminGeofences = new List<AdminGeofence>();
+        var geofenceId = 0;
+
+        foreach (var item in poracleData.EnumerateArray())
+        {
+            var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
+
+            // Skip parent/region geofences — they're scanner regions, not user-selectable areas
+            if (parentIds.Any(pid => idToName.TryGetValue(pid, out var pName) && string.Equals(pName, name, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            // Extract path (Koji Poracle format returns path as [[lat,lon],...])
+            double[][] path = [];
+            if (item.TryGetProperty("path", out var pathEl) && pathEl.ValueKind == JsonValueKind.Array)
+            {
+                path = new double[pathEl.GetArrayLength()][];
+                for (var i = 0; i < pathEl.GetArrayLength(); i++)
+                {
+                    var point = pathEl[i];
+                    if (point.ValueKind == JsonValueKind.Array && point.GetArrayLength() >= 2)
+                    {
+                        path[i] = [point[0].GetDouble(), point[1].GetDouble()];
+                    }
+                }
+            }
+
+            if (path.Length < 3)
+            {
+                continue;
+            }
+
+            // Resolve group from parent chain
+            var group = string.Empty;
+            if (childParentMap.TryGetValue(name, out var parentId) &&
+                parentIdToGroupName.TryGetValue(parentId, out var groupName))
+            {
+                group = groupName;
+            }
+
+            // Extract description and color from Koji properties if available
+            var description = item.TryGetProperty("description", out var descEl) ? descEl.GetString() ?? string.Empty : string.Empty;
+            var color = item.TryGetProperty("color", out var colorEl) ? colorEl.GetString() ?? "#3399ff" : "#3399ff";
+
+            adminGeofences.Add(new AdminGeofence
+            {
+                Id = ++geofenceId,
+                Name = name,
+                Group = group,
+                Path = path,
+                UserSelectable = true,
+                DisplayInMatches = true,
+                Description = description,
+                Color = color,
+            });
+        }
+
+        this._logger.LogInformation(
+            "Fetched {Count} admin geofences from Koji project '{ProjectName}' with {ParentCount} groups resolved",
+            adminGeofences.Count, this._projectName, parentIdToGroupName.Count);
+
+        return adminGeofences;
     }
 }

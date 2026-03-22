@@ -445,6 +445,7 @@ public partial class UserGeofenceService(
     {
         try
         {
+            this._kojiService.InvalidateAdminGeofenceCache();
             await this._poracleApiProxy.ReloadGeofencesAsync();
         }
         catch (Exception ex)

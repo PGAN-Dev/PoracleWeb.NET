@@ -94,11 +94,13 @@ PGAN.Poracle.Web.slnx
 
 ### Custom Geofences
 - User geofences are stored in `poracle_web.user_geofences` (separate database from Poracle, see "PoracleWeb Database" below).
-- PoracleWeb serves user geofences via `GET /api/geofence-feed` (`[AllowAnonymous]`, intended for internal network access by PoracleJS).
-- PoracleJS loads geofences from both Koji (admin-managed areas) AND the PoracleWeb feed (user-drawn geofences) via its `geofence.path` array config.
+- **PoracleWeb is the single geofence source for PoracleJS.** The `GET /api/geofence-feed` endpoint (`[AllowAnonymous]`, intended for internal network access) serves a unified feed that merges admin geofences from Koji with user-drawn geofences from the PoracleWeb database.
+- PoracleJS `geofence.path` config is a single URL pointing to PoracleWeb (not an array, not dual Koji+PoracleWeb sources).
+- Admin geofences are fetched from Koji at request time, with group names resolved from the Koji parent chain. They are served with `displayInMatches: true` and `group` populated.
 - User geofences are served with `displayInMatches: false` and `userSelectable: false` -- names are hidden from all DMs and are not selectable on the Poracle bot's area list.
+- Parent/region geofences from Koji are excluded from the feed (they are structural, not alerting areas).
 - On admin approval, the geofence polygon is pushed to Koji with `isPublic: true` (`userSelectable: true`), making it a proper public area.
-- Koji is used only for admin/approved public geofences; user-drawn private geofences remain in the PoracleWeb feed.
+- Koji is used only for admin/approved public geofences; user-drawn private geofences remain in the PoracleWeb database.
 - Geofence names (the `kojiName` field) are always **lowercase** because Poracle does case-sensitive area matching and `humans.area` stores names in lowercase.
 - Geofence names are auto-generated from the user-provided display name (lowercased). Collisions are resolved by appending a numeric suffix.
 - Maximum 10 custom geofences per user. Polygons limited to 500 points.
@@ -163,11 +165,12 @@ PGAN.Poracle.Web.slnx
 - **Koji Geofence API**:
   - `Koji:ApiAddress` -- Koji geofence server URL (e.g., `http://localhost:8080`).
   - `Koji:BearerToken` -- Koji API authentication token.
-  - `Koji:ProjectId` -- Koji project ID for admin-promoted geofences. Settings class: `KojiSettings`.
+  - `Koji:ProjectId` -- Koji project ID for admin-promoted geofences.
+  - `Koji:ProjectName` -- Koji project name used for the `/geofence/poracle/{name}` endpoint to fetch admin geofences. Settings class: `KojiSettings`.
 - **Discord Geofence Forum**: `Discord:GeofenceForumChannelId` -- Discord forum channel ID where geofence submission threads are created.
 - **Poracle Servers**: `Poracle:Servers` -- array of PoracleJS server configs (name, host, API address, SSH user) for multi-server management.
 - **SSH Key Path**: `Poracle:SshKeyPath` -- path to SSH private key inside the container (default `/app/ssh_key`).
-- **PoracleJS config**: `geofence.path` in PoracleJS config must be an array containing both the Koji URL and the PoracleWeb feed URL (e.g., `["http://koji:8080/api/v1/geofence/poracle/project-id", "http://poracleweb:8080/api/geofence-feed"]`).
+- **PoracleJS config**: `geofence.path` in PoracleJS config is a single URL pointing to the PoracleWeb unified feed endpoint (e.g., `"http://poracleweb:8082/api/geofence-feed"`). PoracleWeb fetches admin geofences from Koji internally and merges them with user geofences.
 
 ## Common Issues
 
