@@ -18,7 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.1] - 2026-03-22
 
+### Fixed
+- Koji Poracle format URL missing `?name=true` — geofence names were empty in the unified feed
+
 ## [0.5.0] - 2026-03-22
+
+### Added
+- **Unified Geofence Proxy Feed** — PoracleWeb is now the single geofence source for PoracleJS ([#10](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/10), [PR #11](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/11))
+  - Fetches admin geofences from Koji, resolves groups from parent chain, merges user geofences
+  - PoracleJS uses a single URL — no direct Koji connection needed, no `group_map.json` required
+  - 5-minute in-memory cache with invalidation on geofence changes
+  - Graceful degradation: user geofences still served if Koji is down; PoracleJS `.cache/` failover if PoracleWeb is down
+  - No custom code needed in PoracleJS or Koji — compatible with upstream/standard versions
+
+### Changed
+- `Koji:ProjectName` is a new required config setting
+- PoracleJS `geofence.path` simplified from dual-source array to single PoracleWeb URL
 
 ## [0.4.0] - 2026-03-22
 
@@ -121,7 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...HEAD
 [0.5.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.1...v0.5.2
-[0.5.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.4.0...v0.5.1
+[0.5.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.3.0...v0.5.0
 [0.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.2.0...v0.4.0
 [0.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.2.0...v0.3.0
