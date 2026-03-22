@@ -60,6 +60,8 @@ public class LocationController(
                 return this.NotFound();
             }
 
+            await using var newProfileTransaction = await this._dbContext.Database.BeginTransactionAsync();
+
             profile = await this._profileService.CreateAsync(new Profile
             {
                 Id = this.UserId,
@@ -73,6 +75,8 @@ public class LocationController(
             human.Latitude = request.Latitude;
             human.Longitude = request.Longitude;
             await this._humanService.UpdateAsync(human);
+
+            await newProfileTransaction.CommitAsync();
 
             return this.Ok(new
             {
