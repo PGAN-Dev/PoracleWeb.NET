@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- LocationController falls back to humans table when profile missing ([PR #20](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/20))
 - changelog workflow inserts entries in wrong section + double-v prefix ([PR #21](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/21))
 ## [0.5.3] - 2026-03-22
 
