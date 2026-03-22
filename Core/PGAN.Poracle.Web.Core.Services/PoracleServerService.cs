@@ -93,7 +93,7 @@ public partial class PoracleServerService(
             ?? throw new InvalidOperationException($"Server with host '{host}' not found in configuration.");
 
         // Validate host and SSH user to prevent command injection
-        ValidateHostname(server.Host, "host");
+        ValidateHostname(server.Host, nameof(host));
         ValidateHostname(server.SshUser, "sshUser");
 
         var status = new PoracleServerStatus

@@ -2,7 +2,10 @@ namespace PGAN.Poracle.Web.Core.Models;
 
 public class AdminGeofence
 {
-    public int Id { get; set; }
+    public int Id
+    {
+        get; set;
+    }
     public string Name { get; set; } = string.Empty;
     public string Group { get; set; } = string.Empty;
     public double[][] Path { get; set; } = [];

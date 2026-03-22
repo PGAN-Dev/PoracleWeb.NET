@@ -189,8 +189,14 @@ public class PoracleServerServiceTests
 
     public class MockHttpMessageHandler : HttpMessageHandler
     {
-        public Func<HttpRequestMessage, HttpResponseMessage>? ResponseFactory { get; set; }
-        public Func<HttpRequestMessage, Exception>? ExceptionFactory { get; set; }
+        public Func<HttpRequestMessage, HttpResponseMessage>? ResponseFactory
+        {
+            get; set;
+        }
+        public Func<HttpRequestMessage, Exception>? ExceptionFactory
+        {
+            get; set;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request, CancellationToken cancellationToken)

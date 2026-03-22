@@ -73,6 +73,7 @@ WEB_DB_PASSWORD=your_db_password
 KOJI_API_ADDRESS=http://host.docker.internal:8080
 KOJI_BEARER_TOKEN=your_koji_bearer_token
 KOJI_PROJECT_ID=1
+KOJI_PROJECT_NAME=your_koji_project_name   # Project name for /geofence/poracle/{name} endpoint
 
 # Optional: Discord forum channel for geofence submission threads
 DISCORD_GEOFENCE_FORUM_CHANNEL_ID=
@@ -196,7 +197,8 @@ Create `Applications/PGAN.Poracle.Web.Api/appsettings.Development.json` (gitigno
   "Koji": {
     "ApiAddress": "http://localhost:8080",
     "BearerToken": "your_koji_bearer_token",
-    "ProjectId": 1
+    "ProjectId": 1,
+    "ProjectName": "your_koji_project_name"
   }
 }
 ```
@@ -310,6 +312,7 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | `Koji:ApiAddress` | `Koji__ApiAddress` | No | Koji geofence server URL. Required for custom geofences feature. |
 | `Koji:BearerToken` | `Koji__BearerToken` | No | Koji API bearer token for authentication |
 | `Koji:ProjectId` | `Koji__ProjectId` | No | Koji project ID for admin-promoted geofences (default: 0) |
+| `Koji:ProjectName` | `Koji__ProjectName` | No | Koji project name for fetching geofences from `/geofence/poracle/{name}` endpoint. Required for unified geofence feed. |
 | `Poracle:Servers` | `Poracle__Servers__0__Name`, etc. | No | Array of PoracleJS server configs (name, host, API address, SSH user) for remote management |
 | `Poracle:SshKeyPath` | `Poracle__SshKeyPath` | No | Path to SSH private key inside container (default `/app/ssh_key`) |
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0` | No | Allowed CORS origin (empty = allow all) |
@@ -320,15 +323,32 @@ Users can draw custom polygon geofences on the "My Geofences" page for precise n
 
 ### How it works
 
-1. User draws a polygon on the map → saved to the PoracleWeb database
-2. PoracleWeb serves a **unified geofence feed** via `GET /api/geofence-feed` — merges admin geofences from Koji with user-drawn geofences, resolving group names from the Koji parent chain
+PoracleWeb acts as the **single geofence source** for PoracleJS. Instead of PoracleJS connecting to Koji directly, PoracleWeb fetches admin geofences from Koji, resolves group names from the Koji parent chain, merges them with user-drawn geofences from its own database, and serves everything via one endpoint. No custom code is needed in PoracleJS or Koji — standard upstream versions work.
+
+1. User draws a polygon on the map, saved to the PoracleWeb database
+2. PoracleWeb serves a **unified geofence feed** via `GET /api/geofence-feed` — admin geofences from Koji (cached 5 minutes) plus user geofences from the local DB
 3. PoracleJS loads **all** geofences from a single PoracleWeb URL (no direct Koji connection needed)
 4. User geofences have `displayInMatches: false` — names are hidden from all DMs for privacy
 5. Admin geofences have `displayInMatches: true` and `group` populated from Koji parent hierarchy
-6. Users can submit geofences for admin review → creates a Discord forum post with a static map
-7. Admins approve → geofence promoted to Koji as a public area visible to all users
+6. Users can submit geofences for admin review, which creates a Discord forum post with a static map
+7. Admins approve, and the geofence is promoted to Koji as a public area visible to all users
+8. If Koji is unreachable, user geofences are still served (graceful degradation)
+9. If PoracleWeb itself is down, PoracleJS falls back to its built-in `.cache/` directory
 
 ### Component Diagram
+
+```mermaid
+graph LR
+    KojiServer[(Koji Server<br/>Public areas)] -->|admin geofences<br/>cached 5 min| PoracleWeb
+    subgraph PoracleWeb
+        Feed[GeofenceFeedController<br/>GET /api/geofence-feed<br/>Unified proxy]
+        DB[(poracle_web DB<br/>user geofences)]
+    end
+    PoracleWeb -->|single URL<br/>admin + user geofences| Poracle[PoracleJS<br/>geofence.path]
+    Poracle -.->|failover| Cache[PoracleJS .cache/]
+```
+
+**Detailed internal flow:**
 
 ```mermaid
 graph TB
@@ -381,29 +401,35 @@ stateDiagram-v2
     note right of Approved : Public — all users\ncan select it on\nthe Areas page.
 ```
 
-### Requirements
+### Setup
 
-1. **PoracleWeb database** — a separate MySQL/MariaDB database for app-owned data:
+1. **Create the PoracleWeb database** — a separate MySQL/MariaDB database for app-owned data:
    ```sql
    CREATE DATABASE poracle_web;
    ```
    The `user_geofences` table is created automatically on first run.
 
-2. **Koji** — required for region detection and promoting approved geofences. Set `Koji:ApiAddress`, `Koji:BearerToken`, and `Koji:ProjectId`.
+2. **Configure the Koji connection** — set the following in your environment or `appsettings.json`:
+   - `Koji:ApiAddress` — Koji server URL (e.g., `http://localhost:8080`)
+   - `Koji:BearerToken` — Koji API bearer token
+   - `Koji:ProjectId` — Koji project ID for promoted geofences
+   - `Koji:ProjectName` — Koji project name, used to fetch geofences from the `/geofence/poracle/{name}` endpoint
 
-3. **PoracleJS config** — update `geofence.path` to load from PoracleWeb's unified feed endpoint. PoracleWeb proxies admin geofences from Koji and merges them with user geofences, so PoracleJS only needs a single URL:
+3. **Point PoracleJS to PoracleWeb** — set `geofence.path` to a single PoracleWeb URL. PoracleJS no longer needs a direct Koji connection for geofences:
    ```json
    "geofence": {
-     "path": "http://poracleweb-host:8082/api/geofence-feed",
-     "kojiOptions": {
-       "bearerToken": "your-koji-token"
-     }
+     "path": "http://poracleweb-host:8082/api/geofence-feed"
    }
    ```
-   The `kojiOptions.bearerToken` is harmless (PoracleWeb ignores it) but can be left for backward compatibility.
-   Restart PoracleJS after changing: `pm2 restart all`
+   Remove `kojiOptions.bearerToken` from the PoracleJS geofence config if present (it is harmless if left, but no longer needed).
 
-4. **Discord forum channel** (optional) — for geofence submission discussions. Set `Discord:GeofenceForumChannelId` and give the bot **View Channel**, **Send Messages in Threads**, and **Manage Threads** permissions on the channel. Forum tags (Pending/Approved/Rejected) are auto-created if the bot has **Manage Channels** permission, or create them manually.
+4. **Remove `group_map.json`** from PoracleJS if it exists — group names are now resolved automatically from the Koji parent chain by PoracleWeb.
+
+5. **Restart PoracleJS** — `pm2 restart all`
+
+6. **Discord forum channel** (optional) — for geofence submission discussions. Set `Discord:GeofenceForumChannelId` and give the bot **View Channel**, **Send Messages in Threads**, and **Manage Threads** permissions on the channel. Forum tags (Pending/Approved/Rejected) are auto-created if the bot has **Manage Channels** permission, or create them manually.
+
+> **PoracleJS Failover**: PoracleJS's built-in `.cache/` directory automatically caches geofence data. If PoracleWeb is temporarily unavailable, PoracleJS falls back to its last cached copy.
 
 ## Poracle Server Management Setup
 
