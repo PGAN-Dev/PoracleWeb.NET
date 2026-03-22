@@ -83,14 +83,45 @@ jobs:
           INIT
           fi
 
-          # Check if the category section exists under [Unreleased]
-          if grep -q "^### $CATEGORY" CHANGELOG.md; then
-            # Add entry after the category header
-            sed -i "/^### $CATEGORY/a - $ENTRY ([PR #$PR_NUM]($PR_URL))" CHANGELOG.md
-          else
-            # Add new category section after [Unreleased] header
-            sed -i "/^## \[Unreleased\]/a \\\n### $CATEGORY\n- $ENTRY ([PR #$PR_NUM]($PR_URL))" CHANGELOG.md
-          fi
+          # Use awk to insert entry under [Unreleased] only (not older release sections)
+          awk -v category="### $CATEGORY" -v entry="- $ENTRY ([PR #$PR_NUM]($PR_URL))" '
+          BEGIN { found_unreleased=0; inserted=0 }
+          /^## \[Unreleased\]/ { found_unreleased=1; print; next }
+          # If we hit the next version section, unreleased block is over
+          found_unreleased && /^## \[/ {
+            if (!inserted) {
+              print ""
+              print category
+              print entry
+              inserted=1
+            }
+            found_unreleased=0
+            print; next
+          }
+          # Found existing category header under [Unreleased]
+          found_unreleased && !inserted && $0 == category {
+            print
+            print entry
+            inserted=1
+            next
+          }
+          # Hit a different category or blank line before any matching category — insert new section before it
+          found_unreleased && !inserted && /^### / {
+            print category
+            print entry
+            print ""
+            inserted=1
+            print; next
+          }
+          { print }
+          END {
+            if (!inserted) {
+              print ""
+              print category
+              print entry
+            }
+          }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
 
       - name: Commit and push
         if: steps.categorize.outputs.skip != 'true'
