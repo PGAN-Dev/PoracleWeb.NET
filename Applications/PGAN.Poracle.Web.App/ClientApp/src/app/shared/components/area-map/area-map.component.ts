@@ -319,7 +319,21 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     const allBounds: L.LatLngExpression[] = [];
 
-    for (const fence of this.geofence) {
+    // Sort geofences by polygon area (largest first) so smaller polygons render
+    // on top and are clickable even when nested inside larger ones.
+    const sortedFences = [...this.geofence].sort((a, b) => {
+      const areaOf = (path: number[][] | undefined): number => {
+        if (!path || path.length < 3) return 0;
+        let area = 0;
+        for (let i = 0, j = path.length - 1; i < path.length; j = i++) {
+          area += (path[j][1] + path[i][1]) * (path[j][0] - path[i][0]);
+        }
+        return Math.abs(area / 2);
+      };
+      return areaOf(b.path) - areaOf(a.path);
+    });
+
+    for (const fence of sortedFences) {
       if (!fence.path || fence.path.length < 3) continue;
 
       const latLngs: L.LatLngExpression[] = fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
