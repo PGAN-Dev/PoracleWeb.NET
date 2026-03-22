@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- dashboard profile card shows 'Default' when no profiles exist ([PR #24](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/24))
 ## [0.5.4] - 2026-03-22
 
 ## [0.5.4] - 2026-03-22
