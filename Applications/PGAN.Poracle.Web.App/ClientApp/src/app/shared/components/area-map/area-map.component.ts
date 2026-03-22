@@ -377,6 +377,14 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.polygonByName.set(fence.name, polygon);
     }
 
+    // Ensure smaller polygons are visually and interactively on top by
+    // bringing them to the front of the SVG/Canvas layer in reverse order
+    // (last bringToFront call wins, so iterate largest-to-smallest which
+    // is already the sort order — smallest ends up on top).
+    for (const layer of this.polygonLayers) {
+      layer.bringToFront();
+    }
+
     if (allBounds.length > 0) {
       this.allBoundsRect = L.latLngBounds(allBounds);
       if (!this.selectedRegion()) {
