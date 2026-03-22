@@ -83,6 +83,11 @@ export const routes: Routes = [
     path: 'cleaning',
   },
   {
+    canActivate: [authGuard],
+    loadComponent: () => import('./modules/help/help.component').then(m => m.HelpComponent),
+    path: 'help',
+  },
+  {
     path: 'admin',
     pathMatch: 'full',
     redirectTo: 'admin/users',

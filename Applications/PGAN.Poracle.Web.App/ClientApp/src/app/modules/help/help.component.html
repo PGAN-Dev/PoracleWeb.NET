@@ -1,0 +1,101 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Help & User Guide</h1>
+    <p class="page-description">
+      Everything you need to know about setting up and managing your Pokemon GO DM alerts. Search or browse the sections below.
+    </p>
+  </div>
+</div>
+
+<div class="help-layout">
+  <div class="help-content">
+    <!-- Search -->
+    <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput placeholder="Search help topics..." (input)="searchQuery.set($any($event.target).value)" />
+    </mat-form-field>
+
+    <!-- Quick start cards (hidden when searching) -->
+    @if (!searchQuery()) {
+      <div class="quick-start">
+        <button class="quick-card" (click)="scrollToSection('getting-started')">
+          <div class="quick-card-icon" style="background: rgba(25, 118, 210, 0.1)">
+            <mat-icon style="color: #1976d2">rocket_launch</mat-icon>
+          </div>
+          <div class="quick-card-text">
+            <strong>New here?</strong>
+            <span>Start with Getting Started</span>
+          </div>
+          <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
+        </button>
+        <button class="quick-card" (click)="scrollToSection('pokemon')">
+          <div class="quick-card-icon" style="background: rgba(76, 175, 80, 0.1)">
+            <mat-icon style="color: #4caf50">catching_pokemon</mat-icon>
+          </div>
+          <div class="quick-card-text">
+            <strong>Create your first alarm</strong>
+            <span>Pokemon Alarms guide</span>
+          </div>
+          <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
+        </button>
+        <button class="quick-card" (click)="scrollToSection('faq')">
+          <div class="quick-card-icon" style="background: rgba(255, 152, 0, 0.1)">
+            <mat-icon style="color: #ff9800">help_outline</mat-icon>
+          </div>
+          <div class="quick-card-text">
+            <strong>Something not working?</strong>
+            <span>Check the FAQ</span>
+          </div>
+          <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- No results -->
+    @if (searchQuery() && filteredSections().length === 0) {
+      <div class="no-results">
+        <mat-icon>search_off</mat-icon>
+        <p>No help topics match "{{ searchQuery() }}"</p>
+        <button mat-stroked-button (click)="searchQuery.set('')">Clear search</button>
+      </div>
+    }
+
+    <!-- Sections -->
+    <mat-accordion multi>
+      @for (section of filteredSections(); track section.id) {
+        <mat-expansion-panel [id]="'section-' + section.id">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="section-header">
+                <div class="section-icon" [style.background-color]="section.iconColor">
+                  <mat-icon>{{ section.icon }}</mat-icon>
+                </div>
+                <div class="section-title-block">
+                  <span class="section-title">{{ section.title }}</span>
+                  <span class="section-subtitle">{{ section.subtitle }}</span>
+                </div>
+              </div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div class="section-content" [innerHTML]="section.content"></div>
+        </mat-expansion-panel>
+      }
+    </mat-accordion>
+
+    <div class="help-footer">
+      <mat-icon>chat_bubble_outline</mat-icon>
+      <span>Still need help? Reach out to your community admin on Discord.</span>
+    </div>
+  </div>
+
+  <!-- Table of Contents sidebar (desktop, right side) -->
+  <aside class="toc">
+    <div class="toc-header">On this page</div>
+    @for (section of sections; track section.id) {
+      <button class="toc-item" (click)="scrollToSection(section.id)">
+        <mat-icon [style.color]="section.iconColor">{{ section.icon }}</mat-icon>
+        <span>{{ section.title }}</span>
+      </button>
+    }
+  </aside>
+</div>
