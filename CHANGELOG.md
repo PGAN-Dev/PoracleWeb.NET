@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.5] - 2026-03-22
 
+## [0.5.5] - 2026-03-22
+
 ### Fixed
 - **Dashboard profile card shows 'Default' when no profiles exist** — instead of the misleading "Profile 1" fallback ([#23](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/23), [PR #24](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/24))
 
@@ -142,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment with Watchtower auto-updates
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...v0.5.5
 [0.5.5]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
