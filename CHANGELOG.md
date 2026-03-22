@@ -38,14 +38,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PoracleWeb Database** — Separate `poracle_web` MariaDB database for app-owned data
   - `user_geofences` table with submission workflow fields
   - `PoracleWebContext` as second EF Core DbContext
-- **Poracle Feed Endpoint** — `GET /api/geofence-feed` serves user geofences to PoracleJS
-  - PoracleJS loads from both Koji (admin areas) and PoracleWeb feed (user geofences)
+- **Unified Geofence Proxy Feed** — `GET /api/geofence-feed` serves all geofences to PoracleJS from a single endpoint
+  - PoracleWeb fetches admin geofences from Koji (cached 5 minutes, invalidated on changes), resolves group names from parent chain, and merges with user geofences
+  - PoracleJS uses a single URL (`geofence.path`) — no direct Koji connection needed, no `group_map.json` required
+  - Graceful degradation: user geofences still served if Koji is unreachable; PoracleJS `.cache/` provides failover if PoracleWeb is down
   - User geofences served with `displayInMatches: false` for privacy
 - **Submit for Review Workflow** — Users can submit geofences for admin promotion to public areas
   - Clear messaging explaining the promotion process
   - Status badges on geofence cards (Pending, Approved, Rejected)
 
 ### Changed
+- PoracleWeb is now the single geofence source for PoracleJS — admin geofences from Koji and user geofences from the local DB are merged into one feed. PoracleJS `geofence.path` is a single URL (not an array). `group_map.json` is no longer needed. `Koji:ProjectName` is a new required config for the feed.
 - Areas page no longer shows user-created geofences (privacy fix)
 - Geofence names stored lowercase for Poracle case-sensitive matching
 

@@ -6,10 +6,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
+import { PoracleServersComponent } from './poracle-servers.component';
 import { PoracleServerStatus } from '../../../core/models';
 import { AdminService } from '../../../core/services/admin.service';
 import { ConfigService } from '../../../core/services/config.service';
-import { PoracleServersComponent } from './poracle-servers.component';
 
 describe('PoracleServersComponent', () => {
   let component: PoracleServersComponent;
@@ -18,8 +18,8 @@ describe('PoracleServersComponent', () => {
   let mockSnackBar: { open: jest.Mock };
 
   const mockServers: PoracleServerStatus[] = [
-    { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', name: 'Server1', online: true },
-    { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', name: 'Server2', online: false },
+    { name: 'Server1', checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', online: true },
+    { name: 'Server2', checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', online: false },
   ];
 
   beforeEach(() => {
@@ -39,13 +39,13 @@ describe('PoracleServersComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [NoopAnimationsModule],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AdminService, useValue: adminService },
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
       ],
+      imports: [NoopAnimationsModule],
     })
       .overrideComponent(PoracleServersComponent, {
         set: {
@@ -127,10 +127,10 @@ describe('PoracleServersComponent', () => {
     component.ngOnInit();
 
     const updatedServer: PoracleServerStatus = {
+      name: 'Server1',
       checkedAt: '2026-03-21T01:00:00Z',
       host: '10.0.0.1',
       message: 'pm2 restarted',
-      name: 'Server1',
       online: true,
     };
     adminService.restartServer!.mockReturnValue(of(updatedServer));

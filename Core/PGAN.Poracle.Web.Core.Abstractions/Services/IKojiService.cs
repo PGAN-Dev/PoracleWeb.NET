@@ -13,4 +13,15 @@ public interface IKojiService
     /// Returns [lat,lon] pairs or null if not found.
     /// </summary>
     public Task<double[][]?> GetGeofencePolygonAsync(string geofenceName);
+
+    /// <summary>
+    /// Gets admin geofences from Koji in Poracle format with groups resolved from parent chain.
+    /// Results are cached in memory with a 5-minute TTL.
+    /// </summary>
+    public Task<List<AdminGeofence>> GetAdminGeofencesAsync();
+
+    /// <summary>
+    /// Invalidates the cached admin geofences so the next call to GetAdminGeofencesAsync fetches fresh data.
+    /// </summary>
+    public void InvalidateAdminGeofenceCache();
 }

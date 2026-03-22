@@ -8,4 +8,5 @@ public class KojiSettings
     {
         get; set;
     }
+    public string ProjectName { get; set; } = string.Empty;
 }

@@ -2,27 +2,55 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PGAN.Poracle.Web.Core.Abstractions.Repositories;
+using PGAN.Poracle.Web.Core.Abstractions.Services;
 
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [ApiController]
 [Route("api/geofence-feed")]
-public class GeofenceFeedController(IUserGeofenceRepository repository, ILogger<GeofenceFeedController> logger) : ControllerBase
+public class GeofenceFeedController(
+    IUserGeofenceRepository repository,
+    IKojiService kojiService,
+    ILogger<GeofenceFeedController> logger) : ControllerBase
 {
     private readonly IUserGeofenceRepository _repository = repository;
+    private readonly IKojiService _kojiService = kojiService;
     private readonly ILogger<GeofenceFeedController> _logger = logger;
 
     /// <summary>
-    /// Returns all active/pending_review user geofences in Poracle-compatible format.
-    /// PoracleJS loads from this URL alongside Koji as a geofence.path source.
+    /// Returns all geofences in Poracle-compatible format: admin geofences from Koji (with groups resolved)
+    /// plus user geofences from the local DB. This is the single geofence source for PoracleJS.
     /// </summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetPoracleFeed()
     {
-        var geofences = await this._repository.GetAllActiveAsync();
+        var combined = new List<object>();
 
-        var poracleFormat = geofences
+        // Admin geofences from Koji (cached, with groups resolved from parent chain)
+        try
+        {
+            var adminGeofences = await this._kojiService.GetAdminGeofencesAsync();
+            combined.AddRange(adminGeofences.Select(g => new
+            {
+                id = g.Id,
+                name = g.Name,
+                group = g.Group,
+                path = g.Path,
+                userSelectable = g.UserSelectable,
+                displayInMatches = g.DisplayInMatches,
+                description = g.Description,
+                color = g.Color,
+            }));
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogError(ex, "Failed to fetch admin geofences from Koji — serving user geofences only");
+        }
+
+        // User geofences from local DB (not user-selectable, not displayed in matches)
+        var userGeofences = await this._repository.GetAllActiveAsync();
+        var userPoracleFormat = userGeofences
             .Where(g => !string.IsNullOrEmpty(g.PolygonJson))
             .Select(g =>
             {
@@ -41,7 +69,7 @@ public class GeofenceFeedController(IUserGeofenceRepository repository, ILogger<
                     return null;
                 }
 
-                return new
+                return (object?)new
                 {
                     id = g.Id,
                     name = g.KojiName,
@@ -50,13 +78,14 @@ public class GeofenceFeedController(IUserGeofenceRepository repository, ILogger<
                     displayInMatches = false,
                 };
             })
-            .Where(g => g != null)
-            .ToList();
+            .Where(g => g != null);
+
+        combined.AddRange(userPoracleFormat!);
 
         return this.Ok(new
         {
             status = "ok",
-            data = poracleFormat
+            data = combined,
         });
     }
 }

@@ -197,8 +197,8 @@ describe('AdminService', () => {
 
   it('should fetch poracle servers', () => {
     const mockServers = [
-      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', name: 'Server1', online: true },
-      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', name: 'Server2', online: false },
+      { name: 'Server1', checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', online: true },
+      { name: 'Server2', checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', online: false },
     ];
 
     service.getPoracleServers().subscribe(servers => {
@@ -211,7 +211,7 @@ describe('AdminService', () => {
   });
 
   it('should restart a single server', () => {
-    const mockStatus = { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', message: 'restarted', name: 'Server1', online: true };
+    const mockStatus = { name: 'Server1', checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', message: 'restarted', online: true };
 
     service.restartServer('10.0.0.1').subscribe(status => {
       expect(status.online).toBe(true);
@@ -225,8 +225,8 @@ describe('AdminService', () => {
 
   it('should restart all servers', () => {
     const mockStatuses = [
-      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', name: 'Server1', online: true },
-      { checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', name: 'Server2', online: true },
+      { name: 'Server1', checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.1', online: true },
+      { name: 'Server2', checkedAt: '2026-03-21T00:00:00Z', host: '10.0.0.2', online: true },
     ];
 
     service.restartAllServers().subscribe(statuses => {
