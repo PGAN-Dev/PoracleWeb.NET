@@ -481,6 +481,11 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
             return [];
         }
 
+        // Build set of parent names for O(1) exclusion lookup
+        var parentNames = new HashSet<string>(
+            parentIds.Where(idToName.ContainsKey).Select(pid => idToName[pid]),
+            StringComparer.Ordinal);
+
         var adminGeofences = new List<AdminGeofence>();
         var geofenceId = 0;
 
@@ -489,7 +494,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
             var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
 
             // Skip parent/region geofences — they're scanner regions, not user-selectable areas
-            if (parentIds.Any(pid => idToName.TryGetValue(pid, out var pName) && string.Equals(pName, name, StringComparison.Ordinal)))
+            if (parentNames.Contains(name))
             {
                 continue;
             }
