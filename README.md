@@ -314,6 +314,92 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | `Poracle:SshKeyPath` | `Poracle__SshKeyPath` | No | Path to SSH private key inside container (default `/app/ssh_key`) |
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0` | No | Allowed CORS origin (empty = allow all) |
 
+## Custom Geofences Setup
+
+Users can draw custom polygon geofences on the "My Geofences" page for precise notification zones (e.g., park boundaries) instead of distance-from-center circles.
+
+### How it works
+
+1. User draws a polygon on the map → saved to the PoracleWeb database
+2. PoracleWeb serves user geofences via `GET /api/geofence-feed` in Poracle format
+3. PoracleJS loads geofences from both **Koji** (admin areas) and **PoracleWeb** (user geofences)
+4. User geofences have `displayInMatches: false` — names are hidden from all DMs for privacy
+5. Users can submit geofences for admin review → creates a Discord forum post with a static map
+6. Admins approve → geofence promoted to Koji as a public area visible to all users
+
+### Requirements
+
+1. **PoracleWeb database** — a separate MySQL/MariaDB database for app-owned data:
+   ```sql
+   CREATE DATABASE poracle_web;
+   ```
+   The `user_geofences` table is created automatically on first run.
+
+2. **Koji** — required for region detection and promoting approved geofences. Set `Koji:ApiAddress`, `Koji:BearerToken`, and `Koji:ProjectId`.
+
+3. **PoracleJS config** — update `geofence.path` to load from both Koji and PoracleWeb:
+   ```json
+   "geofence": {
+     "path": [
+       "http://koji-host:8080/api/v1/geofence/poracle/YourProject?name=true&group=true",
+       "http://poracleweb-host:8082/api/geofence-feed"
+     ],
+     "kojiOptions": {
+       "bearerToken": "your-koji-token"
+     }
+   }
+   ```
+   Restart PoracleJS after changing: `pm2 restart all`
+
+4. **Discord forum channel** (optional) — for geofence submission discussions. Set `Discord:GeofenceForumChannelId` and give the bot **View Channel**, **Send Messages in Threads**, and **Manage Threads** permissions on the channel. Forum tags (Pending/Approved/Rejected) are auto-created if the bot has **Manage Channels** permission, or create them manually.
+
+## Poracle Server Management Setup
+
+Admins can monitor and restart PoracleJS instances remotely from the "Poracle Servers" admin page.
+
+### How it works
+
+1. Health check pings each server's API endpoint — any HTTP response = online, no response = offline
+2. Restart executes an SSH command (default: `pm2 restart all`) on the remote server
+3. Each server can have a custom restart command (e.g., for macOS where PM2 isn't in PATH)
+
+### Requirements
+
+1. **SSH key** — mount a private key that has access to your PoracleJS servers:
+   ```yaml
+   # docker-compose.yml
+   volumes:
+     - /path/to/your/ssh_key:/app/ssh_key:ro
+   ```
+   Or in `docker-compose.override.yml`:
+   ```yaml
+   services:
+     poracle-web:
+       volumes:
+         - ~/.ssh/id_ed25519:/app/ssh_key:ro
+   ```
+
+2. **Server configuration** — add servers via environment variables in `.env`:
+   ```env
+   # Server 1 (Linux)
+   PORACLE_SERVER_1_NAME=Main
+   PORACLE_SERVER_1_HOST=10.0.3.178
+   PORACLE_SERVER_1_API=http://10.0.3.178:3030
+   PORACLE_SERVER_1_SSH_USER=root
+   # PORACLE_SERVER_1_RESTART_CMD=pm2 restart all   # default
+
+   # Server 2 (macOS — needs full PATH for PM2)
+   PORACLE_SERVER_2_NAME=Secondary
+   PORACLE_SERVER_2_HOST=10.0.6.107
+   PORACLE_SERVER_2_API=http://10.0.6.107:3035
+   PORACLE_SERVER_2_SSH_USER=hokiepokedad
+   PORACLE_SERVER_2_RESTART_CMD=PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin pm2 restart all
+   ```
+
+3. **SSH access** — ensure the SSH key is authorized on each PoracleJS server (`~/.ssh/authorized_keys`).
+
+4. **Firewall** — the Docker container needs SSH access (port 22) to each PoracleJS server, and HTTP access to each server's API port for health checks.
+
 ## Docker Compose Details
 
 The `docker-compose.yml` configures:
