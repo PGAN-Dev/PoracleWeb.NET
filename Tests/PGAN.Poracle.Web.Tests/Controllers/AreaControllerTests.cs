@@ -167,7 +167,7 @@ public class AreaControllerTests : ControllerTestBase
     [Fact]
     public async Task GetGeofencePolygonsReturnsFallbackWhenThrows()
     {
-        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ThrowsAsync(new Exception());
+        this._proxy.Setup(p => p.GetAllGeofenceDataAsync()).ThrowsAsync(new InvalidOperationException());
         Assert.IsType<OkObjectResult>(await this._sut.GetGeofencePolygons());
     }
 
@@ -191,7 +191,7 @@ public class AreaControllerTests : ControllerTestBase
     [Fact]
     public async Task GetAreaMapReturnsNotFoundWhenThrows()
     {
-        this._proxy.Setup(p => p.GetAreaMapUrlAsync(It.IsAny<string>())).ThrowsAsync(new Exception());
+        this._proxy.Setup(p => p.GetAreaMapUrlAsync(It.IsAny<string>())).ThrowsAsync(new InvalidOperationException());
         Assert.IsType<NotFoundResult>(await this._sut.GetAreaMap("bad"));
     }
 }

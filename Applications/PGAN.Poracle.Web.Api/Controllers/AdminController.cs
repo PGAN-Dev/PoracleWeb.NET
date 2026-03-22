@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -11,7 +12,7 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/admin")]
-public class AdminController(
+public partial class AdminController(
     IHumanService humanService,
     IPwebSettingService pwebSettingService,
     IPoracleApiProxy poracleApiProxy,
@@ -221,7 +222,7 @@ public class AdminController(
         };
 
         var created = await this._humanService.CreateAsync(human);
-        this._logger.LogInformation("Admin {AdminId} created webhook {WebhookId}", this.UserId, request.Url);
+        LogWebhookCreated(this._logger, this.UserId, request.Url);
         return this.Ok(created);
     }
 
@@ -258,7 +259,7 @@ public class AdminController(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch Poracle config for admin list.");
+            LogPoracleConfigFetchFailed(this._logger, ex);
         }
 
         return this.Ok(admins);
@@ -351,13 +352,12 @@ public class AdminController(
                 result[webhookId] = [.. users];
             }
 
-            this._logger.LogInformation("Loaded {Count} delegateAdministration entries from {Path}",
-                result.Count, localJsonPath);
+            LogDelegateEntriesLoaded(this._logger, result.Count, localJsonPath);
             return result;
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to read delegateAdministration from local.json.");
+            LogDelegateReadFailed(this._logger, ex);
             return [];
         }
     }
@@ -373,7 +373,7 @@ public class AdminController(
         const string prefix = "webhook_delegates:";
         var allSettings = await this._pwebSettingService.GetAllAsync();
         var result = allSettings
-            .Where(s => s.Setting?.StartsWith(prefix) == true)
+            .Where(s => s.Setting?.StartsWith(prefix, StringComparison.Ordinal) == true)
             .ToDictionary(
                 s => s.Setting![prefix.Length..],
                 s => s.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
@@ -468,7 +468,7 @@ public class AdminController(
             new("type", human.Type ?? "discord:user"),
             new("isAdmin", "false"),
             new("enabled", (human.Enabled == 1 && human.AdminDisable == 0).ToString().ToLowerInvariant()),
-            new("profileNo", human.CurrentProfileNo.ToString()),
+            new("profileNo", human.CurrentProfileNo.ToString(CultureInfo.InvariantCulture)),
             new("impersonatedBy", this.UserId),
         };
 
@@ -487,7 +487,7 @@ public class AdminController(
             signingCredentials: credentials);
 
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-        this._logger.LogInformation("Admin {AdminId} impersonating {UserId}", this.UserId, request.UserId);
+        LogAdminImpersonating(this._logger, this.UserId, request.UserId);
         return this.Ok(new
         {
             token = jwt
@@ -510,7 +510,7 @@ public class AdminController(
             return this.NotFound();
         }
 
-        this._logger.LogInformation("Admin {AdminId} deleted user {UserId}", this.UserId, id);
+        LogUserDeleted(this._logger, this.UserId, id);
         return this.NoContent();
     }
 
@@ -538,7 +538,7 @@ public class AdminController(
             new("type", human.Type ?? "discord:user"),
             new("isAdmin", "false"),
             new("enabled", (human.Enabled == 1 && human.AdminDisable == 0).ToString().ToLowerInvariant()),
-            new("profileNo", human.CurrentProfileNo.ToString()),
+            new("profileNo", human.CurrentProfileNo.ToString(CultureInfo.InvariantCulture)),
             new("impersonatedBy", this.UserId),
         };
 
@@ -558,7 +558,7 @@ public class AdminController(
 
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
-        this._logger.LogInformation("Admin {AdminId} impersonating user {UserId}", this.UserId, id);
+        LogAdminImpersonatingUser(this._logger, this.UserId, id);
 
         return this.Ok(new
         {
@@ -588,7 +588,7 @@ public class AdminController(
 
         try
         {
-            this._logger.LogInformation("Admin {AdminId} restarting Poracle server {Host}", this.UserId, host);
+            LogServerRestarting(this._logger, this.UserId, host);
             var status = await this._poracleServerService.RestartServerAsync(host);
             return this.Ok(status);
         }
@@ -601,7 +601,7 @@ public class AdminController(
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Failed to restart Poracle server {Host}", host);
+            LogServerRestartFailed(this._logger, ex, host);
             return this.StatusCode(500, new
             {
                 error = "Failed to restart server"
@@ -617,14 +617,14 @@ public class AdminController(
             return this.Forbid();
         }
 
-        this._logger.LogInformation("Admin {AdminId} restarting all Poracle servers", this.UserId);
+        LogAllServersRestarting(this._logger, this.UserId);
         var statuses = await this._poracleServerService.RestartAllAsync();
         return this.Ok(statuses);
     }
 
     private static string GetDefaultAvatarUrl(string userId, string? type)
     {
-        if (type?.StartsWith("discord") != true)
+        if (type?.StartsWith("discord", StringComparison.Ordinal) != true)
         {
             return "https://cdn.discordapp.com/embed/avatars/0.png";
         }
@@ -638,4 +638,33 @@ public class AdminController(
         return "https://cdn.discordapp.com/embed/avatars/0.png";
     }
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} created webhook {WebhookId}")]
+    private static partial void LogWebhookCreated(ILogger logger, string adminId, string webhookId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin list.")]
+    private static partial void LogPoracleConfigFetchFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} delegateAdministration entries from {Path}")]
+    private static partial void LogDelegateEntriesLoaded(ILogger logger, int count, string path);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to read delegateAdministration from local.json.")]
+    private static partial void LogDelegateReadFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} impersonating {UserId}")]
+    private static partial void LogAdminImpersonating(ILogger logger, string adminId, string userId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} deleted user {UserId}")]
+    private static partial void LogUserDeleted(ILogger logger, string adminId, string userId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} impersonating user {UserId}")]
+    private static partial void LogAdminImpersonatingUser(ILogger logger, string adminId, string userId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} restarting Poracle server {Host}")]
+    private static partial void LogServerRestarting(ILogger logger, string adminId, string host);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to restart Poracle server {Host}")]
+    private static partial void LogServerRestartFailed(ILogger logger, Exception exception, string host);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} restarting all Poracle servers")]
+    private static partial void LogAllServersRestarting(ILogger logger, string adminId);
 }

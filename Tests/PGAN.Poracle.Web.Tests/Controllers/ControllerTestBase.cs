@@ -11,7 +11,7 @@ public abstract class ControllerTestBase
         var claims = new List<Claim>
         {
             new("userId", userId),
-            new("profileNo", profileNo.ToString()),
+            new("profileNo", profileNo.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             new("isAdmin", isAdmin.ToString().ToLowerInvariant()),
             new("username", username),
         };

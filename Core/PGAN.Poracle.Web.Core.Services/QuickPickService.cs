@@ -5,7 +5,7 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class QuickPickService(
+public partial class QuickPickService(
     IPwebSettingService settingService,
     IMonsterService monsterService,
     IRaidService raidService,
@@ -175,9 +175,7 @@ public class QuickPickService(
         var json = JsonSerializer.Serialize(appliedState, JsonOptions);
         await this._settingService.CreateOrUpdateAsync(new PwebSetting { Setting = appliedKey, Value = json });
 
-        this._logger.LogInformation(
-            "Applied quick pick '{QuickPickId}' for user {UserId} profile {ProfileNo}, created {Count} alarm(s).",
-            quickPickId, userId, profileNo, trackedUids.Count);
+        LogQuickPickApplied(this._logger, quickPickId, userId, profileNo, trackedUids.Count);
 
         return appliedState;
     }
@@ -246,9 +244,7 @@ public class QuickPickService(
         // Delete the applied state
         await this._settingService.DeleteAsync(appliedKey);
 
-        this._logger.LogInformation(
-            "Removed quick pick '{QuickPickId}' for user {UserId} profile {ProfileNo}, deleted {Count} alarm(s).",
-            quickPickId, userId, profileNo, appliedState.TrackedUids.Count);
+        LogQuickPickRemoved(this._logger, quickPickId, userId, profileNo, appliedState.TrackedUids.Count);
 
         return true;
     }
@@ -269,8 +265,7 @@ public class QuickPickService(
             await this._settingService.DeleteAsync(key);
         }
 
-        this._logger.LogInformation("Seeding {Count} default quick picks (replaced {Existing} existing).",
-            Defaults.Count, existingKeys.Count);
+        LogSeedingDefaults(this._logger, Defaults.Count, existingKeys.Count);
 
         foreach (var definition in Defaults)
         {
@@ -770,4 +765,13 @@ public class QuickPickService(
         new() { Id = "lure-rainy", Name = "Rainy Lures", Description = "Track Rainy Lure Modules at PokeStops", Icon = "water_drop", Category = "Lures", AlarmType = "lure", SortOrder = 63, Filters = new() { ["lureId"] = 504 } },
         new() { Id = "lure-golden", Name = "Golden Lures", Description = "Track Golden Lure Modules at PokeStops", Icon = "stars", Category = "Lures", AlarmType = "lure", SortOrder = 64, Filters = new() { ["lureId"] = 505 } },
     ];
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Applied quick pick '{QuickPickId}' for user {UserId} profile {ProfileNo}, created {Count} alarm(s).")]
+    private static partial void LogQuickPickApplied(ILogger logger, string quickPickId, string userId, int profileNo, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Removed quick pick '{QuickPickId}' for user {UserId} profile {ProfileNo}, deleted {Count} alarm(s).")]
+    private static partial void LogQuickPickRemoved(ILogger logger, string quickPickId, string userId, int profileNo, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Seeding {Count} default quick picks (replaced {Existing} existing).")]
+    private static partial void LogSeedingDefaults(ILogger logger, int count, int existing);
 }

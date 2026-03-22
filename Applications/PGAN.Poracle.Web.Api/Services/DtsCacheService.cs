@@ -12,7 +12,7 @@ namespace PGAN.Poracle.Web.Api.Services;
 ///
 /// The service watches for file changes and reloads automatically.
 /// </summary>
-public class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundService
+public partial class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundService
 {
     private readonly ILogger<DtsCacheService> _logger = logger;
     private static string? _cachedJson;
@@ -53,7 +53,7 @@ public class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundServic
                     // Also save to data dir as a cache
                     var cachePath = Path.Combine(dataDir, "dts-cache.json");
                     File.WriteAllText(cachePath, merged);
-                    this._logger.LogInformation("DTS loaded from Poracle config at {Dir}", sourceDir);
+                    LogDtsLoadedFromConfig(this._logger, sourceDir);
                     return;
                 }
             }
@@ -67,15 +67,15 @@ public class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundServic
                 {
                     _cachedJson = json;
                 }
-                this._logger.LogInformation("DTS loaded from cache file at {Path}", fallbackPath);
+                LogDtsLoadedFromCache(this._logger, fallbackPath);
                 return;
             }
 
-            this._logger.LogWarning("No DTS files found. Template previews will be unavailable.");
+            LogNoDtsFilesFound(this._logger);
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Failed to load DTS files");
+            LogDtsLoadFailed(this._logger, ex);
         }
     }
 
@@ -111,7 +111,7 @@ public class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundServic
                 return null;
             }
 
-            this._logger.LogInformation("Loaded {Count} DTS entries from {Path}", mainEntries.Length, mainDtsPath);
+            LogDtsEntriesLoaded(this._logger, mainEntries.Length, mainDtsPath);
 
             // Look for override files
             var overrideCandidates = new[]
@@ -155,13 +155,13 @@ public class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundServic
                             }
                         }
 
-                        this._logger.LogInformation("Merged {Count} DTS overrides from {Path}", overrides.Length, overridePath);
+                        LogDtsOverridesMerged(this._logger, overrides.Length, overridePath);
                         return JsonSerializer.Serialize(merged);
                     }
                 }
                 catch (Exception ex)
                 {
-                    this._logger.LogWarning(ex, "Failed to parse DTS override file at {Path}", overridePath);
+                    LogDtsOverrideParseFailed(this._logger, ex, overridePath);
                 }
             }
 
@@ -169,8 +169,32 @@ public class DtsCacheService(ILogger<DtsCacheService> logger) : BackgroundServic
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Failed to parse DTS from Poracle config at {Dir}", configDir);
+            LogDtsConfigParseFailed(this._logger, ex, configDir);
             return null;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "DTS loaded from Poracle config at {Dir}")]
+    private static partial void LogDtsLoadedFromConfig(ILogger logger, string dir);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "DTS loaded from cache file at {Path}")]
+    private static partial void LogDtsLoadedFromCache(ILogger logger, string path);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "No DTS files found. Template previews will be unavailable.")]
+    private static partial void LogNoDtsFilesFound(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to load DTS files")]
+    private static partial void LogDtsLoadFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} DTS entries from {Path}")]
+    private static partial void LogDtsEntriesLoaded(ILogger logger, int count, string path);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Merged {Count} DTS overrides from {Path}")]
+    private static partial void LogDtsOverridesMerged(ILogger logger, int count, string path);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to parse DTS override file at {Path}")]
+    private static partial void LogDtsOverrideParseFailed(ILogger logger, Exception ex, string path);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to parse DTS from Poracle config at {Dir}")]
+    private static partial void LogDtsConfigParseFailed(ILogger logger, Exception ex, string dir);
 }

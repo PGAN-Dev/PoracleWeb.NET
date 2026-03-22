@@ -154,7 +154,7 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
     [Fact]
     public async Task GetStaticMapReturnsNotFoundWhenThrows()
     {
-        this._proxy.Setup(p => p.GetLocationMapUrlAsync(It.IsAny<double>(), It.IsAny<double>())).ThrowsAsync(new Exception());
+        this._proxy.Setup(p => p.GetLocationMapUrlAsync(It.IsAny<double>(), It.IsAny<double>())).ThrowsAsync(new InvalidOperationException());
         Assert.IsType<NotFoundResult>(await this._sut.GetStaticMap(0, 0));
     }
 
@@ -179,7 +179,7 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
     public async Task GetDistanceMapReturnsNotFoundWhenThrows()
     {
         this._proxy.Setup(p => p.GetDistanceMapUrlAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<int>()))
-            .ThrowsAsync(new Exception());
+            .ThrowsAsync(new InvalidOperationException());
         Assert.IsType<NotFoundResult>(await this._sut.GetDistanceMap(0, 0, 0));
     }
 

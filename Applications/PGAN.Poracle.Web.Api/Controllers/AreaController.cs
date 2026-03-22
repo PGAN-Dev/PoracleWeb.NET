@@ -5,7 +5,7 @@ using PGAN.Poracle.Web.Core.Abstractions.Services;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/areas")]
-public class AreaController(IHumanService humanService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
+public partial class AreaController(IHumanService humanService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
@@ -30,7 +30,7 @@ public class AreaController(IHumanService humanService, IPoracleApiProxy poracle
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to parse area JSON for user {UserId}, falling back to comma-separated", this.UserId);
+                LogParseAreaJsonFailed(_logger, ex, this.UserId);
                 // Fallback: treat as comma-separated
                 areas = human.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
@@ -52,7 +52,7 @@ public class AreaController(IHumanService humanService, IPoracleApiProxy poracle
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch available areas from Poracle API for user {UserId}", this.UserId);
+            LogFetchAvailableAreasFailed(_logger, ex, this.UserId);
         }
 
         return this.Ok(Array.Empty<object>());
@@ -94,7 +94,7 @@ public class AreaController(IHumanService humanService, IPoracleApiProxy poracle
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch geofence data from Poracle API");
+            LogFetchGeofenceDataFailed(_logger, ex);
         }
 
         return this.Ok(new
@@ -120,7 +120,7 @@ public class AreaController(IHumanService humanService, IPoracleApiProxy poracle
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch map URL for area {AreaName} from Poracle API", areaName);
+            LogFetchAreaMapFailed(_logger, ex, areaName);
         }
 
         return this.NotFound();
@@ -133,4 +133,16 @@ public class AreaController(IHumanService humanService, IPoracleApiProxy poracle
             get; set;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to parse area JSON for user {UserId}, falling back to comma-separated")]
+    private static partial void LogParseAreaJsonFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch available areas from Poracle API for user {UserId}")]
+    private static partial void LogFetchAvailableAreasFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch geofence data from Poracle API")]
+    private static partial void LogFetchGeofenceDataFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch map URL for area {AreaName} from Poracle API")]
+    private static partial void LogFetchAreaMapFailed(ILogger logger, Exception ex, string areaName);
 }
