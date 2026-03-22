@@ -45,7 +45,7 @@ public partial class GeofenceFeedController(
         }
         catch (Exception ex)
         {
-            LogFetchAdminGeofencesFailed(_logger, ex);
+            LogFetchAdminGeofencesFailed(this._logger, ex);
         }
 
         // User geofences from local DB (not user-selectable, not displayed in matches)
@@ -61,7 +61,7 @@ public partial class GeofenceFeedController(
                 }
                 catch (JsonException ex)
                 {
-                    LogDeserializePolygonFailed(_logger, ex, g.KojiName, g.Id);
+                    LogDeserializePolygonFailed(this._logger, ex, g.KojiName, g.Id);
                 }
 
                 if (polygon == null || polygon.Length < 3)

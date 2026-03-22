@@ -25,7 +25,7 @@ public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<
         }
         catch (Exception ex)
         {
-            LogFetchTemplatesFailed(_logger, ex);
+            LogFetchTemplatesFailed(this._logger, ex);
         }
 
         return this.Ok(new
@@ -67,7 +67,7 @@ public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<
         }
         catch (Exception ex)
         {
-            LogFetchConfigFailed(_logger, ex);
+            LogFetchConfigFailed(this._logger, ex);
         }
 
         return this.Ok(new PoracleConfig
