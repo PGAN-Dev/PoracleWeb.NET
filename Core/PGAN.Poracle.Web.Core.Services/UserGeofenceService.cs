@@ -11,6 +11,7 @@ public partial class UserGeofenceService(
     IUserGeofenceRepository repository,
     IKojiService kojiService,
     IPoracleApiProxy poracleApiProxy,
+    IPoracleServerService poracleServerService,
     IHumanRepository humanRepository,
     IDiscordNotificationService discordNotificationService,
     ILogger<UserGeofenceService> logger) : IUserGeofenceService
@@ -20,6 +21,7 @@ public partial class UserGeofenceService(
     private readonly IUserGeofenceRepository _repository = repository;
     private readonly IKojiService _kojiService = kojiService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly IHumanRepository _humanRepository = humanRepository;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly ILogger<UserGeofenceService> _logger = logger;
@@ -315,6 +317,16 @@ public partial class UserGeofenceService(
         geofence.PromotedName = promotedName;
 
         var updated = await this._repository.UpdateAsync(geofence);
+
+        // Update group_map.json on all Poracle servers so the promoted geofence shows with correct group
+        try
+        {
+            await this._poracleServerService.UpdateGroupMapAsync(targetName, geofence.GroupName);
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogWarning(ex, "Failed to update group_map.json for geofence '{Name}'", targetName);
+        }
 
         // Reload Poracle geofences
         await this.ReloadGeofencesSafeAsync();

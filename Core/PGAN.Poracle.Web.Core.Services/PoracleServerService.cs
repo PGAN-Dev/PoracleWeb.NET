@@ -16,7 +16,7 @@ public partial class PoracleServerService(
     private readonly ILogger<PoracleServerService> _logger = logger;
     private readonly string _sshKeyPath = configuration["Poracle:SshKeyPath"] ?? "/app/ssh_key";
 
-    private sealed record ServerConfig(string Name, string Host, string ApiAddress, string SshUser, string RestartCommand);
+    private sealed record ServerConfig(string Name, string Host, string ApiAddress, string SshUser, string RestartCommand, string GroupMapPath);
 
     [GeneratedRegex(@"^[a-zA-Z0-9._\-]+$")]
     private static partial Regex SafeHostnameRegex();
@@ -33,10 +33,11 @@ public partial class PoracleServerService(
             var apiAddress = child["ApiAddress"] ?? string.Empty;
             var sshUser = child["SshUser"] ?? "root";
             var restartCommand = child["RestartCommand"] ?? "pm2 restart all";
+            var groupMapPath = child["GroupMapPath"] ?? "/source/PoracleJS/config/group_map.json";
 
             if (!string.IsNullOrWhiteSpace(host))
             {
-                servers.Add(new ServerConfig(name, host, apiAddress, sshUser, restartCommand));
+                servers.Add(new ServerConfig(name, host, apiAddress, sshUser, restartCommand, groupMapPath));
             }
         }
 
@@ -180,5 +181,59 @@ public partial class PoracleServerService(
         }
 
         return statuses;
+    }
+
+    public async Task UpdateGroupMapAsync(string geofenceName, string group)
+    {
+        var servers = this.GetServers();
+
+        foreach (var server in servers)
+        {
+            try
+            {
+                ValidateHostname(server.Host, "host");
+                ValidateHostname(server.SshUser, "sshUser");
+
+                // Use python3/node to safely update the JSON file on the remote server
+                var escapedName = geofenceName.Replace("\"", "\\\"");
+                var escapedGroup = group.Replace("\"", "\\\"");
+                var updateScript = $"python3 -c \\\"import json; f='{server.GroupMapPath}'; d=json.load(open(f)); d['{escapedName}']='{escapedGroup}'; json.dump(d,open(f,'w'),indent=2)\\\"";
+
+                var sshArgs = $"-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o SendEnv=none -i {this._sshKeyPath} {server.SshUser}@{server.Host} \"{updateScript}\"";
+
+                using var process = new Process();
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ssh",
+                    Arguments = sshArgs,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+                process.StartInfo.Environment.Clear();
+                process.StartInfo.Environment["PATH"] = "/usr/bin:/usr/local/bin:/bin";
+                process.StartInfo.Environment["HOME"] = "/home/appuser";
+
+                process.Start();
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                await process.WaitForExitAsync(cts.Token);
+
+                if (process.ExitCode == 0)
+                {
+                    this._logger.LogInformation("Updated group_map.json on {Host}: {Name} -> {Group}", server.Host, geofenceName, group);
+                }
+                else
+                {
+                    var stderr = await process.StandardError.ReadToEndAsync();
+                    this._logger.LogWarning("Failed to update group_map.json on {Host}: {Error}", server.Host, stderr);
+                }
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogWarning(ex, "Failed to update group_map.json on {Host}", server.Host);
+            }
+        }
     }
 }
