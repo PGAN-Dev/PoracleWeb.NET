@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -121,7 +122,7 @@ public class ProfileController(
 
             claims.Add(new Claim(claim.Type, claim.Value));
         }
-        claims.Add(new Claim("profileNo", profileNo.ToString()));
+        claims.Add(new Claim("profileNo", profileNo.ToString(CultureInfo.InvariantCulture)));
 
         var token = new JwtSecurityToken(
             issuer: this._jwtSettings.Issuer,

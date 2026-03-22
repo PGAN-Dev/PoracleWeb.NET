@@ -137,7 +137,7 @@ using (var scope = app.Services.CreateScope())
     {
         var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
             .CreateLogger("Startup");
-        startupLogger.LogWarning(ex, "Could not alter pweb_settings.value column (may already be LONGTEXT).");
+        StartupLog.LogPwebSettingsAlterFailed(startupLogger, ex);
     }
 }
 
@@ -149,7 +149,7 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
         var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
         if (exceptionFeature is not null)
         {
-            logger.LogError(exceptionFeature.Error, "Unhandled exception occurred.");
+            StartupLog.LogUnhandledException(logger, exceptionFeature.Error);
         }
 
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
@@ -178,11 +178,11 @@ app.Use(async (context, next) =>
     context.Response.OnStarting(() =>
     {
         var headers = context.Response.Headers;
-        headers["X-Content-Type-Options"] = "nosniff";
-        headers["X-Frame-Options"] = "DENY";
-        headers["X-XSS-Protection"] = "0";
+        headers.XContentTypeOptions = "nosniff";
+        headers.XFrameOptions = "DENY";
+        headers.XXSSProtection = "0";
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://raw.githubusercontent.com";
+        headers.ContentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://raw.githubusercontent.com";
         return Task.CompletedTask;
     });
     await next();
@@ -212,3 +212,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+internal static partial class StartupLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not alter pweb_settings.value column (may already be LONGTEXT).")]
+    public static partial void LogPwebSettingsAlterFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception occurred.")]
+    public static partial void LogUnhandledException(ILogger logger, Exception ex);
+}

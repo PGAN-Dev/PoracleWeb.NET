@@ -6,7 +6,7 @@ using PGAN.Poracle.Web.Core.Models;
 namespace PGAN.Poracle.Web.Api.Controllers;
 
 [Route("api/config")]
-public class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigController> logger) : BaseApiController
+public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigController> logger) : BaseApiController
 {
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly ILogger<ConfigController> _logger = logger;
@@ -25,7 +25,7 @@ public class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigCo
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch Poracle templates");
+            LogFetchTemplatesFailed(_logger, ex);
         }
 
         return this.Ok(new
@@ -67,7 +67,7 @@ public class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigCo
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to fetch Poracle config");
+            LogFetchConfigFailed(_logger, ex);
         }
 
         return this.Ok(new PoracleConfig
@@ -86,4 +86,10 @@ public class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<ConfigCo
             MaxDistance = 10726000
         });
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle templates")]
+    private static partial void LogFetchTemplatesFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config")]
+    private static partial void LogFetchConfigFailed(ILogger logger, Exception ex);
 }

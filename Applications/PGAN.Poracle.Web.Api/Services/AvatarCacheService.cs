@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace PGAN.Poracle.Web.Api.Services;
 
-public class AvatarCacheService(ILogger<AvatarCacheService> logger) : BackgroundService
+public partial class AvatarCacheService(ILogger<AvatarCacheService> logger) : BackgroundService
 {
     private readonly ILogger<AvatarCacheService> _logger = logger;
 
@@ -32,7 +32,7 @@ public class AvatarCacheService(ILogger<AvatarCacheService> logger) : Background
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         this.LoadFromDisk();
-        this._logger.LogInformation("Loaded {Count} avatars from disk cache.", Avatars.Count);
+        LogLoadedAvatars(this._logger, Avatars.Count);
         return Task.CompletedTask;
     }
 
@@ -59,7 +59,13 @@ public class AvatarCacheService(ILogger<AvatarCacheService> logger) : Background
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to load avatar cache from disk");
+            LogAvatarCacheLoadFailed(this._logger, ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {Count} avatars from disk cache.")]
+    private static partial void LogLoadedAvatars(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to load avatar cache from disk")]
+    private static partial void LogAvatarCacheLoadFailed(ILogger logger, Exception ex);
 }
