@@ -1,0 +1,463 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 24px;
+  gap: 16px;
+}
+
+.page-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.page-description {
+  margin: 4px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 3px solid #673ab7;
+  padding-left: 12px;
+}
+
+// ─── Layout: TOC sidebar + content ──────────────────────────
+
+.help-layout {
+  display: flex;
+  gap: 0;
+  padding: 0 24px 24px;
+}
+
+.help-content {
+  flex: 1;
+  min-width: 0;
+  max-width: 860px;
+}
+
+// ─── Table of Contents ──────────────────────────────────────
+
+.toc {
+  position: sticky;
+  top: 72px;
+  align-self: flex-start;
+  width: 220px;
+  flex-shrink: 0;
+  margin-left: 24px;
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+}
+
+.toc-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.54));
+  padding: 0 8px 8px;
+}
+
+.toc-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--mat-sys-on-surface, #333);
+  border-radius: 6px;
+  text-align: left;
+  transition: background-color 0.12s ease;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: var(--mat-sys-surface-variant, rgba(0, 0, 0, 0.05));
+  }
+}
+
+// ─── Search ─────────────────────────────────────────────────
+
+.search-field {
+  width: 100%;
+  margin-bottom: 16px;
+
+  mat-icon {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.54));
+    margin-right: 4px;
+  }
+}
+
+// ─── Quick Start Cards ──────────────────────────────────────
+
+.quick-start {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.quick-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+  background: var(--mat-sys-surface, #fff);
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+  text-align: left;
+
+  &:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-color: var(--card-border-hover, rgba(0, 0, 0, 0.18));
+  }
+}
+
+.quick-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.quick-card-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+
+  strong {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+    line-height: 1.3;
+  }
+}
+
+.quick-card-arrow {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.3));
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+// ─── No results ─────────────────────────────────────────────
+
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  p {
+    margin: 0 0 16px;
+    font-size: 14px;
+  }
+}
+
+// ─── Accordion sections ─────────────────────────────────────
+
+::ng-deep mat-expansion-panel {
+  margin-bottom: 8px !important;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    color: #fff;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.section-title-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.section-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  line-height: 1.3;
+}
+
+// ─── Section content ────────────────────────────────────────
+
+.section-content {
+  padding: 8px 0 8px 44px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--mat-sys-on-surface, #333);
+
+  h4 {
+    margin: 20px 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  p {
+    margin: 0 0 10px;
+  }
+
+  ul,
+  ol {
+    margin: 4px 0 12px;
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 5px;
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  table {
+    border-collapse: collapse;
+    margin: 8px 0;
+  }
+
+  td {
+    padding: 4px 16px 4px 0;
+  }
+
+  kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-family: monospace;
+    background: var(--mat-sys-surface-variant, #e0e0e0);
+    border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+    border-radius: 4px;
+  }
+}
+
+// ─── Screenshots ────────────────────────────────────────────
+
+::ng-deep .help-screenshot {
+  display: block;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin: 12px 0 16px;
+}
+
+::ng-deep .help-screenshot-sm {
+  max-width: 480px;
+}
+
+// ─── Callout boxes ──────────────────────────────────────────
+// Used via innerHTML: <div class="callout callout-info">
+
+/* stylelint-disable selector-type-no-unknown */
+::ng-deep .callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+::ng-deep .callout-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+::ng-deep .callout-info {
+  background: color-mix(in srgb, #2196f3 8%, transparent);
+  border-left: 3px solid #2196f3;
+}
+
+::ng-deep .callout-tip {
+  background: color-mix(in srgb, #4caf50 8%, transparent);
+  border-left: 3px solid #4caf50;
+}
+
+::ng-deep .callout-warn {
+  background: color-mix(in srgb, #ff9800 8%, transparent);
+  border-left: 3px solid #ff9800;
+}
+
+// ─── Pill legend (Pokemon section) ──────────────────────────
+
+::ng-deep .pill-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+::ng-deep .pill-sample {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+// ─── Mode comparison cards (Delivery section) ───────────────
+
+::ng-deep .mode-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0 16px;
+}
+
+::ng-deep .mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 14px 12px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+  gap: 6px;
+
+  strong {
+    font-size: 13px;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+    line-height: 1.4;
+  }
+}
+
+::ng-deep .mode-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+// ─── Footer ─────────────────────────────────────────────────
+
+.help-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  font-size: 13px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  }
+}
+
+// ─── Responsive ─────────────────────────────────────────────
+
+@media (max-width: 960px) {
+  .toc {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-header {
+    padding: 12px 16px;
+    flex-direction: column;
+  }
+
+  .help-layout {
+    padding: 0 16px 16px;
+  }
+
+  .quick-start {
+    grid-template-columns: 1fr;
+  }
+
+  .section-content {
+    padding: 8px 0;
+  }
+
+  ::ng-deep .mode-compare {
+    grid-template-columns: 1fr;
+  }
+}

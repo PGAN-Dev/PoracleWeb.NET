@@ -237,6 +237,27 @@
               </a>
             }
           }
+          <!-- Support Section -->
+          @if (supportNavItems().length > 0) {
+            <div class="nav-spacer"></div>
+            <mat-divider class="nav-divider"></mat-divider>
+          }
+          @for (item of supportNavItems(); track item.route) {
+            <a
+              mat-list-item
+              [routerLink]="item.route"
+              routerLinkActive="active-link"
+              (click)="onNavClick()"
+              class="nav-item"
+              [matTooltip]="item.label"
+              [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
+              matTooltipPosition="right">
+              <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
+              @if (!sidenavCollapsed() || isMobile()) {
+                <span matListItemTitle>{{ item.label }}</span>
+              }
+            </a>
+          }
         </mat-nav-list>
 
         <!-- Collapse toggle (desktop only) -->

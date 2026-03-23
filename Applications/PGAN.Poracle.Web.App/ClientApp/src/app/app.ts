@@ -23,7 +23,7 @@ interface NavItem {
   delegateOnly?: boolean;
   /** pweb_settings key that disables this item when set to 'True' */
   disableKey?: string;
-  group: 'alarms' | 'settings' | 'admin' | 'webhooks';
+  group: 'alarms' | 'settings' | 'admin' | 'webhooks' | 'support';
   icon: string;
   iconColor?: string;
   label: string;
@@ -136,6 +136,7 @@ export class App implements OnInit {
     { group: 'settings', icon: 'draw', iconColor: '#2196f3', label: 'My Geofences', route: '/geofences' },
     { disableKey: 'disable_profiles', group: 'settings', icon: 'person', iconColor: '#7b1fa2', label: 'Profiles', route: '/profiles' },
     { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'Cleaning', route: '/cleaning' },
+    { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'Help', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'Users', route: '/admin/users' },
     { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'Webhooks', route: '/admin/webhooks' },
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'Settings', route: '/admin/settings' },
@@ -201,6 +202,8 @@ export class App implements OnInit {
   protected readonly sidenavOpened = signal(!this.isMobile());
 
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'PoGO Alerts Network');
+
+  protected readonly supportNavItems = computed(() => this.navItems.filter(item => item.group === 'support'));
 
   protected readonly toolbarGradient = computed(() => {
     const accent = this.accentTheme();
