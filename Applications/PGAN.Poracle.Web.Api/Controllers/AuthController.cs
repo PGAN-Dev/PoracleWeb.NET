@@ -25,6 +25,7 @@ public partial class AuthController(
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
     IOptions<PoracleSettings> poracleSettings,
+    IConfiguration configuration,
     ILogger<AuthController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
@@ -34,6 +35,7 @@ public partial class AuthController(
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
+    private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly ILogger<AuthController> _logger = logger;
 
     [AllowAnonymous]
@@ -54,11 +56,23 @@ public partial class AuthController(
 
         this.Response.Cookies.Append("oauth_state", state, cookieOptions);
 
-        // Save the frontend origin so we know where to redirect after the callback
+        // Save the frontend origin so we know where to redirect after the callback.
+        // Validate against configured CORS origins to prevent open redirect token theft.
+        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var origin = selfOrigin;
+
         var referer = this.Request.Headers.Referer.FirstOrDefault();
-        var origin = !string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
-            ? $"{refererUri.Scheme}://{refererUri.Authority}"
-            : $"{this.Request.Scheme}://{this.Request.Host}";
+        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+        {
+            var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
+            if (this._allowedOrigins.Length > 0
+                ? this._allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
+                : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
+            {
+                origin = refererOrigin;
+            }
+        }
+
         this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
         // Redirect URI points to the API itself, not the Angular app

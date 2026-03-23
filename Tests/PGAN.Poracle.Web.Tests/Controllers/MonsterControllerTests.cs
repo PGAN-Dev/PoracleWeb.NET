@@ -34,7 +34,7 @@ public class MonsterControllerTests : ControllerTestBase
     [Fact]
     public async Task GetByUidReturnsOkWhenFound()
     {
-        var monster = new Monster { Uid = 1, PokemonId = 25 };
+        var monster = new Monster { Uid = 1, PokemonId = 25, Id = "123456789" };
         this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(monster);
 
         var result = await this._sut.GetByUid(1);
@@ -71,7 +71,7 @@ public class MonsterControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateReturnsOkWhenFound()
     {
-        var existing = new Monster { Uid = 1, PokemonId = 25 };
+        var existing = new Monster { Uid = 1, PokemonId = 25, Id = "123456789" };
         var updateModel = new MonsterUpdate();
         this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
         this._service.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
@@ -94,6 +94,7 @@ public class MonsterControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteReturnsNoContentWhenDeleted()
     {
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Monster { Uid = 1, Id = "123456789" });
         this._service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
 
         var result = await this._sut.Delete(1);
@@ -104,7 +105,7 @@ public class MonsterControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteReturnsNotFoundWhenMissing()
     {
-        this._service.Setup(s => s.DeleteAsync(999)).ReturnsAsync(false);
+        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Monster?)null);
 
         var result = await this._sut.Delete(999);
 
@@ -120,6 +121,39 @@ public class MonsterControllerTests : ControllerTestBase
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
+    }
+
+    [Fact]
+    public async Task GetByUidReturnsNotFoundWhenOwnedByDifferentUser()
+    {
+        var monster = new Monster { Uid = 1, PokemonId = 25, Id = "other_user" };
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(monster);
+
+        var result = await this._sut.GetByUid(1);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateReturnsNotFoundWhenOwnedByDifferentUser()
+    {
+        var existing = new Monster { Uid = 1, PokemonId = 25, Id = "other_user" };
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
+
+        var result = await this._sut.Update(1, new MonsterUpdate());
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteReturnsNotFoundWhenOwnedByDifferentUser()
+    {
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Monster { Uid = 1, Id = "other_user" });
+
+        var result = await this._sut.Delete(1);
+
+        Assert.IsType<NotFoundResult>(result);
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<int>()), Times.Never);
     }
 
     [Fact]

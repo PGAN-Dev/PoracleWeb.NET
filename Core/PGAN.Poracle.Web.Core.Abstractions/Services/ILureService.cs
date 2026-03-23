@@ -11,7 +11,7 @@ public interface ILureService
     public Task<bool> DeleteAsync(int uid);
     public Task<int> DeleteAllByUserAsync(string userId, int profileNo);
     public Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance);
-    public Task<int> UpdateDistanceByUidsAsync(List<int> uids, int distance);
+    public Task<int> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance);
     public Task<int> CountByUserAsync(string userId, int profileNo);
     public Task<IEnumerable<Lure>> BulkCreateAsync(string userId, IEnumerable<Lure> models);
 }

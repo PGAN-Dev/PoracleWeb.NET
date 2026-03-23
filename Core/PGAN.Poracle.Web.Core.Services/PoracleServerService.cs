@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -192,10 +193,10 @@ public partial class PoracleServerService(
                 ValidateHostname(server.Host, "host");
                 ValidateHostname(server.SshUser, "sshUser");
 
-                // Use python3/node to safely update the JSON file on the remote server
-                var escapedName = geofenceName.Replace("\"", "\\\"");
-                var escapedGroup = group.Replace("\"", "\\\"");
-                var updateScript = $"python3 -c \\\"import json; f='{server.GroupMapPath}'; d=json.load(open(f)); d['{escapedName}']='{escapedGroup}'; json.dump(d,open(f,'w'),indent=2)\\\"";
+                // Encode the key/value as base64 JSON to avoid shell/Python injection
+                var payloadJson = JsonSerializer.Serialize(new { key = geofenceName, value = group, path = server.GroupMapPath });
+                var payloadBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(payloadJson));
+                var updateScript = $"python3 -c \\\"import json,base64,sys; p=json.loads(base64.b64decode('{payloadBase64}')); f=p['path']; d=json.load(open(f)); d[p['key']]=p['value']; json.dump(d,open(f,'w'),indent=2)\\\"";
 
                 var sshArgs = $"-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o SendEnv=none -i {this._sshKeyPath} {server.SshUser}@{server.Host} \"{updateScript}\"";
 

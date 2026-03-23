@@ -16,4 +16,7 @@ public abstract class BaseApiController : ControllerBase
     protected string Username => this.User.FindFirstValue("username") ?? string.Empty;
     protected string[] ManagedWebhooks => this.User.FindFirstValue("managedWebhooks")
         ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+
+    /// <summary>Checks that <paramref name="ownerId"/> matches the authenticated user. Returns true when NOT owned (i.e. should return 404).</summary>
+    protected bool NotOwnedByCurrentUser(string? ownerId) => !string.Equals(ownerId, this.UserId, StringComparison.Ordinal);
 }
