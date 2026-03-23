@@ -15,54 +15,21 @@ public partial class AreaController(IHumanService humanService, IProfileService 
     [HttpGet]
     public async Task<IActionResult> GetSelectedAreas()
     {
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
-        {
-            return this.NotFound();
-        }
-
-        // Area is stored as a JSON array in the DB, e.g. ["west end", "downtown"]
-        var areas = Array.Empty<string>();
-        if (!string.IsNullOrWhiteSpace(human.Area))
-        {
-            try
-            {
-                areas = JsonSerializer.Deserialize<string[]>(human.Area) ?? [];
-            }
-            catch (Exception ex)
-            {
-                LogParseAreaJsonFailed(this._logger, ex, this.UserId);
-                // Fallback: treat as comma-separated
-                areas = human.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            }
-        }
-
-        return this.Ok(areas);
-    }
-
-    [HttpGet("profile")]
-    public async Task<IActionResult> GetProfileAreas()
-    {
+        // Read from profiles.area for the current profile (profile-scoped)
         var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
         if (profile == null)
         {
-            return this.Ok(Array.Empty<string>());
+            // Fallback to humans.area if profile not found
+            var human = await this._humanService.GetByIdAsync(this.UserId);
+            if (human == null)
+            {
+                return this.NotFound();
+            }
+
+            return this.Ok(ParseAreaJson(human.Area));
         }
 
-        var areas = Array.Empty<string>();
-        if (!string.IsNullOrWhiteSpace(profile.Area))
-        {
-            try
-            {
-                areas = JsonSerializer.Deserialize<string[]>(profile.Area) ?? [];
-            }
-            catch
-            {
-                areas = profile.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            }
-        }
-
-        return this.Ok(areas);
+        return this.Ok(ParseAreaJson(profile.Area));
     }
 
     [HttpGet("available")]
@@ -98,12 +65,22 @@ public partial class AreaController(IHumanService humanService, IProfileService 
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
 
-        // Store as JSON array to match Poracle's format
-        human.Area = normalizedAreas.Length > 0
+        var areaJson = normalizedAreas.Length > 0
             ? JsonSerializer.Serialize(normalizedAreas)
             : "[]";
 
+        // Update humans.area (PoracleJS reads this for notifications)
+        human.Area = areaJson;
         await this._humanService.UpdateAsync(human);
+
+        // Also update profiles.area for the current profile (profile-scoped storage)
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile != null)
+        {
+            profile.Area = areaJson;
+            await this._profileService.UpdateAsync(profile);
+        }
+
         return this.Ok(normalizedAreas);
     }
 
@@ -157,6 +134,23 @@ public partial class AreaController(IHumanService humanService, IProfileService 
         public string[]? Areas
         {
             get; set;
+        }
+    }
+
+    private static string[] ParseAreaJson(string? areaJson)
+    {
+        if (string.IsNullOrWhiteSpace(areaJson))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(areaJson) ?? [];
+        }
+        catch
+        {
+            return areaJson.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
     }
 

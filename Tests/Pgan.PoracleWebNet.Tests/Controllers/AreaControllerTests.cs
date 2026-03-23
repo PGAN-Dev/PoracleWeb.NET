@@ -24,39 +24,10 @@ public class AreaControllerTests : ControllerTestBase
     // --- GetSelectedAreas ---
 
     [Fact]
-    public async Task GetSelectedAreasReturnsNotFoundWhenHumanMissing()
+    public async Task GetSelectedAreasReadsFromProfileArea()
     {
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await this._sut.GetSelectedAreas());
-    }
-
-    [Fact]
-    public async Task GetSelectedAreasReturnsEmptyArrayWhenAreaIsNull()
-    {
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(new Human { Id = "123456789", Area = null });
-
-        var result = await this._sut.GetSelectedAreas();
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var areas = Assert.IsType<string[]>(ok.Value);
-        Assert.Empty(areas);
-    }
-
-    [Fact]
-    public async Task GetSelectedAreasReturnsEmptyArrayWhenAreaIsWhitespace()
-    {
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(new Human { Id = "123456789", Area = "   " });
-
-        var result = await this._sut.GetSelectedAreas();
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Empty(Assert.IsType<string[]>(ok.Value));
-    }
-
-    [Fact]
-    public async Task GetSelectedAreasParsesJsonArray()
-    {
-        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
-            .ReturnsAsync(new Human { Id = "123456789", Area = "[\"west end\",\"downtown\"]" });
+        var profile = new Profile { Id = "123456789", ProfileNo = 1, Area = "[\"west end\",\"downtown\"]" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
 
         var result = await this._sut.GetSelectedAreas();
 
@@ -68,16 +39,39 @@ public class AreaControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetSelectedAreasFallsBackToCommaSeparatedWhenJsonInvalid()
+    public async Task GetSelectedAreasReturnsEmptyWhenProfileAreaIsNull()
     {
+        var profile = new Profile { Id = "123456789", ProfileNo = 1, Area = null! };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
+
+        var result = await this._sut.GetSelectedAreas();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Empty(Assert.IsType<string[]>(ok.Value));
+    }
+
+    [Fact]
+    public async Task GetSelectedAreasFallsBackToHumanWhenProfileNotFound()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
         this._humanService.Setup(s => s.GetByIdAsync("123456789"))
-            .ReturnsAsync(new Human { Id = "123456789", Area = "west end,downtown" });
+            .ReturnsAsync(new Human { Id = "123456789", Area = "[\"fallback\"]" });
 
         var result = await this._sut.GetSelectedAreas();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var areas = Assert.IsType<string[]>(ok.Value);
-        Assert.Equal(2, areas.Length);
+        Assert.Single(areas);
+        Assert.Contains("fallback", areas);
+    }
+
+    [Fact]
+    public async Task GetSelectedAreasReturnsNotFoundWhenNoProfileAndNoHuman()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
+
+        Assert.IsType<NotFoundResult>(await this._sut.GetSelectedAreas());
     }
 
     // --- GetAvailableAreas ---

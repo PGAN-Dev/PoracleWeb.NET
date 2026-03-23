@@ -36,10 +36,6 @@ export class AreaService {
     );
   }
 
-  getProfileAreas(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.config.apiHost}/api/areas/profile`);
-  }
-
   getSelected(): Observable<string[]> {
     return this.http.get<string[]>(`${this.config.apiHost}/api/areas`);
   }
