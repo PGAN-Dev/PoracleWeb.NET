@@ -54,11 +54,26 @@ public partial class AuthController(
 
         this.Response.Cookies.Append("oauth_state", state, cookieOptions);
 
-        // Save the frontend origin so we know where to redirect after the callback
+        // Save the frontend origin so we know where to redirect after the callback.
+        // Validate against configured CORS origins to prevent open redirect token theft.
+        var allowedOrigins = this.HttpContext.RequestServices
+            .GetRequiredService<IConfiguration>()
+            .GetSection("Cors:AllowedOrigins").Get<string[]>();
+        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var origin = selfOrigin;
+
         var referer = this.Request.Headers.Referer.FirstOrDefault();
-        var origin = !string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri)
-            ? $"{refererUri.Scheme}://{refererUri.Authority}"
-            : $"{this.Request.Scheme}://{this.Request.Host}";
+        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+        {
+            var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
+            if (allowedOrigins is { Length: > 0 }
+                ? allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
+                : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
+            {
+                origin = refererOrigin;
+            }
+        }
+
         this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
         // Redirect URI points to the API itself, not the Angular app

@@ -22,7 +22,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> GetByUid(int uid)
     {
         var raid = await this._raidService.GetByUidAsync(uid);
-        if (raid == null)
+        if (raid == null || raid.Id != this.UserId)
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Update(int uid, [FromBody] RaidUpdate model)
     {
         var existing = await this._raidService.GetByUidAsync(uid);
-        if (existing == null)
+        if (existing == null || existing.Id != this.UserId)
         {
             return this.NotFound();
         }
@@ -59,12 +59,13 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await this._raidService.DeleteAsync(uid);
-        if (!success)
+        var existing = await this._raidService.GetByUidAsync(uid);
+        if (existing == null || existing.Id != this.UserId)
         {
             return this.NotFound();
         }
 
+        await this._raidService.DeleteAsync(uid);
         return this.NoContent();
     }
 
@@ -81,7 +82,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._raidService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
+        var count = await this._raidService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
         return this.Ok(new
         {
             updated = count

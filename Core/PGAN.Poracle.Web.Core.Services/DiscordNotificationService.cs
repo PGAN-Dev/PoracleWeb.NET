@@ -8,7 +8,7 @@ using PGAN.Poracle.Web.Core.Abstractions.Services;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class DiscordNotificationService(
+public partial class DiscordNotificationService(
     HttpClient httpClient,
     IConfiguration configuration,
     ILogger<DiscordNotificationService> logger) : IDiscordNotificationService
@@ -165,7 +165,7 @@ public class DiscordNotificationService(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to initialize Discord forum tags");
+            LogForumTagInitFailed(this._logger, ex);
         }
     }
 
@@ -173,7 +173,7 @@ public class DiscordNotificationService(
     {
         if (string.IsNullOrEmpty(this._forumChannelId))
         {
-            this._logger.LogDebug("Discord GeofenceForumChannelId is not configured; skipping submission post");
+            LogForumChannelNotConfigured(this._logger);
             return null;
         }
 
@@ -192,7 +192,7 @@ public class DiscordNotificationService(
                     fields = new object[]
                     {
                         new { name = "Region", value = groupName, inline = true },
-                        new { name = "Points", value = polygonPoints.ToString(), inline = true },
+                        new { name = "Points", value = polygonPoints.ToString(System.Globalization.CultureInfo.InvariantCulture), inline = true },
                         new { name = "Submitted By", value = $"<@{userId}>", inline = true },
                     },
                     image = mapImageUrl != null ? new { url = mapImageUrl } : null,
@@ -218,13 +218,13 @@ public class DiscordNotificationService(
             var threadJson = await response.Content.ReadFromJsonAsync<JsonElement>();
             var threadId = threadJson.GetProperty("id").GetString();
 
-            this._logger.LogInformation("Created Discord forum post for geofence '{GeofenceName}', threadId={ThreadId}", geofenceName, threadId);
+            LogForumPostCreated(this._logger, geofenceName, threadId);
 
             return threadId;
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to create Discord forum post for geofence '{GeofenceName}'", geofenceName);
+            LogForumPostFailed(this._logger, ex, geofenceName);
             return null;
         }
     }
@@ -253,11 +253,11 @@ public class DiscordNotificationService(
             var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
             patchResponse.EnsureSuccessStatusCode();
 
-            this._logger.LogInformation("Posted approval to Discord thread {ThreadId} for geofence '{GeofenceName}'", threadId, geofenceName);
+            LogApprovalPosted(this._logger, threadId, geofenceName);
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to post approval to Discord thread {ThreadId}", threadId);
+            LogApprovalFailed(this._logger, ex, threadId);
         }
     }
 
@@ -285,11 +285,35 @@ public class DiscordNotificationService(
             var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
             patchResponse.EnsureSuccessStatusCode();
 
-            this._logger.LogInformation("Posted rejection to Discord thread {ThreadId} for geofence '{GeofenceName}'", threadId, geofenceName);
+            LogRejectionPosted(this._logger, threadId, geofenceName);
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to post rejection to Discord thread {ThreadId}", threadId);
+            LogRejectionFailed(this._logger, ex, threadId);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to initialize Discord forum tags")]
+    private static partial void LogForumTagInitFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Discord GeofenceForumChannelId is not configured; skipping submission post")]
+    private static partial void LogForumChannelNotConfigured(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Created Discord forum post for geofence '{GeofenceName}', threadId={ThreadId}")]
+    private static partial void LogForumPostCreated(ILogger logger, string geofenceName, string? threadId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to create Discord forum post for geofence '{GeofenceName}'")]
+    private static partial void LogForumPostFailed(ILogger logger, Exception ex, string geofenceName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Posted approval to Discord thread {ThreadId} for geofence '{GeofenceName}'")]
+    private static partial void LogApprovalPosted(ILogger logger, string threadId, string geofenceName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post approval to Discord thread {ThreadId}")]
+    private static partial void LogApprovalFailed(ILogger logger, Exception ex, string threadId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Posted rejection to Discord thread {ThreadId} for geofence '{GeofenceName}'")]
+    private static partial void LogRejectionPosted(ILogger logger, string threadId, string geofenceName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post rejection to Discord thread {ThreadId}")]
+    private static partial void LogRejectionFailed(ILogger logger, Exception ex, string threadId);
 }

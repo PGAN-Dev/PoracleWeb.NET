@@ -30,7 +30,7 @@ public class RaidControllerTests : ControllerTestBase
     [Fact]
     public async Task GetByUidReturnsOkWhenFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Raid { Uid = 1 });
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Raid { Uid = 1, Id = "123456789" });
         Assert.IsType<OkObjectResult>(await this._sut.GetByUid(1));
     }
 
@@ -54,7 +54,7 @@ public class RaidControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateReturnsOkWhenFound()
     {
-        var existing = new Raid { Uid = 1 };
+        var existing = new Raid { Uid = 1, Id = "123456789" };
         this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
         this._service.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
         Assert.IsType<OkObjectResult>(await this._sut.Update(1, new RaidUpdate()));
@@ -70,6 +70,7 @@ public class RaidControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteReturnsNoContent()
     {
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Raid { Uid = 1, Id = "123456789" });
         this._service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
         Assert.IsType<NoContentResult>(await this._sut.Delete(1));
     }
@@ -77,7 +78,7 @@ public class RaidControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteReturnsNotFound()
     {
-        this._service.Setup(s => s.DeleteAsync(999)).ReturnsAsync(false);
+        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Delete(999));
     }
 

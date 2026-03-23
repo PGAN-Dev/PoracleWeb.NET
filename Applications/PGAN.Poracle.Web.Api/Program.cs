@@ -101,8 +101,15 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
-// CORS
+// CORS — require explicit origin whitelist to prevent credential leakage
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+if (allowedOrigins is not { Length: > 0 } && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "Configuration 'Cors:AllowedOrigins' is required in non-development environments. " +
+        "Set it to the origin(s) of your frontend (e.g., [\"https://poracle.example.com\"]).");
+}
+
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     {
         if (allowedOrigins is { Length: > 0 })
@@ -111,6 +118,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
         }
         else
         {
+            // Development only — never runs in production due to startup check above
             policy.SetIsOriginAllowed(_ => true);
         }
 

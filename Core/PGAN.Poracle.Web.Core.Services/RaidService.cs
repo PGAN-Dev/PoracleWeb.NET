@@ -26,7 +26,7 @@ public class RaidService(IRaidRepository repository) : IRaidService
 
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance) => await this._repository.UpdateDistanceByUserAsync(userId, profileNo, distance);
 
-    public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, int distance) => await this._repository.UpdateDistanceByUidsAsync(uids, distance);
+    public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance) => await this._repository.UpdateDistanceByUidsAsync(uids, userId, distance);
 
     public async Task<int> CountByUserAsync(string userId, int profileNo) => await this._repository.CountByUserAsync(userId, profileNo);
 

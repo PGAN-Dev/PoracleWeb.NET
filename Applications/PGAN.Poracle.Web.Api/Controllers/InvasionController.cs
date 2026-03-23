@@ -22,7 +22,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     public async Task<IActionResult> GetByUid(int uid)
     {
         var invasion = await this._invasionService.GetByUidAsync(uid);
-        if (invasion == null)
+        if (invasion == null || invasion.Id != this.UserId)
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model)
     {
         var existing = await this._invasionService.GetByUidAsync(uid);
-        if (existing == null)
+        if (existing == null || existing.Id != this.UserId)
         {
             return this.NotFound();
         }
@@ -59,12 +59,13 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await this._invasionService.DeleteAsync(uid);
-        if (!success)
+        var existing = await this._invasionService.GetByUidAsync(uid);
+        if (existing == null || existing.Id != this.UserId)
         {
             return this.NotFound();
         }
 
+        await this._invasionService.DeleteAsync(uid);
         return this.NoContent();
     }
 
@@ -81,7 +82,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._invasionService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
+        var count = await this._invasionService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
         return this.Ok(new
         {
             updated = count

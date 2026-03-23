@@ -22,7 +22,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     public async Task<IActionResult> GetByUid(int uid)
     {
         var quest = await this._questService.GetByUidAsync(uid);
-        if (quest == null)
+        if (quest == null || quest.Id != this.UserId)
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     public async Task<IActionResult> Update(int uid, [FromBody] QuestUpdate model)
     {
         var existing = await this._questService.GetByUidAsync(uid);
-        if (existing == null)
+        if (existing == null || existing.Id != this.UserId)
         {
             return this.NotFound();
         }
@@ -59,12 +59,13 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await this._questService.DeleteAsync(uid);
-        if (!success)
+        var existing = await this._questService.GetByUidAsync(uid);
+        if (existing == null || existing.Id != this.UserId)
         {
             return this.NotFound();
         }
 
+        await this._questService.DeleteAsync(uid);
         return this.NoContent();
     }
 
@@ -81,7 +82,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._questService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
+        var count = await this._questService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
         return this.Ok(new
         {
             updated = count
