@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+### Fixed
+- IDOR, OAuth redirect, command injection, CORS, and code quality ([PR #28](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/28))
+
 ### Added
 - add in-app Help & User Guide page ([PR #26](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/26))
 ## [0.5.5] - 2026-03-22
