@@ -150,13 +150,57 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Ensure PoracleWeb database tables exist (site_settings, webhook_delegates, etc.)
+// Apply pending EF Core migrations for the PoracleWeb database (creates new tables automatically)
 using (var scope = app.Services.CreateScope())
 {
     var webDb = scope.ServiceProvider.GetRequiredService<Pgan.PoracleWebNet.Data.PoracleWebContext>();
     try
     {
-        await webDb.Database.EnsureCreatedAsync();
+        // For existing databases that used EnsureCreated() before migrations were introduced:
+        // Check if the migrations history table exists. If not, the DB was created without migrations
+        // and we need to baseline by marking the initial migration as already applied.
+        var conn = webDb.Database.GetDbConnection();
+        await conn.OpenAsync();
+        var historyExists = false;
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = '__EFMigrationsHistory' LIMIT 1";
+            historyExists = await cmd.ExecuteScalarAsync() != null;
+        }
+
+        if (!historyExists)
+        {
+            // Check if user_geofences exists (meaning DB was created via EnsureCreated)
+            var userGeofencesExists = false;
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'user_geofences' LIMIT 1";
+                userGeofencesExists = await cmd.ExecuteScalarAsync() != null;
+            }
+
+            if (userGeofencesExists)
+            {
+                // Baseline: create the history table and mark initial migration as applied
+                // so MigrateAsync() won't try to re-create existing tables
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = """
+                    CREATE TABLE `__EFMigrationsHistory` (
+                        `MigrationId` varchar(150) NOT NULL,
+                        `ProductVersion` varchar(32) NOT NULL,
+                        PRIMARY KEY (`MigrationId`)
+                    );
+                    INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+                    VALUES ('20260323055715_InitialPoracleWeb', '10.0.1');
+                    """;
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        await conn.CloseAsync();
+
+        // Now run migrations — the initial one is marked as applied for existing DBs,
+        // so only the new table migrations will actually execute
+        await webDb.Database.MigrateAsync();
     }
     catch (Exception ex)
     {
