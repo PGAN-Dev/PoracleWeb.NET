@@ -30,7 +30,7 @@ Configured in `ClientApp/.editorconfig`:
 ### Commands
 
 ```bash
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 
 # Check lint
 npm run lint

@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Applications/PGAN.Poracle.Web.App/ClientApp
+        working-directory: Applications/Pgan.PoracleWebNet.App/ClientApp
 
     steps:
       - name: Checkout
@@ -61,7 +61,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: Applications/PGAN.Poracle.Web.App/ClientApp/package-lock.json
+          cache-dependency-path: Applications/Pgan.PoracleWebNet.App/ClientApp/package-lock.json
 
       - name: Upgrade npm
         run: npm install -g npm@latest

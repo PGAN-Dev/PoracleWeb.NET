@@ -1,0 +1,42 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace Pgan.PoracleWebNet.Core.Models;
+
+public class InvasionUpdate
+{
+    [StringLength(256)]
+    public string? Ping
+    {
+        get; set;
+    }
+
+    [Range(0, int.MaxValue)]
+    public int? Distance
+    {
+        get; set;
+    }
+
+    [Range(0, 3)]
+    public int? Gender
+    {
+        get; set;
+    }
+
+    [StringLength(256)]
+    public string? GruntType
+    {
+        get; set;
+    }
+
+    [Range(0, 1)]
+    public int? Clean
+    {
+        get; set;
+    }
+
+    [StringLength(256)]
+    public string? Template
+    {
+        get; set;
+    }
+}

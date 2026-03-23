@@ -16,8 +16,8 @@ services:
       - ConnectionStrings__ScannerDb=${SCANNER_DB_CONNECTION:-}
       # JWT
       - Jwt__Secret=${JWT_SECRET}
-      - Jwt__Issuer=PGAN.Poracle.Web
-      - Jwt__Audience=PGAN.Poracle.Web.App
+      - Jwt__Issuer=Pgan.PoracleWebNet
+      - Jwt__Audience=Pgan.PoracleWebNet.App
       # Discord OAuth2
       - Discord__ClientId=${DISCORD_CLIENT_ID}
       - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}

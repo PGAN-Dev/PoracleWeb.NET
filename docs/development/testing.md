@@ -3,7 +3,7 @@
 ## Frontend tests (Jest)
 
 ```bash
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm test
 ```
 
