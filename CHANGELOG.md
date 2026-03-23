@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-23
+
+### Added
+- **In-app Help & User Guide page** ([PR #26](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/26))
+- **EF Core migrations for PoracleWeb database**: Schema changes apply automatically on startup via `MigrateAsync()`. Includes `MariaDbHistoryRepository` to fix `GET_LOCK(-1)` incompatibility with MariaDB. ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
+
 ### Changed
-- Migrate pweb_settings to structured tables in PoracleWeb DB ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
 - **Migrate pweb_settings to structured tables**: Replace the generic key-value `pweb_settings` table in the Poracle DB with 4 properly structured tables in the PoracleWeb database ([#34](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/34), [PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
   - `site_settings` — typed admin settings with categories and value types
   - `webhook_delegates` — relational webhook-to-user delegation with composite unique index
@@ -18,19 +23,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Controllers use `ISiteSettingService` + `IWebhookDelegateService` instead of generic `IPwebSettingService`
   - `QuickPickService` refactored to use dedicated repositories instead of loading all settings and filtering by key prefix
   - Significant query performance improvement: full table scans replaced with indexed lookups
-- **EF Core migrations for PoracleWeb database**: Replace `EnsureCreated()` with proper EF Core migrations. Schema changes apply automatically on startup via `MigrateAsync()`. Includes `MariaDbHistoryRepository` to fix `GET_LOCK(-1)` incompatibility with MariaDB. ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
 
 ### Deprecated
 - **`pweb_settings` table** — The old key-value table in the Poracle DB is no longer written to. Data is automatically migrated to the new structured tables on first startup. The old `IPwebSettingService` and `PwebSettingEntity` remain registered for the migration service but should not be used for new code.
 
 ### Fixed
-- remove hardcoded branding, rename namespaces to Pgan.PoracleWebNet ([PR #32](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/32))
-- MkDocs build — remove unsupported option, pin mkdocs<2 ([PR #31](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/31))
-- IDOR, OAuth redirect, command injection, CORS, and code quality ([PR #28](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/28))
+- **Remove hardcoded branding**, rename namespaces to Pgan.PoracleWebNet ([PR #32](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/32))
+- **MkDocs build** — remove unsupported option, pin mkdocs<2 ([PR #31](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/31))
+- **Security hardening** — IDOR, OAuth redirect, command injection, CORS, and code quality ([PR #28](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/28))
+- **Settings endpoint security** — `GET /api/settings` now filters sensitive keys for non-admin users ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
+- **Settings upsert preserves metadata** — `PUT /api/settings/{key}` no longer overwrites `ValueType` and `Category` ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
+- **Duplicate webhook delegate handling** — `AddAsync` returns existing delegate instead of throwing 500 ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
+- **Quick pick removal with deleted definitions** — `alarm_type` stored in applied state so removal works even if the definition is later deleted ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
 
-### Added
-- add in-app Help & User Guide page ([PR #26](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/26))
-## [0.5.5] - 2026-03-22
+### Security
+- Settings API no longer serves `api_secret`, `telegram_bot_token`, `scan_db` to non-admin users
+- Webhook delegates stored in proper relational table (no more arbitrary key injection via settings PUT endpoint)
 
 ## [0.5.5] - 2026-03-22
 
@@ -166,8 +174,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.5...HEAD
-[0.5.5]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...v0.5.5
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.5...v0.6.0
 [0.5.5]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.2...v0.5.3
