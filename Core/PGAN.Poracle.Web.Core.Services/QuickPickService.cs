@@ -41,6 +41,16 @@ public partial class QuickPickService(
     private const string UserKeyPrefix = "user_quick_pick:";
     private const string AppliedKeyPrefix = "qp_applied:";
 
+    // Whitelist of Monster filter properties safe to set via reflection in BuildMonster.
+    // Excludes Uid, Id, PokemonId, ProfileNo which are set explicitly.
+    private static readonly HashSet<string> SafeMonsterFilterKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "minIv", "maxIv", "minCp", "maxCp", "minLevel", "maxLevel",
+        "minWeight", "maxWeight", "atk", "def", "sta", "maxAtk", "maxDef", "maxSta",
+        "pvpRankingWorst", "pvpRankingBest", "pvpRankingMinCp", "pvpRankingLeague",
+        "form", "gender", "clean", "template", "distance", "ping",
+    };
+
     public async Task<IEnumerable<QuickPickSummary>> GetAllAsync(string userId, int profileNo)
     {
         var allSettings = await this._settingService.GetAllAsync();
@@ -376,13 +386,19 @@ public partial class QuickPickService(
             PvpRankingWorst = 100,
         };
 
-        // Overlay the quick pick filters on top of the defaults
+        // Overlay the quick pick filters on top of the defaults.
+        // Whitelist safe filter properties to prevent setting Id, Uid, or ProfileNo via reflection.
         var json = JsonSerializer.Serialize(filters, JsonOptions);
         var overrides = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, JsonOptions);
         if (overrides != null)
         {
             foreach (var (key, value) in overrides)
             {
+                if (!SafeMonsterFilterKeys.Contains(key))
+                {
+                    continue;
+                }
+
                 var prop = typeof(Monster).GetProperty(key, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
                 if (prop != null && prop.CanWrite)
                 {

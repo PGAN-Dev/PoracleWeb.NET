@@ -22,7 +22,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> GetByUid(int uid)
     {
         var lure = await this._lureService.GetByUidAsync(uid);
-        if (lure == null)
+        if (lure == null || this.NotOwnedByCurrentUser(lure.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Update(int uid, [FromBody] LureUpdate model)
     {
         var existing = await this._lureService.GetByUidAsync(uid);
-        if (existing == null)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -59,12 +59,13 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await this._lureService.DeleteAsync(uid);
-        if (!success)
+        var existing = await this._lureService.GetByUidAsync(uid);
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
 
+        await this._lureService.DeleteAsync(uid);
         return this.NoContent();
     }
 
@@ -81,7 +82,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._lureService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
+        var count = await this._lureService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
         return this.Ok(new
         {
             updated = count

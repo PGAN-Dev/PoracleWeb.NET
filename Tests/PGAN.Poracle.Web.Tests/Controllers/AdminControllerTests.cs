@@ -483,7 +483,7 @@ public class AdminControllerTests : ControllerTestBase
     {
         SetupUser(this._sut, isAdmin: true);
         this._poracleServerService.Setup(s => s.RestartServerAsync("10.0.0.1"))
-            .ThrowsAsync(new ApplicationException("unexpected"));
+            .ThrowsAsync(new HttpRequestException("unexpected"));
 
         var result = await this._sut.RestartPoracleServer("10.0.0.1");
         var statusCode = Assert.IsType<ObjectResult>(result);

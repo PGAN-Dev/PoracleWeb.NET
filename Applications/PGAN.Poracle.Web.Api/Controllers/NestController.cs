@@ -22,7 +22,7 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> GetByUid(int uid)
     {
         var nest = await this._nestService.GetByUidAsync(uid);
-        if (nest == null)
+        if (nest == null || this.NotOwnedByCurrentUser(nest.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Update(int uid, [FromBody] NestUpdate model)
     {
         var existing = await this._nestService.GetByUidAsync(uid);
-        if (existing == null)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -59,12 +59,13 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await this._nestService.DeleteAsync(uid);
-        if (!success)
+        var existing = await this._nestService.GetByUidAsync(uid);
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
 
+        await this._nestService.DeleteAsync(uid);
         return this.NoContent();
     }
 
@@ -81,7 +82,7 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._nestService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
+        var count = await this._nestService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
         return this.Ok(new
         {
             updated = count

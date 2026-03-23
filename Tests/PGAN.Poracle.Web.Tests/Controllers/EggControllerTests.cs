@@ -28,7 +28,7 @@ public class EggControllerTests : ControllerTestBase
     [Fact]
     public async Task GetByUidReturnsOk()
     {
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Egg { Uid = 1 });
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Egg { Uid = 1, Id = "123456789" });
         Assert.IsType<OkObjectResult>(await this._sut.GetByUid(1));
     }
     [Fact]
@@ -53,7 +53,7 @@ public class EggControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateReturnsOkWhenFound()
     {
-        var existing = new Egg { Uid = 1 };
+        var existing = new Egg { Uid = 1, Id = "123456789" };
         this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
         this._service.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
         Assert.IsType<OkObjectResult>(await this._sut.Update(1, new EggUpdate()));
@@ -69,13 +69,14 @@ public class EggControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteNoContent()
     {
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Egg { Uid = 1, Id = "123456789" });
         this._service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
         Assert.IsType<NoContentResult>(await this._sut.Delete(1));
     }
     [Fact]
     public async Task DeleteNotFound()
     {
-        this._service.Setup(s => s.DeleteAsync(999)).ReturnsAsync(false);
+        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Egg?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Delete(999));
     }
     [Fact]

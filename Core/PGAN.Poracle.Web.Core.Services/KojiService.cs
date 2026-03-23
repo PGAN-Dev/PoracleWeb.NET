@@ -7,7 +7,7 @@ using PGAN.Poracle.Web.Core.Models;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class KojiService(HttpClient httpClient, IConfiguration configuration, IMemoryCache memoryCache, ILogger<KojiService> logger) : IKojiService
+public partial class KojiService(HttpClient httpClient, IConfiguration configuration, IMemoryCache memoryCache, ILogger<KojiService> logger) : IKojiService
 {
     private const string AdminGeofenceCacheKey = "koji_admin_geofences";
     private static readonly TimeSpan s_cacheDuration = TimeSpan.FromMinutes(5);
@@ -62,7 +62,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
         var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
         response.EnsureSuccessStatusCode();
 
-        this._logger.LogInformation("Saved geofence '{GeofenceName}' to Koji project {ProjectId}", geofenceName, this._projectId);
+        LogGeofenceSaved(this._logger, geofenceName, this._projectId);
     }
 
     public async Task RemoveGeofenceFromProjectAsync(string geofenceName)
@@ -71,7 +71,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
         var polygon = await this.GetGeofencePolygonAsync(geofenceName);
         if (polygon == null || polygon.Length < 3)
         {
-            this._logger.LogWarning("Cannot remove geofence '{GeofenceName}': not found or invalid polygon", geofenceName);
+            LogCannotRemoveGeofence(this._logger, geofenceName);
             return;
         }
 
@@ -110,7 +110,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
         var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
         response.EnsureSuccessStatusCode();
 
-        this._logger.LogInformation("Removed geofence '{GeofenceName}' from Koji project", geofenceName);
+        LogGeofenceRemoved(this._logger, geofenceName);
     }
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync()
@@ -262,7 +262,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to fetch feature details for geofence '{GeofenceName}'", name);
+                LogFetchFeatureDetailsFailed(this._logger, ex, name);
             }
         }
 
@@ -324,9 +324,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
             await this.RemoveGeofenceFromProjectAsync(currentName);
         }
 
-        this._logger.LogInformation(
-            "Promoted geofence '{CurrentName}' as '{TargetName}' with display name '{DisplayName}' in group '{Group}'",
-            currentName, targetName, displayName, group);
+        LogGeofencePromoted(this._logger, currentName, targetName, displayName, group);
     }
 
     public async Task<double[][]?> GetGeofencePolygonAsync(string geofenceName)
@@ -353,7 +351,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
         }
         catch (HttpRequestException ex)
         {
-            this._logger.LogWarning(ex, "Geofence '{GeofenceName}' not found in Koji", geofenceName);
+            LogGeofenceNotFoundInKoji(this._logger, ex, geofenceName);
             return null;
         }
     }
@@ -373,14 +371,14 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
     public void InvalidateAdminGeofenceCache()
     {
         this._memoryCache.Remove(AdminGeofenceCacheKey);
-        this._logger.LogInformation("Admin geofence cache invalidated");
+        LogAdminGeofenceCacheInvalidated(this._logger);
     }
 
     private async Task<List<AdminGeofence>> FetchAdminGeofencesFromKojiAsync()
     {
         if (string.IsNullOrEmpty(this._projectName))
         {
-            this._logger.LogWarning("Koji:ProjectName is not configured — cannot fetch admin geofences");
+            LogProjectNameNotConfigured(this._logger);
             return [];
         }
 
@@ -390,7 +388,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
 
         if (!referenceDoc.RootElement.TryGetProperty("data", out var refData) || refData.ValueKind != JsonValueKind.Array)
         {
-            this._logger.LogWarning("Koji reference endpoint returned no data array");
+            LogReferenceEndpointNoData(this._logger);
             return [];
         }
 
@@ -444,8 +442,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to fetch parent geofence display name for '{ParentName}' (ID {ParentId})",
-                    parentInternalName, parentId);
+                LogFetchParentDisplayNameFailed(this._logger, ex, parentInternalName, parentId);
                 lock (parentIdToGroupName)
                 {
                     parentIdToGroupName[parentId] = parentInternalName;
@@ -477,7 +474,7 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
 
         if (!poracleDoc.RootElement.TryGetProperty("data", out var poracleData) || poracleData.ValueKind != JsonValueKind.Array)
         {
-            this._logger.LogWarning("Koji Poracle endpoint returned no data array for project '{ProjectName}'", this._projectName);
+            LogPoracleEndpointNoData(this._logger, this._projectName);
             return [];
         }
 
@@ -544,10 +541,44 @@ public class KojiService(HttpClient httpClient, IConfiguration configuration, IM
             });
         }
 
-        this._logger.LogInformation(
-            "Fetched {Count} admin geofences from Koji project '{ProjectName}' with {ParentCount} groups resolved",
-            adminGeofences.Count, this._projectName, parentIdToGroupName.Count);
+        LogAdminGeofencesFetched(this._logger, adminGeofences.Count, this._projectName, parentIdToGroupName.Count);
 
         return adminGeofences;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Fetched {Count} admin geofences from Koji project '{ProjectName}' with {ParentCount} groups resolved")]
+    private static partial void LogAdminGeofencesFetched(ILogger logger, int count, string projectName, int parentCount);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Saved geofence '{GeofenceName}' to Koji project {ProjectId}")]
+    private static partial void LogGeofenceSaved(ILogger logger, string geofenceName, int projectId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Cannot remove geofence '{GeofenceName}': not found or invalid polygon")]
+    private static partial void LogCannotRemoveGeofence(ILogger logger, string geofenceName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Removed geofence '{GeofenceName}' from Koji project")]
+    private static partial void LogGeofenceRemoved(ILogger logger, string geofenceName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch feature details for geofence '{GeofenceName}'")]
+    private static partial void LogFetchFeatureDetailsFailed(ILogger logger, Exception ex, string geofenceName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Promoted geofence '{CurrentName}' as '{TargetName}' with display name '{DisplayName}' in group '{Group}'")]
+    private static partial void LogGeofencePromoted(ILogger logger, string currentName, string targetName, string displayName, string group);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Geofence '{GeofenceName}' not found in Koji")]
+    private static partial void LogGeofenceNotFoundInKoji(ILogger logger, Exception ex, string geofenceName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin geofence cache invalidated")]
+    private static partial void LogAdminGeofenceCacheInvalidated(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Koji:ProjectName is not configured — cannot fetch admin geofences")]
+    private static partial void LogProjectNameNotConfigured(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Koji reference endpoint returned no data array")]
+    private static partial void LogReferenceEndpointNoData(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch parent geofence display name for '{ParentName}' (ID {ParentId})")]
+    private static partial void LogFetchParentDisplayNameFailed(ILogger logger, Exception ex, string parentName, int parentId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Koji Poracle endpoint returned no data array for project '{ProjectName}'")]
+    private static partial void LogPoracleEndpointNoData(ILogger logger, string projectName);
 }

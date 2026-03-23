@@ -22,7 +22,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> GetByUid(int uid)
     {
         var egg = await this._eggService.GetByUidAsync(uid);
-        if (egg == null)
+        if (egg == null || this.NotOwnedByCurrentUser(egg.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> Update(int uid, [FromBody] EggUpdate model)
     {
         var existing = await this._eggService.GetByUidAsync(uid);
-        if (existing == null)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -59,12 +59,13 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await this._eggService.DeleteAsync(uid);
-        if (!success)
+        var existing = await this._eggService.GetByUidAsync(uid);
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
 
+        await this._eggService.DeleteAsync(uid);
         return this.NoContent();
     }
 
@@ -81,7 +82,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._eggService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
+        var count = await this._eggService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
         return this.Ok(new
         {
             updated = count

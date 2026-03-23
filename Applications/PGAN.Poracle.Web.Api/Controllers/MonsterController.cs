@@ -22,7 +22,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     public async Task<IActionResult> GetByUid(int uid)
     {
         var monster = await this._monsterService.GetByUidAsync(uid);
-        if (monster == null)
+        if (monster == null || this.NotOwnedByCurrentUser(monster.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     public async Task<IActionResult> Update(int uid, [FromBody] MonsterUpdate model)
     {
         var existing = await this._monsterService.GetByUidAsync(uid);
-        if (existing == null)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -59,12 +59,13 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var success = await this._monsterService.DeleteAsync(uid);
-        if (!success)
+        var existing = await this._monsterService.GetByUidAsync(uid);
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
 
+        await this._monsterService.DeleteAsync(uid);
         return this.NoContent();
     }
 
@@ -81,7 +82,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._monsterService.UpdateDistanceByUidsAsync(request.Uids, request.Distance);
+        var count = await this._monsterService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
         return this.Ok(new
         {
             updated = count

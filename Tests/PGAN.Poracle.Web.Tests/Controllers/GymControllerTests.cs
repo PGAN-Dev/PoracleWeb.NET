@@ -28,7 +28,7 @@ public class GymControllerTests : ControllerTestBase
     [Fact]
     public async Task GetByUidOk()
     {
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Gym { Uid = 1 });
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Gym { Uid = 1, Id = "123456789" });
         Assert.IsType<OkObjectResult>(await this._sut.GetByUid(1));
     }
     [Fact]
@@ -49,7 +49,7 @@ public class GymControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateOk()
     {
-        var e = new Gym { Uid = 1 };
+        var e = new Gym { Uid = 1, Id = "123456789" };
         this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(e);
         this._service.Setup(s => s.UpdateAsync(e)).ReturnsAsync(e);
         Assert.IsType<OkObjectResult>(await this._sut.Update(1, new GymUpdate()));
@@ -63,13 +63,14 @@ public class GymControllerTests : ControllerTestBase
     [Fact]
     public async Task DeleteNoContent()
     {
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Gym { Uid = 1, Id = "123456789" });
         this._service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
         Assert.IsType<NoContentResult>(await this._sut.Delete(1));
     }
     [Fact]
     public async Task DeleteNotFound()
     {
-        this._service.Setup(s => s.DeleteAsync(999)).ReturnsAsync(false);
+        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Gym?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Delete(999));
     }
     [Fact]

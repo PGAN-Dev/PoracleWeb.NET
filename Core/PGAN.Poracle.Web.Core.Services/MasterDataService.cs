@@ -5,7 +5,7 @@ using PGAN.Poracle.Web.Core.Abstractions.Services;
 
 namespace PGAN.Poracle.Web.Core.Services;
 
-public class MasterDataService(
+public partial class MasterDataService(
     IMemoryCache cache,
     IHttpClientFactory httpClientFactory,
     ILogger<MasterDataService> logger) : IMasterDataService
@@ -45,7 +45,7 @@ public class MasterDataService(
             client.DefaultRequestHeaders.UserAgent.ParseAdd("PGAN-PoracleWeb/1.0");
             client.Timeout = TimeSpan.FromSeconds(30);
 
-            this._logger.LogInformation("Fetching Pokemon masterdata from GitHub...");
+            LogFetchingMasterData(this._logger);
             var json = await client.GetStringAsync(MasterfileUrl);
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
@@ -70,7 +70,7 @@ public class MasterDataService(
                 }
             }
             this._cache.Set(PokemonCacheKey, JsonSerializer.Serialize(pokemonMap), CacheDuration);
-            this._logger.LogInformation("Cached {Count} pokemon entries.", pokemonMap.Count);
+            LogCachedPokemonEntries(this._logger, pokemonMap.Count);
 
             // Build item name map
             var itemMap = new Dictionary<string, string>();
@@ -93,11 +93,11 @@ public class MasterDataService(
                 }
             }
             this._cache.Set(ItemCacheKey, JsonSerializer.Serialize(itemMap), CacheDuration);
-            this._logger.LogInformation("Cached {Count} item entries.", itemMap.Count);
+            LogCachedItemEntries(this._logger, itemMap.Count);
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Failed to refresh master data cache.");
+            LogRefreshCacheFailed(this._logger, ex);
         }
     }
 
@@ -111,4 +111,16 @@ public class MasterDataService(
         this._initialized = true;
         await this.RefreshCacheAsync();
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Fetching Pokemon masterdata from GitHub...")]
+    private static partial void LogFetchingMasterData(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} pokemon entries.")]
+    private static partial void LogCachedPokemonEntries(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} item entries.")]
+    private static partial void LogCachedItemEntries(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to refresh master data cache.")]
+    private static partial void LogRefreshCacheFailed(ILogger logger, Exception ex);
 }

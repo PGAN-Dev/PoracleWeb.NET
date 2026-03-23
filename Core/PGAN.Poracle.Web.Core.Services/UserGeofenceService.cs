@@ -40,7 +40,7 @@ public partial class UserGeofenceService(
                 }
                 catch (JsonException ex)
                 {
-                    this._logger.LogWarning(ex, "Failed to deserialize polygon for geofence '{KojiName}'", g.KojiName);
+                    LogPolygonDeserializationFailed(this._logger, ex, g.KojiName);
                 }
             }
         }
@@ -132,7 +132,7 @@ public partial class UserGeofenceService(
         // Set polygon on result from input
         geofence.Polygon = model.Polygon;
 
-        this._logger.LogInformation("Created custom geofence '{KojiName}' for user {HumanId}", kojiName, humanId);
+        LogGeofenceCreated(this._logger, kojiName, humanId);
 
         return geofence;
     }
@@ -156,7 +156,7 @@ public partial class UserGeofenceService(
         // Reload Poracle geofences
         await this.ReloadGeofencesSafeAsync();
 
-        this._logger.LogInformation("Deleted custom geofence '{KojiName}' (ID {Id}) for user {HumanId}", geofence.KojiName, id, humanId);
+        LogGeofenceDeleted(this._logger, geofence.KojiName, id, humanId);
     }
 
     public async Task<List<UserGeofence>> GetAllAsync() => await this._repository.GetAllAsync();
@@ -176,7 +176,7 @@ public partial class UserGeofenceService(
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to remove approved geofence '{KojiName}' from Koji during admin delete", geofence.KojiName);
+                LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
             }
         }
 
@@ -190,14 +190,13 @@ public partial class UserGeofenceService(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to remove area for geofence '{KojiName}' during admin delete", geofence.KojiName);
+            LogAreaRemovalFailed(this._logger, ex, geofence.KojiName);
         }
 
         await this._repository.DeleteAsync(id);
         await this.ReloadGeofencesSafeAsync();
 
-        this._logger.LogInformation("Admin {AdminId} deleted geofence '{KojiName}' (ID {Id}, status: {Status})",
-            adminId, geofence.KojiName, id, geofence.Status);
+        LogAdminDeletedGeofence(this._logger, adminId, geofence.KojiName, id, geofence.Status);
     }
 
     public async Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName)
@@ -238,7 +237,7 @@ public partial class UserGeofenceService(
                 }
                 catch (JsonException ex)
                 {
-                    this._logger.LogWarning(ex, "Failed to deserialize polygon for geofence '{KojiName}'", geofence.KojiName);
+                    LogPolygonDeserializationFailed(this._logger, ex, geofence.KojiName);
                 }
             }
 
@@ -248,7 +247,7 @@ public partial class UserGeofenceService(
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to fetch static map for geofence '{KojiName}'", geofence.KojiName);
+                LogStaticMapFetchFailed(this._logger, ex, geofence.KojiName);
             }
 
             var threadId = await this._discordNotificationService.CreateGeofenceSubmissionPostAsync(
@@ -262,10 +261,10 @@ public partial class UserGeofenceService(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to create Discord forum post for geofence submission '{KojiName}'", kojiName);
+            LogDiscordForumPostCreationFailed(this._logger, ex, kojiName);
         }
 
-        this._logger.LogInformation("User {HumanId} submitted geofence '{KojiName}' for review", humanId, kojiName);
+        LogGeofenceSubmittedForReview(this._logger, humanId, kojiName);
 
         return updated;
     }
@@ -274,6 +273,23 @@ public partial class UserGeofenceService(
 
     public async Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName)
     {
+        // Validate promotedName with the same rules as display names
+        if (promotedName != null)
+        {
+            var trimmedPromoted = promotedName.Trim();
+            if (string.IsNullOrEmpty(trimmedPromoted) || trimmedPromoted.Length > 50)
+            {
+                throw new InvalidOperationException("Promoted name must be between 1 and 50 characters.");
+            }
+
+            if (!MyRegex().IsMatch(trimmedPromoted))
+            {
+                throw new InvalidOperationException("Promoted name contains invalid characters.");
+            }
+
+            promotedName = trimmedPromoted;
+        }
+
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
 
@@ -325,7 +341,7 @@ public partial class UserGeofenceService(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to update group_map.json for geofence '{Name}'", targetName);
+            LogGroupMapUpdateFailed(this._logger, ex, targetName);
         }
 
         // Reload Poracle geofences
@@ -341,12 +357,11 @@ public partial class UserGeofenceService(
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to post approval to Discord thread {ThreadId}", geofence.DiscordThreadId);
+                LogApprovalDiscordPostFailed(this._logger, ex, geofence.DiscordThreadId);
             }
         }
 
-        this._logger.LogInformation("Admin {AdminId} approved geofence '{KojiName}' (ID {Id}), promotedName: {PromotedName}",
-            adminId, geofence.KojiName, id, promotedName);
+        LogGeofenceApproved(this._logger, adminId, geofence.KojiName, id, promotedName);
 
         return updated;
     }
@@ -373,11 +388,11 @@ public partial class UserGeofenceService(
             }
             catch (Exception ex)
             {
-                this._logger.LogWarning(ex, "Failed to post rejection to Discord thread {ThreadId}", geofence.DiscordThreadId);
+                LogRejectionDiscordPostFailed(this._logger, ex, geofence.DiscordThreadId);
             }
         }
 
-        this._logger.LogInformation("Admin {AdminId} rejected geofence '{KojiName}' (ID {Id})", adminId, geofence.KojiName, id);
+        LogGeofenceRejected(this._logger, adminId, geofence.KojiName, id);
 
         return updated;
     }
@@ -389,7 +404,7 @@ public partial class UserGeofenceService(
         var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, profileNo);
         if (human == null)
         {
-            this._logger.LogWarning("Human {HumanId} profile {ProfileNo} not found when adding area", humanId, profileNo);
+            LogHumanNotFoundAddingArea(this._logger, humanId, profileNo);
             return;
         }
 
@@ -409,7 +424,7 @@ public partial class UserGeofenceService(
         var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, profileNo);
         if (human == null)
         {
-            this._logger.LogWarning("Human {HumanId} profile {ProfileNo} not found when removing area", humanId, profileNo);
+            LogHumanNotFoundRemovingArea(this._logger, humanId, profileNo);
             return;
         }
 
@@ -450,10 +465,61 @@ public partial class UserGeofenceService(
         }
         catch (Exception ex)
         {
-            this._logger.LogWarning(ex, "Failed to reload Poracle geofences after custom geofence change");
+            LogGeofenceReloadFailed(this._logger, ex);
         }
     }
 
     [System.Text.RegularExpressions.GeneratedRegex(@"^[a-zA-Z0-9 \-'.()&]+$")]
     private static partial System.Text.RegularExpressions.Regex MyRegex();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to deserialize polygon for geofence '{KojiName}'")]
+    private static partial void LogPolygonDeserializationFailed(ILogger logger, Exception ex, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Created custom geofence '{KojiName}' for user {HumanId}")]
+    private static partial void LogGeofenceCreated(ILogger logger, string kojiName, string humanId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Deleted custom geofence '{KojiName}' (ID {Id}) for user {HumanId}")]
+    private static partial void LogGeofenceDeleted(ILogger logger, string kojiName, int id, string humanId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove approved geofence '{KojiName}' from Koji during admin delete")]
+    private static partial void LogKojiRemovalFailed(ILogger logger, Exception ex, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to remove area for geofence '{KojiName}' during admin delete")]
+    private static partial void LogAreaRemovalFailed(ILogger logger, Exception ex, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} deleted geofence '{KojiName}' (ID {Id}, status: {Status})")]
+    private static partial void LogAdminDeletedGeofence(ILogger logger, string adminId, string kojiName, int id, string status);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch static map for geofence '{KojiName}'")]
+    private static partial void LogStaticMapFetchFailed(ILogger logger, Exception ex, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to create Discord forum post for geofence submission '{KojiName}'")]
+    private static partial void LogDiscordForumPostCreationFailed(ILogger logger, Exception ex, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "User {HumanId} submitted geofence '{KojiName}' for review")]
+    private static partial void LogGeofenceSubmittedForReview(ILogger logger, string humanId, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to update group_map.json for geofence '{Name}'")]
+    private static partial void LogGroupMapUpdateFailed(ILogger logger, Exception ex, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post approval to Discord thread {ThreadId}")]
+    private static partial void LogApprovalDiscordPostFailed(ILogger logger, Exception ex, string threadId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} approved geofence '{KojiName}' (ID {Id}), promotedName: {PromotedName}")]
+    private static partial void LogGeofenceApproved(ILogger logger, string adminId, string kojiName, int id, string? promotedName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post rejection to Discord thread {ThreadId}")]
+    private static partial void LogRejectionDiscordPostFailed(ILogger logger, Exception ex, string threadId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} rejected geofence '{KojiName}' (ID {Id})")]
+    private static partial void LogGeofenceRejected(ILogger logger, string adminId, string kojiName, int id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Human {HumanId} profile {ProfileNo} not found when adding area")]
+    private static partial void LogHumanNotFoundAddingArea(ILogger logger, string humanId, int profileNo);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Human {HumanId} profile {ProfileNo} not found when removing area")]
+    private static partial void LogHumanNotFoundRemovingArea(ILogger logger, string humanId, int profileNo);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
+    private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);
 }
