@@ -10,6 +10,7 @@ import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
 import { AreaService } from '../../../core/services/area.service';
 import { DashboardService } from '../../../core/services/dashboard.service';
 import { LocationService } from '../../../core/services/location.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 @Component({
@@ -159,7 +160,7 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
     <div class="onboarding-overlay">
       <div class="onboarding-card" role="dialog" aria-label="Welcome onboarding">
         <div class="onboarding-header">
-          <h2>{{ allComplete() ? "You're All Set!" : 'Welcome to PoGO Alerts!' }}</h2>
+          <h2>{{ allComplete() ? "You're All Set!" : 'Welcome to ' + siteTitle() + '!' }}</h2>
           <p>{{ allComplete() ? "Everything is configured — you're ready to go" : "Let's get you set up in a few quick steps" }}</p>
         </div>
 
@@ -227,11 +228,13 @@ export class OnboardingComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly dialog = inject(MatDialog);
   private readonly locationService = inject(LocationService);
+  private readonly settingsService = inject(SettingsService);
 
   alarmsExist = signal(false);
   areasSet = signal(false);
   locationSet = signal(false);
   allComplete = computed(() => this.locationSet() && this.areasSet() && this.alarmsExist());
+  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
   completed = output<void>();
   currentStep = signal(0);
 

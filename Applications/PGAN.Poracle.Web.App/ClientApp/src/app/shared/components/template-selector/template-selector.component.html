@@ -64,11 +64,10 @@
               </div>
             }
             @if (hasImage()) {
-              <img
-                src="REDACTED_TILE_URL"
-                class="embed-image"
-                alt="Map"
-                loading="lazy" />
+              <div class="embed-image embed-image-placeholder">
+                <mat-icon>map</mat-icon>
+                <span>Map Preview</span>
+              </div>
             }
             @if (embed.footer) {
               <div class="embed-footer">

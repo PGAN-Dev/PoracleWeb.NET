@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal, OnInit, ElementRef, ViewChild, NgZone } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal, OnInit, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 // Extend Window to allow the Telegram callback
 declare global {
@@ -28,11 +29,13 @@ export class LoginComponent implements OnInit {
   private readonly ngZone = inject(NgZone);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly settingsService = inject(SettingsService);
 
   private telegramBotUsername = '';
 
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
+  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
   @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
 
   protected readonly telegramEnabled = signal(false);
@@ -45,6 +48,8 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.settingsService.loadPublic().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+
     // Show error from URL fragment (e.g. /login#error=missing_required_role)
     const fragment = window.location.hash?.substring(1) ?? '';
     const fragmentParams = new URLSearchParams(fragment);

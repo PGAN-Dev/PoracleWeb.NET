@@ -46,6 +46,18 @@ export class SettingsService {
     return this.getAll();
   }
 
+  /** Load public settings (no auth required) — safe to call from login page */
+  loadPublic(): Observable<PwebSetting[]> {
+    return this.http.get<PwebSetting[]>(`${this.config.apiHost}/api/settings/public`).pipe(
+      tap(settings => {
+        const current = this.siteSettings();
+        const map: Record<string, string> = { ...current };
+        for (const s of settings) if (s.setting) map[s.setting] = s.value ?? '';
+        this.siteSettings.set(map);
+      }),
+    );
+  }
+
   update(key: string, value: string): Observable<PwebSetting> {
     return this.http.put<PwebSetting>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
       setting: key,

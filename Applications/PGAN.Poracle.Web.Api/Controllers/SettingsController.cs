@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PGAN.Poracle.Web.Core.Abstractions.Services;
 using PGAN.Poracle.Web.Core.Models;
@@ -7,6 +8,8 @@ namespace PGAN.Poracle.Web.Api.Controllers;
 [Route("api/settings")]
 public class SettingsController(IPwebSettingService settingService) : BaseApiController
 {
+    private static readonly HashSet<string> PublicKeys = new(StringComparer.OrdinalIgnoreCase) { "custom_title" };
+
     private readonly IPwebSettingService _settingService = settingService;
 
     [HttpGet]
@@ -14,6 +17,15 @@ public class SettingsController(IPwebSettingService settingService) : BaseApiCon
     {
         var settings = await this._settingService.GetAllAsync();
         return this.Ok(settings);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("public")]
+    public async Task<IActionResult> GetPublic()
+    {
+        var settings = await this._settingService.GetAllAsync();
+        var publicSettings = settings.Where(s => s.Setting != null && PublicKeys.Contains(s.Setting)).ToList();
+        return this.Ok(publicSettings);
     }
 
     [HttpPut("{key}")]

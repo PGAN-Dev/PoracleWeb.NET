@@ -1,5 +1,5 @@
 /* eslint-disable @angular-eslint/component-class-suffix */
-import { Component, inject, signal, computed, HostListener, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, effect, HostListener, OnInit } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -201,7 +201,11 @@ export class App implements OnInit {
 
   protected readonly sidenavOpened = signal(!this.isMobile());
 
-  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'PoGO Alerts Network');
+  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
+
+  private readonly titleEffect = effect(() => {
+    document.title = this.siteTitle();
+  });
 
   protected readonly supportNavItems = computed(() => this.navItems.filter(item => item.group === 'support'));
 
