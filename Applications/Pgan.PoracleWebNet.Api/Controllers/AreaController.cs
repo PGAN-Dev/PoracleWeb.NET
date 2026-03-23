@@ -5,9 +5,10 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/areas")]
-public partial class AreaController(IHumanService humanService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
+public partial class AreaController(IHumanService humanService, IProfileService profileService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IProfileService _profileService = profileService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly ILogger<AreaController> _logger = logger;
 
@@ -33,6 +34,31 @@ public partial class AreaController(IHumanService humanService, IPoracleApiProxy
                 LogParseAreaJsonFailed(this._logger, ex, this.UserId);
                 // Fallback: treat as comma-separated
                 areas = human.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+        }
+
+        return this.Ok(areas);
+    }
+
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfileAreas()
+    {
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile == null)
+        {
+            return this.Ok(Array.Empty<string>());
+        }
+
+        var areas = Array.Empty<string>();
+        if (!string.IsNullOrWhiteSpace(profile.Area))
+        {
+            try
+            {
+                areas = JsonSerializer.Deserialize<string[]>(profile.Area) ?? [];
+            }
+            catch
+            {
+                areas = profile.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             }
         }
 

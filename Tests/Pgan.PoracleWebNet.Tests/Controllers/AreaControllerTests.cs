@@ -10,13 +10,14 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class AreaControllerTests : ControllerTestBase
 {
     private readonly Mock<IHumanService> _humanService = new();
+    private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<ILogger<AreaController>> _logger = new();
     private readonly AreaController _sut;
 
     public AreaControllerTests()
     {
-        this._sut = new AreaController(this._humanService.Object, this._proxy.Object, this._logger.Object);
+        this._sut = new AreaController(this._humanService.Object, this._profileService.Object, this._proxy.Object, this._logger.Object);
         SetupUser(this._sut);
     }
 

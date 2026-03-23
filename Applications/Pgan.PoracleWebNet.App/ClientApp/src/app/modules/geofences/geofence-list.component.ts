@@ -316,7 +316,7 @@ export class GeofenceListComponent implements OnInit {
 
   private loadActiveAreas(): void {
     this.areaService
-      .getSelected()
+      .getProfileAreas()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {},
