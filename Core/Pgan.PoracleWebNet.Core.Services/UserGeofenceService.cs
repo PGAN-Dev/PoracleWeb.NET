@@ -432,41 +432,74 @@ public partial class UserGeofenceService(
 
     private async Task AddAreaToHumanAsync(string humanId, int profileNo, string geofenceName)
     {
+        var lowerName = geofenceName.ToLowerInvariant();
+
+        // Update humans.area (Poracle's working copy for the active profile)
         var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, profileNo);
-        if (human == null)
+        if (human != null)
+        {
+            var areas = ParseAreas(human.Area);
+            if (!areas.Contains(lowerName))
+            {
+                areas.Add(lowerName);
+                human.Area = JsonSerializer.Serialize(areas);
+                await this._humanRepository.UpdateAsync(human);
+            }
+        }
+        else
         {
             LogHumanNotFoundAddingArea(this._logger, humanId, profileNo);
-            return;
         }
 
-        var areas = ParseAreas(human.Area);
-        var lowerName = geofenceName.ToLowerInvariant();
-        if (!areas.Contains(lowerName))
+        // Also update profiles.area (PoracleJS syncs from this on profile switch)
+        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, profileNo);
+        if (profile != null)
         {
-            areas.Add(lowerName);
+            var profileAreas = ParseAreas(profile.Area);
+            if (!profileAreas.Contains(lowerName))
+            {
+                profileAreas.Add(lowerName);
+                profile.Area = JsonSerializer.Serialize(profileAreas);
+                await this._profileRepository.UpdateAsync(profile);
+            }
         }
-
-        human.Area = JsonSerializer.Serialize(areas);
-        await this._humanRepository.UpdateAsync(human);
     }
 
     private async Task RemoveAreaFromHumanAsync(string humanId, int profileNo, string geofenceName)
     {
+        var lowerName = geofenceName.ToLowerInvariant();
+
+        // Update humans.area (Poracle's working copy for the active profile)
         var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, profileNo);
-        if (human == null)
+        if (human != null)
+        {
+            var areas = ParseAreas(human.Area);
+            if (areas.Remove(lowerName))
+            {
+                human.Area = areas.Count > 0
+                    ? JsonSerializer.Serialize(areas)
+                    : "[]";
+                await this._humanRepository.UpdateAsync(human);
+            }
+        }
+        else
         {
             LogHumanNotFoundRemovingArea(this._logger, humanId, profileNo);
-            return;
         }
 
-        var areas = ParseAreas(human.Area);
-        areas.Remove(geofenceName.ToLowerInvariant());
-
-        human.Area = areas.Count > 0
-            ? JsonSerializer.Serialize(areas)
-            : "[]";
-
-        await this._humanRepository.UpdateAsync(human);
+        // Also update profiles.area (PoracleJS syncs from this on profile switch)
+        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, profileNo);
+        if (profile != null)
+        {
+            var profileAreas = ParseAreas(profile.Area);
+            if (profileAreas.Remove(lowerName))
+            {
+                profile.Area = profileAreas.Count > 0
+                    ? JsonSerializer.Serialize(profileAreas)
+                    : "[]";
+                await this._profileRepository.UpdateAsync(profile);
+            }
+        }
     }
 
     /// <summary>
