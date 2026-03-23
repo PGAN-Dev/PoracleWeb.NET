@@ -100,7 +100,8 @@ export const HELP_SECTIONS: HelpSection[] = [
 <h4>Nested Areas</h4>
 <p>Some areas overlap — a smaller zone inside a larger one. Both are clickable. Zoom in to make it easier to click the smaller area.</p>
 <h4>Saving</h4>
-<p>A save bar appears at the bottom when you've made changes. Click <strong>Save</strong> to confirm your selections, or <strong>Cancel</strong> to revert.</p>`,
+<p>A save bar appears at the bottom when you've made changes. Click <strong>Save</strong> to confirm your selections, or <strong>Cancel</strong> to revert.</p>
+<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div><strong>Areas are per-profile.</strong> Each profile has its own set of selected areas. Switching profiles will show different area selections. Custom geofences can also be toggled on or off per profile from the Geofences page.</div></div>`,
     icon: 'map',
     iconColor: '#ff9800',
     subtitle: 'Map view, list view, and region filtering',
@@ -121,8 +122,11 @@ export const HELP_SECTIONS: HelpSection[] = [
 <h4>Managing Geofences</h4>
 <ul>
 <li><strong>Edit</strong> — Rename your geofence or change its region.</li>
-<li><strong>Delete</strong> — Remove a geofence you no longer need.</li>
+<li><strong>Delete</strong> — Remove a geofence you no longer need. The geofence is removed from all profiles automatically.</li>
 </ul>
+<h4>Profile Toggle</h4>
+<p>Each geofence card has a slide toggle to activate or deactivate it for your <strong>current profile</strong>. When you create a geofence, it's automatically activated on the profile you're using. Switch to another profile and the toggle will show "Inactive" — flip it on to receive alerts for that geofence on that profile too. This lets you control which profiles get notifications for each geofence without recreating it.</p>
+<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div>Approved geofences (promoted to public areas) don't show the toggle — manage them from the <strong>Areas</strong> page instead.</div></div>
 <h4>Submitting for Public Approval</h4>
 <p>If you think your geofence would be useful for the whole community, you can submit it for admin review. If approved, it becomes a public area everyone can select. Your private geofence continues working while the review is pending.</p>
 <h4>Status Badges</h4>
@@ -287,9 +291,9 @@ export const HELP_SECTIONS: HelpSection[] = [
   section({
     id: 'profiles',
     content: `<img class="help-screenshot" src="assets/help/profiles.png" alt="Profiles page showing Default Profile (active) and Work Profile cards" />
-<p>Profiles let you maintain completely separate alarm configurations. Each profile has its own set of alarms, selected areas, and location.</p>
+<p>Profiles let you maintain completely separate alarm configurations. Each profile has its own set of alarms, selected areas, location, and custom geofence activations.</p>
 <h4>Why Use Profiles?</h4>
-<p>Useful if you want different setups for different situations — for example, a "Home" profile for your neighborhood and a "Work" profile for around your office.</p>
+<p>Useful if you want different setups for different situations — for example, a "Home" profile for your neighborhood and a "Work" profile for around your office. Each profile tracks its own areas and geofences independently, so switching profiles changes which areas you receive alerts for.</p>
 <h4>Managing Profiles</h4>
 <ul>
 <li><strong>Create</strong> — Click the + button on the Profiles page. Give your profile a name (up to 32 characters).</li>

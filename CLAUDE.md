@@ -102,12 +102,24 @@ Pgan.PoracleWebNet.slnx
 - `PoracleConfig` is parsed from Poracle's JSON configuration.
 - Handles mixed types: `defaultTemplateName` can be a number or string in Poracle's config. Use `JsonElement` or careful deserialization.
 
-### Areas
-- User areas are stored as JSON arrays in the `humans.area` column: `["west end", "downtown"]`.
+### Areas and Profile-Scoped Storage
+- Area subscriptions are **profile-scoped**. Each profile has its own set of selected areas.
+- **Two storage locations** are kept in sync:
+  - `profiles.area` — the authoritative per-profile storage. Each row in the `profiles` table stores a JSON array of area names for that specific profile (e.g., `["west end", "downtown"]`).
+  - `humans.area` — PoracleJS's working copy for the **currently active** profile. PoracleJS reads this field for notification matching. It is always a mirror of the active profile's `profiles.area`.
+- **Reading**: `GET /api/areas` reads from `profiles.area` for the current profile (identified by `profileNo` in the JWT). Falls back to `humans.area` if the profile record is missing (legacy users).
+- **Writing**: `PUT /api/areas` writes to **both** `humans.area` and `profiles.area` for the current profile. All internal area mutations (`AddAreaToHumanAsync`, `RemoveAreaFromHumanAsync`) also dual-write to both tables.
+- **Profile switch**: `SwitchProfile` saves `humans.area` to the old profile's `profiles.area`, then loads the new profile's `profiles.area` into `humans.area`. This keeps PoracleJS in sync without requiring PoracleJS to understand profiles.
+- **Important**: Never write to `humans.area` alone — always update `profiles.area` in tandem, or the change will be lost on the next profile switch.
 - Geofence polygons come from the Poracle API, not the database.
 
 ### Custom Geofences
 - User geofences are stored in `poracle_web.user_geofences` (separate database from Poracle, see "PoracleWeb Database" below).
+- **Geofences are user-scoped, area subscriptions are profile-scoped.** A geofence is created once per user and shared across all profiles. Whether a profile receives notifications for that geofence is controlled by whether its `kojiName` appears in that profile's area list (see "Areas and Profile-Scoped Storage" above).
+- **Per-profile toggle**: Users can activate or deactivate a geofence for the current profile via a slide toggle in the geofence list UI, without recreating the geofence. This calls `POST /api/geofences/custom/{id}/activate` or `POST /api/geofences/custom/{id}/deactivate`, which delegate to `AddToProfileAsync` / `RemoveFromProfileAsync` in `UserGeofenceService`. Both endpoints validate ownership before modifying areas.
+- **Toggle visibility**: The slide toggle is hidden for `approved` geofences — once promoted to a public area in Koji, users manage them via the standard Areas page instead.
+- **Creation**: `CreateAsync` stores the geofence in `user_geofences` and adds its `kojiName` to the **current** profile's area list (both `humans.area` and `profiles.area`). The geofence appears as active on the creating profile and inactive on all others.
+- **Deletion**: `DeleteAsync` removes the geofence's `kojiName` from **all** profiles (`humans.area` for the active profile + every `profiles.area` entry), then deletes the `user_geofences` row and reloads Poracle geofences. `AdminDeleteAsync` does the same but looks up the owning user's actual `CurrentProfileNo` instead of hardcoding a profile number.
 - **PoracleWeb is the single geofence source for PoracleJS.** The `GET /api/geofence-feed` endpoint (`[AllowAnonymous]`, intended for internal network access) serves a unified feed that merges admin geofences from Koji with user-drawn geofences from the PoracleWeb database. No custom code is needed in PoracleJS or Koji -- standard upstream versions work.
 - PoracleJS `geofence.path` config is a single URL pointing to PoracleWeb (not an array, not dual Koji+PoracleWeb sources). PoracleJS does not connect to Koji directly for geofences.
 - Admin geofences are fetched from Koji via the `/geofence/poracle/{projectName}` endpoint, with group names resolved from the Koji parent chain. They are served with `displayInMatches: true` and `group` populated. Results are cached for 5 minutes (`IMemoryCache` with `TimeSpan.FromMinutes(5)` TTL). The cache is invalidated when a geofence is approved/promoted to Koji.
@@ -117,7 +129,7 @@ Pgan.PoracleWebNet.slnx
 - `group_map.json` is not needed in PoracleJS -- group names are resolved automatically from the Koji parent chain by PoracleWeb.
 - On admin approval, the geofence polygon is pushed to Koji with `isPublic: true` (`userSelectable: true`), making it a proper public area.
 - Koji is used only for admin/approved public geofences; user-drawn private geofences remain in the PoracleWeb database.
-- Geofence names (the `kojiName` field) are always **lowercase** because Poracle does case-sensitive area matching and `humans.area` stores names in lowercase.
+- Geofence names (the `kojiName` field) are always **lowercase** because Poracle does case-sensitive area matching and area lists store names in lowercase.
 - Geofence names are auto-generated from the user-provided display name (lowercased). Collisions are resolved by appending a numeric suffix.
 - Maximum 10 custom geofences per user. Polygons limited to 500 points.
 - Discord forum posts are created on submission via the bot API (`discordapp.com/api/v9`). Forum tags (Pending, Approved, Rejected) are auto-created.
@@ -149,6 +161,13 @@ Pgan.PoracleWebNet.slnx
 ### Profiles
 - `humans.current_profile_no` (not `profile_no`) tracks the active profile.
 - All alarm tables reference `profile_no` to filter by active profile.
+- **Area storage**: Each profile stores its own area list in `profiles.area`. The active profile's areas are also mirrored in `humans.area` for PoracleJS compatibility (see "Areas and Profile-Scoped Storage").
+- **Profile switch lifecycle** (`ProfileController.SwitchProfile`):
+  1. Saves current `humans.area` → old profile's `profiles.area` (preserves outgoing profile)
+  2. Loads new profile's `profiles.area` → `humans.area` (activates incoming profile)
+  3. Updates `humans.current_profile_no`, lat/lng
+  4. Issues a new JWT with the updated `profileNo`
+- **Custom geofences and profiles**: Geofences are user-scoped (not profile-scoped), but their area subscriptions are profile-scoped. A user can activate/deactivate a geofence per profile via the toggle UI without affecting other profiles. Deleting a geofence removes it from all profiles.
 
 ### Rate Limiting
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
@@ -222,7 +241,7 @@ When updating alarms in bulk, **never** send partial objects to `PUT /{uid}`. Au
 Use `discordapp.com/api/v9` (not v10) -- v10 is not supported on the `discordapp.com` domain. The `DiscordNotificationService` HttpClient is configured with base address `https://discordapp.com/api/v9/`.
 
 ### Poracle Area Case Sensitivity
-Poracle does **case-sensitive** area matching. Geofence names stored in `humans.area` and the `kojiName` field in `user_geofences` must always be lowercase. The `UserGeofenceService.CreateAsync()` method enforces this with `ToLowerInvariant()`.
+Poracle does **case-sensitive** area matching. Geofence names stored in `humans.area`, `profiles.area`, and the `kojiName` field in `user_geofences` must always be lowercase. The `UserGeofenceService.CreateAsync()` method enforces this with `ToLowerInvariant()`. All area mutation methods (`AddAreaToHumanAsync`, `RemoveAreaFromHumanAsync`, `AreaController.UpdateAreas`) normalize to lowercase before storing.
 
 ### Koji displayInMatches Limitation
 Koji's `displayInMatches` custom property is not reliably honored by all Poracle format serializers. To ensure user geofence names are hidden from DMs, serve user geofences from the PoracleWeb feed endpoint (`/api/geofence-feed`) instead of pushing them to Koji. Only promote to Koji when an admin approves a geofence for public use.
@@ -348,6 +367,8 @@ dotnet ef migrations script \
 | Geofence Feed Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/GeofenceFeedController.cs` |
 | Admin Geofence Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/AdminGeofenceController.cs` |
 | User Geofence Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/UserGeofenceController.cs` |
+| Area Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/AreaController.cs` |
+| Profile Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/ProfileController.cs` |
 | DI Registration | `Applications/Pgan.PoracleWebNet.Api/Configuration/ServiceCollectionExtensions.cs` |
 | Settings Classes | `Applications/Pgan.PoracleWebNet.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, PoracleServerSettings, etc.) |
 | Settings Migration Service | `Applications/Pgan.PoracleWebNet.Api/Services/SettingsMigrationStartupService.cs` |
@@ -389,5 +410,5 @@ dotnet ef migrations script \
 ## Testing
 
 - **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`).
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings (including `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `AdminControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`).
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings (including `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `SettingsControllerTests`, `AdminControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`).
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.
