@@ -1,0 +1,96 @@
+site_name: PoracleWeb.NET
+site_description: Web application for managing Poracle Pokemon GO notification alarms
+site_url: https://pgan-dev.github.io/PoracleWeb.NET/
+repo_url: https://github.com/PGAN-Dev/PoracleWeb.NET
+repo_name: PGAN-Dev/PoracleWeb.NET
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mermaid2
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_guess: false
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.mark
+  - pymdownx.keys
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start (Docker): getting-started/quick-start.md
+      - Development Setup: getting-started/development-setup.md
+      - Discord OAuth2: getting-started/discord-oauth.md
+  - Configuration:
+      - Reference: configuration/reference.md
+      - Docker Compose: configuration/docker.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Backend Patterns: architecture/backend.md
+      - Frontend Patterns: architecture/frontend.md
+      - Database: architecture/database.md
+  - Features:
+      - Alarm Management: features/alarms.md
+      - Custom Geofences: features/custom-geofences.md
+      - Server Management: features/server-management.md
+  - Development:
+      - Testing: development/testing.md
+      - CI/CD: development/ci-cd.md
+      - Code Style: development/code-style.md
+  - Troubleshooting: troubleshooting.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/PGAN-Dev/PoracleWeb.NET
