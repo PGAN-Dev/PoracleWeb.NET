@@ -72,7 +72,7 @@ graph TB
 ## Key design decisions
 
 ### Separate databases
-PoracleWeb does **not** modify the Poracle DB schema. The Poracle database remains exclusively managed by PoracleJS. Application-owned data (user geofences, etc.) lives in a separate `poracle_web` database.
+PoracleWeb does **not** modify the Poracle DB schema. The Poracle database remains exclusively managed by PoracleJS. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
 
 ### Unified geofence feed
 PoracleWeb acts as the single geofence source for PoracleJS. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleJS or Koji.

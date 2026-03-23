@@ -68,7 +68,7 @@ For remote PoracleJS server management. See [Server Management](../features/serv
 | `appsettings.Development.json` | Local development (gitignored) |
 | `.env` file | Docker deployment |
 | `docker-compose.yml` | Environment variable mapping |
-| `pweb_settings` table | Runtime Poracle API address override |
+| `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.
