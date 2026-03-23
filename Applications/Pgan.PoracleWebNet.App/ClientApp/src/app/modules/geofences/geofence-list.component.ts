@@ -121,6 +121,7 @@ export class GeofenceListComponent implements OnInit {
           error: () => this.snackBar.open('Failed to delete geofence', 'OK', { duration: 3000 }),
           next: () => {
             this.customGeofences.update(list => list.filter(g => g.id !== geofence.id));
+            this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
             this.snackBar.open('Geofence deleted', 'OK', { duration: 3000 });
           },
         });
@@ -173,6 +174,10 @@ export class GeofenceListComponent implements OnInit {
                 next: created => {
                   this.savingGeofence.set(false);
                   this.customGeofences.update(list => [...list.filter(g => g.id !== geofence.id), created]);
+                  this.activeAreas.update(areas => [
+                    ...areas.filter(a => a !== geofence.kojiName),
+                    created.kojiName,
+                  ]);
                   this.snackBar.open('Geofence updated', 'OK', { duration: 3000 });
                 },
               });
@@ -228,6 +233,7 @@ export class GeofenceListComponent implements OnInit {
           next: created => {
             this.savingGeofence.set(false);
             this.customGeofences.update(list => [...list, created]);
+            this.activeAreas.update(areas => [...areas, created.kojiName]);
             this.snackBar.open(`Geofence "${created.displayName}" created`, 'OK', { duration: 3000 });
           },
         });
