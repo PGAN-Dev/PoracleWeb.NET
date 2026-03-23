@@ -238,8 +238,10 @@
             }
           }
           <!-- Support Section -->
-          <div class="nav-spacer"></div>
-          <mat-divider class="nav-divider"></mat-divider>
+          @if (supportNavItems().length > 0) {
+            <div class="nav-spacer"></div>
+            <mat-divider class="nav-divider"></mat-divider>
+          }
           @for (item of supportNavItems(); track item.route) {
             <a
               mat-list-item
