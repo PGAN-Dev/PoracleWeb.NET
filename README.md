@@ -62,16 +62,16 @@ git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git
 cd PoracleWeb.NET
 
 # Backend (http://localhost:5048)
-cd Applications/PGAN.Poracle.Web.Api
+cd Applications/Pgan.PoracleWebNet.Api
 dotnet run
 
 # Frontend (http://localhost:4200)
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm install && npm start
 
 # Tests
 dotnet test                  # Backend
-cd Applications/PGAN.Poracle.Web.App/ClientApp && npm test  # Frontend
+cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm test  # Frontend
 ```
 
 See the [Development Setup guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-started/development-setup/) for full instructions.

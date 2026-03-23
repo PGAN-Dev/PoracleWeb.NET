@@ -94,10 +94,10 @@ If you want to build the Docker image locally instead of pulling from the regist
 
 ```bash
 # Build and tag the image
-docker build -t poracleweb-local:latest .
+docker build -t poracleweb.net:latest .
 
 # Update docker-compose.yml to use local image:
-#   image: poracleweb-local:latest
+#   image: poracleweb.net:latest
 
 # Start the container
 docker compose up -d
@@ -106,7 +106,7 @@ docker compose up -d
 To force a clean rebuild:
 
 ```bash
-docker build --no-cache -t poracleweb-local:latest .
+docker build --no-cache -t poracleweb.net:latest .
 docker compose up -d --force-recreate
 ```
 
@@ -123,6 +123,6 @@ docker compose up -d --force-recreate
 
     ```bash
     git pull
-    docker build -t poracleweb-local:latest .
+    docker build -t poracleweb.net:latest .
     docker compose up -d --force-recreate
     ```

@@ -1,0 +1,20 @@
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
+
+namespace Pgan.PoracleWebNet.Core.Services;
+
+public class ProfileService(IProfileRepository repository) : IProfileService
+{
+    private readonly IProfileRepository _repository = repository;
+
+    public async Task<IEnumerable<Profile>> GetByUserAsync(string userId) => await this._repository.GetByUserAsync(userId);
+
+    public async Task<Profile?> GetByUserAndProfileNoAsync(string userId, int profileNo) => await this._repository.GetByUserAndProfileNoAsync(userId, profileNo);
+
+    public async Task<Profile> CreateAsync(Profile profile) => await this._repository.CreateAsync(profile);
+
+    public async Task<Profile> UpdateAsync(Profile profile) => await this._repository.UpdateAsync(profile);
+
+    public async Task<bool> DeleteAsync(string userId, int profileNo) => await this._repository.DeleteAsync(userId, profileNo);
+}

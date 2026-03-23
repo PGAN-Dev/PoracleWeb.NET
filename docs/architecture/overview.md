@@ -5,7 +5,7 @@ PoracleWeb is a full-stack application with a .NET 10 backend API and Angular 21
 ## Solution structure
 
 ```
-PGAN.Poracle.Web.slnx
+Pgan.PoracleWebNet.slnx
 ├── Applications/
 │   ├── Web.Api/                    ASP.NET Core host
 │   │   ├── Controllers/            REST API controllers (all under /api/)
@@ -27,7 +27,7 @@ PGAN.Poracle.Web.slnx
 │   ├── Data/                       EF Core DbContexts, Entities, Configurations
 │   └── Data.Scanner/               Optional scanner DB context (RDM)
 └── Tests/
-    └── PGAN.Poracle.Web.Tests/     xUnit backend tests
+    └── Pgan.PoracleWebNet.Tests/     xUnit backend tests
 ```
 
 ## Layer diagram

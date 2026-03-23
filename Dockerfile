@@ -1,29 +1,29 @@
 # Stage 1: Build Angular SPA
 FROM node:22-alpine AS angular-build
 WORKDIR /app/angular
-COPY Applications/PGAN.Poracle.Web.App/ClientApp/package*.json ./
+COPY Applications/Pgan.PoracleWebNet.App/ClientApp/package*.json ./
 RUN npm install -g npm@11 && npm ci
-COPY Applications/PGAN.Poracle.Web.App/ClientApp/ ./
+COPY Applications/Pgan.PoracleWebNet.App/ClientApp/ ./
 RUN npx ng build --configuration production
 
 # Stage 2: Build .NET API
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
 WORKDIR /src
-COPY PGAN.Poracle.Web.slnx ./
-COPY Core/PGAN.Poracle.Web.Core.Abstractions/PGAN.Poracle.Web.Core.Abstractions.csproj Core/PGAN.Poracle.Web.Core.Abstractions/
-COPY Core/PGAN.Poracle.Web.Core.Mappings/PGAN.Poracle.Web.Core.Mappings.csproj Core/PGAN.Poracle.Web.Core.Mappings/
-COPY Core/PGAN.Poracle.Web.Core.Models/PGAN.Poracle.Web.Core.Models.csproj Core/PGAN.Poracle.Web.Core.Models/
-COPY Core/PGAN.Poracle.Web.Core.Repositories/PGAN.Poracle.Web.Core.Repositories.csproj Core/PGAN.Poracle.Web.Core.Repositories/
-COPY Core/PGAN.Poracle.Web.Core.Services/PGAN.Poracle.Web.Core.Services.csproj Core/PGAN.Poracle.Web.Core.Services/
-COPY Core/PGAN.Poracle.Web.Core.UnitsOfWork/PGAN.Poracle.Web.Core.UnitsOfWork.csproj Core/PGAN.Poracle.Web.Core.UnitsOfWork/
-COPY Data/PGAN.Poracle.Web.Data/PGAN.Poracle.Web.Data.csproj Data/PGAN.Poracle.Web.Data/
-COPY Data/PGAN.Poracle.Web.Data.Scanner/PGAN.Poracle.Web.Data.Scanner.csproj Data/PGAN.Poracle.Web.Data.Scanner/
-COPY Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj Applications/PGAN.Poracle.Web.Api/
-COPY Applications/PGAN.Poracle.Web.App/PGAN.Poracle.Web.App.csproj Applications/PGAN.Poracle.Web.App/
-COPY Tests/PGAN.Poracle.Web.Tests/PGAN.Poracle.Web.Tests.csproj Tests/PGAN.Poracle.Web.Tests/
+COPY Pgan.PoracleWebNet.slnx ./
+COPY Core/Pgan.PoracleWebNet.Core.Abstractions/Pgan.PoracleWebNet.Core.Abstractions.csproj Core/Pgan.PoracleWebNet.Core.Abstractions/
+COPY Core/Pgan.PoracleWebNet.Core.Mappings/Pgan.PoracleWebNet.Core.Mappings.csproj Core/Pgan.PoracleWebNet.Core.Mappings/
+COPY Core/Pgan.PoracleWebNet.Core.Models/Pgan.PoracleWebNet.Core.Models.csproj Core/Pgan.PoracleWebNet.Core.Models/
+COPY Core/Pgan.PoracleWebNet.Core.Repositories/Pgan.PoracleWebNet.Core.Repositories.csproj Core/Pgan.PoracleWebNet.Core.Repositories/
+COPY Core/Pgan.PoracleWebNet.Core.Services/Pgan.PoracleWebNet.Core.Services.csproj Core/Pgan.PoracleWebNet.Core.Services/
+COPY Core/Pgan.PoracleWebNet.Core.UnitsOfWork/Pgan.PoracleWebNet.Core.UnitsOfWork.csproj Core/Pgan.PoracleWebNet.Core.UnitsOfWork/
+COPY Data/Pgan.PoracleWebNet.Data/Pgan.PoracleWebNet.Data.csproj Data/Pgan.PoracleWebNet.Data/
+COPY Data/Pgan.PoracleWebNet.Data.Scanner/Pgan.PoracleWebNet.Data.Scanner.csproj Data/Pgan.PoracleWebNet.Data.Scanner/
+COPY Applications/Pgan.PoracleWebNet.Api/Pgan.PoracleWebNet.Api.csproj Applications/Pgan.PoracleWebNet.Api/
+COPY Applications/Pgan.PoracleWebNet.App/Pgan.PoracleWebNet.App.csproj Applications/Pgan.PoracleWebNet.App/
+COPY Tests/Pgan.PoracleWebNet.Tests/Pgan.PoracleWebNet.Tests.csproj Tests/Pgan.PoracleWebNet.Tests/
 RUN dotnet restore
 COPY . .
-RUN dotnet publish Applications/PGAN.Poracle.Web.Api/PGAN.Poracle.Web.Api.csproj -c Release -o /app/publish
+RUN dotnet publish Applications/Pgan.PoracleWebNet.Api/Pgan.PoracleWebNet.Api.csproj -c Release -o /app/publish
 
 # Stage 3: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -41,4 +41,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DATA_DIR=/app/data
 
 USER appuser
-ENTRYPOINT ["dotnet", "PGAN.Poracle.Web.Api.dll"]
+ENTRYPOINT ["dotnet", "Pgan.PoracleWebNet.Api.dll"]

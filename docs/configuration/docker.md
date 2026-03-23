@@ -69,10 +69,10 @@ services:
 
 ```bash
 # Build from source
-docker build -t poracleweb-local:latest .
+docker build -t poracleweb.net:latest .
 
 # Force clean rebuild
-docker build --no-cache -t poracleweb-local:latest .
+docker build --no-cache -t poracleweb.net:latest .
 
 # Start
 docker compose up -d

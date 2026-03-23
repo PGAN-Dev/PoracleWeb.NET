@@ -7,14 +7,14 @@ git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git
 cd PoracleWeb.NET
 
 # Install frontend dependencies
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm install
 cd ../../..
 ```
 
 ## 2. Configure secrets
 
-Create `Applications/PGAN.Poracle.Web.Api/appsettings.Development.json` (gitignored):
+Create `Applications/Pgan.PoracleWebNet.Api/appsettings.Development.json` (gitignored):
 
 ```json
 {
@@ -61,7 +61,7 @@ You need two terminals — one for the backend API and one for the Angular dev s
 === "Backend API"
 
     ```bash
-    cd Applications/PGAN.Poracle.Web.Api
+    cd Applications/Pgan.PoracleWebNet.Api
     dotnet run
     ```
 
@@ -70,7 +70,7 @@ You need two terminals — one for the backend API and one for the Angular dev s
 === "Frontend"
 
     ```bash
-    cd Applications/PGAN.Poracle.Web.App/ClientApp
+    cd Applications/Pgan.PoracleWebNet.App/ClientApp
     npm start
     ```
 
@@ -82,7 +82,7 @@ Open **http://localhost:4200** in your browser.
 
 ```bash
 # Frontend tests (Jest)
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm test
 
 # Backend tests (xUnit)
@@ -92,7 +92,7 @@ dotnet test
 ## 5. Linting and formatting
 
 ```bash
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 
 # Check lint
 npm run lint
@@ -114,7 +114,7 @@ npm run prettier-format
 dotnet build
 
 # Angular production build
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm run build
 
 # Angular watch mode

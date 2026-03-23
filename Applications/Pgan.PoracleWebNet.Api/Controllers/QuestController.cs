@@ -1,0 +1,101 @@
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
+
+namespace Pgan.PoracleWebNet.Api.Controllers;
+
+[Route("api/quests")]
+public class QuestController(IQuestService questService, IMapper mapper) : BaseApiController
+{
+    private readonly IQuestService _questService = questService;
+    private readonly IMapper _mapper = mapper;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var quests = await this._questService.GetByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(quests);
+    }
+
+    [HttpGet("{uid:int}")]
+    public async Task<IActionResult> GetByUid(int uid)
+    {
+        var quest = await this._questService.GetByUidAsync(uid);
+        if (quest == null || this.NotOwnedByCurrentUser(quest.Id))
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(quest);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] QuestCreate model)
+    {
+        var quest = this._mapper.Map<Quest>(model);
+        quest.ProfileNo = this.ProfileNo;
+        var result = await this._questService.CreateAsync(this.UserId, quest);
+        return this.CreatedAtAction(nameof(GetByUid), new
+        {
+            uid = result.Uid
+        }, result);
+    }
+
+    [HttpPut("{uid:int}")]
+    public async Task<IActionResult> Update(int uid, [FromBody] QuestUpdate model)
+    {
+        var existing = await this._questService.GetByUidAsync(uid);
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        {
+            return this.NotFound();
+        }
+
+        this._mapper.Map(model, existing);
+        var result = await this._questService.UpdateAsync(existing);
+        return this.Ok(result);
+    }
+
+    [HttpDelete("{uid:int}")]
+    public async Task<IActionResult> Delete(int uid)
+    {
+        var existing = await this._questService.GetByUidAsync(uid);
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        {
+            return this.NotFound();
+        }
+
+        await this._questService.DeleteAsync(uid);
+        return this.NoContent();
+    }
+
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAll()
+    {
+        var count = await this._questService.DeleteAllByUserAsync(this.UserId, this.ProfileNo);
+        return this.Ok(new
+        {
+            deleted = count
+        });
+    }
+
+    [HttpPut("distance/bulk")]
+    public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
+    {
+        var count = await this._questService.UpdateDistanceByUidsAsync(request.Uids, this.UserId, request.Distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
+    }
+
+    [HttpPut("distance")]
+    public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
+    {
+        var count = await this._questService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
+        return this.Ok(new
+        {
+            updated = count
+        });
+    }
+}

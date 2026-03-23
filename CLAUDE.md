@@ -18,7 +18,7 @@ This is a full-stack web application for configuring Pokemon GO DM notification 
 ## Solution Structure
 
 ```
-PGAN.Poracle.Web.slnx
+Pgan.PoracleWebNet.slnx
 |
 +-- Core/
 |   +-- Core.Abstractions/       Interfaces: IRepository, IService, IUnitOfWork
@@ -58,7 +58,7 @@ PGAN.Poracle.Web.slnx
 |                                utils/: geo.utils (point-in-polygon, centroid)
 |
 +-- Tests/
-    +-- PGAN.Poracle.Web.Tests/  xUnit backend tests (controllers, services, mappings)
+    +-- Pgan.PoracleWebNet.Tests/  xUnit backend tests (controllers, services, mappings)
 ```
 
 ## Key Patterns
@@ -211,36 +211,36 @@ Koji's `displayInMatches` custom property is not reliably honored by all Poracle
 dotnet build
 
 # Run API (starts on http://localhost:5048)
-cd Applications/PGAN.Poracle.Web.Api
+cd Applications/Pgan.PoracleWebNet.Api
 dotnet run
 
 # Run Angular dev server (starts on http://localhost:4200)
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm install
 npm start              # alias for ng serve
 npm run watch          # watch mode for development
 npm run build          # production build
 
 # Run frontend tests (Jest)
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm test
 
 # Run backend tests (xUnit)
 dotnet test
 
 # Lint and format
-cd Applications/PGAN.Poracle.Web.App/ClientApp
+cd Applications/Pgan.PoracleWebNet.App/ClientApp
 npm run lint           # ESLint check
 npm run prettier-check # Prettier check
 npx eslint --fix src/  # Auto-fix lint
 npm run prettier-format # Auto-format
 
 # Docker — build from source
-docker build -t poracleweb-local:latest .
+docker build -t poracleweb.net:latest .
 docker compose up -d
 
 # Docker — force clean rebuild
-docker build --no-cache -t poracleweb-local:latest .
+docker build --no-cache -t poracleweb.net:latest .
 docker compose up -d --force-recreate
 ```
 
@@ -254,39 +254,39 @@ docker compose up -d --force-recreate
 
 | What | Path |
 |---|---|
-| EF Core Entities | `Data/PGAN.Poracle.Web.Data/Entities/` |
-| EF Core DbContext (Poracle) | `Data/PGAN.Poracle.Web.Data/PoracleContext.cs` |
-| EF Core DbContext (PoracleWeb) | `Data/PGAN.Poracle.Web.Data/PoracleWebContext.cs` |
-| User Geofence Entity | `Data/PGAN.Poracle.Web.Data/Entities/UserGeofenceEntity.cs` |
-| API Controllers | `Applications/PGAN.Poracle.Web.Api/Controllers/` |
-| Geofence Feed Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/GeofenceFeedController.cs` |
-| Admin Geofence Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/AdminGeofenceController.cs` |
-| User Geofence Controller | `Applications/PGAN.Poracle.Web.Api/Controllers/UserGeofenceController.cs` |
-| DI Registration | `Applications/PGAN.Poracle.Web.Api/Configuration/ServiceCollectionExtensions.cs` |
-| Settings Classes | `Applications/PGAN.Poracle.Web.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, PoracleServerSettings, etc.) |
-| Angular App Root | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/` |
-| Angular Routes | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/app.routes.ts` |
-| Angular Services | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/core/services/` |
-| Angular Guards | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/core/guards/` |
-| Shared Components | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/` |
-| Feature Modules | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/` |
-| Geofences Module | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/geofences/` |
-| Admin Geofence Submissions | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/admin/geofence-submissions/` |
-| Region Selector Component | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/region-selector/` |
-| Geofence Name Dialog | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/geofence-name-dialog/` |
-| Geofence Approval Dialog | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/components/geofence-approval-dialog/` |
-| Geo Utilities | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
-| AutoMapper Profile | `Core/PGAN.Poracle.Web.Core.Mappings/PoracleMappingProfile.cs` |
-| Repository Base | `Core/PGAN.Poracle.Web.Core.Repositories/` |
-| Service Layer | `Core/PGAN.Poracle.Web.Core.Services/` |
-| UserGeofenceService | `Core/PGAN.Poracle.Web.Core.Services/UserGeofenceService.cs` |
-| KojiService | `Core/PGAN.Poracle.Web.Core.Services/KojiService.cs` |
-| DiscordNotificationService | `Core/PGAN.Poracle.Web.Core.Services/DiscordNotificationService.cs` |
-| IPoracleServerService | `Core/PGAN.Poracle.Web.Core.Abstractions/Services/` |
-| PoracleServerService | `Core/PGAN.Poracle.Web.Core.Services/PoracleServerService.cs` |
-| Poracle Servers Page | `Applications/PGAN.Poracle.Web.App/ClientApp/src/app/modules/admin/poracle-servers/` |
-| Abstractions | `Core/PGAN.Poracle.Web.Core.Abstractions/` |
-| Backend Tests | `Tests/PGAN.Poracle.Web.Tests/` |
+| EF Core Entities | `Data/Pgan.PoracleWebNet.Data/Entities/` |
+| EF Core DbContext (Poracle) | `Data/Pgan.PoracleWebNet.Data/PoracleContext.cs` |
+| EF Core DbContext (PoracleWeb) | `Data/Pgan.PoracleWebNet.Data/PoracleWebContext.cs` |
+| User Geofence Entity | `Data/Pgan.PoracleWebNet.Data/Entities/UserGeofenceEntity.cs` |
+| API Controllers | `Applications/Pgan.PoracleWebNet.Api/Controllers/` |
+| Geofence Feed Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/GeofenceFeedController.cs` |
+| Admin Geofence Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/AdminGeofenceController.cs` |
+| User Geofence Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/UserGeofenceController.cs` |
+| DI Registration | `Applications/Pgan.PoracleWebNet.Api/Configuration/ServiceCollectionExtensions.cs` |
+| Settings Classes | `Applications/Pgan.PoracleWebNet.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, PoracleServerSettings, etc.) |
+| Angular App Root | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/` |
+| Angular Routes | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/app.routes.ts` |
+| Angular Services | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/` |
+| Angular Guards | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/guards/` |
+| Shared Components | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/` |
+| Feature Modules | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/` |
+| Geofences Module | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/geofences/` |
+| Admin Geofence Submissions | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/geofence-submissions/` |
+| Region Selector Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/region-selector/` |
+| Geofence Name Dialog | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/geofence-name-dialog/` |
+| Geofence Approval Dialog | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/geofence-approval-dialog/` |
+| Geo Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
+| AutoMapper Profile | `Core/Pgan.PoracleWebNet.Core.Mappings/PoracleMappingProfile.cs` |
+| Repository Base | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
+| Service Layer | `Core/Pgan.PoracleWebNet.Core.Services/` |
+| UserGeofenceService | `Core/Pgan.PoracleWebNet.Core.Services/UserGeofenceService.cs` |
+| KojiService | `Core/Pgan.PoracleWebNet.Core.Services/KojiService.cs` |
+| DiscordNotificationService | `Core/Pgan.PoracleWebNet.Core.Services/DiscordNotificationService.cs` |
+| IPoracleServerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/` |
+| PoracleServerService | `Core/Pgan.PoracleWebNet.Core.Services/PoracleServerService.cs` |
+| Poracle Servers Page | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/poracle-servers/` |
+| Abstractions | `Core/Pgan.PoracleWebNet.Core.Abstractions/` |
+| Backend Tests | `Tests/Pgan.PoracleWebNet.Tests/` |
 | CI Workflows | `.github/workflows/` (ci.yml, docker-publish.yml) |
 | Docker Config | `Dockerfile`, `docker-compose.yml`, `.env.example` |
 

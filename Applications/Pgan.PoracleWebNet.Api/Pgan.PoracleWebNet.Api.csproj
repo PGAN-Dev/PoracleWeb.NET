@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Pgan.PoracleWebNet.Core.Abstractions\Pgan.PoracleWebNet.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Core\Pgan.PoracleWebNet.Core.Mappings\Pgan.PoracleWebNet.Core.Mappings.csproj" />
+    <ProjectReference Include="..\..\Core\Pgan.PoracleWebNet.Core.Models\Pgan.PoracleWebNet.Core.Models.csproj" />
+    <ProjectReference Include="..\..\Core\Pgan.PoracleWebNet.Core.Repositories\Pgan.PoracleWebNet.Core.Repositories.csproj" />
+    <ProjectReference Include="..\..\Core\Pgan.PoracleWebNet.Core.Services\Pgan.PoracleWebNet.Core.Services.csproj" />
+    <ProjectReference Include="..\..\Core\Pgan.PoracleWebNet.Core.UnitsOfWork\Pgan.PoracleWebNet.Core.UnitsOfWork.csproj" />
+    <ProjectReference Include="..\..\Data\Pgan.PoracleWebNet.Data\Pgan.PoracleWebNet.Data.csproj" />
+    <ProjectReference Include="..\..\Data\Pgan.PoracleWebNet.Data.Scanner\Pgan.PoracleWebNet.Data.Scanner.csproj" />
+  </ItemGroup>
+
+</Project>

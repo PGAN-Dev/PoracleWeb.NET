@@ -1,8 +1,9 @@
 services:
-  poracle-web:
+  poracleweb.net:
+    container_name: poracleweb.net
     # image: ghcr.io/pgan-dev/poracleweb.net:latest
     # Alternatives:
-    image: poracleweb-local:latest          # Use a locally built image
+    image: poracleweb.net:latest             # Use a locally built image
     # build:                                   # Build from source directly
     #   context: .
     #   dockerfile: Dockerfile
@@ -16,8 +17,8 @@ services:
       - ConnectionStrings__ScannerDb=${SCANNER_DB_CONNECTION:-}
       # JWT
       - Jwt__Secret=${JWT_SECRET}
-      - Jwt__Issuer=PGAN.Poracle.Web
-      - Jwt__Audience=PGAN.Poracle.Web.App
+      - Jwt__Issuer=Pgan.PoracleWebNet
+      - Jwt__Audience=Pgan.PoracleWebNet.App
       # Discord OAuth2
       - Discord__ClientId=${DISCORD_CLIENT_ID}
       - Discord__ClientSecret=${DISCORD_CLIENT_SECRET}
