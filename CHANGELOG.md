@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Migrate pweb_settings to structured tables in PoracleWeb DB ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
 - **Migrate pweb_settings to structured tables**: Replace the generic key-value `pweb_settings` table in the Poracle DB with 4 properly structured tables in the PoracleWeb database ([#34](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/34), [PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
   - `site_settings` — typed admin settings with categories and value types
   - `webhook_delegates` — relational webhook-to-user delegation with composite unique index
