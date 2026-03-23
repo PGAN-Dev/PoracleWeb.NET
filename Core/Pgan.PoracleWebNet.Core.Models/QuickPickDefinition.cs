@@ -25,7 +25,10 @@ public class QuickPickDefinition
     /// <summary>
     /// The Discord/Telegram user ID that owns this definition. Null for global (admin) picks.
     /// </summary>
-    public string? OwnerUserId { get; set; }
+    public string? OwnerUserId
+    {
+        get; set;
+    }
 
     /// <summary>
     /// The alarm filter parameters as a flexible dictionary.

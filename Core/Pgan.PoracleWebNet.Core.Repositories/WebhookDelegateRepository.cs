@@ -31,14 +31,11 @@ public class WebhookDelegateRepository(PoracleWebContext context, IMapper mapper
         return this._mapper.Map<IEnumerable<WebhookDelegate>>(entities);
     }
 
-    public async Task<IEnumerable<string>> GetWebhookIdsByUserIdAsync(string userId)
-    {
-        return await this._context.WebhookDelegates
+    public async Task<IEnumerable<string>> GetWebhookIdsByUserIdAsync(string userId) => await this._context.WebhookDelegates
             .AsNoTracking()
             .Where(d => d.UserId == userId)
             .Select(d => d.WebhookId)
             .ToListAsync();
-    }
 
     public async Task<WebhookDelegate> AddAsync(string webhookId, string userId)
     {

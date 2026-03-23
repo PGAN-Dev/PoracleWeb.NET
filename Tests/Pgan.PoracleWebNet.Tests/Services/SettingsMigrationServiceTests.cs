@@ -39,7 +39,7 @@ public class SettingsMigrationServiceTests
     [Fact]
     public async Task MigrateAsyncMigratesSiteSettings()
     {
-        SetupNotMigrated();
+        this.SetupNotMigrated();
         this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(
         [
             new() { Setting = "custom_title", Value = "My App" },
@@ -57,7 +57,7 @@ public class SettingsMigrationServiceTests
     [Fact]
     public async Task MigrateAsyncMigratesWebhookDelegates()
     {
-        SetupNotMigrated();
+        this.SetupNotMigrated();
         this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(
         [
             new() { Setting = "webhook_delegates:wh1", Value = "u1,u2" },
@@ -78,7 +78,7 @@ public class SettingsMigrationServiceTests
     [Fact]
     public async Task MigrateAsyncMigratesQuickPickDefinitions()
     {
-        SetupNotMigrated();
+        this.SetupNotMigrated();
         var definition = new QuickPickDefinition { Id = "hundo", Name = "100% IV", AlarmType = "monster" };
         var json = System.Text.Json.JsonSerializer.Serialize(definition, new System.Text.Json.JsonSerializerOptions
         {
@@ -100,7 +100,7 @@ public class SettingsMigrationServiceTests
     [Fact]
     public async Task MigrateAsyncSetsMigrationCompletedSentinel()
     {
-        SetupNotMigrated();
+        this.SetupNotMigrated();
         this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
         this._siteSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
             .ReturnsAsync((SiteSetting s) => s);
@@ -114,7 +114,7 @@ public class SettingsMigrationServiceTests
     [Fact]
     public async Task MigrateAsyncContinuesOnIndividualFailure()
     {
-        SetupNotMigrated();
+        this.SetupNotMigrated();
         this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(
         [
             new() { Setting = "failing_key", Value = "val1" },
@@ -138,9 +138,6 @@ public class SettingsMigrationServiceTests
             ss.Key == "succeeding_key")), Times.Once);
     }
 
-    private void SetupNotMigrated()
-    {
-        this._siteSettingService.Setup(s => s.GetByKeyAsync("migration_completed"))
+    private void SetupNotMigrated() => this._siteSettingService.Setup(s => s.GetByKeyAsync("migration_completed"))
             .ReturnsAsync((SiteSetting?)null);
-    }
 }

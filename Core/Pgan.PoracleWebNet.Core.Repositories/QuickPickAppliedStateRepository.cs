@@ -34,7 +34,7 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context, IMapper 
             .Where(s => s.UserId == userId && s.ProfileNo == profileNo)
             .ToListAsync();
 
-        return entities.Select(MapToModel).ToList();
+        return [.. entities.Select(MapToModel)];
     }
 
     public async Task CreateOrUpdateAsync(QuickPickAppliedState state)
@@ -77,18 +77,15 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context, IMapper 
         }
     }
 
-    private static QuickPickAppliedState MapToModel(QuickPickAppliedStateEntity entity)
+    private static QuickPickAppliedState MapToModel(QuickPickAppliedStateEntity entity) => new QuickPickAppliedState
     {
-        return new QuickPickAppliedState
-        {
-            QuickPickId = entity.QuickPickId,
-            AppliedAt = entity.AppliedAt,
-            ExcludePokemonIds = string.IsNullOrEmpty(entity.ExcludePokemonIdsJson)
+        QuickPickId = entity.QuickPickId,
+        AppliedAt = entity.AppliedAt,
+        ExcludePokemonIds = string.IsNullOrEmpty(entity.ExcludePokemonIdsJson)
                 ? []
                 : JsonSerializer.Deserialize<List<int>>(entity.ExcludePokemonIdsJson, JsonOptions) ?? [],
-            TrackedUids = string.IsNullOrEmpty(entity.TrackedUidsJson)
+        TrackedUids = string.IsNullOrEmpty(entity.TrackedUidsJson)
                 ? []
                 : JsonSerializer.Deserialize<List<int>>(entity.TrackedUidsJson, JsonOptions) ?? [],
-        };
-    }
+    };
 }

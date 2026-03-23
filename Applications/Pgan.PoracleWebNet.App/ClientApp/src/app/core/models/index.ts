@@ -323,8 +323,8 @@ export interface PwebSetting {
 // ─── SiteSetting ──────────────────────────────────────────────────────────────
 
 export interface SiteSetting {
-  id: number;
   category: string;
+  id: number;
   key: string;
   value: string | null;
   valueType: string;
@@ -333,10 +333,10 @@ export interface SiteSetting {
 // ─── WebhookDelegate ─────────────────────────────────────────────────────────
 
 export interface WebhookDelegate {
-  id: number;
-  webhookId: string;
-  userId: string;
   createdAt: string;
+  id: number;
+  userId: string;
+  webhookId: string;
 }
 
 // ─── User Geofence ───────────────────────────────────────────────────────────

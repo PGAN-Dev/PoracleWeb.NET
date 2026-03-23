@@ -92,7 +92,9 @@ describe('SettingsService', () => {
 
       // Second call - should still make HTTP request but not re-populate
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([{ id: 1, category: 'features', key: 'enable_templates', value: 'false', valueType: 'boolean' }]);
+      httpMock
+        .expectOne(`${API}/api/settings`)
+        .flush([{ id: 1, category: 'features', key: 'enable_templates', value: 'false', valueType: 'boolean' }]);
 
       // Should still have old value since loaded flag is true
       expect(service.siteSettings()['enable_templates']).toBe('true');
@@ -127,21 +129,27 @@ describe('SettingsService', () => {
   describe('isDisabled', () => {
     it('should return true when setting is "true"', () => {
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'true', valueType: 'boolean' }]);
+      httpMock
+        .expectOne(`${API}/api/settings`)
+        .flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'true', valueType: 'boolean' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(true);
     });
 
     it('should return true case-insensitively', () => {
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'True', valueType: 'boolean' }]);
+      httpMock
+        .expectOne(`${API}/api/settings`)
+        .flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'True', valueType: 'boolean' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(true);
     });
 
     it('should return false when setting is not "true"', () => {
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'false', valueType: 'boolean' }]);
+      httpMock
+        .expectOne(`${API}/api/settings`)
+        .flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'false', valueType: 'boolean' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(false);
     });
@@ -180,9 +188,9 @@ describe('SettingsService', () => {
 
       // Load public settings
       service.loadPublic().subscribe();
-      httpMock.expectOne(`${API}/api/settings/public`).flush([
-        { id: 10, category: 'branding', key: 'site_name', value: 'Public Name', valueType: 'string' },
-      ]);
+      httpMock
+        .expectOne(`${API}/api/settings/public`)
+        .flush([{ id: 10, category: 'branding', key: 'site_name', value: 'Public Name', valueType: 'string' }]);
 
       expect(service.siteSettings()['site_name']).toBe('Public Name');
       // Existing settings should still be present

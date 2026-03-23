@@ -362,11 +362,6 @@ export class AdminSettingsComponent implements OnInit {
     return map.has(key) ? (map.get(key) ?? null) : undefined;
   }
 
-  /** Get the key string from an AnySettingItem (for use in the template) */
-  itemKey(item: AnySettingItem): string {
-    return settingKey(item);
-  }
-
   isRepoActive(repo: { base: string }): boolean {
     const current = (this.getSettingValue('uicons_pkmn') ?? '').toLowerCase();
     return current.startsWith(repo.base.toLowerCase());
@@ -375,6 +370,11 @@ export class AdminSettingsComponent implements OnInit {
   isSettingVisible(meta: SettingMeta): boolean {
     if (!meta.showWhen) return true;
     return this.getBool(meta.showWhen);
+  }
+
+  /** Get the key string from an AnySettingItem (for use in the template) */
+  itemKey(item: AnySettingItem): string {
+    return settingKey(item);
   }
 
   ngOnInit(): void {

@@ -27,7 +27,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .ThenBy(d => d.Name)
             .ToListAsync();
 
-        return entities.Select(MapToModel).ToList();
+        return [.. entities.Select(this.MapToModel)];
     }
 
     public async Task<List<QuickPickDefinition>> GetByOwnerAsync(string userId)
@@ -39,7 +39,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .ThenBy(d => d.Name)
             .ToListAsync();
 
-        return entities.Select(MapToModel).ToList();
+        return [.. entities.Select(this.MapToModel)];
     }
 
     public async Task<QuickPickDefinition?> GetByIdAsync(string id)
@@ -48,7 +48,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == id);
 
-        return entity is null ? null : MapToModel(entity);
+        return entity is null ? null : this.MapToModel(entity);
     }
 
     public async Task<QuickPickDefinition?> GetByIdAndOwnerAsync(string id, string userId)
@@ -57,7 +57,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == id && d.OwnerUserId == userId);
 
-        return entity is null ? null : MapToModel(entity);
+        return entity is null ? null : this.MapToModel(entity);
     }
 
     public async Task CreateOrUpdateAsync(QuickPickDefinition definition)

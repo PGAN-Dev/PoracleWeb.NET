@@ -22,7 +22,7 @@ public partial class WebhookDelegateService(
     public async Task<string[]> GetDelegatesForWebhookAsync(string webhookId)
     {
         var delegates = await this._repository.GetByWebhookIdAsync(webhookId);
-        return delegates.Select(d => d.UserId).ToArray();
+        return [.. delegates.Select(d => d.UserId)];
     }
 
     public async Task<IEnumerable<string>> GetManagedWebhookIdsAsync(string userId) =>

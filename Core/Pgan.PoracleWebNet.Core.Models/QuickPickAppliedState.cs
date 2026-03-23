@@ -13,7 +13,10 @@ public class QuickPickAppliedState
     /// <summary>
     /// The profile number this quick pick was applied to.
     /// </summary>
-    public int ProfileNo { get; set; }
+    public int ProfileNo
+    {
+        get; set;
+    }
 
     public string QuickPickId { get; set; } = string.Empty;
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;

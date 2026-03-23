@@ -98,10 +98,7 @@ public partial class QuickPickService(
         return summaries.OrderBy(s => s.Definition.SortOrder).ThenBy(s => s.Definition.Name);
     }
 
-    public async Task<QuickPickDefinition?> GetByIdAsync(string id)
-    {
-        return await this._definitionRepository.GetByIdAsync(id);
-    }
+    public async Task<QuickPickDefinition?> GetByIdAsync(string id) => await this._definitionRepository.GetByIdAsync(id);
 
     public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition)
     {

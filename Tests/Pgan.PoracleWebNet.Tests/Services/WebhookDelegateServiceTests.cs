@@ -16,12 +16,12 @@ public class WebhookDelegateServiceTests
     [Fact]
     public async Task GetAllGroupedAsyncGroupsByWebhookId()
     {
-        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<WebhookDelegate>
-        {
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(
+        [
             new() { WebhookId = "wh1", UserId = "u1" },
             new() { WebhookId = "wh1", UserId = "u2" },
             new() { WebhookId = "wh2", UserId = "u3" }
-        });
+        ]);
 
         var result = await this._sut.GetAllGroupedAsync();
 
@@ -38,7 +38,7 @@ public class WebhookDelegateServiceTests
     [Fact]
     public async Task GetAllGroupedAsyncReturnsEmptyWhenNoDelegates()
     {
-        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<WebhookDelegate>());
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
 
         var result = await this._sut.GetAllGroupedAsync();
 
@@ -48,11 +48,11 @@ public class WebhookDelegateServiceTests
     [Fact]
     public async Task GetDelegatesForWebhookAsyncReturnsUserIds()
     {
-        this._repository.Setup(r => r.GetByWebhookIdAsync("wh1")).ReturnsAsync(new List<WebhookDelegate>
-        {
+        this._repository.Setup(r => r.GetByWebhookIdAsync("wh1")).ReturnsAsync(
+        [
             new() { WebhookId = "wh1", UserId = "u1" },
             new() { WebhookId = "wh1", UserId = "u2" }
-        });
+        ]);
 
         var result = await this._sut.GetDelegatesForWebhookAsync("wh1");
 
@@ -64,7 +64,7 @@ public class WebhookDelegateServiceTests
     [Fact]
     public async Task GetManagedWebhookIdsAsyncReturnsWebhookIds()
     {
-        this._repository.Setup(r => r.GetWebhookIdsByUserIdAsync("u1")).ReturnsAsync(new List<string> { "wh1", "wh2" });
+        this._repository.Setup(r => r.GetWebhookIdsByUserIdAsync("u1")).ReturnsAsync(["wh1", "wh2"]);
 
         var result = (await this._sut.GetManagedWebhookIdsAsync("u1")).ToList();
 
@@ -78,11 +78,11 @@ public class WebhookDelegateServiceTests
     {
         this._repository.Setup(r => r.AddAsync("wh1", "u2"))
             .ReturnsAsync(new WebhookDelegate { WebhookId = "wh1", UserId = "u2" });
-        this._repository.Setup(r => r.GetByWebhookIdAsync("wh1")).ReturnsAsync(new List<WebhookDelegate>
-        {
+        this._repository.Setup(r => r.GetByWebhookIdAsync("wh1")).ReturnsAsync(
+        [
             new() { WebhookId = "wh1", UserId = "u1" },
             new() { WebhookId = "wh1", UserId = "u2" }
-        });
+        ]);
 
         var result = await this._sut.AddDelegateAsync("wh1", "u2");
 
@@ -95,10 +95,10 @@ public class WebhookDelegateServiceTests
     public async Task RemoveDelegateAsyncRemovesAndReturnsUpdatedList()
     {
         this._repository.Setup(r => r.RemoveAsync("wh1", "u1")).ReturnsAsync(true);
-        this._repository.Setup(r => r.GetByWebhookIdAsync("wh1")).ReturnsAsync(new List<WebhookDelegate>
-        {
+        this._repository.Setup(r => r.GetByWebhookIdAsync("wh1")).ReturnsAsync(
+        [
             new() { WebhookId = "wh1", UserId = "u2" }
-        });
+        ]);
 
         var result = await this._sut.RemoveDelegateAsync("wh1", "u1");
 

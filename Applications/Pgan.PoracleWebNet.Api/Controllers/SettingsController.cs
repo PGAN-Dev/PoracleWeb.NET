@@ -54,13 +54,25 @@ public class SettingsController(ISiteSettingService siteSettingService) : BaseAp
     public class SiteSettingRequest
     {
         /// <summary>New property name.</summary>
-        public string? Key { get; set; }
+        public string? Key
+        {
+            get; set;
+        }
 
         /// <summary>Legacy property name — mapped to Key for backward compatibility.</summary>
-        public string? Setting { get; set; }
+        public string? Setting
+        {
+            get; set;
+        }
 
-        public string? Value { get; set; }
+        public string? Value
+        {
+            get; set;
+        }
 
-        public string? Category { get; set; }
+        public string? Category
+        {
+            get; set;
+        }
     }
 }
