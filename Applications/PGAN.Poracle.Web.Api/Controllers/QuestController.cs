@@ -22,7 +22,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     public async Task<IActionResult> GetByUid(int uid)
     {
         var quest = await this._questService.GetByUidAsync(uid);
-        if (quest == null || quest.Id != this.UserId)
+        if (quest == null || this.NotOwnedByCurrentUser(quest.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     public async Task<IActionResult> Update(int uid, [FromBody] QuestUpdate model)
     {
         var existing = await this._questService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._questService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }

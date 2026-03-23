@@ -25,6 +25,7 @@ public partial class AuthController(
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
     IOptions<PoracleSettings> poracleSettings,
+    IConfiguration configuration,
     ILogger<AuthController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
@@ -34,6 +35,7 @@ public partial class AuthController(
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
+    private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly ILogger<AuthController> _logger = logger;
 
     [AllowAnonymous]
@@ -56,9 +58,6 @@ public partial class AuthController(
 
         // Save the frontend origin so we know where to redirect after the callback.
         // Validate against configured CORS origins to prevent open redirect token theft.
-        var allowedOrigins = this.HttpContext.RequestServices
-            .GetRequiredService<IConfiguration>()
-            .GetSection("Cors:AllowedOrigins").Get<string[]>();
         var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
         var origin = selfOrigin;
 
@@ -66,8 +65,8 @@ public partial class AuthController(
         if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
         {
             var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
-            if (allowedOrigins is { Length: > 0 }
-                ? allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
+            if (this._allowedOrigins.Length > 0
+                ? this._allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
                 : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
             {
                 origin = refererOrigin;

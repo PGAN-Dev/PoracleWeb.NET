@@ -22,7 +22,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> GetByUid(int uid)
     {
         var raid = await this._raidService.GetByUidAsync(uid);
-        if (raid == null || raid.Id != this.UserId)
+        if (raid == null || this.NotOwnedByCurrentUser(raid.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Update(int uid, [FromBody] RaidUpdate model)
     {
         var existing = await this._raidService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._raidService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }

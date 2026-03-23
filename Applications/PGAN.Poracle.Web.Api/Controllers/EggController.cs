@@ -22,7 +22,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> GetByUid(int uid)
     {
         var egg = await this._eggService.GetByUidAsync(uid);
-        if (egg == null || egg.Id != this.UserId)
+        if (egg == null || this.NotOwnedByCurrentUser(egg.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> Update(int uid, [FromBody] EggUpdate model)
     {
         var existing = await this._eggService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._eggService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }

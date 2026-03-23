@@ -22,7 +22,7 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> GetByUid(int uid)
     {
         var gym = await this._gymService.GetByUidAsync(uid);
-        if (gym == null || gym.Id != this.UserId)
+        if (gym == null || this.NotOwnedByCurrentUser(gym.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> Update(int uid, [FromBody] GymUpdate model)
     {
         var existing = await this._gymService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._gymService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }

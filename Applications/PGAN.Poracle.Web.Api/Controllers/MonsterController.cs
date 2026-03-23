@@ -22,7 +22,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     public async Task<IActionResult> GetByUid(int uid)
     {
         var monster = await this._monsterService.GetByUidAsync(uid);
-        if (monster == null || monster.Id != this.UserId)
+        if (monster == null || this.NotOwnedByCurrentUser(monster.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     public async Task<IActionResult> Update(int uid, [FromBody] MonsterUpdate model)
     {
         var existing = await this._monsterService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._monsterService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }

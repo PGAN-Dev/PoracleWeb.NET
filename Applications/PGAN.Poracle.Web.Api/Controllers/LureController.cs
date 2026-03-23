@@ -22,7 +22,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> GetByUid(int uid)
     {
         var lure = await this._lureService.GetByUidAsync(uid);
-        if (lure == null || lure.Id != this.UserId)
+        if (lure == null || this.NotOwnedByCurrentUser(lure.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Update(int uid, [FromBody] LureUpdate model)
     {
         var existing = await this._lureService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._lureService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }

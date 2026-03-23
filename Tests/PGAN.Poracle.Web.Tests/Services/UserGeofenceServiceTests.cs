@@ -366,6 +366,50 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
+    public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameHasInvalidChars()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 1, "test<script>"));
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameTooLong()
+    {
+        var longName = new string('a', 51);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 1, longName));
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameIsEmpty()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 1, "   "));
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncAcceptsValidPromotedName()
+    {
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
+        var geofence = new UserGeofence
+        {
+            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown",
+            GroupName = "City", ParentId = 5, Status = "pending_review",
+            PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
+        };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[\"downtown\"]" });
+        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "Valid Name's (Test)");
+
+        Assert.Equal("approved", result.Status);
+        Assert.Equal("Valid Name's (Test)", result.PromotedName);
+    }
+
+    [Fact]
     public async Task ApproveSubmissionAsyncThrowsWhenNotFound()
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);

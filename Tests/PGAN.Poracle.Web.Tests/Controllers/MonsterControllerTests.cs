@@ -124,6 +124,39 @@ public class MonsterControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task GetByUidReturnsNotFoundWhenOwnedByDifferentUser()
+    {
+        var monster = new Monster { Uid = 1, PokemonId = 25, Id = "other_user" };
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(monster);
+
+        var result = await this._sut.GetByUid(1);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateReturnsNotFoundWhenOwnedByDifferentUser()
+    {
+        var existing = new Monster { Uid = 1, PokemonId = 25, Id = "other_user" };
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
+
+        var result = await this._sut.Update(1, new MonsterUpdate());
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteReturnsNotFoundWhenOwnedByDifferentUser()
+    {
+        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Monster { Uid = 1, Id = "other_user" });
+
+        var result = await this._sut.Delete(1);
+
+        Assert.IsType<NotFoundResult>(result);
+        this._service.Verify(s => s.DeleteAsync(It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
     public async Task UpdateAllDistanceReturnsOkWithCount()
     {
         this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 500)).ReturnsAsync(3);

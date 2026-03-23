@@ -22,7 +22,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     public async Task<IActionResult> GetByUid(int uid)
     {
         var invasion = await this._invasionService.GetByUidAsync(uid);
-        if (invasion == null || invasion.Id != this.UserId)
+        if (invasion == null || this.NotOwnedByCurrentUser(invasion.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model)
     {
         var existing = await this._invasionService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._invasionService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }

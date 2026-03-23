@@ -22,7 +22,7 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> GetByUid(int uid)
     {
         var nest = await this._nestService.GetByUidAsync(uid);
-        if (nest == null || nest.Id != this.UserId)
+        if (nest == null || this.NotOwnedByCurrentUser(nest.Id))
         {
             return this.NotFound();
         }
@@ -46,7 +46,7 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Update(int uid, [FromBody] NestUpdate model)
     {
         var existing = await this._nestService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
@@ -60,7 +60,7 @@ public class NestController(INestService nestService, IMapper mapper) : BaseApiC
     public async Task<IActionResult> Delete(int uid)
     {
         var existing = await this._nestService.GetByUidAsync(uid);
-        if (existing == null || existing.Id != this.UserId)
+        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
         {
             return this.NotFound();
         }
