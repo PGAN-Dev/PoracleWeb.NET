@@ -58,5 +58,8 @@ public class QuickPickDefinitionConfiguration : IEntityTypeConfiguration<QuickPi
 
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
+
+        // Index for GetAllGlobalAsync (scope='global') and GetByOwnerAsync (scope='user', owner_user_id=?)
+        builder.HasIndex(e => new { e.Scope, e.OwnerUserId });
     }
 }

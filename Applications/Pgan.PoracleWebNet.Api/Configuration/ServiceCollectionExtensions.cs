@@ -72,7 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
-        services.AddScoped<SettingsMigrationService>();
+        services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
 
         // Register Scanner DB (optional - only if connection string is configured)
         var scannerConnectionString = configuration.GetConnectionString("ScannerDb");

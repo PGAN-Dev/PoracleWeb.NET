@@ -1,4 +1,4 @@
-using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 namespace Pgan.PoracleWebNet.Api.Services;
 
@@ -18,7 +18,7 @@ public class SettingsMigrationStartupService(
         try
         {
             using var scope = scopeFactory.CreateScope();
-            var migrationService = scope.ServiceProvider.GetRequiredService<SettingsMigrationService>();
+            var migrationService = scope.ServiceProvider.GetRequiredService<ISettingsMigrationService>();
             await migrationService.MigrateAsync();
             logger.LogInformation("Settings migration completed successfully.");
         }

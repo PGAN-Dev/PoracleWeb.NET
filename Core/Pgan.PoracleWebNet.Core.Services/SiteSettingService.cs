@@ -28,8 +28,17 @@ public partial class SiteSettingService(
 
     public async Task<IEnumerable<SiteSetting>> GetPublicAsync()
     {
-        var all = await this._repository.GetAllAsync();
-        return all.Where(s => PublicKeys.Contains(s.Key));
+        var results = new List<SiteSetting>();
+        foreach (var key in PublicKeys)
+        {
+            var setting = await this._repository.GetByKeyAsync(key);
+            if (setting is not null)
+            {
+                results.Add(setting);
+            }
+        }
+
+        return results;
     }
 
     public async Task<SiteSetting?> GetByKeyAsync(string key) => await this._repository.GetByKeyAsync(key);

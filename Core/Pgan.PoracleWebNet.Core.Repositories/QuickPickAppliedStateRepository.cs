@@ -49,6 +49,7 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context, IMapper 
                 UserId = state.UserId,
                 ProfileNo = state.ProfileNo,
                 QuickPickId = state.QuickPickId,
+                AlarmType = state.AlarmType,
                 AppliedAt = DateTime.UtcNow,
                 ExcludePokemonIdsJson = JsonSerializer.Serialize(state.ExcludePokemonIds, JsonOptions),
                 TrackedUidsJson = JsonSerializer.Serialize(state.TrackedUids, JsonOptions),
@@ -79,7 +80,10 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context, IMapper 
 
     private static QuickPickAppliedState MapToModel(QuickPickAppliedStateEntity entity) => new QuickPickAppliedState
     {
+        UserId = entity.UserId,
+        ProfileNo = entity.ProfileNo,
         QuickPickId = entity.QuickPickId,
+        AlarmType = entity.AlarmType,
         AppliedAt = entity.AppliedAt,
         ExcludePokemonIds = string.IsNullOrEmpty(entity.ExcludePokemonIdsJson)
                 ? []

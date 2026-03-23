@@ -28,6 +28,10 @@ public class QuickPickAppliedStateEntity
     [Required]
     public string QuickPickId { get; set; } = string.Empty;
 
+    [Column("alarm_type")]
+    [Required]
+    public string AlarmType { get; set; } = "monster";
+
     [Column("applied_at")]
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
 

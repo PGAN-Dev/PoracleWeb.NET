@@ -68,10 +68,11 @@ export class SettingsService {
     return map;
   }
 
-  update(key: string, value: string): Observable<AnySettingItem> {
+  update(key: string, value: string, category?: string): Observable<AnySettingItem> {
     return this.http.put<AnySettingItem>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
       key,
       value,
+      category,
     });
   }
 }

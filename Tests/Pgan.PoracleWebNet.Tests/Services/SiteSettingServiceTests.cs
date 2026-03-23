@@ -49,17 +49,14 @@ public class SiteSettingServiceTests
     [Fact]
     public async Task GetPublicAsyncReturnsOnlyPublicKeys()
     {
-        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(
-        [
-            new() { Key = "custom_title", Value = "My App", Category = "branding" },
-            new() { Key = "secret_key", Value = "secret", Category = "general" },
-            new() { Key = "custom_logo_url", Value = "https://logo.png", Category = "branding" }
-        ]);
+        this._repository.Setup(r => r.GetByKeyAsync("custom_title"))
+            .ReturnsAsync(new SiteSetting { Key = "custom_title", Value = "My App", Category = "branding" });
 
         var result = (await this._sut.GetPublicAsync()).ToList();
 
         Assert.Single(result);
         Assert.Equal("custom_title", result[0].Key);
+        this._repository.Verify(r => r.GetByKeyAsync("custom_title"), Times.Once);
     }
 
     [Fact]

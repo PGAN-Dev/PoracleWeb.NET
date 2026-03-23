@@ -39,6 +39,15 @@ public class WebhookDelegateRepository(PoracleWebContext context, IMapper mapper
 
     public async Task<WebhookDelegate> AddAsync(string webhookId, string userId)
     {
+        // Check for existing delegate to avoid unique constraint violation
+        var existing = await this._context.WebhookDelegates
+            .FirstOrDefaultAsync(d => d.WebhookId == webhookId && d.UserId == userId);
+
+        if (existing is not null)
+        {
+            return this._mapper.Map<WebhookDelegate>(existing);
+        }
+
         var entity = new WebhookDelegateEntity
         {
             WebhookId = webhookId,

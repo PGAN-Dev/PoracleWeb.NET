@@ -21,5 +21,8 @@ public class WebhookDelegateConfiguration : IEntityTypeConfiguration<WebhookDele
 
         builder.HasIndex(e => new { e.WebhookId, e.UserId })
             .IsUnique();
+
+        // Index for GetWebhookIdsByUserIdAsync — composite index is left-to-right, doesn't cover user_id-only lookups
+        builder.HasIndex(e => e.UserId);
     }
 }

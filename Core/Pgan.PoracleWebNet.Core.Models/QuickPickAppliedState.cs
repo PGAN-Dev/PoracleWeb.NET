@@ -19,6 +19,13 @@ public class QuickPickAppliedState
     }
 
     public string QuickPickId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The alarm type (monster, raid, egg, quest, invasion, lure, nest, gym) stored at apply time
+    /// so removal works correctly even if the definition is later deleted.
+    /// </summary>
+    public string AlarmType { get; set; } = "monster";
+
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>

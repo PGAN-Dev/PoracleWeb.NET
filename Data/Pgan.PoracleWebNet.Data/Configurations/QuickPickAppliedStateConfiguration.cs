@@ -19,6 +19,11 @@ public class QuickPickAppliedStateConfiguration : IEntityTypeConfiguration<Quick
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(e => e.AlarmType)
+            .HasMaxLength(20)
+            .HasDefaultValue("monster")
+            .IsRequired();
+
         builder.Property(e => e.AppliedAt)
             .IsRequired();
 

@@ -9,12 +9,24 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [Route("api/settings")]
 public class SettingsController(ISiteSettingService siteSettingService) : BaseApiController
 {
+    private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "api_secret", "telegram_bot_token", "scan_db",
+    };
+
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var settings = await this._siteSettingService.GetAllAsync();
+
+        // Non-admin users only see non-sensitive settings
+        if (!this.IsAdmin)
+        {
+            settings = settings.Where(s => !SensitiveKeys.Contains(s.Key));
+        }
+
         return this.Ok(settings);
     }
 
@@ -35,44 +47,25 @@ public class SettingsController(ISiteSettingService siteSettingService) : BaseAp
             return this.Forbid();
         }
 
+        // Preserve existing category and valueType if not provided in the request
+        var existing = await this._siteSettingService.GetByKeyAsync(key);
+
         var setting = new SiteSetting
         {
-            // Support both "key" and legacy "setting" property name from the request body
             Key = key,
             Value = request.Value,
-            Category = request.Category
+            Category = request.Category ?? existing?.Category ?? string.Empty,
+            ValueType = request.ValueType ?? existing?.ValueType ?? "string",
         };
 
         var result = await this._siteSettingService.CreateOrUpdateAsync(setting);
         return this.Ok(result);
     }
 
-    /// <summary>
-    /// Request body for PUT /api/settings/{key}.
-    /// Accepts both new shape (key/value/category) and legacy shape (setting/value).
-    /// </summary>
     public class SiteSettingRequest
     {
-        /// <summary>New property name.</summary>
-        public string? Key
-        {
-            get; set;
-        }
-
-        /// <summary>Legacy property name — mapped to Key for backward compatibility.</summary>
-        public string? Setting
-        {
-            get; set;
-        }
-
-        public string? Value
-        {
-            get; set;
-        }
-
-        public string? Category
-        {
-            get; set;
-        }
+        public string? Value { get; set; }
+        public string? Category { get; set; }
+        public string? ValueType { get; set; }
     }
 }

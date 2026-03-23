@@ -149,9 +149,7 @@ public partial class QuickPickService(
     {
         var definition = await this.LoadDefinitionAsync(userId, quickPickId) ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
 
-        var trackedUids = new List<int>();
-
-        trackedUids = definition.AlarmType switch
+        var trackedUids = definition.AlarmType switch
         {
             "monster" => await this.ApplyMonsterAsync(userId, profileNo, definition, request),
             "raid" => await this.ApplyRaidAsync(userId, profileNo, definition, request),
@@ -168,6 +166,7 @@ public partial class QuickPickService(
             UserId = userId,
             ProfileNo = profileNo,
             QuickPickId = quickPickId,
+            AlarmType = definition.AlarmType,
             AppliedAt = DateTime.UtcNow,
             ExcludePokemonIds = request.ExcludePokemonIds,
             TrackedUids = trackedUids
@@ -196,9 +195,8 @@ public partial class QuickPickService(
             return false;
         }
 
-        // Load the definition to determine alarm type for deletion
-        var definition = await this.LoadDefinitionAsync(userId, quickPickId);
-        var alarmType = definition?.AlarmType ?? "monster";
+        // Use alarm type stored at apply time — works even if the definition was deleted
+        var alarmType = appliedState.AlarmType;
 
         // Delete each tracked alarm row
         foreach (var uid in appliedState.TrackedUids)
