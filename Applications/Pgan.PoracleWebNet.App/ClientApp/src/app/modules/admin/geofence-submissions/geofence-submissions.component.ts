@@ -24,8 +24,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import * as L from 'leaflet';
 import { firstValueFrom } from 'rxjs';
 
-import { UserGeofence } from '../../../core/models';
+import { GeofenceData, UserGeofence } from '../../../core/models';
 import { AdminGeofenceService } from '../../../core/services/admin-geofence.service';
+import { AreaService } from '../../../core/services/area.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
   GeofenceApprovalDialogComponent,
@@ -55,6 +56,7 @@ import { GEOFENCE_STATUS_COLORS } from '../../../shared/utils/geofence.utils';
 })
 export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly adminGeofenceService = inject(AdminGeofenceService);
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly elementRef = inject(ElementRef);
@@ -62,6 +64,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   private readonly ngZone = inject(NgZone);
 
   private observer: IntersectionObserver | null = null;
+  private readonly referenceGeofences = signal<GeofenceData[]>([]);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly activeFilter = signal<string>('all');
@@ -127,6 +130,10 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
 
   ngOnInit(): void {
     this.loadAll();
+    this.areaService
+      .getGeofencePolygons()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(geofences => this.referenceGeofences.set(geofences));
   }
 
   openDetailDialog(geofence: UserGeofence): void {
@@ -135,7 +142,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       maxWidth: '90vw',
       panelClass: 'geofence-detail-dialog-panel',
       width: '720px',
-      data: { geofence, allGeofences: this.allGeofences() },
+      data: { geofence, referenceGeofences: this.referenceGeofences() },
     });
   }
 

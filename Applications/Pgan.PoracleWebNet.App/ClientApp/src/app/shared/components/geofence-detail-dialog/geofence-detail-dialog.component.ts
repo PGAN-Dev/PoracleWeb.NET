@@ -6,12 +6,12 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatIconModule } from '@angular/material/icon';
 import * as L from 'leaflet';
 
-import { UserGeofence } from '../../../core/models';
+import { GeofenceData, UserGeofence } from '../../../core/models';
 import { GEOFENCE_STATUS_COLORS } from '../../utils/geofence.utils';
 
 export interface GeofenceDetailDialogData {
-  allGeofences?: UserGeofence[];
   geofence: UserGeofence;
+  referenceGeofences?: GeofenceData[];
 }
 
 @Component({
@@ -85,19 +85,18 @@ export class GeofenceDetailDialogComponent implements OnDestroy {
       subdomains: 'abcd',
     }).addTo(this.map);
 
-    // Draw other geofences first (behind) in muted colors for reference
-    const others = (this.data.allGeofences ?? []).filter(g => g.id !== this.geofence.id);
-    for (const other of others) {
-      if (other.polygon && other.polygon.length >= 3) {
-        const otherLatLngs: L.LatLngExpression[] = other.polygon.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
-        L.polygon(otherLatLngs, {
-          color: '#9e9e9e',
+    // Draw region/area geofences from Poracle as muted reference context
+    for (const ref of this.data.referenceGeofences ?? []) {
+      if (ref.path && ref.path.length >= 3) {
+        const refLatLngs: L.LatLngExpression[] = ref.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
+        L.polygon(refLatLngs, {
+          color: '#78909c',
           dashArray: '4 6',
-          fillColor: '#9e9e9e',
-          fillOpacity: 0.06,
+          fillColor: '#78909c',
+          fillOpacity: 0.04,
           weight: 1.5,
         })
-          .bindTooltip(other.displayName, { sticky: true })
+          .bindTooltip(ref.name, { sticky: true })
           .addTo(this.map);
       }
     }
