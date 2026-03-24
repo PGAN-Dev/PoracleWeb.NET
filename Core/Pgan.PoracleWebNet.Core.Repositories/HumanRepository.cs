@@ -31,11 +31,25 @@ public class HumanRepository(PoracleContext context, IMapper mapper) : IHumanRep
 
     public async Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids)
     {
-        var idList = ids.ToList();
-        var entities = await this._context.Humans
-            .Where(h => idList.Contains(h.Id))
-            .ToListAsync();
-        return this._mapper.Map<IEnumerable<Human>>(entities);
+        var idArray = ids.ToArray();
+        if (idArray.Length == 0)
+        {
+            return [];
+        }
+
+        // MySql.EntityFrameworkCore doesn't support List<T>.Contains() in LINQ.
+        // Fetch individually since the ID list is small (distinct geofence owners).
+        var results = new List<HumanEntity>();
+        foreach (var id in idArray)
+        {
+            var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == id);
+            if (entity != null)
+            {
+                results.Add(entity);
+            }
+        }
+
+        return this._mapper.Map<IEnumerable<Human>>(results);
     }
 
     public async Task<Human?> GetByIdAndProfileAsync(string id, int profileNo)
