@@ -19,10 +19,7 @@ public class Raid
     {
         get; set;
     }
-    public int Team
-    {
-        get; set;
-    }
+    public int Team { get; set; } = 4;
     public int Level
     {
         get; set;

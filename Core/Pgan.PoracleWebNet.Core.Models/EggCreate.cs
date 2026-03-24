@@ -17,10 +17,7 @@ public class EggCreate
     }
 
     [Range(0, 4)]
-    public int Team
-    {
-        get; set;
-    }
+    public int Team { get; set; } = 4;
 
     [Range(0, 10)]
     public int Level

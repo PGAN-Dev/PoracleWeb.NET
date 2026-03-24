@@ -57,7 +57,7 @@ public class MonsterEntity
     }
 
     [Column("max_level")]
-    public int MaxLevel { get; set; } = 50;
+    public int MaxLevel { get; set; } = 55;
 
     [Column("min_weight")]
     public int MinWeight

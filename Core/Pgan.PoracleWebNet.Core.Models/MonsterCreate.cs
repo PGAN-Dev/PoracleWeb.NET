@@ -47,7 +47,7 @@ public class MonsterCreate
     }
 
     [Range(0, 55)]
-    public int MaxLevel { get; set; } = 40;
+    public int MaxLevel { get; set; } = 55;
 
     [Range(0, int.MaxValue)]
     public int MinWeight

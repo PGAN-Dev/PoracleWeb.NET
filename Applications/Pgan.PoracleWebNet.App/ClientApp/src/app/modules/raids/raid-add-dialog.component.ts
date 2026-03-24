@@ -60,7 +60,7 @@ export class RaidAddDialogComponent {
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     ping: [''],
-    team: [0],
+    team: [4],
     template: [''],
   });
 
@@ -118,7 +118,7 @@ export class RaidAddDialogComponent {
           move: 0,
           ping: common.ping || null,
           pokemonId: 9000,
-          team: common.team ?? 0,
+          team: common.team ?? 4,
           template: common.template || null,
         };
         creates.push(this.raidService.create(raid));
@@ -130,7 +130,7 @@ export class RaidAddDialogComponent {
           exclusive: 0,
           level,
           ping: common.ping || null,
-          team: common.team ?? 0,
+          team: common.team ?? 4,
           template: common.template || null,
         };
         creates.push(this.eggService.create(egg));
@@ -149,7 +149,7 @@ export class RaidAddDialogComponent {
           move: 0,
           ping: common.ping || null,
           pokemonId,
-          team: common.team ?? 0,
+          team: common.team ?? 4,
           template: common.template || null,
         };
         creates.push(this.raidService.create(raid));

@@ -33,7 +33,7 @@ public class Monster
     {
         get; set;
     }
-    public int MaxLevel { get; set; } = 40;
+    public int MaxLevel { get; set; } = 55;
     public int MinWeight
     {
         get; set;
