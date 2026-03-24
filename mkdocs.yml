@@ -73,6 +73,7 @@ nav:
       - Discord OAuth2: getting-started/discord-oauth.md
   - Configuration:
       - Reference: configuration/reference.md
+      - Site Settings: configuration/site-settings.md
       - Docker Compose: configuration/docker.md
   - Architecture:
       - Overview: architecture/overview.md

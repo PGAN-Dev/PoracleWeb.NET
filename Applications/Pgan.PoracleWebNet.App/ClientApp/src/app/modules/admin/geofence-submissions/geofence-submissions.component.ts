@@ -79,6 +79,17 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
 
   readonly loading = signal(true);
 
+  readonly statusCounts = computed(() => {
+    const all = this.allGeofences();
+    return {
+      active: all.filter(g => g.status === 'active').length,
+      all: all.length,
+      approved: all.filter(g => g.status === 'approved').length,
+      pending_review: all.filter(g => g.status === 'pending_review').length,
+      rejected: all.filter(g => g.status === 'rejected').length,
+    };
+  });
+
   constructor() {
     // When the filtered list changes (tab switch), destroy orphaned maps and re-observe
     effect(() => {
@@ -97,17 +108,6 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       }, 0);
     });
   }
-
-  readonly statusCounts = computed(() => {
-    const all = this.allGeofences();
-    return {
-      active: all.filter(g => g.status === 'active').length,
-      all: all.length,
-      approved: all.filter(g => g.status === 'approved').length,
-      pending_review: all.filter(g => g.status === 'pending_review').length,
-      rejected: all.filter(g => g.status === 'rejected').length,
-    };
-  });
 
   async adminDelete(geofence: UserGeofence): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {

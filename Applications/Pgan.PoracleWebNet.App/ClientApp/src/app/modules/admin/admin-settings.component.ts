@@ -269,6 +269,7 @@ export class AdminSettingsComponent implements OnInit {
     'enable_admin_dis',
     'admin_disable_userlist',
     'admin_channel_id',
+    'migration_completed',
   ];
 
   readonly settings = signal<AnySettingItem[]>([]);

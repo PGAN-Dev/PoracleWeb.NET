@@ -8,8 +8,8 @@ import { UserGeofence } from '../../../core/models';
 // Mock Leaflet to avoid jsdom issues
 jest.mock('leaflet', () => ({
   map: jest.fn(() => ({
-    fitBounds: jest.fn(),
     invalidateSize: jest.fn(),
+    fitBounds: jest.fn(),
     remove: jest.fn(),
     setView: jest.fn().mockReturnThis(),
   })),

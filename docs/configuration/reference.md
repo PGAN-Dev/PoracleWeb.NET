@@ -72,3 +72,6 @@ For remote PoracleJS server management. See [Server Management](../features/serv
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.
+
+!!! tip "Runtime settings"
+    Looking for settings you can change without restarting? See [Site Settings](site-settings.md) for admin-configurable runtime settings like branding, feature toggles, alarm types, and more.

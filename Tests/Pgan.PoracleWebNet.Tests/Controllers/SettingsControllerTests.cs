@@ -96,4 +96,32 @@ public class SettingsControllerTests : ControllerTestBase
         var result = await this._sut.Upsert("key1", new SettingsController.SiteSettingRequest());
         Assert.IsType<ForbidResult>(result);
     }
+
+    [Fact]
+    public async Task GetAllFiltersInternalKeysForAdmin()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new() { Key = "custom_title", Value = "My App" },
+            new() { Key = "migration_completed", Value = "true", Category = "system" }
+        ]);
+
+        var result = await this._sut.GetAll();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+        Assert.Single(settings);
+        Assert.Equal("custom_title", settings[0].Key);
+    }
+
+    [Fact]
+    public async Task UpsertReturnsBadRequestForInternalKey()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var request = new SettingsController.SiteSettingRequest { Value = "false" };
+
+        var result = await this._sut.Upsert("migration_completed", request);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
 }
