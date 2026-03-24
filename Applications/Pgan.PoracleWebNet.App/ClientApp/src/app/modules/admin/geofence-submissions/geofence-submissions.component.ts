@@ -144,8 +144,8 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       const mode = this.viewMode();
       // Allow Angular to render the new DOM first
       setTimeout(() => {
-        if (mode === 'list') {
-          // List view has no map containers — destroy all maps so they can be re-created
+        if (mode !== 'card') {
+          // List and table views have no map containers — destroy all maps so they can be re-created
           for (const [id, map] of this.mapInstances) {
             map.remove();
             this.mapInstances.delete(id);
