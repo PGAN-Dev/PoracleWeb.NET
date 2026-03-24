@@ -1,8 +1,8 @@
 import { DatePipe } from '@angular/common';
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import * as L from 'leaflet';
 
@@ -21,10 +21,11 @@ export interface GeofenceDetailDialogData {
   styleUrl: './geofence-detail-dialog.component.scss',
   templateUrl: './geofence-detail-dialog.component.html',
 })
-export class GeofenceDetailDialogComponent implements AfterViewInit, OnDestroy {
+export class GeofenceDetailDialogComponent implements OnDestroy {
   private map: L.Map | null = null;
 
   readonly data = inject<GeofenceDetailDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject(MatDialogRef<GeofenceDetailDialogComponent>);
 
   @ViewChild('detailMap', { static: true }) mapElement!: ElementRef<HTMLDivElement>;
 
@@ -55,8 +56,11 @@ export class GeofenceDetailDialogComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  ngAfterViewInit(): void {
-    this.initMap();
+  constructor() {
+    // Init map only after dialog open animation completes and container has final dimensions
+    this.dialogRef.afterOpened().subscribe(() => {
+      this.initMap();
+    });
   }
 
   ngOnDestroy(): void {
@@ -67,7 +71,9 @@ export class GeofenceDetailDialogComponent implements AfterViewInit, OnDestroy {
   }
 
   private initMap(): void {
-    this.map = L.map(this.mapElement.nativeElement, {
+    const el = this.mapElement.nativeElement;
+
+    this.map = L.map(el, {
       attributionControl: true,
       zoomControl: true,
     }).setView([0, 0], 2);
@@ -92,5 +98,8 @@ export class GeofenceDetailDialogComponent implements AfterViewInit, OnDestroy {
       polygon.addTo(this.map);
       this.map.fitBounds(polygon.getBounds(), { padding: [30, 30] });
     }
+
+    // Final invalidateSize after a tick to ensure tiles load correctly
+    setTimeout(() => this.map?.invalidateSize(), 50);
   }
 }

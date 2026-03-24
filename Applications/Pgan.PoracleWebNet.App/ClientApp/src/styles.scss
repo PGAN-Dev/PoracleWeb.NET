@@ -431,6 +431,12 @@ router-outlet + * {
   padding: 16px 24px !important;
 }
 
+// Geofence detail dialog: remove content max-height so the map container renders at full height
+.geofence-detail-dialog-panel .mat-mdc-dialog-content {
+  max-height: none;
+  overflow: visible;
+}
+
 // ─── Card micro-interactions ────────────────────────────────────────
 
 .card-removing {
