@@ -86,21 +86,32 @@ stateDiagram-v2
 
 Admins can view and manage all user-created geofences from the **User Geofences** page in the Admin sidebar (`/admin/geofence-submissions`).
 
+### View modes
+
+The page supports three view modes, toggled via the toolbar:
+
+- **Card view** (default) — Map thumbnail cards grouped by region in collapsible expansion panels. Each card shows the geofence polygon, owner with avatar, status chip, metadata, and action buttons. Map thumbnails are lazy-loaded via `IntersectionObserver` and preserved across view switches.
+- **List view** — Compact table grouped by region in collapsible expansion panels. Columns: Name, Status, Owner (with avatar), Region, Points, Created, Actions.
+- **Table view** — Flat ungrouped table showing all geofences with sortable columns. Columns: Name, Status, Owner, Region, Points, Created, Submitted, Reviewed By, Actions. Click column headers to sort ascending/descending.
+
 ### Features
 
-- **Owner display names** — Resolves Discord/Telegram usernames from the Poracle `humans` table instead of showing raw user IDs
-- **Map thumbnails** — Each geofence card shows a non-interactive Leaflet map preview with the polygon rendered in its status color. Thumbnails are lazy-loaded via `IntersectionObserver` for performance
+- **Region grouping** — Card and list views group geofences by their `groupName` (region). Each group has a collapsible `mat-expansion-panel` with the region name and a geofence count badge. Regions are sorted alphabetically, with "No Region" last.
+- **Sortable columns** — Table view supports sorting by name, status, owner, region, points, created, and submitted date. Click a column header to sort; click again to reverse direction. Sorting also applies to the card and list views.
+- **Owner display names and avatars** — Resolves Discord/Telegram usernames from the Poracle `humans` table instead of showing raw user IDs. Circular avatars (24px) are displayed next to owner names. Fallback: generic person icon when no avatar is available.
+- **Reviewer display names and avatars** — The `reviewedBy` field is resolved to the reviewer's Discord username and avatar via the same batch human lookup. Reviewer avatars (16px) appear in card metadata and the table's Reviewed By column.
+- **Map thumbnails** — Each geofence card shows a non-interactive Leaflet map preview with the polygon rendered in its status color. Thumbnails are lazy-loaded via `IntersectionObserver` for performance.
 - **Detail dialog** — Click a card's map thumbnail or View button to open an interactive Leaflet map dialog with:
     - Full summary panel (name, owner, group, status, point count, area in km²/m², dates, review notes)
     - Interactive pan/zoom map with the polygon auto-fitted to bounds
     - Reference geofences from Poracle areas shown as dashed colored outlines (same palette as the Areas page) with name tooltips on hover
 - **Point count and area** — Each geofence shows its vertex count and computed area (m² for areas under 1 km², km² otherwise) using the spherical excess formula
-- **Status filtering** — Filter tabs for All, Pending, Active, Approved, and Rejected with counts
+- **Status filtering** — Filter tabs for All, Pending, Active, Approved, and Rejected with counts. Filters apply across all view modes.
 - **Skeleton loading** — Animated skeleton cards with map placeholders during data fetch
 
-### Owner resolution
+### Owner and reviewer resolution
 
-Owner names are resolved via a batch lookup against the Poracle `humans` table. Avatars are served from `AvatarCacheService` with Discord CDN default fallback. The lookup is efficient — distinct owner IDs are collected and fetched in one pass.
+Owner and reviewer names are resolved via a single batch lookup against the Poracle `humans` table. Distinct owner IDs and reviewer IDs are merged and fetched in one pass for efficiency. Avatars are served from `AvatarCacheService` with Discord CDN default fallback. The `UserGeofence` model exposes `ownerName`, `ownerAvatarUrl`, `reviewedByName`, and `reviewedByAvatarUrl` as enriched (non-mapped) properties set by `UserGeofenceService.GetAllWithDetailsAsync()` and `AdminGeofenceController.GetAll`.
 
 ## Geofence statuses
 

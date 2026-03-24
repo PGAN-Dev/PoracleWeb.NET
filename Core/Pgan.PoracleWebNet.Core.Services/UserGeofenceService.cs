@@ -169,7 +169,17 @@ public partial class UserGeofenceService(
 
         // Batch-fetch owner humans by distinct HumanId
         var humanIds = geofences.Select(g => g.HumanId).Distinct().ToList();
-        var humans = await this._humanRepository.GetByIdsAsync(humanIds);
+
+        // Also fetch reviewer humans (reviewedBy is a humanId)
+        var reviewerIds = geofences
+            .Where(g => !string.IsNullOrEmpty(g.ReviewedBy))
+            .Select(g => g.ReviewedBy!)
+            .Distinct()
+            .ToList();
+
+        // Merge all IDs for a single batch lookup
+        var allIds = humanIds.Union(reviewerIds).Distinct().ToList();
+        var humans = await this._humanRepository.GetByIdsAsync(allIds);
         var humanLookup = humans.ToDictionary(h => h.Id, h => h);
 
         foreach (var g in geofences)
@@ -178,6 +188,14 @@ public partial class UserGeofenceService(
             g.OwnerName = humanLookup.TryGetValue(g.HumanId, out var human)
                 ? human.Name ?? g.HumanId
                 : g.HumanId;
+
+            // Enrich reviewer name
+            if (!string.IsNullOrEmpty(g.ReviewedBy))
+            {
+                g.ReviewedByName = humanLookup.TryGetValue(g.ReviewedBy, out var reviewer)
+                    ? reviewer.Name ?? g.ReviewedBy
+                    : g.ReviewedBy;
+            }
 
             // Parse polygon and set point count
             if (!string.IsNullOrEmpty(g.PolygonJson))

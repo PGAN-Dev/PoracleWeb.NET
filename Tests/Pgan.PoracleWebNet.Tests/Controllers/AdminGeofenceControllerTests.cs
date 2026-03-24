@@ -62,6 +62,55 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task GetAllSetsReviewedByAvatarUrlWhenReviewedByIsPresent()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "111", ReviewedBy = "222", ReviewedByName = "AdminUser" }
+        };
+        this._service.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync(geofences);
+
+        var result = await this._sut.GetAll();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsType<List<UserGeofence>>(ok.Value);
+        Assert.NotNull(list[0].ReviewedByAvatarUrl);
+        Assert.Contains("discord", list[0].ReviewedByAvatarUrl!);
+    }
+
+    [Fact]
+    public async Task GetAllDoesNotSetReviewedByAvatarUrlWhenReviewedByIsNull()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "111", ReviewedBy = null }
+        };
+        this._service.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync(geofences);
+
+        var result = await this._sut.GetAll();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsType<List<UserGeofence>>(ok.Value);
+        Assert.Null(list[0].ReviewedByAvatarUrl);
+    }
+
+    [Fact]
+    public async Task GetAllDoesNotSetReviewedByAvatarUrlWhenReviewedByIsEmpty()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "111", ReviewedBy = "" }
+        };
+        this._service.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync(geofences);
+
+        var result = await this._sut.GetAll();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var list = Assert.IsType<List<UserGeofence>>(ok.Value);
+        Assert.Null(list[0].ReviewedByAvatarUrl);
+    }
+
+    [Fact]
     public async Task GetAllReturnsEmptyListWhenNoGeofences()
     {
         this._service.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync([]);

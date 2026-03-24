@@ -363,6 +363,8 @@ export interface UserGeofence {
   promotedName?: string;
   reviewedAt?: string;
   reviewedBy?: string;
+  reviewedByAvatarUrl?: string;
+  reviewedByName?: string;
   reviewNotes?: string;
   status: 'active' | 'pending_review' | 'approved' | 'rejected';
   submittedAt?: string;
