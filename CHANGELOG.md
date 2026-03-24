@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+### Added
+- add missing alarm fields for PHP parity (raid/egg/gym) ([PR #52](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/52))
+
 ### Fixed
 - use size=-1 as no-filter default to match PoracleJS convention ([PR #50](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/50))
 ## [0.6.3] - 2026-03-24
