@@ -151,7 +151,7 @@ export class App implements OnInit {
       group: 'admin',
       icon: 'rate_review',
       iconColor: '#ff9800',
-      label: 'Geofence Management',
+      label: 'Geofences',
       route: '/admin/geofence-submissions',
     },
     { adminOnly: true, group: 'admin', icon: 'dns', iconColor: '#607d8b', label: 'Poracle Servers', route: '/admin/poracle-servers' },
