@@ -291,38 +291,6 @@ export const HELP_SECTIONS: HelpSection[] = [
     title: 'Quick Picks',
   }),
   section({
-    id: 'admin-geofences',
-    content: `<img class="help-screenshot" src="assets/help/admin-geofence-management.png" alt="Admin Geofence Management page with map thumbnails, owner names, and status filters" />
-<p>Admins can view and manage all user-created geofences from <strong>Geofence Management</strong> in the Admin section of the sidebar.</p>
-<h4>Geofence Cards</h4>
-<p>Each geofence card shows:</p>
-<ul>
-<li><strong>Map thumbnail</strong> — A non-interactive map preview with the polygon rendered in its status color. Thumbnails load lazily as you scroll.</li>
-<li><strong>Owner name</strong> — The Discord or Telegram username of the geofence creator (hover to see the raw user ID).</li>
-<li><strong>Point count</strong> — Number of polygon vertices.</li>
-<li><strong>Status badge</strong> — Active, Pending, Approved, or Rejected.</li>
-<li><strong>Dates</strong> — Created date, submitted date, and review info when applicable.</li>
-</ul>
-<h4>Detail Dialog</h4>
-<img class="help-screenshot" src="assets/help/admin-geofence-detail.png" alt="Geofence detail dialog with interactive Leaflet map and summary panel" />
-<p>Click a card's map thumbnail or the <strong>View</strong> button to open the detail dialog. It shows:</p>
-<ul>
-<li><strong>Summary panel</strong> — Name, owner (with user ID), group, status, point count, area (m\u00B2 or km\u00B2), and dates.</li>
-<li><strong>Interactive map</strong> — A full Leaflet map with pan and zoom. The geofence polygon is shown in its status color, auto-fitted to bounds. Surrounding Poracle area geofences appear as dashed colored outlines for spatial context — hover to see area names.</li>
-</ul>
-<h4>Status Filters</h4>
-<p>Use the filter tabs at the top to show All, Pending, Active, Approved, or Rejected geofences. Each tab shows the count.</p>
-<h4>Actions</h4>
-<ul>
-<li><strong>Review</strong> — Available on pending submissions. Approve (optionally rename) or reject with notes.</li>
-<li><strong>Delete</strong> — Permanently remove a geofence and clean up all associated data across all profiles.</li>
-</ul>`,
-    icon: 'admin_panel_settings',
-    iconColor: '#ff9800',
-    subtitle: 'View details, maps, and manage user geofences',
-    title: 'Admin: Geofence Management',
-  }),
-  section({
     id: 'profiles',
     content: `<img class="help-screenshot" src="assets/help/profiles.png" alt="Profiles page showing Default Profile (active) and Work Profile cards" />
 <p>Profiles let you maintain completely separate alarm configurations. Each profile has its own set of alarms, selected areas, location, and custom geofence activations.</p>
