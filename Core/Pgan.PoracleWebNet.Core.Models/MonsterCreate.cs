@@ -136,6 +136,18 @@ public class MonsterCreate
         get; set;
     }
 
+    [Range(0, 5)]
+    public int Size
+    {
+        get; set;
+    }
+
+    [Range(0, 5)]
+    public int MaxSize
+    {
+        get; set;
+    }
+
     [Range(0, 3)]
     public int Gender
     {

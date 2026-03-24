@@ -161,6 +161,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 <li><strong>Form</strong> — Track specific forms (e.g. Alolan, Galarian) or all forms</li>
 <li><strong>Gender</strong> — Male, female, genderless, or all</li>
 <li><strong>Weight</strong> — Filter by weight range</li>
+<li><strong>Size</strong> — Filter by size category (Tiny/XXS, Small/XS, Normal, Large/XL, Big/XXL)</li>
 </ul>
 <h4>PVP Filters</h4>
 <p>Get notified when a Pokemon has great PVP IVs. Select a league (Great, Ultra, or Little Cup) and set the rank range you care about (e.g. rank 1-50).</p>
@@ -174,10 +175,11 @@ export const HELP_SECTIONS: HelpSection[] = [
 <span class="pill-sample" style="background:rgba(33,150,243,0.15);color:#0d47a1">L30-35</span>
 <span class="pill-sample" style="background:rgba(156,39,176,0.15);color:#6a1b9a">PVP GL</span>
 <span class="pill-sample" style="background:rgba(233,30,99,0.15);color:#c2185b">&#9794;</span>
+<span class="pill-sample" style="background:rgba(76,175,80,0.15);color:#2e7d32">XXL</span>
 </div>`,
     icon: 'catching_pokemon',
     iconColor: '#4caf50',
-    subtitle: 'IV, CP, level, PVP, gender, and form filters',
+    subtitle: 'IV, CP, level, PVP, gender, size, and form filters',
     title: 'Pokemon Alarms',
   }),
   section({

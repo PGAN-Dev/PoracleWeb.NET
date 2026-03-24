@@ -193,6 +193,9 @@
                 monster.gender === 1 ? '\u2642' : monster.gender === 2 ? '\u2640' : 'Genderless'
               }}</span>
             }
+            @if (monster.size > 0 || monster.maxSize < 5) {
+              <span class="filter-pill size-pill">{{ getSizePillText(monster) }}</span>
+            }
           </div>
           <div class="distance-chip-row">
             @if (monster.distance === 0) {

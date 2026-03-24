@@ -142,6 +142,31 @@
           <mat-expansion-panel-header>
             <mat-panel-title> <mat-icon>more_horiz</mat-icon> More Filters </mat-panel-title>
           </mat-expansion-panel-header>
+          <h4>Size</h4>
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Min Size</mat-label>
+              <mat-select [formControl]="filtersForm.controls.size">
+                <mat-option [value]="0">Any</mat-option>
+                <mat-option [value]="1">Tiny (XXS)</mat-option>
+                <mat-option [value]="2">Small (XS)</mat-option>
+                <mat-option [value]="3">Normal</mat-option>
+                <mat-option [value]="4">Large (XL)</mat-option>
+                <mat-option [value]="5">Big (XXL)</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Max Size</mat-label>
+              <mat-select [formControl]="filtersForm.controls.maxSize">
+                <mat-option [value]="0">Any</mat-option>
+                <mat-option [value]="1">Tiny (XXS)</mat-option>
+                <mat-option [value]="2">Small (XS)</mat-option>
+                <mat-option [value]="3">Normal</mat-option>
+                <mat-option [value]="4">Large (XL)</mat-option>
+                <mat-option [value]="5">Big (XXL)</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>Min Weight</mat-label>

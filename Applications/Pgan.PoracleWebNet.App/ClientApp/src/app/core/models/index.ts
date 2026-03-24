@@ -13,6 +13,7 @@ export interface Monster {
   maxDef: number;
   maxIv: number;
   maxLevel: number;
+  maxSize: number;
   maxSta: number;
   maxWeight: number;
   minCp: number;
@@ -26,6 +27,7 @@ export interface Monster {
   pvpRankingLeague: number;
   pvpRankingMinCp: number;
   pvpRankingWorst: number;
+  size: number;
   sta: number;
   template: string | null;
   uid: number;

@@ -70,12 +70,14 @@ export class PokemonAddDialogComponent {
     maxDef: [15, [Validators.min(0), Validators.max(15)]],
     maxIv: [100, [Validators.min(0), Validators.max(100)]],
     maxLevel: [40, [Validators.min(0), Validators.max(50)]],
+    maxSize: [5],
     maxSta: [15, [Validators.min(0), Validators.max(15)]],
     maxWeight: [9000000],
     minCp: [0, [Validators.min(0), Validators.max(9000)]],
     minIv: [0, [Validators.min(0), Validators.max(100)]],
     minLevel: [0, [Validators.min(0), Validators.max(50)]],
     minWeight: [0],
+    size: [0],
     sta: [0, [Validators.min(0), Validators.max(15)]],
   });
 
@@ -136,6 +138,7 @@ export class PokemonAddDialogComponent {
         maxDef: filters.maxDef ?? 15,
         maxIv: filters.maxIv ?? 100,
         maxLevel: filters.maxLevel ?? 40,
+        maxSize: filters.maxSize ?? 5,
         maxSta: filters.maxSta ?? 15,
         maxWeight: filters.maxWeight ?? 9000000,
         minCp: filters.minCp ?? 0,
@@ -148,6 +151,7 @@ export class PokemonAddDialogComponent {
         pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
         pvpRankingMinCp: pvp.pvpRankingMinCp ?? 0,
         pvpRankingWorst: pvp.pvpRankingWorst ?? 100,
+        size: filters.size ?? 0,
         sta: filters.sta ?? 0,
         template: notif.template || null,
       };

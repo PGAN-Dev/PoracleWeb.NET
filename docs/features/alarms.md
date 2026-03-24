@@ -30,7 +30,7 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 Alarms are displayed as a card grid. Each card shows:
 
 - Pokemon sprite or raid/quest icon
-- **Filter pills** — Quick-glance badges showing active filters (IV, CP, Level, PVP, Gender)
+- **Filter pills** — Quick-glance badges showing active filters (IV, CP, Level, PVP, Gender, Size)
 - Distance setting
 - Template name
 - Edit/delete actions

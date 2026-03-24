@@ -122,6 +122,15 @@ public class MonsterEntity
         get; set;
     }
 
+    [Column("size")]
+    public int Size
+    {
+        get; set;
+    }
+
+    [Column("max_size")]
+    public int MaxSize { get; set; } = 5;
+
     [Column("gender")]
     public int Gender
     {

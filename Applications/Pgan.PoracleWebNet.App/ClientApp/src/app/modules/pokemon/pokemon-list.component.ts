@@ -297,6 +297,30 @@ export class PokemonListComponent implements OnInit {
     return this.masterData.getPokemonName(id);
   }
 
+  getSizeLabel(value: number): string {
+    switch (value) {
+      case 1:
+        return 'XXS';
+      case 2:
+        return 'XS';
+      case 3:
+        return 'Normal';
+      case 4:
+        return 'XL';
+      case 5:
+        return 'XXL';
+      default:
+        return 'Any';
+    }
+  }
+
+  getSizePillText(monster: Monster): string {
+    if (monster.size === monster.maxSize) {
+      return this.getSizeLabel(monster.size);
+    }
+    return `${this.getSizeLabel(monster.size)}-${this.getSizeLabel(monster.maxSize)}`;
+  }
+
   getTypeColor(pokemonId: number): string {
     // Color by generation range
     if (pokemonId === 0) return '#9E9E9E';
