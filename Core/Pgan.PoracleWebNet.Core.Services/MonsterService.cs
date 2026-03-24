@@ -17,10 +17,15 @@ public class MonsterService(IMonsterRepository repository) : IMonsterService
         model.Id = userId;
         model.Ping ??= string.Empty;
         model.Template ??= string.Empty;
+        SanitizePvpFields(model);
         return await this._repository.CreateAsync(model);
     }
 
-    public async Task<Monster> UpdateAsync(Monster model) => await this._repository.UpdateAsync(model);
+    public async Task<Monster> UpdateAsync(Monster model)
+    {
+        SanitizePvpFields(model);
+        return await this._repository.UpdateAsync(model);
+    }
 
     public async Task<bool> DeleteAsync(int uid) => await this._repository.DeleteAsync(uid);
 
@@ -39,8 +44,25 @@ public class MonsterService(IMonsterRepository repository) : IMonsterService
             model.Id = userId;
             model.Ping ??= string.Empty;
             model.Template ??= string.Empty;
+            SanitizePvpFields(model);
         }
 
         return await this._repository.BulkCreateAsync(models);
+    }
+
+    /// <summary>
+    /// When no PVP league is selected, reset PVP ranking fields to disabled defaults.
+    /// Poracle treats pvp_ranking_worst != 4096 as PVP-tracked, which changes the DTS template branch.
+    /// </summary>
+    private static void SanitizePvpFields(Monster model)
+    {
+        if (model.PvpRankingLeague != 0)
+        {
+            return;
+        }
+
+        model.PvpRankingBest = 0;
+        model.PvpRankingWorst = 4096;
+        model.PvpRankingMinCp = 0;
     }
 }

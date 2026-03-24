@@ -134,4 +134,64 @@ public class MonsterServiceTests
 
         Assert.Equal(10, result);
     }
+
+    [Fact]
+    public async Task CreateAsyncResetsPvpFieldsWhenNoLeague()
+    {
+        var monster = new Monster { PokemonId = 25, PvpRankingLeague = 0, PvpRankingBest = 1, PvpRankingWorst = 100, PvpRankingMinCp = 500 };
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
+            .ReturnsAsync((Monster m) => m);
+
+        var result = await this._sut.CreateAsync("user1", monster);
+
+        Assert.Equal(0, result.PvpRankingBest);
+        Assert.Equal(4096, result.PvpRankingWorst);
+        Assert.Equal(0, result.PvpRankingMinCp);
+    }
+
+    [Fact]
+    public async Task CreateAsyncPreservesPvpFieldsWhenLeagueSet()
+    {
+        var monster = new Monster { PokemonId = 25, PvpRankingLeague = 1500, PvpRankingBest = 1, PvpRankingWorst = 100, PvpRankingMinCp = 500 };
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
+            .ReturnsAsync((Monster m) => m);
+
+        var result = await this._sut.CreateAsync("user1", monster);
+
+        Assert.Equal(1, result.PvpRankingBest);
+        Assert.Equal(100, result.PvpRankingWorst);
+        Assert.Equal(500, result.PvpRankingMinCp);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncResetsPvpFieldsWhenNoLeague()
+    {
+        var monster = new Monster { Uid = 1, PokemonId = 25, PvpRankingLeague = 0, PvpRankingBest = 1, PvpRankingWorst = 100 };
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Monster>()))
+            .ReturnsAsync((Monster m) => m);
+
+        var result = await this._sut.UpdateAsync(monster);
+
+        Assert.Equal(0, result.PvpRankingBest);
+        Assert.Equal(4096, result.PvpRankingWorst);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncResetsPvpFieldsWhenNoLeague()
+    {
+        var monsters = new List<Monster>
+        {
+            new() { PokemonId = 25, PvpRankingLeague = 0, PvpRankingBest = 1, PvpRankingWorst = 100 },
+            new() { PokemonId = 150, PvpRankingLeague = 1500, PvpRankingBest = 1, PvpRankingWorst = 50 },
+        };
+        this._repository.Setup(r => r.BulkCreateAsync(It.IsAny<IEnumerable<Monster>>()))
+            .ReturnsAsync((IEnumerable<Monster> m) => m.ToList());
+
+        var result = (await this._sut.BulkCreateAsync("user1", monsters)).ToList();
+
+        Assert.Equal(4096, result[0].PvpRankingWorst);
+        Assert.Equal(0, result[0].PvpRankingBest);
+        Assert.Equal(50, result[1].PvpRankingWorst);
+        Assert.Equal(1, result[1].PvpRankingBest);
+    }
 }

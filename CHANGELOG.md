@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- PVP ranking fields (`pvp_ranking_best`, `pvp_ranking_worst`) sent with non-default values when no PVP league selected, causing Poracle to use wrong DTS template branch for all Pokemon alerts ([#57](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/57))
+
+## [1.0.1] - 2026-03-24
+
 ### Added
 - **Admin geofence submissions page redesign**: Region grouping, three view modes (card/list/table), sortable columns, Discord avatar display, resolved reviewer names ([#55](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/55), [PR #56](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/56))
 - **Reviewer name resolution**: Backend resolves `reviewedBy` Discord IDs to display names and avatars via batch human lookup
@@ -15,8 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Map thumbnails lost when switching between card and list views — maps now properly destroyed and re-initialized on view switch
-
-## [1.0.0] - 2026-03-24
 
 ## [1.0.0] - 2026-03-24
 
@@ -38,8 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - pvpRankingWorst edit dialog fallback corrected from 100 to 4096
 - Level input max=50 corrected to 55 in edit dialog
 - Site settings update fails with EF key modification error when toggling settings
-
-## [0.6.3] - 2026-03-24
 
 ## [0.6.3] - 2026-03-24
 
@@ -240,8 +241,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.4...v1.0.0
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.4...v1.0.0
 [0.6.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.1...v0.6.3
