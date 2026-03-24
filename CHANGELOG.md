@@ -7,9 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-24
+
 ### Fixed
-- reset PVP ranking fields to disabled defaults when no league selected ([PR #58](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/58))
-- PVP ranking fields (`pvp_ranking_best`, `pvp_ranking_worst`) sent with non-default values when no PVP league selected, causing Poracle to use wrong DTS template branch for all Pokemon alerts ([#57](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/57))
+- PVP ranking fields (`pvp_ranking_best`, `pvp_ranking_worst`) sent with non-default values when no PVP league selected, causing Poracle to use wrong DTS template branch for all Pokemon alerts ([#57](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/57), [PR #58](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/58))
 
 ## [1.0.1] - 2026-03-24
 
@@ -242,7 +243,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.4...v1.0.0
 [0.6.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.3...v0.6.4
