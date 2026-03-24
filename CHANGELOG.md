@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-03-24
 
 ### Added
-- add missing alarm fields for PHP parity (raid/egg/gym) ([PR #52](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/52))
+- **Raid/Egg alarm fields**: move, evolution, exclusive, gym_id, rsvp_changes ([PR #52](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/52))
+- **Gym alarm fields**: battle_changes toggle and gym_id ([PR #52](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/52))
+- **Invasion**: grunt_type automatically lowercased on create for Poracle case-sensitive matching ([PR #52](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/52))
 
 ### Fixed
-- use size=-1 as no-filter default to match PoracleJS convention ([PR #50](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/50))
+- Size dropdown "Any" option sent incorrect values (0 instead of -1/5), silently breaking size filters ([#49](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/49), [PR #50](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/50))
+- Model defaults aligned with PHP PoracleWeb: size=-1, max_level=55, raid/egg team=4, raid move/evolution=9000 ([PR #50](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/50))
+- Frontend dialog fallbacks and validators aligned with PHP defaults ([PR #50](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/50))
+- pvpRankingWorst edit dialog fallback corrected from 100 to 4096
+- Level input max=50 corrected to 55 in edit dialog
+- Site settings update fails with EF key modification error when toggling settings
+
 ## [0.6.3] - 2026-03-24
 
 ## [0.6.3] - 2026-03-24
