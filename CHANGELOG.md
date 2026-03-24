@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- reset PVP ranking fields to disabled defaults when no league selected ([PR #58](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/58))
 - PVP ranking fields (`pvp_ranking_best`, `pvp_ranking_worst`) sent with non-default values when no PVP league selected, causing Poracle to use wrong DTS template branch for all Pokemon alerts ([#57](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/57))
 
 ## [1.0.1] - 2026-03-24
