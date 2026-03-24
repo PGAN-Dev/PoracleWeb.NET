@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- add pymdownx.emoji for docs icon rendering ([PR #54](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/54))
 ## [0.6.4] - 2026-03-24
 
 ## [0.6.4] - 2026-03-24
