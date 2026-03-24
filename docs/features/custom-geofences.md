@@ -84,7 +84,7 @@ stateDiagram-v2
 
 ## Admin geofence management
 
-Admins can view and manage all user-created geofences from the **Geofence Management** page (`/admin/geofence-submissions`).
+Admins can view and manage all user-created geofences from the **User Geofences** page in the Admin sidebar (`/admin/geofence-submissions`).
 
 ### Features
 

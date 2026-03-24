@@ -9,6 +9,7 @@ import {
   OnDestroy,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -77,6 +78,25 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   });
 
   readonly loading = signal(true);
+
+  constructor() {
+    // When the filtered list changes (tab switch), destroy orphaned maps and re-observe
+    effect(() => {
+      const visible = this.filteredGeofences();
+      // Allow Angular to render the new DOM first
+      setTimeout(() => {
+        const visibleIds = new Set(visible.map(g => g.id));
+        // Destroy maps for cards no longer in the DOM
+        for (const [id, map] of this.mapInstances) {
+          if (!visibleIds.has(id)) {
+            map.remove();
+            this.mapInstances.delete(id);
+          }
+        }
+        this.observeMapContainers();
+      }, 0);
+    });
+  }
 
   readonly statusCounts = computed(() => {
     const all = this.allGeofences();
