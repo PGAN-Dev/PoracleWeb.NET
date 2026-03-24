@@ -14,7 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - extract `GetDefaultAvatarUrl` to shared `AvatarCacheService.GetAvatarOrDefault()` static method, removing duplication from `AdminController` and `AdminGeofenceController` ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 - extract `GEOFENCE_STATUS_COLORS` to shared `geofence.utils.ts` constant ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
-## [0.6.1] - 2026-03-23
+
+### Fixed
+- **Map thumbnails cleared on tab switch**: admin geofence cards now properly destroy orphaned Leaflet maps when filtered out and re-initialize them when switching back ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
+- **Leaflet map not rendering in detail dialog**: use `dialogRef.afterOpened()` and `height !important` to prevent Material dialog animation and Leaflet global CSS from collapsing the map container ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
+- **MySql.EntityFrameworkCore `Contains()` query failure**: replace `List<T>.Contains()` LINQ with sequential lookups for batch human ID resolution ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 
 ## [0.6.1] - 2026-03-23
 
