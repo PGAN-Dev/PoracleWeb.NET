@@ -1,3 +1,4 @@
+// ─── Page Header ────────────────────────────────────
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -33,20 +34,85 @@
   padding: 0 24px 24px;
 }
 
-.loading-container {
+// ─── Toolbar ────────────────────────────────────────
+.toolbar {
   display: flex;
-  justify-content: center;
-  padding: 64px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-// ─── Submissions Grid ────────────────────────────────
+.filter-tabs {
+  flex: 1;
+  min-width: 0;
+}
+
+.view-toggle {
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// ─── Region Panel ───────────────────────────────────
+.region-panel {
+  margin-bottom: 12px;
+  border-radius: 12px !important;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  // Override expansion panel styling
+  :host ::ng-deep .mat-expansion-panel-body {
+    padding: 0 16px 16px;
+  }
+}
+
+.region-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+
+.region-name {
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.region-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  margin-left: 8px;
+  border-radius: 11px;
+  background: var(--accent-color, #ff9800);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+// ─── Submissions Grid ───────────────────────────────
 .submissions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
-// ─── Submission Card ─────────────────────────────────
+// ─── Submission Card ────────────────────────────────
 .submission-card {
   position: relative;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
@@ -57,6 +123,7 @@
   transition:
     transform 0.2s,
     box-shadow 0.2s;
+  animation: fadeInUp 0.3s ease-out both;
 
   &:hover {
     transform: translateY(-2px);
@@ -80,12 +147,6 @@
   &.accent-rejected {
     background: #f44336;
   }
-}
-
-.submission-card-owner {
-  font-size: 11px;
-  color: var(--text-hint, rgba(0, 0, 0, 0.38));
-  cursor: default;
 }
 
 .submission-card-body {
@@ -130,6 +191,58 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.submission-card-owner {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ─── Avatar ─────────────────────────────────────────
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar-sm {
+  width: 24px;
+  height: 24px;
+}
+
+.avatar-xs {
+  width: 16px;
+  height: 16px;
+}
+
+.avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--skeleton-bg, #e0e0e0);
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.avatar-sm.avatar-fallback mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.owner-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 // ─── Map Thumbnail ──────────────────────────────────
@@ -249,7 +362,19 @@
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-// ─── Status Chip ─────────────────────────────────────
+// ─── Staggered Fade-in Animation ────────────────────
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ─── Status Chip ────────────────────────────────────
 .status-chip {
   display: inline-block;
   padding: 2px 10px;
@@ -257,6 +382,7 @@
   font-size: 12px;
   font-weight: 500;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .status-pending {
@@ -276,12 +402,7 @@
   color: #c62828;
 }
 
-// ─── Filter Tabs ────────────────────────────────────
-.filter-tabs {
-  margin-bottom: 16px;
-}
-
-// ─── Meta ────────────────────────────────────────────
+// ─── Meta ───────────────────────────────────────────
 .submission-card-meta {
   display: flex;
   flex-wrap: wrap;
@@ -302,16 +423,140 @@
     height: 16px;
     color: var(--text-hint, rgba(0, 0, 0, 0.38));
   }
+
+  .avatar-xs {
+    margin-right: 0;
+  }
 }
 
-// ─── Actions ─────────────────────────────────────────
+// ─── Actions ────────────────────────────────────────
 .submission-card-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
-// ─── Empty State ─────────────────────────────────────
+// ─── List View ──────────────────────────────────────
+.list-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+}
+
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead {
+    background: var(--table-header-bg, rgba(0, 0, 0, 0.04));
+  }
+
+  th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+    white-space: nowrap;
+    border-bottom: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--card-border, rgba(0, 0, 0, 0.06));
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.list-row {
+  animation: fadeInUp 0.3s ease-out both;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--table-hover-bg, rgba(0, 0, 0, 0.02));
+  }
+}
+
+.list-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-geofence-icon {
+  color: #ff9800;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.list-name-text {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.list-owner-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.list-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.col-points,
+.col-created {
+  white-space: nowrap;
+}
+
+.col-region {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+
+.col-actions {
+  text-align: right;
+}
+
+// ─── Sortable Headers ──────────────────────────────
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--table-hover-bg, rgba(0, 0, 0, 0.04));
+  }
+}
+
+.sort-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.col-submitted {
+  white-space: nowrap;
+}
+
+.col-reviewed {
+  white-space: nowrap;
+}
+
+// ─── Empty State ────────────────────────────────────
 .empty-state {
   text-align: center;
   padding: 64px 16px;
@@ -335,7 +580,7 @@
   margin: 0 auto;
 }
 
-// ─── Responsive ──────────────────────────────────────
+// ─── Responsive ─────────────────────────────────────
 @media (max-width: 599px) {
   .page-header {
     padding: 16px;
@@ -343,6 +588,15 @@
 
   .page-content {
     padding: 0 16px 16px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .view-toggle {
+    align-self: flex-end;
   }
 
   .submissions-grid {
@@ -355,5 +609,9 @@
 
   .skeleton-map-placeholder {
     height: 120px;
+  }
+
+  .list-name-text {
+    max-width: 120px;
   }
 }

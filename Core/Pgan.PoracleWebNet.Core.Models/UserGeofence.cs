@@ -67,6 +67,14 @@ public class UserGeofence
     {
         get; set;
     }
+    public string? ReviewedByName
+    {
+        get; set;
+    }
+    public string? ReviewedByAvatarUrl
+    {
+        get; set;
+    }
     public int PointCount
     {
         get; set;

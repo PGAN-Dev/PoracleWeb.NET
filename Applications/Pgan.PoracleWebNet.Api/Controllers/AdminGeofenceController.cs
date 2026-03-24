@@ -22,6 +22,11 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         foreach (var geofence in geofences)
         {
             geofence.OwnerAvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(geofence.HumanId);
+
+            if (!string.IsNullOrEmpty(geofence.ReviewedBy))
+            {
+                geofence.ReviewedByAvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(geofence.ReviewedBy);
+            }
         }
 
         return this.Ok(geofences);

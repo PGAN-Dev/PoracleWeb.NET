@@ -10,7 +10,7 @@ npm test
 Uses Jest with `jest-preset-angular`. Tests cover:
 
 - Services (`user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`)
-- Components (`region-selector.component.spec.ts`)
+- Components (`region-selector.component.spec.ts`, `geofence-submissions.component.spec.ts`)
 - Dialogs (`geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`)
 - Utilities (`geo.utils.spec.ts`)
 - Pipes

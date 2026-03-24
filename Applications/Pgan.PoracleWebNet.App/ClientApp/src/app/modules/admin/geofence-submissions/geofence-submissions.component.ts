@@ -16,10 +16,9 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as L from 'leaflet';
@@ -37,16 +36,25 @@ import {
 import { GeofenceDetailDialogComponent } from '../../../shared/components/geofence-detail-dialog/geofence-detail-dialog.component';
 import { GEOFENCE_STATUS_COLORS } from '../../../shared/utils/geofence.utils';
 
+export type ViewMode = 'card' | 'list' | 'table';
+export type SortField = 'name' | 'status' | 'owner' | 'region' | 'points' | 'created' | 'submitted';
+export type SortDirection = 'asc' | 'desc';
+
+export interface RegionGroup {
+  count: number;
+  geofences: UserGeofence[];
+  name: string;
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
     MatButtonModule,
     MatButtonToggleModule,
-    MatCardModule,
     MatDialogModule,
+    MatExpansionModule,
     MatIconModule,
-    MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
   ],
@@ -73,11 +81,48 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   readonly filteredGeofences = computed(() => {
     const filter = this.activeFilter();
     const all = this.allGeofences();
-    if (filter === 'all') return all;
-    return all.filter(g => g.status === filter);
+    const filtered = filter === 'all' ? all : all.filter(g => g.status === filter);
+    return this.applySorting(filtered);
   });
 
   readonly loading = signal(true);
+
+  readonly regionGroups = computed<RegionGroup[]>(() => {
+    const geofences = this.filteredGeofences();
+    const groupMap = new Map<string, UserGeofence[]>();
+
+    for (const g of geofences) {
+      const key = g.groupName?.trim() || '';
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+      }
+      groupMap.get(key)!.push(g);
+    }
+
+    const groups: RegionGroup[] = [];
+    const noRegionKey = '';
+
+    for (const [key, items] of groupMap) {
+      if (key !== noRegionKey) {
+        groups.push({ name: key, count: items.length, geofences: items });
+      }
+    }
+
+    // Sort alphabetically
+    groups.sort((a, b) => a.name.localeCompare(b.name));
+
+    // "No Region" last
+    const noRegionItems = groupMap.get(noRegionKey);
+    if (noRegionItems?.length) {
+      groups.push({ name: 'No Region', count: noRegionItems.length, geofences: noRegionItems });
+    }
+
+    return groups;
+  });
+
+  readonly sortDirection = signal<SortDirection>('asc');
+
+  readonly sortField = signal<SortField>('name');
 
   readonly statusCounts = computed(() => {
     const all = this.allGeofences();
@@ -90,12 +135,23 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     };
   });
 
+  readonly viewMode = signal<ViewMode>('card');
+
   constructor() {
-    // When the filtered list changes (tab switch), destroy orphaned maps and re-observe
+    // When the filtered list or view mode changes, destroy orphaned maps and re-observe
     effect(() => {
       const visible = this.filteredGeofences();
+      const mode = this.viewMode();
       // Allow Angular to render the new DOM first
       setTimeout(() => {
+        if (mode !== 'card') {
+          // List and table views have no map containers — destroy all maps so they can be re-created
+          for (const [id, map] of this.mapInstances) {
+            map.remove();
+            this.mapInstances.delete(id);
+          }
+          return;
+        }
         const visibleIds = new Set(visible.map(g => g.id));
         // Destroy maps for cards no longer in the DOM
         for (const [id, map] of this.mapInstances) {
@@ -113,7 +169,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: 'Delete',
-        message: `Permanently delete "${geofence.displayName}" (owned by ${geofence.humanId})? This will remove it from the user's areas and clean up all associated data.`,
+        message: `Permanently delete "${geofence.displayName}" (owned by ${geofence.ownerName ?? geofence.humanId})? This will remove it from the user's areas and clean up all associated data.`,
         title: 'Admin Delete Geofence',
         warn: true,
       } as ConfirmDialogData,
@@ -136,6 +192,21 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
 
   getPointCount(geofence: UserGeofence): number {
     return geofence.pointCount ?? geofence.polygon?.length ?? 0;
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'pending_review':
+        return 'Pending';
+      case 'active':
+        return 'Active';
+      case 'approved':
+        return 'Approved';
+      case 'rejected':
+        return 'Rejected';
+      default:
+        return status;
+    }
   }
 
   ngAfterViewInit(): void {
@@ -202,6 +273,49 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
             });
         }
       });
+  }
+
+  toggleSort(field: SortField): void {
+    if (this.sortField() === field) {
+      this.sortDirection.update(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortField.set(field);
+      this.sortDirection.set('asc');
+    }
+  }
+
+  private applySorting(geofences: UserGeofence[]): UserGeofence[] {
+    const field = this.sortField();
+    const dir = this.sortDirection();
+    const mul = dir === 'asc' ? 1 : -1;
+
+    return [...geofences].sort((a, b) => {
+      let cmp = 0;
+      switch (field) {
+        case 'name':
+          cmp = (a.displayName ?? '').localeCompare(b.displayName ?? '');
+          break;
+        case 'status':
+          cmp = (a.status ?? '').localeCompare(b.status ?? '');
+          break;
+        case 'owner':
+          cmp = (a.ownerName ?? a.humanId ?? '').localeCompare(b.ownerName ?? b.humanId ?? '');
+          break;
+        case 'region':
+          cmp = (a.groupName ?? '').localeCompare(b.groupName ?? '');
+          break;
+        case 'points':
+          cmp = (a.pointCount ?? 0) - (b.pointCount ?? 0);
+          break;
+        case 'created':
+          cmp = (a.createdAt ?? '').localeCompare(b.createdAt ?? '');
+          break;
+        case 'submitted':
+          cmp = (a.submittedAt ?? '').localeCompare(b.submittedAt ?? '');
+          break;
+      }
+      return cmp * mul;
+    });
   }
 
   private destroyMap(geofenceId: number): void {
