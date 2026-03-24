@@ -57,7 +57,7 @@
                   <span class="submission-card-name">{{ geofence.displayName }}</span>
                   <span class="submission-card-group">{{ geofence.groupName }}</span>
                   <span class="submission-card-owner" [matTooltip]="geofence.humanId">
-                    Owner: {{ geofence.ownerName || geofence.humanId }}
+                    Owner: {{ geofence.ownerName ?? geofence.humanId }}
                   </span>
                 </div>
                 @switch (geofence.status) {

@@ -7,17 +7,11 @@ import { MatIconModule } from '@angular/material/icon';
 import * as L from 'leaflet';
 
 import { UserGeofence } from '../../../core/models';
+import { GEOFENCE_STATUS_COLORS } from '../../utils/geofence.utils';
 
 export interface GeofenceDetailDialogData {
   geofence: UserGeofence;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  active: '#2196f3',
-  approved: '#4caf50',
-  pending_review: '#ff9800',
-  rejected: '#f44336',
-};
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,7 +37,7 @@ export class GeofenceDetailDialogComponent implements AfterViewInit, OnDestroy {
   }
 
   get statusColor(): string {
-    return STATUS_COLORS[this.geofence.status] || '#9e9e9e';
+    return GEOFENCE_STATUS_COLORS[this.geofence.status] || '#9e9e9e';
   }
 
   get statusLabel(): string {
@@ -85,7 +79,7 @@ export class GeofenceDetailDialogComponent implements AfterViewInit, OnDestroy {
     }).addTo(this.map);
 
     if (this.geofence.polygon && this.geofence.polygon.length >= 3) {
-      const color = STATUS_COLORS[this.geofence.status] || '#9e9e9e';
+      const color = GEOFENCE_STATUS_COLORS[this.geofence.status] || '#9e9e9e';
       const latLngs: L.LatLngExpression[] = this.geofence.polygon.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
 
       const polygon = L.polygon(latLngs, {

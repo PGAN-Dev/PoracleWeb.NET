@@ -51,8 +51,7 @@ public partial class AdminController(
             h.DisabledDate,
             h.CurrentProfileNo,
             h.Language,
-            AvatarUrl = Services.AvatarCacheService.GetAvatar(h.Id)
-                ?? GetDefaultAvatarUrl(h.Id, h.Type)
+            AvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(h.Id, h.Type)
         });
 
         return this.Ok(userList);
@@ -72,8 +71,7 @@ public partial class AdminController(
             return this.NotFound();
         }
 
-        var avatarUrl = Services.AvatarCacheService.GetAvatar(id)
-            ?? GetDefaultAvatarUrl(id, human.Type);
+        var avatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(id, human.Type);
 
         return this.Ok(new
         {
@@ -428,8 +426,7 @@ public partial class AdminController(
             return this.NotFound();
         }
 
-        var avatarUrl = Services.AvatarCacheService.GetAvatar(request.UserId)
-            ?? GetDefaultAvatarUrl(request.UserId, human.Type);
+        var avatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(request.UserId, human.Type);
 
         var claims = new List<Claim>
         {
@@ -498,8 +495,7 @@ public partial class AdminController(
             return this.NotFound();
         }
 
-        var avatarUrl = Services.AvatarCacheService.GetAvatar(id)
-            ?? GetDefaultAvatarUrl(id, human.Type);
+        var avatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(id, human.Type);
 
         var claims = new List<Claim>
         {
@@ -590,22 +586,6 @@ public partial class AdminController(
         LogAllServersRestarting(this._logger, this.UserId);
         var statuses = await this._poracleServerService.RestartAllAsync();
         return this.Ok(statuses);
-    }
-
-    private static string GetDefaultAvatarUrl(string userId, string? type)
-    {
-        if (type?.StartsWith("discord", StringComparison.Ordinal) != true)
-        {
-            return "https://cdn.discordapp.com/embed/avatars/0.png";
-        }
-
-        // New Discord username system: (userId >> 22) % 6
-        if (long.TryParse(userId, out var id))
-        {
-            return $"https://cdn.discordapp.com/embed/avatars/{(id >> 22) % 6}.png";
-        }
-
-        return "https://cdn.discordapp.com/embed/avatars/0.png";
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} created webhook {WebhookId}")]

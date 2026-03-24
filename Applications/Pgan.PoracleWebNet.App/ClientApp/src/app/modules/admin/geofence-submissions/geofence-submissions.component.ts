@@ -33,13 +33,7 @@ import {
   GeofenceApprovalDialogResult,
 } from '../../../shared/components/geofence-approval-dialog/geofence-approval-dialog.component';
 import { GeofenceDetailDialogComponent } from '../../../shared/components/geofence-detail-dialog/geofence-detail-dialog.component';
-
-const STATUS_COLORS: Record<string, string> = {
-  active: '#2196f3',
-  approved: '#4caf50',
-  pending_review: '#ff9800',
-  rejected: '#f44336',
-};
+import { GEOFENCE_STATUS_COLORS } from '../../../shared/utils/geofence.utils';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -149,33 +143,36 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       data: { geofence } as GeofenceApprovalDialogData,
     });
 
-    ref.afterClosed().subscribe((result: GeofenceApprovalDialogResult | null) => {
-      if (!result) return;
+    ref
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: GeofenceApprovalDialogResult | null) => {
+        if (!result) return;
 
-      if (result.action === 'approve') {
-        this.adminGeofenceService
-          .approveSubmission(geofence.id, { promotedName: result.promotedName })
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            error: () => this.snackBar.open('Failed to approve submission', 'OK', { duration: 3000 }),
-            next: updated => {
-              this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
-              this.snackBar.open(`"${geofence.displayName}" approved`, 'OK', { duration: 3000 });
-            },
-          });
-      } else {
-        this.adminGeofenceService
-          .rejectSubmission(geofence.id, { reviewNotes: result.reviewNotes! })
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            error: () => this.snackBar.open('Failed to reject submission', 'OK', { duration: 3000 }),
-            next: updated => {
-              this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
-              this.snackBar.open(`"${geofence.displayName}" rejected`, 'OK', { duration: 3000 });
-            },
-          });
-      }
-    });
+        if (result.action === 'approve') {
+          this.adminGeofenceService
+            .approveSubmission(geofence.id, { promotedName: result.promotedName })
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              error: () => this.snackBar.open('Failed to approve submission', 'OK', { duration: 3000 }),
+              next: updated => {
+                this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
+                this.snackBar.open(`"${geofence.displayName}" approved`, 'OK', { duration: 3000 });
+              },
+            });
+        } else {
+          this.adminGeofenceService
+            .rejectSubmission(geofence.id, { reviewNotes: result.reviewNotes! })
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              error: () => this.snackBar.open('Failed to reject submission', 'OK', { duration: 3000 }),
+              next: updated => {
+                this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
+                this.snackBar.open(`"${geofence.displayName}" rejected`, 'OK', { duration: 3000 });
+              },
+            });
+        }
+      });
   }
 
   private destroyMap(geofenceId: number): void {
@@ -205,7 +202,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
         maxZoom: 19,
       }).addTo(map);
 
-      const color = STATUS_COLORS[geofence.status] || '#9e9e9e';
+      const color = GEOFENCE_STATUS_COLORS[geofence.status] || '#9e9e9e';
       const polygon = L.polygon(
         geofence.polygon!.map(([lat, lng]) => [lat, lng] as L.LatLngTuple),
         {

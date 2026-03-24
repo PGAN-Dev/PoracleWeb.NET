@@ -15,8 +15,28 @@ public partial class AvatarCacheService(ILogger<AvatarCacheService> logger) : Ba
     public static string? GetAvatar(string userId) =>
         Avatars.TryGetValue(userId, out var url) ? url : null;
 
+    /// <summary>Get avatar URL from cache, falling back to Discord CDN default.</summary>
+    public static string GetAvatarOrDefault(string userId, string? type = null) =>
+        GetAvatar(userId) ?? GetDefaultAvatarUrl(userId, type);
+
     /// <summary>Store an avatar URL (e.g. captured at login time).</summary>
     public static void SetAvatar(string userId, string url) => Avatars[userId] = url;
+
+    /// <summary>Generate a Discord CDN default avatar URL from a user ID.</summary>
+    public static string GetDefaultAvatarUrl(string userId, string? type = null)
+    {
+        if (type != null && !type.StartsWith("discord", StringComparison.Ordinal))
+        {
+            return "https://cdn.discordapp.com/embed/avatars/0.png";
+        }
+
+        if (long.TryParse(userId, out var id))
+        {
+            return $"https://cdn.discordapp.com/embed/avatars/{(id >> 22) % 6}.png";
+        }
+
+        return "https://cdn.discordapp.com/embed/avatars/0.png";
+    }
 
     /// <summary>Save the current cache to disk.</summary>
     public static void Save()
