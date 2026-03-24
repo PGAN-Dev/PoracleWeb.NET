@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- set correct defaults on MonsterCreate model to prevent silent filter rejection ([PR #48](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/48))
 ## [0.6.2] - 2026-03-24
 
 ## [0.6.2] - 2026-03-24
