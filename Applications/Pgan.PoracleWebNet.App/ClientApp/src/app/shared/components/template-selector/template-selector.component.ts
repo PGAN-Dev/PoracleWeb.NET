@@ -165,16 +165,17 @@ export class TemplateSelectorComponent implements OnInit {
     if (!text) return '';
 
     let result = text;
-    let safety = 20;
+    let safety = 50;
 
     while (safety-- > 0) {
-      const ifMatch = result.match(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/);
+      // Find the innermost {{#if}} block (one with no nested {{#if}} inside)
+      const ifMatch = result.match(/\{\{#if\s+(\w+)\}\}((?:(?!\{\{#if\s)[\s\S])*?)\{\{\/if\}\}/);
       if (!ifMatch) break;
 
       const [fullMatch, condName, inner] = ifMatch;
       const condValue = state[condName] ?? false;
 
-      // Split on {{else}}
+      // Split on {{else}} — only top-level else (no nested blocks remain at this point)
       const elseParts = inner.split(/\{\{else\}\}/);
       const trueBranch = elseParts[0] || '';
       const falseBranch = elseParts[1] || '';
