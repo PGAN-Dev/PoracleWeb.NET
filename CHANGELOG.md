@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-25
+
 ## [1.0.1] - 2026-03-25
 
 ## [1.0.2] - 2026-03-24
@@ -245,7 +247,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.2...v1.0.2
 [1.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.1...v1.0.1
 [1.0.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.0...v1.0.1
