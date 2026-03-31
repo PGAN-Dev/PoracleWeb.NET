@@ -33,7 +33,7 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | Setting | Env Variable | Description |
 |---|---|---|
 | `ConnectionStrings:PoracleWebDb` | `ConnectionStrings__PoracleWebDb` | MySQL connection to PoracleWeb database (user geofences). Required for custom geofences feature. |
-| `ConnectionStrings:ScannerDb` | `ConnectionStrings__ScannerDb` | Scanner database connection (RDM). Optional. |
+| `ConnectionStrings:ScannerDb` | `ConnectionStrings__ScannerDb` | Scanner database connection (RDM). Optional. Used by quest/raid scanner features and the gym picker search in raid/gym add dialogs. |
 
 ### Koji geofence API
 

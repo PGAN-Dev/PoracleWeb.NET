@@ -222,7 +222,16 @@ export const HELP_SECTIONS: HelpSection[] = [
 <p>Track nesting Pokemon species. Set a <strong>minimum spawns per hour</strong> threshold so you only get notified about nests with enough activity.</p>
 
 <h4>Gym Alarms</h4>
-<p>Track gym team changes. Select which teams (Neutral, Mystic, Valor, Instinct) to monitor. Enable <strong>Slot Changes</strong> tracking to get notified when gym slots open up, or enable <strong>Battle Changes</strong> tracking to get notified when a gym is under attack.</p>`,
+<p>Track gym team changes. Select which teams (Neutral, Mystic, Valor, Instinct) to monitor. Enable <strong>Slot Changes</strong> tracking to get notified when gym slots open up, or enable <strong>Battle Changes</strong> tracking to get notified when a gym is under attack.</p>
+
+<h4>Targeting a Specific Gym</h4>
+<p>When creating or editing a Raid, Egg, or Gym alarm, you can optionally search for and select a specific gym. This is useful when you only care about activity at your favorite gym — like the one on your lunch route or near your house.</p>
+<ul>
+<li><strong>How to use it</strong> — In the add or edit dialog, type a gym name into the gym search field. Results show the gym's photo, name, and area so you can identify the right one.</li>
+<li><strong>When a gym is selected</strong> — The alarm only fires for events at that specific gym. The gym name appears on the alarm card in your list so you can see which gym it targets at a glance.</li>
+<li><strong>When no gym is selected</strong> — This is the default. The alarm works normally for all gyms in your selected areas or within your distance radius.</li>
+</ul>
+<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>You can combine a gym-specific alarm with a broader alarm. For example, create one raid alarm targeting your local gym for all levels, and a second alarm for level 5 raids across all your areas.</div></div>`,
     icon: 'shield',
     iconColor: '#f44336',
     subtitle: 'Raids, eggs, quests, rockets, lures, nests, gyms',

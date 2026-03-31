@@ -80,5 +80,8 @@ PoracleWeb acts as the single geofence source for PoracleJS. It fetches admin ge
 ### AutoMapper for partial updates
 All update models use nullable `int?` properties so partial updates don't zero out unset fields. The mapping profile skips null properties automatically.
 
+### Gym picker
+The `GymPickerComponent` (shared) lets users search for specific gyms when creating team, raid, or egg alarms. It calls the `ScannerService` (frontend) which hits scanner gym search endpoints on the backend (`ScannerController`). Search results use the `GymSearchResult` model and include photo thumbnails and area names resolved via the `PointInPolygon` geo utility. The scanner DB is optional — when not configured, the gym picker is hidden.
+
 ### Per-IP rate limiting
 Auth endpoints use per-IP partitioned rate limiting (not global). This prevents one user's activity from locking out others.

@@ -61,7 +61,7 @@ Pgan.PoracleWebNet.slnx
 |                                discord-avatar, alarm-info, confirm-dialog,
 |                                language-selector, distance-dialog, onboarding,
 |                                region-selector, geofence-name-dialog,
-|                                geofence-approval-dialog
+|                                geofence-approval-dialog, gym-picker
 |                                utils/: geo.utils (point-in-polygon, centroid)
 |
 +-- Tests/
@@ -72,14 +72,14 @@ Pgan.PoracleWebNet.slnx
 
 ### Repository Layer
 - `BaseRepository<TEntity, TModel>` uses expression-based filters and AutoMapper projections.
-- `EnsureNotNullDefaults()` method handles MySQL `NOT NULL` text columns that EF Core maps as nullable strings. Call this before saving to avoid constraint violations.
+- `EnsureNotNullDefaults()` method handles MySQL `NOT NULL` text columns that EF Core maps as nullable strings. Call this before saving to avoid constraint violations. It also normalizes empty-string `string?` properties back to `null` via the `WritableNullableStringProperties` reflection cache, protecting against `MySql.EntityFrameworkCore` silently converting `null` to `""` on INSERT.
 - `UpdateDistanceByUidsAsync()` does targeted distance-only SQL updates without touching other fields -- use this for bulk distance operations instead of the generic `UpdateAsync`.
 
 ### AutoMapper Update Models
 - All `*Update` models (MonsterUpdate, RaidUpdate, etc.) use **nullable `int?`** properties so partial updates don't zero out unset fields.
 - The mapping profile uses `.ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null))` to skip null properties.
 - **Important**: When calling the PUT `/{uid}` endpoint from the frontend, always spread the full alarm object (`{ ...alarm, distance }`) rather than sending a partial `{ distance }`. This ensures existing values like `clean`, `template`, and filter settings are preserved.
-- **Create model defaults**: `*Create` models must also declare defaults that match the PHP PoracleWeb / Poracle entity defaults. C# `int` defaults to `0`, which is wrong for most filter fields. Key monster defaults: `Size = -1`, `MaxSize = 5`, `MaxIv = 100`, `MaxCp = 9000`, `MaxLevel = 55`, `MaxWeight = 9000000`, `MaxAtk = 15`, `MaxDef = 15`, `MaxSta = 15`, `PvpRankingWorst = 4096`. Raid/Egg: `Team = 4`. Raid: `Move = 9000`, `Evolution = 9000`.
+- **Create model defaults**: `*Create` models must also declare defaults that match the PHP PoracleWeb / Poracle entity defaults. C# `int` defaults to `0`, which is wrong for most filter fields. Key monster defaults: `Size = -1`, `MaxSize = 5`, `MaxIv = 100`, `MaxCp = 9000`, `MaxLevel = 55`, `MaxWeight = 9000000`, `MaxAtk = 15`, `MaxDef = 15`, `MaxSta = 15`, `PvpRankingWorst = 4096`. Raid/Egg/Gym: `Team = 4`. Raid: `Move = 9000`, `Evolution = 9000`.
 
 ### Alarm Field Mappings
 - **Raid**: Maps `move`, `evolution`, `exclusive`, `gym_id`, `rsvp_changes` in addition to standard filter fields.
@@ -183,6 +183,16 @@ Pgan.PoracleWebNet.slnx
 - Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
 - **Important**: Never use global (non-partitioned) `AddFixedWindowLimiter` for auth -- multiple users sharing one bucket causes cascading login failures.
 
+### Gym Picker
+- `GymPickerComponent` is a shared autocomplete component (`shared/components/gym-picker/`) for selecting a gym by name. Used in gym, raid, and egg add/edit dialogs to populate `gym_id`.
+- Displays gym photo thumbnails (from `RdmGymEntity.Url`), name, and resolved area name in the dropdown options.
+- Backed by `ScannerService` (frontend, `core/services/scanner.service.ts`) which calls two scanner API endpoints:
+  - `GET /api/scanner/gyms?search=term&limit=20` -- Searches gyms by name prefix in the scanner DB. Returns `GymSearchResult[]` with `id`, `name`, `url`, `lat`, `lon`, `teamId`, `area`.
+  - `GET /api/scanner/gyms/{id}` -- Looks up a single gym by ID. Used to resolve the display name for an existing `gym_id` value when opening an edit dialog.
+- Area names are resolved server-side via point-in-polygon against cached Koji admin geofences. The `IScannerService.PointInPolygon()` static method uses ray-casting for hit testing.
+- `RdmGymEntity` maps the `url` column for gym photo thumbnails from the scanner DB.
+- The scanner DB is optional -- if not configured, the gym picker is hidden and `gym_id` can still be entered manually.
+
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
 - `DashboardService` runs sequential DB queries (not `Task.WhenAll`) because it uses a single scoped `DbContext` instance which is not thread-safe.
@@ -193,7 +203,8 @@ Pgan.PoracleWebNet.slnx
 - Uses `inject()` function instead of constructor injection.
 - Uses Angular signals for reactive state where applicable.
 - Lazy-loaded routes in `app.routes.ts`.
-- Services in `core/services/` use `HttpClient` to call the .NET API.
+- Services in `core/services/` use `HttpClient` to call the .NET API (including `ScannerService` for gym search).
+- `GymPickerComponent` is a shared autocomplete component used in gym/raid/egg dialogs for gym selection with photo thumbnails and area names.
 
 ### UI Patterns
 - **Alarm lists**: Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance.
@@ -240,7 +251,7 @@ Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core ma
 `defaultTemplateName` in Poracle's config can be a number (e.g., `1`) or a string (e.g., `"default"`). Deserialization must handle both.
 
 ### Scanner DB is Optional
-The `ScannerDb` connection string is optional. If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses.
+The `ScannerDb` connection string is optional. If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses. The gym search endpoints (`GET /api/scanner/gyms?search=` and `GET /api/scanner/gyms/{id}`) gracefully return empty results when the scanner DB is unavailable, and the `GymPickerComponent` hides itself in the UI.
 
 ### Bulk Update Preserving Fields
 When updating alarms in bulk, **never** send partial objects to `PUT /{uid}`. AutoMapper maps all fields from the Update model onto the existing entity -- `int` properties default to `0` when absent from JSON, which overwrites existing values like `clean` and filter settings. Use the dedicated `PUT /distance/bulk` endpoint for distance changes, or spread the full alarm: `{ ...alarm, distance }`.
@@ -259,6 +270,9 @@ On first startup after upgrade, the `SettingsMigrationStartupService` automatica
 
 ### MariaDB GET_LOCK Compatibility
 `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK('__EFMigrationsLock', -1)` which returns NULL on MariaDB (infinite timeout not supported), causing `System.InvalidCastException`. The `MariaDbHistoryRepository` class overrides the lock acquisition to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
+
+### Gym ID NULL vs Empty String
+The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` string that defaults to `""` (empty string) meaning "any gym". When the frontend sends `gym_id: null`, `EnsureNotNullDefaults()` normalizes it to `""`. Do not confuse `null` (no gym filter) with a specific gym ID string. The `GymPickerComponent` emits `null` when cleared and the gym's `id` string when selected.
 
 ### Monster Filter Defaults
 C# `int` properties default to `0`, which silently breaks Poracle filters if Create model defaults are missing or wrong. For example, `Size = 0` means "tiny" in Poracle, but `Size = -1` means "no size filter" -- omitting the default causes every new monster alarm to filter by tiny size. Similarly, `MaxIv = 0` would exclude everything, `MaxLevel = 0` would match nothing, etc. Always verify that `*Create` model defaults match the values Poracle expects (originally defined in the PHP PoracleWeb codebase). See the "AutoMapper Update Models" section above for the full list of required defaults.
@@ -394,6 +408,8 @@ dotnet ef migrations script \
 | Region Selector Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/region-selector/` |
 | Geofence Name Dialog | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/geofence-name-dialog/` |
 | Geofence Approval Dialog | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/geofence-approval-dialog/` |
+| Gym Picker Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/gym-picker/` |
+| Scanner Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/scanner.service.ts` |
 | Geo Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
 | AutoMapper Profile | `Core/Pgan.PoracleWebNet.Core.Mappings/PoracleMappingProfile.cs` |
 | Repository Base | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
@@ -412,6 +428,11 @@ dotnet ef migrations script \
 | IPoracleServerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/` |
 | IPwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPwebSettingService.cs` |
 | PoracleServerService | `Core/Pgan.PoracleWebNet.Core.Services/PoracleServerService.cs` |
+| RdmScannerService | `Core/Pgan.PoracleWebNet.Core.Services/RdmScannerService.cs` |
+| IScannerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IScannerService.cs` |
+| GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
+| Scanner Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/ScannerController.cs` |
+| Scanner DB Context | `Data/Pgan.PoracleWebNet.Data.Scanner/` |
 | Poracle Servers Page | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/poracle-servers/` |
 | Abstractions | `Core/Pgan.PoracleWebNet.Core.Abstractions/` |
 | Backend Tests | `Tests/Pgan.PoracleWebNet.Tests/` |

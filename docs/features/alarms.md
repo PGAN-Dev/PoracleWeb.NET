@@ -34,6 +34,7 @@ Alarms are displayed as a card grid. Each card shows:
 - **Filter pills** — Quick-glance badges showing active filters (IV, CP, Level, PVP, Gender, Size)
 - Distance setting
 - Template name
+- **Targeted gym name** — Gym, Raid, and Egg alarm cards display the name of the targeted gym when a specific gym is selected (via the gym picker)
 - Edit/delete actions
 
 ## Bulk operations
@@ -83,7 +84,7 @@ Raid alarms support these fields beyond the basic tier/boss selection:
 | `move` | `9000` (any move) | Filter by raid boss move |
 | `evolution` | `9000` (any) | Filter by evolution type (e.g., Mega, Primal) |
 | `exclusive` | `false` | EX/exclusive raid flag |
-| `gymId` | `null` (all gyms) | Track a specific gym by ID |
+| `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
 | `rsvpChanges` | `false` | Receive RSVP change notifications |
 
 ## Egg alarm filters
@@ -94,7 +95,7 @@ Egg alarms support:
 |---|---|---|
 | `team` | `4` (any team) | Gym team controlling the egg |
 | `exclusive` | `false` | EX/exclusive egg flag |
-| `gymId` | `null` (all gyms) | Track a specific gym by ID |
+| `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
 | `rsvpChanges` | `false` | Receive RSVP change notifications |
 
 ## Gym alarm filters
@@ -103,8 +104,38 @@ Gym alarms support:
 
 | Field | Default | Description |
 |---|---|---|
+| `team` | `4` (any team) | Gym team to track |
 | `battleChanges` | `false` | Notify on battle activity changes at the gym |
-| `gymId` | `null` (all gyms) | Track a specific gym by ID |
+| `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
+
+!!! warning "GymCreate.Team default"
+    `GymCreate.Team` must default to `4` (any team), matching Raid and Egg defaults. A C# `int` defaults to `0`, which maps to "Neutral only" in Poracle, causing new gym alarms to silently filter out all non-Neutral gyms.
+
+## Gym picker
+
+The **gym picker** is a shared component (`app-gym-picker`) that allows users to optionally target a specific gym when creating or editing **Gym**, **Raid**, or **Egg** alarms. When a gym is selected, alerts only fire for events at that particular gym.
+
+### How it works
+
+1. The picker displays a search field labeled "Search for a gym (optional)".
+2. As the user types (minimum 2 characters), the component debounces input (300ms) and queries the scanner database via `GET /api/scanner/gyms?search=<term>&limit=20`.
+3. Results appear in an autocomplete dropdown. Each option shows:
+    - **Gym photo thumbnail** (from the scanner DB), or a team icon fallback if no photo is available
+    - **Gym name** (or gym ID if the name is not set)
+    - **Area name** — resolved by checking which Koji geofence polygon contains the gym's coordinates (via point-in-polygon), or lat/lon coordinates if no area matches
+4. Selecting a gym sets the `gymId` on the alarm. A compact chip displays the selected gym's photo, name, and area with a clear button to remove the selection.
+5. In **edit mode**, the picker loads the existing gym's details from `GET /api/scanner/gyms/{id}` to display the name and photo.
+
+### Requirements
+
+- The **scanner database** must be configured (`ConnectionStrings:ScannerDb`). If not configured, the `IScannerService` is not registered and the search endpoints return empty results.
+- The **Koji service** is optional. When available, it enriches results with area names by checking gym coordinates against Koji geofence polygons.
+
+### Backend
+
+- `ScannerController` exposes `GET /api/scanner/gyms` (search) and `GET /api/scanner/gyms/{id}` (lookup by ID).
+- `IScannerService.SearchGymsAsync()` queries the scanner DB's gym table by name (LIKE match), returning `GymSearchResult` with `Id`, `Name`, `Url`, `Lat`, `Lon`, `TeamId`, and `Area`.
+- Area enrichment runs server-side: for each gym result, the controller iterates Koji admin geofences and assigns the first matching fence name.
 
 ## Invasion alarm filters
 
@@ -145,6 +176,12 @@ Raid-specific defaults:
 | `evolution` | `9000` (any evolution) |
 
 Egg-specific defaults:
+
+| Field | Default |
+|---|---|
+| `team` | `4` (any team) |
+
+Gym-specific defaults:
 
 | Field | Default |
 |---|---|

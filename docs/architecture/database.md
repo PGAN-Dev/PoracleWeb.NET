@@ -38,10 +38,11 @@ A separate EF Core context for **application-owned data**.
 
 ### RdmScannerContext (optional)
 
-Connects to an RDM scanner database for nest/Pokemon data.
+Connects to a Golbat/RDM scanner database for nest, Pokemon, and gym data.
 
 - Connection string: `ConnectionStrings:ScannerDb`
 - If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses
+- Contains entity mappings for the scanner `gym` table (see [Scanner entities](#scanner-entities) below)
 
 ## EF Core migrations
 
@@ -65,18 +66,64 @@ A design-time factory (`PoracleWebContextDesignTimeFactory`) provides the contex
 
 On startup, `Program.cs` calls `webDb.Database.MigrateAsync()` which applies any pending migrations. New tables and indexes are created automatically — no manual SQL required.
 
+## Scanner entities
+
+### RdmGymEntity
+
+Maps to the `gym` table in the Golbat/RDM scanner database.
+
+| Property | Column | Type | Description |
+|---|---|---|---|
+| `Id` | `id` | varchar (PK) | Gym fort ID |
+| `Name` | `name` | varchar, nullable | Gym display name |
+| `Url` | `url` | varchar, nullable | Gym photo thumbnail URL |
+| `Lat` | `lat` | double | Latitude |
+| `Lon` | `lon` | double | Longitude |
+| `TeamId` | `team_id` | int, nullable | Controlling team (0 = neutral, 1 = Mystic, 2 = Valor, 3 = Instinct) |
+
+### GymSearchResult
+
+DTO model in `Core.Models` used by scanner gym search endpoints. Projected from `RdmGymEntity` with an additional computed `Area` field.
+
+| Property | Type | Description |
+|---|---|---|
+| `Id` | string | Gym fort ID |
+| `Name` | string? | Gym display name |
+| `Url` | string? | Gym photo thumbnail URL |
+| `Lat` | double | Latitude |
+| `Lon` | double | Longitude |
+| `TeamId` | int? | Controlling team ID |
+| `Area` | string? | Geofence area the gym belongs to (resolved at query time) |
+
 ## Entity conventions
 
 ### NULL string columns
 
-Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method in `BaseRepository` handles this:
+Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method in `BaseRepository` handles this in two passes:
+
+1. **Non-nullable strings** (`string`): null values are set to `""` before saving to avoid MySQL `NOT NULL` constraint violations.
+2. **Nullable strings** (`string?`): empty-string values are normalized back to `null` before saving.
+
+The second pass addresses a `MySql.EntityFrameworkCore` provider quirk where null `string?` values may be stored as empty string on INSERT. Both property lists are cached as static arrays using `NullabilityInfoContext` for reflection performance.
 
 ```csharp
-// Sets all null string properties to "" before saving
-protected void EnsureNotNullDefaults(TEntity entity)
+private static void EnsureNotNullDefaults(TEntity entity)
+{
+    // Pass 1: null → "" for non-nullable string properties
+    // Pass 2: "" → null for nullable string properties
+}
 ```
 
-Call this before any save operation to avoid MySQL constraint violations.
+Call this before any save operation. It runs automatically in `CreateAsync`, `UpdateAsync`, and `CreateManyAsync`.
+
+### gym_id semantics
+
+The `gym_id` column on alarm entities (`raid`, `egg`, `gym`) uses NULL vs non-NULL to distinguish general alarms from gym-specific alarms:
+
+- `gym_id = NULL` — general alarm, matches **all** gyms
+- `gym_id = '<id>'` — gym-specific alarm, matches only the gym with that ID
+
+An empty string (`''`) is **not** a valid value. It would be treated as a specific gym filter that matches nothing, silently breaking the alarm. The nullable string normalization in `EnsureNotNullDefaults` prevents this by converting any empty-string `gym_id` back to `null`.
 
 ## Site settings table
 

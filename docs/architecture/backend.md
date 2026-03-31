@@ -8,8 +8,13 @@
 
 Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method sets null strings to `""` before saving to avoid constraint violations.
 
-!!! note "Coerces all null strings, including nullable columns"
-    `EnsureNotNullDefaults()` reflects over **all** string properties and coerces any null value to `""`. This means genuinely nullable DB columns like `gym_id` get stored as `""` instead of `NULL`. This is acceptable because Poracle treats both empty string and NULL identically for these fields.
+!!! note "Two-phase string normalization"
+    `EnsureNotNullDefaults()` performs two complementary steps using cached reflection via `NullabilityInfoContext`:
+
+    1. **Non-nullable strings**: coerces `null` → `""` for `NOT NULL` columns that EF Core maps as `string`.
+    2. **Nullable strings**: coerces `""` → `null` for `string?` properties (e.g., `gym_id`, `template`).
+
+    Property lists are cached in static fields (`WritableNonNullableStringProperties` and `WritableNullableStringProperties`) so reflection runs once per entity type. The second step protects against `MySql.EntityFrameworkCore` converting `null` to empty string on INSERT, which would break Poracle's `NULL` vs empty-string semantics (e.g., `gym_id IS NULL` means "general alarm").
 
 ### Targeted distance updates
 
@@ -113,6 +118,45 @@ Geofence polygons come from the Poracle API (via the unified feed), not the data
 
 - `humans.current_profile_no` (not `profile_no`) tracks the active profile
 - All alarm tables reference `profile_no` to filter by active profile
+
+## Scanner service
+
+The scanner DB (`ScannerDb` connection string) is optional. When not configured, `IScannerService` is not registered and scanner endpoints return appropriate fallback responses.
+
+### Gym search endpoints
+
+`ScannerController` exposes two gym endpoints backed by `RdmScannerService`:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/scanner/gyms?search=term&limit=20` | Search gyms by name (LIKE `%term%`). Minimum 2-character query, limit capped at 50. |
+| `GET /api/scanner/gyms/{id}` | Return a single gym by its ID. |
+
+Both endpoints resolve the gym's area name by running point-in-polygon checks against cached Koji admin geofences (via `IKojiService.GetAdminGeofencesAsync()`). The first matching fence name is set on the result's `Area` property.
+
+Graceful fallback: if the scanner DB is unreachable or the query fails, the search endpoint returns an empty array and the single-gym endpoint returns 404. If `IKojiService` is unavailable, area resolution is skipped (gym is returned without an area name).
+
+### GymSearchResult model
+
+`GymSearchResult` in `Core.Models` carries the gym data returned by both endpoints:
+
+| Property | Type | Notes |
+|---|---|---|
+| `Id` | `string` | Scanner gym ID |
+| `Name` | `string?` | Gym name from scanner DB |
+| `Url` | `string?` | Photo thumbnail URL from scanner DB |
+| `Lat` | `double` | Latitude |
+| `Lon` | `double` | Longitude |
+| `TeamId` | `int?` | Controlling team (0 = neutral) |
+| `Area` | `string?` | Resolved at request time via point-in-polygon, not stored |
+
+### RdmGymEntity.Url
+
+The `RdmGymEntity` in the scanner context maps the `url` column from the `gym` table, providing gym photo thumbnail URLs to `GymSearchResult`.
+
+### PointInPolygon
+
+`IScannerService` declares a static `PointInPolygon(double lat, double lon, double[][] polygon)` method using the ray-casting algorithm. The method tests if a point lies inside a polygon (where each entry is `[lat, lon]`) and returns `false` for degenerate polygons with fewer than 3 vertices. Used by `ScannerController` to determine which Koji geofence area a gym belongs to.
 
 ## Rate limiting
 

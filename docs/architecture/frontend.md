@@ -38,6 +38,17 @@ src/app/
     └── utils/           Utility functions (geo.utils, etc.)
 ```
 
+## Services
+
+### ScannerService
+
+`ScannerService` (`core/services/scanner.service.ts`) provides access to the optional scanner database for gym lookups. Both methods use `catchError` for graceful degradation when the scanner DB is unavailable (returns `of(null)` or `of([])`).
+
+- `searchGyms(search, limit)` — Searches gyms by name. Returns an empty array if the search term is less than 2 characters.
+- `getGymById(id)` — Fetches a single gym by ID. Returns `null` on error.
+
+The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `lon`, `teamId`, and `area`.
+
 ## UI patterns
 
 ### Alarm lists
@@ -60,6 +71,18 @@ Grid items fade in with 30ms stagger delay.
 
 ### Onboarding wizard
 Shows on the dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.
+
+### Gym picker
+
+`GymPickerComponent` (`shared/components/gym-picker/`) is a standalone autocomplete for selecting a gym from the scanner database. It wraps a Material autocomplete input with debounced search (300ms, minimum 2 characters). Each option row displays the gym photo thumbnail, name, and area name. The component exposes a two-way `gymId` model binding so parent dialogs can read/write the selected gym ID directly.
+
+In edit mode, when the component initializes with an existing `gymId`, an `effect()` calls `ScannerService.getGymById` to load and display the gym details. A `searchSubject` piped through `debounceTime` / `distinctUntilChanged` / `switchMap` drives the autocomplete options. Subscription cleanup uses `takeUntilDestroyed`.
+
+Integrated into gym-add-dialog, gym-edit-dialog, raid-add-dialog, and raid-edit-dialog.
+
+### Gym list cards
+
+Gym alarm list cards resolve and display targeted gym names. When alarms have a `gym_id`, the component uses `ScannerService.getGymById` with `forkJoin` to batch-lookup gym details, showing the gym name on each card instead of the raw ID.
 
 ### Keyboard shortcuts
 

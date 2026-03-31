@@ -31,6 +31,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 ## Features
 
 - **Alarm Management** — Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms
+- **Gym Picker** — Search and target specific gyms for team change, raid, and egg alarms
 - **Bulk Operations** — Multi-select with bulk delete and distance update
 - **Custom Geofences** — Draw polygons, auto-served to PoracleJS via unified feed
 - **Geofence Admin Review** — Approve/reject with Discord forum integration

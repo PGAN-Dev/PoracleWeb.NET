@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
-- gym picker component for targeting specific gym alarms (#77) ([PR #78](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/78))
+- **Gym picker**: search and target specific gyms for team change, raid, and egg alarms with photo thumbnails and area names in search results ([#77](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/77), [PR #78](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/78))
+- **Scanner gym search endpoints**: `GET /api/scanner/gyms` and `GET /api/scanner/gyms/{id}` with area resolution ([#77](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/77), [PR #78](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/78))
+- **Targeted gym name on alarm cards**: gym alarm cards display the selected gym name when a specific gym is targeted ([PR #78](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/78))
 
 ### Fixed
-- normalize empty-string nullable columns back to NULL before save (#76) ([PR #79](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/79))
-- default GymCreate.Team to 4 (any team) (#74) ([PR #75](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/75))
+- normalize empty-string nullable columns back to NULL before save to prevent gym_id matching failures ([#76](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/76), [PR #79](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/79))
+- default GymCreate.Team to 4 (any team) to match Raid/Egg defaults ([#74](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/74), [PR #75](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/75))
 ## [1.1.2] - 2026-03-31
 
 
