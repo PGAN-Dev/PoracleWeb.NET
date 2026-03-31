@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- normalize invasion grunt_type to lowercase and default empty to everything ([PR #73](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/73))
 ## [1.1.1] - 2026-03-31
 
 
