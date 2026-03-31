@@ -13,6 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { forkJoin } from 'rxjs';
 
+import { UICONS_BASE } from './invasion.constants';
 import { AuthService } from '../../core/services/auth.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -30,8 +31,6 @@ interface GruntOption {
   selected: boolean;
   typeId: number;
 }
-
-const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
 
 @Component({
   imports: [

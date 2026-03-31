@@ -13,53 +13,12 @@ import { firstValueFrom } from 'rxjs';
 
 import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
+import { EVENT_TYPE_INFO, getDisplayName as displayName, getGruntIconUrl, isEventType as checkEventType } from './invasion.constants';
 import { Invasion } from '../../core/models';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-
-const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
-const GRUNT_TYPE_ID: Record<string, number> = {
-  bug: 7,
-  dark: 17,
-  dragon: 16,
-  electric: 13,
-  fairy: 18,
-  fighting: 2,
-  fire: 10,
-  flying: 3,
-  ghost: 8,
-  grass: 12,
-  ground: 5,
-  ice: 15,
-  metal: 9,
-  normal: 1,
-  poison: 4,
-  psychic: 14,
-  rock: 6,
-  water: 11,
-};
-const GRUNT_INVASION_ID: Record<string, number> = {
-  decoy: 50,
-  giovanni: 44,
-  mixed: 41,
-};
-const EVENT_TYPE_INFO: Record<string, { color: string; displayName: string; icon: string; imgUrl?: string }> = {
-  'gold-stop': { color: '#F9E418', displayName: 'Gold Stop', icon: 'paid' },
-  kecleon: { color: '#B3CA78', displayName: 'Kecleon', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png` },
-  showcase: { color: '#03AEB6', displayName: 'Showcase', icon: 'emoji_events' },
-};
-const DISPLAY_NAMES: Record<string, string> = {
-  decoy: 'Decoy Grunt',
-  everything: 'All Invasions',
-  giovanni: 'Giovanni',
-  'gold-stop': 'Gold Stop',
-  kecleon: 'Kecleon',
-  metal: 'Steel',
-  mixed: 'Rocket Leader',
-  showcase: 'Showcase',
-};
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -194,10 +153,7 @@ export class InvasionListComponent implements OnInit {
   }
 
   getDisplayName(gruntType: string | null): string {
-    if (!gruntType) return 'All Invasions';
-    const mapped = DISPLAY_NAMES[gruntType];
-    if (mapped) return mapped;
-    return gruntType.charAt(0).toUpperCase() + gruntType.slice(1);
+    return displayName(gruntType);
   }
 
   getEventColor(gruntType: string | null): string {
@@ -213,16 +169,11 @@ export class InvasionListComponent implements OnInit {
   }
 
   getGruntIcon(gruntType: string | null): string {
-    const type = gruntType ?? '';
-    const typeId = GRUNT_TYPE_ID[type];
-    if (typeId) return `${UICONS_BASE}/type/${typeId}.png`;
-    const invasionId = GRUNT_INVASION_ID[type];
-    if (invasionId) return `${UICONS_BASE}/invasion/${invasionId}.png`;
-    return '';
+    return getGruntIconUrl(gruntType);
   }
 
   isEventType(gruntType: string | null): boolean {
-    return (gruntType ?? '') in EVENT_TYPE_INFO;
+    return checkEventType(gruntType);
   }
 
   loadInvasions(): void {
