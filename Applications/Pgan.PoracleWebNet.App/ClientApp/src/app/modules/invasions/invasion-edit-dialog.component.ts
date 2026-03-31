@@ -39,31 +39,52 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
   templateUrl: './invasion-edit-dialog.component.html',
 })
 export class InvasionEditDialogComponent {
+  private static readonly DISPLAY_NAMES: Record<string, string> = {
+    decoy: 'Decoy Grunt',
+    everything: 'All Invasions',
+    giovanni: 'Giovanni',
+    'gold-stop': 'Gold Stop',
+    kecleon: 'Kecleon',
+    metal: 'Steel',
+    mixed: 'Rocket Leader',
+    showcase: 'Showcase',
+  };
+
+  private static readonly EVENT_TYPE_INFO: Record<string, { color: string; icon: string; imgUrl?: string }> = {
+    'gold-stop': { color: '#F9E418', icon: 'paid' },
+    kecleon: {
+      color: '#B3CA78',
+      icon: 'visibility_off',
+      imgUrl: 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/pokemon/352.png',
+    },
+    showcase: { color: '#03AEB6', icon: 'emoji_events' },
+  };
+
   private static readonly INVASION_ID: Record<string, number> = {
-    Decoy: 50,
-    Giovanni: 44,
+    decoy: 50,
+    giovanni: 44,
     mixed: 41,
   };
 
   private static readonly TYPE_ID: Record<string, number> = {
-    Bug: 7,
-    Dark: 17,
-    Dragon: 16,
-    Electric: 13,
-    Fairy: 18,
-    Fighting: 2,
-    Fire: 10,
-    Flying: 3,
-    Ghost: 8,
-    Grass: 12,
-    Ground: 5,
-    Ice: 15,
-    Metal: 9,
-    Normal: 1,
-    Poison: 4,
-    Psychic: 14,
-    Rock: 6,
-    Water: 11,
+    bug: 7,
+    dark: 17,
+    dragon: 16,
+    electric: 13,
+    fairy: 18,
+    fighting: 2,
+    fire: 10,
+    flying: 3,
+    ghost: 8,
+    grass: 12,
+    ground: 5,
+    ice: 15,
+    metal: 9,
+    normal: 1,
+    poison: 4,
+    psychic: 14,
+    rock: 6,
+    water: 11,
   };
 
   private static readonly UICONS = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
@@ -83,9 +104,30 @@ export class InvasionEditDialogComponent {
     template: [this.data.template ?? ''],
   });
 
+  readonly isEvent = (this.data.gruntType ?? '') in InvasionEditDialogComponent.EVENT_TYPE_INFO;
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  getDisplayName(): string {
+    const type = this.data.gruntType;
+    if (!type) return 'Unknown Grunt';
+    const mapped = InvasionEditDialogComponent.DISPLAY_NAMES[type];
+    if (mapped) return mapped;
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+
+  getEventColor(): string {
+    return InvasionEditDialogComponent.EVENT_TYPE_INFO[this.data.gruntType ?? '']?.color ?? '';
+  }
+
+  getEventIcon(): string {
+    return InvasionEditDialogComponent.EVENT_TYPE_INFO[this.data.gruntType ?? '']?.icon ?? '';
+  }
+
+  getEventImgUrl(): string {
+    return InvasionEditDialogComponent.EVENT_TYPE_INFO[this.data.gruntType ?? '']?.imgUrl ?? '';
+  }
 
   getGenderLabel(): string {
     switch (this.data.gender) {

@@ -32,6 +32,26 @@ mat-dialog-content {
   height: 48px;
   color: var(--mat-sys-on-surface, #424242);
 }
+.event-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  mat-icon {
+    color: #fff;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+.event-hint {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  margin: 8px 0;
+}
 .item-header h3 {
   margin: 0;
 }

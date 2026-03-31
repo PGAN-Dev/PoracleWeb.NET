@@ -9,30 +9,47 @@
       </ng-template>
       <div class="tab-content">
         <mat-slide-toggle [checked]="trackAll()" (change)="trackAll.set($event.checked)"> Track all invasions </mat-slide-toggle>
-        <p class="track-all-hint">Creates a single alarm for every grunt type, leader, and Giovanni.</p>
+        <p class="track-all-hint">Creates a single alarm for every grunt type, leader, Giovanni, and PokéStop event.</p>
 
         @if (!trackAll()) {
-          <h4>Grunt Types</h4>
+          <h4>Team Rocket</h4>
           <div class="grunt-grid">
-            @for (grunt of gruntOptions(); track grunt.key) {
+            @for (grunt of rocketGrunts(); track grunt.key) {
               <mat-checkbox [checked]="grunt.selected" (change)="toggleGrunt(grunt.key)">
                 <img [src]="getGruntIcon(grunt)" class="grunt-type-icon" />
                 {{ grunt.name }}
               </mat-checkbox>
             }
           </div>
+
+          <h4>PokéStop Events</h4>
+          <div class="grunt-grid event-grid">
+            @for (evt of eventGrunts(); track evt.key) {
+              <mat-checkbox [checked]="evt.selected" (change)="toggleGrunt(evt.key)">
+                @if (evt.imgUrl) {
+                  <img [src]="evt.imgUrl" class="grunt-type-icon" />
+                } @else {
+                  <mat-icon class="event-type-icon" [style.color]="evt.color">{{ evt.icon }}</mat-icon>
+                }
+                {{ evt.name }}
+              </mat-checkbox>
+            }
+          </div>
+
           @if (selectedCount() > 0) {
-            <p class="selection-count">{{ selectedCount() }} grunt type(s) selected</p>
+            <p class="selection-count">{{ selectedCount() }} type(s) selected</p>
           }
         }
-        <h4>Gender</h4>
-        <mat-form-field appearance="outline" class="full-width"
-          ><mat-label>Gender</mat-label>
-          <mat-select [formControl]="form.controls.gender"
-            ><mat-option [value]="0">Any</mat-option><mat-option [value]="1">Male</mat-option
-            ><mat-option [value]="2">Female</mat-option></mat-select
-          >
-        </mat-form-field>
+        @if (showGender()) {
+          <h4>Gender</h4>
+          <mat-form-field appearance="outline" class="full-width"
+            ><mat-label>Gender</mat-label>
+            <mat-select [formControl]="form.controls.gender"
+              ><mat-option [value]="0">Any</mat-option><mat-option [value]="1">Male</mat-option
+              ><mat-option [value]="2">Female</mat-option></mat-select
+            >
+          </mat-form-field>
+        }
       </div>
     </mat-tab>
 

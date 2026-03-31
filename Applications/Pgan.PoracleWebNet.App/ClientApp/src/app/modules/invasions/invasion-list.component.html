@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
     <h1>Invasion Alarms</h1>
-    <p class="page-description">Get alerts for Team GO Rocket grunt encounters by type.</p>
+    <p class="page-description">Get alerts for Team GO Rocket encounters and PokéStop events.</p>
   </div>
   <div class="header-actions">
     <button mat-fab class="fab-invasion" (click)="openAddDialog()"><mat-icon>add</mat-icon></button>
@@ -49,7 +49,10 @@
 } @else {
   <div class="alarm-grid">
     @for (invasion of invasions(); track invasion.uid) {
-      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(invasion.uid)">
+      <mat-card
+        class="alarm-card"
+        [class.card-selected]="selectMode() && selectedIds().has(invasion.uid)"
+        [style.border-left-color]="getCardAccent(invasion.gruntType)">
         @if (selectMode()) {
           <mat-checkbox
             [checked]="selectedIds().has(invasion.uid)"
@@ -57,23 +60,33 @@
             (click)="$event.stopPropagation()"
             class="card-checkbox"></mat-checkbox>
         }
-        <div class="card-top">
-          @if (getGruntIcon(invasion.gruntType)) {
+        <div class="card-top" [style.border-top-color]="getCardAccent(invasion.gruntType)">
+          @if (isEventType(invasion.gruntType) && getEventImgUrl(invasion.gruntType)) {
+            <img [src]="getEventImgUrl(invasion.gruntType)" class="grunt-img" alt="" />
+          } @else if (isEventType(invasion.gruntType)) {
+            <div class="event-icon-circle" [style.background]="getEventColor(invasion.gruntType)">
+              <mat-icon>{{ getEventIcon(invasion.gruntType) }}</mat-icon>
+            </div>
+          } @else if (getGruntIcon(invasion.gruntType)) {
             <img [src]="getGruntIcon(invasion.gruntType)" class="grunt-img" alt="" />
           } @else {
             <mat-icon class="rocket-icon">security</mat-icon>
           }
           <div class="item-info">
-            <h3>{{ invasion.gruntType || 'All Invasions' }}</h3>
-            <span class="gender-label">
-              @if (invasion.gender === 1) {
-                <mat-icon class="gender-icon male">male</mat-icon> Male
-              } @else if (invasion.gender === 2) {
-                <mat-icon class="gender-icon female">female</mat-icon> Female
-              } @else {
-                Any Gender
-              }
-            </span>
+            <h3>{{ getDisplayName(invasion.gruntType) }}</h3>
+            @if (!isEventType(invasion.gruntType)) {
+              <span class="gender-label">
+                @if (invasion.gender === 1) {
+                  <mat-icon class="gender-icon male">male</mat-icon> Male
+                } @else if (invasion.gender === 2) {
+                  <mat-icon class="gender-icon female">female</mat-icon> Female
+                } @else {
+                  Any Gender
+                }
+              </span>
+            } @else {
+              <span class="event-label">PokéStop Event</span>
+            }
           </div>
           <div class="card-top-actions">
             @if (invasion.clean === 1) {
@@ -112,7 +125,7 @@
           <rect x="32" y="68" width="16" height="12" rx="3" fill="#607d8b" opacity="0.2" stroke="#607d8b" stroke-width="2" />
         </svg>
         <h2 class="empty-title">No Invasion Alarms Configured</h2>
-        <p class="empty-subtitle">Get alerts for Team GO Rocket encounters by type</p>
+        <p class="empty-subtitle">Get alerts for Team GO Rocket encounters and PokéStop events</p>
         <button mat-flat-button class="cta-invasion" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Invasion</button>
       </div>
     }

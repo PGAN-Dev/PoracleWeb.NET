@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -20,7 +20,11 @@ import { DeliveryPreviewComponent } from '../../shared/components/delivery-previ
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 interface GruntOption {
+  color?: string;
+  icon?: string;
+  imgUrl?: string;
   invasionId: number;
+  isEvent?: boolean;
   key: string;
   name: string;
   selected: boolean;
@@ -52,28 +56,34 @@ const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/ma
   templateUrl: './invasion-add-dialog.component.html',
 })
 export class InvasionAddDialogComponent implements OnInit {
+  private static readonly EVENT_TYPES: { color: string; icon: string; imgUrl?: string; key: string; name: string }[] = [
+    { name: 'Kecleon', color: '#B3CA78', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png`, key: 'kecleon' },
+    { name: 'Gold Stop', color: '#F9E418', icon: 'paid', key: 'gold-stop' },
+    { name: 'Showcase', color: '#03AEB6', icon: 'emoji_events', key: 'showcase' },
+  ];
+
   private static readonly GRUNT_TYPES: { key: string; name: string; typeId: number; invasionId: number }[] = [
-    { name: 'Bug', invasionId: 1, key: 'Bug', typeId: 7 },
-    { name: 'Dark', invasionId: 2, key: 'Dark', typeId: 17 },
-    { name: 'Dragon', invasionId: 3, key: 'Dragon', typeId: 16 },
-    { name: 'Electric', invasionId: 4, key: 'Electric', typeId: 13 },
-    { name: 'Fairy', invasionId: 5, key: 'Fairy', typeId: 18 },
-    { name: 'Fighting', invasionId: 6, key: 'Fighting', typeId: 2 },
-    { name: 'Fire', invasionId: 7, key: 'Fire', typeId: 10 },
-    { name: 'Flying', invasionId: 8, key: 'Flying', typeId: 3 },
-    { name: 'Ghost', invasionId: 9, key: 'Ghost', typeId: 8 },
-    { name: 'Grass', invasionId: 10, key: 'Grass', typeId: 12 },
-    { name: 'Ground', invasionId: 11, key: 'Ground', typeId: 5 },
-    { name: 'Ice', invasionId: 12, key: 'Ice', typeId: 15 },
-    { name: 'Steel', invasionId: 13, key: 'Metal', typeId: 9 },
-    { name: 'Normal', invasionId: 14, key: 'Normal', typeId: 1 },
-    { name: 'Poison', invasionId: 15, key: 'Poison', typeId: 4 },
-    { name: 'Psychic', invasionId: 16, key: 'Psychic', typeId: 14 },
-    { name: 'Rock', invasionId: 17, key: 'Rock', typeId: 6 },
-    { name: 'Water', invasionId: 18, key: 'Water', typeId: 11 },
+    { name: 'Bug', invasionId: 1, key: 'bug', typeId: 7 },
+    { name: 'Dark', invasionId: 2, key: 'dark', typeId: 17 },
+    { name: 'Dragon', invasionId: 3, key: 'dragon', typeId: 16 },
+    { name: 'Electric', invasionId: 4, key: 'electric', typeId: 13 },
+    { name: 'Fairy', invasionId: 5, key: 'fairy', typeId: 18 },
+    { name: 'Fighting', invasionId: 6, key: 'fighting', typeId: 2 },
+    { name: 'Fire', invasionId: 7, key: 'fire', typeId: 10 },
+    { name: 'Flying', invasionId: 8, key: 'flying', typeId: 3 },
+    { name: 'Ghost', invasionId: 9, key: 'ghost', typeId: 8 },
+    { name: 'Grass', invasionId: 10, key: 'grass', typeId: 12 },
+    { name: 'Ground', invasionId: 11, key: 'ground', typeId: 5 },
+    { name: 'Ice', invasionId: 12, key: 'ice', typeId: 15 },
+    { name: 'Steel', invasionId: 13, key: 'metal', typeId: 9 },
+    { name: 'Normal', invasionId: 14, key: 'normal', typeId: 1 },
+    { name: 'Poison', invasionId: 15, key: 'poison', typeId: 4 },
+    { name: 'Psychic', invasionId: 16, key: 'psychic', typeId: 14 },
+    { name: 'Rock', invasionId: 17, key: 'rock', typeId: 6 },
+    { name: 'Water', invasionId: 18, key: 'water', typeId: 11 },
     { name: 'Rocket Leader', invasionId: 41, key: 'mixed', typeId: 0 },
-    { name: 'Giovanni', invasionId: 44, key: 'Giovanni', typeId: 0 },
-    { name: 'Decoy Grunt', invasionId: 50, key: 'Decoy', typeId: 0 },
+    { name: 'Giovanni', invasionId: 44, key: 'giovanni', typeId: 0 },
+    { name: 'Decoy Grunt', invasionId: 50, key: 'decoy', typeId: 0 },
   ];
 
   private readonly fb = inject(FormBuilder);
@@ -82,6 +92,9 @@ export class InvasionAddDialogComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<InvasionAddDialogComponent>);
 
+  gruntOptions = signal<GruntOption[]>([]);
+
+  readonly eventGrunts = computed(() => this.gruntOptions().filter(g => g.isEvent));
   form = this.fb.group({
     clean: [false],
     distanceKm: [1],
@@ -91,10 +104,17 @@ export class InvasionAddDialogComponent implements OnInit {
     template: [''],
   });
 
-  gruntOptions = signal<GruntOption[]>([]);
   readonly isWebhook = inject(AuthService).isImpersonating();
+  readonly rocketGrunts = computed(() => this.gruntOptions().filter(g => !g.isEvent));
+
   saving = signal(false);
   selectedCount = signal(0);
+  readonly showGender = computed(() => {
+    if (this.trackAll()) return true;
+    const selected = this.gruntOptions().filter(g => g.selected);
+    if (selected.length === 0) return true;
+    return selected.some(g => !g.isEvent);
+  });
 
   readonly trackAll = signal(false);
 
@@ -110,7 +130,19 @@ export class InvasionAddDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.gruntOptions.set(InvasionAddDialogComponent.GRUNT_TYPES.map(g => ({ ...g, selected: false })));
+    const grunts: GruntOption[] = InvasionAddDialogComponent.GRUNT_TYPES.map(g => ({
+      ...g,
+      isEvent: false,
+      selected: false,
+    }));
+    const events: GruntOption[] = InvasionAddDialogComponent.EVENT_TYPES.map(e => ({
+      ...e,
+      invasionId: 0,
+      isEvent: true,
+      selected: false,
+      typeId: 0,
+    }));
+    this.gruntOptions.set([...grunts, ...events]);
   }
 
   onDistanceModeChange(): void {
@@ -156,7 +188,7 @@ export class InvasionAddDialogComponent implements OnInit {
       this.invasionService.create({
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gender: v.gender ?? 0,
+        gender: g.isEvent ? 0 : (v.gender ?? 0),
         gruntType: g.key,
         ping: v.ping || null,
         template: v.template || null,

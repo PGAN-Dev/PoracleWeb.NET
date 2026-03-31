@@ -111,6 +111,32 @@
   height: 48px;
   color: var(--text-secondary, #424242);
 }
+.event-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  mat-icon {
+    color: #fff;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+.event-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--divider, rgba(0, 0, 0, 0.06));
+  margin-top: 4px;
+}
 .item-info h3 {
   margin: 0;
   font-size: 18px;

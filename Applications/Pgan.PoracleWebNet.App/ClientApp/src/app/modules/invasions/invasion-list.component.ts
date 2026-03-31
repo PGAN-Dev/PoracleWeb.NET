@@ -12,39 +12,54 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
 import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
-
-const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
-const GRUNT_TYPE_ID: Record<string, number> = {
-  Bug: 7,
-  Dark: 17,
-  Dragon: 16,
-  Electric: 13,
-  Fairy: 18,
-  Fighting: 2,
-  Fire: 10,
-  Flying: 3,
-  Ghost: 8,
-  Grass: 12,
-  Ground: 5,
-  Ice: 15,
-  Metal: 9,
-  Normal: 1,
-  Poison: 4,
-  Psychic: 14,
-  Rock: 6,
-  Water: 11,
-};
-const GRUNT_INVASION_ID: Record<string, number> = {
-  Decoy: 50,
-  Giovanni: 44,
-  mixed: 41,
-};
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
 import { Invasion } from '../../core/models';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+
+const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
+const GRUNT_TYPE_ID: Record<string, number> = {
+  bug: 7,
+  dark: 17,
+  dragon: 16,
+  electric: 13,
+  fairy: 18,
+  fighting: 2,
+  fire: 10,
+  flying: 3,
+  ghost: 8,
+  grass: 12,
+  ground: 5,
+  ice: 15,
+  metal: 9,
+  normal: 1,
+  poison: 4,
+  psychic: 14,
+  rock: 6,
+  water: 11,
+};
+const GRUNT_INVASION_ID: Record<string, number> = {
+  decoy: 50,
+  giovanni: 44,
+  mixed: 41,
+};
+const EVENT_TYPE_INFO: Record<string, { color: string; displayName: string; icon: string; imgUrl?: string }> = {
+  'gold-stop': { color: '#F9E418', displayName: 'Gold Stop', icon: 'paid' },
+  kecleon: { color: '#B3CA78', displayName: 'Kecleon', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png` },
+  showcase: { color: '#03AEB6', displayName: 'Showcase', icon: 'emoji_events' },
+};
+const DISPLAY_NAMES: Record<string, string> = {
+  decoy: 'Decoy Grunt',
+  everything: 'All Invasions',
+  giovanni: 'Giovanni',
+  'gold-stop': 'Gold Stop',
+  kecleon: 'Kecleon',
+  metal: 'Steel',
+  mixed: 'Rocket Leader',
+  showcase: 'Showcase',
+};
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -173,6 +188,30 @@ export class InvasionListComponent implements OnInit {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
 
+  getCardAccent(gruntType: string | null): string | null {
+    const info = EVENT_TYPE_INFO[gruntType ?? ''];
+    return info ? info.color : null;
+  }
+
+  getDisplayName(gruntType: string | null): string {
+    if (!gruntType) return 'All Invasions';
+    const mapped = DISPLAY_NAMES[gruntType];
+    if (mapped) return mapped;
+    return gruntType.charAt(0).toUpperCase() + gruntType.slice(1);
+  }
+
+  getEventColor(gruntType: string | null): string {
+    return EVENT_TYPE_INFO[gruntType ?? '']?.color ?? '';
+  }
+
+  getEventIcon(gruntType: string | null): string {
+    return EVENT_TYPE_INFO[gruntType ?? '']?.icon ?? '';
+  }
+
+  getEventImgUrl(gruntType: string | null): string {
+    return EVENT_TYPE_INFO[gruntType ?? '']?.imgUrl ?? '';
+  }
+
   getGruntIcon(gruntType: string | null): string {
     const type = gruntType ?? '';
     const typeId = GRUNT_TYPE_ID[type];
@@ -180,6 +219,10 @@ export class InvasionListComponent implements OnInit {
     const invasionId = GRUNT_INVASION_ID[type];
     if (invasionId) return `${UICONS_BASE}/invasion/${invasionId}.png`;
     return '';
+  }
+
+  isEventType(gruntType: string | null): boolean {
+    return (gruntType ?? '') in EVENT_TYPE_INFO;
   }
 
   loadInvasions(): void {

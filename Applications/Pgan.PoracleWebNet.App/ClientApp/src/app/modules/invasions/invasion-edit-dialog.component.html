@@ -1,14 +1,24 @@
 <h2 mat-dialog-title>Edit Invasion Alarm</h2>
 <mat-dialog-content>
   <div class="item-header">
-    @if (getGruntIcon()) {
+    @if (isEvent && getEventImgUrl()) {
+      <img [src]="getEventImgUrl()" class="grunt-img" alt="" />
+    } @else if (isEvent) {
+      <div class="event-icon-circle" [style.background]="getEventColor()">
+        <mat-icon>{{ getEventIcon() }}</mat-icon>
+      </div>
+    } @else if (getGruntIcon()) {
       <img [src]="getGruntIcon()" class="grunt-img" alt="" />
     } @else {
       <mat-icon class="rocket-icon">security</mat-icon>
     }
     <div>
-      <h3>{{ data.gruntType || 'Unknown Grunt' }}</h3>
-      <span class="item-subtitle">{{ getGenderLabel() }}</span>
+      <h3>{{ getDisplayName() }}</h3>
+      @if (isEvent) {
+        <span class="item-subtitle">PokéStop Event</span>
+      } @else {
+        <span class="item-subtitle">{{ getGenderLabel() }}</span>
+      }
     </div>
   </div>
 
@@ -20,14 +30,18 @@
         <span class="tab-label">Settings</span>
       </ng-template>
       <div class="tab-content">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Gender</mat-label>
-          <mat-select [formControl]="form.controls.gender">
-            <mat-option [value]="0">Any</mat-option>
-            <mat-option [value]="1">Male</mat-option>
-            <mat-option [value]="2">Female</mat-option>
-          </mat-select>
-        </mat-form-field>
+        @if (!isEvent) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Gender</mat-label>
+            <mat-select [formControl]="form.controls.gender">
+              <mat-option [value]="0">Any</mat-option>
+              <mat-option [value]="1">Male</mat-option>
+              <mat-option [value]="2">Female</mat-option>
+            </mat-select>
+          </mat-form-field>
+        } @else {
+          <p class="event-hint">Gender filter does not apply to PokéStop events.</p>
+        }
       </div>
     </mat-tab>
 
