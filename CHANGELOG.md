@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-03-31
+
 
 ### Fixed
 - normalize invasion grunt_type to lowercase and default empty to everything ([PR #73](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/73))
@@ -262,7 +264,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.1.0...v1.1.2
 [1.1.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.2...v1.1.1
 [1.1.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.1...v1.0.2
