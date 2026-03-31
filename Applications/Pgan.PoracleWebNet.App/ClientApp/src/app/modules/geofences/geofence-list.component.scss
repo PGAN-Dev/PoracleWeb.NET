@@ -8,16 +8,6 @@
   position: relative;
   overflow: hidden;
 
-  &::after {
-    content: '';
-    position: absolute;
-    right: -10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100px;
-    height: 100px;
-    background: radial-gradient(circle, rgba(33, 150, 243, 0.15) 30%, transparent 31%);
-  }
 }
 
 .page-header-text {
