@@ -20,6 +20,11 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
     // means "general alarm", while gym_id = '' would be treated as a specific gym filter).
     private static readonly PropertyInfo[] WritableNonNullableStringProperties = GetNonNullableStringProperties();
 
+    // Cached reflection results for NormalizeNullableStrings — only nullable string properties.
+    // MySql.EntityFrameworkCore may convert null strings to empty strings on INSERT.
+    // This normalizes them back to null before saving.
+    private static readonly PropertyInfo[] WritableNullableStringProperties = GetNullableStringProperties();
+
     // Cached Uid property for GetUidFromModel
     private static readonly PropertyInfo? UidProperty =
         typeof(TModel).GetProperty("Uid");
@@ -86,6 +91,17 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
         ];
     }
 
+    private static PropertyInfo[] GetNullableStringProperties()
+    {
+        var nullabilityContext = new NullabilityInfoContext();
+        return
+        [
+            .. typeof(TEntity).GetProperties()
+                .Where(p => p.PropertyType == typeof(string) && p.CanWrite)
+                .Where(p => nullabilityContext.Create(p).WriteState == NullabilityState.Nullable),
+        ];
+    }
+
     private static void EnsureNotNullDefaults(TEntity entity)
     {
         foreach (var prop in WritableNonNullableStringProperties)
@@ -93,6 +109,17 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
             if (prop.GetValue(entity) == null)
             {
                 prop.SetValue(entity, string.Empty);
+            }
+        }
+
+        // MySql.EntityFrameworkCore may convert null strings to empty on INSERT.
+        // Normalize empty-string nullable properties back to null so Poracle's
+        // NULL vs empty-string semantics are preserved (e.g. gym_id, template).
+        foreach (var prop in WritableNullableStringProperties)
+        {
+            if (prop.GetValue(entity) is string s && s.Length == 0)
+            {
+                prop.SetValue(entity, null);
             }
         }
     }
