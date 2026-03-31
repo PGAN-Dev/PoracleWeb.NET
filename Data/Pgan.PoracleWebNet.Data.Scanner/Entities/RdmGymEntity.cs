@@ -16,6 +16,12 @@ public class RdmGymEntity
         get; set;
     }
 
+    [Column("url")]
+    public string? Url
+    {
+        get; set;
+    }
+
     [Column("lat")]
     public double Lat
     {

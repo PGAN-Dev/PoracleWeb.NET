@@ -46,4 +46,44 @@ public class RdmScannerService(RdmScannerContext context) : IScannerService
             })
             .ToListAsync();
     }
+
+    public async Task<GymSearchResult?> GetGymByIdAsync(string gymId)
+    {
+        var gym = await this._context.Gyms
+            .AsNoTracking()
+            .Where(g => g.Id == gymId)
+            .Select(g => new GymSearchResult
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Url = g.Url,
+                Lat = g.Lat,
+                Lon = g.Lon,
+                TeamId = g.TeamId
+            })
+            .FirstOrDefaultAsync();
+
+        return gym;
+    }
+
+    public async Task<IEnumerable<GymSearchResult>> SearchGymsAsync(string search, int limit = 20)
+    {
+        var query = this._context.Gyms
+            .AsNoTracking()
+            .Where(g => g.Name != null && EF.Functions.Like(g.Name, $"%{search}%"))
+            .OrderBy(g => g.Name)
+            .Take(limit);
+
+        return await query
+            .Select(g => new GymSearchResult
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Url = g.Url,
+                Lat = g.Lat,
+                Lon = g.Lon,
+                TeamId = g.TeamId
+            })
+            .ToListAsync();
+    }
 }

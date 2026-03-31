@@ -16,6 +16,9 @@
         <span class="tab-label">Settings</span>
       </ng-template>
       <div class="tab-content">
+        <h4>Specific Gym</h4>
+        <app-gym-picker [(gymId)]="selectedGymId" />
+        <p class="gym-picker-hint">Optionally track a specific gym. Leave empty to track all gyms in your areas.</p>
         <mat-slide-toggle [formControl]="form.controls.slotChanges">Track Slot Changes</mat-slide-toggle>
         <mat-slide-toggle [formControl]="form.controls.battleChanges">Track Battle Changes</mat-slide-toggle>
       </div>

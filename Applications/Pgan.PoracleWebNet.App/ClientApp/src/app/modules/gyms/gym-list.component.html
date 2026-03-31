@@ -60,6 +60,9 @@
           <img [src]="getGymIcon(gym.team)" class="gym-img" alt="" (error)="$any($event.target).style.display = 'none'" />
           <div class="item-info">
             <h3>{{ getTeamName(gym.team) }}</h3>
+            @if (gym.gymId && gymNames()[gym.gymId]) {
+              <span class="gym-target"><mat-icon>place</mat-icon> {{ gymNames()[gym.gymId] }}</span>
+            }
             <div class="change-indicators">
               @if (gym.slotChanges === 1) {
                 <span class="change-badge" matTooltip="Tracking slot changes"><mat-icon>swap_vert</mat-icon> Slots</span>

@@ -19,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
@@ -40,6 +41,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    GymPickerComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -70,6 +72,7 @@ export class RaidAddDialogComponent {
   levels = [1, 2, 3, 4, 5, 6];
   saving = signal(false);
   selectedEggLevels = signal<number[]>([]);
+  selectedGymId = signal<string | null>(null);
   selectedPokemonIds = signal<number[]>([]);
 
   selectedRaidLevels = signal<number[]>([]);
@@ -114,7 +117,7 @@ export class RaidAddDialogComponent {
           evolution: 9000,
           exclusive: 0,
           form: 0,
-          gymId: null,
+          gymId: this.selectedGymId() || null,
           level,
           move: 9000,
           ping: common.ping || null,
@@ -130,7 +133,7 @@ export class RaidAddDialogComponent {
           clean: common.clean ? 1 : 0,
           distance: distanceMeters,
           exclusive: 0,
-          gymId: null,
+          gymId: this.selectedGymId() || null,
           level,
           ping: common.ping || null,
           rsvpChanges: 0,
@@ -149,7 +152,7 @@ export class RaidAddDialogComponent {
           evolution: 9000,
           exclusive: 0,
           form: 0,
-          gymId: null,
+          gymId: this.selectedGymId() || null,
           level: bossLevel,
           move: 9000,
           ping: common.ping || null,

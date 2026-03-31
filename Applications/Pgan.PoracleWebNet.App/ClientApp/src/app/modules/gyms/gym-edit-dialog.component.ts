@@ -14,6 +14,7 @@ import { Gym, GymUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 @Component({
@@ -30,6 +31,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSnackBarModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    GymPickerComponent,
   ],
   selector: 'app-gym-edit-dialog',
   standalone: true,
@@ -55,6 +57,7 @@ export class GymEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+  selectedGymId = signal<string | null>(this.data.gymId);
   getGymIcon(): string {
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${this.data.team}.png`;
   }
@@ -88,7 +91,7 @@ export class GymEditDialogComponent {
         battleChanges: v.battleChanges ? 1 : 0,
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gymId: this.data.gymId,
+        gymId: this.selectedGymId() || null,
         ping: v.ping || null,
         slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,

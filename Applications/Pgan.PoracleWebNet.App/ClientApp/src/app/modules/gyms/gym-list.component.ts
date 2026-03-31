@@ -15,6 +15,7 @@ import { GymAddDialogComponent } from './gym-add-dialog.component';
 import { GymEditDialogComponent } from './gym-edit-dialog.component';
 import { Gym } from '../../core/models';
 import { GymService } from '../../core/services/gym.service';
+import { ScannerService } from '../../core/services/scanner.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
@@ -40,7 +41,9 @@ export class GymListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly gymService = inject(GymService);
+  private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
+  readonly gymNames = signal<Record<string, string>>({});
   readonly gyms = signal<Gym[]>([]);
   readonly loading = signal(true);
   readonly selectedIds = signal(new Set<number>());
@@ -188,6 +191,7 @@ export class GymListComponent implements OnInit {
         next: g => {
           this.gyms.set(g);
           this.loading.set(false);
+          this.resolveGymNames(g);
         },
       });
   }
@@ -234,5 +238,17 @@ export class GymListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private resolveGymNames(gyms: Gym[]): void {
+    const ids = [...new Set(gyms.filter(g => g.gymId).map(g => g.gymId!))];
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      this.scannerService.getGymById(id).subscribe(result => {
+        if (result?.name) {
+          this.gymNames.update(names => ({ ...names, [id]: result.name! }));
+        }
+      });
+    }
   }
 }

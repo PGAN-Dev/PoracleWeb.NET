@@ -1,0 +1,42 @@
+@if (selectedGym(); as gym) {
+  <div class="selected-gym">
+    @if (gym.url) {
+      <img [src]="gym.url" class="gym-photo" />
+    } @else {
+      <img [src]="getTeamIcon(gym.teamId)" class="team-icon" />
+    }
+    <div class="selected-text">
+      <span class="gym-name">{{ gym.name ?? gym.id }}</span>
+      <span class="gym-sub">{{ gym.area ?? gym.lat.toFixed(4) + ', ' + gym.lon.toFixed(4) }}</span>
+    </div>
+    <button mat-icon-button (click)="clear()" class="clear-btn" aria-label="Clear gym selection">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+} @else {
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Search for a gym (optional)</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [(ngModel)]="searchText" [matAutocomplete]="auto" (input)="onInput(searchText)" placeholder="Type gym name..." />
+    @if (loading()) {
+      <mat-spinner matSuffix diameter="18"></mat-spinner>
+    }
+    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSelected($event)">
+      @for (gym of options(); track gym.id) {
+        <mat-option [value]="gym">
+          <div class="option-row">
+            @if (gym.url) {
+              <img [src]="gym.url" class="gym-photo-sm" />
+            } @else {
+              <img [src]="getTeamIcon(gym.teamId)" class="team-icon-sm" />
+            }
+            <div class="option-text">
+              <span class="option-name">{{ gym.name ?? gym.id }}</span>
+              <span class="option-sub">{{ gym.area ?? gym.lat.toFixed(4) + ', ' + gym.lon.toFixed(4) }}</span>
+            </div>
+          </div>
+        </mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+}

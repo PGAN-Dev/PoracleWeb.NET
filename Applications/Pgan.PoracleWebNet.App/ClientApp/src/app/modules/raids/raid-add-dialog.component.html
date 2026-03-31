@@ -29,6 +29,10 @@
           </mat-select>
         </mat-form-field>
 
+        <h4>Specific Gym</h4>
+        <app-gym-picker [(gymId)]="selectedGymId" />
+        <p class="gym-picker-hint">Optionally target a specific gym. Leave empty for all gyms.</p>
+
         <mat-tab-group [(selectedIndex)]="tabIndex">
           <!-- By Level -->
           <mat-tab label="By Level">

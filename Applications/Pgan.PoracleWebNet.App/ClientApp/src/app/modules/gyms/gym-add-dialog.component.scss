@@ -71,6 +71,11 @@ mat-slide-toggle {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-weight: normal;
 }
+.gym-picker-hint {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
 @media (max-width: 599px) {
   mat-dialog-content {
     min-width: 0;

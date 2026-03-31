@@ -17,6 +17,7 @@ import { EggService } from '../../core/services/egg.service';
 import { IconService } from '../../core/services/icon.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 export interface RaidEditDialogData {
@@ -39,6 +40,7 @@ export interface RaidEditDialogData {
     MatSnackBarModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    GymPickerComponent,
   ],
   selector: 'app-raid-edit-dialog',
   standalone: true,
@@ -65,6 +67,7 @@ export class RaidEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+  selectedGymId = signal<string | null>(this.data.item.gymId);
 
   getImage(): string {
     if (this.data.type === 'egg') {
@@ -115,7 +118,7 @@ export class RaidEditDialogComponent {
         evolution: raid.evolution,
         exclusive: raid.exclusive,
         form: raid.form,
-        gymId: raid.gymId,
+        gymId: this.selectedGymId() || null,
         level: raid.level,
         move: raid.move,
         ping: values.ping || null,
@@ -140,7 +143,7 @@ export class RaidEditDialogComponent {
         clean: values.clean ? 1 : 0,
         distance: distanceMeters,
         exclusive: egg.exclusive,
-        gymId: egg.gymId,
+        gymId: this.selectedGymId() || null,
         level: egg.level,
         ping: values.ping || null,
         rsvpChanges: egg.rsvpChanges,

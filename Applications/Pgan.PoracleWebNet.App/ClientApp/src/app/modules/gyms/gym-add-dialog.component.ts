@@ -15,6 +15,7 @@ import { forkJoin } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 interface TeamOption {
@@ -38,6 +39,7 @@ interface TeamOption {
     MatSnackBarModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    GymPickerComponent,
   ],
   selector: 'app-gym-add-dialog',
   standalone: true,
@@ -62,6 +64,7 @@ export class GymAddDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+  selectedGymId = signal<string | null>(null);
   selectedTeamIds = signal<number[]>([]);
   teams: TeamOption[] = [
     { id: 0, name: 'Neutral', color: '#9E9E9E' },
@@ -89,7 +92,7 @@ export class GymAddDialogComponent {
         battleChanges: v.battleChanges ? 1 : 0,
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gymId: null,
+        gymId: this.selectedGymId() || null,
         ping: v.ping || null,
         slotChanges: v.slotChanges ? 1 : 0,
         team,
