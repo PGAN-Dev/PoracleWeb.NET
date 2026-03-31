@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-31
 
 ### Added
 - **Gym picker**: search and target specific gyms for team change, raid, and egg alarms with photo thumbnails and area names in search results ([#77](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/77), [PR #78](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/78))
