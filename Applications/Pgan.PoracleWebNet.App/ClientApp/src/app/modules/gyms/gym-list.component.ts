@@ -9,7 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { GymAddDialogComponent } from './gym-add-dialog.component';
 import { GymEditDialogComponent } from './gym-edit-dialog.component';
@@ -243,12 +243,13 @@ export class GymListComponent implements OnInit {
   private resolveGymNames(gyms: Gym[]): void {
     const ids = [...new Set(gyms.filter(g => g.gymId).map(g => g.gymId!))];
     if (ids.length === 0) return;
-    for (const id of ids) {
-      this.scannerService.getGymById(id).subscribe(result => {
-        if (result?.name) {
-          this.gymNames.update(names => ({ ...names, [id]: result.name! }));
-        }
-      });
-    }
+    const lookups = Object.fromEntries(ids.map(id => [id, this.scannerService.getGymById(id)]));
+    forkJoin(lookups).subscribe(results => {
+      const names: Record<string, string> = {};
+      for (const [id, result] of Object.entries(results)) {
+        if (result?.name) names[id] = result.name;
+      }
+      this.gymNames.set(names);
+    });
   }
 }

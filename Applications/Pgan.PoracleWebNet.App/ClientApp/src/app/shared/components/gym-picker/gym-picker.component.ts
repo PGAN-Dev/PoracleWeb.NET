@@ -1,4 +1,5 @@
-import { Component, effect, inject, model, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, model, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,6 +28,7 @@ import { GymSearchResult, ScannerService } from '../../../core/services/scanner.
   templateUrl: './gym-picker.component.html',
 })
 export class GymPickerComponent {
+  private readonly destroyRef = inject(DestroyRef);
   private initialized = false;
   private readonly scanner = inject(ScannerService);
   private readonly searchSubject = new Subject<string>();
@@ -49,7 +51,7 @@ export class GymPickerComponent {
   selectedGym = signal<GymSearchResult | null>(null);
 
   constructor() {
-    this.search$.subscribe(results => this.options.set(results));
+    this.search$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(results => this.options.set(results));
 
     // Load gym details when initialized with an existing gymId (edit mode)
     effect(() => {
