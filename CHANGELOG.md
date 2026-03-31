@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- preserve NULL for nullable string columns in EnsureNotNullDefaults ([PR #70](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/70))
 ## [1.1.0] - 2026-03-30
 
 ### Added
