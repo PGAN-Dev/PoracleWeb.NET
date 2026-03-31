@@ -63,9 +63,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: Applications/Pgan.PoracleWebNet.App/ClientApp/package-lock.json
 
-      - name: Upgrade npm
-        run: npm install -g npm@latest
-
       - name: Install dependencies
         run: npm ci
 
