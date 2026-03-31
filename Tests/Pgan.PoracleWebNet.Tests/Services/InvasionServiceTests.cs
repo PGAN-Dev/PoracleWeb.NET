@@ -84,4 +84,72 @@ public class InvasionServiceTests
         this._repository.Setup(r => r.CountByUserAsync("u", 1)).ReturnsAsync(12);
         Assert.Equal(12, await this._sut.CountByUserAsync("u", 1));
     }
+
+    [Fact]
+    public async Task CreateAsyncLowercasesGruntType()
+    {
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
+        var result = await this._sut.CreateAsync("u1", new Invasion { GruntType = "Mixed_Case_Grunt" });
+        Assert.Equal("mixed_case_grunt", result.GruntType);
+    }
+
+    [Fact]
+    public async Task CreateAsyncDefaultsEmptyGruntTypeToEverything()
+    {
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
+        var result = await this._sut.CreateAsync("u1", new Invasion { GruntType = "" });
+        Assert.Equal("everything", result.GruntType);
+    }
+
+    [Fact]
+    public async Task CreateAsyncDefaultsNullGruntTypeToEverything()
+    {
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
+        var result = await this._sut.CreateAsync("u1", new Invasion { GruntType = null });
+        Assert.Equal("everything", result.GruntType);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncLowercasesGruntType()
+    {
+        var invasion = new Invasion { Uid = 1, GruntType = "UPPER_GRUNT" };
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
+        var result = await this._sut.UpdateAsync(invasion);
+        Assert.Equal("upper_grunt", result.GruntType);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncDefaultsEmptyGruntTypeToEverything()
+    {
+        var invasion = new Invasion { Uid = 1, GruntType = "" };
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
+        var result = await this._sut.UpdateAsync(invasion);
+        Assert.Equal("everything", result.GruntType);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncDefaultsNullGruntTypeToEverything()
+    {
+        var invasion = new Invasion { Uid = 1, GruntType = null };
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
+        var result = await this._sut.UpdateAsync(invasion);
+        Assert.Equal("everything", result.GruntType);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncNormalizesGruntTypes()
+    {
+        this._repository.Setup(r => r.BulkCreateAsync(It.IsAny<IEnumerable<Invasion>>()))
+            .ReturnsAsync((IEnumerable<Invasion> items) => items);
+        var models = new List<Invasion>
+        {
+            new() { GruntType = "UPPER" },
+            new() { GruntType = "" },
+            new() { GruntType = null },
+        };
+        var results = (await this._sut.BulkCreateAsync("u1", models)).ToList();
+        Assert.Equal("upper", results[0].GruntType);
+        Assert.Equal("everything", results[1].GruntType);
+        Assert.Equal("everything", results[2].GruntType);
+    }
 }

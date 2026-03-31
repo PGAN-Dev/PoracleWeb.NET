@@ -15,15 +15,15 @@ public class InvasionService(IInvasionRepository repository) : IInvasionService
     public async Task<Invasion> CreateAsync(string userId, Invasion model)
     {
         model.Id = userId;
-        if (model.GruntType != null)
-        {
-            model.GruntType = model.GruntType.ToLowerInvariant();
-        }
-
+        model.GruntType = NormalizeGruntType(model.GruntType);
         return await this._repository.CreateAsync(model);
     }
 
-    public async Task<Invasion> UpdateAsync(Invasion model) => await this._repository.UpdateAsync(model);
+    public async Task<Invasion> UpdateAsync(Invasion model)
+    {
+        model.GruntType = NormalizeGruntType(model.GruntType);
+        return await this._repository.UpdateAsync(model);
+    }
 
     public async Task<bool> DeleteAsync(int uid) => await this._repository.DeleteAsync(uid);
 
@@ -40,12 +40,15 @@ public class InvasionService(IInvasionRepository repository) : IInvasionService
         foreach (var model in models)
         {
             model.Id = userId;
-            if (model.GruntType != null)
-            {
-                model.GruntType = model.GruntType.ToLowerInvariant();
-            }
+            model.GruntType = NormalizeGruntType(model.GruntType);
         }
 
         return await this._repository.BulkCreateAsync(models);
+    }
+
+    private static string NormalizeGruntType(string? gruntType)
+    {
+        var normalized = gruntType?.ToLowerInvariant();
+        return string.IsNullOrEmpty(normalized) ? "everything" : normalized;
     }
 }
