@@ -185,7 +185,7 @@ public class MonsterServiceTests
             new() { PokemonId = 150, PvpRankingLeague = 1500, PvpRankingBest = 1, PvpRankingWorst = 50 },
         };
         this._repository.Setup(r => r.BulkCreateAsync(It.IsAny<IEnumerable<Monster>>()))
-            .ReturnsAsync((IEnumerable<Monster> m) => m.ToList());
+            .ReturnsAsync((IEnumerable<Monster> m) => [.. m]);
 
         var result = (await this._sut.BulkCreateAsync("user1", monsters)).ToList();
 

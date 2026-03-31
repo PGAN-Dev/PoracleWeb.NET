@@ -14,9 +14,11 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
     protected readonly PoracleContext Context = context;
     protected readonly IMapper Mapper = mapper;
 
-    // Cached reflection results for EnsureNotNullDefaults
-    private static readonly PropertyInfo[] WritableStringProperties =
-        [.. typeof(TEntity).GetProperties().Where(p => p.PropertyType == typeof(string) && p.CanWrite)];
+    // Cached reflection results for EnsureNotNullDefaults — only non-nullable string properties.
+    // Nullable string properties (string?) like GymId and Template must remain NULL because
+    // PoracleNG/PoracleJS use NULL vs empty-string semantics for matching (e.g. gym_id IS NULL
+    // means "general alarm", while gym_id = '' would be treated as a specific gym filter).
+    private static readonly PropertyInfo[] WritableNonNullableStringProperties = GetNonNullableStringProperties();
 
     // Cached Uid property for GetUidFromModel
     private static readonly PropertyInfo? UidProperty =
@@ -73,9 +75,20 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
         return this.Mapper.Map<TModel>(entity);
     }
 
+    private static PropertyInfo[] GetNonNullableStringProperties()
+    {
+        var nullabilityContext = new NullabilityInfoContext();
+        return
+        [
+            .. typeof(TEntity).GetProperties()
+                .Where(p => p.PropertyType == typeof(string) && p.CanWrite)
+                .Where(p => nullabilityContext.Create(p).WriteState != NullabilityState.Nullable),
+        ];
+    }
+
     private static void EnsureNotNullDefaults(TEntity entity)
     {
-        foreach (var prop in WritableStringProperties)
+        foreach (var prop in WritableNonNullableStringProperties)
         {
             if (prop.GetValue(entity) == null)
             {
