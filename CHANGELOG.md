@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
-- team icon broken on raid cards for Any Team (team=4) ([PR #67](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/67))
+- **Raid card team icon**: `team=4` (all teams) tried to load nonexistent `gym/4.png`, now maps to gray gym icon ([#66](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/66), [PR #67](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/67))
 - **Raid/egg "Any Team" selector**: sent `team=0` (uncontested gym) instead of `team=4` (all teams), silencing raid notifications for affected users ([#63](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/63), [PR #64](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/64))
 - remove decorative circle from page headers ([PR #62](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/62))
 - DTS preview renders nested Handlebars if-blocks incorrectly ([PR #60](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/60))
