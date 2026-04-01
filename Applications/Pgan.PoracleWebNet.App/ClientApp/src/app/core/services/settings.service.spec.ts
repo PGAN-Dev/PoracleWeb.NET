@@ -83,21 +83,20 @@ describe('SettingsService', () => {
       expect(service.siteSettings()['site_name']).toBe('My Site');
     });
 
-    it('should only populate siteSettings once on first call', () => {
+    it('should update siteSettings on every call', () => {
       // First call
       service.getAll().subscribe();
       httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
 
       expect(service.siteSettings()['enable_templates']).toBe('true');
 
-      // Second call - should still make HTTP request but not re-populate
+      // Second call - signal should update with new data
       service.getAll().subscribe();
       httpMock
         .expectOne(`${API}/api/settings`)
         .flush([{ id: 1, category: 'features', key: 'enable_templates', value: 'false', valueType: 'boolean' }]);
 
-      // Should still have old value since loaded flag is true
-      expect(service.siteSettings()['enable_templates']).toBe('true');
+      expect(service.siteSettings()['enable_templates']).toBe('false');
     });
 
     it('should handle settings with null values', () => {
