@@ -253,14 +253,21 @@ export class AreaListComponent implements OnInit {
     if (area) {
       area.selected = false;
       this.syncSelectedFromAreas();
+    } else {
+      // Custom geofence not in available areas list — remove directly
+      this.selectedAreas.update(selected => selected.filter(a => a.toLowerCase() !== lowerName));
     }
   }
 
   saveAreas(): void {
     this.saving.set(true);
-    const selected = this.areas()
+    const areaListNames = new Set(this.areas().map(a => a.name.toLowerCase()));
+    const fromChecklist = this.areas()
       .filter(a => a.selected)
       .map(a => a.name);
+    // Preserve custom geofence names that aren't in the available areas list
+    const customNames = this.selectedAreas().filter(a => !areaListNames.has(a.toLowerCase()));
+    const selected = [...fromChecklist, ...customNames];
 
     this.areaService
       .update(selected)
