@@ -12,6 +12,7 @@ public partial class PoracleTrackingProxy(
     IConfiguration configuration,
     ILogger<PoracleTrackingProxy> logger) : IPoracleTrackingProxy
 {
+    private static string Encode(string id) => Uri.EscapeDataString(id);
     private readonly HttpClient _httpClient = httpClient;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
@@ -19,7 +20,7 @@ public partial class PoracleTrackingProxy(
 
     public async Task<JsonElement> GetByUserAsync(string type, string userId)
     {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/{type}/{userId}");
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}");
         var response = await this._httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
 
@@ -39,7 +40,7 @@ public partial class PoracleTrackingProxy(
     {
         var bodyText = body.GetRawText();
         LogCreateRequest(this._logger, type, userId, bodyText);
-        var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{userId}?silent=true");
+        var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}?silent=true");
         request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.SendAsync(request);
@@ -68,7 +69,7 @@ public partial class PoracleTrackingProxy(
 
     public async Task DeleteByUidAsync(string type, string userId, int uid)
     {
-        var request = this.CreateRequest(HttpMethod.Delete, $"{this._apiAddress}/api/tracking/{type}/{userId}/byUid/{uid}");
+        var request = this.CreateRequest(HttpMethod.Delete, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/byUid/{uid}");
         var response = await this._httpClient.SendAsync(request);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -88,7 +89,7 @@ public partial class PoracleTrackingProxy(
             return;
         }
 
-        var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{userId}/delete");
+        var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/delete");
         request.Content = new StringContent(
             JsonSerializer.Serialize(uidList.Select(u => (long)u)),
             Encoding.UTF8,
@@ -100,7 +101,7 @@ public partial class PoracleTrackingProxy(
 
     public async Task<JsonElement> GetAllTrackingAsync(string userId)
     {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/all/{userId}");
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/all/{Encode(userId)}");
         var response = await this._httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
 
