@@ -25,27 +25,6 @@ public class PoracleMappingProfileTests
     }
 
     [Fact]
-    public void MonsterEntityMapsToMonster()
-    {
-        var mapper = CreateMapper();
-        var entity = new MonsterEntity { Uid = 1, PokemonId = 25, Id = "user1" };
-        var model = mapper.Map<Monster>(entity);
-        Assert.Equal(1, model.Uid);
-        Assert.Equal(25, model.PokemonId);
-        Assert.Equal("user1", model.Id);
-    }
-
-    [Fact]
-    public void MonsterMapsToMonsterEntity()
-    {
-        var mapper = CreateMapper();
-        var model = new Monster { Uid = 1, PokemonId = 150, Id = "user1", Ping = "test" };
-        var entity = mapper.Map<MonsterEntity>(model);
-        Assert.Equal(1, entity.Uid);
-        Assert.Equal(150, entity.PokemonId);
-    }
-
-    [Fact]
     public void MonsterCreateMapsToMonster()
     {
         var mapper = CreateMapper();

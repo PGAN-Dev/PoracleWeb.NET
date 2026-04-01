@@ -13,6 +13,7 @@ public class AdminControllerTests : ControllerTestBase
 {
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
+    private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleServerService> _poracleServerService = new();
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
@@ -32,6 +33,7 @@ public class AdminControllerTests : ControllerTestBase
             this._humanService.Object,
             this._webhookDelegateService.Object,
             this._proxy.Object,
+            this._humanProxy.Object,
             this._poracleServerService.Object,
             poracleSettings,
             jwtSettings,
@@ -104,57 +106,53 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task EnableUserSetsAdminDisableToZero()
+    public async Task EnableUserCallsProxyAdminDisabledFalse()
     {
         SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", AdminDisable = 1 };
         this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
         await this._sut.EnableUser("u1");
 
-        Assert.Equal(0, human.AdminDisable);
+        this._humanProxy.Verify(p => p.AdminDisabledAsync("u1", false), Times.Once);
     }
 
     [Fact]
-    public async Task DisableUserSetsAdminDisableToOne()
+    public async Task DisableUserCallsProxyAdminDisabledTrue()
     {
         SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", AdminDisable = 0 };
         this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
         await this._sut.DisableUser("u1");
 
-        Assert.Equal(1, human.AdminDisable);
+        this._humanProxy.Verify(p => p.AdminDisabledAsync("u1", true), Times.Once);
     }
 
     // --- PauseUser / ResumeUser ---
 
     [Fact]
-    public async Task PauseUserSetsEnabledToZero()
+    public async Task PauseUserCallsProxyStop()
     {
         SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", Enabled = 1 };
         this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
         await this._sut.PauseUser("u1");
 
-        Assert.Equal(0, human.Enabled);
+        this._humanProxy.Verify(p => p.StopAsync("u1"), Times.Once);
     }
 
     [Fact]
-    public async Task ResumeUserSetsEnabledToOne()
+    public async Task ResumeUserCallsProxyStart()
     {
         SetupUser(this._sut, isAdmin: true);
         var human = new Human { Id = "u1", Enabled = 0 };
         this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
         await this._sut.ResumeUser("u1");
 
-        Assert.Equal(1, human.Enabled);
+        this._humanProxy.Verify(p => p.StartAsync("u1"), Times.Once);
     }
 
     // --- DeleteUserAlarms ---
