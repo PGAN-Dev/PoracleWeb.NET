@@ -12,6 +12,7 @@ public partial class UserGeofenceService(
     IKojiService kojiService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleServerService poracleServerService,
+    IPoracleHumanProxy humanProxy,
     IHumanRepository humanRepository,
     IProfileRepository profileRepository,
     IDiscordNotificationService discordNotificationService,
@@ -23,6 +24,7 @@ public partial class UserGeofenceService(
     private readonly IKojiService _kojiService = kojiService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleServerService _poracleServerService = poracleServerService;
+    private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanRepository _humanRepository = humanRepository;
     private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
@@ -125,8 +127,8 @@ public partial class UserGeofenceService(
             Status = "active",
         });
 
-        // Add kojiName to user's humans.area JSON array
-        await this.AddAreaToHumanAsync(humanId, profileNo, kojiName);
+        // Add kojiName to user's area list via proxy (handles humans.area + profiles.area dual-write)
+        await this.AddAreaToHumanAsync(humanId, kojiName);
 
         // Reload Poracle geofences (Poracle reads from our feed + Koji)
         await this.ReloadGeofencesSafeAsync();
@@ -150,7 +152,7 @@ public partial class UserGeofenceService(
         }
 
         // Remove kojiName from all profiles (humans.area + profiles.area)
-        await this.RemoveAreaFromAllProfilesAsync(humanId, profileNo, geofence.KojiName);
+        await this.RemoveAreaFromAllProfilesAsync(humanId, geofence.KojiName);
 
         // Delete from local DB
         await this._repository.DeleteAsync(id);
@@ -240,10 +242,7 @@ public partial class UserGeofenceService(
             var areaName = geofence.Status == "approved" && geofence.PromotedName != null
                 ? geofence.PromotedName.ToLowerInvariant()
                 : geofence.KojiName;
-            // Look up the owning user's actual current profile (not hardcoded to 1)
-            var owner = await this._humanRepository.GetByIdAsync(geofence.HumanId);
-            var ownerProfileNo = owner?.CurrentProfileNo ?? 1;
-            await this.RemoveAreaFromAllProfilesAsync(geofence.HumanId, ownerProfileNo, areaName);
+            await this.RemoveAreaFromAllProfilesAsync(geofence.HumanId, areaName);
         }
         catch (Exception ex)
         {
@@ -364,21 +363,43 @@ public partial class UserGeofenceService(
         await this._kojiService.SaveGeofenceAsync(
             targetName, geofence.DisplayName, geofence.GroupName, geofence.ParentId, polygon, isPublic: true);
 
-        // If the name changed, update the user's humans.area
+        // If the name changed, update the user's area list via proxy
         if (promotedName != null && !string.Equals(promotedName, geofence.KojiName, StringComparison.Ordinal))
         {
-            // Find the owning user's human record and swap area names
-            var human = await this._humanRepository.GetByIdAndProfileAsync(geofence.HumanId, 1);
-            if (human != null)
+            try
             {
-                var areas = ParseAreas(human.Area);
+                var currentAreas = await this.GetCurrentAreasAsync(geofence.HumanId);
                 var oldLower = geofence.KojiName.ToLowerInvariant();
                 var newLower = promotedName.ToLowerInvariant();
-                if (areas.Remove(oldLower))
+                if (currentAreas.Remove(oldLower))
                 {
-                    areas.Add(newLower);
-                    human.Area = JsonSerializer.Serialize(areas);
-                    await this._humanRepository.UpdateAsync(human);
+                    currentAreas.Add(newLower);
+                    await this._humanProxy.SetAreasAsync(geofence.HumanId, [.. currentAreas]);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogProxyAreaSwapFailed(this._logger, ex, geofence.KojiName, promotedName);
+                // Fallback to direct DB for the area swap
+                try
+                {
+                    var human = await this._humanRepository.GetByIdAndProfileAsync(geofence.HumanId, 1);
+                    if (human != null)
+                    {
+                        var areas = ParseAreas(human.Area);
+                        var oldLower = geofence.KojiName.ToLowerInvariant();
+                        var newLower = promotedName.ToLowerInvariant();
+                        if (areas.Remove(oldLower))
+                        {
+                            areas.Add(newLower);
+                            human.Area = JsonSerializer.Serialize(areas);
+                            await this._humanRepository.UpdateAsync(human);
+                        }
+                    }
+                }
+                catch (Exception innerEx)
+                {
+                    LogAreaSwapFallbackFailed(this._logger, innerEx, geofence.KojiName);
                 }
             }
         }
@@ -464,7 +485,7 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        await this.AddAreaToHumanAsync(humanId, profileNo, geofence.KojiName);
+        await this.AddAreaToHumanAsync(humanId, geofence.KojiName);
     }
 
     public async Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId)
@@ -477,95 +498,56 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        await this.RemoveAreaFromHumanAsync(humanId, profileNo, geofence.KojiName);
+        await this.RemoveAreaFromHumanAsync(humanId, geofence.KojiName);
     }
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
-    private async Task AddAreaToHumanAsync(string humanId, int profileNo, string geofenceName)
+    /// <summary>
+    /// Adds a geofence area name to the user's active profile area list via the PoracleNG proxy.
+    /// PoracleNG handles the dual-write to humans.area + profiles.area atomically.
+    /// </summary>
+    private async Task AddAreaToHumanAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
 
-        // Update humans.area (Poracle's working copy for the active profile)
-        var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, profileNo);
-        if (human != null)
+        var areas = await this.GetCurrentAreasAsync(humanId);
+        if (!areas.Contains(lowerName))
         {
-            var areas = ParseAreas(human.Area);
-            if (!areas.Contains(lowerName))
-            {
-                areas.Add(lowerName);
-                human.Area = JsonSerializer.Serialize(areas);
-                await this._humanRepository.UpdateAsync(human);
-            }
-        }
-        else
-        {
-            LogHumanNotFoundAddingArea(this._logger, humanId, profileNo);
-        }
-
-        // Also update profiles.area (PoracleJS syncs from this on profile switch)
-        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, profileNo);
-        if (profile != null)
-        {
-            var profileAreas = ParseAreas(profile.Area);
-            if (!profileAreas.Contains(lowerName))
-            {
-                profileAreas.Add(lowerName);
-                profile.Area = JsonSerializer.Serialize(profileAreas);
-                await this._profileRepository.UpdateAsync(profile);
-            }
-        }
-    }
-
-    private async Task RemoveAreaFromHumanAsync(string humanId, int profileNo, string geofenceName)
-    {
-        var lowerName = geofenceName.ToLowerInvariant();
-
-        // Update humans.area (Poracle's working copy for the active profile)
-        var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, profileNo);
-        if (human != null)
-        {
-            var areas = ParseAreas(human.Area);
-            if (areas.Remove(lowerName))
-            {
-                human.Area = areas.Count > 0
-                    ? JsonSerializer.Serialize(areas)
-                    : "[]";
-                await this._humanRepository.UpdateAsync(human);
-            }
-        }
-        else
-        {
-            LogHumanNotFoundRemovingArea(this._logger, humanId, profileNo);
-        }
-
-        // Also update profiles.area (PoracleJS syncs from this on profile switch)
-        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, profileNo);
-        if (profile != null)
-        {
-            var profileAreas = ParseAreas(profile.Area);
-            if (profileAreas.Remove(lowerName))
-            {
-                profile.Area = profileAreas.Count > 0
-                    ? JsonSerializer.Serialize(profileAreas)
-                    : "[]";
-                await this._profileRepository.UpdateAsync(profile);
-            }
+            areas.Add(lowerName);
+            await this._humanProxy.SetAreasAsync(humanId, [.. areas]);
         }
     }
 
     /// <summary>
-    /// Removes a geofence area name from humans.area (active profile) and all profiles.area entries.
-    /// Sequential DB updates per profile are acceptable here — users typically have 2-4 profiles.
+    /// Removes a geofence area name from the user's active profile area list via the PoracleNG proxy.
+    /// PoracleNG handles the dual-write to humans.area + profiles.area atomically.
     /// </summary>
-    private async Task RemoveAreaFromAllProfilesAsync(string humanId, int profileNo, string geofenceName)
+    private async Task RemoveAreaFromHumanAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
 
-        // Remove from humans.area (active profile)
-        await this.RemoveAreaFromHumanAsync(humanId, profileNo, geofenceName);
+        var areas = await this.GetCurrentAreasAsync(humanId);
+        if (areas.Remove(lowerName))
+        {
+            await this._humanProxy.SetAreasAsync(humanId, [.. areas]);
+        }
+    }
 
-        // Remove from all profiles.area entries
+    /// <summary>
+    /// Removes a geofence area name from the active profile (via proxy) and all non-active
+    /// profiles (via direct DB, since PoracleNG's setAreas only targets the active profile).
+    /// </summary>
+    private async Task RemoveAreaFromAllProfilesAsync(string humanId, string geofenceName)
+    {
+        var lowerName = geofenceName.ToLowerInvariant();
+
+        // Remove from active profile via proxy (handles humans.area + active profiles.area)
+        await this.RemoveAreaFromHumanAsync(humanId, geofenceName);
+
+        // Remove from all non-active profiles via direct DB
+        // PoracleNG's setAreas only writes to the active profile, so we must update
+        // non-active profiles directly. Users typically have 2-4 profiles.
         var profiles = await this._profileRepository.GetByUserAsync(humanId);
         foreach (var profile in profiles)
         {
@@ -578,6 +560,21 @@ public partial class UserGeofenceService(
                 await this._profileRepository.UpdateAsync(profile);
             }
         }
+    }
+
+    /// <summary>
+    /// Gets the current area list for a user from the PoracleNG proxy (human.area field).
+    /// </summary>
+    private async Task<List<string>> GetCurrentAreasAsync(string humanId)
+    {
+        var humanJson = await this._humanProxy.GetHumanAsync(humanId);
+        if (humanJson is not null)
+        {
+            var areaStr = humanJson.Value.GetStringPropOrNull("area");
+            return ParseAreas(areaStr);
+        }
+
+        return [];
     }
 
     private static List<string> ParseAreas(string? areaJson)
@@ -656,12 +653,12 @@ public partial class UserGeofenceService(
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} rejected geofence '{KojiName}' (ID {Id})")]
     private static partial void LogGeofenceRejected(ILogger logger, string adminId, string kojiName, int id);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Human {HumanId} profile {ProfileNo} not found when adding area")]
-    private static partial void LogHumanNotFoundAddingArea(ILogger logger, string humanId, int profileNo);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Human {HumanId} profile {ProfileNo} not found when removing area")]
-    private static partial void LogHumanNotFoundRemovingArea(ILogger logger, string humanId, int profileNo);
-
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
     private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Proxy area swap failed for geofence '{KojiName}' → '{PromotedName}', trying direct DB fallback")]
+    private static partial void LogProxyAreaSwapFailed(ILogger logger, Exception ex, string kojiName, string promotedName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Direct DB fallback also failed for area swap on geofence '{KojiName}'")]
+    private static partial void LogAreaSwapFallbackFailed(ILogger logger, Exception ex, string kojiName);
 }

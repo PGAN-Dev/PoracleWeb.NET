@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
@@ -13,6 +14,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IKojiService> _kojiService = new();
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
     private readonly Mock<IPoracleServerService> _poracleServerService = new();
+    private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IHumanRepository> _humanRepo = new();
     private readonly Mock<IProfileRepository> _profileRepo = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
@@ -24,10 +26,17 @@ public class UserGeofenceServiceTests
             this._kojiService.Object,
             this._poracleApiProxy.Object,
             this._poracleServerService.Object,
+            this._humanProxy.Object,
             this._humanRepo.Object,
             this._profileRepo.Object,
             this._discordNotificationService.Object,
             this._logger.Object);
+
+    /// <summary>
+    /// Helper: creates a JsonElement matching what IPoracleHumanProxy.GetHumanAsync returns.
+    /// </summary>
+    private static JsonElement MakeHumanJson(string id, string area = "[]") =>
+        JsonSerializer.SerializeToElement(new { id, area, latitude = 0.0, longitude = 0.0, enabled = 1, current_profile_no = 1 });
 
     // --- GetByUserAsync ---
 
@@ -66,8 +75,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
         this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
             .ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[]" });
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[]"));
 
         await this._sut.CreateAsync("u1", 1, model);
 
@@ -88,8 +96,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
         this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
             .ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[]" });
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[]"));
 
         var result = await this._sut.CreateAsync("u1", 1, model);
 
@@ -107,18 +114,16 @@ public class UserGeofenceServiceTests
             DisplayName = "Park",
             Polygon = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
         };
-        var human = new Human { Id = "u1", Area = "[\"existing_area\"]" };
         this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
         this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
             .ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"existing_area\"]"));
 
         await this._sut.CreateAsync("u1", 1, model);
 
-        Assert.Contains("existing_area", human.Area);
-        Assert.Contains("park", human.Area);
-        this._humanRepo.Verify(r => r.UpdateAsync(human), Times.Once);
+        // Verify the proxy was called with both the existing area and the new one
+        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
+            a.Contains("existing_area") && a.Contains("park"))), Times.Once);
     }
 
     [Fact]
@@ -128,8 +133,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
         this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
             .ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[]" });
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[]"));
 
         await this._sut.CreateAsync("u1", 1, model);
 
@@ -158,8 +162,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
         this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
             .ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[]" });
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[]"));
 
         var result = await this._sut.CreateAsync("u1", 1, model);
 
@@ -177,8 +180,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
         this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
             .ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[]" });
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[]"));
 
         var result = await this._sut.CreateAsync("u1", 1, model);
 
@@ -191,15 +193,14 @@ public class UserGeofenceServiceTests
     public async Task DeleteAsyncRemovesFromHumanAreaAndDeletesRecord()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        var human = new Human { Id = "u1", Area = "[\"downtown\",\"other_area\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\",\"other_area\"]"));
 
         await this._sut.DeleteAsync("u1", 1, 1);
 
-        Assert.DoesNotContain("downtown", human.Area);
-        Assert.Contains("other_area", human.Area);
+        // Verify proxy was called to set areas without "downtown"
+        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
+            !a.Contains("downtown") && a.Contains("other_area"))), Times.Once);
         this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
@@ -225,22 +226,23 @@ public class UserGeofenceServiceTests
     public async Task DeleteAsyncRemovesAreaFromAllProfiles()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        var human = new Human { Id = "u1", Area = "[\"downtown\",\"other\"]" };
         var profile1 = new Profile { Id = "u1", ProfileNo = 1, Area = "[\"downtown\",\"park\"]" };
         var profile2 = new Profile { Id = "u1", ProfileNo = 2, Area = "[\"downtown\"]" };
         var profile3 = new Profile { Id = "u1", ProfileNo = 3, Area = "[\"park\"]" };
 
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        // Active profile removal goes through proxy
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\",\"other\"]"));
+        // Non-active profile cleanup goes through direct DB
         this._profileRepo.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync([profile1, profile2, profile3]);
         this._profileRepo.Setup(r => r.UpdateAsync(It.IsAny<Profile>())).ReturnsAsync((Profile p) => p);
 
         await this._sut.DeleteAsync("u1", 1, 1);
 
-        // humans.area should not contain "downtown"
-        Assert.DoesNotContain("downtown", human.Area);
-        // Profile 1 and 2 had "downtown" and should be updated
+        // Proxy should be called to remove "downtown" from active profile areas
+        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
+            !a.Contains("downtown") && a.Contains("other"))), Times.Once);
+        // Profile 1 and 2 had "downtown" and should be updated via direct DB
         Assert.DoesNotContain("downtown", profile1.Area);
         Assert.DoesNotContain("downtown", profile2.Area);
         Assert.Contains("park", profile1.Area);
@@ -357,8 +359,7 @@ public class UserGeofenceServiceTests
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[\"downtown\"]" });
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
         var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "Downtown Official");
 
@@ -381,18 +382,15 @@ public class UserGeofenceServiceTests
             Status = "pending_review",
             PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
         };
-        var human = new Human { Id = "u1", Area = "[\"downtown\",\"other\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\",\"other\"]"));
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        var areas = System.Text.Json.JsonSerializer.Deserialize<List<string>>(human.Area)!;
-        Assert.DoesNotContain("downtown", areas);
-        Assert.Contains("new downtown", areas);
-        Assert.Contains("other", areas);
+        // Verify proxy was called with swapped area names
+        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
+            !a.Contains("downtown") && a.Contains("new downtown") && a.Contains("other"))), Times.Once);
     }
 
     [Fact]
@@ -429,8 +427,7 @@ public class UserGeofenceServiceTests
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Area = "[\"downtown\"]" });
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
         var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "Valid Name's (Test)");
 
@@ -541,10 +538,8 @@ public class UserGeofenceServiceTests
     public async Task AdminDeleteAsyncDeletesFromDbAndReloadsGeofences()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
-        var human = new Human { Id = "u1", Area = "[\"downtown\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
         await this._sut.AdminDeleteAsync("admin1", 1);
 
@@ -556,10 +551,8 @@ public class UserGeofenceServiceTests
     public async Task AdminDeleteAsyncRemovesFromKojiWhenApproved()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "approved", PromotedName = "Downtown Official" };
-        var human = new Human { Id = "u1", Area = "[\"downtown official\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown official\"]"));
 
         await this._sut.AdminDeleteAsync("admin1", 1);
 
@@ -570,10 +563,8 @@ public class UserGeofenceServiceTests
     public async Task AdminDeleteAsyncDoesNotCallKojiWhenNotApproved()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active" };
-        var human = new Human { Id = "u1", Area = "[\"downtown\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
         await this._sut.AdminDeleteAsync("admin1", 1);
 
@@ -943,19 +934,16 @@ public class UserGeofenceServiceTests
     // --- AddToProfileAsync ---
 
     [Fact]
-    public async Task AddToProfileAsyncAddsAreaNameToHuman()
+    public async Task AddToProfileAsyncAddsAreaNameViaProxy()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        var human = new Human { Id = "u1", Area = "[\"existing\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"existing\"]"));
 
         await this._sut.AddToProfileAsync("u1", 1, 1);
 
-        Assert.Contains("downtown", human.Area);
-        Assert.Contains("existing", human.Area);
-        this._humanRepo.Verify(r => r.UpdateAsync(human), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
+            a.Contains("downtown") && a.Contains("existing"))), Times.Once);
     }
 
     [Fact]
@@ -981,34 +969,28 @@ public class UserGeofenceServiceTests
     public async Task AddToProfileAsyncIsIdempotent()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        var human = new Human { Id = "u1", Area = "[\"downtown\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
 
         await this._sut.AddToProfileAsync("u1", 1, 1);
 
-        // Should still have exactly one "downtown" entry, not duplicated
-        var areas = System.Text.Json.JsonSerializer.Deserialize<List<string>>(human.Area)!;
-        Assert.Single(areas, a => a == "downtown");
+        // Already contains "downtown", so SetAreasAsync should not be called
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
 
     // --- RemoveFromProfileAsync ---
 
     [Fact]
-    public async Task RemoveFromProfileAsyncRemovesAreaNameFromHuman()
+    public async Task RemoveFromProfileAsyncRemovesAreaNameViaProxy()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        var human = new Human { Id = "u1", Area = "[\"existing\",\"downtown\"]" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
-        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"existing\",\"downtown\"]"));
 
         await this._sut.RemoveFromProfileAsync("u1", 1, 1);
 
-        Assert.DoesNotContain("downtown", human.Area);
-        Assert.Contains("existing", human.Area);
-        this._humanRepo.Verify(r => r.UpdateAsync(human), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
+            !a.Contains("downtown") && a.Contains("existing"))), Times.Once);
     }
 
     [Fact]
