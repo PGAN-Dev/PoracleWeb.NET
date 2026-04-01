@@ -21,12 +21,88 @@ internal static class PoracleJsonHelper
 
     /// <summary>
     /// Serializes a value to a JsonElement using snake_case naming.
+    /// Strips "uid":0 from the output — PoracleNG treats uid=0 as an update target
+    /// instead of a new insert. Omitting uid tells PoracleNG to create a new row.
     /// </summary>
     public static JsonElement SerializeToElement<T>(T value)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(value, SnakeCaseOptions);
         using var doc = JsonDocument.Parse(bytes);
-        return doc.RootElement.Clone();
+        var root = doc.RootElement;
+
+        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("uid", out var uid) && uid.GetInt32() == 0)
+        {
+            return StripProperty(root, "uid");
+        }
+
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            return StripZeroUidsFromArray(root);
+        }
+
+        return root.Clone();
+    }
+
+    private static JsonElement StripProperty(JsonElement obj, string propertyName)
+    {
+        using var stream = new System.IO.MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            foreach (var prop in obj.EnumerateObject())
+            {
+                if (prop.NameEquals(propertyName))
+                {
+                    continue;
+                }
+
+                prop.WriteTo(writer);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(stream.ToArray()).RootElement.Clone();
+    }
+
+    private static JsonElement StripZeroUidsFromArray(JsonElement array)
+    {
+        using var stream = new System.IO.MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartArray();
+            foreach (var item in array.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty("uid", out var uid) && uid.GetInt32() == 0)
+                {
+                    StripPropertyTo(writer, item, "uid");
+                }
+                else
+                {
+                    item.WriteTo(writer);
+                }
+            }
+
+            writer.WriteEndArray();
+        }
+
+        return JsonDocument.Parse(stream.ToArray()).RootElement.Clone();
+    }
+
+    private static void StripPropertyTo(Utf8JsonWriter writer, JsonElement obj, string propertyName)
+    {
+        writer.WriteStartObject();
+        foreach (var prop in obj.EnumerateObject())
+        {
+            if (prop.NameEquals(propertyName))
+            {
+                continue;
+            }
+
+            prop.WriteTo(writer);
+        }
+
+        writer.WriteEndObject();
     }
 
     /// <summary>

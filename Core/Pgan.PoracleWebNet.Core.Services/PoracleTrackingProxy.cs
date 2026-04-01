@@ -37,13 +37,16 @@ public partial class PoracleTrackingProxy(
 
     public async Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body)
     {
+        var bodyText = body.GetRawText();
+        LogCreateRequest(this._logger, type, userId, bodyText);
         var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{userId}?silent=true");
-        request.Content = new StringContent(body.GetRawText(), Encoding.UTF8, "application/json");
+        request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
+        LogCreateResponse(this._logger, type, userId, json);
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
@@ -126,4 +129,10 @@ public partial class PoracleTrackingProxy(
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Delete {Type} uid={Uid} returned 404 (already deleted)")]
     private static partial void LogDeleteNotFound(ILogger logger, string type, int uid);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Create {Type} for {UserId} request: {Body}")]
+    private static partial void LogCreateRequest(ILogger logger, string type, string userId, string body);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Create {Type} for {UserId} response: {Response}")]
+    private static partial void LogCreateResponse(ILogger logger, string type, string userId, string response);
 }
