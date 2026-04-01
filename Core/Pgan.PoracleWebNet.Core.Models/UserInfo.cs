@@ -9,6 +9,10 @@ public class UserInfo
     {
         get; set;
     }
+    public bool AdminDisable
+    {
+        get; set;
+    }
     public bool Enabled { get; set; } = true;
     public int ProfileNo
     {

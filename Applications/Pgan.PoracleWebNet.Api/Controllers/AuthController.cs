@@ -178,6 +178,7 @@ public partial class AuthController(
             Username = username,
             Type = "discord:user",
             IsAdmin = isAdmin,
+            AdminDisable = human.AdminDisable == 1,
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = avatarUrl,
@@ -281,6 +282,7 @@ public partial class AuthController(
             Username = username!,
             Type = "telegram:user",
             IsAdmin = isAdmin,
+            AdminDisable = human.AdminDisable == 1,
             Enabled = human.Enabled == 1 && human.AdminDisable == 0,
             ProfileNo = human.CurrentProfileNo,
             AvatarUrl = photoUrl,
@@ -310,6 +312,7 @@ public partial class AuthController(
     {
         // Read enabled status from DB (not JWT) so it reflects real-time changes
         var human = await this._humanService.GetByIdAsync(this.UserId);
+        var adminDisable = human != null && human.AdminDisable == 1;
         var enabled = human == null || (human.Enabled == 1 && human.AdminDisable == 0);
 
         var userInfo = new UserInfo
@@ -318,6 +321,7 @@ public partial class AuthController(
             Username = this.Username,
             Type = this.User.FindFirstValue("type") ?? string.Empty,
             IsAdmin = this.IsAdmin,
+            AdminDisable = adminDisable,
             Enabled = enabled,
             ProfileNo = human?.CurrentProfileNo ?? this.ProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),

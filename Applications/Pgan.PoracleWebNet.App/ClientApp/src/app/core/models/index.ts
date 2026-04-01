@@ -232,6 +232,7 @@ export interface DashboardCounts {
 // ─── Auth / User Info ──────────────────────────────────────────────────────────
 
 export interface UserInfo {
+  adminDisable: boolean;
   avatarUrl: string | null;
   enabled: boolean;
   id: string;

@@ -10,7 +10,16 @@
     </button>
   </div>
 }
-@if (auth.user()?.enabled === false) {
+@if (auth.user()?.adminDisable) {
+  <div class="disabled-banner admin-disabled">
+    <mat-icon>block</mat-icon>
+    <span
+      >Your account has been <strong>disabled</strong> by the system or an administrator. To get help, ask in
+      <a href="https://discord.com/channels/237964415822069760/280486070628384778" target="_blank">#support</a> or
+      <a href="https://discord.com/channels/237964415822069760/722557616982720593" target="_blank">create a ticket</a>.</span
+    >
+  </div>
+} @else if (auth.user()?.enabled === false) {
   <div class="disabled-banner">
     <mat-icon>pause_circle</mat-icon>
     <span>Your alerts are <strong>paused</strong>. You will not receive notifications.</span>
@@ -78,10 +87,12 @@
         </div>
       </div>
       <mat-divider></mat-divider>
-      <button mat-menu-item (click)="toggleAlerts()">
-        <mat-icon>{{ auth.user()?.enabled ? 'notifications_active' : 'notifications_off' }}</mat-icon>
-        <span>{{ auth.user()?.enabled ? 'Pause Alerts' : 'Resume Alerts' }}</span>
-      </button>
+      @if (!auth.user()?.adminDisable) {
+        <button mat-menu-item (click)="toggleAlerts()">
+          <mat-icon>{{ auth.user()?.enabled ? 'notifications_active' : 'notifications_off' }}</mat-icon>
+          <span>{{ auth.user()?.enabled ? 'Pause Alerts' : 'Resume Alerts' }}</span>
+        </button>
+      }
       <mat-divider></mat-divider>
       <button mat-menu-item routerLink="/profiles">
         <mat-icon>swap_horiz</mat-icon>
