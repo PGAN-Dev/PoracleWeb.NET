@@ -30,14 +30,14 @@ public class RaidControllerTests : ControllerTestBase
     [Fact]
     public async Task GetByUidReturnsOkWhenFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Raid { Uid = 1, Id = "123456789" });
+        this._service.Setup(s => s.GetByUidAsync("123456789", 1)).ReturnsAsync(new Raid { Uid = 1, Id = "123456789" });
         Assert.IsType<OkObjectResult>(await this._sut.GetByUid(1));
     }
 
     [Fact]
     public async Task GetByUidReturnsNotFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 999)).ReturnsAsync((Raid?)null);
         Assert.IsType<NotFoundResult>(await this._sut.GetByUid(999));
     }
 
@@ -55,30 +55,30 @@ public class RaidControllerTests : ControllerTestBase
     public async Task UpdateReturnsOkWhenFound()
     {
         var existing = new Raid { Uid = 1, Id = "123456789" };
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(existing);
-        this._service.Setup(s => s.UpdateAsync(existing)).ReturnsAsync(existing);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 1)).ReturnsAsync(existing);
+        this._service.Setup(s => s.UpdateAsync("123456789", existing)).ReturnsAsync(existing);
         Assert.IsType<OkObjectResult>(await this._sut.Update(1, new RaidUpdate()));
     }
 
     [Fact]
     public async Task UpdateReturnsNotFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 999)).ReturnsAsync((Raid?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Update(999, new RaidUpdate()));
     }
 
     [Fact]
     public async Task DeleteReturnsNoContent()
     {
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Raid { Uid = 1, Id = "123456789" });
-        this._service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 1)).ReturnsAsync(new Raid { Uid = 1, Id = "123456789" });
+        this._service.Setup(s => s.DeleteAsync("123456789", 1)).ReturnsAsync(true);
         Assert.IsType<NoContentResult>(await this._sut.Delete(1));
     }
 
     [Fact]
     public async Task DeleteReturnsNotFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Raid?)null);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 999)).ReturnsAsync((Raid?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Delete(999));
     }
 

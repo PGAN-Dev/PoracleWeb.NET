@@ -28,13 +28,13 @@ public class NestControllerTests : ControllerTestBase
     [Fact]
     public async Task GetByUidOk()
     {
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Nest { Uid = 1, Id = "123456789" });
+        this._service.Setup(s => s.GetByUidAsync("123456789", 1)).ReturnsAsync(new Nest { Uid = 1, Id = "123456789" });
         Assert.IsType<OkObjectResult>(await this._sut.GetByUid(1));
     }
     [Fact]
     public async Task GetByUidNotFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Nest?)null);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 999)).ReturnsAsync((Nest?)null);
         Assert.IsType<NotFoundResult>(await this._sut.GetByUid(999));
     }
     [Fact]
@@ -50,27 +50,27 @@ public class NestControllerTests : ControllerTestBase
     public async Task UpdateOk()
     {
         var e = new Nest { Uid = 1, Id = "123456789" };
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(e);
-        this._service.Setup(s => s.UpdateAsync(e)).ReturnsAsync(e);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 1)).ReturnsAsync(e);
+        this._service.Setup(s => s.UpdateAsync("123456789", e)).ReturnsAsync(e);
         Assert.IsType<OkObjectResult>(await this._sut.Update(1, new NestUpdate()));
     }
     [Fact]
     public async Task UpdateNotFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Nest?)null);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 999)).ReturnsAsync((Nest?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Update(999, new NestUpdate()));
     }
     [Fact]
     public async Task DeleteNoContent()
     {
-        this._service.Setup(s => s.GetByUidAsync(1)).ReturnsAsync(new Nest { Uid = 1, Id = "123456789" });
-        this._service.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 1)).ReturnsAsync(new Nest { Uid = 1, Id = "123456789" });
+        this._service.Setup(s => s.DeleteAsync("123456789", 1)).ReturnsAsync(true);
         Assert.IsType<NoContentResult>(await this._sut.Delete(1));
     }
     [Fact]
     public async Task DeleteNotFound()
     {
-        this._service.Setup(s => s.GetByUidAsync(999)).ReturnsAsync((Nest?)null);
+        this._service.Setup(s => s.GetByUidAsync("123456789", 999)).ReturnsAsync((Nest?)null);
         Assert.IsType<NotFoundResult>(await this._sut.Delete(999));
     }
     [Fact]

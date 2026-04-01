@@ -21,8 +21,8 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var quest = await this._questService.GetByUidAsync(uid);
-        if (quest == null || this.NotOwnedByCurrentUser(quest.Id))
+        var quest = await this._questService.GetByUidAsync(this.UserId, uid);
+        if (quest == null)
         {
             return this.NotFound();
         }
@@ -45,27 +45,27 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] QuestUpdate model)
     {
-        var existing = await this._questService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._questService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
         this._mapper.Map(model, existing);
-        var result = await this._questService.UpdateAsync(existing);
+        var result = await this._questService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._questService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._questService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
-        await this._questService.DeleteAsync(uid);
+        await this._questService.DeleteAsync(this.UserId, uid);
         return this.NoContent();
     }
 

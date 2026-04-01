@@ -6,11 +6,11 @@ PoracleWeb uses two separate MySQL databases and optionally connects to a third 
 
 ### PoracleContext
 
-The primary EF Core context connecting to the existing **Poracle database** managed by PoracleJS.
+The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
 
 - Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans`, `monsters`, `raid`, `quest`, `invasion`, `lure`, `nest`, `gym`, `egg`, `profile` tables
-- **Read-write** — PoracleWeb manages alarm filters and user settings but does not modify the schema
+- Contains: `humans`, `profiles` tables (direct access), plus alarm tables (read-only for legacy/fallback)
+- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct DB access is only used for admin bulk human operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`).
 
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
@@ -99,22 +99,10 @@ DTO model in `Core.Models` used by scanner gym search endpoints. Projected from 
 
 ### NULL string columns
 
-Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method in `BaseRepository` handles this in two passes:
+!!! info "Alarm entities no longer written directly"
+    Alarm tracking writes go through the PoracleNG API proxy, which handles NULL defaults via `cleanRow()`. The generic `BaseRepository` and its `EnsureNotNullDefaults()` method have been removed. Remaining direct-DB repositories (`HumanRepository` for admin ops, `poracle_web`-owned tables) handle null normalization as needed.
 
-1. **Non-nullable strings** (`string`): null values are set to `""` before saving to avoid MySQL `NOT NULL` constraint violations.
-2. **Nullable strings** (`string?`): empty-string values are normalized back to `null` before saving.
-
-The second pass addresses a `MySql.EntityFrameworkCore` provider quirk where null `string?` values may be stored as empty string on INSERT. Both property lists are cached as static arrays using `NullabilityInfoContext` for reflection performance.
-
-```csharp
-private static void EnsureNotNullDefaults(TEntity entity)
-{
-    // Pass 1: null → "" for non-nullable string properties
-    // Pass 2: "" → null for nullable string properties
-}
-```
-
-Call this before any save operation. It runs automatically in `CreateAsync`, `UpdateAsync`, and `CreateManyAsync`.
+Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. For the few remaining direct-DB writes (admin human operations), repositories handle null-to-empty-string normalization as needed.
 
 ### gym_id semantics
 
@@ -123,7 +111,7 @@ The `gym_id` column on alarm entities (`raid`, `egg`, `gym`) uses NULL vs non-NU
 - `gym_id = NULL` — general alarm, matches **all** gyms
 - `gym_id = '<id>'` — gym-specific alarm, matches only the gym with that ID
 
-An empty string (`''`) is **not** a valid value. It would be treated as a specific gym filter that matches nothing, silently breaking the alarm. The nullable string normalization in `EnsureNotNullDefaults` prevents this by converting any empty-string `gym_id` back to `null`.
+An empty string (`''`) is **not** a valid value. It would be treated as a specific gym filter that matches nothing, silently breaking the alarm. PoracleNG handles this normalization on its side for alarm writes.
 
 ## Site settings table
 

@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
-using Pgan.PoracleWebNet.Core.Abstractions.UnitsOfWork;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Repositories;
 using Pgan.PoracleWebNet.Core.Services;
-using Pgan.PoracleWebNet.Core.UnitsOfWork;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Scanner;
 
@@ -33,14 +31,6 @@ public static class ServiceCollectionExtensions
         services.AddAutoMapper(cfg => cfg.AddProfile<PoracleMappingProfile>());
 
         // Register Repositories
-        services.AddScoped<IMonsterRepository, MonsterRepository>();
-        services.AddScoped<IRaidRepository, RaidRepository>();
-        services.AddScoped<IEggRepository, EggRepository>();
-        services.AddScoped<IQuestRepository, QuestRepository>();
-        services.AddScoped<IInvasionRepository, InvasionRepository>();
-        services.AddScoped<ILureRepository, LureRepository>();
-        services.AddScoped<INestRepository, NestRepository>();
-        services.AddScoped<IGymRepository, GymRepository>();
         services.AddScoped<IHumanRepository, HumanRepository>();
         services.AddScoped<IProfileRepository, ProfileRepository>();
         services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
@@ -49,9 +39,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
-
-        // Register Unit of Work
-        services.AddScoped<IPoracleUnitOfWork, PoracleUnitOfWork>();
 
         // Register Services
         services.AddScoped<IMonsterService, MonsterService>();
@@ -83,8 +70,14 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IScannerService, RdmScannerService>();
         }
 
-        // Register HttpClient for Poracle API
+        // Register HttpClient for Poracle API (config, geofences, templates — read-only proxy)
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
+
+        // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
+        services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
+
+        // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
+        services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
 
         // Register Poracle Server settings and service (multi-server restart)
         services.Configure<PoracleServerSettings>(config =>

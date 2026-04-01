@@ -21,8 +21,8 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var gym = await this._gymService.GetByUidAsync(uid);
-        if (gym == null || this.NotOwnedByCurrentUser(gym.Id))
+        var gym = await this._gymService.GetByUidAsync(this.UserId, uid);
+        if (gym == null)
         {
             return this.NotFound();
         }
@@ -45,27 +45,27 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] GymUpdate model)
     {
-        var existing = await this._gymService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._gymService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
         this._mapper.Map(model, existing);
-        var result = await this._gymService.UpdateAsync(existing);
+        var result = await this._gymService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._gymService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._gymService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
-        await this._gymService.DeleteAsync(uid);
+        await this._gymService.DeleteAsync(this.UserId, uid);
         return this.NoContent();
     }
 

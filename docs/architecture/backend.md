@@ -1,69 +1,61 @@
 # Backend Patterns
 
-## Repository layer
+## Alarm services (PoracleNG API proxy)
 
-`BaseRepository<TEntity, TModel>` uses expression-based filters and AutoMapper projections.
+All alarm tracking services (`MonsterService`, `RaidService`, `EggService`, `QuestService`, `InvasionService`, `LureService`, `NestService`, `GymService`) use `IPoracleTrackingProxy` to proxy CRUD operations through the PoracleNG REST API. They do **not** use repositories or direct database access.
 
-### EnsureNotNullDefaults
+See [PoracleNG API Proxy](poracleng-proxy.md) for the full architecture, request flow, and how to add new alarm types.
 
-Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method sets null strings to `""` before saving to avoid constraint violations.
+### JSON serialization
 
-!!! note "Two-phase string normalization"
-    `EnsureNotNullDefaults()` performs two complementary steps using cached reflection via `NullabilityInfoContext`:
+Alarm data is serialized/deserialized with `JsonNamingPolicy.SnakeCaseLower` to match PoracleNG's snake_case field names:
 
-    1. **Non-nullable strings**: coerces `null` → `""` for `NOT NULL` columns that EF Core maps as `string`.
-    2. **Nullable strings**: coerces `""` → `null` for `string?` properties (e.g., `gym_id`, `template`).
+```csharp
+private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+{
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    PropertyNameCaseInsensitive = true,
+};
+```
 
-    Property lists are cached in static fields (`WritableNonNullableStringProperties` and `WritableNullableStringProperties`) so reflection runs once per entity type. The second step protects against `MySql.EntityFrameworkCore` converting `null` to empty string on INSERT, which would break Poracle's `NULL` vs empty-string semantics (e.g., `gym_id IS NULL` means "general alarm").
+### Update pattern
 
-### Targeted distance updates
+PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a `uid` field, it updates the existing alarm. Services use the same `CreateAsync` proxy method for both operations.
 
-`UpdateDistanceByUidsAsync()` does targeted distance-only SQL updates without touching other fields. Use this for bulk distance operations instead of the generic `UpdateAsync`.
+## Repository layer (non-alarm entities)
 
-## AutoMapper update models
+`HumanRepository` is used only for **admin bulk operations** (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) that lack PoracleNG API equivalents. Single-user human reads and writes go through `IPoracleHumanProxy`. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
 
-All `*Update` models (MonsterUpdate, RaidUpdate, etc.) use **nullable `int?`** properties so partial updates don't zero out unset fields.
+!!! note "`BaseRepository` removed"
+    The generic `BaseRepository<TEntity, TModel>` and all alarm repository classes have been removed. `EnsureNotNullDefaults()` is no longer needed -- PoracleNG handles NULL defaults for alarm writes, and the remaining repositories handle null normalization as needed.
+
+## AutoMapper (non-alarm entities only)
+
+AutoMapper is used for `humans` and `profiles` entities. Alarm tracking data flows as raw JSON through the PoracleNG API proxy and does not use AutoMapper.
+
+All `*Update` models for non-alarm entities use **nullable `int?`** properties so partial updates don't zero out unset fields.
 
 ```csharp
 // The mapping profile skips null properties
 .ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null))
 ```
 
-!!! danger "Full object spread required"
-    When calling the PUT `/{uid}` endpoint from the frontend, always spread the full alarm object:
+## Alarm field defaults
 
-    ```typescript
-    // ✅ Correct — preserves all existing fields
-    this.http.put(`/api/pokemon/${uid}`, { ...alarm, distance });
+PoracleNG's `cleanRow()` function applies field defaults on every create/update. PoracleWeb no longer needs to manage alarm defaults directly. However, the frontend still sends sensible initial values to avoid confusing the user when the add dialog opens:
 
-    // ❌ Wrong — zeros out clean, template, filter settings
-    this.http.put(`/api/pokemon/${uid}`, { distance });
-    ```
-
-## AutoMapper create model defaults
-
-`*Create` models (MonsterCreate, RaidCreate, etc.) must have **property defaults that match the PHP PoracleWeb defaults** used by the original project. Without these defaults, AutoMapper maps C# zero-values onto the entity, overwriting the database column defaults that Poracle expects.
-
-Key defaults on create models:
-
-| Property | Default | Notes |
+| Property | Frontend default | Notes |
 |---|---|---|
-| `MaxIv` | 100 | |
-| `MaxCp` | 9000 | |
-| `MaxLevel` | 55 | |
-| `MaxWeight` | 9000000 | |
-| `MaxAtk` | 15 | |
-| `MaxDef` | 15 | |
-| `MaxSta` | 15 | |
-| `PvpRankingWorst` | 4096 | |
-| `Size` | -1 | Means "any size" |
-| `MaxSize` | 5 | |
-| `Team` (Raid/Egg) | 4 | Means "any team" |
-| `Move` (Raid) | 9000 | Means "any move" |
-| `Evolution` (Raid) | 9000 | Means "any evolution" |
+| `max_iv` | 100 | |
+| `max_cp` | 9000 | |
+| `max_level` | 55 | |
+| `size` | -1 | Means "any size" |
+| `team` (Raid/Egg/Gym) | 4 | Means "any team" |
+| `move` (Raid) | 9000 | Means "any move" |
+| `evolution` (Raid) | 9000 | Means "any evolution" |
 
-!!! danger "Forgetting a default silently breaks filters"
-    If a create model property defaults to `0` (C#'s `int` default) instead of the expected Poracle default, AutoMapper writes `0` to the entity. The alarm is saved but the filter is silently too restrictive or non-functional — e.g., `MaxIv=0` means nothing ever matches.
+!!! info "Defaults are now enforced server-side"
+    Even if the frontend sends incomplete data, PoracleNG's `cleanRow()` fills in proper defaults. This eliminates the class of bugs where missing C# model defaults caused silent filter breakage.
 
 ## Invasion service
 
@@ -81,11 +73,28 @@ Each alarm controller has three distance endpoints:
 | `PUT /distance` | Update ALL alarms' distance for the current user/profile |
 | `PUT /distance/bulk` | Update distance for specific UIDs: `{ uids: number[], distance: number }` |
 
-The `/distance/bulk` endpoint does a targeted `SetDistance()` on matching entities, bypassing AutoMapper entirely — safe for bulk operations.
+All three endpoints go through the PoracleNG API proxy. Bulk distance updates fetch all alarms via `GET`, modify the distance field in memory, then POST the updated alarms back. This is a workaround until PoracleNG adds dedicated bulk distance endpoints (see [enhancement requests](../poracleng-enhancement-requests.md)).
 
-## Poracle API proxy
+## Poracle API proxies
 
-`IPoracleApiProxy` / `PoracleApiProxy` wraps HttpClient calls to the external Poracle REST API.
+### IPoracleTrackingProxy (alarm tracking)
+
+Proxies all alarm CRUD operations to PoracleNG's `/api/tracking/*` endpoints. Authenticated via `X-Poracle-Secret` header. See [PoracleNG API Proxy](poracleng-proxy.md) for full details.
+
+- Registered via `AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>()`
+- Used by: all alarm services, `DashboardService`, `CleaningService`
+
+### IPoracleHumanProxy (human/profile management)
+
+Proxies single-user human and profile operations to PoracleNG's `/api/humans/*` and `/api/profiles/*` endpoints. Handles user reads, creation, location setting, area updates, profile switching, and profile CRUD.
+
+- Registered via `AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>()`
+- Used by: `HumanService`, `LocationController`, `AreaController`, `ProfileController`, `UserGeofenceService`
+- URL-encodes user IDs with `Uri.EscapeDataString()` -- critical for webhook IDs that contain slashes
+
+### IPoracleApiProxy (config, areas, templates)
+
+Wraps HttpClient calls for non-tracking Poracle API operations.
 
 - Used for: fetching config, areas/geofences, templates, sending commands
 - Registered via `AddHttpClient<IPoracleApiProxy, PoracleApiProxy>()`
@@ -96,13 +105,13 @@ The `/distance/bulk` endpoint does a targeted `SetDistance()` on matching entiti
 
 ## Areas
 
-User areas are stored as JSON arrays in the `humans.area` column:
-
-```json
-["west end", "downtown"]
-```
+User areas are managed through `IPoracleHumanProxy.SetAreasAsync()`. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally.
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
+
+## Location
+
+`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. No direct DB access or transactions are needed -- PoracleNG handles the write and state reload atomically.
 
 ## Service lifetimes
 
@@ -111,8 +120,8 @@ Geofence polygons come from the Poracle API (via the unified feed), not the data
 | Most services | **Scoped** | Per-request |
 | `MasterDataService` | **Singleton** | Cached game data |
 
-!!! warning "DbContext is not thread-safe"
-    `DashboardService` runs sequential DB queries (not `Task.WhenAll`) because it uses a single scoped `DbContext` instance.
+!!! info "DashboardService uses the proxy"
+    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.
 
 ## Profiles
 

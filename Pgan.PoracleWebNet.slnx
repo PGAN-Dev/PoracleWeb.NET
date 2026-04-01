@@ -9,7 +9,6 @@
     <Project Path="Core/Pgan.PoracleWebNet.Core.Models/Pgan.PoracleWebNet.Core.Models.csproj" />
     <Project Path="Core/Pgan.PoracleWebNet.Core.Repositories/Pgan.PoracleWebNet.Core.Repositories.csproj" />
     <Project Path="Core/Pgan.PoracleWebNet.Core.Services/Pgan.PoracleWebNet.Core.Services.csproj" />
-    <Project Path="Core/Pgan.PoracleWebNet.Core.UnitsOfWork/Pgan.PoracleWebNet.Core.UnitsOfWork.csproj" />
   </Folder>
   <Folder Name="/Data/">
     <Project Path="Data/Pgan.PoracleWebNet.Data.Scanner/Pgan.PoracleWebNet.Data.Scanner.csproj" />

@@ -1,31 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
-using Pgan.PoracleWebNet.Data;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
-public class LocationControllerTests : ControllerTestBase, IDisposable
+public class LocationControllerTests : ControllerTestBase
 {
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IProfileService> _profileService = new();
+    private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
-    private readonly PoracleContext _dbContext;
     private readonly LocationController _sut;
 
     public LocationControllerTests()
     {
-        var options = new DbContextOptionsBuilder<PoracleContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
-            .Options;
-        this._dbContext = new PoracleContext(options);
-        this._sut = new LocationController(this._humanService.Object, this._profileService.Object, this._proxy.Object, this._httpClientFactory.Object, this._dbContext);
+        this._sut = new LocationController(
+            this._humanService.Object,
+            this._profileService.Object,
+            this._humanProxy.Object,
+            this._proxy.Object,
+            this._httpClientFactory.Object);
         SetupUser(this._sut);
     }
 
@@ -66,48 +63,21 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
     // --- UpdateLocation ---
 
     [Fact]
-    public async Task UpdateLocationUpdatesCoordinates()
+    public async Task UpdateLocationCallsProxySetLocation()
     {
-        var profile = new Profile { Id = "123456789", ProfileNo = 1, Latitude = 0, Longitude = 0 };
         var human = new Human { Id = "123456789", Latitude = 0, Longitude = 0 };
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
-        this._profileService.Setup(s => s.UpdateAsync(profile)).ReturnsAsync(profile);
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
         var result = await this._sut.UpdateLocation(
             new LocationController.LocationUpdateRequest { Latitude = 51.5074, Longitude = -0.1278 });
 
         Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(51.5074, profile.Latitude);
-        Assert.Equal(-0.1278, profile.Longitude);
-        Assert.Equal(51.5074, human.Latitude);
-        Assert.Equal(-0.1278, human.Longitude);
+        this._humanProxy.Verify(p => p.SetLocationAsync("123456789", 51.5074, -0.1278), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateLocationAutoCreatesProfileWhenMissing()
+    public async Task UpdateLocationReturnsNotFoundWhenHumanMissing()
     {
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
-        var human = new Human { Id = "123456789", Name = "testuser", Area = "[]", Latitude = 0, Longitude = 0 };
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        this._profileService.Setup(s => s.CreateAsync(It.IsAny<Profile>()))
-            .ReturnsAsync((Profile p) => p);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
-
-        var result = await this._sut.UpdateLocation(
-            new LocationController.LocationUpdateRequest { Latitude = 51.5, Longitude = -0.12 });
-
-        Assert.IsType<OkObjectResult>(result);
-        this._profileService.Verify(s => s.CreateAsync(It.Is<Profile>(p => p.Id == "123456789" && p.ProfileNo == 1)), Times.Once);
-        Assert.Equal(51.5, human.Latitude);
-        Assert.Equal(-0.12, human.Longitude);
-    }
-
-    [Fact]
-    public async Task UpdateLocationReturnsNotFoundWhenProfileAndHumanMissing()
-    {
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
 
         Assert.IsType<NotFoundResult>(
@@ -217,6 +187,4 @@ public class LocationControllerTests : ControllerTestBase, IDisposable
             .ThrowsAsync(new InvalidOperationException());
         Assert.IsType<NotFoundResult>(await this._sut.GetDistanceMap(0, 0, 0));
     }
-
-    public void Dispose() => GC.SuppressFinalize(this);
 }

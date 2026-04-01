@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -15,10 +16,12 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public class ProfileController(
     IProfileService profileService,
     IHumanService humanService,
+    IPoracleHumanProxy humanProxy,
     IOptions<JwtSettings> jwtSettings) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
+    private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
     [HttpGet]
@@ -46,7 +49,18 @@ public class ProfileController(
         var maxNo = existing.Any() ? existing.Max(p => p.ProfileNo) : 0;
         profile.ProfileNo = maxNo + 1;
 
-        var result = await this._profileService.CreateAsync(profile);
+        var body = JsonSerializer.SerializeToElement(new
+        {
+            name = profile.Name,
+            profileNo = profile.ProfileNo,
+            area = profile.Area ?? "[]",
+            latitude = profile.Latitude,
+            longitude = profile.Longitude
+        });
+        await this._humanProxy.AddProfileAsync(this.UserId, body);
+
+        // Re-read the created profile from the DB so we return the full model
+        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profile.ProfileNo);
         return this.CreatedAtAction(nameof(GetAll), result);
     }
 
@@ -59,8 +73,15 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        existing.Name = profile.Name;
-        var result = await this._profileService.UpdateAsync(existing);
+        var body = JsonSerializer.SerializeToElement(new
+        {
+            profileNo,
+            name = profile.Name
+        });
+        await this._humanProxy.UpdateProfileAsync(this.UserId, body);
+
+        // Re-read to return the updated model
+        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
         return this.Ok(result);
     }
 
@@ -73,26 +94,10 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
-        {
-            return this.NotFound();
-        }
-
-        // Save current humans.area to the old profile's profiles.area
-        var oldProfile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
-        if (oldProfile != null)
-        {
-            oldProfile.Area = human.Area ?? "[]";
-            await this._profileService.UpdateAsync(oldProfile);
-        }
-
-        // Load new profile's areas into humans.area
-        human.CurrentProfileNo = profileNo;
-        human.Latitude = profile.Latitude;
-        human.Longitude = profile.Longitude;
-        human.Area = profile.Area ?? "[]";
-        await this._humanService.UpdateAsync(human);
+        // PoracleNG handles the area save/load dual-write atomically:
+        // saves current humans.area → old profiles.area, loads new profiles.area → humans.area,
+        // and updates humans.current_profile_no + lat/lon in a single operation.
+        await this._humanProxy.SwitchProfileAsync(this.UserId, profileNo);
 
         // Issue a new JWT with the updated profileNo so all subsequent API calls use it
         var newToken = this.GenerateTokenWithProfile(profileNo);
@@ -107,11 +112,15 @@ public class ProfileController(
     [HttpDelete("{profileNo:int}")]
     public async Task<IActionResult> Delete(int profileNo)
     {
-        var success = await this._profileService.DeleteAsync(this.UserId, profileNo);
-        if (!success)
+        var existing = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
+        if (existing == null)
         {
             return this.NotFound();
         }
+
+        // PoracleNG cascade-deletes alarms scoped to (id, profile_no) and
+        // reassigns humans.current_profile_no if the active profile is deleted.
+        await this._humanProxy.DeleteProfileAsync(this.UserId, profileNo);
 
         return this.NoContent();
     }

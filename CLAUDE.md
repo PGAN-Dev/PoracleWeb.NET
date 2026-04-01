@@ -10,7 +10,7 @@ This is a full-stack web application for configuring Pokemon GO DM notification 
 
 - **Backend**: .NET 10, ASP.NET Core Web API, EF Core with MySQL (Oracle provider -- `MySql.EntityFrameworkCore`, NOT Pomelo)
 - **Frontend**: Angular 21, standalone components with `inject()` and signals, Angular Material 21 (Material Design 3)
-- **Mapping**: AutoMapper for Entity-to-Model conversions
+- **Mapping**: AutoMapper for Entity-to-Model conversions (Human, Profile, PoracleWeb-owned tables only -- alarm CRUD uses JSON via PoracleNG proxy)
 - **Maps**: Leaflet 1.9 for interactive geofence display
 - **Auth**: JWT bearer tokens, Discord OAuth2, Telegram Bot Login
 - **Testing**: Jest (frontend), xUnit (backend)
@@ -21,17 +21,19 @@ This is a full-stack web application for configuring Pokemon GO DM notification 
 Pgan.PoracleWebNet.slnx
 |
 +-- Core/
-|   +-- Core.Abstractions/       Interfaces: IRepository, IService, IUnitOfWork
+|   +-- Core.Abstractions/       Interfaces: IRepository, IService, IPoracleTrackingProxy,
+|   |                            IPoracleHumanProxy
 |   +-- Core.Models/             DTOs passed between layers (not EF entities)
-|   +-- Core.Mappings/           AutoMapper PoracleMappingProfile
-|   +-- Core.Repositories/       BaseRepository<TEntity, TModel> implementations,
+|   +-- Core.Mappings/           AutoMapper PoracleMappingProfile (Human, Profile,
+|   |                            PoracleWeb-owned tables; alarm Create/Update DTOs)
+|   +-- Core.Repositories/       HumanRepository, ProfileRepository,
 |   |                            SiteSettingRepository, WebhookDelegateRepository,
 |   |                            QuickPickDefinitionRepository, QuickPickAppliedStateRepository
 |   +-- Core.Services/           Business logic (MonsterService, DashboardService,
 |   |                            UserGeofenceService, KojiService, SiteSettingService,
 |   |                            WebhookDelegateService, QuickPickService,
-|   |                            DiscordNotificationService, PoracleServerService, etc.)
-|   +-- Core.UnitsOfWork/        PoracleUnitOfWork wrapping DbContext.SaveChangesAsync()
+|   |                            DiscordNotificationService, PoracleServerService,
+|   |                            PoracleTrackingProxy, PoracleHumanProxy, etc.)
 |
 +-- Data/
 |   +-- Data/                    PoracleContext (EF Core), PoracleWebContext (app-owned DB),
@@ -70,28 +72,33 @@ Pgan.PoracleWebNet.slnx
 
 ## Key Patterns
 
+### PoracleNG API Proxy Layer
+- **All alarm CRUD** (Monster, Raid, Egg, Quest, Invasion, Lure, Nest, Gym) is proxied through PoracleNG's REST API via `IPoracleTrackingProxy`. Services no longer use repositories or direct DB writes for alarm operations.
+- **Human/Profile management** is proxied through `IPoracleHumanProxy` for single-user operations (get, create, start/stop, set location, set areas, switch profile). Admin bulk operations (get all users, delete user) still use `IHumanRepository` directly.
+- Both proxies are registered via `AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>()` and `AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>()`.
+- Authentication uses the `X-Poracle-Secret` header on every request (from `Poracle:ApiSecret` config).
+- **Snake_case JSON**: Proxy classes use `JsonNamingPolicy.SnakeCaseLower` for serialization/deserialization, matching PoracleNG's wire format.
+- **`?silent=true`**: Tracking create requests append `?silent=true` to suppress Discord confirmation messages from PoracleNG.
+- **`TrackingCreateResult`**: PoracleNG returns `{ newUids, alreadyPresent, updates, insert }` from creates. The `TrackingCreateResult` record captures this so services can assign the UID back to the created model.
+- **HumanService is proxy-first**: All single-user ops (`GetByIdAsync`, `ExistsAsync`, `CreateAsync`, `DeleteAllAlarms`, `StartAsync`, `StopAsync`, `SetLocationAsync`) go through `IPoracleHumanProxy` with no DB fallback -- proxy errors propagate to the caller. Admin bulk ops (`GetAllAsync`, `DeleteUserAsync`) remain direct DB because PoracleNG has no admin-list or admin-delete endpoints.
+- **ProfileService is proxy-first**: Single-user reads (`GetByUserAsync`, `GetByUserAndProfileNoAsync`) and all CRUD go through `IPoracleHumanProxy`. No DB fallback -- proxy errors propagate.
+- **PoracleNG handles**: field defaults (template, PVP, size, etc.), dedup detection, immediate state reload on every mutation, grunt_type normalization, area dual-writes on profile switch.
+
 ### Repository Layer
-- `BaseRepository<TEntity, TModel>` uses expression-based filters and AutoMapper projections.
-- `EnsureNotNullDefaults()` method handles MySQL `NOT NULL` text columns that EF Core maps as nullable strings. Call this before saving to avoid constraint violations. It also normalizes empty-string `string?` properties back to `null` via the `WritableNullableStringProperties` reflection cache, protecting against `MySql.EntityFrameworkCore` silently converting `null` to `""` on INSERT.
-- `UpdateDistanceByUidsAsync()` does targeted distance-only SQL updates without touching other fields -- use this for bulk distance operations instead of the generic `UpdateAsync`.
+- Repositories remain for **non-alarm** data: `HumanRepository` (admin bulk ops only -- `GetAllAsync`, `DeleteUserAsync`), `ProfileRepository` (admin bulk ops and non-active profile cleanup in `UserGeofenceService`), and all PoracleWeb-owned tables (`SiteSettingRepository`, `WebhookDelegateRepository`, `UserGeofenceRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`). Single-user human and profile reads/writes are fully proxied through `IPoracleHumanProxy`.
+- **Removed**: 8 alarm repository classes (MonsterRepository, RaidRepository, etc.), `BaseRepository<TEntity, TModel>`, `PoracleUnitOfWork`, `IUnitOfWork`, and all alarm repository interfaces. `EnsureNotNullDefaults()` is no longer needed for alarm writes (PoracleNG handles NULL defaults).
 
-### AutoMapper Update Models
-- All `*Update` models (MonsterUpdate, RaidUpdate, etc.) use **nullable `int?`** properties so partial updates don't zero out unset fields.
-- The mapping profile uses `.ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null))` to skip null properties.
-- **Important**: When calling the PUT `/{uid}` endpoint from the frontend, always spread the full alarm object (`{ ...alarm, distance }`) rather than sending a partial `{ distance }`. This ensures existing values like `clean`, `template`, and filter settings are preserved.
-- **Create model defaults**: `*Create` models must also declare defaults that match the PHP PoracleWeb / Poracle entity defaults. C# `int` defaults to `0`, which is wrong for most filter fields. Key monster defaults: `Size = -1`, `MaxSize = 5`, `MaxIv = 100`, `MaxCp = 9000`, `MaxLevel = 55`, `MaxWeight = 9000000`, `MaxAtk = 15`, `MaxDef = 15`, `MaxSta = 15`, `PvpRankingWorst = 4096`. Raid/Egg/Gym: `Team = 4`. Raid: `Move = 9000`, `Evolution = 9000`.
-
-### Alarm Field Mappings
-- **Raid**: Maps `move`, `evolution`, `exclusive`, `gym_id`, `rsvp_changes` in addition to standard filter fields.
-- **Egg**: Maps `exclusive`, `gym_id`, `rsvp_changes`.
-- **Gym**: Maps `battle_changes`, `gym_id`.
-- **Invasion**: `InvasionService` lowercases `grunt_type` on create to match Poracle's case-sensitive lookup.
+### AutoMapper
+- AutoMapper is still used for **Entity-to-Model** conversions on `Human`, `Profile`, and PoracleWeb-owned tables (`UserGeofence`, `SiteSetting`, `WebhookDelegate`, `QuickPickDefinition`, `QuickPickAppliedState`).
+- Alarm `*Create` and `*Update` model mappings remain in the profile for controller-level DTO mapping, but are no longer used for Entity writes.
+- The `ForAllMembers` null-skip condition on `*Update` mappings is still active for DTO merging.
 
 ### Bulk Operations
 - Each alarm controller has three distance endpoints:
-  - `PUT /{uid}` -- Update a single alarm (full object)
-  - `PUT /distance` -- Update ALL alarms' distance for the current user/profile
-  - `PUT /distance/bulk` -- Update distance for specific UIDs: `{ uids: number[], distance: number }`. This does a targeted `SetDistance()` on matching entities, bypassing AutoMapper entirely -- safe for bulk operations.
+  - `PUT /{uid}` -- Update a single alarm (full object, sent to PoracleNG as a create-with-uid which performs an upsert)
+  - `PUT /distance` -- Update ALL alarms' distance for the current user/profile (fetch-mutate-POST pattern)
+  - `PUT /distance/bulk` -- Update distance for specific UIDs (fetch-mutate-POST pattern)
+- **CleaningService** uses a fetch-mutate-POST workaround: fetches all alarms of a type, sets the `clean` flag on each, and POSTs them back. PoracleNG has no dedicated bulk-clean endpoint yet.
 
 ### Settings Architecture
 - Site settings are stored in typed columns in `poracle_web.site_settings` with categories (branding, features, alarms, admin, etc.) and typed values.
@@ -100,10 +107,10 @@ Pgan.PoracleWebNet.slnx
 - Quick pick definitions use `poracle_web.quick_pick_definitions` with JSON columns for filter definitions. Applied state is tracked in `poracle_web.quick_pick_applied_states` per user/profile, replacing the old `quick_pick:`, `user_quick_pick:`, and `qp_applied:` key prefix patterns.
 - On first startup after upgrade, `SettingsMigrationStartupService` automatically migrates data from `pweb_settings` to the structured tables. This is idempotent and safe to run multiple times.
 
-### Poracle API Proxy
-- `IPoracleApiProxy` / `PoracleApiProxy` wraps HttpClient calls to the external Poracle REST API.
-- Used for: fetching config, areas/geofences, templates, sending commands.
+### Poracle API Proxy (Config/Read-Only)
+- `IPoracleApiProxy` / `PoracleApiProxy` wraps HttpClient calls to the external Poracle REST API for **read-only** operations: fetching config, geofence definitions, templates, sending commands.
 - Registered via `AddHttpClient<IPoracleApiProxy, PoracleApiProxy>()`.
+- **Not used for alarm CRUD or human/profile writes** -- those go through `IPoracleTrackingProxy` and `IPoracleHumanProxy` respectively (see "PoracleNG API Proxy Layer" above).
 
 ### Poracle Config Parsing
 - `PoracleConfig` is parsed from Poracle's JSON configuration.
@@ -111,13 +118,13 @@ Pgan.PoracleWebNet.slnx
 
 ### Areas and Profile-Scoped Storage
 - Area subscriptions are **profile-scoped**. Each profile has its own set of selected areas.
-- **Two storage locations** are kept in sync:
-  - `profiles.area` — the authoritative per-profile storage. Each row in the `profiles` table stores a JSON array of area names for that specific profile (e.g., `["west end", "downtown"]`).
-  - `humans.area` — PoracleJS's working copy for the **currently active** profile. PoracleJS reads this field for notification matching. It is always a mirror of the active profile's `profiles.area`.
-- **Reading**: `GET /api/areas` reads from `profiles.area` for the current profile (identified by `profileNo` in the JWT). Falls back to `humans.area` if the profile record is missing (legacy users).
-- **Writing**: `PUT /api/areas` writes to **both** `humans.area` and `profiles.area` for the current profile. All internal area mutations (`AddAreaToHumanAsync`, `RemoveAreaFromHumanAsync`) also dual-write to both tables.
-- **Profile switch**: `SwitchProfile` saves `humans.area` to the old profile's `profiles.area`, then loads the new profile's `profiles.area` into `humans.area`. This keeps PoracleJS in sync without requiring PoracleJS to understand profiles.
-- **Important**: Never write to `humans.area` alone — always update `profiles.area` in tandem, or the change will be lost on the next profile switch.
+- **Two storage locations** are kept in sync by PoracleNG:
+  - `profiles.area` — the authoritative per-profile storage.
+  - `humans.area` — the working copy for the currently active profile.
+- **Reading**: `GET /api/areas` reads from the PoracleNG human proxy (`GetAreasAsync`), which returns the active profile's areas.
+- **Writing**: `PUT /api/areas` calls `IPoracleHumanProxy.SetAreasAsync()` -- a single atomic call. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally.
+- **Profile switch**: `SwitchProfile` calls `IPoracleHumanProxy.SwitchProfileAsync()` -- a single atomic call. PoracleNG handles saving areas to the old profile and loading areas from the new profile.
+- **Important**: Area dual-writes are now PoracleNG's responsibility. PoracleWeb no longer writes to `humans.area` or `profiles.area` directly for standard area operations. Custom geofence activate/deactivate still uses `SetAreasAsync` through the proxy.
 - Geofence polygons come from the Poracle API, not the database.
 
 ### Custom Geofences
@@ -126,7 +133,7 @@ Pgan.PoracleWebNet.slnx
 - **Per-profile toggle**: Users can activate or deactivate a geofence for the current profile via a slide toggle in the geofence list UI, without recreating the geofence. This calls `POST /api/geofences/custom/{id}/activate` or `POST /api/geofences/custom/{id}/deactivate`, which delegate to `AddToProfileAsync` / `RemoveFromProfileAsync` in `UserGeofenceService`. Both endpoints validate ownership before modifying areas.
 - **Toggle visibility**: The slide toggle is hidden for `approved` geofences — once promoted to a public area in Koji, users manage them via the standard Areas page instead.
 - **Creation**: `CreateAsync` stores the geofence in `user_geofences` and adds its `kojiName` to the **current** profile's area list (both `humans.area` and `profiles.area`). The geofence appears as active on the creating profile and inactive on all others.
-- **Deletion**: `DeleteAsync` removes the geofence's `kojiName` from **all** profiles (`humans.area` for the active profile + every `profiles.area` entry), then deletes the `user_geofences` row and reloads Poracle geofences. `AdminDeleteAsync` does the same but looks up the owning user's actual `CurrentProfileNo` instead of hardcoding a profile number.
+- **Deletion**: `DeleteAsync` removes the geofence's `kojiName` from **all** profiles: the active profile's areas via `IPoracleHumanProxy.SetAreasAsync()` (proxy), and non-active profiles via direct `IProfileRepository` DB writes. Then deletes the `user_geofences` row and reloads Poracle geofences. `AdminDeleteAsync` does the same but looks up the owning user's actual `CurrentProfileNo` instead of hardcoding a profile number.
 - **PoracleWeb is the single geofence source for PoracleJS.** The `GET /api/geofence-feed` endpoint (`[AllowAnonymous]`, intended for internal network access) serves a unified feed that merges admin geofences from Koji with user-drawn geofences from the PoracleWeb database. No custom code is needed in PoracleJS or Koji -- standard upstream versions work.
 - PoracleJS `geofence.path` config is a single URL pointing to PoracleWeb (not an array, not dual Koji+PoracleWeb sources). PoracleJS does not connect to Koji directly for geofences.
 - Admin geofences are fetched from Koji via the `/geofence/poracle/{projectName}` endpoint, with group names resolved from the Koji parent chain. They are served with `displayInMatches: true` and `group` populated. Results are cached for 5 minutes (`IMemoryCache` with `TimeSpan.FromMinutes(5)` TTL). The cache is invalidated when a geofence is approved/promoted to Koji.
@@ -167,13 +174,12 @@ Pgan.PoracleWebNet.slnx
 
 ### Profiles
 - `humans.current_profile_no` (not `profile_no`) tracks the active profile.
-- All alarm tables reference `profile_no` to filter by active profile.
-- **Area storage**: Each profile stores its own area list in `profiles.area`. The active profile's areas are also mirrored in `humans.area` for PoracleJS compatibility (see "Areas and Profile-Scoped Storage").
+- All alarm tables reference `profile_no` to filter by active profile. PoracleNG scopes tracking queries to the active profile automatically.
+- **Area storage**: Each profile stores its own area list in `profiles.area`. The active profile's areas are also mirrored in `humans.area` for PoracleNG compatibility (see "Areas and Profile-Scoped Storage").
 - **Profile switch lifecycle** (`ProfileController.SwitchProfile`):
-  1. Saves current `humans.area` → old profile's `profiles.area` (preserves outgoing profile)
-  2. Loads new profile's `profiles.area` → `humans.area` (activates incoming profile)
-  3. Updates `humans.current_profile_no`, lat/lng
-  4. Issues a new JWT with the updated `profileNo`
+  1. Calls `IPoracleHumanProxy.SwitchProfileAsync(userId, profileNo)` -- a single atomic call that handles saving/loading areas and updating `current_profile_no`.
+  2. Issues a new JWT with the updated `profileNo`.
+- Profile CRUD (add, update, delete, list) is proxied through `IPoracleHumanProxy`.
 - **Custom geofences and profiles**: Geofences are user-scoped (not profile-scoped), but their area subscriptions are profile-scoped. A user can activate/deactivate a geofence per profile via the toggle UI without affecting other profiles. Deleting a geofence removes it from all profiles.
 
 ### Rate Limiting
@@ -195,7 +201,7 @@ Pgan.PoracleWebNet.slnx
 
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
-- `DashboardService` runs sequential DB queries (not `Task.WhenAll`) because it uses a single scoped `DbContext` instance which is not thread-safe.
+- `DashboardService` now uses a single `GetAllTrackingAsync` call to PoracleNG instead of 8 separate DB count queries.
 - Swagger/OpenAPI is available in the development environment.
 
 ### Angular Patterns
@@ -220,7 +226,7 @@ Pgan.PoracleWebNet.slnx
 
 - **Secrets**: `appsettings.Development.json` (gitignored) holds all connection strings, JWT secret, Discord/Telegram credentials, Poracle API address/secret.
 - **Docker**: Environment variables configured in `.env` file, mapped in `docker-compose.yml`.
-- **Poracle API**: Address comes from `appsettings.json` `Poracle:ApiAddress`. (**Deprecated**: previously also read from the `pweb_settings` table in the Poracle DB; now stored in `poracle_web.site_settings`.)
+- **Poracle API** (critical for all writes): `Poracle:ApiAddress` and `Poracle:ApiSecret` are required for the application to function. All alarm CRUD, human/profile management, area updates, and profile switches are proxied through the PoracleNG REST API. If the API is unreachable, all alarm, human, and profile operations will fail (no DB fallback). (**Deprecated**: previously also read from the `pweb_settings` table in the Poracle DB; now stored in `poracle_web.site_settings`.)
 - **Site Settings**: Admin-configurable settings (custom title, feature flags, etc.) are stored in `poracle_web.site_settings`. On first startup after upgrade, `SettingsMigrationStartupService` migrates any existing data from the deprecated `pweb_settings` table automatically.
 - **Discord Bot Token**: Sourced from PoracleJS server's `config/local-discord.json`.
 - **Admin IDs**: Comma-separated Discord user IDs in `Poracle:AdminIds`.
@@ -241,7 +247,7 @@ Pgan.PoracleWebNet.slnx
 Pomelo MySQL provider (`Pomelo.EntityFrameworkCore.MySql`) is **incompatible** with EF Core 10. This project uses `MySql.EntityFrameworkCore` (Oracle's official provider). Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
 
 ### NULL String Columns
-Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method in `BaseRepository` sets null strings to `""` before saving.
+Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core maps them as `string?`. For alarm writes, this is handled by PoracleNG. For remaining direct DB writes (Human, Profile, PoracleWeb-owned tables), repositories handle null normalization as needed.
 
 ### Discord API
 - Use `discordapp.com` (not `discord.com`) for API calls -- `discord.com` is blocked by Cloudflare in some server environments.
@@ -254,13 +260,13 @@ Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core ma
 The `ScannerDb` connection string is optional. If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses. The gym search endpoints (`GET /api/scanner/gyms?search=` and `GET /api/scanner/gyms/{id}`) gracefully return empty results when the scanner DB is unavailable, and the `GymPickerComponent` hides itself in the UI.
 
 ### Bulk Update Preserving Fields
-When updating alarms in bulk, **never** send partial objects to `PUT /{uid}`. AutoMapper maps all fields from the Update model onto the existing entity -- `int` properties default to `0` when absent from JSON, which overwrites existing values like `clean` and filter settings. Use the dedicated `PUT /distance/bulk` endpoint for distance changes, or spread the full alarm: `{ ...alarm, distance }`.
+When updating alarms, the frontend still sends full alarm objects to `PUT /{uid}`. The backend now proxies these to PoracleNG's create endpoint (which performs an upsert when a `uid` is present). PoracleNG handles field defaults, so the risk of zeroing out fields is lower than with direct DB writes, but sending the full object remains best practice.
 
 ### Discord API Version for Geofence Notifications
 Use `discordapp.com/api/v9` (not v10) -- v10 is not supported on the `discordapp.com` domain. The `DiscordNotificationService` HttpClient is configured with base address `https://discordapp.com/api/v9/`.
 
 ### Poracle Area Case Sensitivity
-Poracle does **case-sensitive** area matching. Geofence names stored in `humans.area`, `profiles.area`, and the `kojiName` field in `user_geofences` must always be lowercase. The `UserGeofenceService.CreateAsync()` method enforces this with `ToLowerInvariant()`. All area mutation methods (`AddAreaToHumanAsync`, `RemoveAreaFromHumanAsync`, `AreaController.UpdateAreas`) normalize to lowercase before storing.
+Poracle does **case-sensitive** area matching. Geofence names stored in `humans.area`, `profiles.area`, and the `kojiName` field in `user_geofences` must always be lowercase. The `UserGeofenceService.CreateAsync()` method enforces this with `ToLowerInvariant()`. Area updates via `IPoracleHumanProxy.SetAreasAsync()` normalize to lowercase before sending to PoracleNG.
 
 ### Koji displayInMatches Limitation
 Koji's `displayInMatches` custom property is not reliably honored by all Poracle format serializers. To ensure user geofence names are hidden from DMs, serve user geofences from the PoracleWeb feed endpoint (`/api/geofence-feed`) instead of pushing them to Koji. Only promote to Koji when an admin approves a geofence for public use.
@@ -272,10 +278,22 @@ On first startup after upgrade, the `SettingsMigrationStartupService` automatica
 `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK('__EFMigrationsLock', -1)` which returns NULL on MariaDB (infinite timeout not supported), causing `System.InvalidCastException`. The `MariaDbHistoryRepository` class overrides the lock acquisition to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
 
 ### Gym ID NULL vs Empty String
-The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` string that defaults to `""` (empty string) meaning "any gym". When the frontend sends `gym_id: null`, `EnsureNotNullDefaults()` normalizes it to `""`. Do not confuse `null` (no gym filter) with a specific gym ID string. The `GymPickerComponent` emits `null` when cleared and the gym's `id` string when selected.
+The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` string that defaults to `""` (empty string) meaning "any gym". PoracleNG handles the null-to-empty normalization on its side. The `GymPickerComponent` emits `null` when cleared and the gym's `id` string when selected.
 
 ### Monster Filter Defaults
-C# `int` properties default to `0`, which silently breaks Poracle filters if Create model defaults are missing or wrong. For example, `Size = 0` means "tiny" in Poracle, but `Size = -1` means "no size filter" -- omitting the default causes every new monster alarm to filter by tiny size. Similarly, `MaxIv = 0` would exclude everything, `MaxLevel = 0` would match nothing, etc. Always verify that `*Create` model defaults match the values Poracle expects (originally defined in the PHP PoracleWeb codebase). See the "AutoMapper Update Models" section above for the full list of required defaults.
+PoracleNG applies `cleanRow` defaults (template, PVP ranking, size, max values, etc.) on every create/update, so PoracleWeb no longer needs to maintain its own set of `*Create` model defaults for alarm filter fields. The `*Create` models still exist for DTO mapping but their field defaults are no longer critical -- PoracleNG is the authoritative source for filter defaults.
+
+### PoracleNG API Availability
+The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. Only admin bulk operations (`GetAllAsync`, `DeleteUserAsync`) and non-active profile cleanup in `UserGeofenceService` use direct DB. Monitor PoracleNG uptime as a hard dependency.
+
+### PoracleNG Response Wrappers
+PoracleNG wraps its API responses in container objects. Human data is returned as `{"human": {...}}` and profile lists as `{"profile": [...]}`. The proxy classes (`PoracleHumanProxy`) must extract the inner object/array before deserializing to model types. Failing to unwrap causes deserialization to return null/empty results.
+
+### uid:0 in Create Requests
+When creating new alarms, the model's `uid` defaults to `0`. PoracleNG treats `uid: 0` as an update request (looking for an existing row with uid 0) rather than an insert. The `PoracleJsonHelper.StripUidZero()` method removes `uid` properties with value `0` from the JSON payload before sending to PoracleNG, ensuring the request is treated as an insert.
+
+### Webhook ID URL Encoding
+Webhook IDs in Poracle are URLs (e.g., `http://host:port/path`). When constructing proxy API paths that include a webhook ID as a path segment, the ID must be encoded with `Uri.EscapeDataString()` to escape slashes and other special characters. Both `PoracleTrackingProxy` and `PoracleHumanProxy` apply this encoding.
 
 ## Build & Run
 
@@ -412,7 +430,12 @@ dotnet ef migrations script \
 | Scanner Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/scanner.service.ts` |
 | Geo Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
 | AutoMapper Profile | `Core/Pgan.PoracleWebNet.Core.Mappings/PoracleMappingProfile.cs` |
-| Repository Base | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
+| IPoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleTrackingProxy.cs` |
+| IPoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleHumanProxy.cs` |
+| PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |
+| PoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleHumanProxy.cs` |
+| PoracleJsonHelper | `Core/Pgan.PoracleWebNet.Core.Services/PoracleJsonHelper.cs` |
+| Repositories (non-alarm) | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
 | SiteSettingRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/SiteSettingRepository.cs` |
 | WebhookDelegateRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/WebhookDelegateRepository.cs` |
 | QuickPickDefinitionRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/QuickPickDefinitionRepository.cs` |
@@ -442,5 +465,5 @@ dotnet ef migrations script \
 ## Testing
 
 - **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `geofence-submissions.component.spec.ts`).
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings (including `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `SettingsControllerTests`, `AdminControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`).
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`.
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.

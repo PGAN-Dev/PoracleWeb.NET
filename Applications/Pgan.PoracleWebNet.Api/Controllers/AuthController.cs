@@ -20,6 +20,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public partial class AuthController(
     IHumanService humanService,
     IPoracleApiProxy poracleApiProxy,
+    IPoracleHumanProxy humanProxy,
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
     IOptions<JwtSettings> jwtSettings,
@@ -31,6 +32,7 @@ public partial class AuthController(
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
@@ -349,11 +351,19 @@ public partial class AuthController(
             });
         }
 
-        human.Enabled = human.Enabled == 1 ? 0 : 1;
-        await this._humanService.UpdateAsync(human);
+        var newEnabled = human.Enabled != 1;
+        if (newEnabled)
+        {
+            await this._humanProxy.StartAsync(this.UserId);
+        }
+        else
+        {
+            await this._humanProxy.StopAsync(this.UserId);
+        }
+
         return this.Ok(new
         {
-            enabled = human.Enabled == 1
+            enabled = newEnabled
         });
     }
 

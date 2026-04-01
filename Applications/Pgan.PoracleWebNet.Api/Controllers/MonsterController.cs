@@ -21,8 +21,8 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var monster = await this._monsterService.GetByUidAsync(uid);
-        if (monster == null || this.NotOwnedByCurrentUser(monster.Id))
+        var monster = await this._monsterService.GetByUidAsync(this.UserId, uid);
+        if (monster == null)
         {
             return this.NotFound();
         }
@@ -45,27 +45,27 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] MonsterUpdate model)
     {
-        var existing = await this._monsterService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._monsterService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
         this._mapper.Map(model, existing);
-        var result = await this._monsterService.UpdateAsync(existing);
+        var result = await this._monsterService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._monsterService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._monsterService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
-        await this._monsterService.DeleteAsync(uid);
+        await this._monsterService.DeleteAsync(this.UserId, uid);
         return this.NoContent();
     }
 

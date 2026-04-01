@@ -16,6 +16,7 @@ public partial class AdminController(
     IHumanService humanService,
     IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
+    IPoracleHumanProxy humanProxy,
     IPoracleServerService poracleServerService,
     IOptions<PoracleSettings> poracleSettings,
     IOptions<JwtSettings> jwtSettings,
@@ -24,6 +25,7 @@ public partial class AdminController(
     private readonly IHumanService _humanService = humanService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
@@ -102,8 +104,10 @@ public partial class AdminController(
             return this.NotFound();
         }
 
-        human.AdminDisable = 0;
-        var updated = await this._humanService.UpdateAsync(human);
+        await this._humanProxy.AdminDisabledAsync(id, false);
+
+        // Re-fetch to return the updated state
+        var updated = await this._humanService.GetByIdAsync(id) ?? human;
         return this.Ok(updated);
     }
 
@@ -121,8 +125,10 @@ public partial class AdminController(
             return this.NotFound();
         }
 
-        human.AdminDisable = 1;
-        var updated = await this._humanService.UpdateAsync(human);
+        await this._humanProxy.AdminDisabledAsync(id, true);
+
+        // Re-fetch to return the updated state
+        var updated = await this._humanService.GetByIdAsync(id) ?? human;
         return this.Ok(updated);
     }
 
@@ -140,8 +146,10 @@ public partial class AdminController(
             return this.NotFound();
         }
 
-        human.Enabled = 0;
-        var updated = await this._humanService.UpdateAsync(human);
+        await this._humanProxy.StopAsync(id);
+
+        // Re-fetch to return the updated state
+        var updated = await this._humanService.GetByIdAsync(id) ?? human;
         return this.Ok(updated);
     }
 
@@ -159,8 +167,10 @@ public partial class AdminController(
             return this.NotFound();
         }
 
-        human.Enabled = 1;
-        var updated = await this._humanService.UpdateAsync(human);
+        await this._humanProxy.StartAsync(id);
+
+        // Re-fetch to return the updated state
+        var updated = await this._humanService.GetByIdAsync(id) ?? human;
         return this.Ok(updated);
     }
 

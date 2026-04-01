@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -9,25 +10,24 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 
 public class AreaControllerTests : ControllerTestBase
 {
-    private readonly Mock<IHumanService> _humanService = new();
-    private readonly Mock<IProfileService> _profileService = new();
+    private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<ILogger<AreaController>> _logger = new();
     private readonly AreaController _sut;
 
     public AreaControllerTests()
     {
-        this._sut = new AreaController(this._humanService.Object, this._profileService.Object, this._proxy.Object, this._logger.Object);
+        this._sut = new AreaController(this._humanProxy.Object, this._proxy.Object, this._logger.Object);
         SetupUser(this._sut);
     }
 
     // --- GetSelectedAreas ---
 
     [Fact]
-    public async Task GetSelectedAreasReadsFromProfileArea()
+    public async Task GetSelectedAreasReadsFromProxy()
     {
-        var profile = new Profile { Id = "123456789", ProfileNo = 1, Area = "[\"west end\",\"downtown\"]" };
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
+        var humanJson = JsonSerializer.Deserialize<JsonElement>(/*lang=json,strict*/ "{\"area\":\"[\\\"west end\\\",\\\"downtown\\\"]\"}");
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789")).ReturnsAsync(humanJson);
 
         var result = await this._sut.GetSelectedAreas();
 
@@ -39,10 +39,10 @@ public class AreaControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetSelectedAreasReturnsEmptyWhenProfileAreaIsNull()
+    public async Task GetSelectedAreasReturnsEmptyWhenAreaIsNull()
     {
-        var profile = new Profile { Id = "123456789", ProfileNo = 1, Area = null! };
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
+        var humanJson = JsonSerializer.Deserialize<JsonElement>(/*lang=json,strict*/ "{\"area\":null}");
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789")).ReturnsAsync(humanJson);
 
         var result = await this._sut.GetSelectedAreas();
 
@@ -51,25 +51,21 @@ public class AreaControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetSelectedAreasFallsBackToHumanWhenProfileNotFound()
+    public async Task GetSelectedAreasReturnsEmptyWhenNoAreaProperty()
     {
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
-        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
-            .ReturnsAsync(new Human { Id = "123456789", Area = "[\"fallback\"]" });
+        var humanJson = JsonSerializer.Deserialize<JsonElement>(/*lang=json,strict*/ "{\"id\":\"123456789\"}");
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789")).ReturnsAsync(humanJson);
 
         var result = await this._sut.GetSelectedAreas();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var areas = Assert.IsType<string[]>(ok.Value);
-        Assert.Single(areas);
-        Assert.Contains("fallback", areas);
+        Assert.Empty(Assert.IsType<string[]>(ok.Value));
     }
 
     [Fact]
-    public async Task GetSelectedAreasReturnsNotFoundWhenNoProfileAndNoHuman()
+    public async Task GetSelectedAreasReturnsNotFoundWhenProxyReturnsNull()
     {
-        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync((Profile?)null);
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
+        this._humanProxy.Setup(p => p.GetAreasAsync("123456789")).ReturnsAsync((JsonElement?)null);
 
         Assert.IsType<NotFoundResult>(await this._sut.GetSelectedAreas());
     }
@@ -101,46 +97,30 @@ public class AreaControllerTests : ControllerTestBase
     // --- UpdateAreas ---
 
     [Fact]
-    public async Task UpdateAreasReturnsNotFoundWhenHumanMissing()
+    public async Task UpdateAreasCallsProxyWithNormalizedAreas()
     {
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
-        Assert.IsType<NotFoundResult>(await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["a"] }));
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "EAST"] });
+
+        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", new[] { "west", "east" }), Times.Once);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var areas = Assert.IsType<string[]>(ok.Value);
+        Assert.Equal(["west", "east"], areas);
     }
 
     [Fact]
-    public async Task UpdateAreasSetsAreasAsJsonArray()
+    public async Task UpdateAreasCallsProxyWithEmptyArrayWhenAreasNull()
     {
-        var human = new Human { Id = "123456789" };
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
-
-        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["west", "east"] });
-
-        Assert.Equal("[\"west\",\"east\"]", human.Area);
-    }
-
-    [Fact]
-    public async Task UpdateAreasSetsEmptyJsonArrayWhenAreasNull()
-    {
-        var human = new Human { Id = "123456789" };
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
-
         await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = null });
 
-        Assert.Equal("[]", human.Area);
+        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", Array.Empty<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateAreasSetsEmptyJsonArrayWhenAreasEmpty()
+    public async Task UpdateAreasCallsProxyWithEmptyArrayWhenAreasEmpty()
     {
-        var human = new Human { Id = "123456789" };
-        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
-
         await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = [] });
 
-        Assert.Equal("[]", human.Area);
+        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", Array.Empty<string>()), Times.Once);
     }
 
     // --- GetGeofencePolygons ---

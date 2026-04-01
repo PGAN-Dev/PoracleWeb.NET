@@ -1,5 +1,6 @@
+using System.Text.Json;
 using Moq;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
@@ -7,16 +8,21 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class MonsterServiceTests
 {
-    private readonly Mock<IMonsterRepository> _repository = new();
+    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
+
+    private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly MonsterService _sut;
 
-    public MonsterServiceTests() => this._sut = new MonsterService(this._repository.Object);
+    public MonsterServiceTests() => this._sut = new MonsterService(this._proxy.Object);
 
     [Fact]
     public async Task GetByUserAsyncReturnsMonsters()
     {
-        var monsters = new List<Monster> { new() { Uid = 1, PokemonId = 25 } };
-        this._repository.Setup(r => r.GetByUserAsync("user1", 1)).ReturnsAsync(monsters);
+        var json = CreateJsonArray(new { uid = 1, pokemon_id = 25, id = "user1" });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
 
         var result = await this._sut.GetByUserAsync("user1", 1);
 
@@ -27,10 +33,10 @@ public class MonsterServiceTests
     [Fact]
     public async Task GetByUidAsyncReturnsMonster()
     {
-        var monster = new Monster { Uid = 1, PokemonId = 25 };
-        this._repository.Setup(r => r.GetByUidAsync(1)).ReturnsAsync(monster);
+        var json = CreateJsonArray(new { uid = 1, pokemon_id = 25, id = "user1" });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
 
-        var result = await this._sut.GetByUidAsync(1);
+        var result = await this._sut.GetByUidAsync("user1", 1);
 
         Assert.NotNull(result);
         Assert.Equal(25, result!.PokemonId);
@@ -39,86 +45,91 @@ public class MonsterServiceTests
     [Fact]
     public async Task GetByUidAsyncReturnsNullWhenNotFound()
     {
-        this._repository.Setup(r => r.GetByUidAsync(999)).ReturnsAsync((Monster?)null);
+        var json = CreateJsonArray();
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
 
-        var result = await this._sut.GetByUidAsync(999);
+        var result = await this._sut.GetByUidAsync("user1", 999);
 
         Assert.Null(result);
     }
 
     [Fact]
-    public async Task CreateAsyncSetsUserIdAndDefaults()
+    public async Task CreateAsyncSetsUserIdAndCallsProxy()
     {
-        var monster = new Monster { PokemonId = 25, Ping = null, Template = null };
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
-            .ReturnsAsync((Monster m) => m);
+        var monster = new Monster { PokemonId = 25 };
+        var createResult = new TrackingCreateResult([42], 0, 0, 1);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(createResult);
 
         var result = await this._sut.CreateAsync("user1", monster);
 
         Assert.Equal("user1", result.Id);
-        Assert.Equal(string.Empty, result.Ping);
-        Assert.Equal(string.Empty, result.Template);
+        Assert.Equal(42, result.Uid);
+        this._proxy.Verify(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()), Times.Once);
     }
 
     [Fact]
-    public async Task CreateAsyncPreservesNonNullPingAndTemplate()
-    {
-        var monster = new Monster { PokemonId = 25, Ping = "<@123>", Template = "custom" };
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
-            .ReturnsAsync((Monster m) => m);
-
-        var result = await this._sut.CreateAsync("user1", monster);
-
-        Assert.Equal("<@123>", result.Ping);
-        Assert.Equal("custom", result.Template);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncCallsRepository()
+    public async Task UpdateAsyncCallsProxy()
     {
         var monster = new Monster { Uid = 1, PokemonId = 25 };
-        this._repository.Setup(r => r.UpdateAsync(monster)).ReturnsAsync(monster);
+        var createResult = new TrackingCreateResult([], 0, 1, 0);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(createResult);
 
-        var result = await this._sut.UpdateAsync(monster);
+        var result = await this._sut.UpdateAsync("user1", monster);
 
         Assert.Equal(1, result.Uid);
-        this._repository.Verify(r => r.UpdateAsync(monster), Times.Once);
+        this._proxy.Verify(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteAsyncReturnsTrueWhenDeleted()
+    public async Task DeleteAsyncCallsProxy()
     {
-        this._repository.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
+        this._proxy.Setup(p => p.DeleteByUidAsync("pokemon", "user1", 1)).Returns(Task.CompletedTask);
 
-        var result = await this._sut.DeleteAsync(1);
+        var result = await this._sut.DeleteAsync("user1", 1);
 
         Assert.True(result);
-    }
-
-    [Fact]
-    public async Task DeleteAsyncReturnsFalseWhenNotFound()
-    {
-        this._repository.Setup(r => r.DeleteAsync(999)).ReturnsAsync(false);
-
-        var result = await this._sut.DeleteAsync(999);
-
-        Assert.False(result);
+        this._proxy.Verify(p => p.DeleteByUidAsync("pokemon", "user1", 1), Times.Once);
     }
 
     [Fact]
     public async Task DeleteAllByUserAsyncReturnsCount()
     {
-        this._repository.Setup(r => r.DeleteAllByUserAsync("user1", 1)).ReturnsAsync(5);
+        var json = CreateJsonArray(
+            new { uid = 1, pokemon_id = 25, id = "user1" },
+            new { uid = 2, pokemon_id = 150, id = "user1" });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.BulkDeleteByUidsAsync("pokemon", "user1", It.IsAny<IEnumerable<int>>()))
+            .Returns(Task.CompletedTask);
 
         var result = await this._sut.DeleteAllByUserAsync("user1", 1);
 
-        Assert.Equal(5, result);
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public async Task DeleteAllByUserAsyncReturnsZeroWhenEmpty()
+    {
+        var json = CreateJsonArray();
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
+
+        var result = await this._sut.DeleteAllByUserAsync("user1", 1);
+
+        Assert.Equal(0, result);
+        this._proxy.Verify(p => p.BulkDeleteByUidsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>()), Times.Never);
     }
 
     [Fact]
     public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
-        this._repository.Setup(r => r.UpdateDistanceByUserAsync("user1", 1, 500)).ReturnsAsync(3);
+        var json = CreateJsonArray(
+            new { uid = 1, pokemon_id = 25, id = "user1", distance = 0 },
+            new { uid = 2, pokemon_id = 150, id = "user1", distance = 0 },
+            new { uid = 3, pokemon_id = 6, id = "user1", distance = 0 });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
         var result = await this._sut.UpdateDistanceByUserAsync("user1", 1, 500);
 
@@ -128,70 +139,57 @@ public class MonsterServiceTests
     [Fact]
     public async Task CountByUserAsyncReturnsCount()
     {
-        this._repository.Setup(r => r.CountByUserAsync("user1", 1)).ReturnsAsync(10);
+        var json = CreateJsonArray(
+            new { uid = 1, pokemon_id = 25, id = "user1" },
+            new { uid = 2, pokemon_id = 150, id = "user1" });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
 
         var result = await this._sut.CountByUserAsync("user1", 1);
 
-        Assert.Equal(10, result);
+        Assert.Equal(2, result);
     }
 
     [Fact]
-    public async Task CreateAsyncResetsPvpFieldsWhenNoLeague()
-    {
-        var monster = new Monster { PokemonId = 25, PvpRankingLeague = 0, PvpRankingBest = 1, PvpRankingWorst = 100, PvpRankingMinCp = 500 };
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
-            .ReturnsAsync((Monster m) => m);
-
-        var result = await this._sut.CreateAsync("user1", monster);
-
-        Assert.Equal(0, result.PvpRankingBest);
-        Assert.Equal(4096, result.PvpRankingWorst);
-        Assert.Equal(0, result.PvpRankingMinCp);
-    }
-
-    [Fact]
-    public async Task CreateAsyncPreservesPvpFieldsWhenLeagueSet()
-    {
-        var monster = new Monster { PokemonId = 25, PvpRankingLeague = 1500, PvpRankingBest = 1, PvpRankingWorst = 100, PvpRankingMinCp = 500 };
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Monster>()))
-            .ReturnsAsync((Monster m) => m);
-
-        var result = await this._sut.CreateAsync("user1", monster);
-
-        Assert.Equal(1, result.PvpRankingBest);
-        Assert.Equal(100, result.PvpRankingWorst);
-        Assert.Equal(500, result.PvpRankingMinCp);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncResetsPvpFieldsWhenNoLeague()
-    {
-        var monster = new Monster { Uid = 1, PokemonId = 25, PvpRankingLeague = 0, PvpRankingBest = 1, PvpRankingWorst = 100 };
-        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Monster>()))
-            .ReturnsAsync((Monster m) => m);
-
-        var result = await this._sut.UpdateAsync(monster);
-
-        Assert.Equal(0, result.PvpRankingBest);
-        Assert.Equal(4096, result.PvpRankingWorst);
-    }
-
-    [Fact]
-    public async Task BulkCreateAsyncResetsPvpFieldsWhenNoLeague()
+    public async Task BulkCreateAsyncSetsUserIdAndAssignsUids()
     {
         var monsters = new List<Monster>
         {
-            new() { PokemonId = 25, PvpRankingLeague = 0, PvpRankingBest = 1, PvpRankingWorst = 100 },
-            new() { PokemonId = 150, PvpRankingLeague = 1500, PvpRankingBest = 1, PvpRankingWorst = 50 },
+            new() { PokemonId = 25 },
+            new() { PokemonId = 150 },
         };
-        this._repository.Setup(r => r.BulkCreateAsync(It.IsAny<IEnumerable<Monster>>()))
-            .ReturnsAsync((IEnumerable<Monster> m) => [.. m]);
+        var createResult = new TrackingCreateResult([10, 11], 0, 0, 2);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(createResult);
 
         var result = (await this._sut.BulkCreateAsync("user1", monsters)).ToList();
 
-        Assert.Equal(4096, result[0].PvpRankingWorst);
-        Assert.Equal(0, result[0].PvpRankingBest);
-        Assert.Equal(50, result[1].PvpRankingWorst);
-        Assert.Equal(1, result[1].PvpRankingBest);
+        Assert.Equal(2, result.Count);
+        Assert.Equal("user1", result[0].Id);
+        Assert.Equal("user1", result[1].Id);
+        Assert.Equal(10, result[0].Uid);
+        Assert.Equal(11, result[1].Uid);
+    }
+
+    [Fact]
+    public async Task UpdateDistanceByUidsAsyncUpdatesMatchingOnly()
+    {
+        var json = CreateJsonArray(
+            new { uid = 1, pokemon_id = 25, id = "user1", distance = 0 },
+            new { uid = 2, pokemon_id = 150, id = "user1", distance = 0 },
+            new { uid = 3, pokemon_id = 6, id = "user1", distance = 0 });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+
+        var result = await this._sut.UpdateDistanceByUidsAsync([1, 3], "user1", 500);
+
+        Assert.Equal(2, result);
+    }
+
+    private static JsonElement CreateJsonArray(params object[] items)
+    {
+        var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);
+        using var doc = JsonDocument.Parse(jsonStr);
+        return doc.RootElement.Clone();
     }
 }
