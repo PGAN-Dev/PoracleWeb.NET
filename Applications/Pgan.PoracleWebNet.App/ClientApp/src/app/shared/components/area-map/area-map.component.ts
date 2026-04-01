@@ -70,6 +70,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   };
 
   private groupColorMap = new Map<string, string>();
+  private hasFittedInitialBounds = false;
   private initialized = false;
   private map: L.Map | null = null;
 
@@ -156,8 +157,15 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.initialized) return;
 
-    if (changes['geofence'] || changes['selectedAreas'] || changes['groupMapping']) {
+    if (changes['geofence'] || changes['groupMapping']) {
+      // Geofence data or group mapping changed -- full redraw needed, allow re-fit
+      if (changes['geofence']) {
+        this.hasFittedInitialBounds = false;
+      }
       this.drawPolygons();
+    } else if (changes['selectedAreas']) {
+      // Only selection changed -- update polygon styles without resetting the map view
+      this.updatePolygonStyles();
     }
 
     if (changes['userLocation']) {
@@ -387,8 +395,9 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     if (allBounds.length > 0) {
       this.allBoundsRect = L.latLngBounds(allBounds);
-      if (!this.selectedRegion()) {
+      if (!this.hasFittedInitialBounds && !this.selectedRegion()) {
         this.map.fitBounds(this.allBoundsRect, { padding: [20, 20] });
+        this.hasFittedInitialBounds = true;
       }
     }
 
@@ -444,6 +453,42 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       });
 
       this.customGeofenceLayer.addLayer(polygon);
+    }
+  }
+
+  private updatePolygonStyles(): void {
+    if (!this.map) return;
+
+    const selectedSet = new Set(this.selectedAreas.map(a => a.toLowerCase()));
+
+    for (const fence of this.geofence) {
+      const polygon = this.polygonByName.get(fence.name);
+      if (!polygon) continue;
+
+      const isSelected = selectedSet.has(fence.name.toLowerCase());
+      const group = this.groupMapping.get(fence.name) || '';
+      const color = this.groupColorMap.get(group) || GROUP_COLORS[0];
+
+      polygon.setStyle({
+        color: isSelected ? '#4caf50' : color,
+        dashArray: isSelected ? undefined : '5, 5',
+        fillColor: isSelected ? '#4caf50' : color,
+        fillOpacity: isSelected ? 0.35 : 0.08,
+        opacity: isSelected ? 1 : 0.4,
+        weight: isSelected ? 3 : 1,
+      });
+
+      // Rebind hover handlers with updated base values
+      polygon.off('mouseover');
+      polygon.off('mouseout');
+      const originalWeight = isSelected ? 3 : 1;
+      const originalFillOpacity = isSelected ? 0.35 : 0.08;
+      polygon.on('mouseover', () => {
+        polygon.setStyle({ fillOpacity: 0.4, weight: 3 });
+      });
+      polygon.on('mouseout', () => {
+        polygon.setStyle({ fillOpacity: originalFillOpacity, weight: originalWeight });
+      });
     }
   }
 
