@@ -76,4 +76,98 @@ public class QuickPickServiceSecurityTests
         // from filters. ProfileNo should be 1 (from the method param), not 42.
         Assert.Equal(1, capturedMonster.ProfileNo);
     }
+
+    [Fact]
+    public async Task RemoveAsync_PassesCallerUserIdToServiceDeletes()
+    {
+        // Arrange: an applied state with tracked UIDs
+        var quickPickId = Guid.NewGuid().ToString();
+        var appliedState = new QuickPickAppliedState
+        {
+            UserId = "real_user",
+            ProfileNo = 1,
+            QuickPickId = quickPickId,
+            AlarmType = "monster",
+            TrackedUids = [10, 20, 30],
+        };
+        this._appliedStateRepository.Setup(r => r.GetAsync("real_user", 1, quickPickId))
+            .ReturnsAsync(appliedState);
+
+        // Act
+        await this._sut.RemoveAsync("real_user", 1, quickPickId);
+
+        // Assert: DeleteAsync is called with the caller's userId, not some other user
+        this._monsterService.Verify(s => s.DeleteAsync("real_user", 10), Times.Once);
+        this._monsterService.Verify(s => s.DeleteAsync("real_user", 20), Times.Once);
+        this._monsterService.Verify(s => s.DeleteAsync("real_user", 30), Times.Once);
+        this._appliedStateRepository.Verify(r => r.DeleteAsync("real_user", 1, quickPickId), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_ReturnsFalseWhenAppliedStateNotFound()
+    {
+        this._appliedStateRepository.Setup(r => r.GetAsync("user1", 1, "missing"))
+            .ReturnsAsync((QuickPickAppliedState?)null);
+
+        var result = await this._sut.RemoveAsync("user1", 1, "missing");
+
+        Assert.False(result);
+        this._monsterService.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUserPickAsync_RejectsDeleteForNonOwner()
+    {
+        // Arrange: definition owned by another user
+        this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("pick1", "attacker"))
+            .ReturnsAsync((QuickPickDefinition?)null);
+
+        // Act
+        var result = await this._sut.DeleteUserPickAsync("attacker", "pick1");
+
+        // Assert: returns false and does not delete
+        Assert.False(result);
+        this._definitionRepository.Verify(r => r.DeleteAsync(It.IsAny<string>()), Times.Never);
+        this._definitionRepository.Verify(r => r.DeleteByIdAndOwnerAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUserPickAsync_AllowsDeleteForOwner()
+    {
+        var definition = new QuickPickDefinition
+        {
+            Id = "pick1",
+            Name = "My Pick",
+            AlarmType = "monster",
+            Scope = "user",
+            OwnerUserId = "owner1",
+        };
+        this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("pick1", "owner1"))
+            .ReturnsAsync(definition);
+
+        var result = await this._sut.DeleteUserPickAsync("owner1", "pick1");
+
+        Assert.True(result);
+        this._definitionRepository.Verify(r => r.DeleteByIdAndOwnerAsync("pick1", "owner1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_PassesCallerUserIdForRaidDeletes()
+    {
+        var quickPickId = Guid.NewGuid().ToString();
+        var appliedState = new QuickPickAppliedState
+        {
+            UserId = "real_user",
+            ProfileNo = 1,
+            QuickPickId = quickPickId,
+            AlarmType = "raid",
+            TrackedUids = [5],
+        };
+        this._appliedStateRepository.Setup(r => r.GetAsync("real_user", 1, quickPickId))
+            .ReturnsAsync(appliedState);
+
+        await this._sut.RemoveAsync("real_user", 1, quickPickId);
+
+        this._raidService.Verify(s => s.DeleteAsync("real_user", 5), Times.Once);
+    }
 }

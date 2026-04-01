@@ -62,6 +62,10 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
     /// set the clean field on each, and POST them back via CreateAsync (which upserts by UID).
     /// This is expensive for users with many alarms but functional until a dedicated bulk clean
     /// endpoint is added to PoracleNG. See: docs/poracleng-enhancement-requests.md#bulk-clean-toggle
+    ///
+    /// Known limitation: fetch-modify-POST is not atomic. Concurrent requests from the same user
+    /// could race, with the last POST winning. Acceptable because clean toggle is infrequent and
+    /// idempotent (setting clean=1 twice produces the same result).
     /// </summary>
     private async Task<int> ToggleCleanAsync(string type, string userId, int clean)
     {

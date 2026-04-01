@@ -15,6 +15,9 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
         PropertyNameCaseInsensitive = true,
     };
 
+    // Note: profileNo is kept for interface compatibility but PoracleNG scopes to the user's
+    // active profile (humans.current_profile_no) automatically. The JWT profileNo and the
+    // active profile should always match because SwitchProfile updates both.
     public async Task<IEnumerable<Monster>> GetByUserAsync(string userId, int profileNo)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
@@ -72,6 +75,9 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
         return uids.Count;
     }
 
+    // Fetch-modify-POST workaround: not atomic. Concurrent distance updates from the same user
+    // could race, but this is acceptable — the last write wins and distance is a single scalar.
+    // See: docs/poracleng-enhancement-requests.md#bulk-distance-update
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
