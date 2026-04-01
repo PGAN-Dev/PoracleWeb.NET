@@ -7,10 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-04-01
 
 ### Added
-- distinct banner for admin-disabled users with support links ([PR #83](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/83))
-## [1.2.0] - 2026-03-31
+- **Admin-disabled user banner**: distinct banner for admin-disabled users with Discord support and ticket links, replacing the broken Resume button ([#82](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/82), [PR #83](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/83))
+- **`adminDisable` field on UserInfo API**: frontend can now distinguish admin-disabled from self-paused users ([PR #83](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/83))
 
 ## [1.2.0] - 2026-03-31
 
