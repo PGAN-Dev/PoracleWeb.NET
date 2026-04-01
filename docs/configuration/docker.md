@@ -29,6 +29,13 @@ services:
     restart: unless-stopped
 ```
 
+## Network requirements
+
+The PoracleWeb container must be able to reach:
+
+- **PoracleNG API** (`Poracle:ApiAddress`) -- all alarm tracking writes are proxied through this endpoint. If the containers are on the same Docker network, use the service name (e.g., `http://poracleng:3030`). If on different hosts, use the host IP/domain.
+- **MySQL** -- for `humans`/`profiles` tables and the `poracle_web` database.
+
 ## Volume mounts
 
 ### Data directory

@@ -1,5 +1,46 @@
 # Troubleshooting
 
+## PoracleNG unreachable (alarm operations fail)
+
+**Problem**: All alarm operations (create, edit, delete, list) fail with HTTP 500 errors. The dashboard shows zero alarms. Logs show `HttpRequestException` or `TaskCanceledException` when calling the PoracleNG API.
+
+**Solution**: Check that PoracleNG is running and reachable from the PoracleWeb container:
+
+1. Verify `Poracle:ApiAddress` points to the correct PoracleNG host and port
+2. If using Docker, ensure both containers are on the same network or the PoracleNG port is exposed
+3. Test connectivity: `curl http://<poracle-api-address>/api/config/poracleWeb` from inside the PoracleWeb container
+4. Verify `Poracle:ApiSecret` matches PoracleNG's `server.apiSecret` config value
+
+!!! danger "All alarm writes go through PoracleNG"
+    Unlike previous versions where PoracleWeb wrote directly to MySQL, all alarm tracking now requires a running PoracleNG instance. If PoracleNG is down, users cannot create, edit, delete, or view any alarms.
+
+---
+
+## Stale alarm state after changes
+
+**Problem**: Users report that alarm changes (create/delete) are not reflected in notifications. Alarms appear correct in the web UI but PoracleNG seems to use old data.
+
+**Solution**: Check PoracleNG logs for state reload errors. PoracleNG reloads its in-memory state after every tracking mutation. If the reload fails (e.g., due to a NULL column in the database), PoracleNG continues running with stale data.
+
+Common causes:
+
+- NULL values in `template` or `ping` columns from historical direct-write bugs. Fix with: `UPDATE monsters SET template = '1' WHERE template IS NULL`
+- PoracleNG's `monsters.go` query lacks `COALESCE` for `template` and `ping` (known bug). The fix is to add `COALESCE(template, '1') AS template` to the query.
+
+---
+
+## snake_case deserialization issues
+
+**Problem**: Alarm data appears empty or fields are null/zero even though alarms exist in the database.
+
+**Solution**: PoracleNG returns alarm data in snake_case JSON (`pokemon_id`, `min_iv`, `max_cp`). PoracleWeb deserializes this with `JsonNamingPolicy.SnakeCaseLower`. If a field is not deserializing correctly:
+
+1. Check that the C# model property name matches the snake_case convention (e.g., `PokemonId` maps to `pokemon_id`)
+2. Verify `PropertyNameCaseInsensitive = true` is set on the `JsonSerializerOptions`
+3. Compare the actual JSON response from PoracleNG (`GET /api/tracking/{type}/{userId}`) against the expected field names
+
+---
+
 ## MySQL provider incompatibility
 
 **Problem**: Build errors or runtime exceptions related to `Pomelo.EntityFrameworkCore.MySql`.
@@ -12,7 +53,7 @@
 
 **Problem**: MySQL errors like `Column 'X' cannot be null` when saving entities.
 
-**Solution**: Call `EnsureNotNullDefaults()` before saving. Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The method sets null strings to `""`.
+**Solution**: For alarm entities, this should no longer occur since writes go through the PoracleNG API (which handles NULL defaults). For non-alarm entities (`humans`, `profiles`), call `EnsureNotNullDefaults()` before saving. Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The method sets null strings to `""`.
 
 ---
 
@@ -46,15 +87,7 @@ Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.
 
 **Problem**: After bulk updating alarms, fields like `clean`, `template`, and filter settings are reset to 0.
 
-**Solution**: Never send partial objects to `PUT /{uid}`. AutoMapper maps all fields — `int` properties default to `0` when absent from JSON. Use the dedicated `PUT /distance/bulk` endpoint for distance changes, or spread the full alarm object:
-
-```typescript
-// ✅ Correct
-this.http.put(`/api/pokemon/${uid}`, { ...alarm, distance });
-
-// ❌ Wrong
-this.http.put(`/api/pokemon/${uid}`, { distance });
-```
+**Solution**: Alarm updates are now proxied through PoracleNG, which applies `cleanRow()` defaults. However, it is still important to send the full alarm object when updating. The frontend should spread the full alarm: `{ ...alarm, distance }`. The dedicated `PUT /distance/bulk` endpoint handles this correctly by fetching all alarms, modifying only the distance, and POSTing back.
 
 ---
 
@@ -98,7 +131,10 @@ UPDATE raid SET gym_id = NULL WHERE gym_id = '';
 
 ---
 
-## GymCreate.Team defaults to 0 (Neutral only)
+## GymCreate.Team defaults to 0 (Neutral only) — legacy
+
+!!! note "Legacy issue"
+    This was caused by direct database writes. New alarms created through the PoracleNG API proxy have correct defaults applied by `cleanRow()`. The SQL fixes below are only needed for alarms created before the migration.
 
 **Problem**: New gym alarms created via the web UI only match Neutral (team 0) gyms instead of all teams.
 
@@ -136,7 +172,10 @@ UPDATE gym SET team = 4 WHERE team = 0;
 
 ---
 
-## Monster filter defaults (size, max_level, etc.)
+## Monster filter defaults (size, max_level, etc.) — legacy
+
+!!! note "Legacy issue"
+    This was caused by direct database writes with incorrect C# model defaults. New alarms created through the PoracleNG API proxy have correct defaults. The SQL queries below help diagnose alarms created before the migration.
 
 **Problem**: New monster alarms created via the web UI may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly in the old PHP UI as "-XXL".
 

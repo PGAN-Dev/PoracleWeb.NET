@@ -1,14 +1,12 @@
 # PoracleNG API Enhancement Requests
 
-This document tracks PoracleNG API gaps that block PoracleWeb from migrating off direct Poracle database writes. Each gap is referenced by inline `HACK`/`TODO` comments throughout the codebase.
+This document tracks PoracleNG API gaps that require workarounds in PoracleWeb. Each gap is referenced by inline `HACK`/`TODO` comments throughout the codebase.
 
 ## Background
 
-PoracleWeb currently writes directly to the Poracle MySQL database (humans, profiles, and all alarm tables). This bypasses PoracleNG's data validation, default handling, and state reload mechanism. On March 31, 2026, a NULL `template` column written by PoracleWeb crashed PoracleNG's state reload for 15 hours, causing stale alarm state and unwanted DM floods.
+PoracleWeb now proxies all alarm tracking writes through the PoracleNG REST API (see [PoracleNG API Proxy](architecture/poracleng-proxy.md)). This migration was prompted by a March 31, 2026 incident where a NULL `template` column written directly by PoracleWeb crashed PoracleNG's state reload for 15 hours.
 
-PoracleNG exposes a comprehensive REST API (`/api/tracking/*`, `/api/humans/*`, `/api/profiles/*`) that handles field defaults, dedup, and triggers immediate state reload on every mutation. Migrating PoracleWeb to proxy writes through this API would eliminate an entire class of data integrity bugs.
-
-The gaps listed below are operations PoracleWeb performs that have **no direct PoracleNG API equivalent**.
+The migration is complete for all alarm CRUD operations. However, some operations lack dedicated PoracleNG endpoints and use fetch-modify-repost workarounds that are less efficient. The gaps listed below are these operations.
 
 ---
 
@@ -185,14 +183,14 @@ This crashes the **entire state reload**, freezing PoracleNG on stale data for a
 
 ## Summary Table
 
-| Gap | Priority | Workaround Available | Blocks Migration |
-|-----|----------|---------------------|-----------------|
-| Bulk distance update | High | Yes (inefficient) | Partial |
-| Bulk clean toggle | High | Yes (inefficient) | Partial |
-| monsters.go COALESCE | High | PoracleWeb defaults template to "" | Yes (bug) |
-| Dashboard counts | Medium | Yes (8 API calls) | No |
-| Admin delete all alarms | Medium | Yes (loop + bulk delete) | No |
+| Gap | Priority | Workaround in Use | Status |
+|-----|----------|-------------------|--------|
+| Bulk distance update | High | Fetch all, modify, POST back | Working but inefficient |
+| Bulk clean toggle | High | Fetch all, modify, POST back | Working but inefficient |
+| monsters.go COALESCE | High | PoracleNG bug -- needs fix upstream | PoracleNG fix needed |
+| Dashboard counts | Medium | Single GET /api/tracking/all call | Working (returns full payloads) |
+| Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Working |
 | Profile delete cascade | Medium | Unknown | Need verification |
-| Atomic profile switch | Low | Already in PoracleNG | No |
-| Atomic area update | Low | Already in PoracleNG | No |
-| NULL field defaults | Low | Already in PoracleNG | No |
+| Atomic profile switch | Low | Already in PoracleNG | Ready to adopt |
+| Atomic area update | Low | Already in PoracleNG | Ready to adopt |
+| NULL field defaults | Low | Handled by PoracleNG cleanRow() | Resolved by migration |

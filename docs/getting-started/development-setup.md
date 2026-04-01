@@ -54,6 +54,9 @@ Create `Applications/Pgan.PoracleWebNet.Api/appsettings.Development.json` (gitig
 }
 ```
 
+!!! warning "PoracleNG must be running"
+    `Poracle:ApiAddress` must point to a running PoracleNG instance. All alarm tracking writes are proxied through this API. `Poracle:ApiSecret` must match PoracleNG's `server.apiSecret` config value.
+
 ## 3. Run the application
 
 You need two terminals — one for the backend API and one for the Angular dev server:

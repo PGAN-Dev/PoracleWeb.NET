@@ -30,8 +30,8 @@ public partial class HumanService(
     /// </summary>
     private static readonly string[] AlarmTypes = ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym"];
 
-    // TODO: Migrate to PoracleNG API proxy once a "get all humans" endpoint is available.
-    // This is admin-only and needs the full humans table. Direct DB read for now.
+    // TODO: Migrate once PoracleNG adds a "get all humans" endpoint.
+    // See: docs/poracleng-enhancement-requests.md
     public async Task<IEnumerable<Human>> GetAllAsync() => await this._repository.GetAllAsync();
 
     public async Task<Human?> GetByIdAsync(string id)
@@ -97,7 +97,8 @@ public partial class HumanService(
         // For general field updates, fall back to direct DB (no generic update endpoint in PoracleNG).
         // Callers that need specific state changes (enable/disable/pause/resume) should prefer
         // the dedicated AdminController endpoints that call the proxy directly.
-        // TODO: Migrate remaining general updates to PoracleNG proxy once a generic update endpoint exists.
+        // TODO: Migrate once PoracleNG adds a generic human update endpoint.
+        // See: docs/poracleng-enhancement-requests.md
         return await this._repository.UpdateAsync(human);
     }
 
@@ -141,8 +142,8 @@ public partial class HumanService(
         }
     }
 
-    // TODO: Migrate to PoracleNG API proxy once user deletion endpoint is available.
-    // Direct DB delete for now.
+    // TODO: Migrate once PoracleNG adds a user deletion endpoint.
+    // See: docs/poracleng-enhancement-requests.md
     public async Task<bool> DeleteUserAsync(string userId) => await this._repository.DeleteUserAsync(userId);
 
     /// <summary>

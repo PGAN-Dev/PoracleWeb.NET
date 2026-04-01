@@ -10,8 +10,8 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | `Jwt:Secret` | `Jwt__Secret` | JWT signing key (minimum 32 characters) |
 | `Discord:ClientId` | `Discord__ClientId` | Discord OAuth2 application client ID |
 | `Discord:ClientSecret` | `Discord__ClientSecret` | Discord OAuth2 application client secret |
-| `Poracle:ApiAddress` | `Poracle__ApiAddress` | Poracle API base URL |
-| `Poracle:ApiSecret` | `Poracle__ApiSecret` | Poracle API shared secret |
+| `Poracle:ApiAddress` | `Poracle__ApiAddress` | PoracleNG API base URL. **Critical** -- all alarm tracking writes are proxied through this endpoint. |
+| `Poracle:ApiSecret` | `Poracle__ApiSecret` | PoracleNG API shared secret. Sent as the `X-Poracle-Secret` header on every request. |
 | `Poracle:AdminIds` | `Poracle__AdminIds` | Comma-separated Discord admin user IDs |
 
 ## Optional settings
@@ -69,6 +69,9 @@ For remote PoracleJS server management. See [Server Management](../features/serv
 | `.env` file | Docker deployment |
 | `docker-compose.yml` | Environment variable mapping |
 | `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
+
+!!! warning "PoracleNG must be reachable"
+    `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb container. All alarm tracking operations (create, read, update, delete) are proxied through this API. If PoracleNG is unreachable, all alarm operations will fail. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.

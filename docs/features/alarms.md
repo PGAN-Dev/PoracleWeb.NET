@@ -2,6 +2,8 @@
 
 PoracleWeb provides a browser-based UI for managing Poracle notification filters. Users create alarms that tell Poracle which Pokemon, Raids, Quests, and other events to send as DM notifications.
 
+All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG handles field defaults, deduplication, and immediate state reload. See [PoracleNG API Proxy](../architecture/poracleng-proxy.md) for technical details.
+
 ## Alarm types
 
 | Type | Description |
@@ -47,8 +49,8 @@ Each alarm list page has a **select mode** toggle (checklist icon in the toolbar
     - **Update Distance** — Set a new distance for all selected alarms
     - **Delete** — Remove all selected alarms
 
-!!! tip "Bulk distance uses a dedicated endpoint"
-    Bulk distance updates use `PUT /distance/bulk` which does a targeted SQL update without touching other alarm fields. This is safer than updating each alarm individually.
+!!! tip "Bulk distance uses the PoracleNG API"
+    Bulk distance updates fetch all matching alarms from PoracleNG, modify the distance field, and POST them back. This ensures PoracleNG validates the data and triggers a state reload.
 
 ## Profiles
 

@@ -80,6 +80,7 @@ nav:
       - Docker Compose: configuration/docker.md
   - Architecture:
       - Overview: architecture/overview.md
+      - PoracleNG API Proxy: architecture/poracleng-proxy.md
       - Backend Patterns: architecture/backend.md
       - Frontend Patterns: architecture/frontend.md
       - Database: architecture/database.md
@@ -92,6 +93,7 @@ nav:
       - CI/CD: development/ci-cd.md
       - Code Style: development/code-style.md
   - Troubleshooting: troubleshooting.md
+  - PoracleNG Enhancement Requests: poracleng-enhancement-requests.md
 
 extra:
   social:

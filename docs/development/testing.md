@@ -24,8 +24,12 @@ dotnet test
 Uses xUnit with Moq. Tests cover:
 
 - Controllers (`UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`)
-- Services (`UserGeofenceServiceTests`)
-- AutoMapper mappings
+- Alarm services (`MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`) -- these mock `IPoracleTrackingProxy`
+- Other services (`UserGeofenceServiceTests`, `CleaningServiceTests`, `DashboardServiceTests`, `HumanServiceTests`)
+- AutoMapper mappings (non-alarm entities)
+
+!!! info "Alarm service tests mock IPoracleTrackingProxy"
+    Since alarm services no longer use repositories, their tests mock `IPoracleTrackingProxy` instead of `IRepository`. The mock returns `JsonElement` values matching PoracleNG's snake_case JSON format.
 
 ## CI
 

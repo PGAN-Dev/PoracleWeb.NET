@@ -1,8 +1,30 @@
 # Backend Patterns
 
-## Repository layer
+## Alarm services (PoracleNG API proxy)
 
-`BaseRepository<TEntity, TModel>` uses expression-based filters and AutoMapper projections.
+All alarm tracking services (`MonsterService`, `RaidService`, `EggService`, `QuestService`, `InvasionService`, `LureService`, `NestService`, `GymService`) use `IPoracleTrackingProxy` to proxy CRUD operations through the PoracleNG REST API. They do **not** use repositories or direct database access.
+
+See [PoracleNG API Proxy](poracleng-proxy.md) for the full architecture, request flow, and how to add new alarm types.
+
+### JSON serialization
+
+Alarm data is serialized/deserialized with `JsonNamingPolicy.SnakeCaseLower` to match PoracleNG's snake_case field names:
+
+```csharp
+private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+{
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    PropertyNameCaseInsensitive = true,
+};
+```
+
+### Update pattern
+
+PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a `uid` field, it updates the existing alarm. Services use the same `CreateAsync` proxy method for both operations.
+
+## Repository layer (non-alarm entities)
+
+`BaseRepository<TEntity, TModel>` is used for `humans`, `profiles`, and `poracle_web`-owned entities. It uses expression-based filters and AutoMapper projections.
 
 ### EnsureNotNullDefaults
 
@@ -20,50 +42,33 @@ Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core m
 
 `UpdateDistanceByUidsAsync()` does targeted distance-only SQL updates without touching other fields. Use this for bulk distance operations instead of the generic `UpdateAsync`.
 
-## AutoMapper update models
+## AutoMapper (non-alarm entities only)
 
-All `*Update` models (MonsterUpdate, RaidUpdate, etc.) use **nullable `int?`** properties so partial updates don't zero out unset fields.
+AutoMapper is used for `humans` and `profiles` entities. Alarm tracking data flows as raw JSON through the PoracleNG API proxy and does not use AutoMapper.
+
+All `*Update` models for non-alarm entities use **nullable `int?`** properties so partial updates don't zero out unset fields.
 
 ```csharp
 // The mapping profile skips null properties
 .ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null))
 ```
 
-!!! danger "Full object spread required"
-    When calling the PUT `/{uid}` endpoint from the frontend, always spread the full alarm object:
+## Alarm field defaults
 
-    ```typescript
-    // ✅ Correct — preserves all existing fields
-    this.http.put(`/api/pokemon/${uid}`, { ...alarm, distance });
+PoracleNG's `cleanRow()` function applies field defaults on every create/update. PoracleWeb no longer needs to manage alarm defaults directly. However, the frontend still sends sensible initial values to avoid confusing the user when the add dialog opens:
 
-    // ❌ Wrong — zeros out clean, template, filter settings
-    this.http.put(`/api/pokemon/${uid}`, { distance });
-    ```
-
-## AutoMapper create model defaults
-
-`*Create` models (MonsterCreate, RaidCreate, etc.) must have **property defaults that match the PHP PoracleWeb defaults** used by the original project. Without these defaults, AutoMapper maps C# zero-values onto the entity, overwriting the database column defaults that Poracle expects.
-
-Key defaults on create models:
-
-| Property | Default | Notes |
+| Property | Frontend default | Notes |
 |---|---|---|
-| `MaxIv` | 100 | |
-| `MaxCp` | 9000 | |
-| `MaxLevel` | 55 | |
-| `MaxWeight` | 9000000 | |
-| `MaxAtk` | 15 | |
-| `MaxDef` | 15 | |
-| `MaxSta` | 15 | |
-| `PvpRankingWorst` | 4096 | |
-| `Size` | -1 | Means "any size" |
-| `MaxSize` | 5 | |
-| `Team` (Raid/Egg) | 4 | Means "any team" |
-| `Move` (Raid) | 9000 | Means "any move" |
-| `Evolution` (Raid) | 9000 | Means "any evolution" |
+| `max_iv` | 100 | |
+| `max_cp` | 9000 | |
+| `max_level` | 55 | |
+| `size` | -1 | Means "any size" |
+| `team` (Raid/Egg/Gym) | 4 | Means "any team" |
+| `move` (Raid) | 9000 | Means "any move" |
+| `evolution` (Raid) | 9000 | Means "any evolution" |
 
-!!! danger "Forgetting a default silently breaks filters"
-    If a create model property defaults to `0` (C#'s `int` default) instead of the expected Poracle default, AutoMapper writes `0` to the entity. The alarm is saved but the filter is silently too restrictive or non-functional — e.g., `MaxIv=0` means nothing ever matches.
+!!! info "Defaults are now enforced server-side"
+    Even if the frontend sends incomplete data, PoracleNG's `cleanRow()` fills in proper defaults. This eliminates the class of bugs where missing C# model defaults caused silent filter breakage.
 
 ## Invasion service
 
@@ -81,11 +86,20 @@ Each alarm controller has three distance endpoints:
 | `PUT /distance` | Update ALL alarms' distance for the current user/profile |
 | `PUT /distance/bulk` | Update distance for specific UIDs: `{ uids: number[], distance: number }` |
 
-The `/distance/bulk` endpoint does a targeted `SetDistance()` on matching entities, bypassing AutoMapper entirely — safe for bulk operations.
+All three endpoints go through the PoracleNG API proxy. Bulk distance updates fetch all alarms via `GET`, modify the distance field in memory, then POST the updated alarms back. This is a workaround until PoracleNG adds dedicated bulk distance endpoints (see [enhancement requests](../poracleng-enhancement-requests.md)).
 
-## Poracle API proxy
+## Poracle API proxies
 
-`IPoracleApiProxy` / `PoracleApiProxy` wraps HttpClient calls to the external Poracle REST API.
+### IPoracleTrackingProxy (alarm tracking)
+
+Proxies all alarm CRUD operations to PoracleNG's `/api/tracking/*` endpoints. Authenticated via `X-Poracle-Secret` header. See [PoracleNG API Proxy](poracleng-proxy.md) for full details.
+
+- Registered via `AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>()`
+- Used by: all alarm services, `DashboardService`, `CleaningService`
+
+### IPoracleApiProxy (config, areas, templates)
+
+Wraps HttpClient calls for non-tracking Poracle API operations.
 
 - Used for: fetching config, areas/geofences, templates, sending commands
 - Registered via `AddHttpClient<IPoracleApiProxy, PoracleApiProxy>()`

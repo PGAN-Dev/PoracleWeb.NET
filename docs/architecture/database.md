@@ -6,11 +6,11 @@ PoracleWeb uses two separate MySQL databases and optionally connects to a third 
 
 ### PoracleContext
 
-The primary EF Core context connecting to the existing **Poracle database** managed by PoracleJS.
+The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
 
 - Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans`, `monsters`, `raid`, `quest`, `invasion`, `lure`, `nest`, `gym`, `egg`, `profile` tables
-- **Read-write** — PoracleWeb manages alarm filters and user settings but does not modify the schema
+- Contains: `humans`, `profiles` tables (direct access), plus alarm tables (read-only for legacy/fallback)
+- **Limited direct access** — Alarm tracking (monsters, raid, egg, quest, invasion, lure, nest, gym) is now proxied through the PoracleNG REST API via `IPoracleTrackingProxy`. Direct DB access is only used for `humans` and `profiles` tables.
 
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
@@ -98,6 +98,9 @@ DTO model in `Core.Models` used by scanner gym search endpoints. Projected from 
 ## Entity conventions
 
 ### NULL string columns
+
+!!! info "Alarm entities no longer written directly"
+    Alarm tracking writes go through the PoracleNG API proxy, which handles NULL defaults via `cleanRow()`. The `EnsureNotNullDefaults()` method below is only relevant for non-alarm entities (`humans`, `profiles`) that are still written directly to the database.
 
 Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method in `BaseRepository` handles this in two passes:
 

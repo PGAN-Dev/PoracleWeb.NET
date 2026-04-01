@@ -30,9 +30,11 @@ DISCORD_CLIENT_SECRET=your_discord_client_secret
 DISCORD_BOT_TOKEN=your_discord_bot_token      # Optional: enables avatar display
 DISCORD_GUILD_ID=your_discord_server_id        # Optional: for guild-specific features
 
-# Poracle API — your running PoracleJS instance
+# Poracle API — your running PoracleNG/PoracleJS instance
+# CRITICAL: All alarm tracking writes are proxied through this API.
+# PoracleNG must be reachable from the PoracleWeb container.
 PORACLE_API_ADDRESS=http://host.docker.internal:3030
-PORACLE_API_SECRET=your_poracle_api_secret
+PORACLE_API_SECRET=your_poracle_api_secret      # Must match PoracleNG's server.apiSecret
 PORACLE_ADMIN_IDS=your_discord_user_id         # Comma-separated admin Discord IDs
 
 # Poracle config directory — mount for DTS template previews

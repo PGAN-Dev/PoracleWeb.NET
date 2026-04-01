@@ -37,7 +37,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 | Requirement | Version | Purpose |
 |---|---|---|
 | MySQL | 5.7+ or 8.0+ | Poracle database (existing Poracle installation) |
-| Poracle | PoracleJS | Running instance with REST API enabled |
+| Poracle | PoracleJS or PoracleNG | Running instance with REST API enabled. All alarm writes are proxied through the Poracle API. |
 | Discord App | — | OAuth2 application for user authentication |
 | Koji | — | Geofence management server (required for custom geofences feature) |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |

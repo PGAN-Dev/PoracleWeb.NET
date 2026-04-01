@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- PoracleNG REST API proxy layer (`IPoracleTrackingProxy`, `IPoracleHumanProxy`) replacing direct database writes for all alarm tracking operations
+- `PoracleTrackingProxy` HTTP implementation with snake_case JSON serialization and `X-Poracle-Secret` auth
+- `PoracleHumanProxy` HTTP implementation for human/profile management via PoracleNG API
+- `docs/poracleng-enhancement-requests.md` documenting PoracleNG API gaps and requested enhancements
+- `docs/architecture/poracleng-proxy.md` architecture documentation for the proxy layer
+- Proxy fallback pattern in HumanService (proxy-first with graceful DB fallback on failure)
+
+### Changed
+- All alarm services (Monster, Raid, Egg, Quest, Invasion, Lure, Nest, Gym) now proxy through PoracleNG API instead of writing directly to MySQL
+- DashboardService uses single `GetAllTrackingAsync` call instead of 8 separate COUNT queries
+- CleaningService uses fetch-mutate-POST pattern via PoracleNG API (workaround for missing bulk clean endpoint)
+- ProfileController `SwitchProfile` now uses atomic PoracleNG `switchProfile` API call (eliminates non-transactional dual-write)
+- AreaController `UpdateAreas` now uses atomic PoracleNG `setAreas` API call
+- AdminController enable/disable/pause/resume use PoracleNG proxy directly
+- HumanService refactored to hybrid proxy-first with DB fallback for admin operations
+- Service interfaces `GetByUidAsync`, `UpdateAsync`, `DeleteAsync` now require `userId` parameter
+- `Poracle:ApiAddress` and `Poracle:ApiSecret` configuration now required for ALL alarm operations (previously only used for config reads)
+
+### Removed
+- 8 alarm repository classes (MonsterRepository, RaidRepository, etc.)
+- 8 alarm repository interfaces (IMonsterRepository, IRaidRepository, etc.)
+- BaseRepository generic alarm CRUD implementation
+- PoracleUnitOfWork and IPoracleUnitOfWork
+- EnsureNotNullDefaults for alarm writes (PoracleNG handles field defaults)
+- PVP field sanitization in MonsterService (PoracleNG's cleanRow handles this)
+- GruntType normalization in InvasionService (PoracleNG handles this)
+- Template defaulting in all alarm services (PoracleNG defaults to config's defaultTemplateName)
+
+### Fixed
+- Eliminated 15-hour stale state window caused by NULL template crash in PoracleNG state reload
+- Profile switch area dual-write is now atomic (was two separate SaveChangesAsync calls)
+- Area update dual-write is now atomic (was two separate SaveChangesAsync calls)
+
 ## [1.3.1] - 2026-04-01
 
 ### Fixed
