@@ -83,8 +83,14 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IScannerService, RdmScannerService>();
         }
 
-        // Register HttpClient for Poracle API
+        // Register HttpClient for Poracle API (config, geofences, templates — read-only proxy)
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
+
+        // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
+        services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
+
+        // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
+        services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
 
         // Register Poracle Server settings and service (multi-server restart)
         services.Configure<PoracleServerSettings>(config =>
