@@ -1,89 +1,192 @@
+using System.Text.Json;
 using Moq;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
-using Pgan.PoracleWebNet.Core.Abstractions.UnitsOfWork;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class CleaningServiceTests
 {
-    private readonly Mock<IPoracleUnitOfWork> _unitOfWork = new();
-    private readonly Mock<IMonsterRepository> _monsterRepo = new();
-    private readonly Mock<IRaidRepository> _raidRepo = new();
-    private readonly Mock<IEggRepository> _eggRepo = new();
-    private readonly Mock<IQuestRepository> _questRepo = new();
-    private readonly Mock<IInvasionRepository> _invasionRepo = new();
-    private readonly Mock<ILureRepository> _lureRepo = new();
-    private readonly Mock<INestRepository> _nestRepo = new();
-    private readonly Mock<IGymRepository> _gymRepo = new();
+    private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly CleaningService _sut;
 
-    public CleaningServiceTests()
-    {
-        this._unitOfWork.Setup(u => u.Monsters).Returns(this._monsterRepo.Object);
-        this._unitOfWork.Setup(u => u.Raids).Returns(this._raidRepo.Object);
-        this._unitOfWork.Setup(u => u.Eggs).Returns(this._eggRepo.Object);
-        this._unitOfWork.Setup(u => u.Quests).Returns(this._questRepo.Object);
-        this._unitOfWork.Setup(u => u.Invasions).Returns(this._invasionRepo.Object);
-        this._unitOfWork.Setup(u => u.Lures).Returns(this._lureRepo.Object);
-        this._unitOfWork.Setup(u => u.Nests).Returns(this._nestRepo.Object);
-        this._unitOfWork.Setup(u => u.Gyms).Returns(this._gymRepo.Object);
-        this._sut = new CleaningService(this._unitOfWork.Object);
-    }
+    public CleaningServiceTests() => this._sut = new CleaningService(this._proxy.Object);
 
     [Fact]
-    public async Task ToggleCleanMonstersAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanMonstersAsyncUpdatesAllAlarms()
     {
-        this._monsterRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(5);
+        var json = CreateJsonArray(
+            new { uid = 1, clean = 0 },
+            new { uid = 2, clean = 0 },
+            new { uid = 3, clean = 0 },
+            new { uid = 4, clean = 0 },
+            new { uid = 5, clean = 0 });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 5, 0));
+
         Assert.Equal(5, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanRaidsAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanRaidsAsyncUpdatesAllAlarms()
     {
-        this._raidRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(3);
+        var json = CreateJsonArray(
+            new { uid = 1, clean = 1 },
+            new { uid = 2, clean = 1 },
+            new { uid = 3, clean = 1 });
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("raid", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
+
         Assert.Equal(3, await this._sut.ToggleCleanRaidsAsync("u1", 1, 0));
     }
 
     [Fact]
-    public async Task ToggleCleanEggsAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanEggsAsyncUpdatesAllAlarms()
     {
-        this._eggRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(2);
+        var json = CreateJsonArray(new { uid = 1, clean = 0 }, new { uid = 2, clean = 0 });
+        this._proxy.Setup(p => p.GetByUserAsync("egg", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("egg", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+
         Assert.Equal(2, await this._sut.ToggleCleanEggsAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanQuestsAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanQuestsAsyncUpdatesAllAlarms()
     {
-        this._questRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(4);
+        var json = CreateJsonArray(
+            new { uid = 1, clean = 0 },
+            new { uid = 2, clean = 0 },
+            new { uid = 3, clean = 0 },
+            new { uid = 4, clean = 0 });
+        this._proxy.Setup(p => p.GetByUserAsync("quest", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("quest", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
+
         Assert.Equal(4, await this._sut.ToggleCleanQuestsAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanInvasionsAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanInvasionsAsyncUpdatesAllAlarms()
     {
-        this._invasionRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(6);
+        var json = CreateJsonArray(
+            new { uid = 1, clean = 1 },
+            new { uid = 2, clean = 1 },
+            new { uid = 3, clean = 1 },
+            new { uid = 4, clean = 1 },
+            new { uid = 5, clean = 1 },
+            new { uid = 6, clean = 1 });
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 6, 0));
+
         Assert.Equal(6, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 0));
     }
 
     [Fact]
-    public async Task ToggleCleanLuresAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanLuresAsyncUpdatesAllAlarms()
     {
-        this._lureRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(1);
+        var json = CreateJsonArray(new { uid = 1, clean = 0 });
+        this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("lure", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
         Assert.Equal(1, await this._sut.ToggleCleanLuresAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanNestsAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanNestsAsyncUpdatesAllAlarms()
     {
-        this._nestRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 1)).ReturnsAsync(8);
+        var json = CreateJsonArray(Enumerable.Range(1, 8).Select(i => (object)new { uid = i, clean = 0 }).ToArray());
+        this._proxy.Setup(p => p.GetByUserAsync("nest", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("nest", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 8, 0));
+
         Assert.Equal(8, await this._sut.ToggleCleanNestsAsync("u1", 1, 1));
     }
 
     [Fact]
-    public async Task ToggleCleanGymsAsyncDelegatesToUnitOfWork()
+    public async Task ToggleCleanGymsAsyncUpdatesAllAlarms()
     {
-        this._gymRepo.Setup(r => r.BulkUpdateCleanAsync("u1", 1, 0)).ReturnsAsync(9);
+        var json = CreateJsonArray(Enumerable.Range(1, 9).Select(i => (object)new { uid = i, clean = 1 }).ToArray());
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 9, 0));
+
         Assert.Equal(9, await this._sut.ToggleCleanGymsAsync("u1", 1, 0));
+    }
+
+    [Fact]
+    public async Task ToggleCleanReturnsZeroWhenNoAlarms()
+    {
+        var json = CreateJsonArray();
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
+
+        Assert.Equal(0, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetCleanStatusAsyncReturnsTrueWhenAllClean()
+    {
+        var json = CreateAllTrackingJson(cleanValue: 1, countPerType: 2);
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        var result = await this._sut.GetCleanStatusAsync("u1", 1);
+
+        Assert.True(result["monsters"]);
+        Assert.True(result["raids"]);
+    }
+
+    [Fact]
+    public async Task GetCleanStatusAsyncReturnsFalseWhenNotAllClean()
+    {
+        // Mix of clean=0 and clean=1
+        var obj = new Dictionary<string, object[]>
+        {
+            ["pokemon"] = [new { uid = 1, clean = 1 }, new { uid = 2, clean = 0 }],
+            ["raid"] = [new { uid = 1, clean = 1 }],
+            ["egg"] = [],
+            ["quest"] = [],
+            ["invasion"] = [],
+            ["lure"] = [],
+            ["nest"] = [],
+            ["gym"] = [],
+        };
+        var jsonStr = JsonSerializer.Serialize(obj);
+        using var doc = JsonDocument.Parse(jsonStr);
+        var json = doc.RootElement.Clone();
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        var result = await this._sut.GetCleanStatusAsync("u1", 1);
+
+        Assert.False(result["monsters"]); // one is not clean
+        Assert.True(result["raids"]);     // single item is clean
+        Assert.False(result["eggs"]);     // empty array
+    }
+
+    private static JsonElement CreateJsonArray(params object[] items)
+    {
+        var jsonStr = JsonSerializer.Serialize(items);
+        using var doc = JsonDocument.Parse(jsonStr);
+        return doc.RootElement.Clone();
+    }
+
+    private static JsonElement CreateAllTrackingJson(int cleanValue, int countPerType)
+    {
+        var types = new[] { "pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym" };
+        var obj = new Dictionary<string, object[]>();
+        foreach (var type in types)
+        {
+            obj[type] = Enumerable.Range(1, countPerType)
+                .Select(i => (object)new { uid = i, clean = cleanValue })
+                .ToArray();
+        }
+
+        var jsonStr = JsonSerializer.Serialize(obj);
+        using var doc = JsonDocument.Parse(jsonStr);
+        return doc.RootElement.Clone();
     }
 }

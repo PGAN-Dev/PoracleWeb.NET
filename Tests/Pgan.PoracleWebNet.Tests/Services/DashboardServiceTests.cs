@@ -1,42 +1,24 @@
+using System.Text.Json;
 using Moq;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class DashboardServiceTests
 {
-    private readonly Mock<IMonsterRepository> _monsterRepo = new();
-    private readonly Mock<IRaidRepository> _raidRepo = new();
-    private readonly Mock<IEggRepository> _eggRepo = new();
-    private readonly Mock<IQuestRepository> _questRepo = new();
-    private readonly Mock<IInvasionRepository> _invasionRepo = new();
-    private readonly Mock<ILureRepository> _lureRepo = new();
-    private readonly Mock<INestRepository> _nestRepo = new();
-    private readonly Mock<IGymRepository> _gymRepo = new();
+    private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly DashboardService _sut;
 
-    public DashboardServiceTests() => this._sut = new DashboardService(
-            this._monsterRepo.Object,
-            this._raidRepo.Object,
-            this._eggRepo.Object,
-            this._questRepo.Object,
-            this._invasionRepo.Object,
-            this._lureRepo.Object,
-            this._nestRepo.Object,
-            this._gymRepo.Object);
+    public DashboardServiceTests() => this._sut = new DashboardService(this._proxy.Object);
 
     [Fact]
     public async Task GetCountsAsyncReturnsAllCounts()
     {
-        this._monsterRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(10);
-        this._raidRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(5);
-        this._eggRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(3);
-        this._questRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(7);
-        this._invasionRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(2);
-        this._lureRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(4);
-        this._nestRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(1);
-        this._gymRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(6);
+        var json = CreateAllTrackingJson(
+            pokemon: 10, raid: 5, egg: 3, quest: 7,
+            invasion: 2, lure: 4, nest: 1, gym: 6);
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
 
         var result = await this._sut.GetCountsAsync("u1", 1);
 
@@ -53,14 +35,10 @@ public class DashboardServiceTests
     [Fact]
     public async Task GetCountsAsyncReturnsZeroCountsWhenNoAlarms()
     {
-        this._monsterRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        this._raidRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        this._eggRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        this._questRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        this._invasionRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        this._lureRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        this._nestRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
-        this._gymRepo.Setup(r => r.CountByUserAsync("u1", 1)).ReturnsAsync(0);
+        var json = CreateAllTrackingJson(
+            pokemon: 0, raid: 0, egg: 0, quest: 0,
+            invasion: 0, lure: 0, nest: 0, gym: 0);
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
 
         var result = await this._sut.GetCountsAsync("u1", 1);
 
@@ -69,32 +47,46 @@ public class DashboardServiceTests
     }
 
     [Fact]
-    public async Task GetCountsAsyncCallsRepositoriesSequentially()
+    public async Task GetCountsAsyncHandlesMissingKeys()
     {
-        // Verify sequential execution (not parallel) to avoid DbContext concurrency issues
-        var callOrder = new List<string>();
+        // Empty JSON object -- no tracking types present
+        using var doc = JsonDocument.Parse("{}");
+        var json = doc.RootElement.Clone();
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
 
-        this._monsterRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("monsters")).ReturnsAsync(0);
-        this._raidRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("raids")).ReturnsAsync(0);
-        this._eggRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("eggs")).ReturnsAsync(0);
-        this._questRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("quests")).ReturnsAsync(0);
-        this._invasionRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("invasions")).ReturnsAsync(0);
-        this._lureRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("lures")).ReturnsAsync(0);
-        this._nestRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("nests")).ReturnsAsync(0);
-        this._gymRepo.Setup(r => r.CountByUserAsync("u1", 1))
-            .Callback(() => callOrder.Add("gyms")).ReturnsAsync(0);
+        var result = await this._sut.GetCountsAsync("u1", 1);
 
-        await this._sut.GetCountsAsync("u1", 1);
+        Assert.Equal(0, result.Monsters);
+        Assert.Equal(0, result.Raids);
+        Assert.Equal(0, result.Eggs);
+        Assert.Equal(0, result.Quests);
+        Assert.Equal(0, result.Invasions);
+        Assert.Equal(0, result.Lures);
+        Assert.Equal(0, result.Nests);
+        Assert.Equal(0, result.Gyms);
+    }
 
-        Assert.Equal(8, callOrder.Count);
-        Assert.Equal("monsters", callOrder[0]);
-        Assert.Equal("gyms", callOrder[7]);
+    /// <summary>
+    /// Creates a JSON object with arrays of dummy items per tracking type.
+    /// </summary>
+    private static JsonElement CreateAllTrackingJson(
+        int pokemon, int raid, int egg, int quest,
+        int invasion, int lure, int nest, int gym)
+    {
+        var obj = new Dictionary<string, object[]>
+        {
+            ["pokemon"] = Enumerable.Range(1, pokemon).Select(i => (object)new { uid = i }).ToArray(),
+            ["raid"] = Enumerable.Range(1, raid).Select(i => (object)new { uid = i }).ToArray(),
+            ["egg"] = Enumerable.Range(1, egg).Select(i => (object)new { uid = i }).ToArray(),
+            ["quest"] = Enumerable.Range(1, quest).Select(i => (object)new { uid = i }).ToArray(),
+            ["invasion"] = Enumerable.Range(1, invasion).Select(i => (object)new { uid = i }).ToArray(),
+            ["lure"] = Enumerable.Range(1, lure).Select(i => (object)new { uid = i }).ToArray(),
+            ["nest"] = Enumerable.Range(1, nest).Select(i => (object)new { uid = i }).ToArray(),
+            ["gym"] = Enumerable.Range(1, gym).Select(i => (object)new { uid = i }).ToArray(),
+        };
+
+        var jsonStr = JsonSerializer.Serialize(obj);
+        using var doc = JsonDocument.Parse(jsonStr);
+        return doc.RootElement.Clone();
     }
 }

@@ -1,5 +1,6 @@
+using System.Text.Json;
 using Moq;
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
@@ -7,36 +8,46 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class InvasionServiceTests
 {
-    private readonly Mock<IInvasionRepository> _repository = new();
+    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
+
+    private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly InvasionService _sut;
 
-    public InvasionServiceTests() => this._sut = new InvasionService(this._repository.Object);
+    public InvasionServiceTests() => this._sut = new InvasionService(this._proxy.Object);
 
     [Fact]
     public async Task GetByUserAsyncReturnsInvasions()
     {
-        this._repository.Setup(r => r.GetByUserAsync("u1", 1)).ReturnsAsync([new() { Uid = 1 }]);
+        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
 
     [Fact]
     public async Task GetByUidAsyncFound()
     {
-        this._repository.Setup(r => r.GetByUidAsync(1)).ReturnsAsync(new Invasion { Uid = 1 });
-        Assert.NotNull(await this._sut.GetByUidAsync(1));
+        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
+        Assert.NotNull(await this._sut.GetByUidAsync("u1", 1));
     }
 
     [Fact]
     public async Task GetByUidAsyncNotFound()
     {
-        this._repository.Setup(r => r.GetByUidAsync(999)).ReturnsAsync((Invasion?)null);
-        Assert.Null(await this._sut.GetByUidAsync(999));
+        var json = CreateJsonArray();
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
+        Assert.Null(await this._sut.GetByUidAsync("u1", 999));
     }
 
     [Fact]
     public async Task CreateAsyncSetsUserId()
     {
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
+        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
+
         var result = await this._sut.CreateAsync("user1", new Invasion());
         Assert.Equal("user1", result.Id);
     }
@@ -45,111 +56,86 @@ public class InvasionServiceTests
     public async Task UpdateAsyncDelegates()
     {
         var i = new Invasion { Uid = 1 };
-        this._repository.Setup(r => r.UpdateAsync(i)).ReturnsAsync(i);
-        await this._sut.UpdateAsync(i);
-        this._repository.Verify(r => r.UpdateAsync(i), Times.Once);
+        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        await this._sut.UpdateAsync("user1", i);
+        this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Once);
     }
 
     [Fact]
     public async Task DeleteAsyncTrue()
     {
-        this._repository.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
-        Assert.True(await this._sut.DeleteAsync(1));
-    }
-
-    [Fact]
-    public async Task DeleteAsyncFalse()
-    {
-        this._repository.Setup(r => r.DeleteAsync(999)).ReturnsAsync(false);
-        Assert.False(await this._sut.DeleteAsync(999));
+        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "user1", 1)).Returns(Task.CompletedTask);
+        Assert.True(await this._sut.DeleteAsync("user1", 1));
     }
 
     [Fact]
     public async Task DeleteAllByUserAsyncCount()
     {
-        this._repository.Setup(r => r.DeleteAllByUserAsync("u", 1)).ReturnsAsync(6);
+        var json = CreateJsonArray(
+            new { uid = 1, id = "u" },
+            new { uid = 2, id = "u" },
+            new { uid = 3, id = "u" },
+            new { uid = 4, id = "u" },
+            new { uid = 5, id = "u" },
+            new { uid = 6, id = "u" });
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.BulkDeleteByUidsAsync("invasion", "u", It.IsAny<IEnumerable<int>>()))
+            .Returns(Task.CompletedTask);
+
         Assert.Equal(6, await this._sut.DeleteAllByUserAsync("u", 1));
     }
 
     [Fact]
     public async Task UpdateDistanceByUserAsyncCount()
     {
-        this._repository.Setup(r => r.UpdateDistanceByUserAsync("u", 1, 50)).ReturnsAsync(4);
+        var json = CreateJsonArray(
+            new { uid = 1, id = "u", distance = 0 },
+            new { uid = 2, id = "u", distance = 0 },
+            new { uid = 3, id = "u", distance = 0 },
+            new { uid = 4, id = "u", distance = 0 });
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
+
         Assert.Equal(4, await this._sut.UpdateDistanceByUserAsync("u", 1, 50));
     }
 
     [Fact]
     public async Task CountByUserAsyncCount()
     {
-        this._repository.Setup(r => r.CountByUserAsync("u", 1)).ReturnsAsync(12);
+        var json = CreateJsonArray(Enumerable.Range(1, 12).Select(i => (object)new { uid = i, id = "u" }).ToArray());
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
+
         Assert.Equal(12, await this._sut.CountByUserAsync("u", 1));
     }
 
     [Fact]
-    public async Task CreateAsyncLowercasesGruntType()
+    public async Task BulkCreateAsyncSetsUserIds()
     {
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
-        var result = await this._sut.CreateAsync("u1", new Invasion { GruntType = "Mixed_Case_Grunt" });
-        Assert.Equal("mixed_case_grunt", result.GruntType);
-    }
-
-    [Fact]
-    public async Task CreateAsyncDefaultsEmptyGruntTypeToEverything()
-    {
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
-        var result = await this._sut.CreateAsync("u1", new Invasion { GruntType = "" });
-        Assert.Equal("everything", result.GruntType);
-    }
-
-    [Fact]
-    public async Task CreateAsyncDefaultsNullGruntTypeToEverything()
-    {
-        this._repository.Setup(r => r.CreateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
-        var result = await this._sut.CreateAsync("u1", new Invasion { GruntType = null });
-        Assert.Equal("everything", result.GruntType);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncLowercasesGruntType()
-    {
-        var invasion = new Invasion { Uid = 1, GruntType = "UPPER_GRUNT" };
-        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
-        var result = await this._sut.UpdateAsync(invasion);
-        Assert.Equal("upper_grunt", result.GruntType);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncDefaultsEmptyGruntTypeToEverything()
-    {
-        var invasion = new Invasion { Uid = 1, GruntType = "" };
-        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
-        var result = await this._sut.UpdateAsync(invasion);
-        Assert.Equal("everything", result.GruntType);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncDefaultsNullGruntTypeToEverything()
-    {
-        var invasion = new Invasion { Uid = 1, GruntType = null };
-        this._repository.Setup(r => r.UpdateAsync(It.IsAny<Invasion>())).ReturnsAsync((Invasion i) => i);
-        var result = await this._sut.UpdateAsync(invasion);
-        Assert.Equal("everything", result.GruntType);
-    }
-
-    [Fact]
-    public async Task BulkCreateAsyncNormalizesGruntTypes()
-    {
-        this._repository.Setup(r => r.BulkCreateAsync(It.IsAny<IEnumerable<Invasion>>()))
-            .ReturnsAsync((IEnumerable<Invasion> items) => items);
         var models = new List<Invasion>
         {
-            new() { GruntType = "UPPER" },
-            new() { GruntType = "" },
+            new() { GruntType = "mixed" },
+            new() { GruntType = "dark" },
             new() { GruntType = null },
         };
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([10, 11, 12], 0, 0, 3));
+
         var results = (await this._sut.BulkCreateAsync("u1", models)).ToList();
-        Assert.Equal("upper", results[0].GruntType);
-        Assert.Equal("everything", results[1].GruntType);
-        Assert.Equal("everything", results[2].GruntType);
+
+        Assert.Equal(3, results.Count);
+        Assert.All(results, r => Assert.Equal("u1", r.Id));
+        Assert.Equal(10, results[0].Uid);
+        Assert.Equal(11, results[1].Uid);
+        Assert.Equal(12, results[2].Uid);
+    }
+
+    private static JsonElement CreateJsonArray(params object[] items)
+    {
+        var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);
+        using var doc = JsonDocument.Parse(jsonStr);
+        return doc.RootElement.Clone();
     }
 }
