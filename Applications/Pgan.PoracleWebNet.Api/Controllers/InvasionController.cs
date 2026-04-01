@@ -21,8 +21,8 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var invasion = await this._invasionService.GetByUidAsync(uid);
-        if (invasion == null || this.NotOwnedByCurrentUser(invasion.Id))
+        var invasion = await this._invasionService.GetByUidAsync(this.UserId, uid);
+        if (invasion == null)
         {
             return this.NotFound();
         }
@@ -45,27 +45,27 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model)
     {
-        var existing = await this._invasionService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._invasionService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
         this._mapper.Map(model, existing);
-        var result = await this._invasionService.UpdateAsync(existing);
+        var result = await this._invasionService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._invasionService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._invasionService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
-        await this._invasionService.DeleteAsync(uid);
+        await this._invasionService.DeleteAsync(this.UserId, uid);
         return this.NoContent();
     }
 

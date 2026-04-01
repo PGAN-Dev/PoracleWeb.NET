@@ -74,7 +74,7 @@ public partial class QuickPickService(
             // Verify tracked alarms still exist — if all deleted manually, clear applied state
             if (appliedState?.TrackedUids is { Count: > 0 })
             {
-                var remaining = await this.CountRemainingUidsAsync(definition.AlarmType, appliedState.TrackedUids);
+                var remaining = await this.CountRemainingUidsAsync(userId, definition.AlarmType, appliedState.TrackedUids);
                 if (remaining == 0)
                 {
                     // All alarms were deleted manually — clean up stale applied state
@@ -84,7 +84,7 @@ public partial class QuickPickService(
                 else if (remaining < appliedState.TrackedUids.Count)
                 {
                     // Some alarms were deleted — update the tracked UIDs to only valid ones
-                    appliedState.TrackedUids = await this.GetValidUidsAsync(definition.AlarmType, appliedState.TrackedUids);
+                    appliedState.TrackedUids = await this.GetValidUidsAsync(userId, definition.AlarmType, appliedState.TrackedUids);
                     await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
                 }
             }
@@ -205,28 +205,28 @@ public partial class QuickPickService(
             switch (alarmType)
             {
                 case "monster":
-                    await this._monsterService.DeleteAsync(uid);
+                    await this._monsterService.DeleteAsync(userId, uid);
                     break;
                 case "raid":
-                    await this._raidService.DeleteAsync(uid);
+                    await this._raidService.DeleteAsync(userId, uid);
                     break;
                 case "egg":
-                    await this._eggService.DeleteAsync(uid);
+                    await this._eggService.DeleteAsync(userId, uid);
                     break;
                 case "quest":
-                    await this._questService.DeleteAsync(uid);
+                    await this._questService.DeleteAsync(userId, uid);
                     break;
                 case "invasion":
-                    await this._invasionService.DeleteAsync(uid);
+                    await this._invasionService.DeleteAsync(userId, uid);
                     break;
                 case "lure":
-                    await this._lureService.DeleteAsync(uid);
+                    await this._lureService.DeleteAsync(userId, uid);
                     break;
                 case "nest":
-                    await this._nestService.DeleteAsync(uid);
+                    await this._nestService.DeleteAsync(userId, uid);
                     break;
                 case "gym":
-                    await this._gymService.DeleteAsync(uid);
+                    await this._gymService.DeleteAsync(userId, uid);
                     break;
                 default:
                     break;
@@ -632,21 +632,21 @@ public partial class QuickPickService(
 
     // --- UID validation helpers ---
 
-    private async Task<int> CountRemainingUidsAsync(string alarmType, List<int> uids)
+    private async Task<int> CountRemainingUidsAsync(string userId, string alarmType, List<int> uids)
     {
         var count = 0;
         foreach (var uid in uids)
         {
             var exists = alarmType switch
             {
-                "monster" => await this._monsterService.GetByUidAsync(uid) != null,
-                "raid" => await this._raidService.GetByUidAsync(uid) != null,
-                "egg" => await this._eggService.GetByUidAsync(uid) != null,
-                "quest" => await this._questService.GetByUidAsync(uid) != null,
-                "invasion" => await this._invasionService.GetByUidAsync(uid) != null,
-                "lure" => await this._lureService.GetByUidAsync(uid) != null,
-                "nest" => await this._nestService.GetByUidAsync(uid) != null,
-                "gym" => await this._gymService.GetByUidAsync(uid) != null,
+                "monster" => await this._monsterService.GetByUidAsync(userId, uid) != null,
+                "raid" => await this._raidService.GetByUidAsync(userId, uid) != null,
+                "egg" => await this._eggService.GetByUidAsync(userId, uid) != null,
+                "quest" => await this._questService.GetByUidAsync(userId, uid) != null,
+                "invasion" => await this._invasionService.GetByUidAsync(userId, uid) != null,
+                "lure" => await this._lureService.GetByUidAsync(userId, uid) != null,
+                "nest" => await this._nestService.GetByUidAsync(userId, uid) != null,
+                "gym" => await this._gymService.GetByUidAsync(userId, uid) != null,
                 _ => false,
             };
             if (exists)
@@ -658,21 +658,21 @@ public partial class QuickPickService(
         return count;
     }
 
-    private async Task<List<int>> GetValidUidsAsync(string alarmType, List<int> uids)
+    private async Task<List<int>> GetValidUidsAsync(string userId, string alarmType, List<int> uids)
     {
         var valid = new List<int>();
         foreach (var uid in uids)
         {
             var exists = alarmType switch
             {
-                "monster" => await this._monsterService.GetByUidAsync(uid) != null,
-                "raid" => await this._raidService.GetByUidAsync(uid) != null,
-                "egg" => await this._eggService.GetByUidAsync(uid) != null,
-                "quest" => await this._questService.GetByUidAsync(uid) != null,
-                "invasion" => await this._invasionService.GetByUidAsync(uid) != null,
-                "lure" => await this._lureService.GetByUidAsync(uid) != null,
-                "nest" => await this._nestService.GetByUidAsync(uid) != null,
-                "gym" => await this._gymService.GetByUidAsync(uid) != null,
+                "monster" => await this._monsterService.GetByUidAsync(userId, uid) != null,
+                "raid" => await this._raidService.GetByUidAsync(userId, uid) != null,
+                "egg" => await this._eggService.GetByUidAsync(userId, uid) != null,
+                "quest" => await this._questService.GetByUidAsync(userId, uid) != null,
+                "invasion" => await this._invasionService.GetByUidAsync(userId, uid) != null,
+                "lure" => await this._lureService.GetByUidAsync(userId, uid) != null,
+                "nest" => await this._nestService.GetByUidAsync(userId, uid) != null,
+                "gym" => await this._gymService.GetByUidAsync(userId, uid) != null,
                 _ => false,
             };
             if (exists)

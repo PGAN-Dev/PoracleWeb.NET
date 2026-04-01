@@ -5,31 +5,29 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/areas")]
-public partial class AreaController(IHumanService humanService, IProfileService profileService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
+public partial class AreaController(IPoracleHumanProxy humanProxy, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
 {
-    private readonly IHumanService _humanService = humanService;
-    private readonly IProfileService _profileService = profileService;
+    private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly ILogger<AreaController> _logger = logger;
 
     [HttpGet]
     public async Task<IActionResult> GetSelectedAreas()
     {
-        // Read from profiles.area for the current profile (profile-scoped)
-        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
-        if (profile == null)
+        // Read areas from PoracleNG, which returns the current profile's areas
+        var humanJson = await this._humanProxy.GetAreasAsync(this.UserId);
+        if (humanJson == null)
         {
-            // Fallback to humans.area if profile not found
-            var human = await this._humanService.GetByIdAsync(this.UserId);
-            if (human == null)
-            {
-                return this.NotFound();
-            }
-
-            return this.Ok(ParseAreaJson(human.Area));
+            return this.NotFound();
         }
 
-        return this.Ok(ParseAreaJson(profile.Area));
+        // The proxy returns a JsonElement for the human; extract the area field
+        if (humanJson.Value.TryGetProperty("area", out var areaProp))
+        {
+            return this.Ok(ParseAreaJson(areaProp.GetString()));
+        }
+
+        return this.Ok(Array.Empty<string>());
     }
 
     [HttpGet("available")]
@@ -54,38 +52,13 @@ public partial class AreaController(IHumanService humanService, IProfileService 
     [HttpPut]
     public async Task<IActionResult> UpdateAreas([FromBody] UpdateAreasRequest request)
     {
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
-        {
-            return this.NotFound();
-        }
-
         // Lowercase area names to match Poracle's expected format (PHP PoracleWeb does strtolower)
         var normalizedAreas = request.Areas != null && request.Areas.Length > 0
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
 
-        var areaJson = normalizedAreas.Length > 0
-            ? JsonSerializer.Serialize(normalizedAreas)
-            : "[]";
-
-        // HACK: Dual-write to humans.area + profiles.area with two separate SaveChangesAsync calls.
-        // Not transactional — if the second write fails, profiles.area is stale until next switch.
-        // PoracleNG's setAreas endpoint handles this atomically with a single API call.
-        // TODO: Replace with POST /api/humans/{id}/setAreas
-        // See: docs/poracleng-enhancement-requests.md#atomic-area-update
-
-        // Update humans.area (PoracleJS reads this for notifications)
-        human.Area = areaJson;
-        await this._humanService.UpdateAsync(human);
-
-        // Also update profiles.area for the current profile (profile-scoped storage)
-        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
-        if (profile != null)
-        {
-            profile.Area = areaJson;
-            await this._profileService.UpdateAsync(profile);
-        }
+        // PoracleNG handles the dual-write to humans.area + profiles.area atomically
+        await this._humanProxy.SetAreasAsync(this.UserId, normalizedAreas);
 
         return this.Ok(normalizedAreas);
     }

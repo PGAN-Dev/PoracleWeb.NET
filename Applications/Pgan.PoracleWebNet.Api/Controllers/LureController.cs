@@ -21,8 +21,8 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var lure = await this._lureService.GetByUidAsync(uid);
-        if (lure == null || this.NotOwnedByCurrentUser(lure.Id))
+        var lure = await this._lureService.GetByUidAsync(this.UserId, uid);
+        if (lure == null)
         {
             return this.NotFound();
         }
@@ -45,27 +45,27 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] LureUpdate model)
     {
-        var existing = await this._lureService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._lureService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
         this._mapper.Map(model, existing);
-        var result = await this._lureService.UpdateAsync(existing);
+        var result = await this._lureService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._lureService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._lureService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
-        await this._lureService.DeleteAsync(uid);
+        await this._lureService.DeleteAsync(this.UserId, uid);
         return this.NoContent();
     }
 

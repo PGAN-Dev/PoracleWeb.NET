@@ -21,8 +21,8 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var egg = await this._eggService.GetByUidAsync(uid);
-        if (egg == null || this.NotOwnedByCurrentUser(egg.Id))
+        var egg = await this._eggService.GetByUidAsync(this.UserId, uid);
+        if (egg == null)
         {
             return this.NotFound();
         }
@@ -45,27 +45,27 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] EggUpdate model)
     {
-        var existing = await this._eggService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._eggService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
         this._mapper.Map(model, existing);
-        var result = await this._eggService.UpdateAsync(existing);
+        var result = await this._eggService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._eggService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._eggService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
-        await this._eggService.DeleteAsync(uid);
+        await this._eggService.DeleteAsync(this.UserId, uid);
         return this.NoContent();
     }
 

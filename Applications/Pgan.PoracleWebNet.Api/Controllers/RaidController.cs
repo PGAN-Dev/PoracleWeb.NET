@@ -21,8 +21,8 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     [HttpGet("{uid:int}")]
     public async Task<IActionResult> GetByUid(int uid)
     {
-        var raid = await this._raidService.GetByUidAsync(uid);
-        if (raid == null || this.NotOwnedByCurrentUser(raid.Id))
+        var raid = await this._raidService.GetByUidAsync(this.UserId, uid);
+        if (raid == null)
         {
             return this.NotFound();
         }
@@ -45,27 +45,27 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] RaidUpdate model)
     {
-        var existing = await this._raidService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._raidService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
         this._mapper.Map(model, existing);
-        var result = await this._raidService.UpdateAsync(existing);
+        var result = await this._raidService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
 
     [HttpDelete("{uid:int}")]
     public async Task<IActionResult> Delete(int uid)
     {
-        var existing = await this._raidService.GetByUidAsync(uid);
-        if (existing == null || this.NotOwnedByCurrentUser(existing.Id))
+        var existing = await this._raidService.GetByUidAsync(this.UserId, uid);
+        if (existing == null)
         {
             return this.NotFound();
         }
 
-        await this._raidService.DeleteAsync(uid);
+        await this._raidService.DeleteAsync(this.UserId, uid);
         return this.NoContent();
     }
 
