@@ -13,14 +13,12 @@ public class HumanServiceTests
     private readonly Mock<IHumanRepository> _repository = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleTrackingProxy> _trackingProxy = new();
-    private readonly Mock<ILogger<HumanService>> _logger = new();
     private readonly HumanService _sut;
 
     public HumanServiceTests() => this._sut = new HumanService(
         this._repository.Object,
         this._humanProxy.Object,
-        this._trackingProxy.Object,
-        this._logger.Object);
+        this._trackingProxy.Object);
 
     [Fact]
     public async Task GetAllAsyncReturnsHumansFromRepository()
@@ -56,14 +54,10 @@ public class HumanServiceTests
     }
 
     [Fact]
-    public async Task GetByIdAsyncFallsBackToRepositoryOnProxyError()
+    public async Task GetByIdAsyncThrowsOnProxyError()
     {
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ThrowsAsync(new HttpRequestException("fail"));
-        this._repository.Setup(r => r.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "Fallback" });
-
-        var result = await this._sut.GetByIdAsync("u1");
-        Assert.NotNull(result);
-        Assert.Equal("Fallback", result!.Name);
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetByIdAsync("u1"));
     }
 
     [Fact]
@@ -128,11 +122,10 @@ public class HumanServiceTests
     }
 
     [Fact]
-    public async Task ExistsAsyncFallsBackToRepositoryOnProxyError()
+    public async Task ExistsAsyncThrowsOnProxyError()
     {
         this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ThrowsAsync(new HttpRequestException("fail"));
-        this._repository.Setup(r => r.ExistsAsync("u1")).ReturnsAsync(true);
-        Assert.True(await this._sut.ExistsAsync("u1"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.ExistsAsync("u1"));
     }
 
     [Fact]
@@ -160,13 +153,11 @@ public class HumanServiceTests
     }
 
     [Fact]
-    public async Task DeleteAllAlarmsByUserAsyncFallsBackToRepositoryOnError()
+    public async Task DeleteAllAlarmsByUserAsyncThrowsOnProxyError()
     {
         this._trackingProxy.Setup(p => p.GetByUserAsync(It.IsAny<string>(), "u1"))
             .ThrowsAsync(new HttpRequestException("fail"));
-        this._repository.Setup(r => r.DeleteAllAlarmsByUserAsync("u1")).ReturnsAsync(15);
-
-        Assert.Equal(15, await this._sut.DeleteAllAlarmsByUserAsync("u1"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.DeleteAllAlarmsByUserAsync("u1"));
     }
 
     [Fact]

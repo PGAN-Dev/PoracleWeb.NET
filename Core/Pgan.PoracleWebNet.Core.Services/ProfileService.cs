@@ -1,6 +1,5 @@
 using System.Text.Json;
 
-using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -8,57 +7,29 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Hybrid service: proxy-first for profile reads, direct DB as fallback.
-/// Create/Update/Delete are already proxied by ProfileController via IPoracleHumanProxy;
-/// this service is used for reads (GetByUser, GetByUserAndProfileNo) by
+/// Proxy-first service for profile reads. Create/Update/Delete are already proxied by
+/// ProfileController via IPoracleHumanProxy; this service provides reads for
 /// LocationController, UserGeofenceService, and ProfileController.GetAll.
+/// IProfileRepository is kept for non-active profile operations in UserGeofenceService.
 /// </summary>
-public partial class ProfileService(
+public class ProfileService(
     IProfileRepository repository,
-    IPoracleHumanProxy humanProxy,
-    ILogger<ProfileService> logger) : IProfileService
+    IPoracleHumanProxy humanProxy) : IProfileService
 {
     private readonly IProfileRepository _repository = repository;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
-    private readonly ILogger<ProfileService> _logger = logger;
 
     public async Task<IEnumerable<Profile>> GetByUserAsync(string userId)
     {
-        try
-        {
-            var json = await this._humanProxy.GetProfilesAsync(userId);
-            var profiles = DeserializeProfiles(json);
-            if (profiles.Count > 0)
-            {
-                return profiles;
-            }
-        }
-        catch (Exception ex)
-        {
-            LogProxyFallback(this._logger, ex, "GetByUserAsync", userId);
-        }
-
-        return await this._repository.GetByUserAsync(userId);
+        var json = await this._humanProxy.GetProfilesAsync(userId);
+        return DeserializeProfiles(json);
     }
 
     public async Task<Profile?> GetByUserAndProfileNoAsync(string userId, int profileNo)
     {
-        try
-        {
-            var json = await this._humanProxy.GetProfilesAsync(userId);
-            var profiles = DeserializeProfiles(json);
-            var match = profiles.Find(p => p.ProfileNo == profileNo);
-            if (match != null)
-            {
-                return match;
-            }
-        }
-        catch (Exception ex)
-        {
-            LogProxyFallback(this._logger, ex, "GetByUserAndProfileNoAsync", userId);
-        }
-
-        return await this._repository.GetByUserAndProfileNoAsync(userId, profileNo);
+        var json = await this._humanProxy.GetProfilesAsync(userId);
+        var profiles = DeserializeProfiles(json);
+        return profiles.Find(p => p.ProfileNo == profileNo);
     }
 
     public async Task<Profile> CreateAsync(Profile profile) => await this._repository.CreateAsync(profile);
@@ -70,7 +41,6 @@ public partial class ProfileService(
     /// <summary>
     /// Deserializes the PoracleNG profiles response.
     /// PoracleNG wraps the array: { "profile": [...], "status": "ok" }
-    /// Note: the key is "profile" (singular), not "profiles".
     /// </summary>
     private static List<Profile> DeserializeProfiles(JsonElement json)
     {
@@ -105,7 +75,4 @@ public partial class ProfileService(
 
         return profiles;
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "PoracleNG proxy failed for {Method}({UserId}), falling back to direct DB.")]
-    private static partial void LogProxyFallback(ILogger logger, Exception ex, string method, string userId);
 }

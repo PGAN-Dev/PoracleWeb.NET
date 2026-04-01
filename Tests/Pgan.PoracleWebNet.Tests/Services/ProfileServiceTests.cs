@@ -12,11 +12,10 @@ public class ProfileServiceTests
 {
     private readonly Mock<IProfileRepository> _repository = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
-    private readonly Mock<ILogger<ProfileService>> _logger = new();
     private readonly ProfileService _sut;
 
     public ProfileServiceTests() => this._sut = new ProfileService(
-        this._repository.Object, this._humanProxy.Object, this._logger.Object);
+        this._repository.Object, this._humanProxy.Object);
 
     [Fact]
     public async Task GetByUserAsyncReturnsProfilesFromProxy()
@@ -40,19 +39,10 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task GetByUserAsyncFallsBackToDbOnProxyFailure()
+    public async Task GetByUserAsyncThrowsOnProxyFailure()
     {
         this._humanProxy.Setup(p => p.GetProfilesAsync("u1")).ThrowsAsync(new HttpRequestException("Connection refused"));
-        this._repository.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync(
-        [
-            new() { Id = "u1", ProfileNo = 1, Name = "Default" },
-            new() { Id = "u1", ProfileNo = 2, Name = "PvP" }
-        ]);
-
-        var result = (await this._sut.GetByUserAsync("u1")).ToList();
-
-        Assert.Equal(2, result.Count);
-        Assert.Equal("Default", result[0].Name);
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetByUserAsync("u1"));
     }
 
     [Fact]
