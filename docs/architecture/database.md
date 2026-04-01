@@ -10,7 +10,7 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 
 - Connection string: `ConnectionStrings:PoracleDb`
 - Contains: `humans`, `profiles` tables (direct access), plus alarm tables (read-only for legacy/fallback)
-- **Limited direct access** — Alarm tracking (monsters, raid, egg, quest, invasion, lure, nest, gym) is now proxied through the PoracleNG REST API via `IPoracleTrackingProxy`. Direct DB access is only used for `humans` and `profiles` tables.
+- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct DB access is only used for admin bulk human operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`).
 
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
