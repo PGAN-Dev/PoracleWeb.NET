@@ -20,10 +20,8 @@ export class SettingsService {
   getAll(): Observable<AnySettingItem[]> {
     return this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings`).pipe(
       tap(settings => {
-        if (!this.loaded) {
-          this.siteSettings.set(this.normalize(settings));
-          this.loaded = true;
-        }
+        this.siteSettings.set(this.normalize(settings));
+        this.loaded = true;
       }),
     );
   }
@@ -69,10 +67,17 @@ export class SettingsService {
   }
 
   update(key: string, value: string, category?: string): Observable<AnySettingItem> {
-    return this.http.put<AnySettingItem>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
-      category,
-      key,
-      value,
-    });
+    return this.http
+      .put<AnySettingItem>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
+        category,
+        key,
+        value,
+      })
+      .pipe(
+        tap(() => {
+          // Update the cached signal immediately so UI reflects the change without refresh
+          this.siteSettings.update(current => ({ ...current, [key]: value }));
+        }),
+      );
   }
 }
