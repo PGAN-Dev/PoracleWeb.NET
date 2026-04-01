@@ -69,6 +69,12 @@ public partial class AreaController(IHumanService humanService, IProfileService 
             ? JsonSerializer.Serialize(normalizedAreas)
             : "[]";
 
+        // HACK: Dual-write to humans.area + profiles.area with two separate SaveChangesAsync calls.
+        // Not transactional — if the second write fails, profiles.area is stale until next switch.
+        // PoracleNG's setAreas endpoint handles this atomically with a single API call.
+        // TODO: Replace with POST /api/humans/{id}/setAreas
+        // See: docs/poracleng-enhancement-requests.md#atomic-area-update
+
         // Update humans.area (PoracleJS reads this for notifications)
         human.Area = areaJson;
         await this._humanService.UpdateAsync(human);

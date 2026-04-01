@@ -23,6 +23,10 @@ public class DashboardService(
     private readonly INestRepository _nestRepository = nestRepository;
     private readonly IGymRepository _gymRepository = gymRepository;
 
+    // HACK: Direct DB reads. PoracleNG has no count endpoint — would need GET /api/tracking/all/{id}
+    // and count client-side, or a new dedicated count endpoint.
+    // TODO: Migrate to PoracleNG API proxy once GET /api/tracking/{type}/{id}?count=true or
+    // equivalent is available. See: docs/poracleng-enhancement-requests.md#dashboard-counts
     public async Task<DashboardCounts> GetCountsAsync(string userId, int profileNo) =>
         // Sequential to avoid DbContext concurrency issues (single scoped context)
         new()

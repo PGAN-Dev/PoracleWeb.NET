@@ -79,6 +79,12 @@ public class ProfileController(
             return this.NotFound();
         }
 
+        // HACK: Two separate SaveChangesAsync calls — not wrapped in a transaction.
+        // If the second write fails after the first succeeds, humans.area and profiles.area
+        // become inconsistent. PoracleNG's switchProfile endpoint handles this atomically.
+        // TODO: Replace with single PoracleNG API call: POST /api/humans/{id}/switchProfile/{profile}
+        // See: docs/poracleng-enhancement-requests.md#atomic-profile-switch
+
         // Save current humans.area to the old profile's profiles.area
         var oldProfile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
         if (oldProfile != null)
@@ -104,6 +110,12 @@ public class ProfileController(
         });
     }
 
+    // HACK: Profile deletion does not cascade-delete alarms scoped to (id, profile_no), does not
+    // reassign humans.current_profile_no if the active profile is deleted, and does not remove
+    // the profile's areas from humans.area. This leaves orphaned alarm records in the DB.
+    // PoracleNG's DELETE /api/profiles/{id}/byProfileNo/{n} likely handles cascade cleanup.
+    // TODO: Replace with PoracleNG API call once confirmed it cascades.
+    // See: docs/poracleng-enhancement-requests.md#profile-delete-cascade
     [HttpDelete("{profileNo:int}")]
     public async Task<IActionResult> Delete(int profileNo)
     {

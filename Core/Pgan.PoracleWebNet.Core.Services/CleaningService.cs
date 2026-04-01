@@ -3,6 +3,10 @@ using Pgan.PoracleWebNet.Core.Abstractions.UnitsOfWork;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
+// HACK: Direct DB reads/writes for clean flag toggle. PoracleNG has no bulk clean endpoint.
+// Loads ALL entities into memory to toggle the clean flag — expensive for users with 1000s of alarms.
+// TODO: Migrate to PoracleNG API proxy once a bulk clean toggle endpoint is available.
+// See: docs/poracleng-enhancement-requests.md#bulk-clean-toggle
 public class CleaningService(IPoracleUnitOfWork unitOfWork) : ICleaningService
 {
     private readonly IPoracleUnitOfWork _unitOfWork = unitOfWork;

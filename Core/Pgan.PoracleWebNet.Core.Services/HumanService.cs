@@ -20,6 +20,10 @@ public class HumanService(IHumanRepository repository) : IHumanService
 
     public async Task<bool> ExistsAsync(string id) => await this._repository.ExistsAsync(id);
 
+    // HACK: Direct DB cascade delete (ExecuteDeleteAsync on 8 alarm tables). PoracleNG has no
+    // admin delete-all-alarms endpoint — would need to loop alarm types with bulk delete.
+    // TODO: Migrate to PoracleNG API proxy once admin bulk-delete endpoint is available.
+    // See: docs/poracleng-enhancement-requests.md#admin-delete-all-alarms
     public async Task<int> DeleteAllAlarmsByUserAsync(string userId) => await this._repository.DeleteAllAlarmsByUserAsync(userId);
 
     public async Task<bool> DeleteUserAsync(string userId) => await this._repository.DeleteUserAsync(userId);

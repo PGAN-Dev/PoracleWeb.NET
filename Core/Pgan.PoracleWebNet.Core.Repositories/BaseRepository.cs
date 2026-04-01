@@ -15,9 +15,15 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
     protected readonly IMapper Mapper = mapper;
 
     // Cached reflection results for EnsureNotNullDefaults — only non-nullable string properties.
-    // Nullable string properties (string?) like GymId and Template must remain NULL because
+    // Nullable string properties (string?) like GymId must remain NULL because
     // PoracleNG/PoracleJS use NULL vs empty-string semantics for matching (e.g. gym_id IS NULL
     // means "general alarm", while gym_id = '' would be treated as a specific gym filter).
+    // Note: Template is also string? in entities but must never be NULL in the DB — PoracleNG
+    // scans it into a plain Go string which crashes on NULL. Services default it to "" on create.
+    // HACK: EnsureNotNullDefaults is a workaround for writing directly to the Poracle DB.
+    // PoracleNG's API handles all field defaults via cleanRow() in its tracking handlers.
+    // TODO: Remove EnsureNotNullDefaults once all writes go through PoracleNG API proxy.
+    // See: docs/poracleng-enhancement-requests.md#null-field-defaults
     private static readonly PropertyInfo[] WritableNonNullableStringProperties = GetNonNullableStringProperties();
 
     // Cached reflection results for NormalizeNullableStrings — only nullable string properties.
@@ -161,6 +167,11 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
         return entities.Count;
     }
 
+    // HACK: Direct DB load-and-iterate for bulk distance updates. PoracleNG has no dedicated
+    // bulk distance endpoint — would need to fetch all UIDs via GET, then POST update with
+    // distance field changed for each alarm.
+    // TODO: Migrate to PoracleNG API proxy once PUT /api/tracking/{type}/{id}/distance or
+    // equivalent batch endpoint is available. See: docs/poracleng-enhancement-requests.md#bulk-distance-update
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var entities = await this.DbSet
@@ -192,6 +203,8 @@ public abstract class BaseRepository<TEntity, TModel>(PoracleContext context, IM
         return entities.Count;
     }
 
+    // HACK: Direct DB load-and-iterate for bulk clean toggle. PoracleNG has no dedicated
+    // bulk clean endpoint. See: docs/poracleng-enhancement-requests.md#bulk-clean-toggle
     public async Task<int> BulkUpdateCleanAsync(string userId, int profileNo, int clean)
     {
         var entities = await this.DbSet
