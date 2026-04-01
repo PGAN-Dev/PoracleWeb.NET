@@ -39,18 +39,19 @@ public partial class HumanService(
         try
         {
             var json = await this._humanProxy.GetHumanAsync(id);
-            if (json is null)
+            if (json is not null)
             {
-                return null;
+                return DeserializeHuman(json.Value);
             }
-
-            return DeserializeHuman(json.Value);
         }
         catch (Exception ex)
         {
             LogProxyFallback(this._logger, ex, "GetByIdAsync", id);
-            return await this._repository.GetByIdAsync(id);
         }
+
+        // Fallback to direct DB — needed for webhook IDs (URLs with slashes that break
+        // the proxy route) and when PoracleNG is unreachable.
+        return await this._repository.GetByIdAsync(id);
     }
 
     public async Task<Human?> GetByIdAndProfileAsync(string id, int profileNo)
@@ -58,19 +59,18 @@ public partial class HumanService(
         try
         {
             var json = await this._humanProxy.GetHumanAsync(id);
-            if (json is null)
+            if (json is not null)
             {
-                return null;
+                var human = DeserializeHuman(json.Value);
+                return human.CurrentProfileNo == profileNo ? human : null;
             }
-
-            var human = DeserializeHuman(json.Value);
-            return human.CurrentProfileNo == profileNo ? human : null;
         }
         catch (Exception ex)
         {
             LogProxyFallback(this._logger, ex, "GetByIdAndProfileAsync", id);
-            return await this._repository.GetByIdAndProfileAsync(id, profileNo);
         }
+
+        return await this._repository.GetByIdAndProfileAsync(id, profileNo);
     }
 
     public async Task<Human> CreateAsync(Human human)
@@ -107,13 +107,18 @@ public partial class HumanService(
         try
         {
             var json = await this._humanProxy.GetHumanAsync(id);
-            return json is not null;
+            if (json is not null)
+            {
+                return true;
+            }
         }
         catch (Exception ex)
         {
             LogProxyFallback(this._logger, ex, "ExistsAsync", id);
-            return await this._repository.ExistsAsync(id);
         }
+
+        // Fallback to direct DB — webhook IDs (URLs) break the proxy route
+        return await this._repository.ExistsAsync(id);
     }
 
     public async Task<int> DeleteAllAlarmsByUserAsync(string userId)
