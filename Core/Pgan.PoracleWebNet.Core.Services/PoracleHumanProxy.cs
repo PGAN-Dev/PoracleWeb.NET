@@ -71,15 +71,9 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
     public async Task<JsonElement?> GetAreasAsync(string userId)
     {
-        var response = await this.SendAsync(HttpMethod.Get, $"/api/humans/{userId}");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
+        // User's selected areas are in GET /api/humans/one/{id} → human.area (JSON string).
+        // GET /api/humans/{id} returns the available area list, not the user's selection.
+        return await this.GetHumanAsync(userId);
     }
 
     public async Task SwitchProfileAsync(string userId, int profileNo)

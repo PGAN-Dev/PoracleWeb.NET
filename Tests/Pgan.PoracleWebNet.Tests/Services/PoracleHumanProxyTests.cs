@@ -293,14 +293,15 @@ public class PoracleHumanProxyTests
     [Fact]
     public async Task GetAreasAsync_CallsCorrectUrl()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
+        // GetAreasAsync delegates to GetHumanAsync which calls /api/humans/one/{id}
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[]"}}""");
         var sut = CreateSut(handler);
 
         await sut.GetAreasAsync("user1");
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/humans/user1", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/humans/one/user1", handler.LastRequest.RequestUri?.ToString());
     }
 
     // ──────────────────────────────────────────────────────────────
