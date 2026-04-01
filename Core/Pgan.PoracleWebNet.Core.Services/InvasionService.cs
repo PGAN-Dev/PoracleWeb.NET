@@ -9,12 +9,6 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
     private const string TrackingType = "invasion";
     private readonly IPoracleTrackingProxy _proxy = proxy;
 
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        PropertyNameCaseInsensitive = true,
-    };
-
     public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
@@ -139,15 +133,9 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
         return modelList;
     }
 
-    private static List<Invasion> DeserializeItems(JsonElement json)
-    {
-        return json.Deserialize<List<Invasion>>(SnakeCaseOptions) ?? [];
-    }
+    private static List<Invasion> DeserializeItems(JsonElement json) =>
+        PoracleJsonHelper.DeserializeList<Invasion>(json);
 
-    private static JsonElement SerializeToElement<T>(T value)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(value, SnakeCaseOptions);
-        using var doc = JsonDocument.Parse(bytes);
-        return doc.RootElement.Clone();
-    }
+    private static JsonElement SerializeToElement<T>(T value) =>
+        PoracleJsonHelper.SerializeToElement(value);
 }

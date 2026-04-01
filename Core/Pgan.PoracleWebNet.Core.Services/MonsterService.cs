@@ -9,12 +9,6 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
 
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        PropertyNameCaseInsensitive = true,
-    };
-
     // Note: profileNo is kept for interface compatibility but PoracleNG scopes to the user's
     // active profile (humans.current_profile_no) automatically. The JWT profileNo and the
     // active profile should always match because SwitchProfile updates both.
@@ -147,15 +141,9 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
         return modelList;
     }
 
-    private static List<Monster> DeserializeMonsters(JsonElement json)
-    {
-        return json.Deserialize<List<Monster>>(SnakeCaseOptions) ?? [];
-    }
+    private static List<Monster> DeserializeMonsters(JsonElement json) =>
+        PoracleJsonHelper.DeserializeList<Monster>(json);
 
-    private static JsonElement SerializeToElement<T>(T value)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(value, SnakeCaseOptions);
-        using var doc = JsonDocument.Parse(bytes);
-        return doc.RootElement.Clone();
-    }
+    private static JsonElement SerializeToElement<T>(T value) =>
+        PoracleJsonHelper.SerializeToElement(value);
 }

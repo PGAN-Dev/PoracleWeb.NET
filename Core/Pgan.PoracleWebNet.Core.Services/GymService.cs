@@ -9,12 +9,6 @@ public class GymService(IPoracleTrackingProxy proxy) : IGymService
     private const string TrackingType = "gym";
     private readonly IPoracleTrackingProxy _proxy = proxy;
 
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        PropertyNameCaseInsensitive = true,
-    };
-
     public async Task<IEnumerable<Gym>> GetByUserAsync(string userId, int profileNo)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
@@ -139,15 +133,9 @@ public class GymService(IPoracleTrackingProxy proxy) : IGymService
         return modelList;
     }
 
-    private static List<Gym> DeserializeItems(JsonElement json)
-    {
-        return json.Deserialize<List<Gym>>(SnakeCaseOptions) ?? [];
-    }
+    private static List<Gym> DeserializeItems(JsonElement json) =>
+        PoracleJsonHelper.DeserializeList<Gym>(json);
 
-    private static JsonElement SerializeToElement<T>(T value)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(value, SnakeCaseOptions);
-        using var doc = JsonDocument.Parse(bytes);
-        return doc.RootElement.Clone();
-    }
+    private static JsonElement SerializeToElement<T>(T value) =>
+        PoracleJsonHelper.SerializeToElement(value);
 }

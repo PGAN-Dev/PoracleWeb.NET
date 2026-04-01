@@ -17,12 +17,6 @@ public partial class PoracleTrackingProxy(
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private readonly ILogger<PoracleTrackingProxy> _logger = logger;
 
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        PropertyNameCaseInsensitive = true
-    };
-
     public async Task<JsonElement> GetByUserAsync(string type, string userId)
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/{type}/{userId}");
@@ -33,13 +27,12 @@ public partial class PoracleTrackingProxy(
         using var doc = JsonDocument.Parse(json);
 
         // PoracleNG returns { "pokemon": [...], ... } — extract the array by type key
-        var typeKey = ResolveResponseKey(type);
-        if (doc.RootElement.TryGetProperty(typeKey, out var array))
+        if (doc.RootElement.TryGetProperty(type, out var array))
         {
             return array.Clone();
         }
 
-        return JsonDocument.Parse("[]").RootElement.Clone();
+        return PoracleJsonHelper.EmptyArray;
     }
 
     public async Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body)
@@ -130,24 +123,6 @@ public partial class PoracleTrackingProxy(
 
         return request;
     }
-
-    /// <summary>
-    /// Maps PoracleWeb type names to PoracleNG response property keys.
-    /// </summary>
-    private static string ResolveResponseKey(string type) => type switch
-    {
-        "pokemon" => "pokemon",
-        "raid" => "raid",
-        "egg" => "egg",
-        "quest" => "quest",
-        "invasion" => "invasion",
-        "lure" => "lure",
-        "nest" => "nest",
-        "gym" => "gym",
-        "fort" => "fort",
-        "maxbattle" => "maxbattle",
-        _ => type
-    };
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Delete {Type} uid={Uid} returned 404 (already deleted)")]
     private static partial void LogDeleteNotFound(ILogger logger, string type, int uid);

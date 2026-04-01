@@ -9,11 +9,6 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningService
 {
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-    };
-
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
 
     public async Task<Dictionary<string, bool>> GetCleanStatusAsync(string userId, int profileNo)

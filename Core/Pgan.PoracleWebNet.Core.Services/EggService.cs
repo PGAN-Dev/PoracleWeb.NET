@@ -9,12 +9,6 @@ public class EggService(IPoracleTrackingProxy proxy) : IEggService
     private const string TrackingType = "egg";
     private readonly IPoracleTrackingProxy _proxy = proxy;
 
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        PropertyNameCaseInsensitive = true,
-    };
-
     public async Task<IEnumerable<Egg>> GetByUserAsync(string userId, int profileNo)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
@@ -139,15 +133,9 @@ public class EggService(IPoracleTrackingProxy proxy) : IEggService
         return modelList;
     }
 
-    private static List<Egg> DeserializeItems(JsonElement json)
-    {
-        return json.Deserialize<List<Egg>>(SnakeCaseOptions) ?? [];
-    }
+    private static List<Egg> DeserializeItems(JsonElement json) =>
+        PoracleJsonHelper.DeserializeList<Egg>(json);
 
-    private static JsonElement SerializeToElement<T>(T value)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(value, SnakeCaseOptions);
-        using var doc = JsonDocument.Parse(bytes);
-        return doc.RootElement.Clone();
-    }
+    private static JsonElement SerializeToElement<T>(T value) =>
+        PoracleJsonHelper.SerializeToElement(value);
 }

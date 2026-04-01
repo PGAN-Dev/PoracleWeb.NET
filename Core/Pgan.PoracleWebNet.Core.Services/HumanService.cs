@@ -209,21 +209,3 @@ public partial class HumanService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "PoracleNG proxy failed for {Method}({UserId}), falling back to direct DB.")]
     private static partial void LogProxyFallback(ILogger logger, Exception ex, string method, string userId);
 }
-
-/// <summary>
-/// JsonElement helper extensions for snake_case property access.
-/// </summary>
-internal static class JsonElementExtensions
-{
-    public static string GetStringProp(this JsonElement el, string name) =>
-        el.TryGetProperty(name, out var prop) ? prop.GetString() ?? string.Empty : string.Empty;
-
-    public static string? GetStringPropOrNull(this JsonElement el, string name) =>
-        el.TryGetProperty(name, out var prop) && prop.ValueKind != JsonValueKind.Null ? prop.GetString() : null;
-
-    public static int GetIntProp(this JsonElement el, string name) =>
-        el.TryGetProperty(name, out var prop) && prop.TryGetInt32(out var val) ? val : 0;
-
-    public static double GetDoubleProp(this JsonElement el, string name) =>
-        el.TryGetProperty(name, out var prop) && prop.TryGetDouble(out var val) ? val : 0.0;
-}

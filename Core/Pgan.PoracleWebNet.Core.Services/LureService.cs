@@ -9,12 +9,6 @@ public class LureService(IPoracleTrackingProxy proxy) : ILureService
     private const string TrackingType = "lure";
     private readonly IPoracleTrackingProxy _proxy = proxy;
 
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        PropertyNameCaseInsensitive = true,
-    };
-
     public async Task<IEnumerable<Lure>> GetByUserAsync(string userId, int profileNo)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
@@ -139,15 +133,9 @@ public class LureService(IPoracleTrackingProxy proxy) : ILureService
         return modelList;
     }
 
-    private static List<Lure> DeserializeItems(JsonElement json)
-    {
-        return json.Deserialize<List<Lure>>(SnakeCaseOptions) ?? [];
-    }
+    private static List<Lure> DeserializeItems(JsonElement json) =>
+        PoracleJsonHelper.DeserializeList<Lure>(json);
 
-    private static JsonElement SerializeToElement<T>(T value)
-    {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(value, SnakeCaseOptions);
-        using var doc = JsonDocument.Parse(bytes);
-        return doc.RootElement.Clone();
-    }
+    private static JsonElement SerializeToElement<T>(T value) =>
+        PoracleJsonHelper.SerializeToElement(value);
 }
