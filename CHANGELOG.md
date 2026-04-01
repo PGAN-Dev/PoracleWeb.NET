@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- migrate Poracle DB writes to PoracleNG API proxy ([PR #88](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/88))
 - PoracleNG REST API proxy layer (`IPoracleTrackingProxy`, `IPoracleHumanProxy`) replacing direct database writes for all alarm tracking operations
 - `PoracleTrackingProxy` HTTP implementation with snake_case JSON serialization and `X-Poracle-Secret` auth
 - `PoracleHumanProxy` HTTP implementation for human/profile management via PoracleNG API
