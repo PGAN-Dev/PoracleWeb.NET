@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-04-01
+
 ### Fixed
 - **Disabled banner wording**: clarify that account disabling may be due to rate limiting, not just manual admin action ([#84](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/84), [PR #85](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/85))
 
@@ -283,7 +285,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.1.2...v1.3.0
 [1.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.1.1...v1.2.0
 [1.1.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.1.0...v1.1.2
