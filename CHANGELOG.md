@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/poracleng-enhancement-requests.md` documenting PoracleNG API gaps and requested enhancements
 - `docs/architecture/poracleng-proxy.md` architecture documentation for the proxy layer
 - Proxy fallback pattern in HumanService (proxy-first with graceful DB fallback on failure)
+- URL-encoding for webhook IDs in proxy path construction (webhook IDs are full URLs)
+- `PoracleJsonHelper.StripZeroUids` to prevent uid:0 being sent as update instead of insert
+- Request/response logging in `PoracleTrackingProxy` for debugging API interactions
 
 ### Changed
 - All alarm services (Monster, Raid, Egg, Quest, Invasion, Lure, Nest, Gym) now proxy through PoracleNG API instead of writing directly to MySQL
@@ -25,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HumanService refactored to hybrid proxy-first with DB fallback for admin operations
 - Service interfaces `GetByUidAsync`, `UpdateAsync`, `DeleteAsync` now require `userId` parameter
 - `Poracle:ApiAddress` and `Poracle:ApiSecret` configuration now required for ALL alarm operations (previously only used for config reads)
+- ProfileService reads now proxy-first via `IPoracleHumanProxy` (no DB fallback)
+- LocationController uses single `IPoracleHumanProxy.SetLocationAsync` (removed `PoracleContext` dependency)
+- DashboardController delegates to `IDashboardService` (removed raw SQL `PoracleContext` dependency)
+- UserGeofenceService area mutations use proxy `SetAreasAsync` for active profile
+- HumanService removed DB fallback — proxy errors propagate to caller
 
 ### Removed
 - 8 alarm repository classes (MonsterRepository, RaidRepository, etc.)
@@ -40,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eliminated 15-hour stale state window caused by NULL template crash in PoracleNG state reload
 - Profile switch area dual-write is now atomic (was two separate SaveChangesAsync calls)
 - Area update dual-write is now atomic (was two separate SaveChangesAsync calls)
+- PoracleNG human response wrapper extraction (`{"human": {...}}` not bare object)
+- PoracleNG profiles response wrapper extraction (`{"profile": [...]}`)
+- uid:0 in create requests caused PoracleNG to treat new alarms as updates
+- Webhook ID URL encoding (slashes in URLs broke proxy routing)
+- `GetAreasAsync` was calling wrong endpoint (available areas list vs user's selected areas)
 
 ## [1.3.1] - 2026-04-01
 

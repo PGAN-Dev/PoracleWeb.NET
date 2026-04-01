@@ -55,10 +55,12 @@ Also proxied:
 
 | Operation | Reason |
 |---|---|
-| `humans` table (user registration, location, area, profile switch) | User management is separate from alarm tracking |
-| `profiles` table | Profile CRUD |
+| Admin bulk human operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) | PoracleNG has no admin-list, admin-delete, or generic update endpoints |
 | `poracle_web` database (geofences, settings, webhook delegates, quick picks) | Application-owned data, not managed by PoracleNG |
 | Scanner database (gym search) | Read-only, separate database |
+
+!!! note "Single-user human/profile operations are fully proxied"
+    `HumanService` reads, creates, and checks existence via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, and profile CRUD all go through the proxy. Only admin bulk operations remain on direct DB.
 
 ## IPoracleTrackingProxy interface
 
@@ -80,20 +82,33 @@ Key design points:
 - **`?silent=true`** on create -- suppresses PoracleNG's DM confirmation message to the user.
 - **`X-Poracle-Secret` header** -- authenticates requests to the PoracleNG API. Configured via `Poracle:ApiSecret`.
 - **Updates use POST** -- PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a `uid` field, PoracleNG updates the existing alarm instead of creating a new one.
+- **`uid:0` stripped on create** -- `PoracleJsonHelper.SerializeToElement()` removes `"uid":0` from request bodies. PoracleNG treats `uid=0` as an update target instead of a new insert; omitting `uid` tells PoracleNG to create a new row.
+- **URL-encoding for user IDs** -- Both `PoracleTrackingProxy` and `PoracleHumanProxy` use `Uri.EscapeDataString()` on user IDs in URL paths. Webhook IDs are full URLs containing slashes that would break routing without encoding.
 
 ## snake_case JSON serialization
 
-PoracleNG's API uses snake_case field names (`pokemon_id`, `min_iv`, `max_cp`). PoracleWeb's C# models use PascalCase (`PokemonId`, `MinIv`, `MaxCp`). Each service defines a static `SnakeCaseOptions`:
+PoracleNG's API uses snake_case field names (`pokemon_id`, `min_iv`, `max_cp`). PoracleWeb's C# models use PascalCase (`PokemonId`, `MinIv`, `MaxCp`). The shared `PoracleJsonHelper` class provides a centralized `SnakeCaseOptions` instance:
 
 ```csharp
-private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+// PoracleJsonHelper.cs
+public static readonly JsonSerializerOptions SnakeCaseOptions = new()
 {
     PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
     PropertyNameCaseInsensitive = true,
 };
 ```
 
-This is used for both serialization (sending to PoracleNG) and deserialization (reading responses).
+All alarm services use `PoracleJsonHelper.SerializeToElement()` for serialization (which also strips `uid:0`) and `PoracleJsonHelper.DeserializeList<T>()` for deserialization.
+
+## PoracleNG response wrapper format
+
+PoracleNG wraps certain responses in container objects:
+
+- **Human responses**: `GET /api/humans/one/{id}` returns `{ "human": { ... }, "status": "ok" }`. `PoracleHumanProxy.GetHumanAsync()` unwraps the `"human"` property.
+- **Profile responses**: `GET /api/profiles/{id}` returns a JSON array or object depending on the endpoint.
+- **Tracking responses**: `GET /api/tracking/{type}/{id}` returns an array of alarm objects.
+
+When adding new proxy methods, check the actual PoracleNG response shape and unwrap accordingly.
 
 ## Known gaps and workarounds
 
@@ -126,6 +141,7 @@ No repository, entity, or AutoMapper mapping is needed for alarm types -- the pr
 ```csharp
 // In ServiceCollectionExtensions.cs
 services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
+services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
 ```
 
-The `HttpClient` is managed by the .NET HTTP client factory, providing connection pooling and DNS rotation.
+The `HttpClient` instances are managed by the .NET HTTP client factory, providing connection pooling and DNS rotation.

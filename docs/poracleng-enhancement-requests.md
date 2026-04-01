@@ -16,9 +16,9 @@ The migration is complete for all alarm CRUD operations. However, some operation
 
 **ID:** `bulk-distance-update`  
 **Priority:** High  
-**Code refs:** `BaseRepository.cs:UpdateDistanceByUserAsync`, `BaseRepository.cs:UpdateDistanceByUidsAsync`
+**Code refs:** Each alarm service's `UpdateDistanceAsync` and `UpdateDistanceBulkAsync` methods
 
-**Current behavior:** PoracleWeb loads all alarm entities into memory, sets the `distance` field via reflection, and calls `SaveChangesAsync()`. Two variants:
+**Current behavior:** PoracleWeb fetches all alarms of a type via the proxy, modifies the `distance` field in memory, and POSTs them back. Two variants:
 1. Update ALL alarms of a type for a user/profile
 2. Update specific alarms by UID list
 
@@ -41,9 +41,9 @@ Body: { "uids": [1, 2, 3], "distance": 500 }
 
 **ID:** `bulk-clean-toggle`  
 **Priority:** High  
-**Code refs:** `CleaningService.cs`, `BaseRepository.cs:BulkUpdateCleanAsync`
+**Code refs:** `CleaningService.cs`
 
-**Current behavior:** PoracleWeb loads all alarm entities of a type for a user/profile, sets the `clean` field (0 or 1), and calls `SaveChangesAsync()`. Used for the "auto-clean" feature that deletes alarms after they fire.
+**Current behavior:** PoracleWeb fetches all alarms of a type via the proxy, sets the `clean` field (0 or 1), and POSTs them back. Used for the "auto-clean" feature that deletes alarms after they fire.
 
 **What's needed:** A PoracleNG endpoint to batch-toggle the clean flag:
 ```
@@ -62,7 +62,7 @@ Body: { "clean": 1 }
 **Priority:** Medium  
 **Code refs:** `DashboardService.cs`
 
-**Current behavior:** PoracleWeb runs `SELECT COUNT(*)` on each of 8 alarm tables sequentially to populate the dashboard summary.
+**Current behavior:** `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` which returns full alarm payloads for all types. Counts are extracted from the response arrays.
 
 **What's needed:** A PoracleNG endpoint that returns alarm counts per type:
 ```
@@ -70,7 +70,7 @@ GET /api/tracking/counts/{id}
 Response: { "pokemon": 537, "raid": 27, "egg": 17, "quest": 38, ... }
 ```
 
-**Workaround without enhancement:** Call `GET /api/tracking/{type}/{id}` for each of 8 types and count the response arrays client-side. Works but makes 8 HTTP calls instead of 1.
+**Workaround without enhancement:** Single `GET /api/tracking/all/{id}` call returns full payloads for all types. Works but returns complete alarm objects just to count them.
 
 ---
 
@@ -80,7 +80,7 @@ Response: { "pokemon": 537, "raid": 27, "egg": 17, "quest": 38, ... }
 **Priority:** Medium  
 **Code refs:** `HumanService.cs:DeleteAllAlarmsByUserAsync`
 
-**Current behavior:** PoracleWeb runs `ExecuteDeleteAsync` on each of 8 alarm tables sequentially to wipe a user's tracking data (admin action).
+**Current behavior:** PoracleWeb fetches all UIDs per alarm type via the proxy, then bulk-deletes each type sequentially.
 
 **What's needed:** A PoracleNG admin endpoint:
 ```
@@ -115,42 +115,29 @@ If PoracleNG already handles this, PoracleWeb can simply proxy the call.
 ### Atomic Profile Switch
 
 **ID:** `atomic-profile-switch`  
-**Priority:** Low (already available in PoracleNG)  
-**Code refs:** `ProfileController.cs:SwitchProfile`
+**Priority:** Low (adopted)  
+**Code refs:** `ProfileController.cs:SwitchProfile`, `PoracleHumanProxy.cs:SwitchProfileAsync`
 
-**Current behavior:** PoracleWeb performs two separate `SaveChangesAsync()` calls (save old profile's areas, then load new profile's areas into `humans`). Not transactional — if the second write fails, `humans.area` and `profiles.area` become inconsistent.
-
-**PoracleNG status:** `POST /api/humans/{id}/switchProfile/{profile}` likely handles this atomically. **Need to verify** that it performs the same area save/load dual-write.
-
-**Migration path:** Replace the multi-step controller logic with a single PoracleNG API call. Verify response includes updated profile data for JWT reissuance.
+**Status: Adopted.** `ProfileController.SwitchProfile` now calls `IPoracleHumanProxy.SwitchProfileAsync(userId, profileNo)` -- a single atomic call. PoracleNG handles saving the old profile's areas and loading the new profile's areas internally. The multi-step dual-write has been removed.
 
 ---
 
 ### Atomic Area Update
 
 **ID:** `atomic-area-update`  
-**Priority:** Low (already available in PoracleNG)  
-**Code refs:** `AreaController.cs:UpdateAreas`
+**Priority:** Low (adopted)  
+**Code refs:** `AreaController.cs:UpdateAreas`, `PoracleHumanProxy.cs:SetAreasAsync`
 
-**Current behavior:** PoracleWeb dual-writes to `humans.area` and `profiles.area` with two separate `SaveChangesAsync()` calls. Not transactional.
-
-**PoracleNG status:** `POST /api/humans/{id}/setAreas` likely handles this atomically. **Need to verify** it writes to both `humans.area` and `profiles.area`.
-
-**Migration path:** Replace dual-write with single PoracleNG API call.
+**Status: Adopted.** `AreaController.UpdateAreas` now calls `IPoracleHumanProxy.SetAreasAsync(userId, areas)` -- a single atomic call. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally. `UserGeofenceService` also uses `SetAreasAsync` for geofence activate/deactivate operations on the active profile.
 
 ---
 
 ### NULL Field Defaults
 
 **ID:** `null-field-defaults`  
-**Priority:** Low (already handled by PoracleNG)  
-**Code refs:** `BaseRepository.cs:EnsureNotNullDefaults`
+**Priority:** Low (resolved)
 
-**Current behavior:** PoracleWeb uses reflection-based `EnsureNotNullDefaults()` to coerce NULL strings to empty strings before writing to the DB. This is needed because the Poracle DB has `NOT NULL` text columns that EF Core maps as `string?`.
-
-**PoracleNG status:** PoracleNG's `cleanRow()` function in each tracking handler applies proper defaults for ALL fields. Template defaults to config's `defaultTemplateName` (fallback "1"), Ping defaults to "", all numeric fields have explicit defaults.
-
-**Migration path:** Once writes go through PoracleNG API, `EnsureNotNullDefaults` can be removed entirely.
+**Status: Resolved.** `BaseRepository` and `EnsureNotNullDefaults()` have been removed. All alarm writes go through the PoracleNG API, which applies proper defaults via `cleanRow()`. Remaining direct-DB repositories (`HumanRepository` for admin ops, `poracle_web`-owned tables) handle null normalization as needed.
 
 ---
 
@@ -191,6 +178,6 @@ This crashes the **entire state reload**, freezing PoracleNG on stale data for a
 | Dashboard counts | Medium | Single GET /api/tracking/all call | Working (returns full payloads) |
 | Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Working |
 | Profile delete cascade | Medium | Unknown | Need verification |
-| Atomic profile switch | Low | Already in PoracleNG | Ready to adopt |
-| Atomic area update | Low | Already in PoracleNG | Ready to adopt |
+| Atomic profile switch | Low | Already in PoracleNG | **Adopted** |
+| Atomic area update | Low | Already in PoracleNG | **Adopted** |
 | NULL field defaults | Low | Handled by PoracleNG cleanRow() | Resolved by migration |

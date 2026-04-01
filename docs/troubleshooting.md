@@ -11,8 +11,8 @@
 3. Test connectivity: `curl http://<poracle-api-address>/api/config/poracleWeb` from inside the PoracleWeb container
 4. Verify `Poracle:ApiSecret` matches PoracleNG's `server.apiSecret` config value
 
-!!! danger "All alarm writes go through PoracleNG"
-    Unlike previous versions where PoracleWeb wrote directly to MySQL, all alarm tracking now requires a running PoracleNG instance. If PoracleNG is down, users cannot create, edit, delete, or view any alarms.
+!!! danger "All operations go through PoracleNG"
+    Unlike previous versions where PoracleWeb wrote directly to MySQL, all alarm tracking, user registration, location setting, area management, and profile switching now require a running PoracleNG instance. If PoracleNG is down, users cannot create/edit/delete/view alarms, register, set their location, update areas, or switch profiles. Only admin bulk operations (list all users, delete user) use direct DB access.
 
 ---
 
@@ -26,6 +26,30 @@ Common causes:
 
 - NULL values in `template` or `ping` columns from historical direct-write bugs. Fix with: `UPDATE monsters SET template = '1' WHERE template IS NULL`
 - PoracleNG's `monsters.go` query lacks `COALESCE` for `template` and `ping` (known bug). The fix is to add `COALESCE(template, '1') AS template` to the query.
+
+---
+
+## Webhook user operations fail with 404
+
+**Problem**: Alarm or human operations fail with HTTP 404 for webhook users. Logs may show mangled URL paths like `/api/tracking/pokemon/https://discord.com/api/webhooks/123/abc`.
+
+**Solution**: Webhook user IDs are full URLs containing slashes. Both `PoracleTrackingProxy` and `PoracleHumanProxy` must URL-encode user IDs with `Uri.EscapeDataString()` before inserting them into URL paths. If you add a new proxy method, always use the `Encode()` helper.
+
+---
+
+## uid:0 causes updates instead of creates
+
+**Problem**: Creating a new alarm silently updates an existing alarm instead of creating a new one, or PoracleNG returns an error about invalid UID.
+
+**Solution**: PoracleNG treats `uid=0` in a create request body as an update target. C# model `int` properties default to `0`, so freshly constructed models include `"uid":0` when serialized. `PoracleJsonHelper.SerializeToElement()` automatically strips `"uid":0` from request bodies. If you serialize alarm data manually (bypassing the helper), ensure you remove the `uid` property when its value is `0`.
+
+---
+
+## PoracleNG response wrapper not unwrapped
+
+**Problem**: Human data appears as `null` or deserialization fails even though the PoracleNG API returns a 200 response.
+
+**Solution**: PoracleNG wraps certain responses in container objects. For example, `GET /api/humans/one/{id}` returns `{ "human": { ... }, "status": "ok" }`, not the human object directly. `PoracleHumanProxy.GetHumanAsync()` unwraps the `"human"` property. If you add new proxy endpoints, inspect the actual PoracleNG response shape and unwrap accordingly.
 
 ---
 
@@ -53,7 +77,7 @@ Common causes:
 
 **Problem**: MySQL errors like `Column 'X' cannot be null` when saving entities.
 
-**Solution**: For alarm entities, this should no longer occur since writes go through the PoracleNG API (which handles NULL defaults). For non-alarm entities (`humans`, `profiles`), call `EnsureNotNullDefaults()` before saving. Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The method sets null strings to `""`.
+**Solution**: For alarm entities, this should no longer occur since writes go through the PoracleNG API (which handles NULL defaults). For non-alarm entities (`humans`, `profiles`), repositories handle null normalization as needed. Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`.
 
 ---
 
@@ -119,7 +143,7 @@ Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.
 
 **Problem**: Gym alarms don't match any gyms even though no specific gym is selected. The `gym_id` column contains `''` (empty string) instead of `NULL`.
 
-**Solution**: `MySql.EntityFrameworkCore` may store null `string?` values as empty strings due to the `EnsureNotNullDefaults()` normalization in `BaseRepository`. Poracle treats `gym_id = ''` as "track a specific gym with an empty ID," which matches nothing. The fix is nullable string normalization that preserves `NULL` for gym_id columns.
+**Solution**: This was caused by direct database writes. New alarms created through the PoracleNG API proxy have correct `gym_id` NULL handling. The SQL fix below is only needed for alarms created before the migration. Poracle treats `gym_id = ''` as "track a specific gym with an empty ID," which matches nothing.
 
 To fix existing data:
 

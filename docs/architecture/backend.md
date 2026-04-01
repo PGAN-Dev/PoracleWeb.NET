@@ -24,23 +24,10 @@ PoracleNG's tracking POST endpoint handles both creates and updates. When the re
 
 ## Repository layer (non-alarm entities)
 
-`BaseRepository<TEntity, TModel>` is used for `humans`, `profiles`, and `poracle_web`-owned entities. It uses expression-based filters and AutoMapper projections.
+`HumanRepository` is used only for **admin bulk operations** (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) that lack PoracleNG API equivalents. Single-user human reads and writes go through `IPoracleHumanProxy`. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
 
-### EnsureNotNullDefaults
-
-Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method sets null strings to `""` before saving to avoid constraint violations.
-
-!!! note "Two-phase string normalization"
-    `EnsureNotNullDefaults()` performs two complementary steps using cached reflection via `NullabilityInfoContext`:
-
-    1. **Non-nullable strings**: coerces `null` → `""` for `NOT NULL` columns that EF Core maps as `string`.
-    2. **Nullable strings**: coerces `""` → `null` for `string?` properties (e.g., `gym_id`, `template`).
-
-    Property lists are cached in static fields (`WritableNonNullableStringProperties` and `WritableNullableStringProperties`) so reflection runs once per entity type. The second step protects against `MySql.EntityFrameworkCore` converting `null` to empty string on INSERT, which would break Poracle's `NULL` vs empty-string semantics (e.g., `gym_id IS NULL` means "general alarm").
-
-### Targeted distance updates
-
-`UpdateDistanceByUidsAsync()` does targeted distance-only SQL updates without touching other fields. Use this for bulk distance operations instead of the generic `UpdateAsync`.
+!!! note "`BaseRepository` removed"
+    The generic `BaseRepository<TEntity, TModel>` and all alarm repository classes have been removed. `EnsureNotNullDefaults()` is no longer needed -- PoracleNG handles NULL defaults for alarm writes, and the remaining repositories handle null normalization as needed.
 
 ## AutoMapper (non-alarm entities only)
 
@@ -97,6 +84,14 @@ Proxies all alarm CRUD operations to PoracleNG's `/api/tracking/*` endpoints. Au
 - Registered via `AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>()`
 - Used by: all alarm services, `DashboardService`, `CleaningService`
 
+### IPoracleHumanProxy (human/profile management)
+
+Proxies single-user human and profile operations to PoracleNG's `/api/humans/*` and `/api/profiles/*` endpoints. Handles user reads, creation, location setting, area updates, profile switching, and profile CRUD.
+
+- Registered via `AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>()`
+- Used by: `HumanService`, `LocationController`, `AreaController`, `ProfileController`, `UserGeofenceService`
+- URL-encodes user IDs with `Uri.EscapeDataString()` -- critical for webhook IDs that contain slashes
+
 ### IPoracleApiProxy (config, areas, templates)
 
 Wraps HttpClient calls for non-tracking Poracle API operations.
@@ -110,13 +105,13 @@ Wraps HttpClient calls for non-tracking Poracle API operations.
 
 ## Areas
 
-User areas are stored as JSON arrays in the `humans.area` column:
-
-```json
-["west end", "downtown"]
-```
+User areas are managed through `IPoracleHumanProxy.SetAreasAsync()`. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally.
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
+
+## Location
+
+`LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. No direct DB access or transactions are needed -- PoracleNG handles the write and state reload atomically.
 
 ## Service lifetimes
 
@@ -125,8 +120,8 @@ Geofence polygons come from the Poracle API (via the unified feed), not the data
 | Most services | **Scoped** | Per-request |
 | `MasterDataService` | **Singleton** | Cached game data |
 
-!!! warning "DbContext is not thread-safe"
-    `DashboardService` runs sequential DB queries (not `Task.WhenAll`) because it uses a single scoped `DbContext` instance.
+!!! info "DashboardService uses the proxy"
+    `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.
 
 ## Profiles
 

@@ -100,24 +100,9 @@ DTO model in `Core.Models` used by scanner gym search endpoints. Projected from 
 ### NULL string columns
 
 !!! info "Alarm entities no longer written directly"
-    Alarm tracking writes go through the PoracleNG API proxy, which handles NULL defaults via `cleanRow()`. The `EnsureNotNullDefaults()` method below is only relevant for non-alarm entities (`humans`, `profiles`) that are still written directly to the database.
+    Alarm tracking writes go through the PoracleNG API proxy, which handles NULL defaults via `cleanRow()`. The generic `BaseRepository` and its `EnsureNotNullDefaults()` method have been removed. Remaining direct-DB repositories (`HumanRepository` for admin ops, `poracle_web`-owned tables) handle null normalization as needed.
 
-Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method in `BaseRepository` handles this in two passes:
-
-1. **Non-nullable strings** (`string`): null values are set to `""` before saving to avoid MySQL `NOT NULL` constraint violations.
-2. **Nullable strings** (`string?`): empty-string values are normalized back to `null` before saving.
-
-The second pass addresses a `MySql.EntityFrameworkCore` provider quirk where null `string?` values may be stored as empty string on INSERT. Both property lists are cached as static arrays using `NullabilityInfoContext` for reflection performance.
-
-```csharp
-private static void EnsureNotNullDefaults(TEntity entity)
-{
-    // Pass 1: null → "" for non-nullable string properties
-    // Pass 2: "" → null for nullable string properties
-}
-```
-
-Call this before any save operation. It runs automatically in `CreateAsync`, `UpdateAsync`, and `CreateManyAsync`.
+Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. For the few remaining direct-DB writes (admin human operations), repositories handle null-to-empty-string normalization as needed.
 
 ### gym_id semantics
 
@@ -126,7 +111,7 @@ The `gym_id` column on alarm entities (`raid`, `egg`, `gym`) uses NULL vs non-NU
 - `gym_id = NULL` — general alarm, matches **all** gyms
 - `gym_id = '<id>'` — gym-specific alarm, matches only the gym with that ID
 
-An empty string (`''`) is **not** a valid value. It would be treated as a specific gym filter that matches nothing, silently breaking the alarm. The nullable string normalization in `EnsureNotNullDefaults` prevents this by converting any empty-string `gym_id` back to `null`.
+An empty string (`''`) is **not** a valid value. It would be treated as a specific gym filter that matches nothing, silently breaking the alarm. PoracleNG handles this normalization on its side for alarm writes.
 
 ## Site settings table
 

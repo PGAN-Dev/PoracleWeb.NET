@@ -10,7 +10,7 @@ All configuration can be provided via environment variables (Docker) or `appsett
 | `Jwt:Secret` | `Jwt__Secret` | JWT signing key (minimum 32 characters) |
 | `Discord:ClientId` | `Discord__ClientId` | Discord OAuth2 application client ID |
 | `Discord:ClientSecret` | `Discord__ClientSecret` | Discord OAuth2 application client secret |
-| `Poracle:ApiAddress` | `Poracle__ApiAddress` | PoracleNG API base URL. **Critical** -- all alarm tracking writes are proxied through this endpoint. |
+| `Poracle:ApiAddress` | `Poracle__ApiAddress` | PoracleNG API base URL. **Critical** -- all alarm tracking, human/profile management, location, and area operations are proxied through this endpoint. |
 | `Poracle:ApiSecret` | `Poracle__ApiSecret` | PoracleNG API shared secret. Sent as the `X-Poracle-Secret` header on every request. |
 | `Poracle:AdminIds` | `Poracle__AdminIds` | Comma-separated Discord admin user IDs |
 
@@ -71,7 +71,7 @@ For remote PoracleJS server management. See [Server Management](../features/serv
 | `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
 
 !!! warning "PoracleNG must be reachable"
-    `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb container. All alarm tracking operations (create, read, update, delete) are proxied through this API. If PoracleNG is unreachable, all alarm operations will fail. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
+    `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb container. All alarm tracking, human/profile management, location, and area operations are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.
