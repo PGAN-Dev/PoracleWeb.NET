@@ -15,7 +15,6 @@ COPY Core/Pgan.PoracleWebNet.Core.Mappings/Pgan.PoracleWebNet.Core.Mappings.cspr
 COPY Core/Pgan.PoracleWebNet.Core.Models/Pgan.PoracleWebNet.Core.Models.csproj Core/Pgan.PoracleWebNet.Core.Models/
 COPY Core/Pgan.PoracleWebNet.Core.Repositories/Pgan.PoracleWebNet.Core.Repositories.csproj Core/Pgan.PoracleWebNet.Core.Repositories/
 COPY Core/Pgan.PoracleWebNet.Core.Services/Pgan.PoracleWebNet.Core.Services.csproj Core/Pgan.PoracleWebNet.Core.Services/
-COPY Core/Pgan.PoracleWebNet.Core.UnitsOfWork/Pgan.PoracleWebNet.Core.UnitsOfWork.csproj Core/Pgan.PoracleWebNet.Core.UnitsOfWork/
 COPY Data/Pgan.PoracleWebNet.Data/Pgan.PoracleWebNet.Data.csproj Data/Pgan.PoracleWebNet.Data/
 COPY Data/Pgan.PoracleWebNet.Data.Scanner/Pgan.PoracleWebNet.Data.Scanner.csproj Data/Pgan.PoracleWebNet.Data.Scanner/
 COPY Applications/Pgan.PoracleWebNet.Api/Pgan.PoracleWebNet.Api.csproj Applications/Pgan.PoracleWebNet.Api/
