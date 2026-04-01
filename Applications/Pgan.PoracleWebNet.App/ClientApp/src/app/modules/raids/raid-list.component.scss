@@ -111,6 +111,19 @@
   margin: 0;
   font-size: 18px;
 }
+.gym-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-top: 2px;
+}
+.gym-target mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
 .level-stars {
   display: flex;
   gap: 0;

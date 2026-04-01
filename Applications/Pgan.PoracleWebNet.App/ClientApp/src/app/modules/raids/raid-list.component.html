@@ -93,6 +93,9 @@
                     <mat-icon class="star-icon">star</mat-icon>
                   }
                 </div>
+                @if (raid.gymId && gymNames()[raid.gymId]) {
+                  <span class="gym-target"><mat-icon>place</mat-icon> {{ gymNames()[raid.gymId] }}</span>
+                }
               </div>
               <div class="card-top-actions">
                 @if (raid.clean === 1) {
@@ -175,6 +178,9 @@
                     <mat-icon class="star-icon">star</mat-icon>
                   }
                 </div>
+                @if (egg.gymId && gymNames()[egg.gymId]) {
+                  <span class="gym-target"><mat-icon>place</mat-icon> {{ gymNames()[egg.gymId] }}</span>
+                }
               </div>
               <div class="card-top-actions">
                 @if (egg.clean === 1) {

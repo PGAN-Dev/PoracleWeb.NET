@@ -17,6 +17,7 @@ import { EggService } from '../../core/services/egg.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
+import { ScannerService } from '../../core/services/scanner.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -46,9 +47,11 @@ export class RaidListComponent implements OnInit {
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly raidService = inject(RaidService);
+  private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly eggs = signal<Egg[]>([]);
+  readonly gymNames = signal<Record<string, string>>({});
   readonly loading = signal(true);
   readonly raids = signal<Raid[]>([]);
   readonly selectedIds = signal(new Set<number>());
@@ -290,6 +293,7 @@ export class RaidListComponent implements OnInit {
           this.raids.set(raids);
           this.eggs.set(eggs);
           this.loading.set(false);
+          this.resolveGymNames([...raids, ...eggs]);
         },
       });
   }
@@ -351,6 +355,19 @@ export class RaidListComponent implements OnInit {
           },
         });
       }
+    });
+  }
+
+  private resolveGymNames(items: (Raid | Egg)[]): void {
+    const ids = [...new Set(items.filter(i => i.gymId).map(i => i.gymId!))];
+    if (ids.length === 0) return;
+    const lookups = Object.fromEntries(ids.map(id => [id, this.scannerService.getGymById(id)]));
+    forkJoin(lookups).subscribe(results => {
+      const names: Record<string, string> = {};
+      for (const [id, result] of Object.entries(results)) {
+        if (result?.name) names[id] = result.name;
+      }
+      this.gymNames.set(names);
     });
   }
 }
