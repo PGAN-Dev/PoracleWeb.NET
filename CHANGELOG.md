@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Disabled banner wording**: clarify that account disabling may be due to rate limiting, not just manual admin action ([#84](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/84))
+
 ## [1.3.0] - 2026-04-01
 
 ## [1.3.0] - 2026-04-01
