@@ -21,6 +21,13 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
+
+        // PoracleNG wraps the response: { "human": { ... }, "status": "ok" }
+        if (doc.RootElement.TryGetProperty("human", out var human))
+        {
+            return human.Clone();
+        }
+
         return doc.RootElement.Clone();
     }
 
