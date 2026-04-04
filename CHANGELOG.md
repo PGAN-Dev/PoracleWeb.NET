@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-04-04
+
 ## [2.1.1] - 2026-04-03
 
 ### Added
@@ -351,6 +353,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment with Watchtower auto-updates
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.0...v2.1.1
 [2.1.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.3.1...v2.0.0
