@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Custom geofences lost when toggling areas**: `syncSelectedFromAreas()` was overwriting selected areas with only predefined names, silently dropping custom geofence subscriptions — toggling any predefined area checkbox then saving would deactivate custom geofences ([#109](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/109))
+
 ## [2.1.2] - 2026-04-04
 
 ### Fixed
