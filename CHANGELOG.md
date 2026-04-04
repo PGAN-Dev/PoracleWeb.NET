@@ -7,11 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- preserve custom geofence names when toggling predefined areas ([PR #113](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/113))
-- **Custom geofences lost when toggling areas**: `syncSelectedFromAreas()` was overwriting selected areas with only predefined names, silently dropping custom geofence subscriptions — toggling any predefined area checkbox then saving would deactivate custom geofences ([#109](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/109))
+## [2.1.3] - 2026-04-04
 
-## [2.1.2] - 2026-04-04
+### Fixed
+- **Custom geofences lost when toggling areas**: `syncSelectedFromAreas()` was overwriting selected areas with only predefined names, silently dropping custom geofence subscriptions — toggling any predefined area checkbox then saving would deactivate custom geofences ([#109](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/109), [PR #113](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/113))
 
 ## [2.1.2] - 2026-04-04
 
@@ -363,7 +362,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.2...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.3...HEAD
+[2.1.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.2...v2.1.3
 [2.1.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.1...v2.1.2
 [2.1.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.0...v2.1.1
