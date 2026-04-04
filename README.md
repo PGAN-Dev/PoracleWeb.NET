@@ -81,3 +81,12 @@ See the [Development Setup guide](https://pgan-dev.github.io/PoracleWeb.NET/gett
 
 - **ci.yml** — Builds backend, runs tests, builds frontend, runs lint/prettier/jest
 - **docker-publish.yml** — Builds and publishes Docker image to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net)
+
+## Credits
+
+PoracleWeb.NET stands on the shoulders of these projects and their authors:
+
+- **[PoracleJS](https://github.com/KartulUdus/PoracleJS)** by KartulUdus — the original Poracle bot that this UI manages
+- **[PoracleNG](https://github.com/jfberry/PoracleNG)** by jfberry — next-generation fork whose REST API powers all alarm tracking
+- **[PoracleWeb (PHP)](https://github.com/bbdoc/PoracleWeb)** by bbdoc — the original PHP web interface that inspired this .NET rewrite
+- **[Kōji](https://github.com/TurtIeSocks/Koji)** by TurtIeSocks — geofence management platform used for admin areas, region detection, and public geofence promotion
