@@ -83,3 +83,14 @@ A web application for managing Pokemon GO notification alarms through the Poracl
     [:octicons-arrow-right-24: Custom Geofences](features/custom-geofences.md)
 
 </div>
+
+## Credits
+
+PoracleWeb.NET stands on the shoulders of these projects and their authors:
+
+| Project | Author | Role |
+|---|---|---|
+| [PoracleJS](https://github.com/KartulUdus/PoracleJS) | KartulUdus | The original Poracle bot — the notification engine this UI manages |
+| [PoracleNG](https://github.com/jfberry/PoracleNG) | jfberry | Next-generation fork whose REST API powers all alarm tracking |
+| [PoracleWeb (PHP)](https://github.com/bbdoc/PoracleWeb) | bbdoc | The original PHP web interface that inspired this .NET rewrite |
+| [Kōji](https://github.com/TurtIeSocks/Koji) | TurtIeSocks | Geofence management platform used for admin areas, region detection, and public geofence promotion |
