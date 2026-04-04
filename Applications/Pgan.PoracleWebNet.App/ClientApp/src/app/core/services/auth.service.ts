@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, ReplaySubject, tap, firstValueFrom } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { SettingsService } from './settings.service';
 import { UserInfo, LoginResponse, TelegramConfig } from '../models';
 
 const TOKEN_KEY = 'poracle_token';
@@ -17,6 +18,7 @@ export class AuthService {
 
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly settingsService = inject(SettingsService);
   private readonly userLoaded$ = new ReplaySubject<UserInfo | null>(1);
 
   readonly hasManagedWebhooks = computed(() => (this.currentUser()?.managedWebhooks?.length ?? 0) > 0);
@@ -46,6 +48,10 @@ export class AuthService {
   async handleTokenFromCallback(token: string): Promise<void> {
     localStorage.setItem(TOKEN_KEY, token);
     await this.loadCurrentUser();
+    // Load site settings now that we have a valid token — the initial loadOnce()
+    // in App.ngOnInit() fires before the token is stored, so settings (including
+    // custom_title) fail silently and never reload.
+    this.settingsService.loadOnce().subscribe();
     this.router.navigate(['/dashboard']);
   }
 
