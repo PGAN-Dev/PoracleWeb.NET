@@ -380,10 +380,12 @@ export class AreaListComponent implements OnInit {
   }
 
   private syncSelectedFromAreas(): void {
-    this.selectedAreas.set(
-      this.areas()
-        .filter(a => a.selected)
-        .map(a => a.name),
-    );
+    const areaListNames = new Set(this.areas().map(a => a.name.toLowerCase()));
+    const fromChecklist = this.areas()
+      .filter(a => a.selected)
+      .map(a => a.name);
+    // Preserve custom geofence names that aren't in the predefined areas list
+    const customNames = this.selectedAreas().filter(a => !areaListNames.has(a.toLowerCase()));
+    this.selectedAreas.set([...fromChecklist, ...customNames]);
   }
 }
