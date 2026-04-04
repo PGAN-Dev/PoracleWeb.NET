@@ -22,19 +22,19 @@ export class AdminService {
   }
 
   deleteUser(userId: string): Observable<void> {
-    return this.http.delete<void>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}`);
+    return this.http.delete<void>(`${this.config.apiHost}/api/admin/users`, { params: { id: userId } });
   }
 
   deleteUserAlarms(userId: string): Observable<{ deleted: number }> {
-    return this.http.delete<{ deleted: number }>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}/alarms`);
+    return this.http.delete<{ deleted: number }>(`${this.config.apiHost}/api/admin/users/alarms`, { params: { id: userId } });
   }
 
   disableUser(userId: string): Observable<Human> {
-    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}/disable`, {});
+    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/disable`, {}, { params: { id: userId } });
   }
 
   enableUser(userId: string): Observable<Human> {
-    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}/enable`, {});
+    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/enable`, {}, { params: { id: userId } });
   }
 
   fetchAvatars(userIds: string[]): Observable<Record<string, string>> {
@@ -58,7 +58,7 @@ export class AdminService {
   }
 
   getUser(userId: string): Observable<Human> {
-    return this.http.get<Human>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}`);
+    return this.http.get<Human>(`${this.config.apiHost}/api/admin/users/by-id`, { params: { id: userId } });
   }
 
   getUsers(): Observable<AdminUser[]> {
@@ -74,11 +74,11 @@ export class AdminService {
   }
 
   impersonateUser(userId: string): Observable<{ token: string }> {
-    return this.http.post<{ token: string }>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}/impersonate`, {});
+    return this.http.post<{ token: string }>(`${this.config.apiHost}/api/admin/users/impersonate`, {}, { params: { id: userId } });
   }
 
   pauseUser(userId: string): Observable<Human> {
-    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}/pause`, {});
+    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/pause`, {}, { params: { id: userId } });
   }
 
   removeWebhookDelegate(webhookId: string, userId: string): Observable<string[]> {
@@ -96,6 +96,6 @@ export class AdminService {
   }
 
   resumeUser(userId: string): Observable<Human> {
-    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/${encodeURIComponent(userId)}/resume`, {});
+    return this.http.put<Human>(`${this.config.apiHost}/api/admin/users/resume`, {}, { params: { id: userId } });
   }
 }

@@ -59,8 +59,8 @@ public partial class AdminController(
         return this.Ok(userList);
     }
 
-    [HttpGet("users/{id}")]
-    public async Task<IActionResult> GetUser(string id)
+    [HttpGet("users/by-id")]
+    public async Task<IActionResult> GetUser([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
@@ -90,8 +90,8 @@ public partial class AdminController(
         });
     }
 
-    [HttpPut("users/{id}/enable")]
-    public async Task<IActionResult> EnableUser(string id)
+    [HttpPut("users/enable")]
+    public async Task<IActionResult> EnableUser([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
@@ -111,8 +111,8 @@ public partial class AdminController(
         return this.Ok(updated);
     }
 
-    [HttpPut("users/{id}/disable")]
-    public async Task<IActionResult> DisableUser(string id)
+    [HttpPut("users/disable")]
+    public async Task<IActionResult> DisableUser([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
@@ -132,8 +132,8 @@ public partial class AdminController(
         return this.Ok(updated);
     }
 
-    [HttpPut("users/{id}/pause")]
-    public async Task<IActionResult> PauseUser(string id)
+    [HttpPut("users/pause")]
+    public async Task<IActionResult> PauseUser([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
@@ -153,8 +153,8 @@ public partial class AdminController(
         return this.Ok(updated);
     }
 
-    [HttpPut("users/{id}/resume")]
-    public async Task<IActionResult> ResumeUser(string id)
+    [HttpPut("users/resume")]
+    public async Task<IActionResult> ResumeUser([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
@@ -174,8 +174,8 @@ public partial class AdminController(
         return this.Ok(updated);
     }
 
-    [HttpDelete("users/{id}/alarms")]
-    public async Task<IActionResult> DeleteUserAlarms(string id)
+    [HttpDelete("users/alarms")]
+    public async Task<IActionResult> DeleteUserAlarms([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
@@ -473,8 +473,8 @@ public partial class AdminController(
 
     public record ImpersonateRequest(string UserId);
 
-    [HttpDelete("users/{id}")]
-    public async Task<IActionResult> DeleteUser(string id)
+    [HttpDelete("users")]
+    public async Task<IActionResult> DeleteUser([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
@@ -491,8 +491,8 @@ public partial class AdminController(
         return this.NoContent();
     }
 
-    [HttpPost("users/{id}/impersonate")]
-    public async Task<IActionResult> ImpersonateUser(string id)
+    [HttpPost("users/impersonate")]
+    public async Task<IActionResult> ImpersonateUser([FromQuery] string id)
     {
         if (!this.IsAdmin)
         {
