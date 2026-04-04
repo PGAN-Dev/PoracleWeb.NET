@@ -61,13 +61,14 @@ describe('AdminService', () => {
       expect(user.id).toBe('123');
     });
 
-    httpMock.expectOne(`${API}/api/admin/users/123`).flush(mockHuman);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/by-id` && r.params.get('id') === '123');
+    req.flush(mockHuman);
   });
 
   it('should delete a user', () => {
     service.deleteUser('123').subscribe();
 
-    const req = httpMock.expectOne(`${API}/api/admin/users/123`);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users` && r.params.get('id') === '123');
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
@@ -77,7 +78,7 @@ describe('AdminService', () => {
       expect(result.deleted).toBe(15);
     });
 
-    const req = httpMock.expectOne(`${API}/api/admin/users/123/alarms`);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/alarms` && r.params.get('id') === '123');
     expect(req.request.method).toBe('DELETE');
     req.flush({ deleted: 15 });
   });
@@ -87,7 +88,7 @@ describe('AdminService', () => {
       expect(user.adminDisable).toBe(1);
     });
 
-    const req = httpMock.expectOne(`${API}/api/admin/users/123/disable`);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/disable` && r.params.get('id') === '123');
     expect(req.request.method).toBe('PUT');
     req.flush({ ...mockHuman, adminDisable: 1 });
   });
@@ -97,7 +98,8 @@ describe('AdminService', () => {
       expect(user.adminDisable).toBe(0);
     });
 
-    httpMock.expectOne(`${API}/api/admin/users/123/enable`).flush(mockHuman);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/enable` && r.params.get('id') === '123');
+    req.flush(mockHuman);
   });
 
   it('should pause a user', () => {
@@ -105,7 +107,8 @@ describe('AdminService', () => {
       expect(user.enabled).toBe(0);
     });
 
-    httpMock.expectOne(`${API}/api/admin/users/123/pause`).flush({
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/pause` && r.params.get('id') === '123');
+    req.flush({
       ...mockHuman,
       enabled: 0,
     });
@@ -116,7 +119,8 @@ describe('AdminService', () => {
       expect(user.enabled).toBe(1);
     });
 
-    httpMock.expectOne(`${API}/api/admin/users/123/resume`).flush(mockHuman);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/resume` && r.params.get('id') === '123');
+    req.flush(mockHuman);
   });
 
   it('should impersonate a user', () => {
@@ -124,7 +128,7 @@ describe('AdminService', () => {
       expect(result.token).toBe('impersonated-jwt');
     });
 
-    const req = httpMock.expectOne(`${API}/api/admin/users/123/impersonate`);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/impersonate` && r.params.get('id') === '123');
     expect(req.request.method).toBe('POST');
     req.flush({ token: 'impersonated-jwt' });
   });
@@ -189,10 +193,12 @@ describe('AdminService', () => {
     req.flush([]);
   });
 
-  it('should encode special characters in user IDs', () => {
-    service.getUser('user@special').subscribe();
+  it('should pass webhook URL IDs as query params', () => {
+    const webhookUrl = 'http://discord.com/api/webhooks/123/token';
+    service.getUser(webhookUrl).subscribe();
 
-    httpMock.expectOne(`${API}/api/admin/users/user%40special`).flush(mockHuman);
+    const req = httpMock.expectOne(r => r.url === `${API}/api/admin/users/by-id` && r.params.get('id') === webhookUrl);
+    req.flush(mockHuman);
   });
 
   it('should fetch poracle servers', () => {
