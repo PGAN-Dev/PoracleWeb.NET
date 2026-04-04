@@ -103,7 +103,7 @@ describe('AuthService', () => {
   });
 
   describe('handleTokenFromCallback', () => {
-    it('should store token, load user, then navigate to dashboard', async () => {
+    it('should store token, load user, load settings, then navigate to dashboard', async () => {
       const promise = service.handleTokenFromCallback('new-token');
 
       expect(localStorage.getItem('poracle_token')).toBe('new-token');
@@ -114,6 +114,10 @@ describe('AuthService', () => {
       const req = httpMock.expectOne(`${API}/api/auth/me`);
       req.flush(mockUser);
       await promise;
+
+      // Settings are loaded after token is stored (fixes title not showing after OAuth redirect)
+      const settingsReq = httpMock.expectOne(`${API}/api/settings`);
+      settingsReq.flush([]);
 
       // Now navigation should have happened
       expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
