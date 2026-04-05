@@ -116,6 +116,15 @@ export class CleaningComponent implements OnInit {
       label: 'Gyms',
       type: 'gyms',
     },
+    {
+      color: '#795548',
+      description: 'Auto-delete fort change notifications after expiry',
+      enabled: signal(false),
+      hasAlarms: signal(false),
+      icon: 'domain',
+      label: 'Fort Changes',
+      type: 'fortchanges',
+    },
   ];
 
   readonly allEnabled = computed(() => this.cleaningItems.every(i => i.enabled()));
@@ -176,7 +185,7 @@ export class CleaningComponent implements OnInit {
         error: () => this.loading.set(false),
         next: counts => {
           for (const item of this.cleaningItems) {
-            const key = item.type === 'monsters' ? 'pokemon' : item.type;
+            const key = item.type === 'monsters' ? 'pokemon' : item.type === 'fortchanges' ? 'fortChanges' : item.type;
             const count = (counts as unknown as Record<string, number>)[key] ?? 0;
             item.hasAlarms.set(count > 0);
           }

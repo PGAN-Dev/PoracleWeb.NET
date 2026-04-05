@@ -224,6 +224,15 @@ export const HELP_SECTIONS: HelpSection[] = [
 <h4>Gym Alarms</h4>
 <p>Track gym team changes. Select which teams (Neutral, Mystic, Valor, Instinct) to monitor. Enable <strong>Slot Changes</strong> tracking to get notified when gym slots open up, or enable <strong>Battle Changes</strong> tracking to get notified when a gym is under attack.</p>
 
+<h4>Fort Change Alarms</h4>
+<p>Track changes to pokestops and gyms themselves — not the activities at them, but changes to the actual points of interest.</p>
+<ul>
+<li><strong>Fort Type</strong> — Choose to track Pokestops, Gyms, or Everything.</li>
+<li><strong>Change Types</strong> — Select which changes to monitor: Name changed, Location changed, Image changed, Removal, or New fort added.</li>
+<li><strong>Include Empty</strong> — Include forts that have no name set.</li>
+</ul>
+<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>Fort change alarms are useful for tracking map database updates — new pokestops appearing, gyms being relocated, or POIs being removed from the game.</div></div>
+
 <h4>Targeting a Specific Gym</h4>
 <p>When creating or editing a Raid, Egg, or Gym alarm, you can optionally search for and select a specific gym. This is useful when you only care about activity at your favorite gym — like the one on your lunch route or near your house.</p>
 <ul>
@@ -234,7 +243,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 <div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>You can combine a gym-specific alarm with a broader alarm. For example, create one raid alarm targeting your local gym for all levels, and a second alarm for level 5 raids across all your areas.</div></div>`,
     icon: 'shield',
     iconColor: '#f44336',
-    subtitle: 'Raids, eggs, quests, rockets, lures, nests, gyms',
+    subtitle: 'Raids, eggs, quests, rockets, lures, nests, gyms, fort changes',
     title: 'Other Alarm Types',
   }),
   section({
@@ -336,6 +345,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 <li><strong>Lures</strong> — Deleted when the lure expires</li>
 <li><strong>Nests</strong> — Deleted when nests migrate</li>
 <li><strong>Gyms</strong> — Deleted after gym changes</li>
+<li><strong>Fort Changes</strong> — Deleted after fort change notification expires</li>
 </ul>
 <p>Use <strong>Enable All</strong> or <strong>Disable All</strong> to toggle everything at once.</p>
 <div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div><strong>Recommended:</strong> Keep clean mode enabled to prevent outdated alerts from piling up in your DMs.</div></div>`,

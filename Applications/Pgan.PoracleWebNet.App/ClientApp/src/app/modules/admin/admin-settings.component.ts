@@ -89,6 +89,12 @@ const SETTING_GROUPS: SettingGroup[] = [
       { description: 'Hide lure alarm management from all users.', key: 'disable_lures', label: 'Disable Lures', type: 'boolean' },
       { description: 'Hide nest alarm management from all users.', key: 'disable_nests', label: 'Disable Nests', type: 'boolean' },
       { description: 'Hide gym alarm management from all users.', key: 'disable_gyms', label: 'Disable Gyms', type: 'boolean' },
+      {
+        description: 'Hide fort change alarm management from all users.',
+        key: 'disable_fort_changes',
+        label: 'Disable Fort Changes',
+        type: 'boolean',
+      },
     ],
   },
   {

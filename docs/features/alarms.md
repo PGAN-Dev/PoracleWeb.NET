@@ -16,6 +16,7 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 | **Lures** | Filter by lure type |
 | **Nests** | Filter by nesting Pokemon species |
 | **Gyms** | Filter by gym team changes, battle activity, specific gym |
+| **Fort Changes** | Filter by fort type (pokestop/gym), change types (name, location, image, removal, new) |
 
 ## Creating alarms
 
@@ -109,6 +110,18 @@ Gym alarms support:
 | `team` | `4` (any team) | Gym team to track |
 | `battleChanges` | `false` | Notify on battle activity changes at the gym |
 | `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
+
+## Fort change alarm filters
+
+Fort change alarms track changes to pokestops and gyms as points of interest (not activity at them).
+
+| Field | Default | Description |
+|---|---|---|
+| `fort_type` | `"everything"` | Fort type to track: `pokestop`, `gym`, or `everything` |
+| `include_empty` | `0` (false) | Include forts with no name |
+| `change_types` | `[]` (all) | JSON array of change types to monitor: `name`, `location`, `image_url`, `removal`, `new` |
+
+Fort change alarms are proxied through PoracleNG using tracking type `"fort"`. The API endpoints follow the standard alarm CRUD pattern at `/api/fort-changes`.
 
 !!! warning "GymCreate.Team default"
     `GymCreate.Team` must default to `4` (any team), matching Raid and Egg defaults. A C# `int` defaults to `0`, which maps to "Neutral only" in Poracle, causing new gym alarms to silently filter out all non-Neutral gyms.

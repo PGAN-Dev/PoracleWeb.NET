@@ -11,4 +11,5 @@ public interface ICleaningService
     public Task<int> ToggleCleanLuresAsync(string userId, int profileNo, int clean);
     public Task<int> ToggleCleanNestsAsync(string userId, int profileNo, int clean);
     public Task<int> ToggleCleanGymsAsync(string userId, int profileNo, int clean);
+    public Task<int> ToggleCleanFortChangesAsync(string userId, int profileNo, int clean);
 }

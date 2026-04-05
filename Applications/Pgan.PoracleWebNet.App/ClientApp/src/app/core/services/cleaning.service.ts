@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
 
-export type CleanAlarmType = 'eggs' | 'gyms' | 'invasions' | 'lures' | 'monsters' | 'nests' | 'quests' | 'raids';
+export type CleanAlarmType = 'eggs' | 'fortchanges' | 'gyms' | 'invasions' | 'lures' | 'monsters' | 'nests' | 'quests' | 'raids';
 
 @Injectable({ providedIn: 'root' })
 export class CleaningService {

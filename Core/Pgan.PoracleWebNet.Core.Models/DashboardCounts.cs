@@ -37,4 +37,8 @@ public class DashboardCounts
     {
         get; set;
     }
+    public int FortChanges
+    {
+        get; set;
+    }
 }

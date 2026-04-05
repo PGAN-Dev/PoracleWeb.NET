@@ -156,6 +156,25 @@ export type NestCreate = Omit<Nest, 'uid' | 'id' | 'profileNo'>;
 
 export type NestUpdate = Partial<NestCreate>;
 
+// ─── Fort Change ──────────────────────────────────────────────────────────────
+
+export interface FortChange {
+  changeTypes: string[];
+  clean: number;
+  distance: number;
+  fortType: string | null;
+  id: string;
+  includeEmpty: number;
+  ping: string | null;
+  profileNo: number;
+  template: string | null;
+  uid: number;
+}
+
+export type FortChangeCreate = Omit<FortChange, 'uid' | 'id' | 'profileNo'>;
+
+export type FortChangeUpdate = Partial<FortChangeCreate>;
+
 // ─── Gym ───────────────────────────────────────────────────────────────────────
 
 export interface Gym {
@@ -220,6 +239,7 @@ export interface ProfileCreate {
 
 export interface DashboardCounts {
   eggs: number;
+  fortChanges: number;
   gyms: number;
   invasions: number;
   lures: number;

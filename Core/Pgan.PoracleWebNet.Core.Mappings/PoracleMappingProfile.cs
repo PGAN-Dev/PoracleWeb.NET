@@ -53,6 +53,11 @@ public class PoracleMappingProfile : AutoMapper.Profile
         this.CreateMap<GymUpdate, Gym>()
             .ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null));
 
+        // Fort Change mappings
+        this.CreateMap<FortChangeCreate, FortChange>();
+        this.CreateMap<FortChangeUpdate, FortChange>()
+            .ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null));
+
         // Human mappings
         this.CreateMap<HumanEntity, Human>().ReverseMap();
 

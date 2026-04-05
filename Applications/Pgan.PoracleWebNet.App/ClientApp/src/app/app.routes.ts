@@ -64,6 +64,11 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard],
+    loadComponent: () => import('./modules/fort-changes/fort-change-list.component').then(m => m.FortChangeListComponent),
+    path: 'fort-changes',
+  },
+  {
+    canActivate: [authGuard],
     loadComponent: () => import('./modules/areas/area-list.component').then(m => m.AreaListComponent),
     path: 'areas',
   },

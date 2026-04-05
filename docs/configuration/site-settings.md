@@ -43,6 +43,7 @@ Control which alarm categories are available to users. Disabling a type hides it
 | `disable_lures` | Disable Lures | boolean | Hide lure alarm management from all users. |
 | `disable_nests` | Disable Nests | boolean | Hide nest alarm management from all users. |
 | `disable_gyms` | Disable Gyms | boolean | Hide gym alarm management from all users. |
+| `disable_fort_changes` | Disable Fort Changes | boolean | Hide fort change alarm management from all users. |
 
 ---
 

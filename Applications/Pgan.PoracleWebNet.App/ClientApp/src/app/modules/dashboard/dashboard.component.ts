@@ -83,6 +83,14 @@ export class DashboardComponent implements OnInit {
     { colorClass: 'card-lures', icon: 'location_on', key: 'lures', label: 'Lures', route: '/lures', subtitle: 'Lure modules' },
     { colorClass: 'card-nests', icon: 'park', key: 'nests', label: 'Nests', route: '/nests', subtitle: 'Nesting species' },
     { colorClass: 'card-gyms', icon: 'fitness_center', key: 'gyms', label: 'Gyms', route: '/gyms', subtitle: 'Gym activity' },
+    {
+      colorClass: 'card-fort-changes',
+      icon: 'domain',
+      key: 'fortChanges',
+      label: 'Fort Changes',
+      route: '/fort-changes',
+      subtitle: 'Fort updates',
+    },
   ];
 
   readonly counts = signal<DashboardCounts | null>(null);
@@ -105,7 +113,7 @@ export class DashboardComponent implements OnInit {
   readonly selectedAreas = signal<string[]>([]);
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
 
-  readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8];
+  readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   readonly tips = computed(() => {
     const tips: Tip[] = [];
@@ -158,7 +166,8 @@ export class DashboardComponent implements OnInit {
       (c.invasions ?? 0) +
       (c.lures ?? 0) +
       (c.nests ?? 0) +
-      (c.gyms ?? 0)
+      (c.gyms ?? 0) +
+      (c.fortChanges ?? 0)
     );
   });
 

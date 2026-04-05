@@ -25,6 +25,7 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
             ["lures"] = AllClean(allTracking, "lure"),
             ["nests"] = AllClean(allTracking, "nest"),
             ["gyms"] = AllClean(allTracking, "gym"),
+            ["fortChanges"] = AllClean(allTracking, "fort"),
         };
     }
 
@@ -51,6 +52,9 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
 
     public async Task<int> ToggleCleanGymsAsync(string userId, int profileNo, int clean) =>
         await ToggleCleanAsync("gym", userId, clean);
+
+    public async Task<int> ToggleCleanFortChangesAsync(string userId, int profileNo, int clean) =>
+        await ToggleCleanAsync("fort", userId, clean);
 
     /// <summary>
     /// Workaround: PoracleNG has no bulk clean toggle endpoint. We fetch all alarms of the type,

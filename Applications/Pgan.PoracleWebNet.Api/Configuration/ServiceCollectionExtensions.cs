@@ -49,6 +49,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILureService, LureService>();
         services.AddScoped<INestService, NestService>();
         services.AddScoped<IGymService, GymService>();
+        services.AddScoped<IFortChangeService, FortChangeService>();
         services.AddScoped<IHumanService, HumanService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();
