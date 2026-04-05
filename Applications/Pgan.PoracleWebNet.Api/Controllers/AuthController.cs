@@ -44,8 +44,17 @@ public partial class AuthController(
 
     [AllowAnonymous]
     [HttpGet("discord/login")]
-    public IActionResult DiscordLogin()
+    public async Task<IActionResult> DiscordLogin()
     {
+        // Gate: block if admin has explicitly disabled Discord login (PoracleWeb.NET site setting).
+        // Uses GetValueAsync (not GetBoolAsync) so missing/null = enabled (safe default, prevents lockout).
+        var discordSetting = await this._siteSettingService.GetValueAsync("enable_discord");
+        if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            LogAuthMethodDisabled(this._logger, "Discord");
+            return this.BadRequest(new { error = "Discord authentication is not enabled." });
+        }
+
         // Generate a random state value for CSRF protection
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
@@ -97,6 +106,14 @@ public partial class AuthController(
     {
         // Derive frontend URL from the request
         var frontendUrl = this.GetFrontendUrl();
+
+        // Defense-in-depth: reject callback if Discord login was disabled between redirect and callback
+        var discordSetting = await this._siteSettingService.GetValueAsync("enable_discord");
+        if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            LogAuthMethodDisabled(this._logger, "Discord");
+            return this.Redirect($"{frontendUrl}/login#error=discord_disabled");
+        }
 
         // Validate OAuth state parameter for CSRF protection
         var savedState = this.Request.Cookies["oauth_state"];
@@ -220,6 +237,17 @@ public partial class AuthController(
             });
         }
 
+        // Also check PoracleWeb.NET site setting (admin runtime toggle, separate from PoracleNG config above)
+        var telegramSetting = await this._siteSettingService.GetValueAsync("enable_telegram");
+        if (string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            LogAuthMethodDisabled(this._logger, "Telegram");
+            return this.BadRequest(new
+            {
+                error = "Telegram authentication is not enabled."
+            });
+        }
+
         // Validate auth_date is not older than 86400 seconds (24 hours)
         if (telegramData.TryGetValue("auth_date", out var authDateStr) &&
             long.TryParse(authDateStr, out var authDateUnix))
@@ -302,11 +330,21 @@ public partial class AuthController(
 
     [AllowAnonymous]
     [HttpGet("telegram/config")]
-    public IActionResult TelegramConfig() => this.Ok(new
+    public async Task<IActionResult> TelegramConfig()
     {
-        enabled = this._telegramSettings.Enabled,
-        botUsername = this._telegramSettings.BotUsername
-    });
+        // Combines PoracleNG server config (Telegram:Enabled, requires restart) with
+        // PoracleWeb.NET site setting (enable_telegram, runtime toggle). Both must be
+        // truthy for Telegram login to be available. Neither affects PoracleNG's Telegram
+        // bot or DM delivery — only login to this web UI.
+        var telegramSetting = await this._siteSettingService.GetValueAsync("enable_telegram");
+        var disabledBySetting = string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase);
+
+        return this.Ok(new
+        {
+            enabled = this._telegramSettings.Enabled && !disabledBySetting,
+            botUsername = this._telegramSettings.BotUsername
+        });
+    }
 
     [EnableRateLimiting("auth-read")]
     [HttpGet("me")]
@@ -638,4 +676,7 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch webhook delegates for {UserId}.")]
     private static partial void LogPwebDelegatesFetchFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt blocked: {Method} login is disabled by site setting.")]
+    private static partial void LogAuthMethodDisabled(ILogger logger, string method);
 }

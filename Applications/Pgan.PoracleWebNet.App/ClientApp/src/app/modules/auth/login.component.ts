@@ -33,11 +33,33 @@ export class LoginComponent implements OnInit {
 
   private telegramBotUsername = '';
 
+  /**
+   * Whether Discord login is enabled (PoracleWeb.NET site setting `enable_discord`).
+   * This controls button visibility on the login page. The backend AuthController also
+   * enforces this as defense-in-depth. Safe default: enabled when setting is absent.
+   *
+   * Note: This is a PoracleWeb.NET-only setting stored in `poracle_web.site_settings`.
+   * It does NOT affect PoracleNG's Discord integration or webhook delivery.
+   */
+  protected readonly discordEnabled = computed(() => {
+    const val = this.settingsService.siteSettings()['enable_discord'];
+    return val?.toLowerCase() !== 'false';
+  });
+
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
   @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
 
+  /**
+   * Whether Telegram login is enabled. Driven by the `/api/auth/telegram/config` endpoint,
+   * which combines two independent settings:
+   *   1. `Telegram:Enabled` in appsettings.json (PoracleNG server config, requires restart)
+   *   2. `enable_telegram` site setting in `poracle_web.site_settings` (PoracleWeb.NET, runtime toggle)
+   * Both must be truthy for Telegram login to be available.
+   *
+   * Note: Neither setting affects PoracleNG's Telegram bot or DM delivery — only login.
+   */
   protected readonly telegramEnabled = signal(false);
 
   loginWithDiscord(): void {
@@ -56,6 +78,7 @@ export class LoginComponent implements OnInit {
     const errorCode = fragmentParams.get('error');
     if (errorCode) {
       const messages: Record<string, string> = {
+        discord_disabled: 'Discord login is currently disabled.',
         discord_user_fetch_failed: 'Could not retrieve your Discord profile. Please try again.',
         missing_code: 'Discord authentication was cancelled or failed.',
         missing_required_role: 'You do not have the required Discord role to access this site.',
@@ -76,7 +99,7 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    // Check if Telegram auth is enabled
+    // Check if Telegram auth is enabled (combines PoracleNG config + PoracleWeb.NET site setting)
     this.auth
       .getTelegramConfig()
       .pipe(takeUntilDestroyed(this.destroyRef))

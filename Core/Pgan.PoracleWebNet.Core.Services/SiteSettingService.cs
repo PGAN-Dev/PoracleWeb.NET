@@ -19,6 +19,8 @@ public partial class SiteSettingService(
     private static readonly HashSet<string> PublicKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "custom_title",
+        "enable_discord",
+        "enable_telegram",
     };
 
     public async Task<IEnumerable<SiteSetting>> GetAllAsync() => await this._repository.GetAllAsync();

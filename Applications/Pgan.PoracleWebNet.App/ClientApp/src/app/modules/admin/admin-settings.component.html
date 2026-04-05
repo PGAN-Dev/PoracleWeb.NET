@@ -61,6 +61,16 @@
         </div>
 
         @if (group.label === 'Telegram' && telegramConfig()) {
+          @if (!telegramConfig()!.enabled) {
+            <div class="config-hint warning">
+              <mat-icon>info_outline</mat-icon>
+              <span>
+                Telegram login requires <code>TELEGRAM_ENABLED=true</code> in your <code>.env</code> file along with
+                <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_BOT_USERNAME</code>. A server restart is needed after changing
+                <code>.env</code>. The toggle above is an additional on/off switch that takes effect immediately.
+              </span>
+            </div>
+          }
           <div class="server-config-block">
             <div class="server-config-header">
               <mat-icon class="server-config-icon">dns</mat-icon>
@@ -70,6 +80,16 @@
               </span>
             </div>
             <div class="server-config-rows">
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Enabled in .env</span>
+                  <span class="setting-desc">TELEGRAM_ENABLED value from server config (requires restart to change).</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!telegramConfig()!.enabled">{{ telegramConfig()!.enabled ? 'true' : 'false' }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
               <div class="server-config-row">
                 <div class="setting-info">
                   <span class="setting-label">Bot Token</span>

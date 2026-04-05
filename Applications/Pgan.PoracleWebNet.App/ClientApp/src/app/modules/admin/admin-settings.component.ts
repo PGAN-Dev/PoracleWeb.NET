@@ -181,9 +181,10 @@ const SETTING_GROUPS: SettingGroup[] = [
     label: 'Telegram',
     settings: [
       {
-        description: 'Allow users to log in and manage alarms via Telegram.',
+        description:
+          'Allow Telegram login on this site. Requires TELEGRAM_ENABLED=true, bot token, and bot username in .env (server restart required for .env changes).',
         key: 'enable_telegram',
-        label: 'Enable Telegram',
+        label: 'Enable Telegram Login',
         type: 'boolean',
       },
       { description: 'Telegram bot username (without @).', key: 'telegram_bot', label: 'Bot Username', type: 'text' },
@@ -195,9 +196,10 @@ const SETTING_GROUPS: SettingGroup[] = [
     label: 'Discord',
     settings: [
       {
-        description: 'Allow users to log in and manage alarms via Discord OAuth2.',
+        description:
+          'Allow Discord login on this site. Requires Discord Client ID and Client Secret in .env (server restart required for .env changes). Does not affect PoracleNG bot delivery.',
         key: 'enable_discord',
-        label: 'Enable Discord',
+        label: 'Enable Discord Login',
         type: 'boolean',
       },
     ],
@@ -452,14 +454,16 @@ export class AdminSettingsComponent implements OnInit {
     this.bulkSaving.set(true);
     let done = 0,
       errors = 0;
+    const errorMessages: string[] = [];
     for (const [key, value] of entries) {
       this.settingsService
         .update(key, value)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          error: () => {
+          error: (err: { error?: { error?: string } }) => {
             errors++;
-            if (done + errors === entries.length) this.finish(done, errors);
+            if (err.error?.error) errorMessages.push(err.error.error);
+            if (done + errors === entries.length) this.finish(done, errors, errorMessages);
           },
           next: () => {
             done++;
@@ -468,7 +472,7 @@ export class AdminSettingsComponent implements OnInit {
               n.delete(key);
               return n;
             });
-            if (done + errors === entries.length) this.finish(done, errors);
+            if (done + errors === entries.length) this.finish(done, errors, errorMessages);
           },
         });
     }
@@ -506,9 +510,10 @@ export class AdminSettingsComponent implements OnInit {
     });
   }
 
-  private finish(done: number, errors: number): void {
+  private finish(done: number, errors: number, errorMessages: string[] = []): void {
     this.bulkSaving.set(false);
-    const msg = errors === 0 ? `${done} setting(s) saved` : `${done} saved, ${errors} failed`;
+    const msg =
+      errors === 0 ? `${done} setting(s) saved` : errorMessages.length > 0 ? errorMessages.join(' ') : `${done} saved, ${errors} failed`;
     this.snackBar.open(msg, 'OK', { duration: errors ? 5000 : 3000 });
   }
 }

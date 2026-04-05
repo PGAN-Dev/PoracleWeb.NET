@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - add dedicated Discord settings section to admin page ([PR #116](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/116))
+- **Login method gating**: `enable_discord` and `enable_telegram` site settings now control login button visibility and block auth attempts when disabled ([#117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/117))
 ## [2.1.3] - 2026-04-04
 
 ## [2.1.3] - 2026-04-04

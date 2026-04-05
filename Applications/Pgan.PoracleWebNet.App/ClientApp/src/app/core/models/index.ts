@@ -343,6 +343,8 @@ export interface SiteSetting {
 export interface TelegramServerConfig {
   botToken: string;
   botUsername: string;
+  /** Whether TELEGRAM_ENABLED=true in the server .env (requires restart to change). */
+  enabled: boolean;
 }
 
 // ─── DiscordServerConfig ─────────────────────────────────────────────────────

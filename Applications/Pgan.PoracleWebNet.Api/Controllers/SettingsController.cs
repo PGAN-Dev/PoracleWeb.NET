@@ -88,6 +88,7 @@ public class SettingsController(
         {
             botToken = MaskSecret(this._telegramSettings.BotToken),
             botUsername = this._telegramSettings.BotUsername,
+            enabled = this._telegramSettings.Enabled,
         });
     }
 
@@ -105,6 +106,31 @@ public class SettingsController(
             {
                 error = "Cannot modify internal system settings."
             });
+        }
+
+        // Prevent lockout: at least one login method must remain enabled.
+        // Uses GetValueAsync so absent/null = enabled (safe default). Only blocks when
+        // both are explicitly "False".
+        if (string.Equals(request.Value, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            string? otherKey = key switch
+            {
+                "enable_discord" => "enable_telegram",
+                "enable_telegram" => "enable_discord",
+                _ => null
+            };
+
+            if (otherKey is not null)
+            {
+                var otherValue = await this._siteSettingService.GetValueAsync(otherKey);
+                if (string.Equals(otherValue, "false", StringComparison.OrdinalIgnoreCase))
+                {
+                    return this.BadRequest(new
+                    {
+                        error = "At least one login method must remain enabled. Enable the other method first."
+                    });
+                }
+            }
         }
 
         // Preserve existing category and valueType if not provided in the request

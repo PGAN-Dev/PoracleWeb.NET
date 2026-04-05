@@ -170,4 +170,51 @@ public class SettingsControllerTests : ControllerTestBase
 
         Assert.IsType<ForbidResult>(result);
     }
+
+    [Fact]
+    public async Task UpsertRejectsBothLoginMethodsDisabled()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        // enable_discord is already False in DB
+        this._siteService.Setup(s => s.GetValueAsync("enable_discord")).ReturnsAsync("False");
+
+        var request = new SettingsController.SiteSettingRequest { Value = "False" };
+        var result = await this._sut.Upsert("enable_telegram", request);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(bad.Value);
+        Assert.Contains("At least one login method must remain enabled", json);
+    }
+
+    [Fact]
+    public async Task UpsertAllowsDisablingOneLoginMethod()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        // enable_discord is True (or absent/null) — so disabling telegram is fine
+        this._siteService.Setup(s => s.GetValueAsync("enable_discord")).ReturnsAsync("True");
+        this._siteService.Setup(s => s.GetByKeyAsync("enable_telegram")).ReturnsAsync((SiteSetting?)null);
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
+            .ReturnsAsync((SiteSetting s) => s);
+
+        var request = new SettingsController.SiteSettingRequest { Value = "False" };
+        var result = await this._sut.Upsert("enable_telegram", request);
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task UpsertAllowsDisablingWhenOtherIsAbsent()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        // enable_discord doesn't exist in DB (null = enabled by safe default)
+        this._siteService.Setup(s => s.GetValueAsync("enable_discord")).ReturnsAsync((string?)null);
+        this._siteService.Setup(s => s.GetByKeyAsync("enable_telegram")).ReturnsAsync((SiteSetting?)null);
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
+            .ReturnsAsync((SiteSetting s) => s);
+
+        var request = new SettingsController.SiteSettingRequest { Value = "False" };
+        var result = await this._sut.Upsert("enable_telegram", request);
+
+        Assert.IsType<OkObjectResult>(result);
+    }
 }

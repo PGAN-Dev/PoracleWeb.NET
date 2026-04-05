@@ -60,6 +60,39 @@ public class SiteSettingServiceTests
     }
 
     [Fact]
+    public async Task GetPublicAsyncIncludesLoginMethodSettings()
+    {
+        this._repository.Setup(r => r.GetByKeyAsync("custom_title"))
+            .ReturnsAsync(new SiteSetting { Key = "custom_title", Value = "My App", Category = "branding" });
+        this._repository.Setup(r => r.GetByKeyAsync("enable_discord"))
+            .ReturnsAsync(new SiteSetting { Key = "enable_discord", Value = "True", Category = "discord" });
+        this._repository.Setup(r => r.GetByKeyAsync("enable_telegram"))
+            .ReturnsAsync(new SiteSetting { Key = "enable_telegram", Value = "False", Category = "telegram" });
+
+        var result = (await this._sut.GetPublicAsync()).ToList();
+
+        Assert.Equal(3, result.Count);
+        Assert.Contains(result, s => s.Key == "custom_title");
+        Assert.Contains(result, s => s.Key == "enable_discord");
+        Assert.Contains(result, s => s.Key == "enable_telegram");
+    }
+
+    [Fact]
+    public async Task GetPublicAsyncSkipsMissingLoginMethodSettings()
+    {
+        // Only custom_title exists; enable_discord and enable_telegram are absent from DB
+        this._repository.Setup(r => r.GetByKeyAsync("custom_title"))
+            .ReturnsAsync(new SiteSetting { Key = "custom_title", Value = "My App", Category = "branding" });
+        this._repository.Setup(r => r.GetByKeyAsync("enable_discord")).ReturnsAsync((SiteSetting?)null);
+        this._repository.Setup(r => r.GetByKeyAsync("enable_telegram")).ReturnsAsync((SiteSetting?)null);
+
+        var result = (await this._sut.GetPublicAsync()).ToList();
+
+        Assert.Single(result);
+        Assert.Equal("custom_title", result[0].Key);
+    }
+
+    [Fact]
     public async Task GetByKeyAsyncReturnsMatchingSetting()
     {
         var expected = new SiteSetting { Key = "custom_title", Value = "My App", Category = "branding" };
