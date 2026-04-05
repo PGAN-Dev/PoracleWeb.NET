@@ -60,7 +60,7 @@
           }
         </div>
 
-        @if (group.label === 'Discord' && discordConfig()) {
+        @if (group.label === 'Discord' && discordConfig() && getBool('enable_discord')) {
           <div class="server-config-block">
             <div class="server-config-header">
               <mat-icon class="server-config-icon">dns</mat-icon>
