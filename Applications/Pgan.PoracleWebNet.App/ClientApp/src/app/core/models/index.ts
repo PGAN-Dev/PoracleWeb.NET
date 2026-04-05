@@ -62,6 +62,29 @@ export type RaidCreate = Omit<Raid, 'uid' | 'id' | 'profileNo'>;
 
 export type RaidUpdate = Partial<RaidCreate>;
 
+// ─── Max Battle ───────────────────────────────────────────────────────────────
+
+export interface MaxBattle {
+  clean: number;
+  distance: number;
+  evolution: number;
+  form: number;
+  gmax: number;
+  id: string;
+  level: number;
+  move: number;
+  ping: string;
+  pokemonId: number;
+  profileNo: number;
+  stationId: string | null;
+  template: string;
+  uid: number;
+}
+
+export type MaxBattleCreate = Omit<MaxBattle, 'uid' | 'id' | 'profileNo'>;
+
+export type MaxBattleUpdate = Partial<MaxBattleCreate>;
+
 // ─── Egg ───────────────────────────────────────────────────────────────────────
 
 export interface Egg {
@@ -243,6 +266,7 @@ export interface DashboardCounts {
   gyms: number;
   invasions: number;
   lures: number;
+  maxBattles: number;
   nests: number;
   pokemon: number;
   quests: number;

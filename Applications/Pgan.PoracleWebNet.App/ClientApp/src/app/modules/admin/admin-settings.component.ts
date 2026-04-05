@@ -95,6 +95,12 @@ const SETTING_GROUPS: SettingGroup[] = [
         label: 'Disable Fort Changes',
         type: 'boolean',
       },
+      {
+        description: 'Hide max battle alarm management from all users.',
+        key: 'disable_maxbattles',
+        label: 'Disable Max Battles',
+        type: 'boolean',
+      },
     ],
   },
   {

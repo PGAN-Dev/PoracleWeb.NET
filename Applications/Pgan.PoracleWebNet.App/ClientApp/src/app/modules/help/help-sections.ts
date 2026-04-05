@@ -198,6 +198,15 @@ export const HELP_SECTIONS: HelpSection[] = [
 </ul>
 <p>Raid and Egg alarms are managed on separate tabs within the Raids page. Eggs also support gym-specific tracking and RSVP notifications.</p>
 
+<h4>Max Battle (Dynamax) Alarms</h4>
+<p>Get notified about Dynamax and Gigantamax battles at Power Spots.</p>
+<ul>
+<li><strong>By Level</strong> — Select battle levels (1-6) to track all Max Battles of that tier. Level 6 is Gigantamax.</li>
+<li><strong>By Pokemon</strong> — Select specific Pokemon you want to battle.</li>
+<li><strong>Gigantamax filter</strong> — Toggle to only get notified about Gigantamax battles (special forms with unique G-Max moves).</li>
+<li><strong>Move filter</strong> — Filter by specific battle moves.</li>
+</ul>
+
 <h4>Quest Alarms</h4>
 <p>Get notified about field research tasks with specific rewards.</p>
 <ul>
@@ -346,6 +355,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 <li><strong>Nests</strong> — Deleted when nests migrate</li>
 <li><strong>Gyms</strong> — Deleted after gym changes</li>
 <li><strong>Fort Changes</strong> — Deleted after fort change notification expires</li>
+<li><strong>Max Battles</strong> — Deleted when the battle ends</li>
 </ul>
 <p>Use <strong>Enable All</strong> or <strong>Disable All</strong> to toggle everything at once.</p>
 <div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div><strong>Recommended:</strong> Keep clean mode enabled to prevent outdated alerts from piling up in your DMs.</div></div>`,

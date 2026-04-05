@@ -23,6 +23,7 @@ public class DashboardService(IPoracleTrackingProxy trackingProxy) : IDashboardS
             Nests = CountArray(allTracking, "nest"),
             Gyms = CountArray(allTracking, "gym"),
             FortChanges = CountArray(allTracking, "fort"),
+            MaxBattles = CountArray(allTracking, "maxbattle"),
         };
     }
 

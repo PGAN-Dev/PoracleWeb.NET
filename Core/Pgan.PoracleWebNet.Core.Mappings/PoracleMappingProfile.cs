@@ -58,6 +58,11 @@ public class PoracleMappingProfile : AutoMapper.Profile
         this.CreateMap<FortChangeUpdate, FortChange>()
             .ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null));
 
+        // MaxBattle mappings
+        this.CreateMap<MaxBattleCreate, MaxBattle>();
+        this.CreateMap<MaxBattleUpdate, MaxBattle>()
+            .ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null));
+
         // Human mappings
         this.CreateMap<HumanEntity, Human>().ReverseMap();
 

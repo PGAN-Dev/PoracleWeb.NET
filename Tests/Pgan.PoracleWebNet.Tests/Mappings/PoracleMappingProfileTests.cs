@@ -65,4 +65,53 @@ public class PoracleMappingProfileTests
         Assert.Equal("key", model.Setting);
         Assert.Equal("val", model.Value);
     }
+
+    [Fact]
+    public void MaxBattleCreateMapsToMaxBattle()
+    {
+        var mapper = CreateMapper();
+        var create = new MaxBattleCreate
+        {
+            PokemonId = 9000,
+            Gmax = 1,
+            Level = 3,
+            StationId = "station123",
+            Distance = 50,
+            Form = 1,
+            Clean = 0,
+            Move = 100,
+            Evolution = 2,
+        };
+        var model = mapper.Map<MaxBattle>(create);
+        Assert.NotNull(model);
+        Assert.Equal(9000, model.PokemonId);
+        Assert.Equal(1, model.Gmax);
+        Assert.Equal(3, model.Level);
+        Assert.Equal("station123", model.StationId);
+        Assert.Equal(50, model.Distance);
+    }
+
+    [Fact]
+    public void MaxBattleUpdateMapsToMaxBattleWithNullSkip()
+    {
+        var mapper = CreateMapper();
+        var existing = new MaxBattle
+        {
+            Uid = 1,
+            PokemonId = 9000,
+            Gmax = 1,
+            StationId = "station123",
+            Distance = 50,
+        };
+        var update = new MaxBattleUpdate
+        {
+            Gmax = 0,
+            StationId = null, // null string should be skipped, preserving existing value
+            Level = 5,
+        };
+        mapper.Map(update, existing);
+        Assert.Equal(0, existing.Gmax);        // explicitly set to 0
+        Assert.Equal(5, existing.Level);        // explicitly set to 5
+        Assert.Equal("station123", existing.StationId); // preserved because update.StationId is null
+    }
 }

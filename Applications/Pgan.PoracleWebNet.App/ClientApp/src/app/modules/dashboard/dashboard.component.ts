@@ -91,6 +91,14 @@ export class DashboardComponent implements OnInit {
       route: '/fort-changes',
       subtitle: 'Fort updates',
     },
+    {
+      colorClass: 'card-maxbattles',
+      icon: 'flash_on',
+      key: 'maxBattles',
+      label: 'Max Battles',
+      route: '/max-battles',
+      subtitle: 'Dynamax battles',
+    },
   ];
 
   readonly counts = signal<DashboardCounts | null>(null);
@@ -167,7 +175,8 @@ export class DashboardComponent implements OnInit {
       (c.lures ?? 0) +
       (c.nests ?? 0) +
       (c.gyms ?? 0) +
-      (c.fortChanges ?? 0)
+      (c.fortChanges ?? 0) +
+      (c.maxBattles ?? 0)
     );
   });
 

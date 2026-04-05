@@ -26,32 +26,36 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
             ["nests"] = AllClean(allTracking, "nest"),
             ["gyms"] = AllClean(allTracking, "gym"),
             ["fortChanges"] = AllClean(allTracking, "fort"),
+            ["maxbattles"] = AllClean(allTracking, "maxbattle"),
         };
     }
 
     public async Task<int> ToggleCleanMonstersAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("pokemon", userId, clean);
+        await this.ToggleCleanAsync("pokemon", userId, clean);
 
     public async Task<int> ToggleCleanRaidsAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("raid", userId, clean);
+        await this.ToggleCleanAsync("raid", userId, clean);
 
     public async Task<int> ToggleCleanEggsAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("egg", userId, clean);
+        await this.ToggleCleanAsync("egg", userId, clean);
 
     public async Task<int> ToggleCleanQuestsAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("quest", userId, clean);
+        await this.ToggleCleanAsync("quest", userId, clean);
 
     public async Task<int> ToggleCleanInvasionsAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("invasion", userId, clean);
+        await this.ToggleCleanAsync("invasion", userId, clean);
 
     public async Task<int> ToggleCleanLuresAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("lure", userId, clean);
+        await this.ToggleCleanAsync("lure", userId, clean);
 
     public async Task<int> ToggleCleanNestsAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("nest", userId, clean);
+        await this.ToggleCleanAsync("nest", userId, clean);
 
     public async Task<int> ToggleCleanGymsAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("gym", userId, clean);
+        await this.ToggleCleanAsync("gym", userId, clean);
+
+    public async Task<int> ToggleCleanMaxBattlesAsync(string userId, int profileNo, int clean) =>
+        await this.ToggleCleanAsync("maxbattle", userId, clean);
 
     public async Task<int> ToggleCleanFortChangesAsync(string userId, int profileNo, int clean) =>
         await ToggleCleanAsync("fort", userId, clean);
@@ -71,7 +75,9 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
         var trackingJson = await this._trackingProxy.GetByUserAsync(type, userId);
 
         if (trackingJson.ValueKind != JsonValueKind.Array || trackingJson.GetArrayLength() == 0)
+        {
             return 0;
+        }
 
         var count = trackingJson.GetArrayLength();
         var updatedAlarms = new JsonArray();
@@ -96,22 +102,34 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
     private static bool AllClean(JsonElement root, string key)
     {
         if (!root.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0)
+        {
             return false;
+        }
 
         foreach (var item in arr.EnumerateArray())
         {
             if (!item.TryGetProperty("clean", out var cleanVal))
+            {
                 return false;
+            }
 
             var isClean = cleanVal.ValueKind switch
             {
                 JsonValueKind.True => true,
                 JsonValueKind.Number => cleanVal.GetInt32() == 1,
+                JsonValueKind.Undefined => throw new NotImplementedException(),
+                JsonValueKind.Object => throw new NotImplementedException(),
+                JsonValueKind.Array => throw new NotImplementedException(),
+                JsonValueKind.String => throw new NotImplementedException(),
+                JsonValueKind.False => throw new NotImplementedException(),
+                JsonValueKind.Null => throw new NotImplementedException(),
                 _ => false,
             };
 
             if (!isClean)
+            {
                 return false;
+            }
         }
 
         return true;

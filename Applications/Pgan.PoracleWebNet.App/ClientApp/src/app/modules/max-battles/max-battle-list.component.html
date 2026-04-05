@@ -1,0 +1,160 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>Max Battle Alarms</h1>
+    <p class="page-description">Get notified about Max Battles featuring specific Pokemon, levels, or Gigantamax forms.</p>
+  </div>
+  <div class="header-actions">
+    <button mat-fab (click)="openAddDialog()" [style.background-color]="'#d500f9'" [style.color]="'white'">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>
+
+@if (!loading() && maxBattles().length > 0) {
+  <div class="filter-bar">
+    <span class="result-count">{{ maxBattles().length }} alarms</span>
+    <div class="bulk-spacer"></div>
+    <button
+      mat-icon-button
+      (click)="toggleSelectMode()"
+      [class.select-mode-active]="selectMode()"
+      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
+    </button>
+  </div>
+}
+
+@if (selectMode()) {
+  <div class="bulk-toolbar">
+    @if (selectedIds().size > 0) {
+      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+    }
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+    @if (selectedIds().size > 0) {
+      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+    }
+    <div class="bulk-spacer"></div>
+    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+      <mat-icon>straighten</mat-icon> Update Distance
+    </button>
+    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
+      <mat-icon>delete</mat-icon> Delete
+    </button>
+  </div>
+}
+
+@if (loading()) {
+  <div class="alarm-grid">
+    @for (i of skeletonCards; track i) {
+      <div class="skeleton-card">
+        <div class="skeleton-header">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line" style="width: 55%"></div>
+            <div class="skeleton-line short" style="width: 30%"></div>
+          </div>
+        </div>
+        <div class="skeleton-stats">
+          <div class="skeleton-pill" style="width: 80px"></div>
+        </div>
+        <div class="skeleton-footer">
+          <div class="skeleton-pill" style="width: 90px"></div>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  <div class="alarm-grid">
+    @for (mb of maxBattles(); track mb.uid) {
+      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(mb.uid)">
+        @if (selectMode()) {
+          <mat-checkbox
+            [checked]="selectedIds().has(mb.uid)"
+            (change)="toggleSelect(mb.uid)"
+            (click)="$event.stopPropagation()"
+            class="card-checkbox">
+          </mat-checkbox>
+        }
+        <div class="card-top" [style.border-top-color]="getLevelColor(mb.level)">
+          @if (mb.pokemonId && mb.pokemonId !== 9000) {
+            <img [src]="getImage(mb)" [alt]="getTitle(mb)" class="item-img" (error)="onImageError($event)" />
+          } @else {
+            <div class="any-pokemon-icon">
+              <mat-icon>flash_on</mat-icon>
+            </div>
+          }
+          <div class="item-info">
+            <h3>{{ getTitle(mb) }}</h3>
+            <div class="level-stars">
+              @if (mb.level === 9000) {
+                <span class="any-level-label">Any Level</span>
+              } @else {
+                @for (s of getLevelStars(mb.level); track s) {
+                  <mat-icon class="star-icon">star</mat-icon>
+                }
+              }
+            </div>
+          </div>
+          <div class="card-top-actions">
+            @if (mb.gmax === 1) {
+              <span class="gmax-tag">GMAX</span>
+            }
+            @if (mb.clean === 1) {
+              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+            }
+          </div>
+        </div>
+        <mat-card-content>
+          <div class="filter-pills">
+            @if (mb.level !== 9000) {
+              <span class="filter-pill level-pill">L{{ mb.level }}</span>
+            }
+            @if (mb.move !== 9000) {
+              <span class="filter-pill move-pill">Move #{{ mb.move }}</span>
+            }
+            @if (mb.form !== 0) {
+              <span class="filter-pill form-pill">{{ getFormName(mb.pokemonId, mb.form) }}</span>
+            }
+            @if (mb.gmax === 1) {
+              <span class="filter-pill gmax-pill">GMAX</span>
+            }
+            @if (mb.evolution !== 9000) {
+              <span class="filter-pill evo-pill">Evo {{ mb.evolution }}</span>
+            }
+          </div>
+          <app-alarm-info [distance]="mb.distance" [clean]="mb.clean" [template]="mb.template" [ping]="mb.ping" />
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-icon-button (click)="editMaxBattle(mb)" matTooltip="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button (click)="deleteMaxBattle(mb)" matTooltip="Delete" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <div class="empty-state">
+        <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
+          <circle cx="60" cy="60" r="40" stroke="currentColor" stroke-width="3" opacity="0.15" />
+          <path
+            d="M60 30 L66 50 L88 50 L70 62 L76 82 L60 70 L44 82 L50 62 L32 50 L54 50 Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linejoin="round"
+            opacity="0.15" />
+          <!-- Lightning bolts -->
+          <path d="M38 20 L34 32 L40 30 L36 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.12" />
+          <path d="M82 20 L78 32 L84 30 L80 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.12" />
+          <path d="M60 88 L56 100 L62 98 L58 110" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.1" />
+        </svg>
+        <h2 class="empty-title">No Max Battle Alarms Configured</h2>
+        <p class="empty-subtitle">Get notified about Max Battles featuring specific Pokemon, levels, or Gigantamax forms</p>
+        <button mat-flat-button style="background-color: #d500f9; color: white" (click)="openAddDialog()">
+          <mat-icon>add</mat-icon> Add Max Battle
+        </button>
+      </div>
+    }
+  </div>
+}

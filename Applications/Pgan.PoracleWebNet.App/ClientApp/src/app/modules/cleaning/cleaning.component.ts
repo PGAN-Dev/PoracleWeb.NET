@@ -125,6 +125,15 @@ export class CleaningComponent implements OnInit {
       label: 'Fort Changes',
       type: 'fortchanges',
     },
+    {
+      color: '#d500f9',
+      description: 'Auto-delete max battle notifications when the battle ends',
+      enabled: signal(false),
+      hasAlarms: signal(false),
+      icon: 'flash_on',
+      label: 'Max Battles',
+      type: 'maxbattles',
+    },
   ];
 
   readonly allEnabled = computed(() => this.cleaningItems.every(i => i.enabled()));

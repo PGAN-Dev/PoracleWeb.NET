@@ -339,6 +339,14 @@
   background: rgba(121, 85, 72, 0.12);
   color: #795548;
 }
+.card-maxbattles {
+  border-left-color: #d500f9;
+  background: rgba(213, 0, 249, 0.04) !important;
+}
+.card-maxbattles .card-icon-wrap {
+  background: rgba(213, 0, 249, 0.12);
+  color: #d500f9;
+}
 
 .card-header-row {
   display: flex;

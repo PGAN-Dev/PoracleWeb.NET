@@ -41,4 +41,8 @@ public class DashboardCounts
     {
         get; set;
     }
+    public int MaxBattles
+    {
+        get; set;
+    }
 }

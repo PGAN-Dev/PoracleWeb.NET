@@ -17,7 +17,7 @@ public class DashboardServiceTests
     {
         var json = CreateAllTrackingJson(
             pokemon: 10, raid: 5, egg: 3, quest: 7,
-            invasion: 2, lure: 4, nest: 1, gym: 6);
+            invasion: 2, lure: 4, nest: 1, gym: 6, maxbattle: 8);
         this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
 
         var result = await this._sut.GetCountsAsync("u1", 1);
@@ -30,6 +30,7 @@ public class DashboardServiceTests
         Assert.Equal(4, result.Lures);
         Assert.Equal(1, result.Nests);
         Assert.Equal(6, result.Gyms);
+        Assert.Equal(8, result.MaxBattles);
     }
 
     [Fact]
@@ -37,13 +38,14 @@ public class DashboardServiceTests
     {
         var json = CreateAllTrackingJson(
             pokemon: 0, raid: 0, egg: 0, quest: 0,
-            invasion: 0, lure: 0, nest: 0, gym: 0);
+            invasion: 0, lure: 0, nest: 0, gym: 0, maxbattle: 0);
         this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
 
         var result = await this._sut.GetCountsAsync("u1", 1);
 
         Assert.Equal(0, result.Monsters);
         Assert.Equal(0, result.Raids);
+        Assert.Equal(0, result.MaxBattles);
     }
 
     [Fact]
@@ -64,6 +66,7 @@ public class DashboardServiceTests
         Assert.Equal(0, result.Lures);
         Assert.Equal(0, result.Nests);
         Assert.Equal(0, result.Gyms);
+        Assert.Equal(0, result.MaxBattles);
     }
 
     /// <summary>
@@ -71,18 +74,19 @@ public class DashboardServiceTests
     /// </summary>
     private static JsonElement CreateAllTrackingJson(
         int pokemon, int raid, int egg, int quest,
-        int invasion, int lure, int nest, int gym)
+        int invasion, int lure, int nest, int gym, int maxbattle = 0)
     {
         var obj = new Dictionary<string, object[]>
         {
-            ["pokemon"] = Enumerable.Range(1, pokemon).Select(i => (object)new { uid = i }).ToArray(),
-            ["raid"] = Enumerable.Range(1, raid).Select(i => (object)new { uid = i }).ToArray(),
-            ["egg"] = Enumerable.Range(1, egg).Select(i => (object)new { uid = i }).ToArray(),
-            ["quest"] = Enumerable.Range(1, quest).Select(i => (object)new { uid = i }).ToArray(),
-            ["invasion"] = Enumerable.Range(1, invasion).Select(i => (object)new { uid = i }).ToArray(),
-            ["lure"] = Enumerable.Range(1, lure).Select(i => (object)new { uid = i }).ToArray(),
-            ["nest"] = Enumerable.Range(1, nest).Select(i => (object)new { uid = i }).ToArray(),
-            ["gym"] = Enumerable.Range(1, gym).Select(i => (object)new { uid = i }).ToArray(),
+            ["pokemon"] = [.. Enumerable.Range(1, pokemon).Select(i => (object)new { uid = i })],
+            ["raid"] = [.. Enumerable.Range(1, raid).Select(i => (object)new { uid = i })],
+            ["egg"] = [.. Enumerable.Range(1, egg).Select(i => (object)new { uid = i })],
+            ["quest"] = [.. Enumerable.Range(1, quest).Select(i => (object)new { uid = i })],
+            ["invasion"] = [.. Enumerable.Range(1, invasion).Select(i => (object)new { uid = i })],
+            ["lure"] = [.. Enumerable.Range(1, lure).Select(i => (object)new { uid = i })],
+            ["nest"] = [.. Enumerable.Range(1, nest).Select(i => (object)new { uid = i })],
+            ["gym"] = [.. Enumerable.Range(1, gym).Select(i => (object)new { uid = i })],
+            ["maxbattle"] = [.. Enumerable.Range(1, maxbattle).Select(i => (object)new { uid = i })],
         };
 
         var jsonStr = JsonSerializer.Serialize(obj);

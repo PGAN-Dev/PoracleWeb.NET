@@ -69,6 +69,11 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard],
+    loadComponent: () => import('./modules/max-battles/max-battle-list.component').then(m => m.MaxBattleListComponent),
+    path: 'max-battles',
+  },
+  {
+    canActivate: [authGuard],
     loadComponent: () => import('./modules/areas/area-list.component').then(m => m.AreaListComponent),
     path: 'areas',
   },

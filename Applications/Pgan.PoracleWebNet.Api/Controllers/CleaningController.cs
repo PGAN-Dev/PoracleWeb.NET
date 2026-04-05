@@ -28,6 +28,7 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
         total += await this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, enabled);
         total += await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled);
         total += await this._cleaningService.ToggleCleanFortChangesAsync(this.UserId, this.ProfileNo, enabled);
+        total += await this._cleaningService.ToggleCleanMaxBattlesAsync(this.UserId, this.ProfileNo, enabled);
         return this.Ok(new
         {
             updated = total
@@ -48,6 +49,7 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
             "nests" => await this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, enabled),
             "gyms" => await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled),
             "fortchanges" => await this._cleaningService.ToggleCleanFortChangesAsync(this.UserId, this.ProfileNo, enabled),
+            "maxbattles" => await this._cleaningService.ToggleCleanMaxBattlesAsync(this.UserId, this.ProfileNo, enabled),
             _ => throw new ArgumentException($"Unknown alarm type: {alarmType}")
         };
 
