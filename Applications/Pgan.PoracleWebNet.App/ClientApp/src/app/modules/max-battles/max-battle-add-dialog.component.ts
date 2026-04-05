@@ -65,7 +65,7 @@ export class MaxBattleAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<MaxBattleAddDialogComponent>);
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-  levels = [1, 2, 3, 4, 5, 6];
+  readonly levels = [1, 2, 3, 4, 5, 6];
   pokemonForm = this.fb.group({
     level: [1],
   });

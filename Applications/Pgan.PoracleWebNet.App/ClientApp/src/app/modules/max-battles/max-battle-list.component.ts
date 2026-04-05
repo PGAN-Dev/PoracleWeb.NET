@@ -9,6 +9,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
+import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
+import { MaxBattleEditDialogComponent, MaxBattleEditDialogData } from './max-battle-edit-dialog.component';
 import { MaxBattle } from '../../core/models';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -135,8 +137,14 @@ export class MaxBattleListComponent implements OnInit {
     this.selectedIds.set(new Set());
   }
 
-  editMaxBattle(_maxBattle: MaxBattle): void {
-    // TODO: implement edit dialog
+  editMaxBattle(maxBattle: MaxBattle): void {
+    const ref = this.dialog.open(MaxBattleEditDialogComponent, {
+      width: '600px',
+      data: { item: maxBattle } as MaxBattleEditDialogData,
+    });
+    ref.afterClosed().subscribe(result => {
+      if (result) this.loadData();
+    });
   }
 
   getFormName(pokemonId: number, formId: number): string {
@@ -207,7 +215,10 @@ export class MaxBattleListComponent implements OnInit {
   }
 
   openAddDialog(): void {
-    // TODO: implement add dialog
+    const ref = this.dialog.open(MaxBattleAddDialogComponent, { width: '600px' });
+    ref.afterClosed().subscribe(result => {
+      if (result) this.loadData();
+    });
   }
 
   selectAll(): void {

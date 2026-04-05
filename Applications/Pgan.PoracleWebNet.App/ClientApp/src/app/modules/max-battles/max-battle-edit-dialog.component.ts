@@ -14,6 +14,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MaxBattle, MaxBattleUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { IconService } from '../../core/services/icon.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -46,6 +47,7 @@ export interface MaxBattleEditDialogData {
 export class MaxBattleEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly iconService = inject(IconService);
+  private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<MaxBattleEditDialogData>(MAT_DIALOG_DATA);
@@ -65,7 +67,7 @@ export class MaxBattleEditDialogComponent {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-  levels = [1, 2, 3, 4, 5, 6];
+  readonly levels = [9000, 1, 2, 3, 4, 5, 6];
 
   saving = signal(false);
 
@@ -80,7 +82,7 @@ export class MaxBattleEditDialogComponent {
   getTitle(): string {
     const item = this.data.item;
     if (item.pokemonId && item.pokemonId !== 9000) {
-      return `Max Battle #${item.pokemonId}`;
+      return this.masterData.getPokemonName(item.pokemonId);
     }
     return 'Any Pokemon';
   }
