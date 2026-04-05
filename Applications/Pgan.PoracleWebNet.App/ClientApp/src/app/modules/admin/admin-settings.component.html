@@ -60,7 +60,7 @@
           }
         </div>
 
-        @if (group.label === 'Telegram' && telegramConfig() && getBool('enable_telegram')) {
+        @if (group.label === 'Telegram' && telegramConfig()) {
           <div class="server-config-block">
             <div class="server-config-header">
               <mat-icon class="server-config-icon">dns</mat-icon>
@@ -95,7 +95,7 @@
           </div>
         }
 
-        @if (group.label === 'Discord' && discordConfig() && getBool('enable_discord')) {
+        @if (group.label === 'Discord' && discordConfig()) {
           <div class="server-config-block">
             <div class="server-config-header">
               <mat-icon class="server-config-icon">dns</mat-icon>

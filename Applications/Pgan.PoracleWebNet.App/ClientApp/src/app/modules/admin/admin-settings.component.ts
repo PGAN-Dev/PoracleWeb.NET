@@ -186,13 +186,7 @@ const SETTING_GROUPS: SettingGroup[] = [
         label: 'Enable Telegram',
         type: 'boolean',
       },
-      {
-        description: 'Telegram bot username (without @).',
-        key: 'telegram_bot',
-        label: 'Bot Username',
-        showWhen: 'enable_telegram',
-        type: 'text',
-      },
+      { description: 'Telegram bot username (without @).', key: 'telegram_bot', label: 'Bot Username', type: 'text' },
     ],
   },
   {
