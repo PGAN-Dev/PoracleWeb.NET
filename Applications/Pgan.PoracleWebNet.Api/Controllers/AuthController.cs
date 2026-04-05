@@ -30,6 +30,9 @@ public partial class AuthController(
     IConfiguration configuration,
     ILogger<AuthController> logger) : BaseApiController
 {
+    private const string EnableDiscordKey = "enable_discord";
+    private const string EnableTelegramKey = "enable_telegram";
+
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
@@ -48,7 +51,7 @@ public partial class AuthController(
     {
         // Gate: block if admin has explicitly disabled Discord login (PoracleWeb.NET site setting).
         // Uses GetValueAsync (not GetBoolAsync) so missing/null = enabled (safe default, prevents lockout).
-        var discordSetting = await this._siteSettingService.GetValueAsync("enable_discord");
+        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
         if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
         {
             LogAuthMethodDisabled(this._logger, "Discord");
@@ -108,7 +111,7 @@ public partial class AuthController(
         var frontendUrl = this.GetFrontendUrl();
 
         // Defense-in-depth: reject callback if Discord login was disabled between redirect and callback
-        var discordSetting = await this._siteSettingService.GetValueAsync("enable_discord");
+        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
         if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
         {
             LogAuthMethodDisabled(this._logger, "Discord");
@@ -238,7 +241,7 @@ public partial class AuthController(
         }
 
         // Also check PoracleWeb.NET site setting (admin runtime toggle, separate from PoracleNG config above)
-        var telegramSetting = await this._siteSettingService.GetValueAsync("enable_telegram");
+        var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
         if (string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase))
         {
             LogAuthMethodDisabled(this._logger, "Telegram");
@@ -336,7 +339,7 @@ public partial class AuthController(
         // PoracleWeb.NET site setting (enable_telegram, runtime toggle). Both must be
         // truthy for Telegram login to be available. Neither affects PoracleNG's Telegram
         // bot or DM delivery — only login to this web UI.
-        var telegramSetting = await this._siteSettingService.GetValueAsync("enable_telegram");
+        var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
         var disabledBySetting = string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase);
 
         return this.Ok(new

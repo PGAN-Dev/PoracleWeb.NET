@@ -26,6 +26,9 @@ public class SettingsController(
         "migration_completed",
     };
 
+    private const string EnableDiscordKey = "enable_discord";
+    private const string EnableTelegramKey = "enable_telegram";
+
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
@@ -115,8 +118,8 @@ public class SettingsController(
         {
             string? otherKey = key switch
             {
-                "enable_discord" => "enable_telegram",
-                "enable_telegram" => "enable_discord",
+                EnableDiscordKey => EnableTelegramKey,
+                EnableTelegramKey => EnableDiscordKey,
                 _ => null
             };
 
