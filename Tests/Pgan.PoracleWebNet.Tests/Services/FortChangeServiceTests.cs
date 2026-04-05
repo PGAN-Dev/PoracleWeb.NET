@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
@@ -95,6 +97,33 @@ public class FortChangeServiceTests
         var json = CreateJsonArray(items);
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         Assert.Equal(7, await this._sut.CountByUserAsync("u1", 1));
+    }
+
+    [Theory]
+    [InlineData("pokestop", true)]
+    [InlineData("gym", true)]
+    [InlineData("everything", true)]
+    [InlineData("POKESTOP", false)]
+    [InlineData("bogus", false)]
+    public void FortChangeCreateValidatesFortType(string fortType, bool expected)
+    {
+        var model = new FortChangeCreate { FortType = fortType, ChangeTypes = [] };
+        var results = new List<ValidationResult>();
+        var isValid = Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true);
+        Assert.Equal(expected, isValid);
+    }
+
+    [Theory]
+    [InlineData(new[] { "name", "location" }, true)]
+    [InlineData(new[] { "image_url", "removal", "new" }, true)]
+    [InlineData(new string[0], true)]
+    [InlineData(new[] { "name", "bogus" }, false)]
+    public void FortChangeCreateValidatesChangeTypes(string[] changeTypes, bool expected)
+    {
+        var model = new FortChangeCreate { FortType = "everything", ChangeTypes = [.. changeTypes] };
+        var results = new List<ValidationResult>();
+        var isValid = Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true);
+        Assert.Equal(expected, isValid);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)

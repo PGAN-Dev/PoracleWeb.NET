@@ -17,6 +17,7 @@ public class FortChangeUpdate
     }
 
     [StringLength(256)]
+    [AllowedStringValues(FortChangeOptions.FortTypePokestop, FortChangeOptions.FortTypeGym, FortChangeOptions.FortTypeEverything)]
     public string? FortType
     {
         get; set;
@@ -28,6 +29,12 @@ public class FortChangeUpdate
         get; set;
     }
 
+    [AllowedStringValues(
+        FortChangeOptions.ChangeTypeName,
+        FortChangeOptions.ChangeTypeLocation,
+        FortChangeOptions.ChangeTypeImageUrl,
+        FortChangeOptions.ChangeTypeRemoval,
+        FortChangeOptions.ChangeTypeNew)]
     public List<string>? ChangeTypes
     {
         get; set;
