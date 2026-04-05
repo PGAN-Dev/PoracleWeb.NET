@@ -500,7 +500,11 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   private applyChange(key: string, value: string): void {
-    this.settings.update(list => list.map(s => (settingKey(s) === key ? { ...s, value } : s)));
+    this.settings.update(list => {
+      const exists = list.some(s => settingKey(s) === key);
+      if (exists) return list.map(s => (settingKey(s) === key ? { ...s, value } : s));
+      return [...list, { key, value } as unknown as AnySettingItem];
+    });
     this.modifiedSettings.update(map => {
       const m = new Map(map);
       m.set(key, value);
