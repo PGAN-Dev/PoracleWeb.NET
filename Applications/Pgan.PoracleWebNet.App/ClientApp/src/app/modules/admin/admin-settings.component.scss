@@ -202,6 +202,86 @@
   text-align: center;
 }
 
+// ─── Server Config (read-only) ──────────────────────────────────────────────
+.server-config-block {
+  border-top: 1px dashed var(--divider, rgba(0, 0, 0, 0.12));
+}
+.server-config-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--mat-app-surface-variant, rgba(0, 0, 0, 0.03));
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+}
+.server-config-icon {
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}
+.server-config-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-hint, rgba(0, 0, 0, 0.45));
+}
+.server-config-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(88, 101, 242, 0.1);
+  color: #5865f2;
+  cursor: help;
+}
+.server-config-rows {
+  display: flex;
+  flex-direction: column;
+}
+.server-config-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 20px;
+  background: var(--mat-app-surface-variant, rgba(0, 0, 0, 0.015));
+}
+.server-config-value {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: var(--mat-app-surface-variant, rgba(0, 0, 0, 0.04));
+    border: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+    color: var(--text-primary, rgba(0, 0, 0, 0.87));
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  code.secret {
+    letter-spacing: -0.02em;
+  }
+
+  code.empty {
+    color: var(--text-hint, rgba(0, 0, 0, 0.3));
+    font-style: italic;
+    border-style: dashed;
+  }
+}
+
 @media (max-width: 599px) {
   .setting-row {
     flex-direction: column;
@@ -210,5 +290,13 @@
   }
   .setting-field {
     width: 100%;
+  }
+  .server-config-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .server-config-value code {
+    max-width: 100%;
   }
 }

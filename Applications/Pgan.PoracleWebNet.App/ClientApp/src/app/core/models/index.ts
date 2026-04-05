@@ -338,6 +338,17 @@ export interface SiteSetting {
   valueType: string;
 }
 
+// ─── DiscordServerConfig ─────────────────────────────────────────────────────
+
+export interface DiscordServerConfig {
+  adminIds: string;
+  botToken: string;
+  clientId: string;
+  clientSecret: string;
+  geofenceForumChannelId: string;
+  guildId: string;
+}
+
 // ─── WebhookDelegate ─────────────────────────────────────────────────────────
 
 export interface WebhookDelegate {

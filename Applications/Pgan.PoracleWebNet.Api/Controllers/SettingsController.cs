@@ -1,17 +1,23 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
+using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/settings")]
-public class SettingsController(ISiteSettingService siteSettingService) : BaseApiController
+public class SettingsController(
+    ISiteSettingService siteSettingService,
+    IOptions<DiscordSettings> discordSettings,
+    IOptions<PoracleSettings> poracleSettings) : BaseApiController
 {
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "api_secret", "telegram_bot_token", "scan_db",
+        "discord_client_secret", "discord_bot_token",
     };
 
     private static readonly HashSet<string> InternalKeys = new(StringComparer.OrdinalIgnoreCase)
@@ -19,6 +25,8 @@ public class SettingsController(ISiteSettingService siteSettingService) : BaseAp
         "migration_completed",
     };
 
+    private readonly DiscordSettings _discordSettings = discordSettings.Value;
+    private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
 
     [HttpGet]
@@ -45,6 +53,25 @@ public class SettingsController(ISiteSettingService siteSettingService) : BaseAp
     {
         var publicSettings = await this._siteSettingService.GetPublicAsync();
         return this.Ok(publicSettings);
+    }
+
+    [HttpGet("discord-config")]
+    public IActionResult GetDiscordConfig()
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        return this.Ok(new
+        {
+            clientId = MaskValue(this._discordSettings.ClientId),
+            clientSecret = MaskSecret(this._discordSettings.ClientSecret),
+            botToken = MaskSecret(this._discordSettings.BotToken),
+            guildId = MaskValue(this._discordSettings.GuildId),
+            geofenceForumChannelId = MaskValue(this._discordSettings.GeofenceForumChannelId),
+            adminIds = MaskValue(this._poracleSettings.AdminIds),
+        });
     }
 
     [HttpPut("{key}")]
@@ -92,5 +119,43 @@ public class SettingsController(ISiteSettingService siteSettingService) : BaseAp
         {
             get; set;
         }
+    }
+
+    /// <summary>
+    /// Masks a non-secret value: shows first 4 and last 4 characters.
+    /// Returns empty string if not configured.
+    /// </summary>
+    private static string MaskValue(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        if (value.Length <= 8)
+        {
+            return value;
+        }
+
+        return $"{value[..4]}{"".PadRight(value.Length - 8, '\u2022')}{value[^4..]}";
+    }
+
+    /// <summary>
+    /// Masks a secret value: shows only last 4 characters.
+    /// Returns empty string if not configured.
+    /// </summary>
+    private static string MaskSecret(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        if (value.Length <= 4)
+        {
+            return new string('\u2022', value.Length);
+        }
+
+        return $"{"".PadRight(value.Length - 4, '\u2022')}{value[^4..]}";
     }
 }

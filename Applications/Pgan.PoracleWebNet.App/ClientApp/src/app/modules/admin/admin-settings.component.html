@@ -59,6 +59,83 @@
             }
           }
         </div>
+
+        @if (group.label === 'Discord' && discordConfig()) {
+          <div class="server-config-block">
+            <div class="server-config-header">
+              <mat-icon class="server-config-icon">dns</mat-icon>
+              <span class="server-config-title">Server Configuration</span>
+              <span class="server-config-badge" matTooltip="These values are set in .env and require a server restart to change.">
+                read-only
+              </span>
+            </div>
+            <div class="server-config-rows">
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Client ID</span>
+                  <span class="setting-desc">Discord OAuth2 application client ID.</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!discordConfig()!.clientId">{{ discordConfig()!.clientId || 'Not configured' }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Client Secret</span>
+                  <span class="setting-desc">Discord OAuth2 application secret (masked).</span>
+                </div>
+                <div class="server-config-value">
+                  <code class="secret" [class.empty]="!discordConfig()!.clientSecret">{{
+                    discordConfig()!.clientSecret || 'Not configured'
+                  }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Bot Token</span>
+                  <span class="setting-desc">Discord bot token for role verification and notifications (masked).</span>
+                </div>
+                <div class="server-config-value">
+                  <code class="secret" [class.empty]="!discordConfig()!.botToken">{{ discordConfig()!.botToken || 'Not configured' }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Guild ID</span>
+                  <span class="setting-desc">Discord server ID for role-based access control.</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!discordConfig()!.guildId">{{ discordConfig()!.guildId || 'Not configured' }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Admin IDs</span>
+                  <span class="setting-desc">Discord user IDs with admin access (masked).</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!discordConfig()!.adminIds">{{ discordConfig()!.adminIds || 'Not configured' }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Geofence Forum Channel</span>
+                  <span class="setting-desc">Discord forum channel for geofence submission threads.</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!discordConfig()!.geofenceForumChannelId">{{
+                    discordConfig()!.geofenceForumChannelId || 'Not configured'
+                  }}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
       </section>
 
       @if (!last) {
