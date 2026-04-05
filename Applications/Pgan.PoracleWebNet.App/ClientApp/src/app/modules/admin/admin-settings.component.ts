@@ -11,7 +11,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { DiscordServerConfig, PwebSetting, SiteSetting } from '../../core/models';
+import { DiscordServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { SettingsService } from '../../core/services/settings.service';
 
 /** Union type for backward compatibility during migration */
@@ -366,6 +366,7 @@ export class AdminSettingsComponent implements OnInit {
   readonly modifiedSettings = signal<Map<string, string>>(new Map());
 
   readonly settingsLoading = signal(true);
+  readonly telegramConfig = signal<TelegramServerConfig | null>(null);
 
   readonly unknownSettings = computed(() =>
     this.settings().filter(s => {
@@ -376,7 +377,10 @@ export class AdminSettingsComponent implements OnInit {
 
   readonly visibleGroups = computed(() =>
     SETTING_GROUPS.filter(
-      g => g.settings.some(s => this.settingMap().has(s.key)) || (g.label === 'Discord' && this.discordConfig() !== null),
+      g =>
+        g.settings.some(s => this.settingMap().has(s.key)) ||
+        (g.label === 'Discord' && this.discordConfig() !== null) ||
+        (g.label === 'Telegram' && this.telegramConfig() !== null),
     ),
   );
 
@@ -423,6 +427,11 @@ export class AdminSettingsComponent implements OnInit {
       .getDiscordConfig()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: config => this.discordConfig.set(config) });
+
+    this.settingsService
+      .getTelegramConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: config => this.telegramConfig.set(config) });
   }
 
   onBoolChange(key: string, value: boolean): void {

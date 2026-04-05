@@ -12,7 +12,8 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public class SettingsController(
     ISiteSettingService siteSettingService,
     IOptions<DiscordSettings> discordSettings,
-    IOptions<PoracleSettings> poracleSettings) : BaseApiController
+    IOptions<PoracleSettings> poracleSettings,
+    IOptions<TelegramSettings> telegramSettings) : BaseApiController
 {
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -27,6 +28,7 @@ public class SettingsController(
 
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
+    private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
 
     [HttpGet]
@@ -71,6 +73,21 @@ public class SettingsController(
             guildId = MaskValue(this._discordSettings.GuildId),
             geofenceForumChannelId = MaskValue(this._discordSettings.GeofenceForumChannelId),
             adminIds = MaskValue(this._poracleSettings.AdminIds),
+        });
+    }
+
+    [HttpGet("telegram-config")]
+    public IActionResult GetTelegramConfig()
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        return this.Ok(new
+        {
+            botToken = MaskSecret(this._telegramSettings.BotToken),
+            botUsername = this._telegramSettings.BotUsername,
         });
     }
 

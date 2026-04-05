@@ -16,7 +16,8 @@ public class SettingsControllerTests : ControllerTestBase
     public SettingsControllerTests() => this._sut = new SettingsController(
         this._siteService.Object,
         Options.Create(new DiscordSettings()),
-        Options.Create(new PoracleSettings()));
+        Options.Create(new PoracleSettings()),
+        Options.Create(new TelegramSettings()));
 
     [Fact]
     public async Task GetAllReturnsOkForAdmin()
@@ -146,7 +147,8 @@ public class SettingsControllerTests : ControllerTestBase
             Options.Create(new PoracleSettings
             {
                 AdminIds = "111111111,222222222",
-            }));
+            }),
+            Options.Create(new TelegramSettings()));
         SetupUser(controller, isAdmin: true);
 
         var result = controller.GetDiscordConfig();

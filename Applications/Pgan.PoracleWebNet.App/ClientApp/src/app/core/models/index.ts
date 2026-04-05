@@ -338,6 +338,13 @@ export interface SiteSetting {
   valueType: string;
 }
 
+// ─── TelegramServerConfig ────────────────────────────────────────────────────
+
+export interface TelegramServerConfig {
+  botToken: string;
+  botUsername: string;
+}
+
 // ─── DiscordServerConfig ─────────────────────────────────────────────────────
 
 export interface DiscordServerConfig {

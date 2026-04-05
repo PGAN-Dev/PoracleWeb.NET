@@ -60,6 +60,41 @@
           }
         </div>
 
+        @if (group.label === 'Telegram' && telegramConfig() && getBool('enable_telegram')) {
+          <div class="server-config-block">
+            <div class="server-config-header">
+              <mat-icon class="server-config-icon">dns</mat-icon>
+              <span class="server-config-title">Server Configuration</span>
+              <span class="server-config-badge" matTooltip="These values are set in .env and require a server restart to change.">
+                read-only
+              </span>
+            </div>
+            <div class="server-config-rows">
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Bot Token</span>
+                  <span class="setting-desc">Telegram bot token from BotFather (masked).</span>
+                </div>
+                <div class="server-config-value">
+                  <code class="secret" [class.empty]="!telegramConfig()!.botToken">{{
+                    telegramConfig()!.botToken || 'Not configured'
+                  }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">Bot Username</span>
+                  <span class="setting-desc">Telegram bot username configured in .env.</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!telegramConfig()!.botUsername">{{ telegramConfig()!.botUsername || 'Not configured' }}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
         @if (group.label === 'Discord' && discordConfig() && getBool('enable_discord')) {
           <div class="server-config-block">
             <div class="server-config-header">

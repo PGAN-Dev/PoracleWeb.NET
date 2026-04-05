@@ -3,7 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { DiscordServerConfig, PoracleConfig, PwebSetting, SiteSetting } from '../models';
+import { DiscordServerConfig, PoracleConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../models';
 
 /** Union of old and new setting response shapes */
 type AnySettingItem = PwebSetting | SiteSetting;
@@ -32,6 +32,10 @@ export class SettingsService {
 
   getDiscordConfig(): Observable<DiscordServerConfig> {
     return this.http.get<DiscordServerConfig>(`${this.config.apiHost}/api/settings/discord-config`);
+  }
+
+  getTelegramConfig(): Observable<TelegramServerConfig> {
+    return this.http.get<TelegramServerConfig>(`${this.config.apiHost}/api/settings/telegram-config`);
   }
 
   /** Returns true if a feature is disabled via site settings */
