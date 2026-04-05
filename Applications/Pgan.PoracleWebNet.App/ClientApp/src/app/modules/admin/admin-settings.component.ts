@@ -9,8 +9,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { PwebSetting, SiteSetting } from '../../core/models';
+import { DiscordServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { SettingsService } from '../../core/services/settings.service';
 
 /** Union type for backward compatibility during migration */
@@ -189,6 +190,19 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    color: '#5865F2',
+    icon: 'forum',
+    label: 'Discord',
+    settings: [
+      {
+        description: 'Allow users to log in and manage alarms via Discord OAuth2.',
+        key: 'enable_discord',
+        label: 'Enable Discord',
+        type: 'boolean',
+      },
+    ],
+  },
+  {
     color: '#2e7d32',
     icon: 'map',
     label: 'Maps & Assets',
@@ -239,6 +253,7 @@ const SETTING_GROUPS: SettingGroup[] = [
     MatSnackBarModule,
     MatSlideToggleModule,
     MatDividerModule,
+    MatTooltipModule,
   ],
   selector: 'app-admin-settings',
   standalone: true,
@@ -282,6 +297,7 @@ export class AdminSettingsComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly bulkSaving = signal(false);
+  readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
   readonly iconRepos = [
     {
@@ -344,6 +360,7 @@ export class AdminSettingsComponent implements OnInit {
   readonly modifiedSettings = signal<Map<string, string>>(new Map());
 
   readonly settingsLoading = signal(true);
+  readonly telegramConfig = signal<TelegramServerConfig | null>(null);
 
   readonly unknownSettings = computed(() =>
     this.settings().filter(s => {
@@ -352,7 +369,14 @@ export class AdminSettingsComponent implements OnInit {
     }),
   );
 
-  readonly visibleGroups = computed(() => SETTING_GROUPS.filter(g => g.settings.some(s => this.settingMap().has(s.key))));
+  readonly visibleGroups = computed(() =>
+    SETTING_GROUPS.filter(
+      g =>
+        g.settings.some(s => this.settingMap().has(s.key)) ||
+        (g.label === 'Discord' && this.discordConfig() !== null) ||
+        (g.label === 'Telegram' && this.telegramConfig() !== null),
+    ),
+  );
 
   getBool(key: string): boolean {
     return (this.getSettingValue(key) ?? '').toLowerCase() === 'true';
@@ -392,6 +416,16 @@ export class AdminSettingsComponent implements OnInit {
           this.settingsLoading.set(false);
         },
       });
+
+    this.settingsService
+      .getDiscordConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: config => this.discordConfig.set(config) });
+
+    this.settingsService
+      .getTelegramConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: config => this.telegramConfig.set(config) });
   }
 
   onBoolChange(key: string, value: boolean): void {
@@ -460,7 +494,11 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   private applyChange(key: string, value: string): void {
-    this.settings.update(list => list.map(s => (settingKey(s) === key ? { ...s, value } : s)));
+    this.settings.update(list => {
+      const exists = list.some(s => settingKey(s) === key);
+      if (exists) return list.map(s => (settingKey(s) === key ? { ...s, value } : s));
+      return [...list, { key, value } as unknown as AnySettingItem];
+    });
     this.modifiedSettings.update(map => {
       const m = new Map(map);
       m.set(key, value);

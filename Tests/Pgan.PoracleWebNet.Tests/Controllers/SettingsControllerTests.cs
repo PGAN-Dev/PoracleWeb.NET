@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Moq;
+using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -11,7 +13,11 @@ public class SettingsControllerTests : ControllerTestBase
     private readonly Mock<ISiteSettingService> _siteService = new();
     private readonly SettingsController _sut;
 
-    public SettingsControllerTests() => this._sut = new SettingsController(this._siteService.Object);
+    public SettingsControllerTests() => this._sut = new SettingsController(
+        this._siteService.Object,
+        Options.Create(new DiscordSettings()),
+        Options.Create(new PoracleSettings()),
+        Options.Create(new TelegramSettings()));
 
     [Fact]
     public async Task GetAllReturnsOkForAdmin()
@@ -123,5 +129,45 @@ public class SettingsControllerTests : ControllerTestBase
         var result = await this._sut.Upsert("migration_completed", request);
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public void GetDiscordConfigReturnsOkForAdmin()
+    {
+        var controller = new SettingsController(
+            this._siteService.Object,
+            Options.Create(new DiscordSettings
+            {
+                ClientId = "123456789012345678",
+                ClientSecret = "abcdefghijklmnopqrstuvwxyz123456",
+                BotToken = "MTIzNDU2Nzg5.GhijKl.abcdefghijklmnop",
+                GuildId = "987654321098765432",
+                GeofenceForumChannelId = "111222333444555666",
+            }),
+            Options.Create(new PoracleSettings
+            {
+                AdminIds = "111111111,222222222",
+            }),
+            Options.Create(new TelegramSettings()));
+        SetupUser(controller, isAdmin: true);
+
+        var result = controller.GetDiscordConfig();
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+
+        // Verify secrets are masked (should not contain full values)
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        Assert.DoesNotContain("abcdefghijklmnopqrstuvwxyz123456", json);
+        Assert.DoesNotContain("MTIzNDU2Nzg5.GhijKl.abcdefghijklmnop", json);
+    }
+
+    [Fact]
+    public void GetDiscordConfigReturnsForbidForNonAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+
+        var result = this._sut.GetDiscordConfig();
+
+        Assert.IsType<ForbidResult>(result);
     }
 }

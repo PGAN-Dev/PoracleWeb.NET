@@ -74,6 +74,9 @@ public partial class SettingsMigrationService(
         ["register_command"] = "commands",
         ["location_command"] = "commands",
 
+        // discord
+        ["enable_discord"] = "discord",
+
         // telegram
         ["enable_telegram"] = "telegram",
         ["telegram_bot"] = "telegram",
@@ -111,7 +114,7 @@ public partial class SettingsMigrationService(
         "disable_lures", "disable_nests", "disable_gyms", "disable_areas",
         "disable_profiles", "disable_location", "disable_nominatim",
         "disable_geomap", "disable_geomap_select",
-        "enable_templates", "enable_roles", "enable_telegram",
+        "enable_templates", "enable_roles", "enable_telegram", "enable_discord",
         "hide_header_logo", "site_is_https", "debug",
     };
 
