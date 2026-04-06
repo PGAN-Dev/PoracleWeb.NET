@@ -264,7 +264,7 @@ export class RaidListComponent implements OnInit {
     if (raid.pokemonId && raid.pokemonId !== 9000) {
       return this.masterData.getPokemonName(raid.pokemonId);
     }
-    return `${this.getRaidLevelName(raid.level)} Raid`;
+    return raid.level === 9000 ? 'All Raids' : `All ${this.getRaidLevelName(raid.level)} Raids`;
   }
 
   getTeamColor(team: number): string {
