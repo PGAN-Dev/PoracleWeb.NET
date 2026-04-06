@@ -227,15 +227,19 @@ export class TemplateSelectorComponent implements OnInit {
       invasion: '#607d8b',
       lure: '#00bcd4',
       monster: '#4caf50',
+      maxbattle: '#d500f9',
       nest: '#8bc34a',
       quest: '#9c27b0',
     };
     this.previewColor = colors[this.alarmType] || '#4caf50';
 
     this.templateService.getTemplatesForType(this.alarmType).subscribe(t => {
-      this.templates.set(t);
-      if (!this.value && t.length > 0) {
-        this.value = t[0].toString();
+      // If no templates exist for this alarm type, provide a sensible default.
+      // PoracleNG uses template "1" as the default when none is configured.
+      const templates = t.length > 0 ? t : [1];
+      this.templates.set(templates);
+      if (!this.value && templates.length > 0) {
+        this.value = templates[0].toString();
         this.valueChange.emit(this.value);
       }
     });
