@@ -410,6 +410,13 @@ public partial class QuickPickService(
         var json = JsonSerializer.Serialize(filters, JsonOptions);
         var raid = JsonSerializer.Deserialize<Raid>(json, JsonOptions) ?? new Raid();
 
+        // PoracleNG treats pokemon_id=0 as "everything" and overrides all filters.
+        // Use 9000 ("any pokemon") to preserve level-based filtering.
+        if (raid.PokemonId == 0)
+        {
+            raid.PokemonId = 9000;
+        }
+
         raid.ProfileNo = profileNo;
 
         if (request.Distance.HasValue)
