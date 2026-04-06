@@ -132,7 +132,7 @@ export class RaidListComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: 'Delete',
-        message: `Are you sure you want to delete the ${egg.level === 9000 ? 'Any Level' : 'Level ' + egg.level} egg alarm?`,
+        message: `Are you sure you want to delete the ${this.getRaidLevelName(egg.level)} egg alarm?`,
         title: 'Delete Egg Alarm',
         warn: true,
       } as ConfirmDialogData,
@@ -249,11 +249,22 @@ export class RaidListComponent implements OnInit {
     return this.iconService.getRaidEggUrl(raid.level);
   }
 
+  getRaidLevelName(level: number): string {
+    switch (level) {
+      case 6:
+        return 'Mega';
+      case 9000:
+        return 'Any Level';
+      default:
+        return `Level ${level}`;
+    }
+  }
+
   getRaidTitle(raid: Raid): string {
     if (raid.pokemonId && raid.pokemonId !== 9000) {
       return this.masterData.getPokemonName(raid.pokemonId);
     }
-    return raid.level === 9000 ? 'Any Level Raid' : `Level ${raid.level} Raid`;
+    return `${this.getRaidLevelName(raid.level)} Raid`;
   }
 
   getTeamColor(team: number): string {

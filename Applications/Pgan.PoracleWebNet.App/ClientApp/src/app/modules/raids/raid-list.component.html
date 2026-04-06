@@ -176,7 +176,7 @@
             <div class="card-top" [style.border-top-color]="getLevelColor(egg.level)">
               <img [src]="getEggImage(egg.level)" [alt]="'Level ' + egg.level + ' Egg'" class="item-img" (error)="onImageError($event)" />
               <div class="item-info">
-                <h3>{{ egg.level === 9000 ? 'Any Level' : 'Level ' + egg.level }} Egg</h3>
+                <h3>{{ getRaidLevelName(egg.level) }} Egg</h3>
                 <div class="level-stars">
                   @if (egg.level === 9000) {
                     <span class="any-level-label">Any Level</span>
