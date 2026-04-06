@@ -7,13 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-
 ### Added
-- add Max Battle (Dynamax) tracking alarms ([PR #137](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/137))
+- **Max Battle (Dynamax) tracking alarms**: Full-stack alarm module for Dynamax and Gigantamax Max Battle tracking at Power Spots, proxied through PoracleNG's `maxbattle` CRUD API. Includes list page with card grid, add dialog (By Level / By Pokemon tabs), edit dialog, dashboard card, cleaning toggle, and admin feature flag (`disable_maxbattles`). Levels follow PoracleNG's system: 1-5 (Dynamax), 7 (Gigantamax), 8 (Legendary Gigantamax). Uses delete-then-create update pattern for PoracleNG's insert-only maxbattle handler. ([#118](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/118), [PR #137](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/137))
+- **Gigantamax-only toggle**: Pokemon-based max battle alarms can filter to only Gigantamax battles, mirroring PoracleNG's `!maxbattle <pokemon> gmax` command ([PR #137](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/137))
+- **Scanner-based Pokemon filter**: Max Battle "By Pokemon" tab queries the scanner DB's `station` table for species that have actually appeared in Max Battles, filtering the Pokemon selector. Gracefully falls back to showing all Pokemon when scanner DB is not configured. New reusable `allowedIds` input on `PokemonSelectorComponent`. ([PR #137](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/137))
+- **Template dropdown fallback**: Template selector now shows template "1" (PoracleNG default) when no type-specific DTS templates exist, preventing empty dropdowns for new alarm types ([PR #137](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/137))
 - **Fort Change tracking alarms**: New alarm type to monitor pokestop and gym changes — track name changes, relocations, image updates, removals, and new forts with fort type filtering, distance/area delivery, and clean mode support ([#119](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/119), [PR #135](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/135))
-- wire up enable_discord and enable_telegram to gate login methods ([PR #136](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/136))
-- add dedicated Discord settings section to admin page ([PR #116](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/116))
-- **Login method gating**: `enable_discord` and `enable_telegram` site settings now control login button visibility and block auth attempts when disabled ([#117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/117))
+- **Login method gating**: `enable_discord` and `enable_telegram` site settings now control login button visibility and block auth attempts when disabled ([#117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/117), [PR #136](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/136))
+- **Dedicated Discord settings section** in admin page ([PR #116](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/116))
 ## [2.1.3] - 2026-04-04
 
 ## [2.1.3] - 2026-04-04
