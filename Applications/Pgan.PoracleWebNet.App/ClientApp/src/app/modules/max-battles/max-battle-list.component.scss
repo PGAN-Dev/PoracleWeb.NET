@@ -114,6 +114,7 @@
 }
 .level-stars {
   display: flex;
+  align-items: center;
   gap: 0;
 }
 .star-icon {
@@ -121,6 +122,18 @@
   width: 16px;
   height: 16px;
   color: #ffc107;
+}
+.gmax-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #e040fb;
+  margin-right: 4px;
+}
+.level-label-text {
+  font-size: 12px;
+  color: #e040fb;
+  font-weight: 500;
 }
 .any-level-label {
   font-size: 12px;

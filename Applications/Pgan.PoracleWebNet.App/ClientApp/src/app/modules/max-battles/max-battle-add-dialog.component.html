@@ -4,64 +4,47 @@
     <!-- Tab 1: Selection -->
     <mat-tab>
       <ng-template mat-tab-label>
-        <mat-icon>shield</mat-icon>
+        <mat-icon>flash_on</mat-icon>
         <span class="tab-label">Selection</span>
       </ng-template>
       <div class="tab-content">
-        <div class="filter-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Move</mat-label>
-            <mat-select [formControl]="commonForm.controls.move">
-              <mat-option [value]="9000">Any Move</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Form</mat-label>
-            <input matInput type="number" [formControl]="commonForm.controls.form" min="0" />
-            <span matSuffix class="field-hint">0 = any</span>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Evolution</mat-label>
-            <input matInput type="number" [formControl]="commonForm.controls.evolution" min="0" />
-            <span matSuffix class="field-hint">9000 = any</span>
-          </mat-form-field>
-        </div>
-
-        <mat-slide-toggle [formControl]="commonForm.controls.gmax" class="gmax-toggle"> Gigantamax Only </mat-slide-toggle>
-
         <mat-tab-group [(selectedIndex)]="tabIndex">
           <!-- By Level -->
           <mat-tab label="By Level">
             <div class="tab-content">
-              <h4>Max Battle Levels</h4>
+              <p class="tab-hint">Track any Pokemon at these battle tiers. One alarm is created per selected level.</p>
               <div class="level-grid">
-                @for (level of levels; track level) {
-                  <mat-checkbox [checked]="selectedLevels().includes(level)" (change)="toggleLevel(level)">
-                    Level {{ level }}
+                @for (level of levels; track level.value) {
+                  <mat-checkbox [checked]="selectedLevels().includes(level.value)" (change)="toggleLevel(level.value)">
+                    <div class="level-label">
+                      <span class="level-stars">
+                        @if (level.gmax) {
+                          <mat-icon class="gmax-star">auto_awesome</mat-icon>
+                        } @else {
+                          @for (s of [].constructor(level.value); track $index) {
+                            <mat-icon class="star-icon">star</mat-icon>
+                          }
+                        }
+                      </span>
+                      <span>{{ level.label }}</span>
+                    </div>
                   </mat-checkbox>
                 }
               </div>
+              <button mat-stroked-button type="button" (click)="selectAllLevels()" class="select-all-btn">
+                <mat-icon>select_all</mat-icon> Select All
+              </button>
             </div>
           </mat-tab>
 
           <!-- By Pokemon -->
           <mat-tab label="By Pokemon">
             <div class="tab-content">
+              <p class="tab-hint">Track specific Pokemon in Max Battles regardless of level.</p>
               <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
               }
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Level</mat-label>
-                <mat-select [formControl]="pokemonForm.controls.level">
-                  @for (level of levels; track level) {
-                    <mat-option [value]="level">Level {{ level }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
             </div>
           </mat-tab>
         </mat-tab-group>
@@ -110,7 +93,7 @@
           [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
 
-        <h4>Common Settings</h4>
+        <h4>Message Settings</h4>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Ping / Role</mat-label>

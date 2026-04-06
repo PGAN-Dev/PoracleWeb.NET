@@ -4,11 +4,16 @@
     @if (data.item.pokemonId && data.item.pokemonId !== 9000) {
       <img [src]="getImage()" [alt]="getTitle()" class="item-img" (error)="onImageError($event)" />
     } @else {
-      <mat-icon class="any-pokemon-icon">catching_pokemon</mat-icon>
+      <div class="any-pokemon-icon">
+        <mat-icon>flash_on</mat-icon>
+      </div>
     }
     <div>
       <h3>{{ getTitle() }}</h3>
-      <span class="item-subtitle">Level {{ data.item.level === 9000 ? 'Any' : data.item.level }}</span>
+      <span class="item-subtitle">{{ getLevelLabel() }}</span>
+      @if (isGmax()) {
+        <span class="gmax-badge">GMAX</span>
+      }
     </div>
   </div>
 
@@ -20,44 +25,24 @@
         <span class="tab-label">Settings</span>
       </ng-template>
       <div class="tab-content">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Level</mat-label>
-          <mat-select [formControl]="form.controls.level">
-            <mat-option [value]="9000">Any Level</mat-option>
-            @for (level of levels; track level) {
-              <mat-option [value]="level">Level {{ level }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-
-        <mat-slide-toggle [formControl]="form.controls.gmax" class="gmax-toggle"> Gigantamax Only </mat-slide-toggle>
-
-        <div class="filter-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Move</mat-label>
-            <mat-select [formControl]="form.controls.move">
-              <mat-option [value]="9000">Any Move</mat-option>
+        @if (isLevelBased) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Battle Level</mat-label>
+            <mat-select [formControl]="form.controls.level">
+              <mat-option [value]="9000">Any Level</mat-option>
+              @for (level of levelOptions; track level.value) {
+                <mat-option [value]="level.value">
+                  {{ level.label }}
+                  @if (level.gmax) {
+                    <span class="gmax-option-hint">(Gigantamax)</span>
+                  }
+                </mat-option>
+              }
             </mat-select>
           </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Form</mat-label>
-            <input matInput type="number" [formControl]="form.controls.formVal" min="0" />
-            <span matSuffix class="field-hint">0 = any</span>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Evolution</mat-label>
-            <input matInput type="number" [formControl]="form.controls.evolution" min="0" />
-            <span matSuffix class="field-hint">9000 = any</span>
-          </mat-form-field>
-        </div>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Station ID</mat-label>
-          <input matInput [formControl]="form.controls.stationId" />
-          <span matSuffix class="field-hint">optional</span>
-        </mat-form-field>
+        } @else {
+          <p class="info-text">This alarm tracks a specific Pokemon across all Max Battle levels.</p>
+        }
       </div>
     </mat-tab>
 

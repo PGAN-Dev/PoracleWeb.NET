@@ -165,24 +165,48 @@ export class MaxBattleListComponent implements OnInit {
   getLevelColor(level: number): string {
     switch (level) {
       case 1:
-        return '#FF9800';
+        return '#78909c';
       case 2:
         return '#FF9800';
       case 3:
         return '#F44336';
       case 4:
-        return '#F44336';
-      case 5:
         return '#9C27B0';
-      case 6:
-        return '#4A148C';
+      case 5:
+        return '#ffd600';
+      case 7:
+        return '#e040fb';
+      case 8:
+        return '#aa00ff';
       default:
         return '#d500f9';
     }
   }
 
+  /** PoracleNG max battle level labels */
+  getLevelLabel(level: number): string {
+    switch (level) {
+      case 1:
+        return '1 Star';
+      case 2:
+        return '2 Star';
+      case 3:
+        return '3 Star';
+      case 4:
+        return '4 Star';
+      case 5:
+        return '5 Star (Legendary)';
+      case 7:
+        return 'Gigantamax';
+      case 8:
+        return 'Legendary Gigantamax';
+      default:
+        return `Level ${level}`;
+    }
+  }
+
   getLevelStars(level: number): number[] {
-    if (level === 9000) return [];
+    if (level === 9000 || level > 6) return [];
     return Array.from({ length: level }, (_, i) => i);
   }
 
@@ -195,6 +219,10 @@ export class MaxBattleListComponent implements OnInit {
       return this.masterData.getPokemonName(maxBattle.pokemonId);
     }
     return 'Any Pokemon';
+  }
+
+  isGmax(level: number): boolean {
+    return level === 7 || level === 8;
   }
 
   loadData(): void {

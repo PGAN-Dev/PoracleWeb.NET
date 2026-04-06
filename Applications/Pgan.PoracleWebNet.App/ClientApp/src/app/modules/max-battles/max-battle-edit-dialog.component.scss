@@ -28,8 +28,18 @@ mat-dialog-content {
 .any-pokemon-icon {
   width: 64px;
   height: 64px;
-  font-size: 64px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(213, 0, 249, 0.1);
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: #d500f9;
+  }
 }
 .item-header h3 {
   margin: 0;
@@ -38,22 +48,29 @@ mat-dialog-content {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-size: 13px;
 }
+.gmax-badge {
+  display: inline-block;
+  background: rgba(224, 64, 251, 0.15);
+  color: #aa00ff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.gmax-option-hint {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 12px;
+  margin-left: 4px;
+}
+.info-text {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 14px;
+  margin: 8px 0;
+}
 .full-width {
   width: 100%;
-}
-.filter-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.filter-row mat-form-field {
-  flex: 1;
-  min-width: 120px;
-}
-.field-hint {
-  font-size: 11px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  white-space: nowrap;
 }
 h4 {
   margin: 16px 0 8px;
@@ -64,9 +81,6 @@ h4 {
 }
 mat-slide-toggle {
   margin: 16px 0;
-}
-.gmax-toggle {
-  margin: 8px 0 16px;
 }
 .distance-radio-group {
   display: flex;
@@ -95,9 +109,6 @@ mat-slide-toggle {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
 @media (max-width: 599px) {
-  .filter-row {
-    flex-direction: column;
-  }
   mat-dialog-content {
     min-width: 0;
   }

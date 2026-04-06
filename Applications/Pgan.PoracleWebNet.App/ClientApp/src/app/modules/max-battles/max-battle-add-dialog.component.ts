@@ -21,6 +21,13 @@ import { DeliveryPreviewComponent } from '../../shared/components/delivery-previ
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
+/** Max Battle levels as defined in PoracleNG util.json */
+interface MaxBattleLevel {
+  gmax: boolean;
+  label: string;
+  value: number;
+}
+
 @Component({
   imports: [
     ReactiveFormsModule,
@@ -54,10 +61,7 @@ export class MaxBattleAddDialogComponent {
     clean: [false],
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
-    evolution: [9000],
     form: [0],
-    gmax: [false],
-    move: [9000],
     ping: [''],
     template: [''],
   });
@@ -65,10 +69,17 @@ export class MaxBattleAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<MaxBattleAddDialogComponent>);
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-  readonly levels = [1, 2, 3, 4, 5, 6];
-  pokemonForm = this.fb.group({
-    level: [1],
-  });
+
+  /** PoracleNG max battle levels: 1-5 = Dynamax, 7 = Gigantamax, 8 = Legendary Gigantamax */
+  readonly levels: MaxBattleLevel[] = [
+    { gmax: false, label: '1 Star', value: 1 },
+    { gmax: false, label: '2 Star', value: 2 },
+    { gmax: false, label: '3 Star', value: 3 },
+    { gmax: false, label: '4 Star', value: 4 },
+    { gmax: false, label: '5 Star (Legendary)', value: 5 },
+    { gmax: true, label: 'Gigantamax', value: 7 },
+    { gmax: true, label: 'Legendary Gigantamax', value: 8 },
+  ];
 
   saving = signal(false);
   selectedLevels = signal<number[]>([]);
@@ -107,15 +118,16 @@ export class MaxBattleAddDialogComponent {
 
     if (this.tabIndex === 0) {
       // By Level — one alarm per selected level, pokemonId = 9000 (any)
-      for (const level of this.selectedLevels()) {
+      for (const levelVal of this.selectedLevels()) {
+        const levelDef = this.levels.find(l => l.value === levelVal);
         const maxBattle: MaxBattleCreate = {
           clean: common.clean ? 1 : 0,
           distance: distanceMeters,
-          evolution: common.evolution ?? 9000,
+          evolution: 9000,
           form: common.form ?? 0,
-          gmax: common.gmax ? 1 : 0,
-          level,
-          move: common.move ?? 9000,
+          gmax: levelDef?.gmax ? 1 : 0,
+          level: levelVal,
+          move: 9000,
           ping: common.ping || '',
           pokemonId: 9000,
           stationId: null,
@@ -124,17 +136,16 @@ export class MaxBattleAddDialogComponent {
         creates.push(this.maxBattleService.create(maxBattle));
       }
     } else {
-      // By Pokemon — one alarm per selected Pokemon
-      const pokemonLevel = this.pokemonForm.controls.level.value ?? 1;
+      // By Pokemon — one alarm per selected Pokemon, level = 9000 (any)
       for (const pokemonId of this.selectedPokemonIds()) {
         const maxBattle: MaxBattleCreate = {
           clean: common.clean ? 1 : 0,
           distance: distanceMeters,
-          evolution: common.evolution ?? 9000,
+          evolution: 9000,
           form: common.form ?? 0,
-          gmax: common.gmax ? 1 : 0,
-          level: pokemonLevel,
-          move: common.move ?? 9000,
+          gmax: 0,
+          level: 9000,
+          move: 9000,
           ping: common.ping || '',
           pokemonId,
           stationId: null,
@@ -154,6 +165,10 @@ export class MaxBattleAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
+  }
+
+  selectAllLevels(): void {
+    this.selectedLevels.set(this.levels.map(l => l.value));
   }
 
   toggleLevel(level: number): void {

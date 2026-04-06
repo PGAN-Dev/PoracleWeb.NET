@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -22,6 +22,23 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 export interface MaxBattleEditDialogData {
   item: MaxBattle;
 }
+
+/** PoracleNG max battle levels: 1-5 = Dynamax, 7 = Gigantamax, 8 = Legendary Gigantamax */
+interface MaxBattleLevelOption {
+  gmax: boolean;
+  label: string;
+  value: number;
+}
+
+const LEVEL_OPTIONS: MaxBattleLevelOption[] = [
+  { gmax: false, label: '1 Star', value: 1 },
+  { gmax: false, label: '2 Star', value: 2 },
+  { gmax: false, label: '3 Star', value: 3 },
+  { gmax: false, label: '4 Star', value: 4 },
+  { gmax: false, label: '5 Star (Legendary)', value: 5 },
+  { gmax: true, label: 'Gigantamax', value: 7 },
+  { gmax: true, label: 'Legendary Gigantamax', value: 8 },
+];
 
 @Component({
   imports: [
@@ -50,24 +67,22 @@ export class MaxBattleEditDialogComponent {
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly snackBar = inject(MatSnackBar);
+
   readonly data = inject<MaxBattleEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<MaxBattleEditDialogComponent>);
+
   form = this.fb.group({
     clean: [this.data.item.clean === 1],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
-    evolution: [this.data.item.evolution],
-    formVal: [this.data.item.form],
-    gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
-    move: [this.data.item.move],
     ping: [this.data.item.ping ?? ''],
-    stationId: [this.data.item.stationId ?? ''],
     template: [this.data.item.template ?? ''],
   });
 
+  readonly isLevelBased = this.data.item.pokemonId === 9000;
   readonly isWebhook = inject(AuthService).isImpersonating();
-  readonly levels = [1, 2, 3, 4, 5, 6];
+  readonly levelOptions = LEVEL_OPTIONS;
 
   saving = signal(false);
 
@@ -79,12 +94,23 @@ export class MaxBattleEditDialogComponent {
     return '';
   }
 
+  getLevelLabel(): string {
+    const level = this.data.item.level;
+    if (level === 9000) return 'Any Level';
+    const opt = LEVEL_OPTIONS.find(l => l.value === level);
+    return opt ? opt.label : `Level ${level}`;
+  }
+
   getTitle(): string {
     const item = this.data.item;
     if (item.pokemonId && item.pokemonId !== 9000) {
       return this.masterData.getPokemonName(item.pokemonId);
     }
     return 'Any Pokemon';
+  }
+
+  isGmax(): boolean {
+    return this.data.item.gmax === 1 || this.data.item.level === 7 || this.data.item.level === 8;
   }
 
   onDistanceModeChange(): void {
@@ -107,17 +133,20 @@ export class MaxBattleEditDialogComponent {
     const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
 
     const item = this.data.item;
+    const levelVal = this.isLevelBased ? (values.level ?? item.level) : 9000;
+    const levelDef = LEVEL_OPTIONS.find(l => l.value === levelVal);
+
     const update: MaxBattleUpdate = {
       clean: values.clean ? 1 : 0,
       distance: distanceMeters,
-      evolution: values.evolution ?? 9000,
-      form: values.formVal ?? 0,
-      gmax: values.gmax ? 1 : 0,
-      level: values.level ?? item.level,
-      move: values.move ?? 9000,
+      evolution: 9000,
+      form: item.form,
+      gmax: levelDef?.gmax ? 1 : 0,
+      level: levelVal,
+      move: 9000,
       ping: values.ping || '',
       pokemonId: item.pokemonId,
-      stationId: values.stationId || null,
+      stationId: null,
       template: values.template || '',
     };
     this.maxBattleService.update(this.data.item.uid, update).subscribe({

@@ -88,6 +88,9 @@
             <div class="level-stars">
               @if (mb.level === 9000) {
                 <span class="any-level-label">Any Level</span>
+              } @else if (isGmax(mb.level)) {
+                <mat-icon class="gmax-icon">auto_awesome</mat-icon>
+                <span class="level-label-text">{{ getLevelLabel(mb.level) }}</span>
               } @else {
                 @for (s of getLevelStars(mb.level); track s) {
                   <mat-icon class="star-icon">star</mat-icon>
@@ -96,7 +99,7 @@
             </div>
           </div>
           <div class="card-top-actions">
-            @if (mb.gmax === 1) {
+            @if (isGmax(mb.level) || mb.gmax === 1) {
               <span class="gmax-tag">GMAX</span>
             }
             @if (mb.clean === 1) {
@@ -107,19 +110,13 @@
         <mat-card-content>
           <div class="filter-pills">
             @if (mb.level !== 9000) {
-              <span class="filter-pill level-pill">L{{ mb.level }}</span>
+              <span class="filter-pill level-pill">{{ getLevelLabel(mb.level) }}</span>
             }
             @if (mb.move !== 9000) {
               <span class="filter-pill move-pill">{{ getMoveName(mb.move) }}</span>
             }
             @if (mb.form !== 0) {
               <span class="filter-pill form-pill">{{ getFormName(mb.pokemonId, mb.form) }}</span>
-            }
-            @if (mb.gmax === 1) {
-              <span class="filter-pill gmax-pill">GMAX</span>
-            }
-            @if (mb.evolution !== 9000) {
-              <span class="filter-pill evo-pill">Evo {{ mb.evolution }}</span>
             }
           </div>
           <app-alarm-info [distance]="mb.distance" [clean]="mb.clean" [template]="mb.template" [ping]="mb.ping" />
