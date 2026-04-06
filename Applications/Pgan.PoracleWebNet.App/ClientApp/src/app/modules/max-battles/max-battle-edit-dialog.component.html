@@ -42,6 +42,8 @@
           </mat-form-field>
         } @else {
           <p class="info-text">This alarm tracks a specific Pokemon across all Max Battle levels.</p>
+          <mat-slide-toggle [formControl]="form.controls.gmax" class="gmax-toggle"> Gigantamax only </mat-slide-toggle>
+          <p class="gmax-hint">When enabled, only notifies about Gigantamax battles for this Pokemon.</p>
         }
       </div>
     </mat-tab>

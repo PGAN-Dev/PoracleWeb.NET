@@ -82,6 +82,14 @@ h4 {
 mat-slide-toggle {
   margin: 16px 0;
 }
+.gmax-toggle {
+  margin: 12px 0 4px;
+}
+.gmax-hint {
+  margin: 2px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
 .distance-radio-group {
   display: flex;
   flex-direction: column;

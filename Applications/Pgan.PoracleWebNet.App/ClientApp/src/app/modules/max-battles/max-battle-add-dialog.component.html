@@ -45,6 +45,8 @@
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
               }
+              <mat-slide-toggle [formControl]="commonForm.controls.gmaxOnly" class="gmax-toggle"> Gigantamax only </mat-slide-toggle>
+              <p class="gmax-hint">When enabled, only notifies about Gigantamax battles for the selected Pokemon.</p>
             </div>
           </mat-tab>
         </mat-tab-group>

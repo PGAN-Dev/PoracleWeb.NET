@@ -49,6 +49,14 @@ mat-dialog-content {
 .select-all-btn {
   margin-top: 4px;
 }
+.gmax-toggle {
+  margin: 12px 0 4px;
+}
+.gmax-hint {
+  margin: 2px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
 @media (max-width: 599px) {
   mat-dialog-content {
     min-width: 0;

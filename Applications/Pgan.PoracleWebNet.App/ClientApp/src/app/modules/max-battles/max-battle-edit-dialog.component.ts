@@ -75,6 +75,7 @@ export class MaxBattleEditDialogComponent {
     clean: [this.data.item.clean === 1],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
+    gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
     ping: [this.data.item.ping ?? ''],
     template: [this.data.item.template ?? ''],
@@ -135,13 +136,16 @@ export class MaxBattleEditDialogComponent {
     const item = this.data.item;
     const levelVal = this.isLevelBased ? (values.level ?? item.level) : 9000;
     const levelDef = LEVEL_OPTIONS.find(l => l.value === levelVal);
+    // For level-based alarms, gmax is derived from the level (7/8 = gmax).
+    // For pokemon-based alarms, gmax is an independent toggle (e.g. "only Gigantamax Charizard").
+    const gmaxVal = this.isLevelBased ? (levelDef?.gmax ? 1 : 0) : values.gmax ? 1 : 0;
 
     const update: MaxBattleUpdate = {
       clean: values.clean ? 1 : 0,
       distance: distanceMeters,
       evolution: 9000,
       form: item.form,
-      gmax: levelDef?.gmax ? 1 : 0,
+      gmax: gmaxVal,
       level: levelVal,
       move: 9000,
       ping: values.ping || '',

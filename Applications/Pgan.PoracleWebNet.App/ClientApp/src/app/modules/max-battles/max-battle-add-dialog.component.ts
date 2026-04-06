@@ -62,6 +62,7 @@ export class MaxBattleAddDialogComponent {
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     form: [0],
+    gmaxOnly: [false],
     ping: [''],
     template: [''],
   });
@@ -143,7 +144,7 @@ export class MaxBattleAddDialogComponent {
           distance: distanceMeters,
           evolution: 9000,
           form: common.form ?? 0,
-          gmax: 0,
+          gmax: common.gmaxOnly ? 1 : 0,
           level: 9000,
           move: 9000,
           ping: common.ping || '',
