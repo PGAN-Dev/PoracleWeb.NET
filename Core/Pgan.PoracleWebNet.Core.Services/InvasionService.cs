@@ -25,6 +25,7 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
     public async Task<Invasion> CreateAsync(string userId, Invasion model)
     {
         model.Id = userId;
+        model.GruntType ??= string.Empty;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
