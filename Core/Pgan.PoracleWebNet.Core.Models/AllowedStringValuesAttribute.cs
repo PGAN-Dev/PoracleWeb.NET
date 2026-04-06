@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace Pgan.PoracleWebNet.Core.Models;
 
@@ -27,12 +28,10 @@ public sealed class AllowedStringValuesAttribute(params string[] allowedValues) 
 
         if (value is IEnumerable<string> items)
         {
-            foreach (var item in items)
+            var invalidItem = items.FirstOrDefault(item => !this._allowed.Contains(item));
+            if (invalidItem is not null)
             {
-                if (!this._allowed.Contains(item))
-                {
-                    return new ValidationResult($"{validationContext.DisplayName} contains invalid value '{item}'. Allowed: {string.Join(", ", this._allowed)}.");
-                }
+                return new ValidationResult($"{validationContext.DisplayName} contains invalid value '{invalidItem}'. Allowed: {string.Join(", ", this._allowed)}.");
             }
 
             return ValidationResult.Success;
