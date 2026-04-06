@@ -89,8 +89,12 @@
               <div class="item-info">
                 <h3>{{ getRaidTitle(raid) }}</h3>
                 <div class="level-stars">
-                  @for (s of getLevelStars(raid.level); track s) {
-                    <mat-icon class="star-icon">star</mat-icon>
+                  @if (raid.level === 9000) {
+                    <span class="any-level-label">Any Level</span>
+                  } @else {
+                    @for (s of getLevelStars(raid.level); track s) {
+                      <mat-icon class="star-icon">star</mat-icon>
+                    }
                   }
                 </div>
                 @if (raid.gymId && gymNames()[raid.gymId]) {
@@ -172,10 +176,14 @@
             <div class="card-top" [style.border-top-color]="getLevelColor(egg.level)">
               <img [src]="getEggImage(egg.level)" [alt]="'Level ' + egg.level + ' Egg'" class="item-img" (error)="onImageError($event)" />
               <div class="item-info">
-                <h3>Level {{ egg.level }} Egg</h3>
+                <h3>{{ egg.level === 9000 ? 'Any Level' : 'Level ' + egg.level }} Egg</h3>
                 <div class="level-stars">
-                  @for (s of getLevelStars(egg.level); track s) {
-                    <mat-icon class="star-icon">star</mat-icon>
+                  @if (egg.level === 9000) {
+                    <span class="any-level-label">Any Level</span>
+                  } @else {
+                    @for (s of getLevelStars(egg.level); track s) {
+                      <mat-icon class="star-icon">star</mat-icon>
+                    }
                   }
                 </div>
                 @if (egg.gymId && gymNames()[egg.gymId]) {

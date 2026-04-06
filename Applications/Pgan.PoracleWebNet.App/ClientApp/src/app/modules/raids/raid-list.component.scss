@@ -134,6 +134,11 @@
   height: 16px;
   color: #ffc107;
 }
+.any-level-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-style: italic;
+}
 .stat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

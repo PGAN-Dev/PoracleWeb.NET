@@ -238,6 +238,7 @@ export class RaidListComponent implements OnInit {
   }
 
   getLevelStars(level: number): number[] {
+    if (level === 9000 || level > 100) return [];
     return Array.from({ length: level }, (_, i) => i);
   }
 
