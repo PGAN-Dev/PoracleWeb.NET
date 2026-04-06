@@ -86,6 +86,28 @@ public class ProfileControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task DuplicateCreatesProfileAndCopiesAlarms()
+    {
+        var sourceProfile = new Profile { Id = "123456789", ProfileNo = 1, Name = "Main", Area = "[\"area1\"]" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(sourceProfile);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([sourceProfile]);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(new Profile { ProfileNo = 2, Name = "Main (copy)" });
+
+        var result = await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Main (copy)" });
+
+        Assert.IsType<CreatedAtActionResult>(result);
+        this._humanProxy.Verify(p => p.AddProfileAsync("123456789", It.IsAny<System.Text.Json.JsonElement>()), Times.Once);
+        this._profileService.Verify(s => s.CopyAsync("123456789", 1, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task DuplicateReturnsNotFoundWhenSourceMissing()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99)).ReturnsAsync((Profile?)null);
+        Assert.IsType<NotFoundResult>(await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 99, Name = "Copy" }));
+    }
+
+    [Fact]
     public async Task DeleteReturnsNoContentAndCallsProxy()
     {
         var existing = new Profile { Id = "123456789", ProfileNo = 2 };

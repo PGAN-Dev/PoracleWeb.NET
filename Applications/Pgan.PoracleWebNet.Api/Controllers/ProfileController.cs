@@ -109,6 +109,51 @@ public class ProfileController(
         });
     }
 
+    [HttpPost("duplicate")]
+    public async Task<IActionResult> Duplicate([FromBody] DuplicateProfileRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return this.BadRequest("Profile name is required.");
+        }
+
+        var sourceProfile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, request.FromProfileNo);
+        if (sourceProfile == null)
+        {
+            return this.NotFound();
+        }
+
+        // Assign next available profile number
+        var existing = await this._profileService.GetByUserAsync(this.UserId);
+        var newProfileNo = existing.Any() ? existing.Max(p => p.ProfileNo) + 1 : 1;
+
+        // Create the new profile
+        var body = JsonSerializer.SerializeToElement(new
+        {
+            name = request.Name.Trim(),
+            profileNo = newProfileNo,
+            area = sourceProfile.Area ?? "[]",
+            latitude = sourceProfile.Latitude,
+            longitude = sourceProfile.Longitude
+        });
+        await this._humanProxy.AddProfileAsync(this.UserId, body);
+
+        // Copy all alarms from source to new profile; clean up on failure
+        try
+        {
+            await this._profileService.CopyAsync(this.UserId, request.FromProfileNo, newProfileNo);
+        }
+        catch
+        {
+            // Roll back the empty profile so the user doesn't end up with a shell
+            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            throw;
+        }
+
+        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, newProfileNo);
+        return this.CreatedAtAction(nameof(GetAll), result);
+    }
+
     [HttpDelete("{profileNo:int}")]
     public async Task<IActionResult> Delete(int profileNo)
     {
@@ -152,4 +197,13 @@ public class ProfileController(
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+}
+
+public class DuplicateProfileRequest
+{
+    public int FromProfileNo
+    {
+        get; set;
+    }
+    public string Name { get; set; } = string.Empty;
 }

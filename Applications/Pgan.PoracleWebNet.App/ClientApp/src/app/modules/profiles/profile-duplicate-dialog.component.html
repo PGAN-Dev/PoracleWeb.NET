@@ -1,0 +1,21 @@
+<h2 mat-dialog-title>Duplicate Profile</h2>
+@if (duplicating()) {
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+}
+<mat-dialog-content>
+  <p class="duplicate-description">
+    Create a new profile with all alarms from <strong>{{ data.name }}</strong
+    >.
+  </p>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>New Profile Name</mat-label>
+    <input matInput [(ngModel)]="profileName" placeholder="Enter profile name" maxlength="32" (keyup.enter)="duplicate()" />
+    <mat-hint>{{ profileName.length }}/32</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="duplicate()" [disabled]="duplicating() || !profileName.trim()">
+    <mat-icon>content_copy</mat-icon> Duplicate
+  </button>
+</mat-dialog-actions>

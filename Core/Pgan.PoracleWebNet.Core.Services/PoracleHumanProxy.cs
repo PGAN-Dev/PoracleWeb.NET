@@ -57,7 +57,10 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
     public async Task AdminDisabledAsync(string userId, bool disabled)
     {
-        var body = JsonSerializer.Serialize(new { adminDisable = disabled ? 1 : 0 });
+        var body = JsonSerializer.Serialize(new
+        {
+            adminDisable = disabled ? 1 : 0
+        });
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/adminDisabled", body);
         response.EnsureSuccessStatusCode();
     }
@@ -75,12 +78,10 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<JsonElement?> GetAreasAsync(string userId)
-    {
+    public async Task<JsonElement?> GetAreasAsync(string userId) =>
         // User's selected areas are in GET /api/humans/one/{id} → human.area (JSON string).
         // GET /api/humans/{id} returns the available area list, not the user's selection.
-        return await this.GetHumanAsync(userId);
-    }
+        await this.GetHumanAsync(userId);
 
     public async Task SwitchProfileAsync(string userId, int profileNo)
     {
@@ -113,6 +114,12 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
     public async Task DeleteProfileAsync(string userId, int profileNo)
     {
         var response = await this.SendAsync(HttpMethod.Delete, $"/api/profiles/{Encode(userId)}/byProfileNo/{profileNo}");
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo)
+    {
+        var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/copy/{fromProfileNo}/{toProfileNo}");
         response.EnsureSuccessStatusCode();
     }
 
