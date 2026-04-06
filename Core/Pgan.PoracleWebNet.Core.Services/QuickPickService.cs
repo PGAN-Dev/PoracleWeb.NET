@@ -491,6 +491,7 @@ public partial class QuickPickService(
         var invasion = JsonSerializer.Deserialize<Invasion>(json, JsonOptions) ?? new Invasion();
 
         invasion.ProfileNo = profileNo;
+        invasion.GruntType ??= "";
 
         if (request.Distance.HasValue)
         {

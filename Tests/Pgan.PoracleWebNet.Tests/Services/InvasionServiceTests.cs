@@ -112,6 +112,28 @@ public class InvasionServiceTests
     }
 
     [Fact]
+    public async Task CreateAsyncNormalizesNullGruntType()
+    {
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
+
+        var model = new Invasion { GruntType = null };
+        var result = await this._sut.CreateAsync("u1", model);
+        Assert.Equal("", result.GruntType);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncNormalizesNullGruntType()
+    {
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        var model = new Invasion { Uid = 1, GruntType = null };
+        var result = await this._sut.UpdateAsync("u1", model);
+        Assert.Equal("", result.GruntType);
+    }
+
+    [Fact]
     public async Task BulkCreateAsyncSetsUserIds()
     {
         var models = new List<Invasion>
