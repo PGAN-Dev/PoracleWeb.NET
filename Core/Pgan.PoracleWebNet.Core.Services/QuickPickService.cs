@@ -17,6 +17,7 @@ public partial class QuickPickService(
     ILureService lureService,
     INestService nestService,
     IGymService gymService,
+    IMaxBattleService maxBattleService,
     IMasterDataService masterDataService,
     ILogger<QuickPickService> logger) : IQuickPickService
 {
@@ -30,6 +31,7 @@ public partial class QuickPickService(
     private readonly ILureService _lureService = lureService;
     private readonly INestService _nestService = nestService;
     private readonly IGymService _gymService = gymService;
+    private readonly IMaxBattleService _maxBattleService = maxBattleService;
     private readonly IMasterDataService _masterDataService = masterDataService;
     private readonly ILogger<QuickPickService> _logger = logger;
 
@@ -160,6 +162,7 @@ public partial class QuickPickService(
             "lure" => await this.ApplyLureAsync(userId, profileNo, definition, request),
             "nest" => await this.ApplyNestAsync(userId, profileNo, definition, request),
             "gym" => await this.ApplyGymAsync(userId, profileNo, definition, request),
+            "maxbattle" => await this.ApplyMaxBattleAsync(userId, profileNo, definition, request),
             _ => throw new InvalidOperationException($"Unknown alarm type '{definition.AlarmType}'."),
         };
         var appliedState = new QuickPickAppliedState
@@ -227,6 +230,9 @@ public partial class QuickPickService(
                     break;
                 case "gym":
                     await this._gymService.DeleteAsync(userId, uid);
+                    break;
+                case "maxbattle":
+                    await this._maxBattleService.DeleteAsync(userId, uid);
                     break;
                 default:
                     break;
@@ -599,6 +605,64 @@ public partial class QuickPickService(
         return [created.Uid];
     }
 
+    // --- MaxBattle ---
+
+    private async Task<List<int>> ApplyMaxBattleAsync(
+        string userId, int profileNo, QuickPickDefinition definition, QuickPickApplyRequest request)
+    {
+        var pokemonId = GetFilterInt(definition.Filters, "pokemonId");
+        var level = GetFilterInt(definition.Filters, "level");
+
+        if (pokemonId == 9000 && level == 9000)
+        {
+            // Level-based: create one alarm per level (1-5 normal, 7-8 gmax)
+            var maxBattles = new List<MaxBattle>();
+            foreach (var lvl in new[] { 1, 2, 3, 4, 5, 7, 8 })
+            {
+                var mb = BuildMaxBattle(definition.Filters, profileNo, request);
+                mb.PokemonId = 9000;
+                mb.Level = lvl;
+                mb.Gmax = lvl >= 7 ? 1 : 0;
+                maxBattles.Add(mb);
+            }
+
+            var created = await this._maxBattleService.BulkCreateAsync(userId, maxBattles);
+            return [.. created.Select(m => m.Uid)];
+        }
+        else
+        {
+            // Specific Pokemon or specific level — single row
+            var maxBattle = BuildMaxBattle(definition.Filters, profileNo, request);
+            var created = await this._maxBattleService.CreateAsync(userId, maxBattle);
+            return [created.Uid];
+        }
+    }
+
+    private static MaxBattle BuildMaxBattle(Dictionary<string, object?> filters, int profileNo, QuickPickApplyRequest request)
+    {
+        var json = JsonSerializer.Serialize(filters, JsonOptions);
+        var maxBattle = JsonSerializer.Deserialize<MaxBattle>(json, JsonOptions) ?? new MaxBattle();
+
+        maxBattle.ProfileNo = profileNo;
+
+        if (request.Distance.HasValue)
+        {
+            maxBattle.Distance = request.Distance.Value;
+        }
+
+        if (request.Clean.HasValue)
+        {
+            maxBattle.Clean = request.Clean.Value;
+        }
+
+        if (request.Template != null)
+        {
+            maxBattle.Template = request.Template;
+        }
+
+        return maxBattle;
+    }
+
     // --- Utility ---
 
     private static int GetFilterInt(Dictionary<string, object?> filters, string key)
@@ -648,6 +712,7 @@ public partial class QuickPickService(
                 "lure" => await this._lureService.GetByUidAsync(userId, uid) != null,
                 "nest" => await this._nestService.GetByUidAsync(userId, uid) != null,
                 "gym" => await this._gymService.GetByUidAsync(userId, uid) != null,
+                "maxbattle" => await this._maxBattleService.GetByUidAsync(userId, uid) != null,
                 _ => false,
             };
             if (exists)
@@ -674,6 +739,7 @@ public partial class QuickPickService(
                 "lure" => await this._lureService.GetByUidAsync(userId, uid) != null,
                 "nest" => await this._nestService.GetByUidAsync(userId, uid) != null,
                 "gym" => await this._gymService.GetByUidAsync(userId, uid) != null,
+                "maxbattle" => await this._maxBattleService.GetByUidAsync(userId, uid) != null,
                 _ => false,
             };
             if (exists)

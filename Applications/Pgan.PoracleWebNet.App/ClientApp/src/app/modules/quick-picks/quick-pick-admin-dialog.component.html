@@ -278,6 +278,43 @@
           </div>
         </form>
       }
+
+      @case ('maxbattle') {
+        <form [formGroup]="maxBattleForm">
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Pokemon ID</mat-label>
+              <input matInput type="number" formControlName="pokemonId" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Level</mat-label>
+              <input matInput type="number" formControlName="level" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Gmax</mat-label>
+              <input matInput type="number" formControlName="gmax" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Form</mat-label>
+              <input matInput type="number" formControlName="form" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field>
+              <mat-label>Move</mat-label>
+              <input matInput type="number" formControlName="move" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Evolution</mat-label>
+              <input matInput type="number" formControlName="evolution" />
+            </mat-form-field>
+          </div>
+        </form>
+      }
     }
   </div>
 </mat-dialog-content>

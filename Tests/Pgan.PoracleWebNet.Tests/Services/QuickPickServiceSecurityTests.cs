@@ -19,6 +19,7 @@ public class QuickPickServiceSecurityTests
     private readonly Mock<ILureService> _lureService = new();
     private readonly Mock<INestService> _nestService = new();
     private readonly Mock<IGymService> _gymService = new();
+    private readonly Mock<IMaxBattleService> _maxBattleService = new();
     private readonly Mock<IMasterDataService> _masterDataService = new();
     private readonly Mock<ILogger<QuickPickService>> _logger = new();
     private readonly QuickPickService _sut;
@@ -34,6 +35,7 @@ public class QuickPickServiceSecurityTests
             this._lureService.Object,
             this._nestService.Object,
             this._gymService.Object,
+            this._maxBattleService.Object,
             this._masterDataService.Object,
             this._logger.Object);
 

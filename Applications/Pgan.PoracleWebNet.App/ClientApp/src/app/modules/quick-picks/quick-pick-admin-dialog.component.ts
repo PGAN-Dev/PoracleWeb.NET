@@ -37,8 +37,8 @@ export class QuickPickAdminDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
-  readonly alarmTypes = ['monster', 'raid', 'egg', 'quest', 'invasion', 'lure', 'nest', 'gym'];
-  readonly categories = ['Common', 'PvP', 'Size', 'Raids', 'Quests', 'Invasions', 'Custom'];
+  readonly alarmTypes = ['monster', 'raid', 'egg', 'quest', 'invasion', 'lure', 'nest', 'gym', 'maxbattle'];
+  readonly categories = ['Common', 'PvP', 'Size', 'Raids', 'Quests', 'Invasions', 'Max Battles', 'Custom'];
   readonly data = inject<QuickPickDefinition | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
@@ -67,6 +67,15 @@ export class QuickPickAdminDialogComponent implements OnInit {
 
   lureForm = this.fb.group({
     lureId: [0],
+  });
+
+  maxBattleForm = this.fb.group({
+    evolution: [9000],
+    form: [0],
+    gmax: [0],
+    level: [9000],
+    move: [9000],
+    pokemonId: [9000],
   });
 
   mainForm = this.fb.group({
@@ -144,6 +153,8 @@ export class QuickPickAdminDialogComponent implements OnInit {
         return this.gymForm;
       case 'egg':
         return this.eggForm;
+      case 'maxbattle':
+        return this.maxBattleForm;
       default:
         return null;
     }

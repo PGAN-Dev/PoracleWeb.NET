@@ -10,7 +10,7 @@ public class QuickPickDefinition
     public string Description { get; set; } = string.Empty;
     public string Icon { get; set; } = "bolt";
     public string Category { get; set; } = "Common";
-    public string AlarmType { get; set; } = "monster"; // monster, raid, egg, quest, invasion, lure, nest, gym
+    public string AlarmType { get; set; } = "monster"; // monster, raid, egg, quest, invasion, lure, nest, gym, maxbattle
     public int SortOrder
     {
         get; set;
