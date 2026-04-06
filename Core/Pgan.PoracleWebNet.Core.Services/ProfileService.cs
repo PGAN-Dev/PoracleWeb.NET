@@ -38,6 +38,9 @@ public class ProfileService(
 
     public async Task<bool> DeleteAsync(string userId, int profileNo) => await this._repository.DeleteAsync(userId, profileNo);
 
+    public async Task CopyAsync(string userId, int fromProfileNo, int toProfileNo) =>
+        await this._humanProxy.CopyProfileAsync(userId, fromProfileNo, toProfileNo);
+
     /// <summary>
     /// Deserializes the PoracleNG profiles response.
     /// PoracleNG wraps the array: { "profile": [...], "status": "ok" }

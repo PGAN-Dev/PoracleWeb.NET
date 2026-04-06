@@ -10,19 +10,19 @@ export class ProfileService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
 
-  copy(fromProfile: number, toProfile: number): Observable<void> {
-    return this.http.post<void>(`${this.config.apiHost}/api/profiles/copy`, {
-      fromProfile,
-      toProfile,
-    });
-  }
-
   create(profile: ProfileCreate): Observable<Profile> {
     return this.http.post<Profile>(`${this.config.apiHost}/api/profiles`, profile);
   }
 
   delete(profileNo: number): Observable<void> {
     return this.http.delete<void>(`${this.config.apiHost}/api/profiles/${profileNo}`);
+  }
+
+  duplicate(fromProfileNo: number, name: string): Observable<Profile> {
+    return this.http.post<Profile>(`${this.config.apiHost}/api/profiles/duplicate`, {
+      name,
+      fromProfileNo,
+    });
   }
 
   getAll(): Observable<Profile[]> {

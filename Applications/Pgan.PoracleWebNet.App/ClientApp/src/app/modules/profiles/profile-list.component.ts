@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ProfileAddDialogComponent } from './profile-add-dialog.component';
+import { ProfileCopyDialogComponent } from './profile-copy-dialog.component';
 import { ProfileEditDialogComponent } from './profile-edit-dialog.component';
 import { Profile } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -67,6 +68,16 @@ export class ProfileListComponent implements OnInit {
           },
         });
       }
+    });
+  }
+
+  duplicateProfile(profile: Profile): void {
+    const ref = this.dialog.open(ProfileCopyDialogComponent, {
+      width: '400px',
+      data: profile,
+    });
+    ref.afterClosed().subscribe(result => {
+      if (result) this.loadProfiles();
     });
   }
 

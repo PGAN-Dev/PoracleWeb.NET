@@ -74,12 +74,14 @@ describe('ProfileService', () => {
     req.flush({ ...mockProfile, name: 'Renamed' });
   });
 
-  it('should copy alarms between profiles', () => {
-    service.copy(1, 2).subscribe();
+  it('should duplicate a profile', () => {
+    service.duplicate(1, 'Copy of Default').subscribe(result => {
+      expect(result.profileNo).toBe(2);
+    });
 
-    const req = httpMock.expectOne(`${API}/api/profiles/copy`);
+    const req = httpMock.expectOne(`${API}/api/profiles/duplicate`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ fromProfile: 1, toProfile: 2 });
-    req.flush(null);
+    expect(req.request.body).toEqual({ name: 'Copy of Default', fromProfileNo: 1 });
+    req.flush({ name: 'Copy of Default', active: false, profileNo: 2 });
   });
 });

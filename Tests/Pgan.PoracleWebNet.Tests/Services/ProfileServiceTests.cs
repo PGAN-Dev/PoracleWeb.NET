@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -117,5 +116,12 @@ public class ProfileServiceTests
     {
         this._repository.Setup(r => r.DeleteAsync("u1", 99)).ReturnsAsync(false);
         Assert.False(await this._sut.DeleteAsync("u1", 99));
+    }
+
+    [Fact]
+    public async Task CopyAsyncCallsProxy()
+    {
+        await this._sut.CopyAsync("u1", 1, 2);
+        this._humanProxy.Verify(p => p.CopyProfileAsync("u1", 1, 2), Times.Once);
     }
 }

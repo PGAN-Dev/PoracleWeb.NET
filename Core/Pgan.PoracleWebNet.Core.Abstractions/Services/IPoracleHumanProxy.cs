@@ -93,4 +93,10 @@ public interface IPoracleHumanProxy
     /// Maps to GET /api/humans/{userId}/checkLocation/{lat}/{lon}
     /// </summary>
     Task<JsonElement?> CheckLocationAsync(string userId, double lat, double lon);
+
+    /// <summary>
+    /// Copies all tracking rules from one profile to another.
+    /// Maps to POST /api/profiles/{userId}/copy/{fromProfileNo}/{toProfileNo}
+    /// </summary>
+    Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo);
 }
