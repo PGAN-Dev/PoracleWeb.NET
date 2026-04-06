@@ -79,7 +79,7 @@
           </mat-form-field>
         }
         <app-template-selector
-          [alarmType]="'fort'"
+          [alarmType]="'fort-update'"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
         <mat-slide-toggle [formControl]="form.controls.clean"> Clean mode </mat-slide-toggle>
