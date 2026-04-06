@@ -25,6 +25,7 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
     public async Task<Invasion> CreateAsync(string userId, Invasion model)
     {
         model.Id = userId;
+        model.GruntType ??= "";
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -38,6 +39,7 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
 
     public async Task<Invasion> UpdateAsync(string userId, Invasion model)
     {
+        model.GruntType ??= "";
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -120,6 +122,7 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
         foreach (var model in modelList)
         {
             model.Id = userId;
+            model.GruntType ??= "";
         }
 
         var body = SerializeToElement(modelList);
