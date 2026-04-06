@@ -21,6 +21,10 @@ export class ScannerService {
     return this.http.get<GymSearchResult>(`/api/scanner/gyms/${encodeURIComponent(id)}`).pipe(catchError(() => of(null)));
   }
 
+  getMaxBattlePokemonIds(): Observable<number[]> {
+    return this.http.get<number[]>('/api/scanner/max-battle-pokemon').pipe(catchError(() => of([])));
+  }
+
   searchGyms(search: string, limit = 20): Observable<GymSearchResult[]> {
     if (search.length < 2) return of([]);
     return this.http.get<GymSearchResult[]>('/api/scanner/gyms', { params: { limit, search } }).pipe(catchError(() => of([])));

@@ -17,6 +17,7 @@ import { forkJoin } from 'rxjs';
 import { MaxBattleCreate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
+import { ScannerService } from '../../core/services/scanner.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -55,6 +56,7 @@ interface MaxBattleLevel {
 export class MaxBattleAddDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly maxBattleService = inject(MaxBattleService);
+  private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
 
   commonForm = this.fb.group({
@@ -82,11 +84,18 @@ export class MaxBattleAddDialogComponent {
     { gmax: true, label: 'Legendary Gigantamax', value: 8 },
   ];
 
+  maxBattlePokemonIds = signal<number[] | null>(null);
   saving = signal(false);
   selectedLevels = signal<number[]>([]);
   selectedPokemonIds = signal<number[]>([]);
 
   tabIndex = 0;
+
+  constructor() {
+    this.scannerService.getMaxBattlePokemonIds().subscribe(ids => {
+      this.maxBattlePokemonIds.set(ids.length > 0 ? ids : null);
+    });
+  }
 
   canSave(): boolean {
     if (this.tabIndex === 0) {

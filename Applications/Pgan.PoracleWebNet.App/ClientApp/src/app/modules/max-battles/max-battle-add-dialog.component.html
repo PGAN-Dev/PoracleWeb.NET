@@ -41,7 +41,7 @@
           <mat-tab label="By Pokemon">
             <div class="tab-content">
               <p class="tab-hint">Track specific Pokemon in Max Battles regardless of level.</p>
-              <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
+              <app-pokemon-selector [multi]="true" [allowedIds]="maxBattlePokemonIds()" (selectionChange)="onPokemonSelected($event)" />
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
               }

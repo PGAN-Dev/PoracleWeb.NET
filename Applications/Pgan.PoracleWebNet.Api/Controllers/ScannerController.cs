@@ -39,6 +39,25 @@ public class ScannerController(IScannerService? scannerService = null, IKojiServ
         return this.Ok(raids);
     }
 
+    [HttpGet("max-battle-pokemon")]
+    public async Task<IActionResult> GetMaxBattlePokemon()
+    {
+        if (this._scannerService == null)
+        {
+            return this.Ok(Array.Empty<int>());
+        }
+
+        try
+        {
+            var pokemonIds = await this._scannerService.GetMaxBattlePokemonIdsAsync();
+            return this.Ok(pokemonIds);
+        }
+        catch
+        {
+            return this.Ok(Array.Empty<int>());
+        }
+    }
+
     [HttpGet("gyms/{id}")]
     public async Task<IActionResult> GetGymById(string id)
     {

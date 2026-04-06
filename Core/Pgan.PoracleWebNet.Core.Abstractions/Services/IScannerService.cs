@@ -8,6 +8,7 @@ public interface IScannerService
     public Task<IEnumerable<RaidData>> GetActiveRaidsAsync();
     public Task<IEnumerable<GymSearchResult>> SearchGymsAsync(string search, int limit = 20);
     public Task<GymSearchResult?> GetGymByIdAsync(string gymId);
+    public Task<IEnumerable<int>> GetMaxBattlePokemonIdsAsync();
 
     /// <summary>
     /// Tests if a point (lat, lon) is inside a polygon using the ray-casting algorithm.

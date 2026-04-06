@@ -7,4 +7,5 @@ public class RdmScannerContext(DbContextOptions<RdmScannerContext> options) : Db
 {
     public DbSet<RdmPokestopEntity> Pokestops => this.Set<RdmPokestopEntity>();
     public DbSet<RdmGymEntity> Gyms => this.Set<RdmGymEntity>();
+    public DbSet<RdmStationEntity> Stations => this.Set<RdmStationEntity>();
 }

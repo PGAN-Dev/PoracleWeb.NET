@@ -66,6 +66,14 @@ public class RdmScannerService(RdmScannerContext context) : IScannerService
         return gym;
     }
 
+    public async Task<IEnumerable<int>> GetMaxBattlePokemonIdsAsync() => await this._context.Stations
+            .AsNoTracking()
+            .Where(s => s.BattlePokemonId != null && s.BattlePokemonId > 0)
+            .Select(s => s.BattlePokemonId!.Value)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToListAsync();
+
     public async Task<IEnumerable<GymSearchResult>> SearchGymsAsync(string search, int limit = 20)
     {
         var query = this._context.Gyms

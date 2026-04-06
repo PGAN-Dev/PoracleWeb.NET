@@ -30,9 +30,10 @@ export class PokemonSelectorComponent implements OnInit {
 
   activeGen = signal<GenRange | null>(null);
   activeType = signal<string | null>(null);
+  allowedIds = input<number[] | null>(null);
   allPokemon = signal<PokemonEntry[]>([]);
-  availableTypes = computed(() => this.masterData.getAllTypes());
 
+  availableTypes = computed(() => this.masterData.getAllTypes());
   searchText = signal('');
   selectedPokemon = signal<PokemonEntry[]>([]);
   selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
@@ -46,11 +47,14 @@ export class PokemonSelectorComponent implements OnInit {
     const type = this.activeType();
     const tileMode = this.showTileGrid();
     const all = this.allPokemon();
+    const allowed = this.allowedIds();
 
     if (!all.length) return [];
 
     return all
       .filter(p => {
+        // If allowedIds is set, restrict to those IDs (plus keep ID 0 for "All Pokemon")
+        if (allowed && allowed.length > 0 && p.id !== 0 && !allowed.includes(p.id)) return false;
         // In tile grid mode, keep selected pokemon visible (they show as selected tiles)
         // In autocomplete mode, hide already-selected from dropdown
         if (this.multi() && !tileMode && selected.has(p.id)) return false;
