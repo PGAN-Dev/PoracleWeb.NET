@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -16,7 +17,7 @@ public class MaxBattleServiceTests
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly MaxBattleService _sut;
 
-    public MaxBattleServiceTests() => this._sut = new MaxBattleService(this._proxy.Object);
+    public MaxBattleServiceTests() => this._sut = new MaxBattleService(this._proxy.Object, Mock.Of<ILogger<MaxBattleService>>());
 
     [Fact]
     public async Task GetByUserAsyncReturnsMaxBattles()

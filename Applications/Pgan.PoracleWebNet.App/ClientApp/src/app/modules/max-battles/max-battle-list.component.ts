@@ -15,6 +15,7 @@ import { MaxBattle } from '../../core/models';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -42,6 +43,9 @@ export class MaxBattleListComponent implements OnInit {
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
+  private moves: Record<string, string> = {};
+  private readonly settingsService = inject(SettingsService);
+
   private readonly snackBar = inject(MatSnackBar);
 
   readonly loading = signal(true);
@@ -182,6 +186,10 @@ export class MaxBattleListComponent implements OnInit {
     return Array.from({ length: level }, (_, i) => i);
   }
 
+  getMoveName(moveId: number): string {
+    return this.moves[String(moveId)] ?? `Move #${moveId}`;
+  }
+
   getTitle(maxBattle: MaxBattle): string {
     if (maxBattle.pokemonId && maxBattle.pokemonId !== 9000) {
       return this.masterData.getPokemonName(maxBattle.pokemonId);
@@ -207,6 +215,10 @@ export class MaxBattleListComponent implements OnInit {
 
   ngOnInit(): void {
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    this.settingsService
+      .getConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(config => (this.moves = config.moves ?? {}));
     this.loadData();
   }
 

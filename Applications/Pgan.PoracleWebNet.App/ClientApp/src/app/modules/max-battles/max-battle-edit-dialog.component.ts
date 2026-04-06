@@ -67,7 +67,7 @@ export class MaxBattleEditDialogComponent {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-  readonly levels = [9000, 1, 2, 3, 4, 5, 6];
+  readonly levels = [1, 2, 3, 4, 5, 6];
 
   saving = signal(false);
 

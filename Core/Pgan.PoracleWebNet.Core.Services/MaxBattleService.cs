@@ -1,12 +1,14 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class MaxBattleService(IPoracleTrackingProxy proxy) : IMaxBattleService
+public class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBattleService> logger) : IMaxBattleService
 {
     private const string TrackingType = "maxbattle";
+    private readonly ILogger<MaxBattleService> _logger = logger;
     private readonly IPoracleTrackingProxy _proxy = proxy;
 
     public async Task<IEnumerable<MaxBattle>> GetByUserAsync(string userId, int profileNo)
@@ -86,6 +88,7 @@ public class MaxBattleService(IPoracleTrackingProxy proxy) : IMaxBattleService
         }
 
         // MaxBattle is insert-only — bulk delete then re-create with updated distance.
+        // If the re-create fails after delete, alarms are lost. Log for recovery.
         var uids = itemList.Select(x => x.Uid).ToList();
         await this._proxy.BulkDeleteByUidsAsync(TrackingType, userId, uids);
 
@@ -94,8 +97,18 @@ public class MaxBattleService(IPoracleTrackingProxy proxy) : IMaxBattleService
             item.Distance = distance;
         }
 
-        var body = SerializeToElement(itemList);
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        try
+        {
+            var body = SerializeToElement(itemList);
+            await this._proxy.CreateAsync(TrackingType, userId, body);
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogError(ex, "Failed to re-create {Count} maxbattle alarms after bulk delete for user {UserId}. Alarms with UIDs [{Uids}] were deleted but not re-created",
+                itemList.Count, userId, string.Join(", ", uids));
+            throw;
+        }
+
         return itemList.Count;
     }
 
@@ -119,8 +132,18 @@ public class MaxBattleService(IPoracleTrackingProxy proxy) : IMaxBattleService
             item.Distance = distance;
         }
 
-        var body = SerializeToElement(matching);
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        try
+        {
+            var body = SerializeToElement(matching);
+            await this._proxy.CreateAsync(TrackingType, userId, body);
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogError(ex, "Failed to re-create {Count} maxbattle alarms after bulk delete for user {UserId}. Alarms with UIDs [{Uids}] were deleted but not re-created",
+                matching.Count, userId, string.Join(", ", matchingUids));
+            throw;
+        }
+
         return matching.Count;
     }
 
