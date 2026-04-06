@@ -22,16 +22,16 @@ import { ProfileService } from '../../core/services/profile.service';
     MatProgressBarModule,
     MatSnackBarModule,
   ],
-  selector: 'app-profile-copy-dialog',
+  selector: 'app-profile-duplicate-dialog',
   standalone: true,
-  styleUrl: './profile-copy-dialog.component.scss',
-  templateUrl: './profile-copy-dialog.component.html',
+  styleUrl: './profile-duplicate-dialog.component.scss',
+  templateUrl: './profile-duplicate-dialog.component.html',
 })
-export class ProfileCopyDialogComponent {
+export class ProfileDuplicateDialogComponent {
   private readonly profileService = inject(ProfileService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Profile>(MAT_DIALOG_DATA);
-  readonly dialogRef = inject(MatDialogRef<ProfileCopyDialogComponent>);
+  readonly dialogRef = inject(MatDialogRef<ProfileDuplicateDialogComponent>);
   readonly duplicating = signal(false);
 
   profileName = `${this.data.name} (copy)`;

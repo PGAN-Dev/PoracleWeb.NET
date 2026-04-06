@@ -112,6 +112,11 @@ public class ProfileController(
     [HttpPost("duplicate")]
     public async Task<IActionResult> Duplicate([FromBody] DuplicateProfileRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return this.BadRequest("Profile name is required.");
+        }
+
         var sourceProfile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, request.FromProfileNo);
         if (sourceProfile == null)
         {
@@ -125,7 +130,7 @@ public class ProfileController(
         // Create the new profile
         var body = JsonSerializer.SerializeToElement(new
         {
-            name = request.Name,
+            name = request.Name.Trim(),
             profileNo = newProfileNo,
             area = sourceProfile.Area ?? "[]",
             latitude = sourceProfile.Latitude,
@@ -133,8 +138,17 @@ public class ProfileController(
         });
         await this._humanProxy.AddProfileAsync(this.UserId, body);
 
-        // Copy all alarms from source to new profile
-        await this._profileService.CopyAsync(this.UserId, request.FromProfileNo, newProfileNo);
+        // Copy all alarms from source to new profile; clean up on failure
+        try
+        {
+            await this._profileService.CopyAsync(this.UserId, request.FromProfileNo, newProfileNo);
+        }
+        catch
+        {
+            // Roll back the empty profile so the user doesn't end up with a shell
+            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            throw;
+        }
 
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, newProfileNo);
         return this.CreatedAtAction(nameof(GetAll), result);
