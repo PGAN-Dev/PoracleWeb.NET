@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fort Change tracking alarms**: New alarm type to monitor pokestop and gym changes — track name changes, relocations, image updates, removals, and new forts with fort type filtering, distance/area delivery, and clean mode support ([#119](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/119), [PR #135](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/135))
 - **Login method gating**: `enable_discord` and `enable_telegram` site settings now control login button visibility and block auth attempts when disabled ([#117](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/117), [PR #136](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/136))
 - **Dedicated Discord settings section** in admin page ([PR #116](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/116))
-## [2.1.3] - 2026-04-04
 
+### Fixed
+- **Quick pick "all invasions" fails with 400**: `grunt_type: null` sent to PoracleNG which rejects it — normalized to empty string `""` in `QuickPickService.ApplyInvasionAsync` and defensively in `InvasionService` create/update methods ([#139](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/139), [PR #141](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/141))
 ## [2.1.3] - 2026-04-04
 
 ### Fixed
