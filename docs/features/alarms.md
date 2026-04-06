@@ -62,6 +62,19 @@ Users can maintain multiple alarm profiles. Only one profile is active at a time
 - Each alarm is associated with a `profile_no`
 - The active profile is tracked by `humans.current_profile_no`
 
+### Duplicating a profile
+
+The **Duplicate** button on each profile card creates a new profile with all alarms copied from the source profile in a single operation:
+
+1. Click the :material-content-copy: **Duplicate** button on any profile card
+2. Enter a name for the new profile (pre-filled as `"<source name> (copy)"`)
+3. Click **Duplicate**
+
+The new profile inherits the source profile's areas, location, and all alarm filters. If the alarm copy step fails, the empty profile is automatically rolled back (deleted) so the user never ends up with a shell profile.
+
+!!! tip "Duplicate vs. Create"
+    Use **Duplicate** when you want to start with an existing set of alarms and tweak them. Use **Create** when you want a blank profile.
+
 ## Pokemon alarm filters
 
 ### Size filter

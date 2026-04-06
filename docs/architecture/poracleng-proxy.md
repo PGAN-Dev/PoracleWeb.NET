@@ -65,7 +65,7 @@ Also proxied:
 | Scanner database (gym search) | Read-only, separate database |
 
 !!! note "Single-user human/profile operations are fully proxied"
-    `HumanService` reads, creates, and checks existence via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, and profile CRUD all go through the proxy. Only admin bulk operations remain on direct DB.
+    `HumanService` reads, creates, and checks existence via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, profile CRUD, and profile copy all go through the proxy. Only admin bulk operations remain on direct DB.
 
 ## IPoracleTrackingProxy interface
 

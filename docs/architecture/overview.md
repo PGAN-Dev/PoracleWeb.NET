@@ -80,7 +80,7 @@ graph TB
 ## Key design decisions
 
 ### Operations proxied through PoracleNG
-All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, handles area dual-writes, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. See [PoracleNG API Proxy](poracleng-proxy.md).
+All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, handles area dual-writes, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication uses PoracleNG's copy endpoint to clone all tracking rules atomically. See [PoracleNG API Proxy](poracleng-proxy.md).
 
 ### Separate databases
 PoracleWeb does **not** modify the Poracle DB schema. The Poracle database is managed by PoracleNG. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
