@@ -27,6 +27,7 @@ src/app/
 │   ├── lures/           Lure alarm management
 │   ├── nests/           Nest alarm management
 │   ├── gyms/            Gym alarm management
+│   ├── max-battles/     Max Battle (Dynamax) alarm management
 │   ├── areas/           Area selection with map
 │   ├── geofences/       Custom geofence drawing
 │   ├── profiles/        Profile management

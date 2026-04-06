@@ -17,6 +17,7 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 | **Nests** | Filter by nesting Pokemon species |
 | **Gyms** | Filter by gym team changes, battle activity, specific gym |
 | **Fort Changes** | Filter by fort type (pokestop/gym), change types (name, location, image, removal, new) |
+| **Max Battles** | Filter by battle level (1-5 Dynamax, 7/8 Gigantamax), specific Pokemon, Gigantamax-only toggle |
 
 ## Creating alarms
 
@@ -123,6 +124,45 @@ Fort change alarms track changes to pokestops and gyms as points of interest (no
 
 Fort change alarms are proxied through PoracleNG using tracking type `"fort"`. The API endpoints follow the standard alarm CRUD pattern at `/api/fort-changes`.
 
+## Max Battle alarm filters
+
+Max Battle (Dynamax) alarms track battles at Power Spot stations. There are two tracking modes:
+
+- **By Level** — Select battle tiers to track any Pokemon at those levels. One alarm per level.
+- **By Pokemon** — Select specific Pokemon to track across all Max Battle levels.
+
+| Field | Default | Description |
+|---|---|---|
+| `pokemon_id` | `9000` (any) | Pokemon to track. `9000` = level-based tracking (any Pokemon). |
+| `level` | `9000` (any) | Battle level. Only meaningful when `pokemon_id = 9000`. |
+| `gmax` | `0` (any) | Gigantamax filter. `0` = matches all battles, `1` = Gigantamax only. |
+| `form` | `0` (any) | Pokemon form filter. |
+
+### Battle levels
+
+Max Battle levels follow the PoracleNG `util.json` definitions:
+
+| Level | Label | Type |
+|---|---|---|
+| 1 | 1 Star Max Battle | Dynamax |
+| 2 | 2 Star Max Battle | Dynamax |
+| 3 | 3 Star Max Battle | Dynamax |
+| 4 | 4 Star Max Battle | Dynamax |
+| 5 | Legendary Max Battle | Dynamax |
+| 7 | Gigantamax Battle | Gigantamax |
+| 8 | Legendary Gigantamax Battle | Gigantamax |
+
+!!! note "No level 6"
+    There is no level 6 in PoracleNG's max battle system. Levels 7 and 8 are Gigantamax battles where `gmax` is automatically derived (level > 6 = gmax).
+
+### Insert-only API behavior
+
+Unlike other alarm types, the PoracleNG maxbattle API handler has **no diff/dedup logic** — every POST creates new rows. Updates use a delete-then-create pattern: delete the old alarm by UID, then insert the replacement. This is handled transparently by `MaxBattleService.UpdateAsync()`.
+
+### Scanner-based Pokemon filter
+
+When the scanner database is configured, the "By Pokemon" tab queries the `station` table for distinct `battle_pokemon_id` values. This limits the Pokemon selector to species that have actually appeared in Max Battles. If the scanner DB is not configured, all Pokemon are shown.
+
 !!! warning "GymCreate.Team default"
     `GymCreate.Team` must default to `4` (any team), matching Raid and Egg defaults. A C# `int` defaults to `0`, which maps to "Neutral only" in Poracle, causing new gym alarms to silently filter out all non-Neutral gyms.
 
@@ -201,6 +241,16 @@ Gym-specific defaults:
 | Field | Default |
 |---|---|
 | `team` | `4` (any team) |
+
+Max Battle-specific defaults:
+
+| Field | Default |
+|---|---|
+| `pokemon_id` | `9000` (any Pokemon / level-based) |
+| `level` | `9000` (any level) |
+| `gmax` | `0` (any — not Gigantamax-only) |
+| `move` | `9000` (any move) |
+| `evolution` | `9000` (any — unused placeholder) |
 
 ## Quick Picks
 

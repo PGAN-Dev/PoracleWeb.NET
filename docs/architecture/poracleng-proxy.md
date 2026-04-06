@@ -43,6 +43,11 @@ All alarm tracking CRUD for these types:
 | Lures | `lure` | `LureService` |
 | Nests | `nest` | `NestService` |
 | Gyms | `gym` | `GymService` |
+| Fort Changes | `fort` | `FortChangeService` |
+| Max Battles | `maxbattle` | `MaxBattleService` |
+
+!!! warning "MaxBattle: insert-only (no upsert)"
+    The PoracleNG maxbattle API handler has no diff/dedup logic — every POST creates new rows. `MaxBattleService` uses a delete-then-create pattern for updates and bulk distance changes, with error logging for atomicity recovery.
 
 Also proxied:
 

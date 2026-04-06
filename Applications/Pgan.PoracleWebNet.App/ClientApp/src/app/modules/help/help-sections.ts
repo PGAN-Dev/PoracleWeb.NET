@@ -201,10 +201,10 @@ export const HELP_SECTIONS: HelpSection[] = [
 <h4>Max Battle (Dynamax) Alarms</h4>
 <p>Get notified about Dynamax and Gigantamax battles at Power Spots.</p>
 <ul>
-<li><strong>By Level</strong> — Select battle levels (1-6) to track all Max Battles of that tier. Level 6 is Gigantamax.</li>
-<li><strong>By Pokemon</strong> — Select specific Pokemon you want to battle.</li>
-<li><strong>Gigantamax filter</strong> — Toggle to only get notified about Gigantamax battles (special forms with unique G-Max moves).</li>
-<li><strong>Move filter</strong> — Filter by specific battle moves.</li>
+<li><strong>By Level</strong> — Select battle tiers to track any Pokemon at those levels. Tiers range from 1 Star through 5 Star (Legendary) for Dynamax, plus Gigantamax and Legendary Gigantamax for the largest battles. One alarm is created per selected level.</li>
+<li><strong>By Pokemon</strong> — Select specific Pokemon you want to battle across all Max Battle levels. If the scanner database is configured, the selector is filtered to only show Pokemon that have appeared in Max Battles.</li>
+<li><strong>Gigantamax only</strong> — When tracking by Pokemon, toggle this to only receive notifications when that Pokemon appears in Gigantamax battles (the highest-tier battles with unique G-Max moves). For level-based tracking, Gigantamax is handled by selecting the Gigantamax or Legendary Gigantamax levels directly.</li>
+<li><strong>Select All</strong> — Quickly select all available levels at once (equivalent to the bot's <code>!maxbattle everything</code> command).</li>
 </ul>
 
 <h4>Quest Alarms</h4>

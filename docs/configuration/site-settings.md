@@ -44,6 +44,7 @@ Control which alarm categories are available to users. Disabling a type hides it
 | `disable_nests` | Disable Nests | boolean | Hide nest alarm management from all users. |
 | `disable_gyms` | Disable Gyms | boolean | Hide gym alarm management from all users. |
 | `disable_fort_changes` | Disable Fort Changes | boolean | Hide fort change alarm management from all users. |
+| `disable_maxbattles` | Disable Max Battles | boolean | Hide max battle alarm management from all users. |
 
 ---
 
