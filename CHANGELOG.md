@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- raid alarm card shows 9000 stars for level 9000 ([PR #144](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/144))
+
 ### Added
 - **Max Battles quick pick support**: Admins can create Max Battle quick pick templates. All-levels mode creates 7 alarms (levels 1-5 Dynamax, 7-8 Gigantamax). Added maxbattle alarm type, category, and form fields to the admin quick pick dialog. ([#140](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/140), [PR #143](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/143))
 - **Max Battle (Dynamax) tracking alarms**: Full-stack alarm module for Dynamax and Gigantamax Max Battle tracking at Power Spots, proxied through PoracleNG's `maxbattle` CRUD API. Includes list page with card grid, add dialog (By Level / By Pokemon tabs), edit dialog, dashboard card, cleaning toggle, and admin feature flag (`disable_maxbattles`). Levels follow PoracleNG's system: 1-5 (Dynamax), 7 (Gigantamax), 8 (Legendary Gigantamax). Uses delete-then-create update pattern for PoracleNG's insert-only maxbattle handler. ([#118](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/118), [PR #137](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/137))
