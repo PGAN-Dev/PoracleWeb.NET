@@ -48,14 +48,6 @@ public partial class TestAlertController(ITestAlertService testAlertService, ILo
                 error = "Test alert request was canceled"
             });
         }
-        catch (TaskCanceledException ex)
-        {
-            LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
-            return this.BadRequest(new
-            {
-                error = "Test alert request was canceled"
-            });
-        }
         catch (Exception ex)
         {
             LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
