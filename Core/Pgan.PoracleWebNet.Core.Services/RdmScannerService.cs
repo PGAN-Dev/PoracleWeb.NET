@@ -99,7 +99,7 @@ public class RdmScannerService(RdmScannerContext context) : IScannerService
         var uniqueIds = cellIds.Distinct().ToList();
         if (uniqueIds.Count == 0)
         {
-            return new Dictionary<long, WeatherData>();
+            return [];
         }
 
         var rows = await this._context.Weather
