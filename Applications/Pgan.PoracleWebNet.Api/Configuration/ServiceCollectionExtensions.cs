@@ -74,6 +74,15 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IScannerService, RdmScannerService>();
         }
 
+        // Register Golbat API proxy (optional — only if API address is configured)
+        var golbatApiAddress = configuration["Golbat:ApiAddress"];
+        if (!string.IsNullOrEmpty(golbatApiAddress))
+        {
+            services.Configure<GolbatSettings>(configuration.GetSection("Golbat"));
+            services.AddHttpClient<IGolbatApiProxy, GolbatApiProxy>();
+            services.AddSingleton<IPokemonAvailabilityService, PokemonAvailabilityService>();
+        }
+
         // Register HttpClient for Poracle API (config, geofences, templates — read-only proxy)
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 

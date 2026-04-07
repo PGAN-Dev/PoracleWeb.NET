@@ -22,7 +22,8 @@ Pgan.PoracleWebNet.slnx
 |
 +-- Core/
 |   +-- Core.Abstractions/       Interfaces: IRepository, IService, IPoracleTrackingProxy,
-|   |                            IPoracleHumanProxy, ITestAlertService
+|   |                            IPoracleHumanProxy, ITestAlertService,
+|   |                            IGolbatApiProxy, IPokemonAvailabilityService
 |   +-- Core.Models/             DTOs passed between layers (not EF entities)
 |   +-- Core.Mappings/           AutoMapper PoracleMappingProfile (Human, Profile,
 |   |                            PoracleWeb-owned tables; alarm Create/Update DTOs)
@@ -34,7 +35,8 @@ Pgan.PoracleWebNet.slnx
 |   |                            WebhookDelegateService, QuickPickService,
 |   |                            DiscordNotificationService, PoracleServerService,
 |   |                            PoracleTrackingProxy, PoracleHumanProxy,
-|   |                            TestAlertService, etc.)
+|   |                            TestAlertService, GolbatApiProxy,
+|   |                            PokemonAvailabilityService, etc.)
 |
 +-- Data/
 |   +-- Data/                    PoracleContext (EF Core), PoracleWebContext (app-owned DB),
@@ -249,6 +251,7 @@ Pgan.PoracleWebNet.slnx
 - **Discord Bot Token**: Sourced from PoracleJS server's `config/local-discord.json`.
 - **Admin IDs**: Comma-separated Discord user IDs in `Poracle:AdminIds`.
 - **PoracleWeb DB**: `ConnectionStrings:PoracleWebDb` -- connection string for the `poracle_web` database (user geofences, site settings, webhook delegates, quick picks). Auto-composed by `Program.cs` from `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` env vars when the full connection string is not set.
+- **Golbat API** (optional): `Golbat:ApiAddress` and `Golbat:ApiSecret` enable Pokemon availability indicators in the Pokemon selector. When configured, `IGolbatApiProxy` and `IPokemonAvailabilityService` are registered in DI. When not configured, the feature is hidden. Settings class: `GolbatSettings`. Env vars: `GOLBAT_API_ADDRESS`, `GOLBAT_API_SECRET`.
 - **Koji Geofence API**:
   - `Koji:ApiAddress` -- Koji geofence server URL (e.g., `http://localhost:8080`).
   - `Koji:BearerToken` -- Koji API authentication token.
@@ -505,6 +508,13 @@ dotnet ef migrations script \
 | Test Alert Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/test-alert.service.ts` |
 | Scanner Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/ScannerController.cs` |
 | Scanner DB Context | `Data/Pgan.PoracleWebNet.Data.Scanner/` |
+| GolbatSettings | `Applications/Pgan.PoracleWebNet.Api/Configuration/GolbatSettings.cs` |
+| IGolbatApiProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IGolbatApiProxy.cs` |
+| GolbatApiProxy | `Core/Pgan.PoracleWebNet.Core.Services/GolbatApiProxy.cs` |
+| IPokemonAvailabilityService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPokemonAvailabilityService.cs` |
+| PokemonAvailabilityService | `Core/Pgan.PoracleWebNet.Core.Services/PokemonAvailabilityService.cs` |
+| PokemonAvailability Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/PokemonAvailabilityController.cs` |
+| Pokemon Availability Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/pokemon-availability.service.ts` |
 | Poracle Servers Page | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/poracle-servers/` |
 | Abstractions | `Core/Pgan.PoracleWebNet.Core.Abstractions/` |
 | Backend Tests | `Tests/Pgan.PoracleWebNet.Tests/` |

@@ -50,6 +50,22 @@ src/app/
 
 The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `lon`, `teamId`, and `area`.
 
+### PokemonAvailabilityService
+
+`PokemonAvailabilityService` (`core/services/pokemon-availability.service.ts`) provides Pokemon spawn availability data from the Golbat scanner API. It is a `providedIn: 'root'` singleton.
+
+- `enabled` signal — `true` when Golbat is configured on the backend
+- `availableIds` signal — `Set<number>` of currently spawning Pokemon IDs for O(1) lookups
+- `isAvailable(id)` — returns whether a Pokemon is currently spawning
+- `load()` — idempotent initial fetch + 5-minute auto-refresh via `setInterval`
+- Graceful degradation: preserves `enabled` state and stale data on refresh errors
+
+The `PokemonSelectorComponent` injects this service and calls `load()` in `ngOnInit()`. When `enabled()` is true, it renders:
+
+- A "Live > Spawning" filter toggle chip (with animated pulse dot)
+- Green availability dots on autocomplete options and tile grid items
+- Available-first sorting when any filter is active
+
 ## UI patterns
 
 ### Alarm lists

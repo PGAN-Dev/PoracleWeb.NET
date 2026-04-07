@@ -14,6 +14,7 @@ Uses Jest with `jest-preset-angular`. Tests cover:
 - Dialogs (`geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`)
 - Utilities (`geo.utils.spec.ts`)
 - Pipes
+- Pokemon availability (`pokemon-availability.service.spec.ts`)
 
 ## Backend tests (xUnit)
 
@@ -23,11 +24,11 @@ dotnet test
 
 Uses xUnit with Moq. Tests cover:
 
-- Controllers (`UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `LocationControllerTests`, `ProfileControllerTests`, `AreaControllerTests`, `AdminControllerTests`, `SettingsControllerTests`, `ScannerControllerTests`, and all alarm controller tests)
+- Controllers (`UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `LocationControllerTests`, `ProfileControllerTests`, `AreaControllerTests`, `AdminControllerTests`, `SettingsControllerTests`, `ScannerControllerTests`, `PokemonAvailabilityControllerTests`, and all alarm controller tests)
 - Alarm services (`MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`) -- these mock `IPoracleTrackingProxy`
 - Proxy classes (`PoracleTrackingProxyTests`, `PoracleHumanProxyTests`) -- verify HTTP request construction, URL encoding, response unwrapping
 - Human/profile services (`HumanServiceTests`, `ProfileServiceTests`) -- mock `IPoracleHumanProxy` for single-user ops, `IHumanRepository` for admin bulk ops
-- Other services (`UserGeofenceServiceTests`, `CleaningServiceTests`, `DashboardServiceTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `QuickPickServiceSecurityTests`)
+- Other services (`UserGeofenceServiceTests`, `CleaningServiceTests`, `DashboardServiceTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `QuickPickServiceSecurityTests`, `PokemonAvailabilityServiceTests`)
 - AutoMapper mappings (non-alarm entities)
 
 !!! info "Alarm service tests mock IPoracleTrackingProxy"

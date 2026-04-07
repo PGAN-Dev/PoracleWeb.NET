@@ -16,6 +16,18 @@
   </div>
 }
 
+@if (showAvailability()) {
+  <div class="gen-filter spawning-filter">
+    <span class="gen-label">Live</span>
+    <button class="gen-chip spawning-chip" [class.gen-active]="filterSpawning()" (click)="toggleSpawning()">
+      <span class="spawning-dot" [class.dot-active]="filterSpawning()"></span>Spawning
+    </button>
+    @if (availability.getAvailableCount() > 0) {
+      <span class="spawning-count">{{ availability.getAvailableCount() }} species active</span>
+    }
+  </div>
+}
+
 <mat-form-field class="full-width" appearance="outline">
   <mat-label>Search Pokemon</mat-label>
   <input matInput [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Type name or ID..." />
@@ -28,6 +40,12 @@
               <mat-icon class="all-pokemon-icon">select_all</mat-icon>
             } @else {
               <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="pokemon-option-img" (error)="onImageError($event)" />
+            }
+            @if (showAvailability() && pokemon.id > 0) {
+              <span
+                class="availability-indicator"
+                [class.available]="availability.isAvailable(pokemon.id)"
+                [class.unavailable]="!availability.isAvailable(pokemon.id)"></span>
             }
             <span>{{ formatPokemonName(pokemon) }}</span>
             @if (pokemon.id > 0) {
@@ -49,6 +67,11 @@
         (click)="toggleTile(pokemon)"
         [title]="pokemon.name">
         <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="tile-img" (error)="onImageError($event)" />
+        @if (showAvailability()) {
+          @if (availability.isAvailable(pokemon.id)) {
+            <span class="availability-badge" title="Currently spawning">&#x25CF;</span>
+          }
+        }
         <span class="tile-name">{{ pokemon.name }}</span>
       </button>
     }

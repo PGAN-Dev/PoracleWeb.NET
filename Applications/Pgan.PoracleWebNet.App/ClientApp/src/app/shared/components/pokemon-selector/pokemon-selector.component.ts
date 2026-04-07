@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 
 import { IconService } from '../../../core/services/icon.service';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
+import { PokemonAvailabilityService } from '../../../core/services/pokemon-availability.service';
 
 interface GenRange {
   label: string;
@@ -27,38 +28,44 @@ export class PokemonSelectorComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
-
   activeGen = signal<GenRange | null>(null);
+
   activeType = signal<string | null>(null);
   allowedIds = input<number[] | null>(null);
   allPokemon = signal<PokemonEntry[]>([]);
+  readonly availability = inject(PokemonAvailabilityService);
 
   availableTypes = computed(() => this.masterData.getAllTypes());
+  filterSpawning = signal(false);
   searchText = signal('');
   selectedPokemon = signal<PokemonEntry[]>([]);
   selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
   multi = input(false);
-  showTileGrid = computed(() => this.multi() && (this.activeGen() != null || this.activeType() != null));
+  showTileGrid = computed(() => this.multi() && (this.activeGen() != null || this.activeType() != null || this.filterSpawning()));
 
   filteredPokemon = computed(() => {
     const search = this.searchText().toLowerCase();
     const selected = this.selectedIds();
     const gen = this.activeGen();
     const type = this.activeType();
+    const spawning = this.filterSpawning();
     const tileMode = this.showTileGrid();
     const all = this.allPokemon();
     const allowed = this.allowedIds();
+    const hasFilter = gen != null || type != null || spawning;
 
     if (!all.length) return [];
 
-    return all
+    const filtered = all
       .filter(p => {
         // If allowedIds is set, restrict to those IDs (plus keep ID 0 for "All Pokemon")
         if (allowed && allowed.length > 0 && p.id !== 0 && !allowed.includes(p.id)) return false;
         // In tile grid mode, keep selected pokemon visible (they show as selected tiles)
         // In autocomplete mode, hide already-selected from dropdown
         if (this.multi() && !tileMode && selected.has(p.id)) return false;
-        if (p.id === 0) return !tileMode && (gen != null || type != null || !search);
+        if (p.id === 0) return !tileMode && (hasFilter || !search);
+        // Spawning filter
+        if (spawning && !this.availability.isAvailable(p.id)) return false;
         // Type filter
         if (type) {
           const pokemonTypes = this.masterData.getPokemonTypes(p.id);
@@ -72,9 +79,23 @@ export class PokemonSelectorComponent implements OnInit {
         // Search filter
         if (search) return p.name.toLowerCase().includes(search) || p.id.toString() === search;
         // Show all when a filter is active, otherwise require search
-        return gen != null || type != null;
+        return hasFilter;
       })
       .slice(0, 200);
+
+    // Sort available Pokemon first when any filter is active
+    if (hasFilter && this.showAvailability()) {
+      filtered.sort((a, b) => {
+        if (a.id === 0) return -1;
+        if (b.id === 0) return 1;
+        const aAvail = this.availability.isAvailable(a.id) ? 0 : 1;
+        const bAvail = this.availability.isAvailable(b.id) ? 0 : 1;
+        if (aAvail !== bAvail) return aAvail - bAvail;
+        return a.id - b.id;
+      });
+    }
+
+    return filtered;
   });
 
   readonly generations: GenRange[] = [
@@ -93,6 +114,8 @@ export class PokemonSelectorComponent implements OnInit {
 
   selectionChange = output<number[]>();
 
+  showAvailability = computed(() => this.availability.enabled());
+
   formatPokemonName(pokemon: PokemonEntry): string {
     if (pokemon.id === 0) return 'All Pokemon (ID: 0)';
     return `#${String(pokemon.id).padStart(3, '0')} ${pokemon.name}`;
@@ -107,6 +130,8 @@ export class PokemonSelectorComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.availability.load();
+
     this.masterData
       .getAllPokemon$()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -150,6 +175,12 @@ export class PokemonSelectorComponent implements OnInit {
 
   toggleGen(gen: GenRange): void {
     this.activeGen.update(current => (current === gen ? null : gen));
+    this.searchControl.setValue('');
+    this.searchText.set('');
+  }
+
+  toggleSpawning(): void {
+    this.filterSpawning.update(v => !v);
     this.searchControl.setValue('');
     this.searchText.set('');
   }

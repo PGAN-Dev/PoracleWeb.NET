@@ -220,3 +220,38 @@ SELECT * FROM monsters WHERE max_size = 0;
 -- Find alarms with incorrect "no size filter" value (shows as "-XXL" in PHP UI)
 SELECT * FROM monsters WHERE size = 0;
 ```
+
+---
+
+## Pokemon availability not showing
+
+**Symptom**: The "Live > Spawning" filter doesn't appear in the Pokemon selector.
+
+**Causes and fixes**:
+
+1. **Golbat not configured**: Set `GOLBAT_API_ADDRESS` and `GOLBAT_API_SECRET` in `.env` and restart the container. The feature is only enabled when both are set.
+
+2. **docker-compose.yml missing Golbat vars**: Ensure your `docker-compose.yml` passes the Golbat env vars to the container:
+   ```yaml
+   environment:
+     - Golbat__ApiAddress=${GOLBAT_API_ADDRESS:-}
+     - Golbat__ApiSecret=${GOLBAT_API_SECRET:-}
+   ```
+
+3. **Golbat API unreachable from container**: Verify connectivity from inside the container. Check the app logs for `Failed to fetch available Pokemon from Golbat API` warnings.
+
+4. **Wrong API secret**: The `GOLBAT_API_SECRET` must match Golbat's `api_secret` value in its `config.toml`. An incorrect secret results in `401 Unauthorised` responses.
+
+5. **Browser cache**: Hard refresh (Ctrl+Shift+R) after deploying a new build. The old JavaScript bundle won't have the availability code.
+
+**Diagnostic**:
+```bash
+# Test Golbat API from host
+curl -H "X-Golbat-Secret: YOUR_SECRET" http://GOLBAT_HOST:9001/api/pokemon/available
+
+# Check if env vars reached the container
+docker exec poracleweb.net printenv | grep -i golbat
+
+# Check app logs for Golbat activity
+docker logs poracleweb.net 2>&1 | grep -i golbat
+```

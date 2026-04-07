@@ -167,6 +167,24 @@ The `RdmGymEntity` in the scanner context maps the `url` column from the `gym` t
 
 `IScannerService` declares a static `PointInPolygon(double lat, double lon, double[][] polygon)` method using the ray-casting algorithm. The method tests if a point lies inside a polygon (where each entry is `[lat, lon]`) and returns `false` for degenerate polygons with fewer than 3 vertices. Used by `ScannerController` to determine which Koji geofence area a gym belongs to.
 
+## Golbat API proxy
+
+### IGolbatApiProxy (Pokemon availability)
+
+Proxies requests to Golbat's `GET /api/pokemon/available` endpoint, which returns currently spawning species with per-species/form counts. Authentication uses the `X-Golbat-Secret` header (per-request, not on DefaultRequestHeaders).
+
+- Registered conditionally via `AddHttpClient<IGolbatApiProxy, GolbatApiProxy>()` — only when `Golbat:ApiAddress` is configured
+- Response parsing handles both flat arrays `[1,2,3]` and object arrays `[{"id":1,"form":0,"count":100}]`, deduplicating by Pokemon ID
+- On error: returns empty list (never throws), logs warning
+
+### IPokemonAvailabilityService (caching layer)
+
+Caches Golbat availability data in `IMemoryCache` with a 5-minute absolute expiration. Maintains a `_lastKnownGood` fallback — if Golbat goes down after a successful fetch, the stale data is served rather than returning empty.
+
+- Registered as **singleton** (only when Golbat is configured)
+- Cache key: `golbat_available_pokemon`
+- `PokemonAvailabilityController` uses nullable DI injection (`IPokemonAvailabilityService? = null`) — when Golbat is not configured, the endpoint returns `{ available: [], enabled: false }`
+
 ## Rate limiting
 
 Auth endpoints use **per-IP** partitioned rate limiting:
