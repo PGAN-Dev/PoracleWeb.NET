@@ -23,7 +23,7 @@ public class TestAlertTarget
     public string Name { get; set; } = string.Empty;
 
     [JsonPropertyName("type")]
-    public string Type { get; set; } = "discord";
+    public string Type { get; set; } = "discord:user";
 
     [JsonPropertyName("language")]
     public string Language { get; set; } = "en";

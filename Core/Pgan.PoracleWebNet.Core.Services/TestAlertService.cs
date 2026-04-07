@@ -38,8 +38,9 @@ public partial class TestAlertService(
         var alarm = FindAlarmByUid(allAlarms, uid)
             ?? throw new KeyNotFoundException($"Alarm with uid {uid} not found");
 
-        // Build the test request
+        // Build the test request — use the alarm's template so PoracleNG renders with the right DTS
         var target = BuildTarget(userId, human);
+        target.Template = GetString(alarm, "template", "1");
         var request = new TestAlertRequest
         {
             Type = alarmType,
@@ -62,8 +63,7 @@ public partial class TestAlertService(
 
         if (human.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String)
         {
-            var typeStr = type.GetString() ?? "discord:user";
-            target.Type = typeStr.Contains("telegram", StringComparison.OrdinalIgnoreCase) ? "telegram" : "discord";
+            target.Type = type.GetString() ?? "discord:user";
         }
 
         if (human.TryGetProperty("language", out var lang) && lang.ValueKind == JsonValueKind.String)
