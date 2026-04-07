@@ -1,6 +1,4 @@
 using System.Text.Json;
-using System.Linq;
-
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
