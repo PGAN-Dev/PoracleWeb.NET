@@ -16,13 +16,22 @@ public class FortChangeServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly FortChangeService _sut;
+    private static readonly string[] stringArray = new[] { "name", "location" };
 
     public FortChangeServiceTests() => this._sut = new FortChangeService(this._proxy.Object);
 
     [Fact]
     public async Task GetByUserAsyncReturnsFortChanges()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1", fort_type = "pokestop", include_empty = 0, change_types = new[] { "name", "location" }, distance = 1000 });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1",
+            fort_type = "pokestop",
+            include_empty = 0,
+            change_types = stringArray,
+            distance = 1000
+        });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         var result = (await this._sut.GetByUserAsync("u1", 1)).ToList();
         Assert.Single(result);
@@ -32,7 +41,12 @@ public class FortChangeServiceTests
     [Fact]
     public async Task GetByUidAsyncFound()
     {
-        var json = CreateJsonArray(new { uid = 5, id = "u1", fort_type = "gym" });
+        var json = CreateJsonArray(new
+        {
+            uid = 5,
+            id = "u1",
+            fort_type = "gym"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         var result = await this._sut.GetByUidAsync("u1", 5);
         Assert.NotNull(result);
@@ -42,7 +56,11 @@ public class FortChangeServiceTests
     [Fact]
     public async Task GetByUidAsyncNotFound()
     {
-        var json = CreateJsonArray(new { uid = 5, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 5,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         Assert.Null(await this._sut.GetByUidAsync("u1", 99));
     }
@@ -52,7 +70,7 @@ public class FortChangeServiceTests
     {
         this._proxy.Setup(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([10L], 0, 0, 1));
-        var model = new Core.Models.FortChange { FortType = "pokestop" };
+        var model = new FortChange { FortType = "pokestop" };
         var result = await this._sut.CreateAsync("u1", model);
         Assert.Equal("u1", result.Id);
         Assert.Equal(10, result.Uid);
@@ -69,9 +87,21 @@ public class FortChangeServiceTests
     public async Task DeleteAllByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u1" },
-            new { uid = 2, id = "u1" },
-            new { uid = 3, id = "u1" });
+            new
+            {
+                uid = 1,
+                id = "u1"
+            },
+            new
+            {
+                uid = 2,
+                id = "u1"
+            },
+            new
+            {
+                uid = 3,
+                id = "u1"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("fort", "u1", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -82,8 +112,18 @@ public class FortChangeServiceTests
     public async Task UpdateDistanceByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u1", distance = 0 },
-            new { uid = 2, id = "u1", distance = 0 });
+            new
+            {
+                uid = 1,
+                id = "u1",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                id = "u1",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));

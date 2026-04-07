@@ -112,7 +112,7 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<Invasion>> BulkCreateAsync(string userId, IEnumerable<Invasion> models)

@@ -1,0 +1,353 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1><mat-icon class="header-icon">compare_arrows</mat-icon> Profiles</h1>
+    <p class="page-description">
+      Manage profiles and view all alarms across every profile. Switch between profiles, spot duplicates, and export your full
+      configuration.
+    </p>
+  </div>
+  <div class="header-actions">
+    <button mat-stroked-button (click)="fileInput.click()" matTooltip="Import profile from backup file">
+      <mat-icon>upload</mat-icon> Import
+    </button>
+    <input #fileInput type="file" accept=".json" hidden (change)="importProfile($event)" />
+    <button mat-fab color="primary" (click)="openAddProfileDialog()" matTooltip="Add new profile">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>
+
+<!-- Stats Summary Bar -->
+@if (!loading() && stats(); as s) {
+  <div class="stats-bar">
+    <div class="stat-chip stat-total">
+      <mat-icon>notifications</mat-icon>
+      <span class="stat-chip-value">{{ s.totalAlarms }}</span>
+      <span class="stat-chip-label">Total Alarms</span>
+    </div>
+    <div class="stat-chip stat-profiles">
+      <mat-icon>person</mat-icon>
+      <span class="stat-chip-value">{{ s.profileCount }}</span>
+      <span class="stat-chip-label">Profiles</span>
+    </div>
+    @for (type of alarmTypes; track type.key) {
+      @if (s.typeCounts[type.key] > 0) {
+        <div class="stat-chip stat-type" [style.--type-color]="type.color">
+          <mat-icon>{{ type.icon }}</mat-icon>
+          <span class="stat-chip-value">{{ s.typeCounts[type.key] }}</span>
+          <span class="stat-chip-label">{{ type.label }}</span>
+        </div>
+      }
+    }
+    @if (s.duplicateCount > 0) {
+      <div class="stat-chip stat-duplicates">
+        <mat-icon>content_copy</mat-icon>
+        <span class="stat-chip-value">{{ s.duplicateCount }}</span>
+        <span class="stat-chip-label">Duplicates</span>
+      </div>
+    }
+  </div>
+}
+
+<!-- Global Filter Bar -->
+@if (!loading() && overview()) {
+  <div class="filter-bar">
+    <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput placeholder="Search across all profiles..." [formControl]="searchControl" />
+      @if (searchControl.value) {
+        <button matSuffix mat-icon-button (click)="searchControl.reset()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <div class="type-filters">
+      <button class="type-chip" [class.type-active]="selectedType() === null" (click)="setTypeFilter(null)">All</button>
+      @for (type of alarmTypes; track type.key) {
+        @if (getTypeCount(type.key) > 0) {
+          <button
+            class="type-chip"
+            [class.type-active]="selectedType() === type.key"
+            [style.--type-color]="type.color"
+            (click)="setTypeFilter(type.key)">
+            <mat-icon>{{ type.icon }}</mat-icon>
+            {{ type.label }}
+            <span class="type-count">{{ getTypeCount(type.key) }}</span>
+          </button>
+        }
+      }
+      @if (duplicateUids().size > 0) {
+        <button
+          class="type-chip"
+          [class.type-active]="showDuplicatesOnly()"
+          [style.--type-color]="'#ff9800'"
+          (click)="toggleDuplicatesFilter()">
+          <mat-icon>content_copy</mat-icon>
+          Duplicates
+          <span class="type-count">{{ duplicateUids().size }}</span>
+        </button>
+      }
+    </div>
+  </div>
+}
+
+<!-- Skeleton Loading -->
+@if (loading()) {
+  <div class="skeleton-container">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    @for (i of skeletonPanels; track i) {
+      <div class="skeleton-panel">
+        <div class="skeleton-panel-header">
+          <div class="skeleton-circle"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line" style="width: 40%"></div>
+            <div class="skeleton-line" style="width: 25%"></div>
+          </div>
+        </div>
+        <div class="skeleton-panel-body">
+          <div class="alarm-grid">
+            <div class="skeleton-card">
+              <div class="skeleton-header">
+                <div class="skeleton-image"></div>
+                <div class="skeleton-lines">
+                  <div class="skeleton-line" style="width: 60%"></div>
+                  <div class="skeleton-line" style="width: 40%"></div>
+                </div>
+              </div>
+              <div class="skeleton-pills">
+                <div class="skeleton-pill"></div>
+                <div class="skeleton-pill" style="width: 50px"></div>
+              </div>
+            </div>
+            <div class="skeleton-card">
+              <div class="skeleton-header">
+                <div class="skeleton-image"></div>
+                <div class="skeleton-lines">
+                  <div class="skeleton-line" style="width: 50%"></div>
+                  <div class="skeleton-line" style="width: 35%"></div>
+                </div>
+              </div>
+              <div class="skeleton-pills">
+                <div class="skeleton-pill" style="width: 70px"></div>
+                <div class="skeleton-pill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  <!-- Profile Accordion -->
+  @if (filteredProfiles().length > 0) {
+    <mat-accordion multi>
+      @for (group of filteredProfiles(); track group.profile.profile_no) {
+        <mat-expansion-panel
+          [expanded]="expandedProfiles().has(group.profile.profile_no)"
+          (opened)="onPanelOpened(group.profile.profile_no)"
+          (closed)="onPanelClosed(group.profile.profile_no)"
+          class="profile-panel"
+          [class.active-profile-panel]="isActiveProfile(group.profile.profile_no)">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div class="panel-title-row">
+                <svg class="profile-icon-svg" width="24" height="24" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="6" />
+                  <path d="M4 50h92" stroke="currentColor" stroke-width="6" />
+                  <circle cx="50" cy="50" r="14" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="5" />
+                </svg>
+                <span class="profile-name">{{ group.profile.name }}</span>
+                @if (isActiveProfile(group.profile.profile_no)) {
+                  <span class="active-badge"><mat-icon>check_circle</mat-icon> Active</span>
+                }
+              </div>
+            </mat-panel-title>
+            <mat-panel-description>
+              <span class="alarm-count-badge"> {{ group.totalAlarms }} alarm{{ group.totalAlarms === 1 ? '' : 's' }} </span>
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <!-- Profile Management Actions -->
+          <div class="profile-actions">
+            @if (!isActiveProfile(group.profile.profile_no)) {
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="switchProfile(group.profile)"
+                [disabled]="switching()"
+                matTooltip="Switch to this profile">
+                <mat-icon>swap_horiz</mat-icon> Switch
+              </button>
+            }
+            <button mat-icon-button (click)="exportProfile(group.profile)" matTooltip="Export profile backup">
+              <mat-icon>download</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              (click)="duplicateProfile(group.profile)"
+              [disabled]="switching()"
+              matTooltip="Duplicate profile with all alarms">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+            @if (getManagedProfile(group.profile.profile_no); as mp) {
+              <button mat-icon-button (click)="editProfile(mp)" matTooltip="Edit profile name">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="deleteProfile(mp)"
+                [disabled]="mp.active"
+                [matTooltip]="mp.active ? 'Cannot delete active profile' : 'Delete profile'">
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
+          </div>
+
+          @for (type of alarmTypes; track type.key) {
+            @if (group.alarmsByType.has(type.key)) {
+              <div class="type-section">
+                <div class="type-section-header" [style.--type-color]="type.color">
+                  <mat-icon>{{ type.icon }}</mat-icon>
+                  <span>{{ type.label }}</span>
+                  <span class="type-section-count">{{ group.alarmsByType.get(type.key)!.length }}</span>
+                </div>
+                <div class="alarm-grid">
+                  @for (alarm of group.alarmsByType.get(type.key)!; track alarm.uid) {
+                    <mat-card class="alarm-card" [class.duplicate-card]="isDuplicate(alarm)" [style.border-left-color]="type.color">
+                      <div class="card-top" [style.border-top-color]="type.color">
+                        <div class="type-icon-wrap" [style.background]="type.color + '18'" [style.color]="type.color">
+                          @if (getAlarmImage(alarm, type.key); as imgUrl) {
+                            <img
+                              [src]="imgUrl"
+                              [alt]="getAlarmDescription(alarm, type.key)"
+                              class="alarm-img"
+                              (error)="onImageError($event)" />
+                          } @else {
+                            <mat-icon>{{ type.icon }}</mat-icon>
+                          }
+                        </div>
+                        <div class="alarm-info">
+                          <h3>{{ getAlarmDescription(alarm, type.key) }}</h3>
+                          @if (alarm.template) {
+                            <span class="template-badge">{{ alarm.template }}</span>
+                          }
+                        </div>
+                        <div class="card-top-actions">
+                          @if (alarm.clean === 1) {
+                            <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+                          }
+                          @if (isDuplicate(alarm)) {
+                            <span class="duplicate-tag" [matTooltip]="'Also on: ' + getDuplicateProfiles(alarm, type.key).join(', ')">
+                              <mat-icon>content_copy</mat-icon>
+                            </span>
+                          }
+                        </div>
+                      </div>
+                      <mat-card-content>
+                        <div class="filter-pills">
+                          <!-- Pokemon-specific pills -->
+                          @if (type.key === 'pokemon') {
+                            @if (alarm.min_iv !== undefined && alarm.min_iv !== -1 && (alarm.min_iv !== 0 || alarm.max_iv !== 100)) {
+                              <span class="filter-pill iv-pill">IV {{ alarm.min_iv }}-{{ alarm.max_iv }}%</span>
+                            }
+                            @if (alarm.min_iv === -1) {
+                              <span class="filter-pill iv-pill iv-disabled">No IV</span>
+                            }
+                            @if ((alarm.min_cp ?? 0) > 0 || (alarm.max_cp ?? 9000) < 9000) {
+                              <span class="filter-pill cp-pill">CP {{ alarm.min_cp }}-{{ alarm.max_cp }}</span>
+                            }
+                            @if ((alarm.min_level ?? 0) > 0 || (alarm.max_level ?? 35) < 35) {
+                              <span class="filter-pill level-pill">L{{ alarm.min_level }}-{{ alarm.max_level }}</span>
+                            }
+                            @if ((alarm.pvp_ranking_league ?? 0) > 0) {
+                              <span class="filter-pill pvp-pill"
+                                >PVP
+                                {{
+                                  alarm.pvp_ranking_league === 1500
+                                    ? 'GL'
+                                    : alarm.pvp_ranking_league === 2500
+                                      ? 'UL'
+                                      : alarm.pvp_ranking_league === 500
+                                        ? 'LC'
+                                        : 'ML'
+                                }}</span
+                              >
+                            }
+                          }
+                          <!-- Raid/Egg pills -->
+                          @if (type.key === 'raid' || type.key === 'egg') {
+                            @if (alarm.level) {
+                              <span class="filter-pill level-pill">L{{ alarm.level }}</span>
+                            }
+                            @if (alarm.exclusive === 1) {
+                              <span class="filter-pill exclusive-pill">EX</span>
+                            }
+                            @if ((alarm.team ?? 0) > 0) {
+                              <span class="filter-pill team-pill">Team {{ alarm.team }}</span>
+                            }
+                          }
+                          <!-- Quest pills -->
+                          @if (type.key === 'quest') {
+                            @if (alarm.shiny === 1) {
+                              <span class="filter-pill shiny-pill">Shiny</span>
+                            }
+                          }
+                          <!-- Gender pill (pokemon, invasion) -->
+                          @if ((alarm.gender ?? 0) > 0) {
+                            <span class="filter-pill gender-pill">{{
+                              alarm.gender === 1 ? '\u2642' : alarm.gender === 2 ? '\u2640' : 'Genderless'
+                            }}</span>
+                          }
+                          <!-- Form pill -->
+                          @if ((alarm.form ?? 0) > 0) {
+                            <span class="filter-pill form-pill">Form {{ alarm.form }}</span>
+                          }
+                        </div>
+                        <div class="distance-chip-row">
+                          @if ((alarm.distance ?? 0) === 0) {
+                            <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+                          } @else {
+                            <span class="distance-chip distance-mode"
+                              ><mat-icon>straighten</mat-icon> {{ formatDistance(alarm.distance!) }}</span
+                            >
+                          }
+                        </div>
+                      </mat-card-content>
+                    </mat-card>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </mat-expansion-panel>
+      }
+    </mat-accordion>
+  } @else if (overview() && filteredProfiles().length === 0 && (searchTerm() || selectedType())) {
+    <div class="alarm-grid">
+      <div class="empty-state">
+        <mat-icon class="empty-icon">search_off</mat-icon>
+        <h2 class="empty-title">No Matching Alarms</h2>
+        <p class="empty-subtitle">Try adjusting your search or filter criteria</p>
+        <button mat-stroked-button (click)="searchControl.reset(); setTypeFilter(null)"><mat-icon>clear</mat-icon> Clear Filters</button>
+      </div>
+    </div>
+  } @else {
+    <div class="alarm-grid">
+      <div class="empty-state">
+        <svg class="empty-illustration" width="120" height="120" viewBox="0 0 120 120" fill="none">
+          <circle cx="60" cy="60" r="56" stroke="currentColor" stroke-width="3" opacity="0.15" />
+          <path d="M4 60h112" stroke="currentColor" stroke-width="3" opacity="0.15" />
+          <circle cx="60" cy="60" r="14" stroke="currentColor" stroke-width="3" opacity="0.15" />
+          <circle cx="60" cy="60" r="8" fill="currentColor" opacity="0.08" />
+          <text x="85" y="30" font-size="18" fill="currentColor" opacity="0.2" font-weight="600">Z</text>
+          <text x="95" y="22" font-size="14" fill="currentColor" opacity="0.15" font-weight="600">z</text>
+          <text x="102" y="16" font-size="10" fill="currentColor" opacity="0.1" font-weight="600">z</text>
+        </svg>
+        <h2 class="empty-title">No Alarms Configured</h2>
+        <p class="empty-subtitle">You don't have any alarms across any profiles yet. Start by adding Pokemon or Raid alerts!</p>
+      </div>
+    </div>
+  }
+}

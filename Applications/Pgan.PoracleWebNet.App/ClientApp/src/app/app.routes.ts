@@ -24,6 +24,11 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard],
+    loadComponent: () => import('./modules/cross-profile/cross-profile-overview.component').then(m => m.CrossProfileOverviewComponent),
+    path: 'profiles',
+  },
+  {
+    canActivate: [authGuard],
     loadComponent: () => import('./modules/quick-picks/quick-pick-list.component').then(m => m.QuickPickListComponent),
     path: 'quick-picks',
   },
@@ -81,11 +86,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./modules/geofences/geofence-list.component').then(m => m.GeofenceListComponent),
     path: 'geofences',
-  },
-  {
-    canActivate: [authGuard],
-    loadComponent: () => import('./modules/profiles/profile-list.component').then(m => m.ProfileListComponent),
-    path: 'profiles',
   },
   {
     canActivate: [authGuard],

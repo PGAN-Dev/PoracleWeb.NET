@@ -43,9 +43,9 @@ public class PoracleTrackingProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetByUserAsync_ExtractsArrayByTypeKey()
+    public async Task GetByUserAsyncExtractsArrayByTypeKey()
     {
-        var responseBody = """{"pokemon":[{"uid":1},{"uid":2}]}""";
+        var responseBody = /*lang=json,strict*/ """{"pokemon":[{"uid":1},{"uid":2}]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -57,9 +57,9 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task GetByUserAsync_ReturnsEmptyArrayWhenKeyMissing()
+    public async Task GetByUserAsyncReturnsEmptyArrayWhenKeyMissing()
     {
-        var responseBody = """{"other":[{"uid":1}]}""";
+        var responseBody = /*lang=json,strict*/ """{"other":[{"uid":1}]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -70,9 +70,9 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task GetByUserAsync_CallsCorrectUrl()
+    public async Task GetByUserAsyncCallsCorrectUrl()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"raid":[]}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"raid":[]}""");
         var sut = CreateSut(handler);
 
         await sut.GetByUserAsync("raid", "user42");
@@ -83,7 +83,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task GetByUserAsync_ThrowsOnNon2xx()
+    public async Task GetByUserAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -103,7 +103,7 @@ public class PoracleTrackingProxyTests
     [InlineData("fort", "fort")]
     [InlineData("maxbattle", "maxbattle")]
     [InlineData("unknown_type", "unknown_type")]
-    public async Task GetByUserAsync_ResolvesCorrectResponseKey(string type, string expectedKey)
+    public async Task GetByUserAsyncResolvesCorrectResponseKey(string type, string expectedKey)
     {
         var responseBody = $$"""{"{{expectedKey}}":[{"uid":99}]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
@@ -119,9 +119,9 @@ public class PoracleTrackingProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CreateAsync_SendsCorrectUrlWithSilentParam()
+    public async Task CreateAsyncSendsCorrectUrlWithSilentParam()
     {
-        var responseBody = """{"newUids":[10,11],"alreadyPresent":0,"updates":0,"insert":2}""";
+        var responseBody = /*lang=json,strict*/ """{"newUids":[10,11],"alreadyPresent":0,"updates":0,"insert":2}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -134,9 +134,9 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task CreateAsync_SendsJsonBody()
+    public async Task CreateAsyncSendsJsonBody()
     {
-        var responseBody = """{"newUids":[],"alreadyPresent":1,"updates":0,"insert":0}""";
+        var responseBody = /*lang=json,strict*/ """{"newUids":[],"alreadyPresent":1,"updates":0,"insert":0}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -149,9 +149,9 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task CreateAsync_ParsesNewUids()
+    public async Task CreateAsyncParsesNewUids()
     {
-        var responseBody = """{"newUids":[100,200,300],"alreadyPresent":1,"updates":2,"insert":3}""";
+        var responseBody = /*lang=json,strict*/ """{"newUids":[100,200,300],"alreadyPresent":1,"updates":2,"insert":3}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -168,9 +168,9 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task CreateAsync_HandlesResponseWithoutOptionalFields()
+    public async Task CreateAsyncHandlesResponseWithoutOptionalFields()
     {
-        var responseBody = """{"newUids":[5]}""";
+        var responseBody = /*lang=json,strict*/ """{"newUids":[5]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -185,7 +185,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task CreateAsync_ThrowsOnNon2xx()
+    public async Task CreateAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.BadRequest, "{}");
         var sut = CreateSut(handler);
@@ -199,7 +199,7 @@ public class PoracleTrackingProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task DeleteByUidAsync_CallsCorrectUrl()
+    public async Task DeleteByUidAsyncCallsCorrectUrl()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -212,7 +212,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task DeleteByUidAsync_Handles404Gracefully()
+    public async Task DeleteByUidAsyncHandles404Gracefully()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
         var sut = CreateSut(handler);
@@ -222,7 +222,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task DeleteByUidAsync_ThrowsOnOtherErrors()
+    public async Task DeleteByUidAsyncThrowsOnOtherErrors()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -235,7 +235,7 @@ public class PoracleTrackingProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task BulkDeleteByUidsAsync_SendsUidArray()
+    public async Task BulkDeleteByUidsAsyncSendsUidArray()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -255,7 +255,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task BulkDeleteByUidsAsync_SkipsRequestWhenEmpty()
+    public async Task BulkDeleteByUidsAsyncSkipsRequestWhenEmpty()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -266,7 +266,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task BulkDeleteByUidsAsync_ThrowsOnNon2xx()
+    public async Task BulkDeleteByUidsAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -279,9 +279,9 @@ public class PoracleTrackingProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetAllTrackingAsync_ReturnsFullResponse()
+    public async Task GetAllTrackingAsyncReturnsFullResponse()
     {
-        var responseBody = """{"pokemon":[{"uid":1}],"raid":[{"uid":2}]}""";
+        var responseBody = /*lang=json,strict*/ """{"pokemon":[{"uid":1}],"raid":[{"uid":2}]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -293,7 +293,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task GetAllTrackingAsync_CallsCorrectUrl()
+    public async Task GetAllTrackingAsyncCallsCorrectUrl()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -306,7 +306,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task GetAllTrackingAsync_ThrowsOnNon2xx()
+    public async Task GetAllTrackingAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -319,7 +319,7 @@ public class PoracleTrackingProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ReloadStateAsync_CallsReloadEndpoint()
+    public async Task ReloadStateAsyncCallsReloadEndpoint()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -332,12 +332,12 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task ReloadStateAsync_ThrowsOnNon2xx()
+    public async Task ReloadStateAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.ReloadStateAsync());
+        await Assert.ThrowsAsync<HttpRequestException>(sut.ReloadStateAsync);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -345,9 +345,9 @@ public class PoracleTrackingProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AllRequests_IncludePoracleSecretHeader()
+    public async Task AllRequestsIncludePoracleSecretHeader()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"pokemon":[]}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"pokemon":[]}""");
         var sut = CreateSut(handler);
 
         await sut.GetByUserAsync("pokemon", "user1");
@@ -358,9 +358,9 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task AllRequests_OmitSecretHeaderWhenEmpty()
+    public async Task AllRequestsOmitSecretHeaderWhenEmpty()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"pokemon":[]}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"pokemon":[]}""");
         var sut = CreateSut(handler, CreateConfigNoSecret());
 
         await sut.GetByUserAsync("pokemon", "user1");
@@ -370,9 +370,9 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task CreateAsync_IncludesPoracleSecretHeader()
+    public async Task CreateAsyncIncludesPoracleSecretHeader()
     {
-        var responseBody = """{"newUids":[1]}""";
+        var responseBody = /*lang=json,strict*/ """{"newUids":[1]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -384,7 +384,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task DeleteByUidAsync_IncludesPoracleSecretHeader()
+    public async Task DeleteByUidAsyncIncludesPoracleSecretHeader()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -396,7 +396,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task BulkDeleteByUidsAsync_IncludesPoracleSecretHeader()
+    public async Task BulkDeleteByUidsAsyncIncludesPoracleSecretHeader()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -408,7 +408,7 @@ public class PoracleTrackingProxyTests
     }
 
     [Fact]
-    public async Task ReloadStateAsync_IncludesPoracleSecretHeader()
+    public async Task ReloadStateAsyncIncludesPoracleSecretHeader()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -423,9 +423,12 @@ public class PoracleTrackingProxyTests
     // Mock handler
     // ──────────────────────────────────────────────────────────────
 
-    private class MockHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
+    private sealed class MockHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
     {
-        public HttpRequestMessage? LastRequest { get; private set; }
+        public HttpRequestMessage? LastRequest
+        {
+            get; private set;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {

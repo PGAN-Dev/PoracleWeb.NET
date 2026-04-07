@@ -110,7 +110,7 @@ public class NestService(IPoracleTrackingProxy proxy) : INestService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<Nest>> BulkCreateAsync(string userId, IEnumerable<Nest> models)

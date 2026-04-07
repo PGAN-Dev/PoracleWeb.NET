@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
-using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -14,6 +13,7 @@ public class AreaControllerTests : ControllerTestBase
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<ILogger<AreaController>> _logger = new();
     private readonly AreaController _sut;
+    private static readonly string[] areasArray = new[] { "west", "east" };
 
     public AreaControllerTests()
     {
@@ -101,7 +101,7 @@ public class AreaControllerTests : ControllerTestBase
     {
         var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "EAST"] });
 
-        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", new[] { "west", "east" }), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync("123456789", areasArray), Times.Once);
         var ok = Assert.IsType<OkObjectResult>(result);
         var areas = Assert.IsType<string[]>(ok.Value);
         Assert.Equal(["west", "east"], areas);

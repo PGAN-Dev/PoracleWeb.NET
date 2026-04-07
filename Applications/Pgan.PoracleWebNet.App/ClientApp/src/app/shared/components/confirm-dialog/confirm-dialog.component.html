@@ -9,6 +9,15 @@
   @if (data.itemDescription) {
     <p class="item-description">{{ data.itemDescription }}</p>
   }
+  @if (data.promptField) {
+    <mat-form-field appearance="outline" style="width: 100%; margin-top: 8px">
+      <mat-label>{{ data.promptField.label }}</mat-label>
+      <input matInput [(ngModel)]="promptValue" />
+      @if (hasPromptConflict) {
+        <mat-error>A profile with this name already exists</mat-error>
+      }
+    </mat-form-field>
+  }
   @if (data.showDontAskAgain) {
     <mat-checkbox [(ngModel)]="dontAskAgain" class="dont-ask-checkbox"> Don't ask again for this session </mat-checkbox>
   }
@@ -17,7 +26,7 @@
   <button mat-button (click)="onCancel()">
     {{ data.cancelText || 'Cancel' }}
   </button>
-  <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()">
+  <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="hasPromptConflict">
     @if (data.warn) {
       <mat-icon>delete</mat-icon>
     }

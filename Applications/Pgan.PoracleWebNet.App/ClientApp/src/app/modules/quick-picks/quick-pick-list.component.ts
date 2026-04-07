@@ -41,9 +41,9 @@ export class QuickPickListComponent implements OnInit {
     gym: '#00bcd4',
     invasion: '#607d8b',
     lure: '#e91e63',
+    maxbattle: '#ff5722',
     monster: '#4caf50',
     nest: '#8bc34a',
-    maxbattle: '#ff5722',
     quest: '#9c27b0',
   };
 

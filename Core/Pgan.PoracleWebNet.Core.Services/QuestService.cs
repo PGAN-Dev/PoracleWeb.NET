@@ -110,7 +110,7 @@ public class QuestService(IPoracleTrackingProxy proxy) : IQuestService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<Quest>> BulkCreateAsync(string userId, IEnumerable<Quest> models)

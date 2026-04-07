@@ -31,12 +31,26 @@ export class ProfileAddDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<ProfileAddDialogComponent>);
 
+  existingNames = signal<Set<string>>(new Set());
+  nameError = signal('');
   profileName = '';
   readonly saving = signal(false);
+
+  constructor() {
+    this.profileService.getAll().subscribe(profiles => {
+      this.existingNames.set(new Set(profiles.map(p => (p.name ?? '').toLowerCase())));
+    });
+  }
 
   save(): void {
     const name = this.profileName.trim();
     if (!name) return;
+
+    if (this.existingNames().has(name.toLowerCase())) {
+      this.nameError.set('A profile with this name already exists');
+      return;
+    }
+    this.nameError.set('');
 
     this.saving.set(true);
     this.profileService.create({ name }).subscribe({

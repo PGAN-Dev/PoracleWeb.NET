@@ -21,7 +21,11 @@ public class LureServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsLures()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(json);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
@@ -29,7 +33,11 @@ public class LureServiceTests
     [Fact]
     public async Task GetByUidAsyncFound()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(json);
         Assert.NotNull(await this._sut.GetByUidAsync("u1", 1));
     }
@@ -62,9 +70,21 @@ public class LureServiceTests
     public async Task DeleteAllByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("lure", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -76,8 +96,18 @@ public class LureServiceTests
     public async Task UpdateDistanceByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u", distance = 0 },
-            new { uid = 2, id = "u", distance = 0 });
+            new
+            {
+                uid = 1,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                id = "u",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("lure", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
@@ -89,10 +119,26 @@ public class LureServiceTests
     public async Task CountByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
 
         Assert.Equal(4, await this._sut.CountByUserAsync("u", 1));

@@ -43,9 +43,12 @@ internal static class PoracleJsonHelper
         return root.Clone();
     }
 
-    private static JsonElement StripProperty(JsonElement obj, string propertyName)
+    /// <summary>
+    /// Removes a named property from a JSON object, returning a new JsonElement without it.
+    /// </summary>
+    public static JsonElement StripProperty(JsonElement obj, string propertyName)
     {
-        using var stream = new System.IO.MemoryStream();
+        using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
         {
             writer.WriteStartObject();
@@ -67,7 +70,7 @@ internal static class PoracleJsonHelper
 
     private static JsonElement StripZeroUidsFromArray(JsonElement array)
     {
-        using var stream = new System.IO.MemoryStream();
+        using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
         {
             writer.WriteStartArray();
@@ -108,10 +111,7 @@ internal static class PoracleJsonHelper
     /// <summary>
     /// Deserializes a JsonElement array to a typed list using snake_case naming.
     /// </summary>
-    public static List<T> DeserializeList<T>(JsonElement json)
-    {
-        return json.Deserialize<List<T>>(SnakeCaseOptions) ?? [];
-    }
+    public static List<T> DeserializeList<T>(JsonElement json) => json.Deserialize<List<T>>(SnakeCaseOptions) ?? [];
 }
 
 /// <summary>

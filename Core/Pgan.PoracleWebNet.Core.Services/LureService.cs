@@ -110,7 +110,7 @@ public class LureService(IPoracleTrackingProxy proxy) : ILureService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<Lure>> BulkCreateAsync(string userId, IEnumerable<Lure> models)

@@ -80,7 +80,7 @@ public class QuickPickServiceSecurityTests
     }
 
     [Fact]
-    public async Task RemoveAsync_PassesCallerUserIdToServiceDeletes()
+    public async Task RemoveAsyncPassesCallerUserIdToServiceDeletes()
     {
         // Arrange: an applied state with tracked UIDs
         var quickPickId = Guid.NewGuid().ToString();
@@ -106,7 +106,7 @@ public class QuickPickServiceSecurityTests
     }
 
     [Fact]
-    public async Task RemoveAsync_ReturnsFalseWhenAppliedStateNotFound()
+    public async Task RemoveAsyncReturnsFalseWhenAppliedStateNotFound()
     {
         this._appliedStateRepository.Setup(r => r.GetAsync("user1", 1, "missing"))
             .ReturnsAsync((QuickPickAppliedState?)null);
@@ -118,7 +118,7 @@ public class QuickPickServiceSecurityTests
     }
 
     [Fact]
-    public async Task DeleteUserPickAsync_RejectsDeleteForNonOwner()
+    public async Task DeleteUserPickAsyncRejectsDeleteForNonOwner()
     {
         // Arrange: definition owned by another user
         this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("pick1", "attacker"))
@@ -134,7 +134,7 @@ public class QuickPickServiceSecurityTests
     }
 
     [Fact]
-    public async Task DeleteUserPickAsync_AllowsDeleteForOwner()
+    public async Task DeleteUserPickAsyncAllowsDeleteForOwner()
     {
         var definition = new QuickPickDefinition
         {
@@ -154,7 +154,7 @@ public class QuickPickServiceSecurityTests
     }
 
     [Fact]
-    public async Task RemoveAsync_PassesCallerUserIdForRaidDeletes()
+    public async Task RemoveAsyncPassesCallerUserIdForRaidDeletes()
     {
         var quickPickId = Guid.NewGuid().ToString();
         var appliedState = new QuickPickAppliedState

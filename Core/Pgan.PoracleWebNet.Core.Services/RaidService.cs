@@ -110,7 +110,7 @@ public class RaidService(IPoracleTrackingProxy proxy) : IRaidService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<Raid>> BulkCreateAsync(string userId, IEnumerable<Raid> models)

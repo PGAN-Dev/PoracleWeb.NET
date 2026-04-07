@@ -85,24 +85,21 @@ public class HumanService(
     // See: docs/poracleng-enhancement-requests.md
     public async Task<bool> DeleteUserAsync(string userId) => await this._repository.DeleteUserAsync(userId);
 
-    private static Human DeserializeHuman(JsonElement json)
+    private static Human DeserializeHuman(JsonElement json) => new Human
     {
-        return new Human
-        {
-            Id = json.GetStringProp("id"),
-            Name = json.GetStringPropOrNull("name"),
-            Type = json.GetStringPropOrNull("type"),
-            Enabled = json.GetIntProp("enabled"),
-            Area = json.GetStringPropOrNull("area"),
-            Latitude = json.GetDoubleProp("latitude"),
-            Longitude = json.GetDoubleProp("longitude"),
-            Fails = json.GetIntProp("fails"),
-            Language = json.GetStringPropOrNull("language"),
-            AdminDisable = json.GetIntProp("admin_disable"),
-            CurrentProfileNo = json.GetIntProp("current_profile_no"),
-            CommunityMembership = json.GetStringPropOrNull("community_membership"),
-        };
-    }
+        Id = json.GetStringProp("id"),
+        Name = json.GetStringPropOrNull("name"),
+        Type = json.GetStringPropOrNull("type"),
+        Enabled = json.GetIntProp("enabled"),
+        Area = json.GetStringPropOrNull("area"),
+        Latitude = json.GetDoubleProp("latitude"),
+        Longitude = json.GetDoubleProp("longitude"),
+        Fails = json.GetIntProp("fails"),
+        Language = json.GetStringPropOrNull("language"),
+        AdminDisable = json.GetIntProp("admin_disable"),
+        CurrentProfileNo = json.GetIntProp("current_profile_no"),
+        CommunityMembership = json.GetStringPropOrNull("community_membership"),
+    };
 
     private static JsonElement SerializeHumanForCreate(Human human)
     {

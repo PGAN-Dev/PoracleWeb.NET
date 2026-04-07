@@ -13,7 +13,7 @@ public interface IPoracleTrackingProxy
     /// Fetches all tracking alarms of a type for a user on their active profile.
     /// Maps to GET /api/tracking/{type}/{userId}
     /// </summary>
-    Task<JsonElement> GetByUserAsync(string type, string userId);
+    public Task<JsonElement> GetByUserAsync(string type, string userId);
 
     /// <summary>
     /// Creates one or more tracking alarms. PoracleNG applies cleanRow defaults,
@@ -21,31 +21,37 @@ public interface IPoracleTrackingProxy
     /// Maps to POST /api/tracking/{type}/{userId}?silent=true
     /// Returns the list of created/updated UIDs.
     /// </summary>
-    Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body);
+    public Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body);
 
     /// <summary>
     /// Deletes a single tracking alarm by UID.
     /// Maps to DELETE /api/tracking/{type}/{userId}/byUid/{uid}
     /// </summary>
-    Task DeleteByUidAsync(string type, string userId, int uid);
+    public Task DeleteByUidAsync(string type, string userId, int uid);
 
     /// <summary>
     /// Deletes multiple tracking alarms by UID list.
     /// Maps to POST /api/tracking/{type}/{userId}/delete
     /// </summary>
-    Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids);
+    public Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids);
 
     /// <summary>
     /// Fetches all tracking alarms across all types for a user on their active profile.
     /// Maps to GET /api/tracking/all/{userId}
     /// </summary>
-    Task<JsonElement> GetAllTrackingAsync(string userId);
+    public Task<JsonElement> GetAllTrackingAsync(string userId);
+
+    /// <summary>
+    /// Fetches all tracking rules across all profiles for a user.
+    /// Maps to GET /api/tracking/allProfiles/{userId}?includeDescriptions=true
+    /// </summary>
+    public Task<JsonElement> GetAllTrackingAllProfilesAsync(string userId);
 
     /// <summary>
     /// Triggers a state reload in PoracleNG.
     /// Maps to GET /api/reload
     /// </summary>
-    Task ReloadStateAsync();
+    public Task ReloadStateAsync();
 }
 
 /// <summary>

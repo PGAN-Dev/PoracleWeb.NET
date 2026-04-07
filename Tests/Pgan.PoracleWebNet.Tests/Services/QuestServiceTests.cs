@@ -21,7 +21,11 @@ public class QuestServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsQuests()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u1")).ReturnsAsync(json);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
@@ -29,7 +33,11 @@ public class QuestServiceTests
     [Fact]
     public async Task GetByUidAsyncFound()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u1")).ReturnsAsync(json);
         Assert.NotNull(await this._sut.GetByUidAsync("u1", 1));
     }
@@ -73,7 +81,15 @@ public class QuestServiceTests
     [Fact]
     public async Task DeleteAllByUserAsyncCount()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u" }, new { uid = 2, id = "u" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u"
+        }, new
+        {
+            uid = 2,
+            id = "u"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("quest", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -84,7 +100,12 @@ public class QuestServiceTests
     [Fact]
     public async Task UpdateDistanceByUserAsyncCount()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u", distance = 0 });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u",
+            distance = 0
+        });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("quest", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
@@ -96,14 +117,46 @@ public class QuestServiceTests
     public async Task CountByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" },
-            new { uid = 5, id = "u" },
-            new { uid = 6, id = "u" },
-            new { uid = 7, id = "u" },
-            new { uid = 8, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            },
+            new
+            {
+                uid = 5,
+                id = "u"
+            },
+            new
+            {
+                uid = 6,
+                id = "u"
+            },
+            new
+            {
+                uid = 7,
+                id = "u"
+            },
+            new
+            {
+                uid = 8,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("quest", "u")).ReturnsAsync(json);
 
         Assert.Equal(8, await this._sut.CountByUserAsync("u", 1));

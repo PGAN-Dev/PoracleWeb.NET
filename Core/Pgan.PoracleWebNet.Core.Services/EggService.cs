@@ -110,7 +110,7 @@ public class EggService(IPoracleTrackingProxy proxy) : IEggService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<Egg>> BulkCreateAsync(string userId, IEnumerable<Egg> models)

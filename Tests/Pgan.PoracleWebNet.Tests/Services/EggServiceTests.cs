@@ -21,7 +21,11 @@ public class EggServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsEggs()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u1")).ReturnsAsync(json);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
@@ -29,7 +33,11 @@ public class EggServiceTests
     [Fact]
     public async Task GetByUidAsyncReturnsEgg()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u1")).ReturnsAsync(json);
         Assert.NotNull(await this._sut.GetByUidAsync("u1", 1));
     }
@@ -75,10 +83,26 @@ public class EggServiceTests
     public async Task DeleteAllByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("egg", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -90,9 +114,24 @@ public class EggServiceTests
     public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u", distance = 0 },
-            new { uid = 2, id = "u", distance = 0 },
-            new { uid = 3, id = "u", distance = 0 });
+            new
+            {
+                uid = 1,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 3,
+                id = "u",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("egg", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
@@ -104,11 +143,31 @@ public class EggServiceTests
     public async Task CountByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" },
-            new { uid = 5, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            },
+            new
+            {
+                uid = 5,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u")).ReturnsAsync(json);
 
         Assert.Equal(5, await this._sut.CountByUserAsync("u", 1));
