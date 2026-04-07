@@ -88,6 +88,18 @@
           }
         </mat-card-content>
         <mat-card-actions align="end">
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(lure)"
+            [disabled]="testAlertService.isSending('lure', lure.uid) || testAlertService.isCoolingDown('lure', lure.uid)"
+            [matTooltip]="testAlertService.isCoolingDown('lure', lure.uid) ? 'Cooldown active' : 'Send test notification'"
+            class="test-alert-btn">
+            @if (testAlertService.isSending('lure', lure.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
           <button mat-icon-button (click)="editLure(lure)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
           <button mat-icon-button (click)="deleteLure(lure)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
         </mat-card-actions>

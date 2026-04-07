@@ -387,6 +387,27 @@
   height: 16px;
 }
 
+// ─── Test Alert Button ──────────────────────────────────────────────────────
+.test-alert-btn {
+  color: var(--mat-sys-primary, #1976d2);
+  transition: opacity 0.2s;
+
+  &:disabled {
+    opacity: 0.4;
+  }
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 // ─── Empty State ────────────────────────────────────────────────────────────────
 .empty-state {
   grid-column: 1 / -1;

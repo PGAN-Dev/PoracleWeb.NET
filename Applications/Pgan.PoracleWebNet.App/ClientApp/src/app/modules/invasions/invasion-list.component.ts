@@ -17,6 +17,7 @@ import { EVENT_TYPE_INFO, getDisplayName as displayName, getGruntIconUrl, isEven
 import { Invasion } from '../../core/models';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
@@ -48,6 +49,7 @@ export class InvasionListComponent implements OnInit {
   readonly loading = signal(true);
   readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
+  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -207,6 +209,10 @@ export class InvasionListComponent implements OnInit {
   selectAll(): void {
     const ids = new Set(this.invasions().map(i => i.uid));
     this.selectedIds.set(ids);
+  }
+
+  sendTestAlert(invasion: Invasion): void {
+    this.testAlertService.sendTestAlert('invasion', invasion.uid);
   }
 
   toggleSelect(uid: number): void {

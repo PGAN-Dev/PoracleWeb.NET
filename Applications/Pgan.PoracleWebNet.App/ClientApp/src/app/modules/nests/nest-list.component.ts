@@ -17,6 +17,7 @@ import { Nest } from '../../core/models';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
+import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
@@ -49,6 +50,7 @@ export class NestListComponent implements OnInit {
   readonly nests = signal<Nest[]>([]);
   readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
+  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -191,6 +193,10 @@ export class NestListComponent implements OnInit {
   selectAll(): void {
     const ids = new Set(this.nests().map(i => i.uid));
     this.selectedIds.set(ids);
+  }
+
+  sendTestAlert(nest: Nest): void {
+    this.testAlertService.sendTestAlert('nest', nest.uid);
   }
 
   toggleSelect(uid: number): void {

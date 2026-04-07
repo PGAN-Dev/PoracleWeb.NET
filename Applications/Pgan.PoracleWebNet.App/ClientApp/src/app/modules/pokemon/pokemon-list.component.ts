@@ -22,6 +22,7 @@ import { Monster } from '../../core/models';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
@@ -56,15 +57,14 @@ export class PokemonListComponent implements OnInit {
   private readonly monsterService = inject(MonsterService);
   // Search & quick filters
   readonly searchControl = new FormControl('');
-
   private readonly searchValue = toSignal(this.searchControl.valueChanges, { initialValue: '' });
+
   private readonly snackBar = inject(MatSnackBar);
   readonly activeFilter = signal<string | null>(null);
-
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
+
   readonly monsters = signal<Monster[]>([]);
   readonly sortBy = signal<'name' | 'id' | 'evolution' | 'generation'>('name');
-
   readonly filteredMonsters = computed(() => {
     const gen = this.activeGen();
     const sort = this.sortBy();
@@ -144,7 +144,9 @@ export class PokemonListComponent implements OnInit {
 
   // Bulk operations
   readonly selectMode = signal(false);
+
   readonly skeletonCards = Array.from({ length: 8 });
+  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -380,6 +382,10 @@ export class PokemonListComponent implements OnInit {
   selectAll(): void {
     const ids = new Set(this.filteredMonsters().map(m => m.uid));
     this.selectedIds.set(ids);
+  }
+
+  sendTestAlert(monster: Monster): void {
+    this.testAlertService.sendTestAlert('pokemon', monster.uid);
   }
 
   toggleFilter(filter: string): void {

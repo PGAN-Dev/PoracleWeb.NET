@@ -18,6 +18,7 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
 import { ScannerService } from '../../core/services/scanner.service';
+import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -49,14 +50,15 @@ export class RaidListComponent implements OnInit {
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
-
   readonly eggs = signal<Egg[]>([]);
+
   readonly gymNames = signal<Record<string, string>>({});
   readonly loading = signal(true);
   readonly raids = signal<Raid[]>([]);
   readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
+  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -334,6 +336,10 @@ export class RaidListComponent implements OnInit {
     this.raids().forEach(r => ids.add(r.uid));
     this.eggs().forEach(e => ids.add(e.uid));
     this.selectedIds.set(ids);
+  }
+
+  sendTestAlert(type: string, alarm: { uid: number }): void {
+    this.testAlertService.sendTestAlert(type, alarm.uid);
   }
 
   toggleSelect(uid: number): void {

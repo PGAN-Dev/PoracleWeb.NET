@@ -109,6 +109,18 @@
           }
         </mat-card-content>
         <mat-card-actions align="end">
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(invasion)"
+            [disabled]="testAlertService.isSending('invasion', invasion.uid) || testAlertService.isCoolingDown('invasion', invasion.uid)"
+            [matTooltip]="testAlertService.isCoolingDown('invasion', invasion.uid) ? 'Cooldown active' : 'Send test notification'"
+            class="test-alert-btn">
+            @if (testAlertService.isSending('invasion', invasion.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
           <button mat-icon-button (click)="editInvasion(invasion)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
           <button mat-icon-button (click)="deleteInvasion(invasion)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
         </mat-card-actions>

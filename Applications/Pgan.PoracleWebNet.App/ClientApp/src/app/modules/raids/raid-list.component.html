@@ -119,6 +119,18 @@
               <app-alarm-info [distance]="raid.distance" [clean]="raid.clean" [template]="raid.template" [ping]="raid.ping" />
             </mat-card-content>
             <mat-card-actions align="end">
+              <button
+                mat-icon-button
+                (click)="sendTestAlert('raid', raid)"
+                [disabled]="testAlertService.isSending('raid', raid.uid) || testAlertService.isCoolingDown('raid', raid.uid)"
+                [matTooltip]="testAlertService.isCoolingDown('raid', raid.uid) ? 'Cooldown active' : 'Send test notification'"
+                class="test-alert-btn">
+                @if (testAlertService.isSending('raid', raid.uid)) {
+                  <mat-icon class="spin">sync</mat-icon>
+                } @else {
+                  <mat-icon>send</mat-icon>
+                }
+              </button>
               <button mat-icon-button (click)="editRaid(raid)" matTooltip="Edit">
                 <mat-icon>edit</mat-icon>
               </button>
@@ -206,6 +218,18 @@
               <app-alarm-info [distance]="egg.distance" [clean]="egg.clean" [template]="egg.template" [ping]="egg.ping" />
             </mat-card-content>
             <mat-card-actions align="end">
+              <button
+                mat-icon-button
+                (click)="sendTestAlert('egg', egg)"
+                [disabled]="testAlertService.isSending('egg', egg.uid) || testAlertService.isCoolingDown('egg', egg.uid)"
+                [matTooltip]="testAlertService.isCoolingDown('egg', egg.uid) ? 'Cooldown active' : 'Send test notification'"
+                class="test-alert-btn">
+                @if (testAlertService.isSending('egg', egg.uid)) {
+                  <mat-icon class="spin">sync</mat-icon>
+                } @else {
+                  <mat-icon>send</mat-icon>
+                }
+              </button>
               <button mat-icon-button (click)="editEgg(egg)" matTooltip="Edit">
                 <mat-icon>edit</mat-icon>
               </button>

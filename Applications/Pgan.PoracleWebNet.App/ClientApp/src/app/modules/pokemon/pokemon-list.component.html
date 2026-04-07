@@ -221,6 +221,18 @@
           }
         </mat-card-content>
         <mat-card-actions align="end">
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(monster)"
+            [disabled]="testAlertService.isSending('pokemon', monster.uid) || testAlertService.isCoolingDown('pokemon', monster.uid)"
+            [matTooltip]="testAlertService.isCoolingDown('pokemon', monster.uid) ? 'Cooldown active' : 'Send test notification'"
+            class="test-alert-btn">
+            @if (testAlertService.isSending('pokemon', monster.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
           <button mat-icon-button (click)="editMonster(monster)" matTooltip="Edit">
             <mat-icon>edit</mat-icon>
           </button>

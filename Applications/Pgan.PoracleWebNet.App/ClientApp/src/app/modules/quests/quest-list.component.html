@@ -93,6 +93,18 @@
           <app-alarm-info [distance]="quest.distance" [clean]="quest.clean" [template]="quest.template" [ping]="quest.ping" />
         </mat-card-content>
         <mat-card-actions align="end">
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(quest)"
+            [disabled]="testAlertService.isSending('quest', quest.uid) || testAlertService.isCoolingDown('quest', quest.uid)"
+            [matTooltip]="testAlertService.isCoolingDown('quest', quest.uid) ? 'Cooldown active' : 'Send test notification'"
+            class="test-alert-btn">
+            @if (testAlertService.isSending('quest', quest.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
           <button mat-icon-button (click)="editQuest(quest)" matTooltip="Edit">
             <mat-icon>edit</mat-icon>
           </button>

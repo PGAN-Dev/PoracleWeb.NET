@@ -92,6 +92,18 @@
           }
         </mat-card-content>
         <mat-card-actions align="end">
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(nest)"
+            [disabled]="testAlertService.isSending('nest', nest.uid) || testAlertService.isCoolingDown('nest', nest.uid)"
+            [matTooltip]="testAlertService.isCoolingDown('nest', nest.uid) ? 'Cooldown active' : 'Send test notification'"
+            class="test-alert-btn">
+            @if (testAlertService.isSending('nest', nest.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
           <button mat-icon-button (click)="editNest(nest)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
           <button mat-icon-button (click)="deleteNest(nest)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
         </mat-card-actions>

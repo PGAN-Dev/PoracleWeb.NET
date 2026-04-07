@@ -16,6 +16,7 @@ import { Quest } from '../../core/models';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
+import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -53,8 +54,9 @@ export class QuestListComponent implements OnInit {
   readonly quests = signal<Quest[]>([]);
   readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
-
   readonly skeletonCards = Array.from({ length: 6 });
+
+  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -281,6 +283,10 @@ export class QuestListComponent implements OnInit {
   selectAll(): void {
     const ids = new Set(this.quests().map(i => i.uid));
     this.selectedIds.set(ids);
+  }
+
+  sendTestAlert(quest: Quest): void {
+    this.testAlertService.sendTestAlert('quest', quest.uid);
   }
 
   toggleSelect(uid: number): void {

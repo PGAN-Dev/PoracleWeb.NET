@@ -90,6 +90,18 @@
           }
         </mat-card-content>
         <mat-card-actions align="end">
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(gym)"
+            [disabled]="testAlertService.isSending('gym', gym.uid) || testAlertService.isCoolingDown('gym', gym.uid)"
+            [matTooltip]="testAlertService.isCoolingDown('gym', gym.uid) ? 'Cooldown active' : 'Send test notification'"
+            class="test-alert-btn">
+            @if (testAlertService.isSending('gym', gym.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
           <button mat-icon-button (click)="editGym(gym)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
           <button mat-icon-button (click)="deleteGym(gym)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
         </mat-card-actions>

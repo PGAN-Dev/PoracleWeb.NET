@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
@@ -310,6 +311,15 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/geofence/reload");
         var response = await this._httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task SendTestAlertAsync(TestAlertRequest request)
+    {
+        var httpRequest = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/test");
+        var json = JsonSerializer.Serialize(request, JsonOptions);
+        httpRequest.Content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await this._httpClient.SendAsync(httpRequest);
         response.EnsureSuccessStatusCode();
     }
 

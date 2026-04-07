@@ -16,6 +16,7 @@ import { GymEditDialogComponent } from './gym-edit-dialog.component';
 import { Gym } from '../../core/models';
 import { GymService } from '../../core/services/gym.service';
 import { ScannerService } from '../../core/services/scanner.service';
+import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
@@ -48,6 +49,7 @@ export class GymListComponent implements OnInit {
   readonly loading = signal(true);
   readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
+  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -212,6 +214,10 @@ export class GymListComponent implements OnInit {
   selectAll(): void {
     const ids = new Set(this.gyms().map(i => i.uid));
     this.selectedIds.set(ids);
+  }
+
+  sendTestAlert(gym: Gym): void {
+    this.testAlertService.sendTestAlert('gym', gym.uid);
   }
 
   toggleSelect(uid: number): void {

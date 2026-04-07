@@ -15,6 +15,7 @@ import { LureAddDialogComponent } from './lure-add-dialog.component';
 import { LureEditDialogComponent } from './lure-edit-dialog.component';
 import { Lure } from '../../core/models';
 import { LureService } from '../../core/services/lure.service';
+import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
@@ -45,6 +46,7 @@ export class LureListComponent implements OnInit {
   readonly lures = signal<Lure[]>([]);
   readonly selectedIds = signal(new Set<number>());
   readonly selectMode = signal(false);
+  readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -216,6 +218,10 @@ export class LureListComponent implements OnInit {
   selectAll(): void {
     const ids = new Set(this.lures().map(i => i.uid));
     this.selectedIds.set(ids);
+  }
+
+  sendTestAlert(lure: Lure): void {
+    this.testAlertService.sendTestAlert('lure', lure.uid);
   }
 
   toggleSelect(uid: number): void {
