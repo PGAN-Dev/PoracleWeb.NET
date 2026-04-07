@@ -18,22 +18,35 @@ public partial class TestAlertController(ITestAlertService testAlertService, ILo
     {
         if (!ValidTypes.Contains(type))
         {
-            return this.BadRequest(new { error = $"Invalid alarm type: {type}" });
+            return this.BadRequest(new
+            {
+                error = $"Invalid alarm type: {type}"
+            });
         }
 
         try
         {
             await this._testAlertService.SendTestAlertAsync(this.UserId, type, uid);
-            return this.Ok(new { status = "ok", message = "Test alert sent" });
+            return this.Ok(new
+            {
+                status = "ok",
+                message = "Test alert sent"
+            });
         }
         catch (KeyNotFoundException)
         {
-            return this.NotFound(new { error = "Alarm not found" });
+            return this.NotFound(new
+            {
+                error = "Alarm not found"
+            });
         }
         catch (Exception ex)
         {
             LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);
-            return this.StatusCode(500, new { error = "Failed to send test alert" });
+            return this.StatusCode(500, new
+            {
+                error = "Failed to send test alert"
+            });
         }
     }
 

@@ -32,8 +32,14 @@ public class TestAlertTarget
     public string Template { get; set; } = string.Empty;
 
     [JsonPropertyName("latitude")]
-    public double Latitude { get; set; }
+    public double Latitude
+    {
+        get; set;
+    }
 
     [JsonPropertyName("longitude")]
-    public double Longitude { get; set; }
+    public double Longitude
+    {
+        get; set;
+    }
 }

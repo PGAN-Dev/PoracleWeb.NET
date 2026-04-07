@@ -81,7 +81,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             .ReturnsAsync(source);
         this._profileService
             .Setup(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync(new[] { source });
+            .ReturnsAsync([source]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Returns(Task.CompletedTask);
@@ -103,7 +103,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     {
         this._profileService
             .Setup(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync(new[] { new Core.Models.Profile { ProfileNo = 1, Name = "Main" } });
+            .ReturnsAsync([new Core.Models.Profile { ProfileNo = 1, Name = "Main" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Returns(Task.CompletedTask);

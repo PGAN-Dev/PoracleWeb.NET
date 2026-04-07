@@ -20,22 +20,33 @@ public class TestAlertServiceTests
     private readonly Mock<ILogger<TestAlertService>> _logger = new();
     private readonly TestAlertService _sut;
 
-    public TestAlertServiceTests()
-    {
-        this._sut = new TestAlertService(
+    public TestAlertServiceTests() => this._sut = new TestAlertService(
             this._apiProxy.Object,
             this._trackingProxy.Object,
             this._humanProxy.Object,
             this._logger.Object);
-    }
 
     [Fact]
-    public async Task SendTestAlertAsync_ValidPokemon_SendsRequest()
+    public async Task SendTestAlertAsyncValidPokemonSendsRequest()
     {
-        var alarms = CreateJsonArray(new { uid = 42, pokemon_id = 25, form = 0, template = "default" });
+        var alarms = CreateJsonArray(new
+        {
+            uid = 42,
+            pokemon_id = 25,
+            form = 0,
+            template = "default"
+        });
         this._trackingProxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(alarms);
 
-        var human = CreateJsonElement(new { id = "user1", name = "TestUser", type = "discord:user", language = "en", latitude = 40.7128, longitude = -74.006 });
+        var human = CreateJsonElement(new
+        {
+            id = "user1",
+            name = "TestUser",
+            type = "discord:user",
+            language = "en",
+            latitude = 40.7128,
+            longitude = -74.006
+        });
         this._humanProxy.Setup(p => p.GetHumanAsync("user1")).ReturnsAsync(human);
 
         this._apiProxy.Setup(p => p.SendTestAlertAsync(It.IsAny<TestAlertRequest>())).Returns(Task.CompletedTask);
@@ -46,18 +57,30 @@ public class TestAlertServiceTests
             r.Type == "pokemon" &&
             r.Target.Id == "user1" &&
             r.Target.Name == "TestUser" &&
-            r.Target.Type == "discord" &&
+            r.Target.Type == "discord:user" &&
             r.Target.Language == "en"
         )), Times.Once);
     }
 
     [Fact]
-    public async Task SendTestAlertAsync_TelegramUser_SetsTargetTypeTelegram()
+    public async Task SendTestAlertAsyncTelegramUserSetsTargetTypeTelegram()
     {
-        var alarms = CreateJsonArray(new { uid = 1, pokemon_id = 25 });
+        var alarms = CreateJsonArray(new
+        {
+            uid = 1,
+            pokemon_id = 25
+        });
         this._trackingProxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(alarms);
 
-        var human = CreateJsonElement(new { id = "user1", name = "TelegramUser", type = "telegram:user", language = "en", latitude = 0.0, longitude = 0.0 });
+        var human = CreateJsonElement(new
+        {
+            id = "user1",
+            name = "TelegramUser",
+            type = "telegram:user",
+            language = "en",
+            latitude = 0.0,
+            longitude = 0.0
+        });
         this._humanProxy.Setup(p => p.GetHumanAsync("user1")).ReturnsAsync(human);
 
         this._apiProxy.Setup(p => p.SendTestAlertAsync(It.IsAny<TestAlertRequest>())).Returns(Task.CompletedTask);
@@ -65,7 +88,7 @@ public class TestAlertServiceTests
         await this._sut.SendTestAlertAsync("user1", "pokemon", 1);
 
         this._apiProxy.Verify(p => p.SendTestAlertAsync(It.Is<TestAlertRequest>(r =>
-            r.Target.Type == "telegram"
+            r.Target.Type == "telegram:user"
         )), Times.Once);
     }
 
@@ -77,12 +100,21 @@ public class TestAlertServiceTests
     [InlineData("lure")]
     [InlineData("nest")]
     [InlineData("gym")]
-    public async Task SendTestAlertAsync_AllValidTypes_SendsRequest(string alarmType)
+    public async Task SendTestAlertAsyncAllValidTypesSendsRequest(string alarmType)
     {
-        var alarms = CreateJsonArray(new { uid = 10, pokemon_id = 150 });
+        var alarms = CreateJsonArray(new
+        {
+            uid = 10,
+            pokemon_id = 150
+        });
         this._trackingProxy.Setup(p => p.GetByUserAsync(alarmType, "user1")).ReturnsAsync(alarms);
 
-        var human = CreateJsonElement(new { id = "user1", name = "TestUser", type = "discord:user" });
+        var human = CreateJsonElement(new
+        {
+            id = "user1",
+            name = "TestUser",
+            type = "discord:user"
+        });
         this._humanProxy.Setup(p => p.GetHumanAsync("user1")).ReturnsAsync(human);
 
         this._apiProxy.Setup(p => p.SendTestAlertAsync(It.IsAny<TestAlertRequest>())).Returns(Task.CompletedTask);
@@ -98,7 +130,7 @@ public class TestAlertServiceTests
     [InlineData("invalid")]
     [InlineData("unknown")]
     [InlineData("")]
-    public async Task SendTestAlertAsync_InvalidType_ThrowsArgumentException(string invalidType)
+    public async Task SendTestAlertAsyncInvalidTypeThrowsArgumentException(string invalidType)
     {
         await Assert.ThrowsAsync<ArgumentException>(() =>
             this._sut.SendTestAlertAsync("user1", invalidType, 1));
@@ -108,12 +140,21 @@ public class TestAlertServiceTests
     }
 
     [Fact]
-    public async Task SendTestAlertAsync_AlarmNotFound_ThrowsKeyNotFoundException()
+    public async Task SendTestAlertAsyncAlarmNotFoundThrowsKeyNotFoundException()
     {
-        var alarms = CreateJsonArray(new { uid = 1, pokemon_id = 25 });
+        var alarms = CreateJsonArray(new
+        {
+            uid = 1,
+            pokemon_id = 25
+        });
         this._trackingProxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(alarms);
 
-        var human = CreateJsonElement(new { id = "user1", name = "TestUser", type = "discord:user" });
+        var human = CreateJsonElement(new
+        {
+            id = "user1",
+            name = "TestUser",
+            type = "discord:user"
+        });
         this._humanProxy.Setup(p => p.GetHumanAsync("user1")).ReturnsAsync(human);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
@@ -123,9 +164,13 @@ public class TestAlertServiceTests
     }
 
     [Fact]
-    public async Task SendTestAlertAsync_UserNotFound_ThrowsInvalidOperationException()
+    public async Task SendTestAlertAsyncUserNotFoundThrowsInvalidOperationException()
     {
-        var alarms = CreateJsonArray(new { uid = 1, pokemon_id = 25 });
+        var alarms = CreateJsonArray(new
+        {
+            uid = 1,
+            pokemon_id = 25
+        });
         this._trackingProxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(alarms);
 
         this._humanProxy.Setup(p => p.GetHumanAsync("user1")).ReturnsAsync((JsonElement?)null);
@@ -137,12 +182,17 @@ public class TestAlertServiceTests
     }
 
     [Fact]
-    public async Task SendTestAlertAsync_EmptyAlarmList_ThrowsKeyNotFoundException()
+    public async Task SendTestAlertAsyncEmptyAlarmListThrowsKeyNotFoundException()
     {
         var alarms = CreateJsonArray();
         this._trackingProxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(alarms);
 
-        var human = CreateJsonElement(new { id = "user1", name = "TestUser", type = "discord:user" });
+        var human = CreateJsonElement(new
+        {
+            id = "user1",
+            name = "TestUser",
+            type = "discord:user"
+        });
         this._humanProxy.Setup(p => p.GetHumanAsync("user1")).ReturnsAsync(human);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>

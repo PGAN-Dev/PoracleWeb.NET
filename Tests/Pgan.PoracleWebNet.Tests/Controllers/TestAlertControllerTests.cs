@@ -27,7 +27,7 @@ public class TestAlertControllerTests : ControllerTestBase
     [InlineData("lure")]
     [InlineData("nest")]
     [InlineData("gym")]
-    public async Task SendTestAlert_ValidType_ReturnsOk(string type)
+    public async Task SendTestAlertValidTypeReturnsOk(string type)
     {
         this._service.Setup(s => s.SendTestAlertAsync("123456789", type, 42)).Returns(Task.CompletedTask);
 
@@ -42,7 +42,7 @@ public class TestAlertControllerTests : ControllerTestBase
     [InlineData("unknown")]
     [InlineData("")]
     [InlineData("monsters")]
-    public async Task SendTestAlert_InvalidType_ReturnsBadRequest(string type)
+    public async Task SendTestAlertInvalidTypeReturnsBadRequest(string type)
     {
         var result = await this._sut.SendTestAlert(type, 1);
 
@@ -51,7 +51,7 @@ public class TestAlertControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task SendTestAlert_AlarmNotFound_ReturnsNotFound()
+    public async Task SendTestAlertAlarmNotFoundReturnsNotFound()
     {
         this._service.Setup(s => s.SendTestAlertAsync("123456789", "pokemon", 999))
             .ThrowsAsync(new KeyNotFoundException("Alarm with uid 999 not found"));
@@ -62,7 +62,7 @@ public class TestAlertControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task SendTestAlert_ServiceError_Returns500()
+    public async Task SendTestAlertServiceErrorReturns500()
     {
         this._service.Setup(s => s.SendTestAlertAsync("123456789", "pokemon", 1))
             .ThrowsAsync(new InvalidOperationException("Something went wrong"));
