@@ -211,6 +211,13 @@ public partial class UserGeofenceController(
                 error = "Invalid GeoJSON file"
             });
         }
+        catch (OperationCanceledException)
+        {
+            return this.BadRequest(new
+            {
+                error = "Import operation was canceled"
+            });
+        }
         catch (Exception ex)
         {
             LogImportGeoJsonFailed(this._logger, ex, this.UserId);
