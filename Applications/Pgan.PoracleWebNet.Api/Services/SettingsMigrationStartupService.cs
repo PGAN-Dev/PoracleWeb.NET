@@ -6,7 +6,7 @@ namespace Pgan.PoracleWebNet.Api.Services;
 /// Background service that runs once on startup to migrate data from the old
 /// pweb_settings KV table to the new structured tables in the PoracleWeb database.
 /// </summary>
-public class SettingsMigrationStartupService(
+public partial class SettingsMigrationStartupService(
     IServiceScopeFactory scopeFactory,
     ILogger<SettingsMigrationStartupService> logger) : BackgroundService
 {
@@ -20,11 +20,17 @@ public class SettingsMigrationStartupService(
             using var scope = scopeFactory.CreateScope();
             var migrationService = scope.ServiceProvider.GetRequiredService<ISettingsMigrationService>();
             await migrationService.MigrateAsync();
-            logger.LogInformation("Settings migration completed successfully.");
+            LogMigrationCompleted(logger);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Settings migration failed. The application will continue with existing data.");
+            LogMigrationFailed(logger, ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Settings migration completed successfully.")]
+    private static partial void LogMigrationCompleted(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Settings migration failed. The application will continue with existing data.")]
+    private static partial void LogMigrationFailed(ILogger logger, Exception ex);
 }

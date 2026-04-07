@@ -5,7 +5,7 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBattleService> logger) : IMaxBattleService
+public partial class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBattleService> logger) : IMaxBattleService
 {
     private const string TrackingType = "maxbattle";
     private readonly ILogger<MaxBattleService> _logger = logger;
@@ -104,7 +104,7 @@ public class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBattleServ
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Failed to re-create {Count} maxbattle alarms after bulk delete for user {UserId}. Alarms with UIDs [{Uids}] were deleted but not re-created",
+            LogRecreateFailed(this._logger, ex,
                 itemList.Count, userId, string.Join(", ", uids));
             throw;
         }
@@ -139,7 +139,7 @@ public class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBattleServ
         }
         catch (Exception ex)
         {
-            this._logger.LogError(ex, "Failed to re-create {Count} maxbattle alarms after bulk delete for user {UserId}. Alarms with UIDs [{Uids}] were deleted but not re-created",
+            LogRecreateFailed(this._logger, ex,
                 matching.Count, userId, string.Join(", ", matchingUids));
             throw;
         }
@@ -179,4 +179,7 @@ public class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBattleServ
 
     private static JsonElement SerializeToElement<T>(T value) =>
         PoracleJsonHelper.SerializeToElement(value);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to re-create {Count} maxbattle alarms after bulk delete for user {UserId}. Alarms with UIDs [{Uids}] were deleted but not re-created")]
+    private static partial void LogRecreateFailed(ILogger logger, Exception ex, int count, string userId, string uids);
 }

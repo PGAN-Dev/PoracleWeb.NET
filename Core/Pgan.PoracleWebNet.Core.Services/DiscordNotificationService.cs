@@ -38,7 +38,7 @@ public partial class DiscordNotificationService(
 
         if (string.IsNullOrEmpty(this._forumChannelId))
         {
-            this._logger.LogWarning("Discord GeofenceForumChannelId is not configured; skipping forum tag setup");
+            LogForumChannelNotConfiguredForTags(this._logger);
             return;
         }
 
@@ -160,8 +160,7 @@ public partial class DiscordNotificationService(
             }
 
             s_tagsInitialized = true;
-            this._logger.LogInformation("Discord forum tags initialized: Pending={PendingId}, Approved={ApprovedId}, Rejected={RejectedId}",
-                s_pendingTagId, s_approvedTagId, s_rejectedTagId);
+            LogForumTagsInitialized(this._logger, s_pendingTagId, s_approvedTagId, s_rejectedTagId);
         }
         catch (Exception ex)
         {
@@ -316,4 +315,10 @@ public partial class DiscordNotificationService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post rejection to Discord thread {ThreadId}")]
     private static partial void LogRejectionFailed(ILogger logger, Exception ex, string threadId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Discord GeofenceForumChannelId is not configured; skipping forum tag setup")]
+    private static partial void LogForumChannelNotConfiguredForTags(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Discord forum tags initialized: Pending={PendingId}, Approved={ApprovedId}, Rejected={RejectedId}")]
+    private static partial void LogForumTagsInitialized(ILogger logger, string? pendingId, string? approvedId, string? rejectedId);
 }
