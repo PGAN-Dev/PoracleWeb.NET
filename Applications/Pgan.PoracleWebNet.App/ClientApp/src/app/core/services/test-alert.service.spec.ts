@@ -34,9 +34,9 @@ describe('TestAlertService', () => {
   });
 
   it('should send test alert via HTTP POST', () => {
-    service.sendTestAlert('monster', 42);
+    service.sendTestAlert('pokemon', 42);
 
-    const req = httpMock.expectOne(`${API}/api/test-alert/monster/42`);
+    const req = httpMock.expectOne(`${API}/api/test-alert/pokemon/42`);
     expect(req.request.method).toBe('POST');
     req.flush({ message: 'sent', status: 'ok' });
   });
@@ -60,9 +60,9 @@ describe('TestAlertService', () => {
   });
 
   it('should show rate limit message on 429', () => {
-    service.sendTestAlert('monster', 1);
+    service.sendTestAlert('pokemon', 1);
 
-    const req = httpMock.expectOne(`${API}/api/test-alert/monster/1`);
+    const req = httpMock.expectOne(`${API}/api/test-alert/pokemon/1`);
     req.flush('Too many requests', { status: 429, statusText: 'Too Many Requests' });
 
     expect(snackBar.open).toHaveBeenCalledWith('Too many test alerts. Please wait a moment.', 'OK', { duration: 4000 });
@@ -78,15 +78,15 @@ describe('TestAlertService', () => {
   });
 
   it('should track sending state', () => {
-    expect(service.isSending('monster', 10)).toBe(false);
+    expect(service.isSending('pokemon', 10)).toBe(false);
 
-    service.sendTestAlert('monster', 10);
-    expect(service.isSending('monster', 10)).toBe(true);
+    service.sendTestAlert('pokemon', 10);
+    expect(service.isSending('pokemon', 10)).toBe(true);
 
-    const req = httpMock.expectOne(`${API}/api/test-alert/monster/10`);
+    const req = httpMock.expectOne(`${API}/api/test-alert/pokemon/10`);
     req.flush({ message: 'sent', status: 'ok' });
 
-    expect(service.isSending('monster', 10)).toBe(false);
+    expect(service.isSending('pokemon', 10)).toBe(false);
   });
 
   it('should track cooldown after successful send', () => {
@@ -99,14 +99,14 @@ describe('TestAlertService', () => {
   });
 
   it('should prevent duplicate sends during cooldown', () => {
-    service.sendTestAlert('monster', 99);
-    httpMock.expectOne(`${API}/api/test-alert/monster/99`).flush({ message: 'sent', status: 'ok' });
+    service.sendTestAlert('pokemon', 99);
+    httpMock.expectOne(`${API}/api/test-alert/pokemon/99`).flush({ message: 'sent', status: 'ok' });
 
-    expect(service.isCoolingDown('monster', 99)).toBe(true);
+    expect(service.isCoolingDown('pokemon', 99)).toBe(true);
 
     // Second call during cooldown should be a no-op (no HTTP request)
-    service.sendTestAlert('monster', 99);
-    httpMock.expectNone(`${API}/api/test-alert/monster/99`);
+    service.sendTestAlert('pokemon', 99);
+    httpMock.expectNone(`${API}/api/test-alert/pokemon/99`);
   });
 
   it('should prevent duplicate sends while in-flight', () => {

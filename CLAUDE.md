@@ -22,7 +22,7 @@ Pgan.PoracleWebNet.slnx
 |
 +-- Core/
 |   +-- Core.Abstractions/       Interfaces: IRepository, IService, IPoracleTrackingProxy,
-|   |                            IPoracleHumanProxy
+|   |                            IPoracleHumanProxy, ITestAlertService
 |   +-- Core.Models/             DTOs passed between layers (not EF entities)
 |   +-- Core.Mappings/           AutoMapper PoracleMappingProfile (Human, Profile,
 |   |                            PoracleWeb-owned tables; alarm Create/Update DTOs)
@@ -33,7 +33,8 @@ Pgan.PoracleWebNet.slnx
 |   |                            UserGeofenceService, KojiService, SiteSettingService,
 |   |                            WebhookDelegateService, QuickPickService,
 |   |                            DiscordNotificationService, PoracleServerService,
-|   |                            PoracleTrackingProxy, PoracleHumanProxy, etc.)
+|   |                            PoracleTrackingProxy, PoracleHumanProxy,
+|   |                            TestAlertService, etc.)
 |
 +-- Data/
 |   +-- Data/                    PoracleContext (EF Core), PoracleWebContext (app-owned DB),
@@ -47,7 +48,7 @@ Pgan.PoracleWebNet.slnx
 |   +-- Web.Api/                 ASP.NET Core host
 |   |   +-- Controllers/         20+ API controllers (REST, all under /api/)
 |   |   |                        incl. UserGeofenceController, AdminGeofenceController,
-|   |   |                        GeofenceFeedController
+|   |   |                        GeofenceFeedController, TestAlertController
 |   |   +-- Configuration/       DI registration, JwtSettings, DiscordSettings, KojiSettings, etc.
 |   |   +-- Services/            Background services: AvatarCacheService, DtsCacheService,
 |   |                            SettingsMigrationStartupService
@@ -191,8 +192,18 @@ Pgan.PoracleWebNet.slnx
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
 - `auth` policy: 30 requests per 60s per IP (login, callback, token exchange).
 - `auth-read` policy: 120 requests per 60s per IP (current user, profile switch).
+- `test-alert` policy: 5 requests per 60s per IP (test alert sends).
 - Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
 - **Important**: Never use global (non-partitioned) `AddFixedWindowLimiter` for auth -- multiple users sharing one bucket causes cascading login failures.
+
+### Test Alerts
+- `POST /api/test-alert/{type}/{uid}` triggers a test notification for a specific alarm. Supported types: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`.
+- **Parallel data fetch**: `TestAlertService` uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) concurrently.
+- **Mock webhook payloads**: The service builds a realistic mock webhook payload per alarm type using the alarm's filter fields (e.g., pokemon_id, raid_level, quest_reward). The user's location from the human record is used as the mock event coordinates.
+- **PoracleNG test endpoint**: The built payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification to the user via their configured webhook.
+- **Rate limiting**: `test-alert` policy at 5 requests per 60s per IP, using the same per-IP partitioned pattern as `auth` and `auth-read`.
+- **Controller validation**: The `type` path parameter is validated against a hardcoded set of valid alarm types before calling the service.
+- **Frontend**: `TestAlertService` (Angular, `core/services/test-alert.service.ts`) tracks per-UID cooldowns (15s) client-side and deduplicates in-flight requests. Displays success/error/cooldown feedback via snackbar. Test button appears in `mat-card-actions` on all 8 alarm card types.
 
 ### Gym Picker
 - `GymPickerComponent` is a shared autocomplete component (`shared/components/gym-picker/`) for selecting a gym by name. Used in gym, raid, and egg add/edit dialogs to populate `gym_id`.
@@ -214,11 +225,12 @@ Pgan.PoracleWebNet.slnx
 - Uses `inject()` function instead of constructor injection.
 - Uses Angular signals for reactive state where applicable.
 - Lazy-loaded routes in `app.routes.ts`.
-- Services in `core/services/` use `HttpClient` to call the .NET API (including `ScannerService` for gym search).
+- Services in `core/services/` use `HttpClient` to call the .NET API (including `ScannerService` for gym search, `TestAlertService` for test notifications).
+- `TestAlertService` manages per-UID cooldown tracking (15s Map-based TTL) and in-flight request deduplication to prevent duplicate API calls.
 - `GymPickerComponent` is a shared autocomplete component used in gym/raid/egg dialogs for gym selection with photo thumbnails and area names.
 
 ### UI Patterns
-- **Alarm lists**: Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance.
+- **Alarm lists**: Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. Test button in card actions sends a sample notification via PoracleNG.
 - **Bulk operations**: Select mode toggle (checklist icon) on each alarm list, bulk toolbar with Select All, Update Distance, Delete.
 - **Skeleton loading**: Animated skeleton card placeholders on Pokemon, Raids, Quests pages.
 - **Staggered animations**: Grid items fade in with 30ms stagger delay.
@@ -486,6 +498,11 @@ dotnet ef migrations script \
 | RdmScannerService | `Core/Pgan.PoracleWebNet.Core.Services/RdmScannerService.cs` |
 | IScannerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IScannerService.cs` |
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
+| Test Alert Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/TestAlertController.cs` |
+| ITestAlertService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/ITestAlertService.cs` |
+| TestAlertService | `Core/Pgan.PoracleWebNet.Core.Services/TestAlertService.cs` |
+| TestAlertRequest Model | `Core/Pgan.PoracleWebNet.Core.Models/TestAlertRequest.cs` |
+| Test Alert Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/test-alert.service.ts` |
 | Scanner Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/ScannerController.cs` |
 | Scanner DB Context | `Data/Pgan.PoracleWebNet.Data.Scanner/` |
 | Poracle Servers Page | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/poracle-servers/` |
@@ -497,6 +514,6 @@ dotnet ef migrations script \
 
 ## Testing
 
-- **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `geofence-submissions.component.spec.ts`).
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`.
+- **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `geofence-submissions.component.spec.ts`, `test-alert.service.spec.ts`).
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `TestAlertControllerTests`, `TestAlertServiceTests`.
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.

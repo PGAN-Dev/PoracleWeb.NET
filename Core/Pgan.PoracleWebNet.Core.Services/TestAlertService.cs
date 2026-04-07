@@ -39,11 +39,12 @@ public partial class TestAlertService(
             ?? throw new KeyNotFoundException($"Alarm with uid {uid} not found");
 
         // Build the test request
+        var target = BuildTarget(userId, human);
         var request = new TestAlertRequest
         {
             Type = alarmType,
-            Target = BuildTarget(userId, human),
-            Webhook = BuildMockWebhook(alarmType, alarm),
+            Target = target,
+            Webhook = BuildMockWebhook(alarmType, alarm, target),
         };
 
         LogSendingTestAlert(this._logger, alarmType, uid, userId);
@@ -83,7 +84,7 @@ public partial class TestAlertService(
         return target;
     }
 
-    private static Dictionary<string, object> BuildMockWebhook(string alarmType, JsonElement alarm)
+    private static Dictionary<string, object> BuildMockWebhook(string alarmType, JsonElement alarm, TestAlertTarget target)
     {
         // Extract the template from the alarm if available
         var template = "default";
@@ -96,23 +97,15 @@ public partial class TestAlertService(
         var disappearTime = now.AddMinutes(30).ToUnixTimeSeconds();
         var raidEndTime = now.AddMinutes(45).ToUnixTimeSeconds();
 
-        // Extract common fields from alarm
-        var lat = 40.7128;
-        var lon = -74.006;
-        if (alarm.TryGetProperty("latitude", out var aLat) && aLat.TryGetDouble(out var aLatVal) && aLatVal != 0)
-        {
-            lat = aLatVal;
-        }
-        if (alarm.TryGetProperty("longitude", out var aLon) && aLon.TryGetDouble(out var aLonVal) && aLonVal != 0)
-        {
-            lon = aLonVal;
-        }
+        // Use user's location as the default, fall back to a sensible default if unset
+        var lat = target.Latitude != 0 ? target.Latitude : 40.7128;
+        var lon = target.Longitude != 0 ? target.Longitude : -74.006;
 
         return alarmType switch
         {
             "pokemon" => BuildPokemonWebhook(alarm, lat, lon, disappearTime, template),
             "raid" => BuildRaidWebhook(alarm, lat, lon, raidEndTime, template),
-            "egg" => BuildEggWebhook(alarm, lat, lon, raidEndTime, template),
+            "egg" => BuildEggWebhook(alarm, lat, lon, now, raidEndTime, template),
             "quest" => BuildQuestWebhook(alarm, lat, lon, template),
             "invasion" => BuildInvasionWebhook(alarm, lat, lon, template),
             "lure" => BuildLureWebhook(alarm, lat, lon, template),
@@ -181,7 +174,7 @@ public partial class TestAlertService(
     }
 
     private static Dictionary<string, object> BuildEggWebhook(
-        JsonElement alarm, double lat, double lon, long endTime, string template)
+        JsonElement alarm, double lat, double lon, DateTimeOffset now, long endTime, string template)
     {
         var level = GetInt(alarm, "level", 5);
         if (level == 9000) level = 5;
@@ -191,7 +184,7 @@ public partial class TestAlertService(
             ["pokemon_id"] = 0,
             ["latitude"] = lat,
             ["longitude"] = lon,
-            ["start"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            ["start"] = now.ToUnixTimeSeconds(),
             ["end"] = endTime,
             ["level"] = level,
             ["team_id"] = GetInt(alarm, "team", 0),
