@@ -58,7 +58,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  margin: 0 24px;
+  margin: 12px 24px 0;
   border-radius: 12px;
   background: color-mix(in srgb, #2196f3 8%, transparent);
   border: 1px solid color-mix(in srgb, #2196f3 25%, transparent);
@@ -103,7 +103,7 @@
 
 // ─── Map ──────────────────────────────────────────────
 .map-container {
-  margin: 12px 24px;
+  margin: 16px 24px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
@@ -140,7 +140,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 8px 0 0;
+  margin: 12px 0 16px;
   font-size: 18px;
   font-weight: 400;
 
@@ -168,8 +168,8 @@
 // ─── Geofence Grid & Cards ────────────────────────────
 .geofence-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
   padding: 0 24px;
 }
 
@@ -196,7 +196,7 @@
 }
 
 .geofence-card-body {
-  padding: 14px 16px 10px;
+  padding: 16px 16px 12px;
 }
 
 .geofence-card-header {
@@ -337,14 +337,14 @@
 
 .draw-geofence-btn {
   align-self: flex-start;
-  margin: 0 24px;
+  margin: 8px 24px 16px;
 }
 
 .geofence-limit-notice {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0 24px;
+  margin: 8px 24px 16px;
   font-size: 12px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 

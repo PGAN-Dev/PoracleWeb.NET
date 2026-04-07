@@ -10,12 +10,10 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class GeoJsonServiceTests
 {
-    private readonly Mock<IKojiService> _kojiService = new();
     private readonly Mock<IUserGeofenceService> _userGeofenceService = new();
     private readonly GeoJsonService _sut;
 
     public GeoJsonServiceTests() => this._sut = new GeoJsonService(
-        this._kojiService.Object,
         this._userGeofenceService.Object,
         NullLogger<GeoJsonService>.Instance);
 
@@ -54,35 +52,26 @@ public class GeoJsonServiceTests
     // ───────────── Export Tests ─────────────
 
     [Fact]
-    public async Task ExportAsyncIncludesAdminAndUserGeofences()
+    public async Task ExportAsyncIncludesUserGeofences()
     {
-        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
-        [
-            new AdminGeofence { Name = "admin1", Group = "g1", Path = TriangleLatLon() }
-        ]);
         this._userGeofenceService.Setup(u => u.GetByUserAsync("u1")).ReturnsAsync(
         [
-            new UserGeofence { KojiName = "user1", DisplayName = "User 1", GroupName = "ug1", Polygon = TriangleLatLon() }
+            new UserGeofence { KojiName = "user1", DisplayName = "User 1", GroupName = "ug1", Polygon = TriangleLatLon() },
+            new UserGeofence { KojiName = "user2", DisplayName = "User 2", GroupName = "ug2", Polygon = TriangleLatLon() }
         ]);
 
         var result = await this._sut.ExportAsync("u1");
 
         Assert.Equal("FeatureCollection", result.Type);
         Assert.Equal(2, result.Features.Count);
-
-        var adminProps = result.Features[0].Properties!;
-        Assert.Equal("admin", adminProps["source"].GetString());
-        Assert.Equal("admin1", adminProps["name"].GetString());
-
-        var userProps = result.Features[1].Properties!;
-        Assert.Equal("user", userProps["source"].GetString());
-        Assert.Equal("user1", userProps["name"].GetString());
+        Assert.Equal("user", result.Features[0].Properties!["source"].GetString());
+        Assert.Equal("user1", result.Features[0].Properties!["name"].GetString());
+        Assert.Equal("user2", result.Features[1].Properties!["name"].GetString());
     }
 
     [Fact]
     public async Task ExportAsyncConvertsLatLonToGeoJsonLonLat()
     {
-        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
         this._userGeofenceService.Setup(u => u.GetByUserAsync("u1")).ReturnsAsync(
         [
             new UserGeofence
@@ -106,7 +95,6 @@ public class GeoJsonServiceTests
     public async Task ExportAsyncClosesRings()
     {
         // Open ring (first != last)
-        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
         this._userGeofenceService.Setup(u => u.GetByUserAsync("u1")).ReturnsAsync(
         [
             new UserGeofence
@@ -127,24 +115,8 @@ public class GeoJsonServiceTests
     }
 
     [Fact]
-    public async Task ExportAsyncContinuesWhenKojiFails()
-    {
-        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ThrowsAsync(new HttpRequestException("Koji down"));
-        this._userGeofenceService.Setup(u => u.GetByUserAsync("u1")).ReturnsAsync(
-        [
-            new UserGeofence { KojiName = "uf1", DisplayName = "UF1", GroupName = "", Polygon = TriangleLatLon() }
-        ]);
-
-        var result = await this._sut.ExportAsync("u1");
-
-        Assert.Single(result.Features);
-        Assert.Equal("user", result.Features[0].Properties!["source"].GetString());
-    }
-
-    [Fact]
     public async Task ExportAsyncSkipsEmptyPolygons()
     {
-        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
         this._userGeofenceService.Setup(u => u.GetByUserAsync("u1")).ReturnsAsync(
         [
             new UserGeofence { KojiName = "empty1", DisplayName = "Empty1", GroupName = "", Polygon = null },

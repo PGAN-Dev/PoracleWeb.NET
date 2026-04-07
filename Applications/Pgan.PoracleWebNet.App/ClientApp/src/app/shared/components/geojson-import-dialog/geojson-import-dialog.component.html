@@ -41,13 +41,6 @@
         </div>
       </div>
 
-      <div class="feature-summary">
-        <span class="feature-count">{{ validFeatureCount }} feature{{ validFeatureCount !== 1 ? 's' : '' }} to import</span>
-        @if (warningFeatureCount > 0) {
-          <span class="warning-count">{{ warningFeatureCount }} with issues</span>
-        }
-      </div>
-
       @if (wouldExceedLimit) {
         <div class="warning-banner">
           <mat-icon>warning</mat-icon>
@@ -58,22 +51,57 @@
         </div>
       }
 
+      <!-- Select all toggle -->
+      <div class="select-all-row">
+        <mat-checkbox [checked]="allSelected()" (change)="toggleAll($event.checked)"> Select All </mat-checkbox>
+        <span class="selected-count">{{ selectedValidCount() }} ready to import</span>
+      </div>
+
       <div class="feature-list">
-        @for (feature of previewFeatures(); track feature.name) {
-          <div class="feature-item" [class.has-warning]="!!feature.warning">
-            <mat-icon class="feature-icon" [class.warning-icon]="!!feature.warning">
-              {{ feature.warning ? 'warning' : 'map' }}
-            </mat-icon>
-            <div class="feature-info">
-              <span class="feature-name">{{ feature.name }}</span>
-              <span class="feature-meta">
-                @if (feature.geometryType) {
+        @for (feature of previewFeatures(); track $index) {
+          <div class="feature-item" [class.has-warning]="!!feature.warning" [class.deselected]="!feature.selected">
+            <mat-checkbox [checked]="feature.selected" (change)="toggleFeature($index)" [disabled]="!!feature.warning"> </mat-checkbox>
+            <div class="feature-detail">
+              @if (feature.selected && !feature.warning) {
+                <div class="feature-fields">
+                  <mat-form-field appearance="outline" class="name-field" subscriptSizing="dynamic">
+                    <mat-label>Name</mat-label>
+                    <input
+                      matInput
+                      [ngModel]="feature.editedName"
+                      (ngModelChange)="updateName($index, $event)"
+                      maxlength="50"
+                      placeholder="Geofence name" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="region-field" subscriptSizing="dynamic">
+                    <mat-label>Region</mat-label>
+                    <mat-select [ngModel]="feature.regionId" (ngModelChange)="updateRegion($index, $event)">
+                      @for (region of data.regions; track region.id) {
+                        <mat-option [value]="region.id">{{ region.displayName }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+                <span class="feature-meta">
                   {{ feature.geometryType }} &middot; {{ feature.pointCount }} points
-                }
-                @if (feature.warning) {
-                  <span class="feature-warning">{{ feature.warning }}</span>
-                }
-              </span>
+                  @if (getNameError(feature); as nameErr) {
+                    <span class="feature-warning">{{ nameErr }}</span>
+                  }
+                  @if (!getNameError(feature) && feature.regionId === null) {
+                    <span class="feature-warning">Region required</span>
+                  }
+                </span>
+              } @else {
+                <span class="feature-name">{{ feature.name }}</span>
+                <span class="feature-meta">
+                  @if (feature.geometryType) {
+                    {{ feature.geometryType }} &middot; {{ feature.pointCount }} points
+                  }
+                  @if (feature.warning) {
+                    <span class="feature-warning">{{ feature.warning }}</span>
+                  }
+                </span>
+              }
             </div>
           </div>
         }
@@ -131,9 +159,9 @@
   }
   @if (step() === 'preview') {
     <button mat-button (click)="goBack()" [disabled]="importing()">Back</button>
-    <button mat-raised-button color="primary" (click)="startImport()" [disabled]="importing() || validFeatureCount === 0">
+    <button mat-raised-button color="primary" (click)="startImport()" [disabled]="importing() || selectedValidCount() === 0 || hasErrors">
       <mat-icon>upload</mat-icon>
-      Import {{ validFeatureCount }} Geofence{{ validFeatureCount !== 1 ? 's' : '' }}
+      Import {{ selectedValidCount() }} Geofence{{ selectedValidCount() !== 1 ? 's' : '' }}
     </button>
   }
   @if (step() === 'results') {

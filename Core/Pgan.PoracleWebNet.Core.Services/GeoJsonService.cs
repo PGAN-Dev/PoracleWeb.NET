@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 public partial class GeoJsonService(
-    IKojiService kojiService,
     IUserGeofenceService userGeofenceService,
     ILogger<GeoJsonService> logger) : IGeoJsonService
 {
@@ -16,34 +15,14 @@ public partial class GeoJsonService(
     private const int MinPoints = 3;
     private const int MaxPoints = 500;
 
-    private readonly IKojiService _kojiService = kojiService;
     private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
     private readonly ILogger<GeoJsonService> _logger = logger;
 
     public async Task<GeoJsonFeatureCollection> ExportAsync(string userId)
     {
-        var adminGeofences = new List<AdminGeofence>();
-        try
-        {
-            adminGeofences = await this._kojiService.GetAdminGeofencesAsync();
-        }
-        catch (Exception ex)
-        {
-            LogAdminGeofenceFetchFailed(this._logger, ex);
-        }
-
         var userGeofences = await this._userGeofenceService.GetByUserAsync(userId);
 
         var collection = new GeoJsonFeatureCollection();
-
-        foreach (var ag in adminGeofences)
-        {
-            var feature = BuildFeature(ag.Path, ag.Name, ag.Group, "admin", ag.Name);
-            if (feature is not null)
-            {
-                collection.Features.Add(feature);
-            }
-        }
 
         foreach (var ug in userGeofences)
         {
@@ -212,12 +191,28 @@ public partial class GeoJsonService(
                     continue;
                 }
 
+                // Extract region info from properties if available
+                var groupName = string.Empty;
+                var parentId = 0;
+                if (feature.TryGetProperty("properties", out var featureProps) && featureProps.ValueKind == JsonValueKind.Object)
+                {
+                    if (featureProps.TryGetProperty("group", out var groupEl) && groupEl.ValueKind == JsonValueKind.String)
+                    {
+                        groupName = groupEl.GetString() ?? string.Empty;
+                    }
+
+                    if (featureProps.TryGetProperty("parentId", out var parentEl) && parentEl.ValueKind == JsonValueKind.Number)
+                    {
+                        parentId = parentEl.GetInt32();
+                    }
+                }
+
                 // Create the geofence
                 var createModel = new UserGeofenceCreate
                 {
                     DisplayName = featureName.Length > 50 ? featureName[..50].TrimEnd() : featureName,
-                    GroupName = string.Empty,
-                    ParentId = 0,
+                    GroupName = groupName,
+                    ParentId = parentId,
                     Polygon = internalRing
                 };
 
@@ -383,9 +378,6 @@ public partial class GeoJsonService(
 
         return points.Count > 0 ? [.. points] : null;
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch admin geofences for GeoJSON export")]
-    private static partial void LogAdminGeofenceFetchFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "GeoJSON export for user {UserId}: {FeatureCount} features")]
     private static partial void LogExportComplete(ILogger logger, string userId, int featureCount);

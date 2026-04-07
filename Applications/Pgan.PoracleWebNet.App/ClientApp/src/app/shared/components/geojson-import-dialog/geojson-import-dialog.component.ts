@@ -1,23 +1,36 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { GeoJsonImportResult } from '../../../core/models';
+import { GeoJsonImportResult, GeofenceRegion } from '../../../core/models';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
+import { detectRegion } from '../../../shared/utils/geo.utils';
 
 export interface GeoJsonImportDialogData {
   currentGeofenceCount: number;
+  existingNames: string[];
   maxGeofences: number;
+  regions: GeofenceRegion[];
 }
 
 interface PreviewFeature {
+  editedName: string;
   geometryType: string;
   name: string;
   pointCount: number;
+  polygon: [number, number][];
+  rawFeature: Record<string, unknown>;
+  regionId: number | null;
+  selected: boolean;
   warning?: string;
 }
 
@@ -25,7 +38,18 @@ type DialogStep = 'upload' | 'preview' | 'results';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatDialogModule, MatIconModule, MatProgressBarModule, MatTooltipModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressBarModule,
+    MatSelectModule,
+    MatTooltipModule,
+  ],
   selector: 'app-geojson-import-dialog',
   standalone: true,
   styleUrl: './geojson-import-dialog.component.scss',
@@ -34,16 +58,26 @@ type DialogStep = 'upload' | 'preview' | 'results';
 export class GeoJsonImportDialogComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly userGeofenceService = inject(UserGeofenceService);
+  readonly previewFeatures = signal<PreviewFeature[]>([]);
+  readonly allSelected = computed(() => {
+    const features = this.previewFeatures();
+    return features.length > 0 && features.every(f => f.selected);
+  });
+
   readonly data = inject<GeoJsonImportDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<GeoJsonImportDialogComponent>);
-
   readonly dragOver = signal(false);
   readonly fileError = signal<string | null>(null);
   readonly importing = signal(false);
   readonly importResult = signal<GeoJsonImportResult | null>(null);
   readonly parseError = signal<string | null>(null);
-  readonly previewFeatures = signal<PreviewFeature[]>([]);
+  readonly selectedFeatures = computed(() => this.previewFeatures().filter(f => f.selected));
+
   readonly selectedFile = signal<File | null>(null);
+  readonly selectedValidCount = computed(
+    () => this.selectedFeatures().filter(f => !f.warning && !this.getNameError(f) && f.regionId !== null).length,
+  );
+
   readonly step = signal<DialogStep>('upload');
 
   get dialogTitle(): string {
@@ -51,26 +85,22 @@ export class GeoJsonImportDialogComponent {
       case 'upload':
         return 'Import Geofences';
       case 'preview':
-        return 'Preview Import';
+        return 'Select & Name Geofences';
       case 'results':
         return 'Import Results';
     }
+  }
+
+  get hasErrors(): boolean {
+    return this.selectedFeatures().some(f => !!this.getNameError(f) || f.regionId === null);
   }
 
   get remainingSlots(): number {
     return this.data.maxGeofences - this.data.currentGeofenceCount;
   }
 
-  get validFeatureCount(): number {
-    return this.previewFeatures().filter(f => !f.warning).length;
-  }
-
-  get warningFeatureCount(): number {
-    return this.previewFeatures().filter(f => !!f.warning).length;
-  }
-
   get wouldExceedLimit(): boolean {
-    return this.validFeatureCount > this.remainingSlots;
+    return this.selectedValidCount() > this.remainingSlots;
   }
 
   closeWithResult(): void {
@@ -81,6 +111,19 @@ export class GeoJsonImportDialogComponent {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  getNameError(feature: PreviewFeature): string | null {
+    if (!feature.selected) return null;
+    const name = feature.editedName.trim();
+    if (!name) return 'Name is required';
+    if (name.length > 50) return 'Max 50 characters';
+    if (!/^[a-zA-Z0-9 \-'.()&]+$/.test(name)) return 'Invalid characters';
+    const lowerName = name.toLowerCase();
+    if (this.data.existingNames.some(n => n.toLowerCase() === lowerName)) return 'Name already exists';
+    const others = this.previewFeatures().filter(f => f !== feature && f.selected);
+    if (others.some(f => f.editedName.trim().toLowerCase() === lowerName)) return 'Duplicate name in import';
+    return null;
   }
 
   goBack(): void {
@@ -123,8 +166,25 @@ export class GeoJsonImportDialogComponent {
   }
 
   startImport(): void {
-    const file = this.selectedFile();
-    if (!file) return;
+    const selected = this.selectedFeatures().filter(f => !f.warning && !this.getNameError(f) && f.regionId !== null);
+    if (selected.length === 0) return;
+
+    // Build a new GeoJSON FeatureCollection with selected features, edited names, and region info
+    const features = selected.map(f => {
+      const raw = { ...f.rawFeature };
+      const props = { ...((raw['properties'] as Record<string, unknown>) ?? {}) };
+      props['name'] = f.editedName.trim();
+      const region = this.data.regions.find(r => r.id === f.regionId);
+      if (region) {
+        props['group'] = region.displayName;
+        props['parentId'] = region.id;
+      }
+      raw['properties'] = props;
+      return raw;
+    });
+    const geoJson = JSON.stringify({ features, type: 'FeatureCollection' });
+    const blob = new Blob([geoJson], { type: 'application/geo+json' });
+    const file = new File([blob], 'import.geojson', { type: 'application/geo+json' });
 
     this.importing.set(true);
     this.userGeofenceService
@@ -143,6 +203,22 @@ export class GeoJsonImportDialogComponent {
       });
   }
 
+  toggleAll(checked: boolean): void {
+    this.previewFeatures.update(features => features.map(f => ({ ...f, selected: checked })));
+  }
+
+  toggleFeature(index: number): void {
+    this.previewFeatures.update(features => features.map((f, i) => (i === index ? { ...f, selected: !f.selected } : f)));
+  }
+
+  updateName(index: number, name: string): void {
+    this.previewFeatures.update(features => features.map((f, i) => (i === index ? { ...f, editedName: name } : f)));
+  }
+
+  updateRegion(index: number, regionId: number | null): void {
+    this.previewFeatures.update(features => features.map((f, i) => (i === index ? { ...f, regionId } : f)));
+  }
+
   private parseGeoJson(json: Record<string, unknown>): void {
     let features: Record<string, unknown>[] = [];
 
@@ -155,6 +231,11 @@ export class GeoJsonImportDialogComponent {
       this.selectedFile.set(null);
       return;
     }
+
+    // Build region detection data from regions with polygons
+    const regionDetectionData = this.data.regions
+      .filter(r => r.polygon && r.polygon.length > 0)
+      .map(r => ({ id: r.id, name: r.name, displayName: r.displayName, path: r.polygon! }));
 
     const previews: PreviewFeature[] = [];
     let autoNameIndex = 1;
@@ -170,15 +251,27 @@ export class GeoJsonImportDialogComponent {
       const name = (props['name'] as string) ?? (props['__name'] as string) ?? `Imported ${autoNameIndex++}`;
 
       let pointCount = 0;
+      let polygon: [number, number][] = [];
       try {
         const coords = geometry['coordinates'] as unknown[][][];
+        let ring: unknown[][] = [];
         if (geomType === 'Polygon') {
-          pointCount = (coords[0] as unknown[]).length;
+          ring = coords[0] as unknown[][];
         } else if (geomType === 'MultiPolygon') {
-          pointCount = ((coords as unknown[][][][])[0][0] as unknown[]).length;
+          ring = (coords as unknown[][][][])[0][0] as unknown[][];
         }
-        // Subtract 1 for closing vertex if ring is closed
+        pointCount = ring.length;
         if (pointCount > 0) pointCount--;
+        // Convert GeoJSON [lon, lat] to internal [lat, lon] for region detection
+        polygon = ring.map(c => [(c as number[])[1], (c as number[])[0]] as [number, number]);
+        // Remove closing vertex
+        if (polygon.length >= 2) {
+          const first = polygon[0];
+          const last = polygon[polygon.length - 1];
+          if (Math.abs(first[0] - last[0]) < 1e-9 && Math.abs(first[1] - last[1]) < 1e-9) {
+            polygon = polygon.slice(0, -1);
+          }
+        }
       } catch {
         pointCount = 0;
       }
@@ -190,22 +283,32 @@ export class GeoJsonImportDialogComponent {
         warning = 'Too many points (maximum 500)';
       }
 
-      previews.push({ name, geometryType: geomType, pointCount, warning });
+      // Auto-detect region from polygon centroid
+      let regionId: number | null = null;
+      if (polygon.length >= 3 && regionDetectionData.length > 0) {
+        const detected = detectRegion(polygon, regionDetectionData);
+        if (detected) {
+          regionId = detected.id;
+        }
+      }
+
+      previews.push({
+        name,
+        editedName: name,
+        geometryType: geomType,
+        pointCount,
+        polygon,
+        rawFeature: feature,
+        regionId,
+        selected: true,
+        warning,
+      });
     }
 
     if (previews.length === 0) {
       this.parseError.set('No valid Polygon or MultiPolygon features found');
       this.selectedFile.set(null);
       return;
-    }
-
-    if (features.length > 50) {
-      previews.push({
-        name: `...and ${features.length - 50} more (will be skipped)`,
-        geometryType: '',
-        pointCount: 0,
-        warning: 'Exceeds 50-feature import limit',
-      });
     }
 
     this.previewFeatures.set(previews);
