@@ -92,6 +92,57 @@
         <mat-icon class="status-arrow">chevron_right</mat-icon>
       </mat-card>
     }
+    <!-- Weather Card -->
+    @if (userLocation()) {
+      <mat-card class="status-card weather-card">
+        @if (weatherLoading()) {
+          <div class="status-icon-wrap weather-icon skeleton-icon">
+            <div class="skeleton-circle"></div>
+          </div>
+          <div class="status-info">
+            <span class="status-label">Weather</span>
+            <div class="skeleton-line-sm"></div>
+          </div>
+        } @else if (weather(); as w) {
+          <div class="status-icon-wrap weather-icon" [class.weather-warning]="w.hasWarning">
+            <mat-icon>{{ w.icon }}</mat-icon>
+            @if (w.hasWarning) {
+              <mat-icon class="weather-warn-badge" matTooltip="Severe weather warning">crisis_alert</mat-icon>
+            }
+          </div>
+          <div class="status-info">
+            <span class="status-label">
+              Weather
+              @if (weatherUpdatedAgo()) {
+                <span class="weather-updated">· {{ weatherUpdatedAgo() }}</span>
+              }
+            </span>
+            <span class="status-value">{{ w.conditionName }}</span>
+            @if (w.boostedTypes.length > 0) {
+              <div class="boosted-types">
+                @for (type of w.boostedTypes; track type) {
+                  <span
+                    class="type-chip"
+                    [style.background]="getTypeColor(type) + '1A'"
+                    [style.color]="getTypeColor(type)"
+                    [style.border-color]="getTypeColor(type) + '40'">
+                    {{ type }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="status-icon-wrap weather-icon weather-icon-empty">
+            <mat-icon>cloud_off</mat-icon>
+          </div>
+          <div class="status-info">
+            <span class="status-label">Weather</span>
+            <span class="status-value not-set">No data</span>
+          </div>
+        }
+      </mat-card>
+    }
   </div>
 
   <!-- Areas Chips -->

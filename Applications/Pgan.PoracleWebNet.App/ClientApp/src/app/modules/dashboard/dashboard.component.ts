@@ -12,7 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { switchMap, EMPTY } from 'rxjs';
 
-import { DashboardCounts, Location, Profile } from '../../core/models';
+import { DashboardCounts, Location, Profile, WeatherData } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
@@ -59,6 +59,27 @@ interface Tip {
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {
+  private static readonly TYPE_COLORS: Record<string, string> = {
+    Bug: '#8BC34A',
+    Dark: '#424242',
+    Dragon: '#7C4DFF',
+    Electric: '#FFC107',
+    Fairy: '#EC407A',
+    Fighting: '#FF5722',
+    Fire: '#F44336',
+    Flying: '#90CAF9',
+    Ghost: '#7E57C2',
+    Grass: '#4CAF50',
+    Ground: '#795548',
+    Ice: '#00BCD4',
+    Normal: '#A1887F',
+    Poison: '#9C27B0',
+    Psychic: '#F06292',
+    Rock: '#9E9E9E',
+    Steel: '#78909C',
+    Water: '#2196F3',
+  };
+
   private readonly areaService = inject(AreaService);
   private readonly authService = inject(AuthService);
   private readonly dashboardService = inject(DashboardService);
@@ -67,6 +88,7 @@ export class DashboardComponent implements OnInit {
   private readonly locationService = inject(LocationService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
+
   private readonly snackBar = inject(MatSnackBar);
 
   readonly alertsPaused = computed(() => {
@@ -102,10 +124,11 @@ export class DashboardComponent implements OnInit {
   ];
 
   readonly counts = signal<DashboardCounts | null>(null);
-  readonly dismissedTips = signal<string[]>(JSON.parse(sessionStorage.getItem('dismissed-tips') || '[]'));
 
+  readonly dismissedTips = signal<string[]>(JSON.parse(sessionStorage.getItem('dismissed-tips') || '[]'));
   readonly location = signal<Location | null>(null);
   readonly locationAddress = signal<string>('');
+
   readonly locationMapUrl = signal<string>('');
 
   readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
@@ -122,7 +145,6 @@ export class DashboardComponent implements OnInit {
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
 
   readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-
   readonly tips = computed(() => {
     const tips: Tip[] = [];
 
@@ -188,10 +210,29 @@ export class DashboardComponent implements OnInit {
 
   readonly username = computed(() => this.authService.user()?.username ?? 'Trainer');
 
+  readonly weather = signal<WeatherData | null>(null);
+
+  readonly weatherLoading = signal(false);
+
+  readonly weatherUpdatedAgo = computed(() => {
+    const w = this.weather();
+    if (!w?.updatedAt) return '';
+    const diff = Math.floor((Date.now() - new Date(w.updatedAt).getTime()) / 60000);
+    if (diff < 1) return 'Just now';
+    if (diff === 1) return '1 min ago';
+    if (diff < 60) return `${diff} min ago`;
+    if (diff < 120) return '1 hr ago';
+    return `${Math.floor(diff / 60)} hrs ago`;
+  });
+
   dismissTip(tip: Tip): void {
     const current = this.dismissedTips();
     this.dismissedTips.set([...current, tip.id]);
     sessionStorage.setItem('dismissed-tips', JSON.stringify(this.dismissedTips()));
+  }
+
+  getTypeColor(type: string): string {
+    return DashboardComponent.TYPE_COLORS[type] ?? '#9E9E9E';
   }
 
   handleTipAction(tip: Tip): void {
@@ -248,6 +289,7 @@ export class DashboardComponent implements OnInit {
                   .subscribe(r => {
                     if (r?.url) this.locationMapUrl.set(r.url);
                   });
+                this.loadWeather();
               }
             });
         }
@@ -314,10 +356,22 @@ export class DashboardComponent implements OnInit {
               .subscribe(result => {
                 if (result?.url) this.locationMapUrl.set(result.url);
               });
+            this.loadWeather();
           }
           return EMPTY;
         }),
       )
       .subscribe();
+  }
+
+  private loadWeather(): void {
+    this.weatherLoading.set(true);
+    this.locationService
+      .getWeather()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(w => {
+        this.weather.set(w);
+        this.weatherLoading.set(false);
+      });
   }
 }

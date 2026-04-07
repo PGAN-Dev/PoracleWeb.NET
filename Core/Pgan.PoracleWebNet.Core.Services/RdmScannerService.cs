@@ -74,6 +74,26 @@ public class RdmScannerService(RdmScannerContext context) : IScannerService
             .OrderBy(id => id)
             .ToListAsync();
 
+    public async Task<WeatherData?> GetWeatherAtLocationAsync(double lat, double lon)
+    {
+        var cellId = S2CellHelper.LatLonToWeatherCellId(lat, lon);
+        var weather = await this._context.Weather
+            .AsNoTracking()
+            .Where(w => w.Id == cellId)
+            .FirstOrDefaultAsync();
+
+        if (weather == null)
+        {
+            return null;
+        }
+
+        return WeatherData.FromCondition(
+            weather.GameplayCondition ?? 0,
+            weather.Severity ?? 0,
+            (weather.WarnWeather ?? 0) > 0,
+            weather.Updated);
+    }
+
     public async Task<IEnumerable<GymSearchResult>> SearchGymsAsync(string search, int limit = 20)
     {
         var query = this._context.Gyms

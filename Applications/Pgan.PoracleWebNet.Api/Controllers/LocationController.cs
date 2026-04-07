@@ -9,13 +9,15 @@ public class LocationController(
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
-    IHttpClientFactory httpClientFactory) : BaseApiController
+    IHttpClientFactory httpClientFactory,
+    IScannerService? scannerService = null) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly IScannerService? _scannerService = scannerService;
 
     [HttpGet]
     public async Task<IActionResult> GetLocation()
@@ -167,6 +169,46 @@ public class LocationController(
         }
         catch { }
         return this.NotFound();
+    }
+
+    [HttpGet("weather")]
+    public async Task<IActionResult> GetWeather()
+    {
+        if (this._scannerService == null)
+        {
+            return this.NotFound("Weather data not available — scanner database not configured");
+        }
+
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        double lat, lon;
+        if (profile != null)
+        {
+            lat = profile.Latitude;
+            lon = profile.Longitude;
+        }
+        else
+        {
+            var human = await this._humanService.GetByIdAsync(this.UserId);
+            if (human == null)
+            {
+                return this.NotFound();
+            }
+            lat = human.Latitude;
+            lon = human.Longitude;
+        }
+
+        if (lat == 0 && lon == 0)
+        {
+            return this.BadRequest("Set your location first to see weather data");
+        }
+
+        var weather = await this._scannerService.GetWeatherAtLocationAsync(lat, lon);
+        if (weather == null)
+        {
+            return this.NotFound("No weather data available for your location");
+        }
+
+        return this.Ok(weather);
     }
 
     public class LocationUpdateRequest
