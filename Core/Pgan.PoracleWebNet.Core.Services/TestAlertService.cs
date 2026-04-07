@@ -227,18 +227,45 @@ public partial class TestAlertService(
 
         var rewardType = GetInt(alarm, "reward_type", 7);
 
+        // Build reward info matching Golbat's quest reward structure
+        var rewardInfo = new Dictionary<string, object>();
+        switch (rewardType)
+        {
+            case 2: // Item
+                rewardInfo["item_id"] = GetInt(alarm, "reward", 1);
+                rewardInfo["amount"] = 1;
+                break;
+            case 3: // Stardust
+                rewardInfo["amount"] = GetInt(alarm, "reward", 1000);
+                break;
+            case 4: // Candy
+                rewardInfo["pokemon_id"] = pokemonId;
+                rewardInfo["amount"] = 3;
+                break;
+            case 7: // Pokemon encounter
+                rewardInfo["pokemon_id"] = pokemonId;
+                rewardInfo["form_id"] = GetInt(alarm, "form", 0);
+                rewardInfo["shiny"] = false;
+                break;
+            case 12: // Mega energy
+                rewardInfo["pokemon_id"] = pokemonId;
+                rewardInfo["amount"] = 50;
+                break;
+            default: // Unknown reward type — fall back to pokemon encounter
+                rewardInfo["pokemon_id"] = pokemonId;
+                break;
+        }
+
         return new Dictionary<string, object>
         {
             ["pokestop_id"] = "test-stop-001",
             ["pokestop_name"] = "Test PokeStop",
             ["latitude"] = lat,
             ["longitude"] = lon,
-            ["quest_type"] = 1,
-            ["quest_target"] = 3,
-            ["quest_reward_type"] = rewardType,
-            ["item_id"] = rewardType == 2 ? GetInt(alarm, "reward", 1) : 0,
-            ["item_amount"] = 1,
-            ["pokemon_id"] = rewardType == 7 ? pokemonId : 0,
+            ["type"] = 1,
+            ["target"] = 3,
+            ["title"] = "catch_3",
+            ["rewards"] = new[] { new Dictionary<string, object> { ["type"] = rewardType, ["info"] = rewardInfo } },
             ["template"] = template,
         };
     }
@@ -246,7 +273,7 @@ public partial class TestAlertService(
     private static Dictionary<string, object> BuildInvasionWebhook(
         JsonElement alarm, double lat, double lon, string template)
     {
-        var gruntType = GetString(alarm, "grunt_type", "41"); // Default: mixed grunt
+        var gruntType = GetInt(alarm, "grunt_type", 41); // Default: mixed grunt
 
         return new Dictionary<string, object>
         {
