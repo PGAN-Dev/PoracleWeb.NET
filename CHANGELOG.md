@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- weather display at user location ([PR #149](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/149))
 - **Send test alert / notification preview**: Test button on every alarm card (Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms) sends a simulated notification through PoracleNG's test endpoint so users can preview their DTS template output. Includes per-IP rate limiting (5 req/min) and per-alarm cooldown (15s) to prevent spam. ([#122](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/122), [PR #148](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/148))
 - **Unified Profiles page with alarm overview**: View all alarms across all profiles in one place with expandable accordion panels, type-grouped alarm cards with game asset images (Pokemon sprites, raid eggs, lure/gym icons), global search, and type filter chips. Uses PoracleNG's `allProfiles` endpoint. ([#127](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/127), [PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
 - **Profile backup & restore**: Export a profile's alarms as a portable JSON backup file (stripped of internal IDs). Import a backup to create a new profile with all alarms restored. Profile names auto-deduplicate on import. ([PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
