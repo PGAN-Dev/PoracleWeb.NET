@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { EMPTY, catchError, tap } from 'rxjs';
+import { EMPTY, catchError, finalize, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
 
@@ -23,14 +23,7 @@ export class TestAlertService {
     const key = `${type}:${uid}`;
     const expires = this.cooldowns().get(key);
     if (!expires) return false;
-    if (Date.now() >= expires) {
-      // Expired — clean up lazily
-      const map = new Map(this.cooldowns());
-      map.delete(key);
-      this.cooldowns.set(map);
-      return false;
-    }
-    return true;
+    return Date.now() < expires;
   }
 
   isSending(type: string, uid: number): boolean {
@@ -55,7 +48,6 @@ export class TestAlertService {
         tap(() => {
           this.snackBar.open('Test alert sent! Check your DMs.', 'OK', { duration: 4000 });
           this.startCooldown(key);
-          this.clearSending(key);
         }),
         catchError(err => {
           const message =
@@ -65,9 +57,9 @@ export class TestAlertService {
                 ? 'Alarm not found — it may have been deleted.'
                 : 'Failed to send test alert. Try again later.';
           this.snackBar.open(message, 'OK', { duration: 4000 });
-          this.clearSending(key);
           return EMPTY;
         }),
+        finalize(() => this.clearSending(key)),
       )
       .subscribe();
   }
@@ -82,5 +74,12 @@ export class TestAlertService {
     const map = new Map(this.cooldowns());
     map.set(key, Date.now() + COOLDOWN_MS);
     this.cooldowns.set(map);
+
+    // Clean up expired entry after cooldown period
+    setTimeout(() => {
+      const current = new Map(this.cooldowns());
+      current.delete(key);
+      this.cooldowns.set(current);
+    }, COOLDOWN_MS);
   }
 }
