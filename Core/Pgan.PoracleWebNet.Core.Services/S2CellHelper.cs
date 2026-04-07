@@ -18,10 +18,7 @@ public static class S2CellHelper
     private const int SwapMask = 1;
     private const int InvertMask = 2;
 
-    static S2CellHelper()
-    {
-        InitLookupTables();
-    }
+    static S2CellHelper() => InitLookupTables();
 
     /// <summary>
     /// Computes the S2 cell ID at the given level for the specified lat/lon in degrees.
@@ -59,10 +56,7 @@ public static class S2CellHelper
     /// <summary>
     /// Convenience method: returns the S2 level-10 cell ID used by Pokemon GO for weather.
     /// </summary>
-    public static long LatLonToWeatherCellId(double lat, double lon)
-    {
-        return LatLonToCellId(lat, lon, 10);
-    }
+    public static long LatLonToWeatherCellId(double lat, double lon) => LatLonToCellId(lat, lon, 10);
 
     private static (int face, double u, double v) XyzToFaceUv(double x, double y, double z)
     {
@@ -122,20 +116,15 @@ public static class S2CellHelper
         return (face, u, v);
     }
 
-    private static double UvToSt(double u)
-    {
-        return u >= 0
-            ? 0.5 * Math.Sqrt(1.0 + 3.0 * u)
-            : 1.0 - 0.5 * Math.Sqrt(1.0 - 3.0 * u);
-    }
+    private static double UvToSt(double u) => u >= 0
+            ? 0.5 * Math.Sqrt(1.0 + (3.0 * u))
+            : 1.0 - (0.5 * Math.Sqrt(1.0 - (3.0 * u)));
 
-    private static uint StToSiTi(double s)
-    {
+    private static uint StToSiTi(double s) =>
         // Convert ST to an unsigned integer in [0, 2^31].
         // The result is twice the (i or j) value so that the center of leaf cells
         // corresponds to odd values.
-        return (uint)Math.Max(0, Math.Min((1L << 31) - 1, (long)Math.Round(s * (1L << 31))));
-    }
+        (uint)Math.Max(0, Math.Min((1L << 31) - 1, (long)Math.Round(s * (1L << 31))));
 
     private static long FaceIjToCell(int face, int i, int j, int level)
     {
@@ -143,27 +132,27 @@ public static class S2CellHelper
         // (golang/geo s2/cellid.go). Face is placed at bit 60 upfront,
         // then position bits are OR'd into the lower bits.
         // After n*2+1, face moves to bits 63-61 and sentinel is at bit 0.
-        const int posBits = 2 * MaxLevel + 1; // 61
+        const int posBits = (2 * MaxLevel) + 1; // 61
         var n = (ulong)face << (posBits - 1); // face << 60
 
-        int bits = face & SwapMask;
-        int mask = (1 << LookupBits) - 1; // 0xF
+        var bits = face & SwapMask;
+        var mask = (1 << LookupBits) - 1; // 0xF
 
-        for (int k = 7; k >= 0; k--)
+        for (var k = 7; k >= 0; k--)
         {
             bits += ((i >> (k * LookupBits)) & mask) << (LookupBits + 2);
             bits += ((j >> (k * LookupBits)) & mask) << 2;
             bits = LookupPos[bits];
             n |= (ulong)(bits >> 2) << (k * 2 * LookupBits);
-            bits &= (SwapMask | InvertMask);
+            bits &= SwapMask | InvertMask;
         }
 
-        long cellId = (long)(n * 2 + 1);
+        var cellId = (long)((n * 2) + 1);
 
         // Truncate to requested level: keep face + 2*level position bits + sentinel.
         if (level < MaxLevel)
         {
-            int shift = 2 * (MaxLevel - level);
+            var shift = 2 * (MaxLevel - level);
             cellId = (cellId & (~0L << (shift + 1))) | (1L << shift);
         }
 
@@ -184,7 +173,7 @@ public static class S2CellHelper
     {
         if (level == LookupBits)
         {
-            int ijIndex = (i << (LookupBits + 2)) | (j << 2) | origOrientation;
+            var ijIndex = (i << (LookupBits + 2)) | (j << 2) | origOrientation;
             LookupPos[ijIndex] = (pos << 2) | orientation;
             return;
         }
@@ -214,13 +203,13 @@ public static class S2CellHelper
             SwapMask, 0, 0, SwapMask | InvertMask,
         ];
 
-        for (int s = 0; s < 4; s++)
+        for (var s = 0; s < 4; s++)
         {
-            int ij = posToIj[(orientation * 4) + s];
-            int di = (ij >> 1) & 1;
-            int dj = ij & 1;
+            var ij = posToIj[(orientation * 4) + s];
+            var di = (ij >> 1) & 1;
+            var dj = ij & 1;
 
-            int newOrientation = orientation ^ posToOrientationDelta[s];
+            var newOrientation = orientation ^ posToOrientationDelta[s];
 
             InitLookupCell(
                 level,
