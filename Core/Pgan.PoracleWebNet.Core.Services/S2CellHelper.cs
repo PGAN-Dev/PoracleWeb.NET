@@ -139,11 +139,12 @@ public static class S2CellHelper
 
     private static long FaceIjToCell(int face, int i, int j, int level)
     {
-        // Build a level-30 cell ID following the reference Google S2 algorithm.
-        // The position is accumulated in two 64-bit halves.
-        // n[1] is initialized with the face, later shifted left by 32.
-        var n0 = 0UL;
-        var n1 = (ulong)face;
+        // Build a level-30 cell ID following the Go S2 library approach
+        // (golang/geo s2/cellid.go). Face is placed at bit 60 upfront,
+        // then position bits are OR'd into the lower bits.
+        // After n*2+1, face moves to bits 63-61 and sentinel is at bit 0.
+        const int posBits = 2 * MaxLevel + 1; // 61
+        var n = (ulong)face << (posBits - 1); // face << 60
 
         int bits = face & SwapMask;
         int mask = (1 << LookupBits) - 1; // 0xF
@@ -153,22 +154,11 @@ public static class S2CellHelper
             bits += ((i >> (k * LookupBits)) & mask) << (LookupBits + 2);
             bits += ((j >> (k * LookupBits)) & mask) << 2;
             bits = LookupPos[bits];
-
-            // Store 8 position bits into the appropriate half.
-            if (k >= 4)
-            {
-                n1 |= (ulong)(bits >> 2) << (((k & 3) * 2 * LookupBits));
-            }
-            else
-            {
-                n0 |= (ulong)(bits >> 2) << (((k & 3) * 2 * LookupBits));
-            }
-
+            n |= (ulong)(bits >> 2) << (k * 2 * LookupBits);
             bits &= (SwapMask | InvertMask);
         }
 
-        n1 <<= 32;
-        long cellId = (long)((n1 | n0) * 2 + 1);
+        long cellId = (long)(n * 2 + 1);
 
         // Truncate to requested level: keep face + 2*level position bits + sentinel.
         if (level < MaxLevel)
@@ -182,10 +172,11 @@ public static class S2CellHelper
 
     private static void InitLookupTables()
     {
+        // origOrientation must match orientation (reference: Go S2 cellid.go init())
         InitLookupCell(0, 0, 0, 0, 0, 0);
-        InitLookupCell(0, 0, 0, 0, 0, 1);
-        InitLookupCell(0, 0, 0, 0, 0, 2);
-        InitLookupCell(0, 0, 0, 0, 0, 3);
+        InitLookupCell(0, 0, 0, SwapMask, 0, SwapMask);
+        InitLookupCell(0, 0, 0, InvertMask, 0, InvertMask);
+        InitLookupCell(0, 0, 0, SwapMask | InvertMask, 0, SwapMask | InvertMask);
     }
 
     private static void InitLookupCell(
@@ -200,41 +191,36 @@ public static class S2CellHelper
 
         level++;
 
-        // The Hilbert curve subcell traversal order (in ij-space) and orientation
-        // transitions. posToIj maps position (0-3) to the (i,j) offset pair encoded
-        // as a 2-bit value: bit1 = di, bit0 = dj.
+        // Pre-computed Hilbert curve subcell traversal orders derived from the
+        // reference Google S2 library's kIJtoPos table (s2cell_id.cc). These are
+        // the INVERSE mapping: kPosToIJ[orientation][pos] gives the (i,j) offset
+        // encoded as bit1=di, bit0=dj.
         ReadOnlySpan<int> posToIj =
         [
+            // orientation 0: canonical
             0, 1, 3, 2,
+            // orientation 1: swap
+            0, 2, 3, 1,
+            // orientation 2: invert
+            3, 2, 0, 1,
+            // orientation 3: swap+invert
+            3, 1, 0, 2,
         ];
 
-        // posToOrientation[orientation * 4 + pos] gives the child orientation.
-        ReadOnlySpan<int> posToOrientation =
+        // kPosToOrientation[pos] is XOR'd with the current orientation to get
+        // the child orientation.
+        ReadOnlySpan<int> posToOrientationDelta =
         [
-            1, 0, 0, 3,
-            0, 1, 1, 2,
-            3, 2, 2, 1,
-            2, 3, 3, 0,
+            SwapMask, 0, 0, SwapMask | InvertMask,
         ];
 
         for (int s = 0; s < 4; s++)
         {
-            int ij = posToIj[s];
-
-            if ((orientation & SwapMask) != 0)
-            {
-                ij = ((ij & 1) << 1) | ((ij >> 1) & 1);
-            }
-
-            if ((orientation & InvertMask) != 0)
-            {
-                ij ^= 3;
-            }
-
+            int ij = posToIj[(orientation * 4) + s];
             int di = (ij >> 1) & 1;
             int dj = ij & 1;
 
-            int newOrientation = posToOrientation[(orientation * 4) + s];
+            int newOrientation = orientation ^ posToOrientationDelta[s];
 
             InitLookupCell(
                 level,

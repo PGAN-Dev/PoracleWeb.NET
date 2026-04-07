@@ -176,7 +176,7 @@ public class LocationController(
     {
         if (this._scannerService == null)
         {
-            return this.NotFound("Weather data not available — scanner database not configured");
+            return this.NoContent();
         }
 
         var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
@@ -191,7 +191,7 @@ public class LocationController(
             var human = await this._humanService.GetByIdAsync(this.UserId);
             if (human == null)
             {
-                return this.NotFound();
+                return this.NoContent();
             }
             lat = human.Latitude;
             lon = human.Longitude;
@@ -199,13 +199,13 @@ public class LocationController(
 
         if (lat == 0 && lon == 0)
         {
-            return this.BadRequest("Set your location first to see weather data");
+            return this.NoContent();
         }
 
         var weather = await this._scannerService.GetWeatherAtLocationAsync(lat, lon);
         if (weather == null)
         {
-            return this.NotFound("No weather data available for your location");
+            return this.NoContent();
         }
 
         return this.Ok(weather);
