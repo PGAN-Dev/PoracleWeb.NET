@@ -13,12 +13,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { forkJoin } from 'rxjs';
 
-import { CrossProfileAlarm, CrossProfileOverview, CrossProfileProfile, Profile } from '../../core/models';
+import { ProfileOverviewAlarm, ProfileOverview, ProfileOverviewProfile, Profile } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
-import { CrossProfileService } from '../../core/services/cross-profile.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { ProfileOverviewService } from '../../core/services/profile-overview.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { getDisplayName as getGruntDisplayName } from '../invasions/invasion.constants';
@@ -33,13 +34,13 @@ interface AlarmTypeConfig {
 }
 
 interface ProfileGroup {
-  alarmsByType: Map<string, CrossProfileAlarm[]>;
-  profile: CrossProfileProfile;
+  alarmsByType: Map<string, ProfileOverviewAlarm[]>;
+  profile: ProfileOverviewProfile;
   totalAlarms: number;
 }
 
 interface DuplicateInfo {
-  alarm: CrossProfileAlarm;
+  alarm: ProfileOverviewAlarm;
   profileNames: string[];
   type: string;
 }
@@ -61,17 +62,17 @@ interface DuplicateInfo {
     MatSnackBarModule,
     MatTooltipModule,
   ],
-  selector: 'app-cross-profile-overview',
+  selector: 'app-profile-overview',
   standalone: true,
-  styleUrl: './cross-profile-overview.component.scss',
-  templateUrl: './cross-profile-overview.component.html',
+  styleUrl: './profile-overview.component.scss',
+  templateUrl: './profile-overview.component.html',
 })
-export class CrossProfileOverviewComponent implements OnInit {
+export class ProfileOverviewComponent implements OnInit {
   private readonly authService = inject(AuthService);
-  private readonly crossProfileService = inject(CrossProfileService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly masterData = inject(MasterDataService);
+  private readonly profileOverviewService = inject(ProfileOverviewService);
   private readonly profileService = inject(ProfileService);
   private readonly snackBar = inject(MatSnackBar);
   readonly activeProfileNo = signal<number>(1);
@@ -89,7 +90,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     { color: '#795548', icon: 'domain', key: 'fort', label: 'Fort Changes' },
   ];
 
-  readonly overview = signal<CrossProfileOverview | null>(null);
+  readonly overview = signal<ProfileOverview | null>(null);
 
   readonly duplicates = computed<DuplicateInfo[]>(() => {
     const data = this.overview();
@@ -99,8 +100,8 @@ export class CrossProfileOverviewComponent implements OnInit {
     const profileMap = new Map(data.profile.map(p => [p.profile_no, p.name]));
 
     for (const type of this.alarmTypes) {
-      const alarms = (data[type.key as keyof CrossProfileOverview] as CrossProfileAlarm[] | undefined) ?? [];
-      const keyMap = new Map<string, CrossProfileAlarm[]>();
+      const alarms = (data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
+      const keyMap = new Map<string, ProfileOverviewAlarm[]>();
 
       for (const alarm of alarms) {
         const key = this.getAlarmKey(alarm, type.key);
@@ -130,8 +131,8 @@ export class CrossProfileOverviewComponent implements OnInit {
     const uidSet = new Set<number>();
 
     for (const type of this.alarmTypes) {
-      const alarms = (data[type.key as keyof CrossProfileOverview] as CrossProfileAlarm[] | undefined) ?? [];
-      const keyMap = new Map<string, CrossProfileAlarm[]>();
+      const alarms = (data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
+      const keyMap = new Map<string, ProfileOverviewAlarm[]>();
 
       for (const alarm of alarms) {
         const key = this.getAlarmKey(alarm, type.key);
@@ -162,7 +163,7 @@ export class CrossProfileOverviewComponent implements OnInit {
 
     // Build profile list from managedProfiles (authoritative), enriched with alarm data from overview
     const overviewProfiles = data?.profile ?? [];
-    const profileList: CrossProfileProfile[] = managed.map(mp => {
+    const profileList: ProfileOverviewProfile[] = managed.map(mp => {
       const op = overviewProfiles.find(p => p.profile_no === mp.profileNo);
       return op ?? { id: '', name: mp.name ?? `Profile ${mp.profileNo}`, profile_no: mp.profileNo };
     });
@@ -175,12 +176,12 @@ export class CrossProfileOverviewComponent implements OnInit {
     }
 
     return profileList.map(profile => {
-      const alarmsByType = new Map<string, CrossProfileAlarm[]>();
+      const alarmsByType = new Map<string, ProfileOverviewAlarm[]>();
       let totalAlarms = 0;
 
       if (data) {
         for (const type of this.alarmTypes) {
-          const alarms = ((data[type.key as keyof CrossProfileOverview] as CrossProfileAlarm[] | undefined) ?? []).filter(
+          const alarms = ((data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? []).filter(
             a => a.profile_no === profile.profile_no,
           );
           if (alarms.length > 0) {
@@ -208,7 +209,7 @@ export class CrossProfileOverviewComponent implements OnInit {
 
     return allProfiles
       .map(group => {
-        const filtered = new Map<string, CrossProfileAlarm[]>();
+        const filtered = new Map<string, ProfileOverviewAlarm[]>();
         let total = 0;
 
         for (const [type, alarms] of group.alarmsByType) {
@@ -244,7 +245,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     let totalAlarms = 0;
 
     for (const type of this.alarmTypes) {
-      const count = ((data[type.key as keyof CrossProfileOverview] as CrossProfileAlarm[] | undefined) ?? []).length;
+      const count = ((data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? []).length;
       typeCounts[type.key] = count;
       totalAlarms += count;
     }
@@ -282,7 +283,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     });
   }
 
-  duplicateProfile(profile: CrossProfileProfile): void {
+  duplicateProfile(profile: ProfileOverviewProfile): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
@@ -299,7 +300,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     ref.afterClosed().subscribe((name: string | false) => {
       if (name) {
         this.switching.set(true);
-        this.crossProfileService
+        this.profileOverviewService
           .duplicateProfile(profile.profile_no, name)
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
@@ -327,12 +328,12 @@ export class CrossProfileOverviewComponent implements OnInit {
     });
   }
 
-  exportProfile(profile: CrossProfileProfile): void {
+  exportProfile(profile: ProfileOverviewProfile): void {
     const data = this.overview();
     if (!data) return;
 
     const internalKeys = new Set(['uid', 'id', 'profile_no', 'description']);
-    const stripInternal = (alarm: CrossProfileAlarm): Record<string, unknown> => {
+    const stripInternal = (alarm: ProfileOverviewAlarm): Record<string, unknown> => {
       const cleaned: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(alarm)) {
         if (!internalKeys.has(key)) cleaned[key] = value;
@@ -342,7 +343,7 @@ export class CrossProfileOverviewComponent implements OnInit {
 
     const alarms: Record<string, Record<string, unknown>[]> = {};
     for (const type of this.alarmTypes) {
-      const typeAlarms = ((data[type.key as keyof CrossProfileOverview] as CrossProfileAlarm[] | undefined) ?? []).filter(
+      const typeAlarms = ((data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? []).filter(
         a => a.profile_no === profile.profile_no,
       );
       if (typeAlarms.length > 0) {
@@ -374,7 +375,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     return `${meters} m`;
   }
 
-  getAlarmDescription(alarm: CrossProfileAlarm, type: string): string {
+  getAlarmDescription(alarm: ProfileOverviewAlarm, type: string): string {
     switch (type) {
       case 'pokemon': {
         const id = alarm.pokemon_id ?? 0;
@@ -439,7 +440,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     }
   }
 
-  getAlarmImage(alarm: CrossProfileAlarm, type: string): string {
+  getAlarmImage(alarm: ProfileOverviewAlarm, type: string): string {
     const pokemonId = alarm.pokemon_id ?? alarm.raid_pokemon_id ?? 0;
     const form = alarm.form ?? 0;
 
@@ -473,7 +474,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     }
   }
 
-  getAlarmKey(alarm: CrossProfileAlarm, type: string): string {
+  getAlarmKey(alarm: ProfileOverviewAlarm, type: string): string {
     switch (type) {
       case 'pokemon':
         return `pokemon:${alarm.pokemon_id ?? 0}:${alarm.form ?? 0}`;
@@ -500,12 +501,12 @@ export class CrossProfileOverviewComponent implements OnInit {
     }
   }
 
-  getDuplicateProfiles(alarm: CrossProfileAlarm, type: string): string[] {
+  getDuplicateProfiles(alarm: ProfileOverviewAlarm, type: string): string[] {
     const data = this.overview();
     if (!data) return [];
 
     const key = this.getAlarmKey(alarm, type);
-    const alarms = (data[type as keyof CrossProfileOverview] as CrossProfileAlarm[] | undefined) ?? [];
+    const alarms = (data[type as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
     const profileMap = new Map(data.profile.map(p => [p.profile_no, p.name]));
 
     return alarms
@@ -556,7 +557,7 @@ export class CrossProfileOverviewComponent implements OnInit {
         ref.afterClosed().subscribe((name: string | false) => {
           if (name) {
             this.switching.set(true);
-            this.crossProfileService
+            this.profileOverviewService
               .importProfile({ ...backup, profileName: name })
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
@@ -584,7 +585,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     return this.activeProfileNo() === profileNo;
   }
 
-  isDuplicate(alarm: CrossProfileAlarm): boolean {
+  isDuplicate(alarm: ProfileOverviewAlarm): boolean {
     return this.duplicateUids().has(alarm.uid);
   }
 
@@ -624,7 +625,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     this.selectedType.set(this.selectedType() === type ? null : type);
   }
 
-  switchProfile(profile: CrossProfileProfile): void {
+  switchProfile(profile: ProfileOverviewProfile): void {
     this.switching.set(true);
     this.profileService
       .switchProfile(profile.profile_no)
@@ -650,7 +651,7 @@ export class CrossProfileOverviewComponent implements OnInit {
     this.showDuplicatesOnly.update(v => !v);
   }
 
-  private alarmMatchesSearch(alarm: CrossProfileAlarm, type: string, search: string): boolean {
+  private alarmMatchesSearch(alarm: ProfileOverviewAlarm, type: string, search: string): boolean {
     const desc = this.getAlarmDescription(alarm, type).toLowerCase();
     if (desc.includes(search)) return true;
 
@@ -741,28 +742,19 @@ export class CrossProfileOverviewComponent implements OnInit {
 
   private loadAll(): void {
     this.loading.set(true);
-    this.profileService
-      .getAll()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: profiles => {
-          this.managedProfiles.set(profiles);
-          const active = profiles.find(p => p.active);
-          if (active) this.activeProfileNo.set(active.profileNo);
-        },
-      });
-    this.crossProfileService
-      .getOverview()
+    forkJoin([this.profileService.getAll(), this.profileOverviewService.getOverview()])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Failed to load cross-profile overview', 'OK', { duration: 3000 });
+          this.snackBar.open('Failed to load profiles overview', 'OK', { duration: 3000 });
         },
-        next: data => {
+        next: ([profiles, data]) => {
+          this.managedProfiles.set(profiles);
+          const active = profiles.find(p => p.active);
+          if (active) this.activeProfileNo.set(active.profileNo);
           this.overview.set(data);
           this.loading.set(false);
-
           this.expandedProfiles.set(new Set());
         },
       });

@@ -323,21 +323,32 @@ export const HELP_SECTIONS: HelpSection[] = [
   }),
   section({
     id: 'profiles',
-    content: `<img class="help-screenshot" src="assets/help/profiles.png" alt="Profiles page showing Default Profile (active) and Work Profile cards" />
-<p>Profiles let you maintain completely separate alarm configurations. Each profile has its own set of alarms, selected areas, location, and custom geofence activations.</p>
+    content: `<p>The Profiles page is your unified hub for managing profiles and viewing all alarms across every profile in one place.</p>
 <h4>Why Use Profiles?</h4>
-<p>Useful if you want different setups for different situations — for example, a "Home" profile for your neighborhood and a "Work" profile for around your office. Each profile tracks its own areas and geofences independently, so switching profiles changes which areas you receive alerts for.</p>
+<p>Profiles let you maintain completely separate alarm configurations. Each profile has its own set of alarms, selected areas, location, and custom geofence activations. Useful for different situations — for example, a "Home" profile for your neighborhood and a "Work" profile for around your office.</p>
+<h4>Overview</h4>
+<p>The page shows a stats bar with total alarm counts per type, a search bar to filter across all profiles, and type filter chips to show only specific alarm types (Pokemon, Raids, Quests, etc.).</p>
+<p>Each profile appears as an expandable panel. Click to expand and see all alarms grouped by type, with game asset images (Pokemon sprites, raid eggs, lure icons) and filter pills showing IV, CP, Level, PVP, and other settings at a glance.</p>
 <h4>Managing Profiles</h4>
 <ul>
-<li><strong>Create</strong> — Click the + button on the Profiles page. Give your profile a name (up to 32 characters).</li>
-<li><strong>Switch</strong> — Click "Switch" on a profile card, or use the quick-switch dropdown on the Dashboard. Switching updates all your alarm lists to show that profile's alarms.</li>
-<li><strong>Edit</strong> — Rename a profile at any time.</li>
-<li><strong>Delete</strong> — Remove a profile you no longer need.</li>
+<li><strong>Create</strong> — Click the <strong>+</strong> button in the top right. Profile names must be unique (up to 32 characters).</li>
+<li><strong>Switch</strong> — Click <strong>Switch</strong> inside a profile panel to make it your active profile. Your active profile is marked with a green badge and left border.</li>
+<li><strong>Edit</strong> — Click the pencil icon to rename a profile.</li>
+<li><strong>Delete</strong> — Click the trash icon to remove a profile and all its alarms. You can't delete your active profile.</li>
 </ul>
-<div class="callout callout-warn"><span class="callout-icon">&#x26A0;&#xFE0F;</span><div><strong>Warning:</strong> Deleting a profile permanently removes all alarms in that profile. You can't delete your currently active profile.</div></div>`,
-    icon: 'person',
-    iconColor: '#7b1fa2',
-    subtitle: 'Separate alarm sets for different situations',
+<h4>Duplicate</h4>
+<p>Click the copy icon on any profile to create an exact copy with all its alarms. You'll be prompted to name the new profile — a default name like "Profile (Copy)" is suggested. The duplicate includes all alarm filters but gets a fresh set of area selections.</p>
+<h4>Export &amp; Import</h4>
+<ul>
+<li><strong>Export</strong> — Click the download icon on a profile to save a backup file (JSON). The file contains all alarm filters, stripped of internal IDs so it's portable.</li>
+<li><strong>Import</strong> — Click the <strong>Import</strong> button in the top right, select a backup file, and choose a name for the new profile. All alarms from the backup are restored. If a profile with the same name exists, a number suffix is added automatically.</li>
+</ul>
+<h4>Duplicate Detection</h4>
+<p>If the same alarm exists on multiple profiles (e.g., tracking Pikachu on both "Home" and "Work"), those alarms are highlighted with an orange border and a copy icon. When duplicates exist, a <strong>Duplicates</strong> filter chip appears in the filter bar — click it to show only duplicated alarms across profiles.</p>
+<div class="callout callout-warn"><span class="callout-icon">&#x26A0;&#xFE0F;</span><div><strong>Warning:</strong> Deleting a profile permanently removes all alarms in that profile. You can't delete your currently active profile. Consider exporting a backup first.</div></div>`,
+    icon: 'compare_arrows',
+    iconColor: '#7c4dff',
+    subtitle: 'Manage profiles, view alarms, export and import',
     title: 'Profiles',
   }),
   section({

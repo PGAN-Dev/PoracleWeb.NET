@@ -2,16 +2,16 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { CrossProfileOverview } from '../models';
+import { ProfileOverview } from '../models';
 import { ConfigService } from './config.service';
-import { CrossProfileService } from './cross-profile.service';
+import { ProfileOverviewService } from './profile-overview.service';
 
-describe('CrossProfileService', () => {
-  let service: CrossProfileService;
+describe('ProfileOverviewService', () => {
+  let service: ProfileOverviewService;
   let httpMock: HttpTestingController;
   const API = 'http://test-api';
 
-  const mockOverview: CrossProfileOverview = {
+  const mockOverview: ProfileOverview = {
     raid: [{ raid_pokemon_id: 150, uid: 4, exclusive: 0, level: 5, profile_no: 1 }],
     egg: [{ uid: 1, distance: 0, level: 5, profile_no: 1 }],
     gym: [],
@@ -34,7 +34,7 @@ describe('CrossProfileService', () => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
     });
-    service = TestBed.inject(CrossProfileService);
+    service = TestBed.inject(ProfileOverviewService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
@@ -52,7 +52,7 @@ describe('CrossProfileService', () => {
     req.flush(mockOverview);
   });
 
-  it('should return CrossProfileOverview shape', () => {
+  it('should return ProfileOverview shape', () => {
     service.getOverview().subscribe(overview => {
       expect(overview.profile).toHaveLength(2);
       expect(overview.pokemon).toHaveLength(2);

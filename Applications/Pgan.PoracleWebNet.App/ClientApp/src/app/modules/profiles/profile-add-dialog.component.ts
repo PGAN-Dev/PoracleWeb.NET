@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -37,9 +38,13 @@ export class ProfileAddDialogComponent {
   readonly saving = signal(false);
 
   constructor() {
-    this.profileService.getAll().subscribe(profiles => {
-      this.existingNames.set(new Set(profiles.map(p => (p.name ?? '').toLowerCase())));
-    });
+    const destroyRef = inject(DestroyRef);
+    this.profileService
+      .getAll()
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe(profiles => {
+        this.existingNames.set(new Set(profiles.map(p => (p.name ?? '').toLowerCase())));
+      });
   }
 
   save(): void {

@@ -2,11 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { CrossProfileOverview } from '../models';
+import { ProfileOverview } from '../models';
 import { ConfigService } from './config.service';
 
 @Injectable({ providedIn: 'root' })
-export class CrossProfileService {
+export class ProfileOverviewService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
 
@@ -17,8 +17,8 @@ export class CrossProfileService {
     );
   }
 
-  getOverview(): Observable<CrossProfileOverview> {
-    return this.http.get<CrossProfileOverview>(`${this.config.apiHost}/api/cross-profile`);
+  getOverview(): Observable<ProfileOverview> {
+    return this.http.get<ProfileOverview>(`${this.config.apiHost}/api/cross-profile`);
   }
 
   importProfile(backup: {

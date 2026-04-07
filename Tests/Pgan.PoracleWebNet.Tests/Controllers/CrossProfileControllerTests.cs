@@ -60,6 +60,96 @@ public class CrossProfileControllerTests : ControllerTestBase
         Assert.Equal(json.ToString(), ok.Value?.ToString());
     }
 
+    [Fact]
+    public async Task DuplicateProfileReturnsNotFoundWhenSourceMissing()
+    {
+        this._profileService
+            .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99))
+            .ReturnsAsync((Core.Models.Profile?)null);
+
+        var result = await this._sut.DuplicateProfile(99, new DuplicateProfileRequest("Copy"));
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task DuplicateProfileReturnsOkWithAlarmCount()
+    {
+        var source = new Core.Models.Profile { ProfileNo = 1, Name = "Main", Area = "[]" };
+        this._profileService
+            .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1))
+            .ReturnsAsync(source);
+        this._profileService
+            .Setup(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync(new[] { source });
+        this._humanProxy
+            .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
+            .Returns(Task.CompletedTask);
+        this._service
+            .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
+            .ReturnsAsync(5);
+
+        var result = await this._sut.DuplicateProfile(1, new DuplicateProfileRequest("Copy"));
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal(5, doc.RootElement.GetProperty("alarmsCopied").GetInt32());
+        Assert.Equal(2, doc.RootElement.GetProperty("newProfileNo").GetInt32());
+    }
+
+    [Fact]
+    public async Task ImportProfileReturnsOkWithAlarmCount()
+    {
+        this._profileService
+            .Setup(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync(new[] { new Core.Models.Profile { ProfileNo = 1, Name = "Main" } });
+        this._humanProxy
+            .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
+            .Returns(Task.CompletedTask);
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+        this._service
+            .Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>()))
+            .ReturnsAsync(3);
+
+        var request = new ImportProfileRequest("Imported", 1, alarms);
+        var result = await this._sut.ImportProfile(request);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal(3, doc.RootElement.GetProperty("alarmsCopied").GetInt32());
+    }
+
+    [Fact]
+    public async Task ImportProfileDeduplicatesName()
+    {
+        var existing = new[]
+        {
+            new Core.Models.Profile { ProfileNo = 1, Name = "Work" },
+            new Core.Models.Profile { ProfileNo = 2, Name = "Play" },
+        };
+        this._profileService
+            .Setup(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync(existing);
+        this._humanProxy
+            .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
+            .Returns(Task.CompletedTask);
+        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+        this._service
+            .Setup(s => s.ImportAlarmsAsync("123456789", 3, It.IsAny<JsonElement>()))
+            .ReturnsAsync(1);
+
+        var request = new ImportProfileRequest("Work", 1, alarms);
+        var result = await this._sut.ImportProfile(request);
+
+        // Verify the profile was created with a deduplicated name (contains the body with "Work (2)")
+        this._humanProxy.Verify(
+            h => h.AddProfileAsync("123456789",
+                It.Is<JsonElement>(j => j.GetProperty("name").GetString() == "Work (2)")),
+            Times.Once);
+    }
+
     private static JsonElement CreateJsonObject(object obj)
     {
         var json = JsonSerializer.Serialize(obj);

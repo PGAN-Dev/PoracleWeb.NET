@@ -496,22 +496,22 @@ export interface QuickPickSummary {
 
 // ─── Cross-Profile Overview ─────────────────────────────────────────────────
 
-export interface CrossProfileOverview {
+export interface ProfileOverview {
   [key: string]: unknown;
-  egg: CrossProfileAlarm[];
-  fort: CrossProfileAlarm[];
-  gym: CrossProfileAlarm[];
-  invasion: CrossProfileAlarm[];
-  lure: CrossProfileAlarm[];
-  maxbattle: CrossProfileAlarm[];
-  nest: CrossProfileAlarm[];
-  pokemon: CrossProfileAlarm[];
-  profile: CrossProfileProfile[];
-  quest: CrossProfileAlarm[];
-  raid: CrossProfileAlarm[];
+  egg: ProfileOverviewAlarm[];
+  fort: ProfileOverviewAlarm[];
+  gym: ProfileOverviewAlarm[];
+  invasion: ProfileOverviewAlarm[];
+  lure: ProfileOverviewAlarm[];
+  maxbattle: ProfileOverviewAlarm[];
+  nest: ProfileOverviewAlarm[];
+  pokemon: ProfileOverviewAlarm[];
+  profile: ProfileOverviewProfile[];
+  quest: ProfileOverviewAlarm[];
+  raid: ProfileOverviewAlarm[];
 }
 
-export interface CrossProfileAlarm {
+export interface ProfileOverviewAlarm {
   [key: string]: unknown;
   amount?: number;
   battle_changes?: number;
@@ -558,7 +558,7 @@ export interface CrossProfileAlarm {
   uid: number;
 }
 
-export interface CrossProfileProfile {
+export interface ProfileOverviewProfile {
   active_hours?: string;
   area?: string;
   id: string;

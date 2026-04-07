@@ -24,7 +24,7 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard],
-    loadComponent: () => import('./modules/cross-profile/cross-profile-overview.component').then(m => m.CrossProfileOverviewComponent),
+    loadComponent: () => import('./modules/profiles-overview/profile-overview.component').then(m => m.ProfileOverviewComponent),
     path: 'profiles',
   },
   {
