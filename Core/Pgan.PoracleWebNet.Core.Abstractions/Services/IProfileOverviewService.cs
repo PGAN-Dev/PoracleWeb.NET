@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 /// <summary>
-/// Service for fetching cross-profile alarm overview data.
+/// Service for profile overview, duplication, and import operations.
 /// </summary>
 public interface IProfileOverviewService
 {
