@@ -94,6 +94,28 @@ public class RdmScannerService(RdmScannerContext context) : IScannerService
             weather.Updated);
     }
 
+    public async Task<Dictionary<long, WeatherData>> GetWeatherForCellsAsync(IEnumerable<long> cellIds)
+    {
+        var uniqueIds = cellIds.Distinct().ToList();
+        if (uniqueIds.Count == 0)
+        {
+            return new Dictionary<long, WeatherData>();
+        }
+
+        var rows = await this._context.Weather
+            .AsNoTracking()
+            .Where(w => uniqueIds.Contains(w.Id))
+            .ToListAsync();
+
+        return rows.ToDictionary(
+            w => w.Id,
+            w => WeatherData.FromCondition(
+                w.GameplayCondition ?? 0,
+                w.Severity ?? 0,
+                (w.WarnWeather ?? 0) > 0,
+                w.Updated));
+    }
+
     public async Task<IEnumerable<GymSearchResult>> SearchGymsAsync(string search, int limit = 20)
     {
         var query = this._context.Gyms

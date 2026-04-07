@@ -472,6 +472,11 @@ export interface WeatherData {
   updatedAt: string | null;
 }
 
+export interface AreaWeatherResult {
+  name: string;
+  weather: WeatherData;
+}
+
 // ─── Quick Picks ──────────────────────────────────────────────────────────────
 
 export interface QuickPickDefinition {

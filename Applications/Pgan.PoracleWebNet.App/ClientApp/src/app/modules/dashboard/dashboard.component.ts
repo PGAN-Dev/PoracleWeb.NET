@@ -10,9 +10,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
-import { switchMap, EMPTY } from 'rxjs';
+import { switchMap, forkJoin, EMPTY } from 'rxjs';
 
-import { DashboardCounts, Location, Profile, WeatherData } from '../../core/models';
+import { DashboardCounts, GeofenceData, Location, Profile, WeatherData } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
@@ -20,6 +20,7 @@ import { LocationService } from '../../core/services/location.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
+import { polygonCentroid } from '../../shared/utils/geo.utils';
 
 interface DashboardCard {
   colorClass: string;
@@ -95,6 +96,8 @@ export class DashboardComponent implements OnInit {
     const user = this.authService.user();
     return user ? !user.enabled : false;
   });
+
+  readonly areaWeather = signal<Record<string, WeatherData>>({});
 
   readonly cards: DashboardCard[] = [
     { colorClass: 'card-pokemon', icon: 'catching_pokemon', key: 'pokemon', label: 'Pokemon', route: '/pokemon', subtitle: 'Wild spawns' },
@@ -231,6 +234,10 @@ export class DashboardComponent implements OnInit {
     sessionStorage.setItem('dismissed-tips', JSON.stringify(this.dismissedTips()));
   }
 
+  getAreaWeatherData(areaName: string): WeatherData | null {
+    return this.areaWeather()[areaName.toLowerCase()] ?? null;
+  }
+
   getTypeColor(type: string): string {
     return DashboardComponent.TYPE_COLORS[type] ?? '#9E9E9E';
   }
@@ -315,16 +322,53 @@ export class DashboardComponent implements OnInit {
       });
   }
 
+  private loadAreaWeather(areas: string[], geofences: GeofenceData[]): void {
+    if (areas.length === 0 || geofences.length === 0) return;
+
+    // Build a map of geofence name (lowercase) → polygon for quick lookup
+    const geoMap = new Map<string, [number, number][]>();
+    for (const g of geofences) {
+      if (g.path?.length >= 3) {
+        geoMap.set(g.name.toLowerCase(), g.path);
+      }
+    }
+
+    // For each tracked area, compute centroid from its geofence polygon
+    const locations = areas
+      .map(name => {
+        const poly = geoMap.get(name.toLowerCase());
+        if (!poly) return null;
+        const [lat, lon] = polygonCentroid(poly);
+        return { name: name.toLowerCase(), lat, lon };
+      })
+      .filter((l): l is { name: string; lat: number; lon: number } => l !== null);
+
+    if (locations.length === 0) return;
+
+    this.locationService
+      .getAreaWeather(locations)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(results => {
+        const map: Record<string, WeatherData> = {};
+        for (const r of results) {
+          map[r.name] = r.weather;
+        }
+        this.areaWeather.set(map);
+      });
+  }
+
   private loadDashboardData(): void {
     this.dashboardService
       .getCounts()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(c => this.counts.set(c));
 
-    this.areaService
-      .getSelected()
+    forkJoin([this.areaService.getSelected(), this.areaService.getGeofencePolygons()])
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(a => this.selectedAreas.set(a));
+      .subscribe(([areas, geofences]) => {
+        this.selectedAreas.set(areas);
+        this.loadAreaWeather(areas, geofences);
+      });
 
     this.profileService
       .getAll()

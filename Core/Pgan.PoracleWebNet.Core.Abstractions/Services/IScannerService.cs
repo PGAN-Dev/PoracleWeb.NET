@@ -10,6 +10,7 @@ public interface IScannerService
     public Task<GymSearchResult?> GetGymByIdAsync(string gymId);
     public Task<IEnumerable<int>> GetMaxBattlePokemonIdsAsync();
     public Task<WeatherData?> GetWeatherAtLocationAsync(double lat, double lon);
+    public Task<Dictionary<long, WeatherData>> GetWeatherForCellsAsync(IEnumerable<long> cellIds);
 
     /// <summary>
     /// Tests if a point (lat, lon) is inside a polygon using the ray-casting algorithm.

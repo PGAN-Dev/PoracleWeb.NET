@@ -155,7 +155,14 @@
         </div>
         <mat-chip-set class="area-chips">
           @for (area of selectedAreas(); track area) {
-            <mat-chip highlighted color="primary"><span class="area-dot"></span>{{ area }}</mat-chip>
+            <mat-chip highlighted color="primary">
+              <span class="area-dot"></span>{{ area }}
+              @if (getAreaWeatherData(area); as aw) {
+                <mat-icon class="area-weather-icon" [matTooltip]="aw.conditionName + ' — ' + aw.boostedTypes.join(', ') + ' boosted'">{{
+                  aw.icon
+                }}</mat-icon>
+              }
+            </mat-chip>
           }
         </mat-chip-set>
       </mat-card-content>

@@ -211,6 +211,44 @@ public class LocationController(
         return this.Ok(weather);
     }
 
+    [HttpPost("weather/areas")]
+    public async Task<IActionResult> GetWeatherForAreas([FromBody] AreaWeatherRequest request)
+    {
+        if (this._scannerService == null || request.Locations == null || request.Locations.Length == 0)
+        {
+            return this.Ok(Array.Empty<object>());
+        }
+
+        // Compute S2 cell IDs for each location, deduplicating cells
+        var locationCells = request.Locations
+            .Where(l => l.Lat != 0 || l.Lon != 0)
+            .Select(l => new { l.Name, CellId = Core.Services.S2CellHelper.LatLonToWeatherCellId(l.Lat, l.Lon) })
+            .ToList();
+
+        var uniqueCellIds = locationCells.Select(l => l.CellId).Distinct();
+        var weatherByCell = await this._scannerService.GetWeatherForCellsAsync(uniqueCellIds);
+
+        // Map back to area names
+        var results = locationCells
+            .Where(l => weatherByCell.ContainsKey(l.CellId))
+            .Select(l => new { name = l.Name, weather = weatherByCell[l.CellId] })
+            .ToList();
+
+        return this.Ok(results);
+    }
+
+    public class AreaWeatherRequest
+    {
+        public AreaLocation[] Locations { get; set; } = [];
+    }
+
+    public class AreaLocation
+    {
+        public string Name { get; set; } = string.Empty;
+        public double Lat { get; set; }
+        public double Lon { get; set; }
+    }
+
     public class LocationUpdateRequest
     {
         public double Latitude

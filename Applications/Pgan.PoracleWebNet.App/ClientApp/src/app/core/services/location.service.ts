@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { ConfigService } from './config.service';
-import { Location, GeocodingResult, ReverseGeocodingResult, WeatherData } from '../models';
+import { AreaWeatherResult, Location, GeocodingResult, ReverseGeocodingResult, WeatherData } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class LocationService {
@@ -15,6 +15,13 @@ export class LocationService {
     if (!query || query.trim().length === 0) return of([]);
     return this.http
       .get<GeocodingResult[]>(`${this.config.apiHost}/api/location/geocode?q=${encodeURIComponent(query)}`)
+      .pipe(catchError(() => of([])));
+  }
+
+  getAreaWeather(locations: { name: string; lat: number; lon: number }[]): Observable<AreaWeatherResult[]> {
+    if (locations.length === 0) return of([]);
+    return this.http
+      .post<AreaWeatherResult[]>(`${this.config.apiHost}/api/location/weather/areas`, { locations })
       .pipe(catchError(() => of([])));
   }
 
