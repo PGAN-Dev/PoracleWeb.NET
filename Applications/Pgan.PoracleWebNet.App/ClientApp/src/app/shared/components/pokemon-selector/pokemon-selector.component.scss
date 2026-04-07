@@ -83,6 +83,50 @@
   background-color: #e3f2fd !important;
   font-weight: 500;
 }
+// Spawning filter section
+.spawning-filter {
+  margin-bottom: 8px;
+}
+
+.spawning-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.spawning-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9e9e9e;
+  transition: all 0.2s ease;
+}
+
+.spawning-dot.dot-active {
+  background: #4caf50;
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
+  }
+}
+
+.spawning-count {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-left: 4px;
+}
+
 .tile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
@@ -93,6 +137,7 @@
   margin-bottom: 8px;
 }
 .pokemon-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -135,4 +180,33 @@
   width: 24px !important;
   height: 24px !important;
   object-fit: contain;
+}
+
+// Tile availability badge
+.availability-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 8px;
+  color: #4caf50;
+  line-height: 1;
+  text-shadow: 0 0 3px rgba(76, 175, 80, 0.6);
+}
+
+// Autocomplete availability indicator
+.availability-indicator {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.availability-indicator.available {
+  background: #4caf50;
+}
+
+.availability-indicator.unavailable {
+  background: var(--card-border, rgba(0, 0, 0, 0.12));
 }

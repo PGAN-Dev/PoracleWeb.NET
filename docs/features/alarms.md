@@ -30,6 +30,28 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 5. Optionally select a **template** for notification formatting
 6. Save the alarm
 
+## Pokemon availability indicators
+
+When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured, the Pokemon selector shows which species are currently spawning in the wild.
+
+### How it works
+
+1. The backend fetches spawn data from Golbat's `GET /api/pokemon/available` endpoint
+2. Results are cached for 5 minutes with a stale-data fallback if Golbat goes down
+3. The frontend fetches availability via `GET /api/pokemon-availability` and auto-refreshes every 5 minutes
+4. The Pokemon selector renders availability indicators when data is available
+
+### What the user sees
+
+- **"Live > Spawning" filter toggle** — Appears below the Gen and Type filter rows. Click to filter the Pokemon list to only currently spawning species.
+- **Green dot indicators** — Small green dots appear next to available Pokemon in both the autocomplete dropdown and tile grid view. Unavailable Pokemon show a muted gray dot.
+- **Available-first sorting** — When any filter (Gen, Type, or Spawning) is active, currently spawning Pokemon sort to the top.
+- **Species count** — A "X species active" label shows the total number of spawning species.
+
+### Feature gating
+
+The availability UI is **automatically hidden** when Golbat is not configured. No admin toggle is needed — the feature is infrastructure-driven. Set `GOLBAT_API_ADDRESS` and `GOLBAT_API_SECRET` in your `.env` to enable it.
+
 ## Alarm cards
 
 Alarms are displayed as a card grid. Each card shows:

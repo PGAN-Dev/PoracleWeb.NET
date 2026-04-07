@@ -48,6 +48,9 @@ services:
       - Poracle__Servers__1__RestartCommand=${PORACLE_SERVER_2_RESTART_CMD:-pm2 restart all}
       - Poracle__Servers__1__GroupMapPath=${PORACLE_SERVER_2_GROUP_MAP:-/source/PoracleJS/config/group_map.json}
       - Poracle__SshKeyPath=${PORACLE_SSH_KEY_PATH:-/app/ssh_key}
+      # Golbat API (optional — enables "currently spawning" Pokemon indicators)
+      - Golbat__ApiAddress=${GOLBAT_API_ADDRESS:-}
+      - Golbat__ApiSecret=${GOLBAT_API_SECRET:-}
       # Koji Geofence API (required for custom geofences: region detection, promotion to public)
       - Koji__ApiAddress=${KOJI_API_ADDRESS:-}
       - Koji__BearerToken=${KOJI_BEARER_TOKEN:-}

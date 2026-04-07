@@ -56,6 +56,7 @@ graph TB
         PoracleNG[PoracleNG API<br/>Alarm tracking + state reload]
         Koji[Koji Server]
         Discord[Discord API]
+        Golbat[Golbat API<br/>Pokemon availability]
     end
 
     Angular -->|HTTP / JWT| Controllers
@@ -72,6 +73,7 @@ graph TB
     Repositories --> ScannerDB
     OtherServices -->|HttpClient| Koji
     OtherServices -->|HttpClient| Discord
+    OtherServices -->|HttpClient| Golbat
 ```
 
 !!! info "All operations go through PoracleNG"

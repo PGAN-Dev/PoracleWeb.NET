@@ -16,6 +16,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 
 - **Alarm Management** — Create, edit, and delete filters for Pokemon, Raids, Max Battles, Quests, Invasions, Lures, Nests, Gyms, and Fort Changes
 - **Gym Picker** — Search and target specific gyms for team, raid, and egg alarms with photo thumbnails and area names
+- **Pokemon Availability** — See which species are currently spawning when creating alarms (requires Golbat scanner)
 - **Bulk Operations** — Multi-select alarms with bulk delete and bulk distance update
 - **Quick Picks** — Admin-defined alarm templates users can apply with one click
 - **Area Management** — Interactive Leaflet map for selecting geofence areas
