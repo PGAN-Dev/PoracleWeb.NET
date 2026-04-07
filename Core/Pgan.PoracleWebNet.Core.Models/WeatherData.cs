@@ -2,13 +2,25 @@ namespace Pgan.PoracleWebNet.Core.Models;
 
 public class WeatherData
 {
-    public int Condition { get; set; }
+    public int Condition
+    {
+        get; set;
+    }
     public string ConditionName { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
     public List<string> BoostedTypes { get; set; } = [];
-    public bool HasWarning { get; set; }
-    public int Severity { get; set; }
-    public DateTimeOffset? UpdatedAt { get; set; }
+    public bool HasWarning
+    {
+        get; set;
+    }
+    public int Severity
+    {
+        get; set;
+    }
+    public DateTimeOffset? UpdatedAt
+    {
+        get; set;
+    }
 
     /// <summary>
     /// Maps gameplay_condition int to weather name, icon, and boosted types.
@@ -17,13 +29,13 @@ public class WeatherData
     {
         var (name, icon, types) = condition switch
         {
-            1 => ("Clear", "wb_sunny", new[] { "Fire", "Grass", "Ground" }),
-            2 => ("Rainy", "water_drop", new[] { "Water", "Electric", "Bug" }),
-            3 => ("Partly Cloudy", "filter_drama", new[] { "Normal", "Rock" }),
-            4 => ("Cloudy", "cloud", new[] { "Fairy", "Fighting", "Poison" }),
-            5 => ("Windy", "air", new[] { "Dragon", "Flying", "Psychic" }),
-            6 => ("Snow", "ac_unit", new[] { "Ice", "Steel" }),
-            7 => ("Fog", "foggy", new[] { "Dark", "Ghost" }),
+            1 => ("Clear", "wb_sunny", ["Fire", "Grass", "Ground"]),
+            2 => ("Rainy", "water_drop", ["Water", "Electric", "Bug"]),
+            3 => ("Partly Cloudy", "filter_drama", ["Normal", "Rock"]),
+            4 => ("Cloudy", "cloud", ["Fairy", "Fighting", "Poison"]),
+            5 => ("Windy", "air", ["Dragon", "Flying", "Psychic"]),
+            6 => ("Snow", "ac_unit", ["Ice", "Steel"]),
+            7 => ("Fog", "foggy", ["Dark", "Ghost"]),
             _ => ("Unknown", "help_outline", Array.Empty<string>()),
         };
 

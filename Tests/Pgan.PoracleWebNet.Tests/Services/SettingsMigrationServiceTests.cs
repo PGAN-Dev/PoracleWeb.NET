@@ -9,6 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class SettingsMigrationServiceTests
 {
+    private static readonly System.Text.Json.JsonSerializerOptions CamelCaseOptions = new()
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+    };
+
     private readonly Mock<IPwebSettingService> _pwebSettingService = new();
     private readonly Mock<ISiteSettingService> _siteSettingService = new();
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
@@ -80,10 +85,7 @@ public class SettingsMigrationServiceTests
     {
         this.SetupNotMigrated();
         var definition = new QuickPickDefinition { Id = "hundo", Name = "100% IV", AlarmType = "monster" };
-        var json = System.Text.Json.JsonSerializer.Serialize(definition, new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-        });
+        var json = System.Text.Json.JsonSerializer.Serialize(definition, CamelCaseOptions);
         this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(
         [
             new() { Setting = "quick_pick:hundo", Value = json }

@@ -245,8 +245,14 @@ public class LocationController(
     public class AreaLocation
     {
         public string Name { get; set; } = string.Empty;
-        public double Lat { get; set; }
-        public double Lon { get; set; }
+        public double Lat
+        {
+            get; set;
+        }
+        public double Lon
+        {
+            get; set;
+        }
     }
 
     public class LocationUpdateRequest
