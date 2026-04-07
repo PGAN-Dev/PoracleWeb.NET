@@ -1,0 +1,142 @@
+<h2 mat-dialog-title>{{ dialogTitle }}</h2>
+
+<mat-dialog-content>
+  <!-- Upload Step -->
+  @if (step() === 'upload') {
+    <div
+      class="drop-zone"
+      [class.drag-over]="dragOver()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      (click)="fileInput.click()">
+      <mat-icon class="drop-zone-icon">upload_file</mat-icon>
+      <p class="drop-zone-title">Drag & drop a GeoJSON file</p>
+      <p class="drop-zone-subtitle">or click to browse</p>
+      <p class="drop-zone-hint">.geojson or .json &middot; Max 5MB</p>
+      <input #fileInput type="file" accept=".geojson,.json" hidden (change)="onFileSelected($event)" />
+    </div>
+    @if (fileError()) {
+      <div class="error-banner">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ fileError() }}</span>
+      </div>
+    }
+    @if (parseError()) {
+      <div class="error-banner">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ parseError() }}</span>
+      </div>
+    }
+  }
+
+  <!-- Preview Step -->
+  @if (step() === 'preview') {
+    <div class="preview-section">
+      <div class="file-info">
+        <mat-icon>description</mat-icon>
+        <div class="file-info-text">
+          <span class="file-name">{{ selectedFile()?.name }}</span>
+          <span class="file-size">{{ formatFileSize(selectedFile()?.size ?? 0) }}</span>
+        </div>
+      </div>
+
+      <div class="feature-summary">
+        <span class="feature-count">{{ validFeatureCount }} feature{{ validFeatureCount !== 1 ? 's' : '' }} to import</span>
+        @if (warningFeatureCount > 0) {
+          <span class="warning-count">{{ warningFeatureCount }} with issues</span>
+        }
+      </div>
+
+      @if (wouldExceedLimit) {
+        <div class="warning-banner">
+          <mat-icon>warning</mat-icon>
+          <span
+            >Only {{ remainingSlots }} slot{{ remainingSlots !== 1 ? 's' : '' }} remaining ({{ data.maxGeofences }} max). Some geofences may
+            not be imported.</span
+          >
+        </div>
+      }
+
+      <div class="feature-list">
+        @for (feature of previewFeatures(); track feature.name) {
+          <div class="feature-item" [class.has-warning]="!!feature.warning">
+            <mat-icon class="feature-icon" [class.warning-icon]="!!feature.warning">
+              {{ feature.warning ? 'warning' : 'map' }}
+            </mat-icon>
+            <div class="feature-info">
+              <span class="feature-name">{{ feature.name }}</span>
+              <span class="feature-meta">
+                @if (feature.geometryType) {
+                  {{ feature.geometryType }} &middot; {{ feature.pointCount }} points
+                }
+                @if (feature.warning) {
+                  <span class="feature-warning">{{ feature.warning }}</span>
+                }
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (parseError()) {
+        <div class="error-banner">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ parseError() }}</span>
+        </div>
+      }
+    </div>
+
+    @if (importing()) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+  }
+
+  <!-- Results Step -->
+  @if (step() === 'results') {
+    <div class="results-section">
+      @if (importResult()?.created?.length) {
+        <div class="result-row success">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ importResult()!.created.length }} geofence{{ importResult()!.created.length !== 1 ? 's' : '' }} imported</span>
+        </div>
+      }
+      @if (importResult()?.errors?.length) {
+        <div class="result-row error">
+          <mat-icon>warning</mat-icon>
+          <span>{{ importResult()!.errors.length }} failed</span>
+        </div>
+        <div class="error-list">
+          @for (err of importResult()!.errors; track err.featureName) {
+            <div class="error-item">
+              <span class="error-feature-name">{{ err.featureName }}</span>
+              <span class="error-reason">{{ err.reason }}</span>
+            </div>
+          }
+        </div>
+      }
+      @if (!importResult()?.created?.length && !importResult()?.errors?.length) {
+        <div class="result-row">
+          <mat-icon>info</mat-icon>
+          <span>No geofences were processed</span>
+        </div>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (step() === 'upload') {
+    <button mat-button (click)="dialogRef.close(null)">Cancel</button>
+  }
+  @if (step() === 'preview') {
+    <button mat-button (click)="goBack()" [disabled]="importing()">Back</button>
+    <button mat-raised-button color="primary" (click)="startImport()" [disabled]="importing() || validFeatureCount === 0">
+      <mat-icon>upload</mat-icon>
+      Import {{ validFeatureCount }} Geofence{{ validFeatureCount !== 1 ? 's' : '' }}
+    </button>
+  }
+  @if (step() === 'results') {
+    <button mat-raised-button color="primary" (click)="closeWithResult()">Done</button>
+  }
+</mat-dialog-actions>

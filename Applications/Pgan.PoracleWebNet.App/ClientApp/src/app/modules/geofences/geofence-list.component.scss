@@ -27,6 +27,26 @@
   padding-left: 12px;
 }
 
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.geojson-actions {
+  display: flex;
+  gap: 8px;
+
+  button {
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
 .draw-fab {
   z-index: 1;
   flex-shrink: 0;

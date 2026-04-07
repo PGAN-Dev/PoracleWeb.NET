@@ -323,6 +323,18 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<string?> GetGeofencesGeoJsonAsync()
+    {
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/geofence/all/geojson");
+        var response = await this._httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadAsStringAsync();
+    }
+
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
     {
         var request = new HttpRequestMessage(method, url);

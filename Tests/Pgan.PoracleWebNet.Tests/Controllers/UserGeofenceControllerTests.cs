@@ -10,12 +10,13 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class UserGeofenceControllerTests : ControllerTestBase
 {
     private readonly Mock<IUserGeofenceService> _service = new();
+    private readonly Mock<IGeoJsonService> _geoJsonService = new();
     private readonly Mock<ILogger<UserGeofenceController>> _logger = new();
     private readonly UserGeofenceController _sut;
 
     public UserGeofenceControllerTests()
     {
-        this._sut = new UserGeofenceController(this._service.Object, this._logger.Object);
+        this._sut = new UserGeofenceController(this._service.Object, this._geoJsonService.Object, this._logger.Object);
         SetupUser(this._sut);
     }
 

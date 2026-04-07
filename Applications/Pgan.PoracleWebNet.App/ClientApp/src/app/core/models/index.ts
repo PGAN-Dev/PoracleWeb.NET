@@ -450,6 +450,18 @@ export interface GeofenceRegion {
   polygon?: [number, number][];
 }
 
+// ─── GeoJSON Import ──────────────────────────────────
+
+export interface GeoJsonImportResult {
+  created: UserGeofence[];
+  errors: GeoJsonImportError[];
+}
+
+export interface GeoJsonImportError {
+  featureName: string;
+  reason: string;
+}
+
 // ─── Poracle Server ──────────────────────────────────────────────────────────
 
 export interface PoracleServerStatus {

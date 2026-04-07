@@ -3,17 +3,33 @@
     <h1>My Geofences</h1>
     <p class="page-description">Draw custom geofence boundaries for precise notification zones</p>
   </div>
-  <button
-    mat-fab
-    extended
-    color="primary"
-    class="draw-fab"
-    (click)="toggleDrawMode()"
-    [disabled]="hasReachedLimit() && !drawMode()"
-    matTooltip="Draw a custom geofence on the map">
-    <mat-icon>{{ drawMode() ? 'close' : 'draw' }}</mat-icon>
-    {{ drawMode() ? 'Cancel Drawing' : 'Draw Geofence' }}
-  </button>
+  <div class="page-header-actions">
+    <div class="geojson-actions">
+      <button mat-stroked-button (click)="exportGeoJson()" matTooltip="Export all geofences as GeoJSON">
+        <mat-icon>download</mat-icon>
+        Export
+      </button>
+      <button
+        mat-stroked-button
+        (click)="openImportDialog()"
+        [disabled]="hasReachedLimit()"
+        matTooltip="Import geofences from a GeoJSON file">
+        <mat-icon>upload</mat-icon>
+        Import
+      </button>
+    </div>
+    <button
+      mat-fab
+      extended
+      color="primary"
+      class="draw-fab"
+      (click)="toggleDrawMode()"
+      [disabled]="hasReachedLimit() && !drawMode()"
+      matTooltip="Draw a custom geofence on the map">
+      <mat-icon>{{ drawMode() ? 'close' : 'draw' }}</mat-icon>
+      {{ drawMode() ? 'Cancel Drawing' : 'Draw Geofence' }}
+    </button>
+  </div>
 </div>
 
 <!-- Draw mode banner -->

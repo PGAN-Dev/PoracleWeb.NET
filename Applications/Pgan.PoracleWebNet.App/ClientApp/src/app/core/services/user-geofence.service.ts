@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { GeofenceRegion, UserGeofence, UserGeofenceCreate } from '../models';
+import { GeoJsonImportResult, GeofenceRegion, UserGeofence, UserGeofenceCreate } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class UserGeofenceService {
@@ -26,12 +26,24 @@ export class UserGeofenceService {
     return this.http.delete<void>(`${this.config.apiHost}/api/geofences/custom/${id}`);
   }
 
+  exportGeoJson(): Observable<Blob> {
+    return this.http.get(`${this.config.apiHost}/api/geofences/export/geojson`, {
+      responseType: 'blob',
+    });
+  }
+
   getCustomGeofences(): Observable<UserGeofence[]> {
     return this.http.get<UserGeofence[]>(`${this.config.apiHost}/api/geofences/custom`);
   }
 
   getRegions(): Observable<GeofenceRegion[]> {
     return this.http.get<GeofenceRegion[]>(`${this.config.apiHost}/api/geofences/regions`);
+  }
+
+  importGeoJson(file: File): Observable<GeoJsonImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<GeoJsonImportResult>(`${this.config.apiHost}/api/geofences/import/geojson`, formData);
   }
 
   submitForReview(kojiName: string): Observable<UserGeofence> {

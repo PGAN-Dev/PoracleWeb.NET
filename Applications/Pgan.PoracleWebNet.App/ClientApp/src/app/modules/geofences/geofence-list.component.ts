@@ -10,7 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
-import { AreaDefinition, GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
+import { AreaDefinition, GeoJsonImportResult, GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { UserGeofenceService } from '../../core/services/user-geofence.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
@@ -20,6 +20,10 @@ import {
   GeofenceNameDialogData,
   GeofenceNameDialogResult,
 } from '../../shared/components/geofence-name-dialog/geofence-name-dialog.component';
+import {
+  GeoJsonImportDialogComponent,
+  GeoJsonImportDialogData,
+} from '../../shared/components/geojson-import-dialog/geojson-import-dialog.component';
 import { RegionOption } from '../../shared/components/region-selector/region-selector.component';
 import { detectRegion } from '../../shared/utils/geo.utils';
 
@@ -183,6 +187,23 @@ export class GeofenceListComponent implements OnInit {
     });
   }
 
+  exportGeoJson(): void {
+    this.userGeofenceService
+      .exportGeoJson()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.snackBar.open('Failed to export geofences', 'OK', { duration: 3000 }),
+        next: blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'geofences.geojson';
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+      });
+  }
+
   ngOnInit(): void {
     this.loadActiveAreas();
     this.loadCustomGeofences();
@@ -247,6 +268,24 @@ export class GeofenceListComponent implements OnInit {
     if (region) {
       this.selectedMapRegion.set({ id: region.id, name: region.name, displayName: region.displayName });
     }
+  }
+
+  openImportDialog(): void {
+    const ref = this.dialog.open(GeoJsonImportDialogComponent, {
+      width: '520px',
+      data: {
+        currentGeofenceCount: this.customGeofences().length,
+        maxGeofences: MAX_CUSTOM_GEOFENCES,
+      } as GeoJsonImportDialogData,
+    });
+
+    ref.afterClosed().subscribe((result: GeoJsonImportResult | null) => {
+      if (result && result.created.length > 0) {
+        this.loadCustomGeofences();
+        this.loadActiveAreas();
+        this.snackBar.open(`Imported ${result.created.length} geofence(s)`, 'OK', { duration: 3000 });
+      }
+    });
   }
 
   async submitGeofence(geofence: UserGeofence): Promise<void> {

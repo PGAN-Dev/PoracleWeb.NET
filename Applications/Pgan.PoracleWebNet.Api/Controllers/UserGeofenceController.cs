@@ -1,14 +1,26 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/geofences")]
-public partial class UserGeofenceController(IUserGeofenceService userGeofenceService, ILogger<UserGeofenceController> logger) : BaseApiController
+public partial class UserGeofenceController(
+    IUserGeofenceService userGeofenceService,
+    IGeoJsonService geoJsonService,
+    ILogger<UserGeofenceController> logger) : BaseApiController
 {
     private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
+    private readonly IGeoJsonService _geoJsonService = geoJsonService;
     private readonly ILogger<UserGeofenceController> _logger = logger;
+
+    private static readonly JsonSerializerOptions ExportJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+    };
 
     [HttpGet("custom")]
     public async Task<IActionResult> GetCustomGeofences()
@@ -138,6 +150,77 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
         }
     }
 
+    [HttpGet("export/geojson")]
+    public async Task<IActionResult> ExportGeoJson()
+    {
+        try
+        {
+            var featureCollection = await this._geoJsonService.ExportAsync(this.UserId);
+            var json = JsonSerializer.Serialize(featureCollection, ExportJsonOptions);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            return this.File(bytes, "application/geo+json", $"geofences-{this.UserId}.geojson");
+        }
+        catch (Exception ex)
+        {
+            LogExportGeoJsonFailed(this._logger, ex, this.UserId);
+            return this.StatusCode(500, new
+            {
+                error = "Failed to export geofences"
+            });
+        }
+    }
+
+    [HttpPost("import/geojson")]
+    [EnableRateLimiting("geojson-import")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<IActionResult> ImportGeoJson(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return this.BadRequest(new
+            {
+                error = "No file provided"
+            });
+        }
+
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            return this.BadRequest(new
+            {
+                error = "File size exceeds 5MB limit"
+            });
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await this._geoJsonService.ImportAsync(this.UserId, this.ProfileNo, stream);
+            return this.Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.BadRequest(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (JsonException)
+        {
+            return this.BadRequest(new
+            {
+                error = "Invalid GeoJSON file"
+            });
+        }
+        catch (Exception ex)
+        {
+            LogImportGeoJsonFailed(this._logger, ex, this.UserId);
+            return this.StatusCode(500, new
+            {
+                error = "Failed to import geofences"
+            });
+        }
+    }
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to create custom geofence for user {UserId}")]
     private static partial void LogCreateGeofenceFailed(ILogger logger, Exception ex, string userId);
 
@@ -155,4 +238,10 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch geofence regions from Koji")]
     private static partial void LogFetchRegionsFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to export GeoJSON for user {UserId}")]
+    private static partial void LogExportGeoJsonFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to import GeoJSON for user {UserId}")]
+    private static partial void LogImportGeoJsonFailed(ILogger logger, Exception ex, string userId);
 }
