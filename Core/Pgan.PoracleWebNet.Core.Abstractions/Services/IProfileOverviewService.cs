@@ -5,7 +5,7 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 /// <summary>
 /// Service for fetching cross-profile alarm overview data.
 /// </summary>
-public interface ICrossProfileService
+public interface IProfileOverviewService
 {
     /// <summary>
     /// Gets all tracking alarms across all profiles for a user, including descriptions.

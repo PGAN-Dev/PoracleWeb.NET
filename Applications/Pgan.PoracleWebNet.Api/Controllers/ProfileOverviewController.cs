@@ -12,13 +12,13 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/cross-profile")]
-public class CrossProfileController(
-    ICrossProfileService crossProfileService,
+public class ProfileOverviewController(
+    IProfileOverviewService profileOverviewService,
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IOptions<JwtSettings> jwtSettings) : BaseApiController
 {
-    private readonly ICrossProfileService _crossProfileService = crossProfileService;
+    private readonly IProfileOverviewService _profileOverviewService = profileOverviewService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly IProfileService _profileService = profileService;
@@ -26,12 +26,12 @@ public class CrossProfileController(
     [HttpGet]
     public async Task<IActionResult> GetAllProfilesOverview()
     {
-        var overview = await this._crossProfileService.GetAllProfilesOverviewAsync(this.UserId);
+        var overview = await this._profileOverviewService.GetAllProfilesOverviewAsync(this.UserId);
         return this.Ok(overview);
     }
 
     [HttpPost("duplicate/{profileNo:int}")]
-    public async Task<IActionResult> DuplicateProfile(int profileNo, [FromBody] CrossProfileDuplicateRequest request)
+    public async Task<IActionResult> DuplicateProfile(int profileNo, [FromBody] ProfileOverviewDuplicateRequest request)
     {
         // Verify source profile exists
         var source = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
@@ -59,12 +59,19 @@ public class CrossProfileController(
         int alarmsCopied;
         try
         {
-            alarmsCopied = await this._crossProfileService.DuplicateProfileAsync(
+            alarmsCopied = await this._profileOverviewService.DuplicateProfileAsync(
                 this.UserId, profileNo, newProfileNo);
         }
         catch
         {
-            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            try
+            {
+                await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            }
+            catch
+            {
+                // Rollback failed — log but don't mask the original error
+            }
             throw;
         }
 
@@ -80,7 +87,7 @@ public class CrossProfileController(
     }
 
     [HttpPost("import")]
-    public async Task<IActionResult> ImportProfile([FromBody] CrossProfileImportRequest request)
+    public async Task<IActionResult> ImportProfile([FromBody] ProfileOverviewImportRequest request)
     {
         // Create a new profile with next available number and unique name
         var existing = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
@@ -111,7 +118,7 @@ public class CrossProfileController(
         await this._humanProxy.AddProfileAsync(this.UserId, body);
 
         // Import all alarms into the new profile
-        var alarmsCopied = await this._crossProfileService.ImportAlarmsAsync(
+        var alarmsCopied = await this._profileOverviewService.ImportAlarmsAsync(
             this.UserId, newProfileNo, request.Alarms);
 
         var newToken = this.GenerateTokenWithProfile(this.ProfileNo);
@@ -152,5 +159,5 @@ public class CrossProfileController(
     }
 }
 
-public record CrossProfileDuplicateRequest(string Name);
-public record CrossProfileImportRequest(string ProfileName, int Version, JsonElement Alarms);
+public record ProfileOverviewDuplicateRequest(string Name);
+public record ProfileOverviewImportRequest(string ProfileName, int Version, JsonElement Alarms);

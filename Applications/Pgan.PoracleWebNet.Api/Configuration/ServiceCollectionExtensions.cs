@@ -62,7 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
-        services.AddScoped<ICrossProfileService, CrossProfileService>();
+        services.AddScoped<IProfileOverviewService, ProfileOverviewService>();
 
         // Register Scanner DB (optional - only if connection string is configured)
         var scannerConnectionString = configuration.GetConnectionString("ScannerDb");

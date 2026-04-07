@@ -5,13 +5,13 @@ using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
-public class CrossProfileServiceTests
+public class ProfileOverviewServiceTests
 {
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
-    private readonly CrossProfileService _sut;
+    private readonly ProfileOverviewService _sut;
 
-    public CrossProfileServiceTests() => this._sut = new CrossProfileService(this._proxy.Object, this._humanProxy.Object);
+    public ProfileOverviewServiceTests() => this._sut = new ProfileOverviewService(this._proxy.Object, this._humanProxy.Object);
 
     [Fact]
     public async Task GetAllProfilesOverviewAsyncReturnsProxyResult()

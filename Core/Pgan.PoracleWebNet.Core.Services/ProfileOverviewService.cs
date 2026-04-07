@@ -4,9 +4,9 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class CrossProfileService(
+public class ProfileOverviewService(
     IPoracleTrackingProxy trackingProxy,
-    IPoracleHumanProxy humanProxy) : ICrossProfileService
+    IPoracleHumanProxy humanProxy) : IProfileOverviewService
 {
     private static readonly string[] AlarmTypes =
         ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "maxbattle", "fort"];

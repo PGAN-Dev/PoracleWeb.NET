@@ -536,8 +536,12 @@ export class ProfileOverviewComponent implements OnInit {
       input.value = '';
       try {
         const backup = JSON.parse(reader.result as string);
-        if (!backup.version || !backup.profileName || !backup.alarms) {
+        if (!backup.version || !backup.profileName || typeof backup.alarms !== 'object') {
           this.snackBar.open('Invalid backup file format', 'OK', { duration: 3000 });
+          return;
+        }
+        if (backup.version !== 1) {
+          this.snackBar.open('Unsupported backup version', 'OK', { duration: 3000 });
           return;
         }
 

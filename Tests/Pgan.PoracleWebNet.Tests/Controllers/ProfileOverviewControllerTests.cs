@@ -8,14 +8,14 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
-public class CrossProfileControllerTests : ControllerTestBase
+public class ProfileOverviewControllerTests : ControllerTestBase
 {
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IProfileService> _profileService = new();
-    private readonly Mock<ICrossProfileService> _service = new();
-    private readonly CrossProfileController _sut;
+    private readonly Mock<IProfileOverviewService> _service = new();
+    private readonly ProfileOverviewController _sut;
 
-    public CrossProfileControllerTests()
+    public ProfileOverviewControllerTests()
     {
         var jwtSettings = Options.Create(new JwtSettings
         {
@@ -24,7 +24,7 @@ public class CrossProfileControllerTests : ControllerTestBase
             Issuer = "test",
             Secret = "test-secret-key-that-is-at-least-32-characters-long",
         });
-        this._sut = new CrossProfileController(
+        this._sut = new ProfileOverviewController(
             this._service.Object,
             this._profileService.Object,
             this._humanProxy.Object,
@@ -67,7 +67,7 @@ public class CrossProfileControllerTests : ControllerTestBase
             .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99))
             .ReturnsAsync((Core.Models.Profile?)null);
 
-        var result = await this._sut.DuplicateProfile(99, new CrossProfileDuplicateRequest("Copy"));
+        var result = await this._sut.DuplicateProfile(99, new ProfileOverviewDuplicateRequest("Copy"));
 
         Assert.IsType<NotFoundResult>(result);
     }
@@ -89,7 +89,7 @@ public class CrossProfileControllerTests : ControllerTestBase
             .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
             .ReturnsAsync(5);
 
-        var result = await this._sut.DuplicateProfile(1, new CrossProfileDuplicateRequest("Copy"));
+        var result = await this._sut.DuplicateProfile(1, new ProfileOverviewDuplicateRequest("Copy"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value);
@@ -115,7 +115,7 @@ public class CrossProfileControllerTests : ControllerTestBase
             .Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>()))
             .ReturnsAsync(3);
 
-        var request = new CrossProfileImportRequest("Imported", 1, alarms);
+        var request = new ProfileOverviewImportRequest("Imported", 1, alarms);
         var result = await this._sut.ImportProfile(request);
 
         var ok = Assert.IsType<OkObjectResult>(result);
@@ -146,7 +146,7 @@ public class CrossProfileControllerTests : ControllerTestBase
             .Setup(s => s.ImportAlarmsAsync("123456789", 3, It.IsAny<JsonElement>()))
             .ReturnsAsync(1);
 
-        var request = new CrossProfileImportRequest("Work", 1, alarms);
+        var request = new ProfileOverviewImportRequest("Work", 1, alarms);
         var result = await this._sut.ImportProfile(request);
 
         // Verify the profile was created with a deduplicated name (contains the body with "Work (2)")
