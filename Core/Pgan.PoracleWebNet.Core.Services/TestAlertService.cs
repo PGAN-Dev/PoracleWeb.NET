@@ -333,13 +333,13 @@ public partial class TestAlertService(
 
     private static int GetInt(JsonElement element, string property, int defaultValue)
     {
-        if (element.TryGetProperty(property, out var prop))
+        if (element.TryGetProperty(property, out var prop) &&
+            prop.ValueKind == JsonValueKind.Number &&
+            prop.TryGetInt32(out var val))
         {
-            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var val))
-            {
-                return val;
-            }
+            return val;
         }
+
         return defaultValue;
     }
 
