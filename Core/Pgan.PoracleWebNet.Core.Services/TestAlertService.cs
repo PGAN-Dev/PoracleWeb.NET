@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -316,12 +317,15 @@ public partial class TestAlertService(
     {
         if (allAlarms.ValueKind == JsonValueKind.Array)
         {
-            foreach (var item in allAlarms.EnumerateArray())
+            var matchingAlarm = allAlarms
+                .EnumerateArray()
+                .FirstOrDefault(item =>
+                    item.TryGetProperty("uid", out var uidProp) &&
+                    uidProp.GetInt32() == uid);
+
+            if (matchingAlarm.ValueKind != JsonValueKind.Undefined)
             {
-                if (item.TryGetProperty("uid", out var uidProp) && uidProp.GetInt32() == uid)
-                {
-                    return item;
-                }
+                return matchingAlarm;
             }
         }
         return null;
