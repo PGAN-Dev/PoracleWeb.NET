@@ -118,7 +118,8 @@ public partial class TestAlertService(
     private static Dictionary<string, object> BuildPokemonWebhook(
         JsonElement alarm, double lat, double lon, long disappearTime, string template)
     {
-        var pokemonId = GetInt(alarm, "pokemon_id", 25); // Default: Pikachu
+        var pokemonId = GetInt(alarm, "pokemon_id", 25);
+        if (pokemonId == 0) pokemonId = 25; // "All Pokemon" alarm → use Pikachu for test
         var form = GetInt(alarm, "form", 0);
 
         return new Dictionary<string, object>
@@ -148,7 +149,8 @@ public partial class TestAlertService(
     private static Dictionary<string, object> BuildRaidWebhook(
         JsonElement alarm, double lat, double lon, long endTime, string template)
     {
-        var pokemonId = GetInt(alarm, "pokemon_id", 150); // Default: Mewtwo
+        var pokemonId = GetInt(alarm, "pokemon_id", 150);
+        if (pokemonId is 0 or 9000) pokemonId = 150; // "Any boss" → use Mewtwo for test
         var form = GetInt(alarm, "form", 0);
         var level = GetInt(alarm, "level", 5);
         if (level == 9000) level = 5;
@@ -199,6 +201,7 @@ public partial class TestAlertService(
         JsonElement alarm, double lat, double lon, string template)
     {
         var pokemonId = GetInt(alarm, "pokemon_id", 25);
+        if (pokemonId == 0) pokemonId = 25; // "Any Pokemon reward" → use Pikachu for test
         var rewardType = GetInt(alarm, "reward_type", 7);
 
         return new Dictionary<string, object>
@@ -255,6 +258,7 @@ public partial class TestAlertService(
         JsonElement alarm, double lat, double lon, string template)
     {
         var pokemonId = GetInt(alarm, "pokemon_id", 25);
+        if (pokemonId == 0) pokemonId = 25; // "Any nest Pokemon" → use Pikachu for test
 
         return new Dictionary<string, object>
         {
