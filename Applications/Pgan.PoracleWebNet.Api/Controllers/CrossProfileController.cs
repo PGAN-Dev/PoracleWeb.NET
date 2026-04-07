@@ -55,9 +55,18 @@ public class CrossProfileController(
         });
         await this._humanProxy.AddProfileAsync(this.UserId, body);
 
-        // Copy all alarms from source to new profile
-        var alarmsCopied = await this._crossProfileService.DuplicateProfileAsync(
-            this.UserId, profileNo, newProfileNo);
+        // Copy all alarms from source to new profile; roll back on failure
+        int alarmsCopied;
+        try
+        {
+            alarmsCopied = await this._crossProfileService.DuplicateProfileAsync(
+                this.UserId, profileNo, newProfileNo);
+        }
+        catch
+        {
+            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            throw;
+        }
 
         // Issue a new JWT so the current profile stays correct
         var newToken = this.GenerateTokenWithProfile(this.ProfileNo);

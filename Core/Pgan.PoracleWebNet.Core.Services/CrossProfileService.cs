@@ -80,7 +80,11 @@ public class CrossProfileService(
 
                 foreach (var alarm in alarmsArray.EnumerateArray())
                 {
-                    await this._trackingProxy.CreateAsync(type, userId, alarm);
+                    // Strip uid defensively — export removes it client-side but manually edited backups may include it
+                    var cleaned = alarm.TryGetProperty("uid", out _)
+                        ? PoracleJsonHelper.StripProperty(alarm, "uid")
+                        : alarm;
+                    await this._trackingProxy.CreateAsync(type, userId, cleaned);
                     totalCreated++;
                 }
             }
