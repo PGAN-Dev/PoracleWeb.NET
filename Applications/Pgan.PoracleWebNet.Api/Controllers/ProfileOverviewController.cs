@@ -11,7 +11,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
-[Route("api/cross-profile")]
+[Route("api/profile-overview")]
 public class ProfileOverviewController(
     IProfileOverviewService profileOverviewService,
     IProfileService profileService,

@@ -12,13 +12,13 @@ export class ProfileOverviewService {
 
   duplicateProfile(profileNo: number, name: string): Observable<{ alarmsCopied: number; newProfileNo: number; token: string }> {
     return this.http.post<{ alarmsCopied: number; newProfileNo: number; token: string }>(
-      `${this.config.apiHost}/api/cross-profile/duplicate/${profileNo}`,
+      `${this.config.apiHost}/api/profile-overview/duplicate/${profileNo}`,
       { name },
     );
   }
 
   getOverview(): Observable<ProfileOverview> {
-    return this.http.get<ProfileOverview>(`${this.config.apiHost}/api/cross-profile`);
+    return this.http.get<ProfileOverview>(`${this.config.apiHost}/api/profile-overview`);
   }
 
   importProfile(backup: {
@@ -27,7 +27,7 @@ export class ProfileOverviewService {
     version: number;
   }): Observable<{ alarmsCopied: number; newProfileNo: number; token: string }> {
     return this.http.post<{ alarmsCopied: number; newProfileNo: number; token: string }>(
-      `${this.config.apiHost}/api/cross-profile/import`,
+      `${this.config.apiHost}/api/profile-overview/import`,
       backup,
     );
   }

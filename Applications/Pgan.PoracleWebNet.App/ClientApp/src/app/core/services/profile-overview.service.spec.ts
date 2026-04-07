@@ -44,10 +44,10 @@ describe('ProfileOverviewService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should fetch overview with GET /api/cross-profile', () => {
+  it('should fetch overview with GET /api/profile-overview', () => {
     service.getOverview().subscribe();
 
-    const req = httpMock.expectOne(`${API}/api/cross-profile`);
+    const req = httpMock.expectOne(`${API}/api/profile-overview`);
     expect(req.request.method).toBe('GET');
     req.flush(mockOverview);
   });
@@ -68,7 +68,7 @@ describe('ProfileOverviewService', () => {
       expect(overview.profile[0].name).toBe('Default');
     });
 
-    const req = httpMock.expectOne(`${API}/api/cross-profile`);
+    const req = httpMock.expectOne(`${API}/api/profile-overview`);
     expect(req.request.method).toBe('GET');
     req.flush(mockOverview);
   });
