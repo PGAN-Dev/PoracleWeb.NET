@@ -54,6 +54,8 @@ export const HELP_SECTIONS: HelpSection[] = [
 </ul>
 <h4>Active Filters</h4>
 <p>A grid of cards shows how many alarms you have for each type (Pokemon, Raids, Quests, etc.). Click any card to jump to that alarm list.</p>
+<h4>Weather</h4>
+<p>If you have a location set, the dashboard shows the current in-game weather at your coordinates along with the last update time. Area weather is also displayed for each of your selected areas, so you can see weather conditions across all the zones you track.</p>
 <h4>Quick Actions</h4>
 <p>Shortcut buttons to add Pokemon, Raid, or Quest alarms, manage areas, or configure cleaning — all without navigating through the sidebar.</p>
 <h4>Tips</h4>
@@ -127,6 +129,13 @@ export const HELP_SECTIONS: HelpSection[] = [
 <h4>Profile Toggle</h4>
 <p>Each geofence card has a slide toggle to activate or deactivate it for your <strong>current profile</strong>. When you create a geofence, it's automatically activated on the profile you're using. Switch to another profile and the toggle will show "Inactive" — flip it on to receive alerts for that geofence on that profile too. This lets you control which profiles get notifications for each geofence without recreating it.</p>
 <div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div>Approved geofences (promoted to public areas) don't show the toggle — manage them from the <strong>Areas</strong> page instead.</div></div>
+<h4>GeoJSON Import &amp; Export</h4>
+<p>You can import and export geofences using the standard GeoJSON format, making it easy to share boundaries or create them in external tools like <a href="https://geojson.io" target="_blank">geojson.io</a>.</p>
+<ul>
+<li><strong>Import</strong> — Click the upload icon and paste or upload a GeoJSON file. Each polygon in the file becomes a new geofence. You can review and rename each one before saving.</li>
+<li><strong>Export</strong> — Click the download icon and select which geofences to include. The exported GeoJSON file contains all selected polygons and can be opened in any GIS tool or map editor.</li>
+</ul>
+<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>GeoJSON import is useful for migrating geofences from other systems or drawing complex boundaries in a desktop GIS tool and then importing them here.</div></div>
 <h4>Submitting for Public Approval</h4>
 <p>If you think your geofence would be useful for the whole community, you can submit it for admin review. If approved, it becomes a public area everyone can select. Your private geofence continues working while the review is pending.</p>
 <h4>Status Badges</h4>
@@ -284,6 +293,43 @@ export const HELP_SECTIONS: HelpSection[] = [
     iconColor: '#607d8b',
     subtitle: 'Areas vs distance, templates, and clean mode',
     title: 'Delivery Settings',
+  }),
+  section({
+    id: 'test-alerts',
+    content: `<p>Every alarm card has a <strong>Test</strong> button (paper plane icon) that sends a sample notification to your Discord or Telegram, using the alarm's exact filters and your current delivery template.</p>
+<h4>How It Works</h4>
+<ol>
+<li>Find any alarm card in your list (Pokemon, Raid, Quest, etc.).</li>
+<li>Click the <strong>send</strong> icon in the card's action row.</li>
+<li>A mock event matching your alarm's filters is generated and sent through the notification pipeline. You'll receive a DM just like a real alert.</li>
+</ol>
+<h4>What Gets Tested</h4>
+<p>The test uses your alarm's filter values (Pokemon ID, raid level, quest reward, etc.) and your saved location as the mock event coordinates. The notification is formatted using your selected template, so you see exactly what a real alert would look like.</p>
+<h4>Cooldown</h4>
+<p>To prevent spam, each alarm has a 15-second cooldown between test sends. The button is disabled during the cooldown and a snackbar shows feedback (success, error, or cooldown remaining).</p>
+<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>Test alerts are great for verifying your template looks right or confirming your webhook delivery is working before waiting for a real event to trigger.</div></div>`,
+    icon: 'send',
+    iconColor: '#00897b',
+    subtitle: 'Send sample notifications to preview your alarms',
+    title: 'Test Alerts',
+  }),
+  section({
+    id: 'pokemon-availability',
+    content: `<p>When adding or editing Pokemon alarms, the Pokemon selector can show <strong>availability indicators</strong> — small badges that tell you which Pokemon are currently spawning in the wild.</p>
+<h4>How It Works</h4>
+<p>If your community has a Golbat scanner configured, the selector shows colored dots next to Pokemon names:</p>
+<ul>
+<li><strong>Green dot</strong> — This Pokemon has been seen spawning recently.</li>
+<li><strong>No dot</strong> — Not currently reported in the scanner data.</li>
+</ul>
+<p>This helps you avoid creating alarms for Pokemon that aren't spawning in your area right now (e.g., seasonal or event-exclusive species).</p>
+<h4>Availability Refresh</h4>
+<p>The data refreshes automatically in the background. You don't need to do anything — just look for the dots when browsing the Pokemon selector.</p>
+<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div>This feature is only visible if your admin has configured the Golbat scanner integration. If you don't see availability dots, the feature is not enabled for your community.</div></div>`,
+    icon: 'visibility',
+    iconColor: '#43a047',
+    subtitle: 'See which Pokemon are currently spawning',
+    title: 'Pokemon Availability',
   }),
   section({
     id: 'bulk',

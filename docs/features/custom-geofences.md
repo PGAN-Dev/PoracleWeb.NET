@@ -133,6 +133,39 @@ Owner and reviewer names are resolved via a single batch lookup against the Pora
 - Names are auto-generated from the user-provided display name (lowercased)
 - Collisions are resolved by appending a numeric suffix
 
+## GeoJSON Import & Export
+
+Custom geofences can be exported and imported using the standard [GeoJSON](https://geojson.org/) format, making it easy to work with external GIS tools or migrate geofences between systems.
+
+### Export
+
+1. Click the **download/export** button on the My Geofences page
+2. Select which geofences to include in the export
+3. The file is exported as a standard GeoJSON `FeatureCollection`
+4. Each geofence becomes a `Feature` with `Polygon` geometry
+5. Feature properties include `name`, `region`, and `status`
+
+![GeoJSON export dialog](../screenshots/geofences-export-dialog.png)
+
+The exported file is compatible with any GIS tool that supports GeoJSON, including [geojson.io](https://geojson.io), QGIS, Google Earth, and others.
+
+### Import
+
+1. Click the **upload/import** button on the My Geofences page
+2. Paste GeoJSON text directly or upload a `.geojson` file
+3. Each `Polygon` in the `FeatureCollection` creates a new geofence
+4. Review and rename each geofence before saving
+5. Region auto-detection applies to imported polygons (same as hand-drawn geofences)
+6. Names are auto-generated from Feature `properties` (e.g., `name` or `title`) or fall back to the polygon index
+7. Imported geofences count toward the **10-geofence-per-user limit**
+
+![GeoJSON import dialog](../screenshots/geofences-import-dialog.png)
+
+!!! tip "Use cases"
+    - **Migrating from other systems** — Export geofences from another Pokemon GO tool or mapping platform and import them into PoracleWeb
+    - **Drawing in desktop GIS tools** — Use QGIS or geojson.io for precise polygon editing, then import the result
+    - **Sharing boundaries between users** — One user exports their geofences and another imports them
+
 ## Caching
 
 - Admin geofences from Koji are cached in memory for **5 minutes** (`IMemoryCache`)

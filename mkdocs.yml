@@ -87,6 +87,7 @@ nav:
       - Database: architecture/database.md
   - Features:
       - Alarm Management: features/alarms.md
+      - Profiles: features/profiles.md
       - Custom Geofences: features/custom-geofences.md
       - Server Management: features/server-management.md
   - Development:

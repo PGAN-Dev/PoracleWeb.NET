@@ -32,6 +32,13 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **18 Languages** — Pokemon name localization
 - **Poracle Server Management** — Monitor health and restart PoracleJS instances remotely
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
+- **Test Alerts** — Send sample notifications from any alarm card to preview exactly what your alerts look like
+- **Weather Display** — View current in-game weather at your location and across all tracked areas on the dashboard
+- **Fort Change Tracking** — Get notified when pokestops or gyms are added, removed, renamed, or relocated
+- **Max Battle (Dynamax) Alarms** — Track Dynamax and Gigantamax battles at Power Spots by level or specific Pokemon
+- **GeoJSON Import/Export** — Import and export custom geofences in standard GeoJSON format
+- **Profile Backup & Restore** — Export profiles as JSON backups and import them, including full alarm filter restoration
+- **Profile Duplication** — Clone any profile with all its alarms in one click
 
 ## Prerequisites
 

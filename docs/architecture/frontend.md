@@ -27,6 +27,7 @@ src/app/
 │   ├── lures/           Lure alarm management
 │   ├── nests/           Nest alarm management
 │   ├── gyms/            Gym alarm management
+│   ├── fort-changes/    Fort change alarm management
 │   ├── max-battles/     Max Battle (Dynamax) alarm management
 │   ├── areas/           Area selection with map
 │   ├── geofences/       Custom geofence drawing
@@ -50,6 +51,10 @@ src/app/
 
 The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `lon`, `teamId`, and `area`.
 
+### TestAlertService
+
+`TestAlertService` (`core/services/test-alert.service.ts`) manages test alert requests from alarm list cards. It tracks per-UID cooldowns (15-second TTL via a `Map`) and deduplicates in-flight requests to prevent duplicate API calls. After sending, it displays success/error/cooldown feedback via Material snackbar. The test button appears in `mat-card-actions` on all alarm card types (Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles).
+
 ### PokemonAvailabilityService
 
 `PokemonAvailabilityService` (`core/services/pokemon-availability.service.ts`) provides Pokemon spawn availability data from the Golbat scanner API. It is a `providedIn: 'root'` singleton.
@@ -69,7 +74,7 @@ The `PokemonSelectorComponent` injects this service and calls `load()` in `ngOnI
 ## UI patterns
 
 ### Alarm lists
-Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance.
+Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. All alarm types (including Fort Changes and Max Battles) follow this same card grid pattern with type-specific filter pills.
 
 ### Bulk operations
 Select mode toggle (checklist icon) on each alarm list. Bulk toolbar provides Select All, Update Distance, and Delete actions.
@@ -100,6 +105,10 @@ Integrated into gym-add-dialog, gym-edit-dialog, raid-add-dialog, and raid-edit-
 ### Gym list cards
 
 Gym alarm list cards resolve and display targeted gym names. When alarms have a `gym_id`, the component uses `ScannerService.getGymById` with `forkJoin` to batch-lookup gym details, showing the gym name on each card instead of the raw ID.
+
+### GeoJSON import/export
+
+The geofences module includes GeoJSON import and export dialogs for interoperability with external mapping tools. Users can export their custom geofences as GeoJSON `FeatureCollection` files and import geofences from GeoJSON files. The import dialog validates the GeoJSON structure and previews polygons on a Leaflet map before confirming the import. Admin geofence management also supports GeoJSON export for bulk operations.
 
 ### Keyboard shortcuts
 

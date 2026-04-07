@@ -30,15 +30,17 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 5. Optionally select a **template** for notification formatting
 6. Save the alarm
 
-## Pokemon availability indicators
+## Pokemon Availability
 
-When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured, the Pokemon selector shows which species are currently spawning in the wild.
+When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured, the Pokemon selector shows which species are currently spawning in the wild. This helps users create alarms for Pokemon that are actually available to encounter.
+
+![Pokemon availability indicators in the selector](../screenshots/pokemon-availability.png)
 
 ### How it works
 
 1. The backend fetches spawn data from Golbat's `GET /api/pokemon/available` endpoint
 2. Results are cached for 5 minutes with a stale-data fallback if Golbat goes down
-3. The frontend fetches availability via `GET /api/pokemon-availability` and auto-refreshes every 5 minutes
+3. The frontend fetches availability via `GET /api/pokemon-availability` and auto-refreshes every 5 minutes in the background
 4. The Pokemon selector renders availability indicators when data is available
 
 ### What the user sees
@@ -50,9 +52,16 @@ When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured,
 
 ### Feature gating
 
-The availability UI is **automatically hidden** when Golbat is not configured. No admin toggle is needed — the feature is infrastructure-driven. Set `GOLBAT_API_ADDRESS` and `GOLBAT_API_SECRET` in your `.env` to enable it.
+The availability UI is **automatically hidden** when Golbat is not configured. No admin toggle is needed — the feature is infrastructure-driven.
+
+**Configuration** — Set these environment variables in your `.env` to enable the feature:
+
+- `GOLBAT_API_ADDRESS` — URL of the Golbat API (e.g., `http://localhost:9001`)
+- `GOLBAT_API_SECRET` — Golbat API authentication secret
 
 ## Alarm cards
+
+![Alarm card grid with filter pills](../screenshots/alarm-cards.png)
 
 Alarms are displayed as a card grid. Each card shows:
 
@@ -163,7 +172,9 @@ Gym alarms support:
 
 ## Fort change alarm filters
 
-Fort change alarms track changes to pokestops and gyms as points of interest (not activity at them).
+Fort change alarms track changes to pokestops and gyms as points of interest (not activity at them). This includes name changes, location changes, image updates, removals, and new POI additions.
+
+![Fort change alarm configuration](../screenshots/fort-change-alarm.png)
 
 | Field | Default | Description |
 |---|---|---|
@@ -300,6 +311,56 @@ Max Battle-specific defaults:
 | `gmax` | `0` (any — not Gigantamax-only) |
 | `move` | `9000` (any move) |
 | `evolution` | `9000` (any — unused placeholder) |
+
+## Test Alerts
+
+Every alarm card includes a **test button** (send/paper plane icon) that triggers a sample notification for that alarm. This lets users verify their alarm filters and notification formatting without waiting for a real event to occur.
+
+![Test alert button on an alarm card](../screenshots/test-alert-button.png)
+
+### How it works
+
+1. Click the send icon in the alarm card's action area
+2. PoracleWeb builds a **mock webhook payload** using the alarm's actual filter values (e.g., pokemon_id, raid_level, quest_reward) and the user's saved location as the event coordinates
+3. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification to the user via their configured webhook
+4. A **snackbar** displays the result: success, error, or cooldown warning
+
+### Supported alarm types
+
+Test alerts are available for all 8 alarm types:
+
+- Pokemon
+- Raid
+- Egg
+- Quest
+- Invasion
+- Lure
+- Nest
+- Gym
+
+### Rate limiting
+
+Test alerts are rate limited to prevent abuse:
+
+- **Server-side**: 5 requests per 60 seconds per IP address
+- **Client-side**: 15-second cooldown per individual alarm (tracked by UID)
+- In-flight request deduplication prevents duplicate API calls if the button is clicked rapidly
+
+## Weather Display
+
+The dashboard shows the current in-game weather conditions at the user's saved location.
+
+![Weather display on the dashboard](../screenshots/weather-display.png)
+
+### Features
+
+- **Current weather** — Displays the active in-game weather type at the user's saved coordinates
+- **Last update timestamp** — Shows when the weather data was last refreshed
+- **Area weather** — Weather conditions displayed for each of the user's selected areas
+- **Automatic updates** — Weather data refreshes in the background
+
+!!! note "Location required"
+    The weather display requires a saved location to function. Users who have not set their location will not see weather information on the dashboard. Set a location via the Location page or the onboarding wizard.
 
 ## Quick Picks
 

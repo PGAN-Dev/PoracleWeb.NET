@@ -74,21 +74,22 @@ graph TB
     OtherServices -->|HttpClient| Koji
     OtherServices -->|HttpClient| Discord
     OtherServices -->|HttpClient| Golbat
+    Controllers -->|Test alerts| PoracleNG
 ```
 
 !!! info "All operations go through PoracleNG"
-    All alarm tracking CRUD is proxied via `IPoracleTrackingProxy`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Direct database access is only used for admin bulk operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) and application-owned data (`poracle_web` database). See [PoracleNG API Proxy](poracleng-proxy.md) for details.
+    All alarm tracking CRUD (including Fort Change and Max Battle types) is proxied via `IPoracleTrackingProxy`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Direct database access is only used for admin bulk operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) and application-owned data (`poracle_web` database). Optional integrations include Pokemon availability from Golbat API and weather data from Poracle API. See [PoracleNG API Proxy](poracleng-proxy.md) for details.
 
 ## Key design decisions
 
 ### Operations proxied through PoracleNG
-All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, handles area dual-writes, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication uses PoracleNG's copy endpoint to clone all tracking rules atomically. See [PoracleNG API Proxy](poracleng-proxy.md).
+All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, handles area dual-writes, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication uses PoracleNG's copy endpoint to clone all tracking rules atomically. Supported alarm types include Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, and Max Battles. Test alerts are sent via PoracleNG's `POST /api/test` endpoint, which formats and delivers a mock notification to the user. See [PoracleNG API Proxy](poracleng-proxy.md).
 
 ### Separate databases
 PoracleWeb does **not** modify the Poracle DB schema. The Poracle database is managed by PoracleNG. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
 
 ### Unified geofence feed
-PoracleWeb acts as the single geofence source for PoracleJS. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleJS or Koji.
+PoracleWeb acts as the single geofence source for PoracleJS. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleJS or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.
 
 ### AutoMapper for partial updates
 All update models use nullable `int?` properties so partial updates don't zero out unset fields. The mapping profile skips null properties automatically. Note: AutoMapper is now only used for non-alarm entities (humans, profiles). Alarm data flows as raw JSON through the PoracleNG API proxy.

@@ -57,6 +57,14 @@ PoracleNG's `cleanRow()` function applies field defaults on every create/update.
 !!! info "Defaults are now enforced server-side"
     Even if the frontend sends incomplete data, PoracleNG's `cleanRow()` fills in proper defaults. This eliminates the class of bugs where missing C# model defaults caused silent filter breakage.
 
+## Test alert service
+
+`TestAlertService` lets users trigger a sample notification for any configured alarm. It uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) in parallel. It then constructs a realistic mock webhook payload based on the alarm's filter fields (e.g., `pokemon_id`, `raid_level`, `quest_reward`) using the user's location as the event coordinates. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification. Rate-limited at 5 requests per 60s per IP via the `test-alert` policy.
+
+## Fort change and Max Battle services
+
+`FortChangeService` and `MaxBattleService` follow the same `IPoracleTrackingProxy` pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints with no direct database access. Each has the standard three distance endpoints (`PUT /{uid}`, `PUT /distance`, `PUT /distance/bulk`).
+
 ## Invasion service
 
 ### GruntType case normalization
@@ -185,6 +193,10 @@ Caches Golbat availability data in `IMemoryCache` with a 5-minute absolute expir
 - Cache key: `golbat_available_pokemon`
 - `PokemonAvailabilityController` uses nullable DI injection (`IPokemonAvailabilityService? = null`) — when Golbat is not configured, the endpoint returns `{ available: [], enabled: false }`
 
+## Weather data
+
+Weather data is served via `IScannerService` from the scanner DB (`RdmWeatherEntity`). `RdmScannerService` fetches weather cells using S2 cell geometry (`S2CellHelper`) and returns `WeatherData` models with cell polygons and gameplay weather conditions. The `LocationController` exposes weather data alongside the user's location. Weather is optional -- when the scanner DB is not configured, weather endpoints return empty results.
+
 ## Rate limiting
 
 Auth endpoints use **per-IP** partitioned rate limiting:
@@ -193,6 +205,7 @@ Auth endpoints use **per-IP** partitioned rate limiting:
 |---|---|---|
 | `auth` | 30 requests | 60 seconds |
 | `auth-read` | 120 requests | 60 seconds |
+| `test-alert` | 5 requests | 60 seconds |
 
 Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
 
