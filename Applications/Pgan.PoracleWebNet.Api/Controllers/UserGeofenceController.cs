@@ -160,7 +160,7 @@ public partial class UserGeofenceController(
             var bytes = System.Text.Encoding.UTF8.GetBytes(json);
             return this.File(bytes, "application/geo+json", $"geofences-{this.UserId}.geojson");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not TaskCanceledException)
         {
             LogExportGeoJsonFailed(this._logger, ex, this.UserId);
             return this.StatusCode(500, new
