@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Linq;
 
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -150,23 +151,16 @@ public partial class GeoJsonService(
                 }
 
                 // Validate coordinates
-                var invalidCoord = false;
-                foreach (var coord in internalRing)
-                {
-                    if (coord[0] is < -90 or > 90 || coord[1] is < -180 or > 180)
-                    {
-                        result.Errors.Add(new GeoJsonImportError
-                        {
-                            FeatureName = featureName,
-                            Reason = "Coordinates out of valid range (lat: -90 to 90, lon: -180 to 180)."
-                        });
-                        invalidCoord = true;
-                        break;
-                    }
-                }
+                var invalidCoord = internalRing.FirstOrDefault(coord =>
+                    coord[0] is < -90 or > 90 || coord[1] is < -180 or > 180);
 
-                if (invalidCoord)
+                if (invalidCoord != null)
                 {
+                    result.Errors.Add(new GeoJsonImportError
+                    {
+                        FeatureName = featureName,
+                        Reason = "Coordinates out of valid range (lat: -90 to 90, lon: -180 to 180)."
+                    });
                     continue;
                 }
 
