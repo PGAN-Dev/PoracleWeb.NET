@@ -11,5 +11,8 @@ public class RdmStationEntity
     public string Id { get; set; } = string.Empty;
 
     [Column("battle_pokemon_id")]
-    public int? BattlePokemonId { get; set; }
+    public int? BattlePokemonId
+    {
+        get; set;
+    }
 }

@@ -55,7 +55,10 @@ public partial class AuthController(
         if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
         {
             LogAuthMethodDisabled(this._logger, "Discord");
-            return this.BadRequest(new { error = "Discord authentication is not enabled." });
+            return this.BadRequest(new
+            {
+                error = "Discord authentication is not enabled."
+            });
         }
 
         // Generate a random state value for CSRF protection

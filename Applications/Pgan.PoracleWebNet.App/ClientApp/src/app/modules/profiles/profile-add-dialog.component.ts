@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -31,12 +32,30 @@ export class ProfileAddDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<ProfileAddDialogComponent>);
 
+  existingNames = signal<Set<string>>(new Set());
+  nameError = signal('');
   profileName = '';
   readonly saving = signal(false);
+
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    this.profileService
+      .getAll()
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe(profiles => {
+        this.existingNames.set(new Set(profiles.map(p => (p.name ?? '').toLowerCase())));
+      });
+  }
 
   save(): void {
     const name = this.profileName.trim();
     if (!name) return;
+
+    if (this.existingNames().has(name.toLowerCase())) {
+      this.nameError.set('A profile with this name already exists');
+      return;
+    }
+    this.nameError.set('');
 
     this.saving.set(true);
     this.profileService.create({ name }).subscribe({

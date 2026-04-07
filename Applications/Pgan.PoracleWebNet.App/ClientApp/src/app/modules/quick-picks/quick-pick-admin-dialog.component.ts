@@ -69,15 +69,6 @@ export class QuickPickAdminDialogComponent implements OnInit {
     lureId: [0],
   });
 
-  maxBattleForm = this.fb.group({
-    evolution: [9000],
-    form: [0],
-    gmax: [0],
-    level: [9000],
-    move: [9000],
-    pokemonId: [9000],
-  });
-
   mainForm = this.fb.group({
     name: [this.data?.name ?? '', Validators.required],
     alarmType: [this.data?.alarmType ?? 'monster'],
@@ -86,6 +77,15 @@ export class QuickPickAdminDialogComponent implements OnInit {
     enabled: [this.data?.enabled ?? true],
     icon: [this.data?.icon ?? 'bolt'],
     sortOrder: [this.data?.sortOrder ?? 0],
+  });
+
+  maxBattleForm = this.fb.group({
+    evolution: [9000],
+    form: [0],
+    gmax: [0],
+    level: [9000],
+    move: [9000],
+    pokemonId: [9000],
   });
 
   monsterForm = this.fb.group({

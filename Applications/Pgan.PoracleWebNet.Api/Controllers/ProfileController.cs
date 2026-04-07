@@ -75,12 +75,12 @@ public class ProfileController(
 
         var body = JsonSerializer.SerializeToElement(new
         {
-            profileNo,
+            profile_no = profileNo,
             name = profile.Name
         });
         await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 
-        // Re-read to return the updated model
+        // Re-read from proxy to return the updated model
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
         return this.Ok(result);
     }

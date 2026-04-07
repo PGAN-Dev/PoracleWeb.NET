@@ -118,7 +118,7 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var monsters = DeserializeMonsters(json);
-        return monsters.Count();
+        return monsters.Count;
     }
 
     public async Task<IEnumerable<Monster>> BulkCreateAsync(string userId, IEnumerable<Monster> models)

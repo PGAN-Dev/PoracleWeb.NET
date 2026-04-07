@@ -3,13 +3,16 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 
 export interface ConfirmDialogData {
   cancelText?: string;
   confirmText?: string;
   itemDescription?: string;
   message: string;
+  promptField?: { existingNames?: string[]; label: string; value: string };
   showDontAskAgain?: boolean;
   title: string;
   warn?: boolean;
@@ -25,7 +28,7 @@ export interface ConfirmDialogResult {
     'aria-describedby': 'confirm-dialog-message',
     role: 'alertdialog',
   },
-  imports: [MatDialogModule, MatButtonModule, MatIconModule, MatCheckboxModule, FormsModule],
+  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule],
   selector: 'app-confirm-dialog',
   standalone: true,
   styleUrl: './confirm-dialog.component.scss',
@@ -36,6 +39,14 @@ export class ConfirmDialogComponent {
   readonly dialogRef = inject(MatDialogRef<ConfirmDialogComponent>);
 
   dontAskAgain = false;
+  promptError = '';
+  promptValue = this.data.promptField?.value ?? '';
+
+  get hasPromptConflict(): boolean {
+    if (!this.data.promptField?.existingNames) return false;
+    const val = this.promptValue.trim().toLowerCase();
+    return this.data.promptField.existingNames.some(n => n.toLowerCase() === val);
+  }
 
   onCancel(): void {
     if (this.data.showDontAskAgain) {
@@ -46,7 +57,9 @@ export class ConfirmDialogComponent {
   }
 
   onConfirm(): void {
-    if (this.data.showDontAskAgain) {
+    if (this.data.promptField) {
+      this.dialogRef.close(this.promptValue.trim() || false);
+    } else if (this.data.showDontAskAgain) {
       this.dialogRef.close({ confirmed: true, dontAskAgain: this.dontAskAgain } as ConfirmDialogResult);
     } else {
       this.dialogRef.close(true);

@@ -21,7 +21,13 @@ public class RaidServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsRaids()
     {
-        var json = CreateJsonArray(new { uid = 1, pokemon_id = 150, level = 5, id = "user1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            pokemon_id = 150,
+            level = 5,
+            id = "user1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "user1")).ReturnsAsync(json);
 
         var result = await this._sut.GetByUserAsync("user1", 1);
@@ -33,7 +39,12 @@ public class RaidServiceTests
     [Fact]
     public async Task GetByUidAsyncReturnsRaid()
     {
-        var json = CreateJsonArray(new { uid = 1, pokemon_id = 150, id = "user1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            pokemon_id = 150,
+            id = "user1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "user1")).ReturnsAsync(json);
 
         var result = await this._sut.GetByUidAsync("user1", 1);
@@ -86,9 +97,21 @@ public class RaidServiceTests
     public async Task DeleteAllByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("raid", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -100,8 +123,18 @@ public class RaidServiceTests
     public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u", distance = 0 },
-            new { uid = 2, id = "u", distance = 0 });
+            new
+            {
+                uid = 1,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                id = "u",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("raid", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
@@ -113,13 +146,41 @@ public class RaidServiceTests
     public async Task CountByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" },
-            new { uid = 5, id = "u" },
-            new { uid = 6, id = "u" },
-            new { uid = 7, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            },
+            new
+            {
+                uid = 5,
+                id = "u"
+            },
+            new
+            {
+                uid = 6,
+                id = "u"
+            },
+            new
+            {
+                uid = 7,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u")).ReturnsAsync(json);
 
         Assert.Equal(7, await this._sut.CountByUserAsync("u", 1));

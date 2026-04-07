@@ -110,7 +110,7 @@ public class FortChangeService(IPoracleTrackingProxy proxy) : IFortChangeService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<FortChange>> BulkCreateAsync(string userId, IEnumerable<FortChange> models)

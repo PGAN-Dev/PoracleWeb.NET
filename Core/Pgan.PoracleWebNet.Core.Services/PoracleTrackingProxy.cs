@@ -110,6 +110,17 @@ public partial class PoracleTrackingProxy(
         return doc.RootElement.Clone();
     }
 
+    public async Task<JsonElement> GetAllTrackingAllProfilesAsync(string userId)
+    {
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/allProfiles/{Encode(userId)}?includeDescriptions=true");
+        var response = await this._httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.Clone();
+    }
+
     public async Task ReloadStateAsync()
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/reload");

@@ -21,7 +21,11 @@ public class InvasionServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsInvasions()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
@@ -29,7 +33,11 @@ public class InvasionServiceTests
     [Fact]
     public async Task GetByUidAsyncFound()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(json);
         Assert.NotNull(await this._sut.GetByUidAsync("u1", 1));
     }
@@ -74,12 +82,36 @@ public class InvasionServiceTests
     public async Task DeleteAllByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" },
-            new { uid = 5, id = "u" },
-            new { uid = 6, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            },
+            new
+            {
+                uid = 5,
+                id = "u"
+            },
+            new
+            {
+                uid = 6,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("invasion", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -91,10 +123,30 @@ public class InvasionServiceTests
     public async Task UpdateDistanceByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u", distance = 0 },
-            new { uid = 2, id = "u", distance = 0 },
-            new { uid = 3, id = "u", distance = 0 },
-            new { uid = 4, id = "u", distance = 0 });
+            new
+            {
+                uid = 1,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 3,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 4,
+                id = "u",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("invasion", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
@@ -105,7 +157,7 @@ public class InvasionServiceTests
     [Fact]
     public async Task CountByUserAsyncCount()
     {
-        var json = CreateJsonArray(Enumerable.Range(1, 12).Select(i => (object)new { uid = i, id = "u" }).ToArray());
+        var json = CreateJsonArray([.. Enumerable.Range(1, 12).Select(i => (object)new { uid = i, id = "u" })]);
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
 
         Assert.Equal(12, await this._sut.CountByUserAsync("u", 1));

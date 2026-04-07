@@ -38,9 +38,9 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetHumanAsync_ReturnsJsonOn200()
+    public async Task GetHumanAsyncReturnsJsonOn200()
     {
-        var responseBody = """{"id":"user1","name":"TestUser","enabled":1}""";
+        var responseBody = /*lang=json,strict*/ """{"id":"user1","name":"TestUser","enabled":1}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -51,7 +51,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetHumanAsync_ReturnsNullOn404()
+    public async Task GetHumanAsyncReturnsNullOn404()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
         var sut = CreateSut(handler);
@@ -62,7 +62,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetHumanAsync_ReturnsNullOnOtherErrors()
+    public async Task GetHumanAsyncReturnsNullOnOtherErrors()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -73,9 +73,9 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetHumanAsync_CallsCorrectUrl()
+    public async Task GetHumanAsyncCallsCorrectUrl()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"id":"u1"}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"id":"u1"}""");
         var sut = CreateSut(handler);
 
         await sut.GetHumanAsync("user42");
@@ -90,7 +90,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CreateHumanAsync_SendsPostWithBody()
+    public async Task CreateHumanAsyncSendsPostWithBody()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -107,7 +107,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task CreateHumanAsync_ThrowsOnNon2xx()
+    public async Task CreateHumanAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.Conflict, "{}");
         var sut = CreateSut(handler);
@@ -121,7 +121,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task StartAsync_CallsCorrectEndpoint()
+    public async Task StartAsyncCallsCorrectEndpoint()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -134,7 +134,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task StartAsync_ThrowsOnNon2xx()
+    public async Task StartAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -143,7 +143,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task StopAsync_CallsCorrectEndpoint()
+    public async Task StopAsyncCallsCorrectEndpoint()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -156,7 +156,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task StopAsync_ThrowsOnNon2xx()
+    public async Task StopAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -169,7 +169,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AdminDisabledAsync_SendsDisableBody()
+    public async Task AdminDisabledAsyncSendsDisableBody()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -185,7 +185,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task AdminDisabledAsync_SendsEnableBody()
+    public async Task AdminDisabledAsyncSendsEnableBody()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -197,7 +197,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task AdminDisabledAsync_ThrowsOnNon2xx()
+    public async Task AdminDisabledAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -210,7 +210,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SetLocationAsync_CallsCorrectUrl()
+    public async Task SetLocationAsyncCallsCorrectUrl()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -223,7 +223,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task SetLocationAsync_ThrowsOnNon2xx()
+    public async Task SetLocationAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -236,7 +236,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SetAreasAsync_SendsAreaArray()
+    public async Task SetAreasAsyncSendsAreaArray()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -253,7 +253,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task SetAreasAsync_ThrowsOnNon2xx()
+    public async Task SetAreasAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -266,9 +266,9 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetAreasAsync_ReturnsJsonOn200()
+    public async Task GetAreasAsyncReturnsJsonOn200()
     {
-        var responseBody = """{"area":["downtown","west end"]}""";
+        var responseBody = /*lang=json,strict*/ """{"area":["downtown","west end"]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -280,7 +280,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetAreasAsync_ReturnsNullOnNon2xx()
+    public async Task GetAreasAsyncReturnsNullOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
         var sut = CreateSut(handler);
@@ -291,10 +291,10 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetAreasAsync_CallsCorrectUrl()
+    public async Task GetAreasAsyncCallsCorrectUrl()
     {
         // GetAreasAsync delegates to GetHumanAsync which calls /api/humans/one/{id}
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"human":{"id":"user1","area":"[]"}}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"human":{"id":"user1","area":"[]"}}""");
         var sut = CreateSut(handler);
 
         await sut.GetAreasAsync("user1");
@@ -309,7 +309,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SwitchProfileAsync_CallsCorrectUrl()
+    public async Task SwitchProfileAsyncCallsCorrectUrl()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -322,7 +322,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task SwitchProfileAsync_ThrowsOnNon2xx()
+    public async Task SwitchProfileAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -335,9 +335,9 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetProfilesAsync_ReturnsJsonResponse()
+    public async Task GetProfilesAsyncReturnsJsonResponse()
     {
-        var responseBody = """[{"profileNo":1,"name":"default"},{"profileNo":2,"name":"alt"}]""";
+        var responseBody = /*lang=json,strict*/ """[{"profileNo":1,"name":"default"},{"profileNo":2,"name":"alt"}]""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -348,7 +348,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetProfilesAsync_CallsCorrectUrl()
+    public async Task GetProfilesAsyncCallsCorrectUrl()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "[]");
         var sut = CreateSut(handler);
@@ -361,7 +361,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task GetProfilesAsync_ThrowsOnNon2xx()
+    public async Task GetProfilesAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -374,7 +374,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AddProfileAsync_CallsCorrectUrlWithBody()
+    public async Task AddProfileAsyncCallsCorrectUrlWithBody()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -391,7 +391,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task AddProfileAsync_ThrowsOnNon2xx()
+    public async Task AddProfileAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -405,7 +405,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpdateProfileAsync_CallsCorrectUrlWithBody()
+    public async Task UpdateProfileAsyncCallsCorrectUrlWithBody()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -419,7 +419,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task UpdateProfileAsync_ThrowsOnNon2xx()
+    public async Task UpdateProfileAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -433,7 +433,7 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task DeleteProfileAsync_CallsCorrectUrl()
+    public async Task DeleteProfileAsyncCallsCorrectUrl()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -446,7 +446,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task DeleteProfileAsync_ThrowsOnNon2xx()
+    public async Task DeleteProfileAsyncThrowsOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
@@ -459,9 +459,9 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CheckLocationAsync_ReturnsJsonOn200()
+    public async Task CheckLocationAsyncReturnsJsonOn200()
     {
-        var responseBody = """{"areas":["downtown"]}""";
+        var responseBody = /*lang=json,strict*/ """{"areas":["downtown"]}""";
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
         var sut = CreateSut(handler);
 
@@ -472,7 +472,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task CheckLocationAsync_ReturnsNullOnNon2xx()
+    public async Task CheckLocationAsyncReturnsNullOnNon2xx()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
         var sut = CreateSut(handler);
@@ -483,7 +483,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task CheckLocationAsync_CallsCorrectUrl()
+    public async Task CheckLocationAsyncCallsCorrectUrl()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -500,9 +500,9 @@ public class PoracleHumanProxyTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AllRequests_IncludePoracleSecretHeader()
+    public async Task AllRequestsIncludePoracleSecretHeader()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"id":"u1"}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"id":"u1"}""");
         var sut = CreateSut(handler);
 
         await sut.GetHumanAsync("user1");
@@ -513,9 +513,9 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task AllRequests_OmitSecretHeaderWhenEmpty()
+    public async Task AllRequestsOmitSecretHeaderWhenEmpty()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, """{"id":"u1"}""");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"id":"u1"}""");
         var sut = CreateSut(handler, CreateConfigNoSecret());
 
         await sut.GetHumanAsync("user1");
@@ -525,7 +525,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task StartAsync_IncludesPoracleSecretHeader()
+    public async Task StartAsyncIncludesPoracleSecretHeader()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -537,7 +537,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task SetAreasAsync_IncludesPoracleSecretHeader()
+    public async Task SetAreasAsyncIncludesPoracleSecretHeader()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -549,7 +549,7 @@ public class PoracleHumanProxyTests
     }
 
     [Fact]
-    public async Task DeleteProfileAsync_IncludesPoracleSecretHeader()
+    public async Task DeleteProfileAsyncIncludesPoracleSecretHeader()
     {
         var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
         var sut = CreateSut(handler);
@@ -564,9 +564,12 @@ public class PoracleHumanProxyTests
     // Mock handler
     // ──────────────────────────────────────────────────────────────
 
-    private class MockHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
+    private sealed class MockHttpMessageHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
     {
-        public HttpRequestMessage? LastRequest { get; private set; }
+        public HttpRequestMessage? LastRequest
+        {
+            get; private set;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {

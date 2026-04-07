@@ -21,7 +21,11 @@ public class NestServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsNests()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u1")).ReturnsAsync(json);
         Assert.Single(await this._sut.GetByUserAsync("u1", 1));
     }
@@ -29,7 +33,11 @@ public class NestServiceTests
     [Fact]
     public async Task GetByUidAsyncFound()
     {
-        var json = CreateJsonArray(new { uid = 1, id = "u1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            id = "u1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u1")).ReturnsAsync(json);
         Assert.NotNull(await this._sut.GetByUidAsync("u1", 1));
     }
@@ -62,11 +70,31 @@ public class NestServiceTests
     public async Task DeleteAllByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" },
-            new { uid = 5, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            },
+            new
+            {
+                uid = 5,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("nest", "u", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -78,9 +106,24 @@ public class NestServiceTests
     public async Task UpdateDistanceByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u", distance = 0 },
-            new { uid = 2, id = "u", distance = 0 },
-            new { uid = 3, id = "u", distance = 0 });
+            new
+            {
+                uid = 1,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                id = "u",
+                distance = 0
+            },
+            new
+            {
+                uid = 3,
+                id = "u",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("nest", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
@@ -92,15 +135,51 @@ public class NestServiceTests
     public async Task CountByUserAsyncCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, id = "u" },
-            new { uid = 2, id = "u" },
-            new { uid = 3, id = "u" },
-            new { uid = 4, id = "u" },
-            new { uid = 5, id = "u" },
-            new { uid = 6, id = "u" },
-            new { uid = 7, id = "u" },
-            new { uid = 8, id = "u" },
-            new { uid = 9, id = "u" });
+            new
+            {
+                uid = 1,
+                id = "u"
+            },
+            new
+            {
+                uid = 2,
+                id = "u"
+            },
+            new
+            {
+                uid = 3,
+                id = "u"
+            },
+            new
+            {
+                uid = 4,
+                id = "u"
+            },
+            new
+            {
+                uid = 5,
+                id = "u"
+            },
+            new
+            {
+                uid = 6,
+                id = "u"
+            },
+            new
+            {
+                uid = 7,
+                id = "u"
+            },
+            new
+            {
+                uid = 8,
+                id = "u"
+            },
+            new
+            {
+                uid = 9,
+                id = "u"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("nest", "u")).ReturnsAsync(json);
 
         Assert.Equal(9, await this._sut.CountByUserAsync("u", 1));

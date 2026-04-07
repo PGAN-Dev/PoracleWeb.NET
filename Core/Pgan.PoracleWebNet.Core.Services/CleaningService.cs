@@ -58,7 +58,7 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
         await this.ToggleCleanAsync("maxbattle", userId, clean);
 
     public async Task<int> ToggleCleanFortChangesAsync(string userId, int profileNo, int clean) =>
-        await ToggleCleanAsync("fort", userId, clean);
+        await this.ToggleCleanAsync("fort", userId, clean);
 
     /// <summary>
     /// Workaround: PoracleNG has no bulk clean toggle endpoint. We fetch all alarms of the type,

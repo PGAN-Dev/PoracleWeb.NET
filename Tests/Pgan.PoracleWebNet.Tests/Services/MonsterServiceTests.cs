@@ -21,7 +21,12 @@ public class MonsterServiceTests
     [Fact]
     public async Task GetByUserAsyncReturnsMonsters()
     {
-        var json = CreateJsonArray(new { uid = 1, pokemon_id = 25, id = "user1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            pokemon_id = 25,
+            id = "user1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
 
         var result = await this._sut.GetByUserAsync("user1", 1);
@@ -33,7 +38,12 @@ public class MonsterServiceTests
     [Fact]
     public async Task GetByUidAsyncReturnsMonster()
     {
-        var json = CreateJsonArray(new { uid = 1, pokemon_id = 25, id = "user1" });
+        var json = CreateJsonArray(new
+        {
+            uid = 1,
+            pokemon_id = 25,
+            id = "user1"
+        });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
 
         var result = await this._sut.GetByUidAsync("user1", 1);
@@ -97,8 +107,18 @@ public class MonsterServiceTests
     public async Task DeleteAllByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, pokemon_id = 25, id = "user1" },
-            new { uid = 2, pokemon_id = 150, id = "user1" });
+            new
+            {
+                uid = 1,
+                pokemon_id = 25,
+                id = "user1"
+            },
+            new
+            {
+                uid = 2,
+                pokemon_id = 150,
+                id = "user1"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.BulkDeleteByUidsAsync("pokemon", "user1", It.IsAny<IEnumerable<int>>()))
             .Returns(Task.CompletedTask);
@@ -124,9 +144,27 @@ public class MonsterServiceTests
     public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, pokemon_id = 25, id = "user1", distance = 0 },
-            new { uid = 2, pokemon_id = 150, id = "user1", distance = 0 },
-            new { uid = 3, pokemon_id = 6, id = "user1", distance = 0 });
+            new
+            {
+                uid = 1,
+                pokemon_id = 25,
+                id = "user1",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                pokemon_id = 150,
+                id = "user1",
+                distance = 0
+            },
+            new
+            {
+                uid = 3,
+                pokemon_id = 6,
+                id = "user1",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
@@ -140,8 +178,18 @@ public class MonsterServiceTests
     public async Task CountByUserAsyncReturnsCount()
     {
         var json = CreateJsonArray(
-            new { uid = 1, pokemon_id = 25, id = "user1" },
-            new { uid = 2, pokemon_id = 150, id = "user1" });
+            new
+            {
+                uid = 1,
+                pokemon_id = 25,
+                id = "user1"
+            },
+            new
+            {
+                uid = 2,
+                pokemon_id = 150,
+                id = "user1"
+            });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
 
         var result = await this._sut.CountByUserAsync("user1", 1);
@@ -174,9 +222,27 @@ public class MonsterServiceTests
     public async Task UpdateDistanceByUidsAsyncUpdatesMatchingOnly()
     {
         var json = CreateJsonArray(
-            new { uid = 1, pokemon_id = 25, id = "user1", distance = 0 },
-            new { uid = 2, pokemon_id = 150, id = "user1", distance = 0 },
-            new { uid = 3, pokemon_id = 6, id = "user1", distance = 0 });
+            new
+            {
+                uid = 1,
+                pokemon_id = 25,
+                id = "user1",
+                distance = 0
+            },
+            new
+            {
+                uid = 2,
+                pokemon_id = 150,
+                id = "user1",
+                distance = 0
+            },
+            new
+            {
+                uid = 3,
+                pokemon_id = 6,
+                id = "user1",
+                distance = 0
+            });
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));

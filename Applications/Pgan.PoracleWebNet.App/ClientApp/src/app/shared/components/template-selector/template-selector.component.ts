@@ -226,8 +226,8 @@ export class TemplateSelectorComponent implements OnInit {
       gym: '#00bcd4',
       invasion: '#607d8b',
       lure: '#00bcd4',
-      monster: '#4caf50',
       maxbattle: '#d500f9',
+      monster: '#4caf50',
       nest: '#8bc34a',
       quest: '#9c27b0',
     };

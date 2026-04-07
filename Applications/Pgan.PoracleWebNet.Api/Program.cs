@@ -20,11 +20,15 @@ if (File.Exists(envFile))
     {
         var trimmed = line.Trim();
         if (trimmed.Length == 0 || trimmed.StartsWith('#'))
+        {
             continue;
+        }
 
         var eqIndex = trimmed.IndexOf('=');
         if (eqIndex <= 0)
+        {
             continue;
+        }
 
         var key = trimmed[..eqIndex].Trim();
         var value = trimmed[(eqIndex + 1)..].Trim();
@@ -68,7 +72,9 @@ for (var i = 1; i <= 10; i++)
     var idx = i - 1; // .env uses 1-based, .NET config uses 0-based
     var host = Environment.GetEnvironmentVariable($"PORACLE_SERVER_{i}_HOST");
     if (string.IsNullOrEmpty(host))
+    {
         continue;
+    }
 
     MapEnvVar($"PORACLE_SERVER_{i}_HOST", $"Poracle__Servers__{idx}__Host");
     MapEnvVar($"PORACLE_SERVER_{i}_API", $"Poracle__Servers__{idx}__ApiAddress");
@@ -79,7 +85,9 @@ for (var i = 1; i <= 10; i++)
     // Set server name default if not already set
     var nameKey = $"Poracle__Servers__{idx}__Name";
     if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(nameKey)))
+    {
         Environment.SetEnvironmentVariable(nameKey, i == 1 ? "Main" : $"Server {i}");
+    }
 }
 
 // Auto-compose MySQL connection strings from short env vars (DB_HOST, DB_PORT, etc.)
@@ -353,12 +361,16 @@ static void ComposeConnectionString(string name, string hostVar, string portVar,
 {
     var csKey = $"ConnectionStrings__{name}";
     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(csKey)))
+    {
         return;
+    }
 
     var host = Environment.GetEnvironmentVariable(hostVar);
     var pass = Environment.GetEnvironmentVariable(passVar);
     if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(pass))
+    {
         return;
+    }
 
     var port = Environment.GetEnvironmentVariable(portVar) ?? "3306";
     var db = Environment.GetEnvironmentVariable(dbVar) ?? defaultDb;

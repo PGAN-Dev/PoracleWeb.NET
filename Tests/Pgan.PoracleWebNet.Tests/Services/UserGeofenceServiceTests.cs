@@ -36,7 +36,15 @@ public class UserGeofenceServiceTests
     /// Helper: creates a JsonElement matching what IPoracleHumanProxy.GetHumanAsync returns.
     /// </summary>
     private static JsonElement MakeHumanJson(string id, string area = "[]") =>
-        JsonSerializer.SerializeToElement(new { id, area, latitude = 0.0, longitude = 0.0, enabled = 1, current_profile_no = 1 });
+        JsonSerializer.SerializeToElement(new
+        {
+            id,
+            area,
+            latitude = 0.0,
+            longitude = 0.0,
+            enabled = 1,
+            current_profile_no = 1
+        });
 
     // --- GetByUserAsync ---
 
@@ -44,7 +52,7 @@ public class UserGeofenceServiceTests
     public async Task GetByUserAsyncReturnsGeofencesFromRepositoryWithPolygons()
     {
         var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0] };
-        var polygonJson = System.Text.Json.JsonSerializer.Serialize(polygon);
+        var polygonJson = JsonSerializer.Serialize(polygon);
         var geofences = new List<UserGeofence>
         {
             new() { Id = 1, KojiName = "downtown", PolygonJson = polygonJson }
@@ -328,7 +336,7 @@ public class UserGeofenceServiceTests
             GroupName = "City",
             ParentId = 5,
             Status = "pending_review",
-            PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
+            PolygonJson = JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
@@ -355,7 +363,7 @@ public class UserGeofenceServiceTests
             GroupName = "City",
             ParentId = 5,
             Status = "pending_review",
-            PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
+            PolygonJson = JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
@@ -380,7 +388,7 @@ public class UserGeofenceServiceTests
             GroupName = "City",
             ParentId = 5,
             Status = "pending_review",
-            PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
+            PolygonJson = JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
@@ -423,7 +431,7 @@ public class UserGeofenceServiceTests
             GroupName = "City",
             ParentId = 5,
             Status = "pending_review",
-            PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
+            PolygonJson = JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
@@ -465,7 +473,7 @@ public class UserGeofenceServiceTests
             GroupName = "City",
             Status = "pending_review",
             DiscordThreadId = "thread_456",
-            PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
+            PolygonJson = JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
@@ -669,7 +677,7 @@ public class UserGeofenceServiceTests
     public async Task GetAllWithDetailsAsyncParsesPolygonJsonAndSetsPointCount()
     {
         var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0], [7.0, 8.0] };
-        var polygonJson = System.Text.Json.JsonSerializer.Serialize(polygon);
+        var polygonJson = JsonSerializer.Serialize(polygon);
         var geofences = new List<UserGeofence>
         {
             new() { Id = 1, KojiName = "area1", HumanId = "u1", PolygonJson = polygonJson }

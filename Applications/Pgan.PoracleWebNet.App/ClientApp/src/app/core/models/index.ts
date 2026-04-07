@@ -493,3 +493,75 @@ export interface QuickPickSummary {
   appliedState: QuickPickAppliedState | null;
   definition: QuickPickDefinition;
 }
+
+// ─── Cross-Profile Overview ─────────────────────────────────────────────────
+
+export interface ProfileOverview {
+  [key: string]: unknown;
+  egg: ProfileOverviewAlarm[];
+  fort: ProfileOverviewAlarm[];
+  gym: ProfileOverviewAlarm[];
+  invasion: ProfileOverviewAlarm[];
+  lure: ProfileOverviewAlarm[];
+  maxbattle: ProfileOverviewAlarm[];
+  nest: ProfileOverviewAlarm[];
+  pokemon: ProfileOverviewAlarm[];
+  profile: ProfileOverviewProfile[];
+  quest: ProfileOverviewAlarm[];
+  raid: ProfileOverviewAlarm[];
+}
+
+export interface ProfileOverviewAlarm {
+  [key: string]: unknown;
+  amount?: number;
+  battle_changes?: number;
+  change_types?: string;
+  clean?: number;
+  description?: string;
+  distance?: number;
+  evolution?: number;
+  exclusive?: number;
+  form?: number;
+  fort_type?: string;
+  gender?: number;
+  gmax?: number;
+  grunt_type?: string;
+  gym_id?: string;
+  include_empty?: number;
+  level?: number;
+  lure_id?: number;
+  max_cp?: number;
+  max_iv?: number;
+  max_level?: number;
+  min_cp?: number;
+  min_iv?: number;
+  min_level?: number;
+  min_spawn_avg?: number;
+  move?: number;
+  ping?: string;
+  pokemon?: number;
+  pokemon_id?: number;
+  profile_no: number;
+  pvp_ranking_best?: number;
+  pvp_ranking_cap?: number;
+  pvp_ranking_league?: number;
+  pvp_ranking_min_cp?: number;
+  pvp_ranking_worst?: number;
+  raid_pokemon_id?: number;
+  reward?: number;
+  reward_type?: number;
+  shiny?: number;
+  slot_changes?: number;
+  station_id?: string | null;
+  team?: number;
+  template?: string;
+  uid: number;
+}
+
+export interface ProfileOverviewProfile {
+  active_hours?: string;
+  area?: string;
+  id: string;
+  name: string;
+  profile_no: number;
+}

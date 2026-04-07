@@ -110,7 +110,7 @@ public class GymService(IPoracleTrackingProxy proxy) : IGymService
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
-        return items.Count();
+        return items.Count;
     }
 
     public async Task<IEnumerable<Gym>> BulkCreateAsync(string userId, IEnumerable<Gym> models)

@@ -116,7 +116,7 @@ public class SettingsController(
         // both are explicitly "False".
         if (string.Equals(request.Value, "false", StringComparison.OrdinalIgnoreCase))
         {
-            string? otherKey = key switch
+            var otherKey = key switch
             {
                 EnableDiscordKey => EnableTelegramKey,
                 EnableTelegramKey => EnableDiscordKey,
