@@ -99,8 +99,9 @@ public partial class TestAlertService(
         var raidEndTime = now.AddMinutes(45).ToUnixTimeSeconds();
 
         // Use user's location as the default, fall back to a sensible default if unset
-        var lat = target.Latitude != 0 ? target.Latitude : 40.7128;
-        var lon = target.Longitude != 0 ? target.Longitude : -74.006;
+        const double coordinateEpsilon = 1e-6;
+        var lat = Math.Abs(target.Latitude) > coordinateEpsilon ? target.Latitude : 40.7128;
+        var lon = Math.Abs(target.Longitude) > coordinateEpsilon ? target.Longitude : -74.006;
 
         return alarmType switch
         {
