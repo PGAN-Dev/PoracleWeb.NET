@@ -34,7 +34,7 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 
 When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured, the Pokemon selector shows which species are currently spawning in the wild. This helps users create alarms for Pokemon that are actually available to encounter.
 
-![Pokemon availability indicators in the selector](../screenshots/pokemon-availability.png)
+![Pokemon add dialog with availability indicators](../screenshots/pokemon-add-dialog.png)
 
 ### How it works
 
@@ -61,7 +61,7 @@ The availability UI is **automatically hidden** when Golbat is not configured. N
 
 ## Alarm cards
 
-![Alarm card grid with filter pills](../screenshots/alarm-cards.png)
+![Pokemon alarm list with filter pills](../screenshots/pokemon.png)
 
 Alarms are displayed as a card grid. Each card shows:
 
@@ -174,7 +174,7 @@ Gym alarms support:
 
 Fort change alarms track changes to pokestops and gyms as points of interest (not activity at them). This includes name changes, location changes, image updates, removals, and new POI additions.
 
-![Fort change alarm configuration](../screenshots/fort-change-alarm.png)
+![Fort change alarm page](../screenshots/fort-changes.png)
 
 | Field | Default | Description |
 |---|---|---|
@@ -316,7 +316,7 @@ Max Battle-specific defaults:
 
 Every alarm card includes a **test button** (send/paper plane icon) that triggers a sample notification for that alarm. This lets users verify their alarm filters and notification formatting without waiting for a real event to occur.
 
-![Test alert button on an alarm card](../screenshots/test-alert-button.png)
+![Pokemon alarm list showing test button](../screenshots/pokemon.png){ loading=lazy }
 
 ### How it works
 
@@ -327,7 +327,7 @@ Every alarm card includes a **test button** (send/paper plane icon) that trigger
 
 ### Supported alarm types
 
-Test alerts are available for all 8 alarm types:
+Test alerts are available for all alarm types:
 
 - Pokemon
 - Raid
@@ -337,6 +337,8 @@ Test alerts are available for all 8 alarm types:
 - Lure
 - Nest
 - Gym
+- Fort Change
+- Max Battle
 
 ### Rate limiting
 
@@ -350,7 +352,7 @@ Test alerts are rate limited to prevent abuse:
 
 The dashboard shows the current in-game weather conditions at the user's saved location.
 
-![Weather display on the dashboard](../screenshots/weather-display.png)
+![Weather section on the dashboard](../screenshots/dashboard-weather.png)
 
 ### Features
 

@@ -26,7 +26,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 Each profile maintains its own independent:
 
-- Alarm filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms)
+- Alarm filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles)
 - Area selections
 - Saved location
 - Custom geofence activations
