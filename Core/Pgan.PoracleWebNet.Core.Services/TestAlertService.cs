@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using System.Linq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -302,7 +301,7 @@ public partial class TestAlertService(
     }
 
     private static Dictionary<string, object> BuildGymWebhook(
-        JsonElement alarm, double lat, double lon, string template) => new Dictionary<string, object>
+        JsonElement alarm, double lat, double lon, string template) => new()
         {
             ["gym_id"] = "test-gym-001",
             ["gym_name"] = "Test Gym",
