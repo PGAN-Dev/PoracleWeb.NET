@@ -124,17 +124,21 @@ public partial class TestAlertService(
 
         return new Dictionary<string, object>
         {
+            ["encounter_id"] = $"test-{Guid.NewGuid():N}",
             ["pokemon_id"] = pokemonId,
             ["form"] = form,
             ["latitude"] = lat,
             ["longitude"] = lon,
             ["disappear_time"] = disappearTime,
+            ["disappear_time_verified"] = true,
+            ["first_seen_timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             ["individual_attack"] = 15,
             ["individual_defense"] = 15,
             ["individual_stamina"] = 15,
             ["pokemon_level"] = 35,
             ["cp"] = 2500,
             ["gender"] = GetInt(alarm, "gender", 1),
+            ["weather"] = 0,
             ["weight"] = 6.5,
             ["height"] = 0.4,
             ["size"] = GetInt(alarm, "size", 3),
