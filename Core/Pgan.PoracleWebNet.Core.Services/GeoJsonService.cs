@@ -81,7 +81,7 @@ public partial class GeoJsonService(
                 throw new InvalidOperationException($"GeoJSON file exceeds the {MaxImportSizeBytes / (1024 * 1024)}MB size limit.");
             }
 
-            memoryStream.Write(buffer, 0, bytesRead);
+            await memoryStream.WriteAsync(buffer.AsMemory(0, bytesRead));
         }
 
         memoryStream.Position = 0;
@@ -215,7 +215,7 @@ public partial class GeoJsonService(
                 // Create the geofence
                 var createModel = new UserGeofenceCreate
                 {
-                    DisplayName = featureName.Length > 50 ? featureName[..50] : featureName,
+                    DisplayName = featureName.Length > 50 ? featureName[..50].TrimEnd() : featureName,
                     GroupName = string.Empty,
                     ParentId = 0,
                     Polygon = internalRing
@@ -254,7 +254,7 @@ public partial class GeoJsonService(
             ring.Add([ring[0][0], ring[0][1]]);
         }
 
-        var ringArray = ring.Select(c => c).ToArray();
+        var ringArray = ring.ToArray();
         var coordinates = JsonSerializer.SerializeToElement(new[] { ringArray });
 
         var properties = new Dictionary<string, JsonElement>
