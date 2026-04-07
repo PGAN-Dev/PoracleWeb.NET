@@ -85,7 +85,7 @@ public class HumanService(
     // See: docs/poracleng-enhancement-requests.md
     public async Task<bool> DeleteUserAsync(string userId) => await this._repository.DeleteUserAsync(userId);
 
-    private static Human DeserializeHuman(JsonElement json) => new Human
+    private static Human DeserializeHuman(JsonElement json) => new()
     {
         Id = json.GetStringProp("id"),
         Name = json.GetStringPropOrNull("name"),

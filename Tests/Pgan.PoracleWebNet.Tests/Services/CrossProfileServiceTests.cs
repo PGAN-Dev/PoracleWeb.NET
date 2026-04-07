@@ -1,4 +1,3 @@
-using System.Net.Http;
 using System.Text.Json;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -46,7 +45,10 @@ public class CrossProfileServiceTests
     public async Task DuplicateProfileAsyncRestoresProfileOnError()
     {
         // Current profile is 1
-        var humanJson = CreateJsonObject(new { current_profile_no = 1 });
+        var humanJson = CreateJsonObject(new
+        {
+            current_profile_no = 1
+        });
         this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
         this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", 5)).Returns(Task.CompletedTask);
 
@@ -72,7 +74,10 @@ public class CrossProfileServiceTests
     [Fact]
     public async Task ImportAlarmsAsyncRestoresProfileOnError()
     {
-        var humanJson = CreateJsonObject(new { current_profile_no = 3 });
+        var humanJson = CreateJsonObject(new
+        {
+            current_profile_no = 3
+        });
         this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
         this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", 5)).Returns(Task.CompletedTask);
 
@@ -95,7 +100,10 @@ public class CrossProfileServiceTests
     [Fact]
     public async Task DuplicateProfileAsyncCopiesAlarmsFromSourceProfile()
     {
-        var humanJson = CreateJsonObject(new { current_profile_no = 1 });
+        var humanJson = CreateJsonObject(new
+        {
+            current_profile_no = 1
+        });
         this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
         this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", It.IsAny<int>())).Returns(Task.CompletedTask);
 
@@ -115,7 +123,7 @@ public class CrossProfileServiceTests
         this._proxy.Setup(p => p.GetAllTrackingAllProfilesAsync("u1")).ReturnsAsync(allTracking);
         this._proxy
             .Setup(p => p.CreateAsync(It.IsAny<string>(), "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult(new List<long> { 100 }, 0, 0, 1));
+            .ReturnsAsync(new TrackingCreateResult([100], 0, 0, 1));
 
         var result = await this._sut.DuplicateProfileAsync("u1", 2, 5);
 

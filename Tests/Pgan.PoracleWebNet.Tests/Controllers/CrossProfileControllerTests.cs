@@ -67,7 +67,7 @@ public class CrossProfileControllerTests : ControllerTestBase
             .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99))
             .ReturnsAsync((Core.Models.Profile?)null);
 
-        var result = await this._sut.DuplicateProfile(99, new DuplicateProfileRequest("Copy"));
+        var result = await this._sut.DuplicateProfile(99, new CrossProfileDuplicateRequest("Copy"));
 
         Assert.IsType<NotFoundResult>(result);
     }
@@ -89,7 +89,7 @@ public class CrossProfileControllerTests : ControllerTestBase
             .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
             .ReturnsAsync(5);
 
-        var result = await this._sut.DuplicateProfile(1, new DuplicateProfileRequest("Copy"));
+        var result = await this._sut.DuplicateProfile(1, new CrossProfileDuplicateRequest("Copy"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var json = JsonSerializer.Serialize(ok.Value);
@@ -107,12 +107,15 @@ public class CrossProfileControllerTests : ControllerTestBase
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Returns(Task.CompletedTask);
-        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+        var alarms = CreateJsonObject(new
+        {
+            pokemon = new[] { new { pokemon_id = 1 } }
+        });
         this._service
             .Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>()))
             .ReturnsAsync(3);
 
-        var request = new ImportProfileRequest("Imported", 1, alarms);
+        var request = new CrossProfileImportRequest("Imported", 1, alarms);
         var result = await this._sut.ImportProfile(request);
 
         var ok = Assert.IsType<OkObjectResult>(result);
@@ -135,12 +138,15 @@ public class CrossProfileControllerTests : ControllerTestBase
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Returns(Task.CompletedTask);
-        var alarms = CreateJsonObject(new { pokemon = new[] { new { pokemon_id = 1 } } });
+        var alarms = CreateJsonObject(new
+        {
+            pokemon = new[] { new { pokemon_id = 1 } }
+        });
         this._service
             .Setup(s => s.ImportAlarmsAsync("123456789", 3, It.IsAny<JsonElement>()))
             .ReturnsAsync(1);
 
-        var request = new ImportProfileRequest("Work", 1, alarms);
+        var request = new CrossProfileImportRequest("Work", 1, alarms);
         var result = await this._sut.ImportProfile(request);
 
         // Verify the profile was created with a deduplicated name (contains the body with "Work (2)")

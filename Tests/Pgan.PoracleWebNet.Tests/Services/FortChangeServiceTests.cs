@@ -16,7 +16,7 @@ public class FortChangeServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly FortChangeService _sut;
-    private static readonly string[] stringArray = new[] { "name", "location" };
+    private static readonly string[] stringArray = ["name", "location"];
 
     public FortChangeServiceTests() => this._sut = new FortChangeService(this._proxy.Object);
 

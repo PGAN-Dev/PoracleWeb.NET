@@ -13,7 +13,7 @@ public class AreaControllerTests : ControllerTestBase
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<ILogger<AreaController>> _logger = new();
     private readonly AreaController _sut;
-    private static readonly string[] areasArray = new[] { "west", "east" };
+    private static readonly string[] areasArray = ["west", "east"];
 
     public AreaControllerTests()
     {

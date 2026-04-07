@@ -31,7 +31,7 @@ public class CrossProfileController(
     }
 
     [HttpPost("duplicate/{profileNo:int}")]
-    public async Task<IActionResult> DuplicateProfile(int profileNo, [FromBody] DuplicateProfileRequest request)
+    public async Task<IActionResult> DuplicateProfile(int profileNo, [FromBody] CrossProfileDuplicateRequest request)
     {
         // Verify source profile exists
         var source = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
@@ -71,7 +71,7 @@ public class CrossProfileController(
     }
 
     [HttpPost("import")]
-    public async Task<IActionResult> ImportProfile([FromBody] ImportProfileRequest request)
+    public async Task<IActionResult> ImportProfile([FromBody] CrossProfileImportRequest request)
     {
         // Create a new profile with next available number and unique name
         var existing = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
@@ -143,5 +143,5 @@ public class CrossProfileController(
     }
 }
 
-public record DuplicateProfileRequest(string Name);
-public record ImportProfileRequest(string ProfileName, int Version, JsonElement Alarms);
+public record CrossProfileDuplicateRequest(string Name);
+public record CrossProfileImportRequest(string ProfileName, int Version, JsonElement Alarms);
