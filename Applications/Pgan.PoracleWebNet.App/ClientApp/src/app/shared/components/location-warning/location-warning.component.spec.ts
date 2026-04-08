@@ -60,4 +60,14 @@ describe('LocationWarningComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.location-warning')).toBeNull();
   });
+
+  it('should hide warning for negative coordinates (southern hemisphere)', () => {
+    fixture.componentRef.setInput('hasActiveHours', true);
+    fixture.componentRef.setInput('latitude', -33.8688);
+    fixture.componentRef.setInput('longitude', 151.2093);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.location-warning')).toBeNull();
+  });
 });

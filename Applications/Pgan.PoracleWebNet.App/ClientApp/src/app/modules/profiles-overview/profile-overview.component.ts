@@ -248,6 +248,8 @@ export class ProfileOverviewComponent implements OnInit {
 
   readonly loading = signal(true);
 
+  readonly parseActiveHours = parseActiveHours;
+
   readonly searchControl = new FormControl('');
 
   readonly skeletonPanels = Array.from({ length: 3 });
@@ -660,10 +662,6 @@ export class ProfileOverviewComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (result) this.loadAll();
     });
-  }
-
-  parseActiveHoursField(activeHours: string | undefined): ActiveHourEntry[] {
-    return parseActiveHours(activeHours);
   }
 
   setTypeFilter(type: string | null): void {

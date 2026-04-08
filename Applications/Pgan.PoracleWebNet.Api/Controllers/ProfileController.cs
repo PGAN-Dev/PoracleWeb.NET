@@ -215,10 +215,12 @@ public class ProfileController(
 
     internal static (bool IsValid, string? Error) ValidateActiveHours(string? activeHours)
     {
-        if (string.IsNullOrEmpty(activeHours))
+        if (string.IsNullOrWhiteSpace(activeHours))
         {
             return (true, null);
         }
+
+        activeHours = activeHours.Trim();
 
         JsonElement arr;
         try
@@ -247,7 +249,7 @@ public class ProfileController(
                 return (false, "Each active_hours entry must be an object.");
             }
 
-            if (!entry.TryGetProperty("day", out var dayProp) || !dayProp.TryGetInt32(out var day) || day < 1 || day > 7)
+            if (!entry.TryGetProperty("day", out var dayProp) || !TryGetIntValue(dayProp, out var day) || day < 1 || day > 7)
             {
                 return (false, "Each active_hours entry must have a 'day' between 1 and 7.");
             }

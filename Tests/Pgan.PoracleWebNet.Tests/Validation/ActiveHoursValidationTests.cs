@@ -155,4 +155,84 @@ public class ActiveHoursValidationTests
         Assert.True(isValid);
         Assert.Null(error);
     }
+
+    [Fact]
+    public void ValidWithWhitespace()
+    {
+        var json = "  [{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]  ";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidWhitespaceOnly()
+    {
+        var (isValid, error) = ProfileController.ValidateActiveHours("   ");
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidDayAsString()
+    {
+        var json = "[{\"day\":\"3\",\"hours\":\"09\",\"mins\":\"00\"}]";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void InvalidNegativeHours()
+    {
+        var json = "[{\"day\":1,\"hours\":\"-1\",\"mins\":\"00\"}]";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.False(isValid);
+        Assert.Contains("hours", error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void InvalidNegativeMins()
+    {
+        var json = "[{\"day\":1,\"hours\":\"09\",\"mins\":\"-5\"}]";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.False(isValid);
+        Assert.Contains("mins", error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void InvalidNegativeDay()
+    {
+        var json = "[{\"day\":-1,\"hours\":\"09\",\"mins\":\"00\"}]";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.False(isValid);
+        Assert.Contains("day", error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void InvalidFloatHours()
+    {
+        var json = "[{\"day\":1,\"hours\":\"9.5\",\"mins\":\"00\"}]";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.False(isValid);
+        Assert.Contains("hours", error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void InvalidBooleanHours()
+    {
+        var json = "[{\"day\":1,\"hours\":true,\"mins\":\"00\"}]";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.False(isValid);
+        Assert.Contains("hours", error!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void InvalidExtremelyLargeHours()
+    {
+        var json = "[{\"day\":1,\"hours\":\"999999\",\"mins\":\"00\"}]";
+        var (isValid, error) = ProfileController.ValidateActiveHours(json);
+        Assert.False(isValid);
+        Assert.Contains("hours", error!, StringComparison.OrdinalIgnoreCase);
+    }
 }

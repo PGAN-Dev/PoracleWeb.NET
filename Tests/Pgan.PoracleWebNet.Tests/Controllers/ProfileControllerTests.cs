@@ -102,6 +102,27 @@ public class ProfileControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task DuplicateCopiesActiveHoursFromSource()
+    {
+        var schedule = "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]";
+        var sourceProfile = new Profile { Id = "123456789", ProfileNo = 1, Name = "Main", ActiveHours = schedule };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(sourceProfile);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([sourceProfile]);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(new Profile { ProfileNo = 2, Name = "Copy" });
+
+        System.Text.Json.JsonElement? capturedBody = null;
+        this._humanProxy
+            .Setup(p => p.AddProfileAsync("123456789", It.IsAny<System.Text.Json.JsonElement>()))
+            .Callback<string, System.Text.Json.JsonElement>((_, body) => capturedBody = body);
+
+        await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" });
+
+        Assert.NotNull(capturedBody);
+        Assert.True(capturedBody.Value.TryGetProperty("active_hours", out var ah));
+        Assert.Equal(schedule, ah.GetString());
+    }
+
+    [Fact]
     public async Task DuplicateReturnsNotFoundWhenSourceMissing()
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99)).ReturnsAsync((Profile?)null);

@@ -59,6 +59,7 @@ export class ActiveHoursEditorDialogComponent {
     if (days.size === 0) return;
     const h = this.selectedHour();
     const m = this.selectedMinute();
+    if (h < 0 || h > 23 || m < 0 || m > 59) return;
     const current = this.entries();
     const existing = new Set(current.map(e => `${e.day}:${e.hours}:${e.mins}`));
     const newEntries = [...current];

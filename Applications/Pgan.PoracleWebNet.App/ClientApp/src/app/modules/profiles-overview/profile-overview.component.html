@@ -170,7 +170,7 @@
 
           <!-- Schedule & Profile Management Actions -->
           <div class="schedule-section">
-            <app-active-hours-chip [activeHours]="parseActiveHoursField(group.profile.active_hours)"></app-active-hours-chip>
+            <app-active-hours-chip [activeHours]="parseActiveHours(group.profile.active_hours)"></app-active-hours-chip>
             <app-location-warning
               [hasActiveHours]="
                 !!(group.profile.active_hours && group.profile.active_hours !== '[]' && group.profile.active_hours !== '{}')
