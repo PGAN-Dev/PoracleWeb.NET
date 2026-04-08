@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, effect, input, viewChild } from '@angular/core';
 import * as L from 'leaflet';
 
 import { GeofenceData } from '../../../core/models';
@@ -25,17 +25,25 @@ const AREA_COLORS = ['#43a047', '#1e88e5', '#e53935', '#fb8c00', '#8e24aa', '#00
   `,
   template: '<div #mapContainer class="overview-map-container"></div>',
 })
-export class AreaOverviewMapComponent implements AfterViewInit, OnChanges, OnDestroy {
+export class AreaOverviewMapComponent implements AfterViewInit, OnDestroy {
   private map: L.Map | null = null;
-  @ViewChild('mapContainer', { static: true }) private mapContainer!: ElementRef<HTMLDivElement>;
-
+  private readonly mapContainer = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
   private polygonLayer: L.LayerGroup | null = null;
 
-  @Input() geofence: GeofenceData[] = [];
-  @Input() selectedAreas: string[] = [];
+  readonly geofence = input<GeofenceData[]>([]);
+  readonly selectedAreas = input<string[]>([]);
+
+  constructor() {
+    effect(() => {
+      // Read signals to register as dependencies
+      this.geofence();
+      this.selectedAreas();
+      this.drawPolygons();
+    });
+  }
 
   ngAfterViewInit(): void {
-    this.map = L.map(this.mapContainer.nativeElement, {
+    this.map = L.map(this.mapContainer().nativeElement, {
       attributionControl: false,
       boxZoom: false,
       doubleClickZoom: false,
@@ -54,13 +62,6 @@ export class AreaOverviewMapComponent implements AfterViewInit, OnChanges, OnDes
     this.drawPolygons();
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (!this.map) return;
-    if (changes['geofence'] || changes['selectedAreas']) {
-      this.drawPolygons();
-    }
-  }
-
   ngOnDestroy(): void {
     if (this.map) {
       this.map.remove();
@@ -72,8 +73,8 @@ export class AreaOverviewMapComponent implements AfterViewInit, OnChanges, OnDes
     if (!this.map || !this.polygonLayer) return;
     this.polygonLayer.clearLayers();
 
-    const selected = new Set(this.selectedAreas.map(a => a.toLowerCase()));
-    const matching = this.geofence.filter(g => selected.has(g.name.toLowerCase()));
+    const selected = new Set(this.selectedAreas().map(a => a.toLowerCase()));
+    const matching = this.geofence().filter(g => selected.has(g.name.toLowerCase()) && g.path?.length >= 3);
 
     if (matching.length === 0) return;
 
