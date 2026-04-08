@@ -169,6 +169,26 @@
     </mat-card>
   }
 
+  <!-- Area Overview Map -->
+  @if (selectedAreas().length > 0 && geofencePolygons().length > 0) {
+    <mat-card class="area-overview-card" (click)="navigate('/areas')">
+      <div class="area-overview-header">
+        <mat-icon>map</mat-icon>
+        <span>Area Coverage</span>
+        <span class="area-overview-count">{{ selectedAreas().length }} area(s)</span>
+        <mat-icon class="status-arrow">chevron_right</mat-icon>
+      </div>
+      @defer (on viewport) {
+        <app-area-overview-map [geofence]="geofencePolygons()" [selectedAreas]="selectedAreas()" />
+      } @placeholder {
+        <div class="map-placeholder">
+          <mat-icon>map</mat-icon>
+          <span>Loading map...</span>
+        </div>
+      }
+    </mat-card>
+  }
+
   <!-- Tips Section -->
   @if (tips().length > 0) {
     <div class="tips-section">

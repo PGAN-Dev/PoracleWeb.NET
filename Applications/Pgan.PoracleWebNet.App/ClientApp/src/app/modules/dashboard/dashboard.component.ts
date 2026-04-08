@@ -18,6 +18,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { LocationService } from '../../core/services/location.service';
 import { ProfileService } from '../../core/services/profile.service';
+import { AreaOverviewMapComponent } from '../../shared/components/area-overview-map/area-overview-map.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
 import { polygonCentroid } from '../../shared/utils/geo.utils';
@@ -51,6 +52,7 @@ interface Tip {
     MatTooltipModule,
     MatChipsModule,
     MatDividerModule,
+    AreaOverviewMapComponent,
     OnboardingComponent,
     RouterModule,
   ],
@@ -129,6 +131,7 @@ export class DashboardComponent implements OnInit {
   readonly counts = signal<DashboardCounts | null>(null);
 
   readonly dismissedTips = signal<string[]>(JSON.parse(sessionStorage.getItem('dismissed-tips') || '[]'));
+  readonly geofencePolygons = signal<GeofenceData[]>([]);
   readonly location = signal<Location | null>(null);
   readonly locationAddress = signal<string>('');
 
@@ -367,6 +370,7 @@ export class DashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([areas, geofences]) => {
         this.selectedAreas.set(areas);
+        this.geofencePolygons.set(geofences);
         this.loadAreaWeather(areas, geofences);
       });
 
