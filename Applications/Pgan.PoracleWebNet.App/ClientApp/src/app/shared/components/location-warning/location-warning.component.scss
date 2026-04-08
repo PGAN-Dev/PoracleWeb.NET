@@ -1,0 +1,39 @@
+:host {
+  display: block;
+}
+
+.location-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  font-size: 12px;
+  color: #991b1b;
+  cursor: default;
+}
+
+.warning-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #dc2626;
+}
+
+.warning-text {
+  line-height: 1.4;
+}
+
+:host-context(.dark-theme) {
+  .location-warning {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #fca5a5;
+  }
+
+  .warning-icon {
+    color: #ef4444;
+  }
+}

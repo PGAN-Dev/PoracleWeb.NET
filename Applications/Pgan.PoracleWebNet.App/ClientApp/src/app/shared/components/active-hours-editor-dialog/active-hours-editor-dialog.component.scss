@@ -1,0 +1,238 @@
+:host {
+  display: block;
+}
+
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 400;
+}
+
+.title-icon {
+  color: #d97706;
+}
+
+mat-dialog-content {
+  min-width: 480px;
+  max-width: 560px;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.section-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-bottom: 8px;
+}
+
+// Day picker
+.day-picker {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.day-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--divider, rgba(0, 0, 0, 0.12));
+  background: transparent;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    border-color: #d97706;
+    color: #d97706;
+  }
+
+  &.selected {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #fff;
+  }
+}
+
+.presets {
+  display: flex;
+  gap: 4px;
+
+  button {
+    font-size: 12px;
+    min-height: 28px;
+    line-height: 28px;
+    padding: 0 8px;
+  }
+}
+
+// Time picker
+.time-picker {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.time-field {
+  width: 120px;
+}
+
+// Rules list
+.empty-rules {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  font-size: 13px;
+  border: 1px dashed var(--divider, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+}
+
+.rules-list {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  font-size: 14px;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.06));
+  }
+}
+
+.rule-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #d97706;
+}
+
+.rule-label {
+  flex: 1;
+}
+
+.rule-remove {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Preview grid
+.preview-grid {
+  border: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+}
+
+.preview-day {
+  width: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  text-align: center;
+}
+
+.preview-bar {
+  flex: 1;
+  position: relative;
+  height: 8px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.04));
+  border-radius: 4px;
+}
+
+.preview-dot {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  transform: translate(-50%, -50%);
+}
+
+.preview-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-left: 24px;
+  font-size: 10px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}
+
+// Dialog actions
+.spacer {
+  flex: 1;
+}
+
+mat-dialog-actions {
+  display: flex;
+}
+
+// Dark theme overrides
+:host-context(.dark-theme) {
+  .day-btn {
+    color: var(--text-secondary, rgba(255, 255, 255, 0.54));
+    border-color: var(--divider, rgba(255, 255, 255, 0.12));
+
+    &:hover {
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    &.selected {
+      background: #d97706;
+      border-color: #d97706;
+      color: #fff;
+    }
+  }
+
+  .preview-bar {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .preview-dot {
+    background: #fbbf24;
+  }
+}
+
+@media (max-width: 600px) {
+  mat-dialog-content {
+    min-width: unset;
+  }
+
+  .time-picker {
+    flex-wrap: wrap;
+  }
+}

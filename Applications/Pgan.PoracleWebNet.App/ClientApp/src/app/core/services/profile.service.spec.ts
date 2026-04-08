@@ -4,14 +4,21 @@ import { TestBed } from '@angular/core/testing';
 
 import { ConfigService } from './config.service';
 import { ProfileService } from './profile.service';
-import { Profile } from '../models';
+import { ActiveHourEntry, Profile } from '../models';
 
 describe('ProfileService', () => {
   let service: ProfileService;
   let httpMock: HttpTestingController;
   const API = 'http://test-api';
 
-  const mockProfile: Profile = { name: 'Default', active: true, profileNo: 1 };
+  const mockProfile: Profile = {
+    name: 'Default',
+    active: true,
+    activeHours: null,
+    latitude: 0,
+    longitude: 0,
+    profileNo: 1,
+  };
 
   beforeEach(() => {
     TestBed.resetTestingModule();
@@ -30,7 +37,10 @@ describe('ProfileService', () => {
       expect(profiles[0].active).toBe(true);
     });
 
-    httpMock.expectOne(`${API}/api/profiles`).flush([mockProfile, { name: 'PVP', active: false, profileNo: 2 }]);
+    httpMock.expectOne(`${API}/api/profiles`).flush([
+      { ...mockProfile, activeHours: null },
+      { name: 'PVP', active: false, activeHours: null, latitude: 0, longitude: 0, profileNo: 2 },
+    ]);
   });
 
   it('should create a profile', () => {
@@ -41,7 +51,7 @@ describe('ProfileService', () => {
     const req = httpMock.expectOne(`${API}/api/profiles`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ name: 'New Profile' });
-    req.flush({ name: 'New Profile', active: false, profileNo: 3 });
+    req.flush({ ...mockProfile, name: 'New Profile', active: false, profileNo: 3 });
   });
 
   it('should delete a profile', () => {
@@ -54,13 +64,17 @@ describe('ProfileService', () => {
 
   it('should switch to a different profile', () => {
     service.switchProfile(2).subscribe(result => {
-      expect(result.active).toBe(true);
-      expect(result.profileNo).toBe(2);
+      expect(result.profile.active).toBe(true);
+      expect(result.profile.profileNo).toBe(2);
+      expect(result.token).toBe('new-token');
     });
 
     const req = httpMock.expectOne(`${API}/api/profiles/switch/2`);
     expect(req.request.method).toBe('PUT');
-    req.flush({ name: 'PVP', active: true, profileNo: 2 });
+    req.flush({
+      profile: { ...mockProfile, name: 'PVP', active: true, profileNo: 2 },
+      token: 'new-token',
+    });
   });
 
   it('should update a profile name', () => {
@@ -82,6 +96,46 @@ describe('ProfileService', () => {
     const req = httpMock.expectOne(`${API}/api/profiles/duplicate`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ name: 'Copy of Default', fromProfileNo: 1 });
-    req.flush({ name: 'Copy of Default', active: false, profileNo: 2 });
+    req.flush({ ...mockProfile, name: 'Copy of Default', active: false, profileNo: 2 });
+  });
+
+  it('should parse activeHours JSON string in profile list response', () => {
+    const activeHoursJson = '[{"day":1,"hours":9,"mins":0}]';
+    service.getAll().subscribe(profiles => {
+      expect(profiles[0].activeHours).toEqual([{ day: 1, hours: 9, mins: 0 }]);
+      expect(profiles[1].activeHours).toEqual([]);
+    });
+
+    httpMock.expectOne(`${API}/api/profiles`).flush([
+      { ...mockProfile, activeHours: activeHoursJson },
+      { ...mockProfile, name: 'PVP', activeHours: null, profileNo: 2 },
+    ]);
+  });
+
+  it('should handle undefined activeHours in profile response', () => {
+    service.getAll().subscribe(profiles => {
+      expect(profiles[0].activeHours).toEqual([]);
+    });
+
+    httpMock.expectOne(`${API}/api/profiles`).flush([{ ...mockProfile }]);
+  });
+
+  it('should call updateActiveHours endpoint with serialized entries', () => {
+    const entries: ActiveHourEntry[] = [{ day: 1, hours: 9, mins: 0 }];
+    service.updateActiveHours(1, entries).subscribe();
+
+    const req = httpMock.expectOne(`${API}/api/profiles/1`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ activeHours: JSON.stringify(entries) });
+    req.flush(null);
+  });
+
+  it('should call updateActiveHours with null', () => {
+    service.updateActiveHours(1, null).subscribe();
+
+    const req = httpMock.expectOne(`${API}/api/profiles/1`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ activeHours: null });
+    req.flush(null);
   });
 });

@@ -223,6 +223,37 @@ SELECT * FROM monsters WHERE size = 0;
 
 ---
 
+## Profile switches at wrong time
+
+**Problem**: Auto-profile switches happen hours earlier or later than the configured active hours schedule.
+
+**Solution**: The profile has `0,0` coordinates, so PoracleNG's scheduler falls back to UTC instead of the user's local timezone. Set a location on the affected profile via the Dashboard or Areas page. The Profiles page shows a red location warning banner on profiles that have no coordinates set.
+
+---
+
+## Active hours not showing on profiles
+
+**Problem**: All profiles display "Manual only" even though active hours were configured via the Discord bot.
+
+**Solution**: PoracleWeb reads active hours from PoracleNG's profile API responses — they should appear automatically. If they don't:
+
+1. Verify PoracleNG is reachable (`Poracle:ApiAddress`)
+2. Check that PoracleNG is returning `active_hours` in profile responses (`GET /api/humans/one/{id}` should include profile data with `active_hours`)
+3. If active hours were set via `$!profile` bot commands, they are stored in the same place PoracleWeb reads from — no separate sync is needed
+
+---
+
+## Schedule changes don't take effect
+
+**Problem**: After saving active hours in PoracleWeb, the profile doesn't auto-switch at the expected time.
+
+**Solution**: PoracleNG's profile scheduler checks on a periodic cycle (every few minutes) with a 10-minute matching window. Changes saved in PoracleWeb are written to PoracleNG immediately, but the scheduler picks them up on its next cycle. Wait up to 10 minutes for changes to take effect.
+
+!!! note "PoracleNG owns the scheduler"
+    PoracleWeb only manages the active hours data. The actual profile switching logic runs in PoracleNG's processor. If auto-switching isn't working at all, check PoracleNG's logs for scheduler errors.
+
+---
+
 ## Pokemon availability not showing
 
 **Symptom**: The "Live > Spawning" filter doesn't appear in the Pokemon selector.

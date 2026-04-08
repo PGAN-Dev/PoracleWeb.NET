@@ -24,4 +24,5 @@ public class Profile
     {
         get; set;
     }
+    public string? ActiveHours { get; set; }
 }

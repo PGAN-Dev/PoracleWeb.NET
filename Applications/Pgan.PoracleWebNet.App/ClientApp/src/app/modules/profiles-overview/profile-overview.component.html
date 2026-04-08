@@ -168,7 +168,17 @@
             </mat-panel-description>
           </mat-expansion-panel-header>
 
-          <!-- Profile Management Actions -->
+          <!-- Schedule & Profile Management Actions -->
+          <div class="schedule-section">
+            <app-active-hours-chip [activeHours]="parseActiveHours(group.profile.active_hours)"></app-active-hours-chip>
+            <app-location-warning
+              [hasActiveHours]="
+                !!(group.profile.active_hours && group.profile.active_hours !== '[]' && group.profile.active_hours !== '{}')
+              "
+              [latitude]="group.profile.latitude ?? 0"
+              [longitude]="group.profile.longitude ?? 0">
+            </app-location-warning>
+          </div>
           <div class="profile-actions">
             @if (!isActiveProfile(group.profile.profile_no)) {
               <button
@@ -180,6 +190,9 @@
                 <mat-icon>swap_horiz</mat-icon> Switch
               </button>
             }
+            <button mat-icon-button (click)="editActiveHours(group.profile)" matTooltip="Edit active hours schedule">
+              <mat-icon>schedule</mat-icon>
+            </button>
             <button mat-icon-button (click)="exportProfile(group.profile)" matTooltip="Export profile backup">
               <mat-icon>download</mat-icon>
             </button>

@@ -15,13 +15,26 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin } from 'rxjs';
 
-import { ProfileOverviewAlarm, ProfileOverview, ProfileOverviewProfile, Profile } from '../../core/models';
+import {
+  ActiveHourEntry,
+  parseActiveHours,
+  ProfileOverviewAlarm,
+  ProfileOverview,
+  ProfileOverviewProfile,
+  Profile,
+} from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ProfileOverviewService } from '../../core/services/profile-overview.service';
 import { ProfileService } from '../../core/services/profile.service';
+import { ActiveHoursChipComponent } from '../../shared/components/active-hours-chip/active-hours-chip.component';
+import {
+  ActiveHoursEditorData,
+  ActiveHoursEditorDialogComponent,
+} from '../../shared/components/active-hours-editor-dialog/active-hours-editor-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { LocationWarningComponent } from '../../shared/components/location-warning/location-warning.component';
 import { getDisplayName as getGruntDisplayName } from '../invasions/invasion.constants';
 import { ProfileAddDialogComponent } from '../profiles/profile-add-dialog.component';
 import { ProfileEditDialogComponent } from '../profiles/profile-edit-dialog.component';
@@ -61,6 +74,8 @@ interface DuplicateInfo {
     MatProgressBarModule,
     MatSnackBarModule,
     MatTooltipModule,
+    ActiveHoursChipComponent,
+    LocationWarningComponent,
   ],
   selector: 'app-profile-overview',
   standalone: true,
@@ -233,6 +248,8 @@ export class ProfileOverviewComponent implements OnInit {
 
   readonly loading = signal(true);
 
+  readonly parseActiveHours = parseActiveHours;
+
   readonly searchControl = new FormControl('');
 
   readonly skeletonPanels = Array.from({ length: 3 });
@@ -317,6 +334,28 @@ export class ProfileOverviewComponent implements OnInit {
               this.loadAll();
             },
           });
+      }
+    });
+  }
+
+  editActiveHours(profile: ProfileOverviewProfile): void {
+    const entries = parseActiveHours(profile.active_hours);
+    const ref = this.dialog.open(ActiveHoursEditorDialogComponent, {
+      maxWidth: '95vw',
+      width: '560px',
+      data: { activeHours: entries, profileName: profile.name } as ActiveHoursEditorData,
+    });
+    ref.afterClosed().subscribe((result: ActiveHourEntry[] | null | undefined) => {
+      if (result !== null && result !== undefined) {
+        this.profileService.updateActiveHours(profile.profile_no, result).subscribe({
+          error: () => {
+            this.snackBar.open('Failed to update schedule', 'OK', { duration: 3000 });
+          },
+          next: () => {
+            this.snackBar.open('Schedule updated', 'OK', { duration: 3000 });
+            this.loadAll();
+          },
+        });
       }
     });
   }

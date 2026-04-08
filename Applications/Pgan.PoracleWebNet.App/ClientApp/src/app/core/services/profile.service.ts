@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import { ConfigService } from './config.service';
-import { Profile, ProfileCreate } from '../models';
+import { ActiveHourEntry, parseActiveHours, Profile, ProfileCreate } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
@@ -26,7 +27,14 @@ export class ProfileService {
   }
 
   getAll(): Observable<Profile[]> {
-    return this.http.get<Profile[]>(`${this.config.apiHost}/api/profiles`);
+    return this.http.get<Profile[]>(`${this.config.apiHost}/api/profiles`).pipe(
+      map(profiles =>
+        profiles.map(p => ({
+          ...p,
+          activeHours: parseActiveHours(typeof p.activeHours === 'string' ? p.activeHours : null),
+        })),
+      ),
+    );
   }
 
   switchProfile(profileNo: number): Observable<{ profile: Profile; token: string }> {
@@ -35,5 +43,11 @@ export class ProfileService {
 
   update(profileNo: number, name: string): Observable<Profile> {
     return this.http.put<Profile>(`${this.config.apiHost}/api/profiles/${profileNo}`, { name });
+  }
+
+  updateActiveHours(profileNo: number, activeHours: ActiveHourEntry[] | null): Observable<void> {
+    return this.http.put<void>(`${this.config.apiHost}/api/profiles/${profileNo}`, {
+      activeHours: activeHours ? JSON.stringify(activeHours) : null,
+    });
   }
 }

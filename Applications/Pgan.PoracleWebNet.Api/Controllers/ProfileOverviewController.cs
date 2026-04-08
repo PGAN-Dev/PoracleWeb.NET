@@ -51,7 +51,8 @@ public class ProfileOverviewController(
             profileNo = newProfileNo,
             area = source.Area ?? "[]",
             latitude = source.Latitude,
-            longitude = source.Longitude
+            longitude = source.Longitude,
+            active_hours = source.ActiveHours
         });
         await this._humanProxy.AddProfileAsync(this.UserId, body);
 

@@ -49,13 +49,20 @@ public class ProfileController(
         var maxNo = existing.Any() ? existing.Max(p => p.ProfileNo) : 0;
         profile.ProfileNo = maxNo + 1;
 
+        var (isValid, validationError) = ValidateActiveHours(profile.ActiveHours);
+        if (!isValid)
+        {
+            return this.BadRequest(validationError);
+        }
+
         var body = JsonSerializer.SerializeToElement(new
         {
             name = profile.Name,
             profileNo = profile.ProfileNo,
             area = profile.Area ?? "[]",
             latitude = profile.Latitude,
-            longitude = profile.Longitude
+            longitude = profile.Longitude,
+            active_hours = profile.ActiveHours
         });
         await this._humanProxy.AddProfileAsync(this.UserId, body);
 
@@ -73,10 +80,17 @@ public class ProfileController(
             return this.NotFound();
         }
 
+        var (isValid, validationError) = ValidateActiveHours(profile.ActiveHours);
+        if (!isValid)
+        {
+            return this.BadRequest(validationError);
+        }
+
         var body = JsonSerializer.SerializeToElement(new
         {
             profile_no = profileNo,
-            name = profile.Name
+            name = profile.Name ?? existing.Name,
+            active_hours = profile.ActiveHours ?? existing.ActiveHours
         });
         await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 
@@ -134,7 +148,8 @@ public class ProfileController(
             profileNo = newProfileNo,
             area = sourceProfile.Area ?? "[]",
             latitude = sourceProfile.Latitude,
-            longitude = sourceProfile.Longitude
+            longitude = sourceProfile.Longitude,
+            active_hours = sourceProfile.ActiveHours
         });
         await this._humanProxy.AddProfileAsync(this.UserId, body);
 
@@ -196,6 +211,88 @@ public class ProfileController(
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    internal static (bool IsValid, string? Error) ValidateActiveHours(string? activeHours)
+    {
+        if (string.IsNullOrWhiteSpace(activeHours))
+        {
+            return (true, null);
+        }
+
+        activeHours = activeHours.Trim();
+
+        JsonElement arr;
+        try
+        {
+            arr = JsonSerializer.Deserialize<JsonElement>(activeHours);
+        }
+        catch (JsonException)
+        {
+            return (false, "active_hours must be a valid JSON array.");
+        }
+
+        if (arr.ValueKind != JsonValueKind.Array)
+        {
+            return (false, "active_hours must be a JSON array.");
+        }
+
+        if (arr.GetArrayLength() > 28)
+        {
+            return (false, "active_hours may contain at most 28 entries.");
+        }
+
+        foreach (var entry in arr.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Object)
+            {
+                return (false, "Each active_hours entry must be an object.");
+            }
+
+            if (!entry.TryGetProperty("day", out var dayProp) || !TryGetIntValue(dayProp, out var day) || day < 1 || day > 7)
+            {
+                return (false, "Each active_hours entry must have a 'day' between 1 and 7.");
+            }
+
+            if (!entry.TryGetProperty("hours", out var hoursProp))
+            {
+                return (false, "Each active_hours entry must have an 'hours' property.");
+            }
+
+            if (!TryGetIntValue(hoursProp, out var hours) || hours < 0 || hours > 23)
+            {
+                return (false, "Each active_hours entry must have 'hours' between 0 and 23.");
+            }
+
+            if (!entry.TryGetProperty("mins", out var minsProp))
+            {
+                return (false, "Each active_hours entry must have a 'mins' property.");
+            }
+
+            if (!TryGetIntValue(minsProp, out var mins) || mins < 0 || mins > 59)
+            {
+                return (false, "Each active_hours entry must have 'mins' between 0 and 59.");
+            }
+        }
+
+        return (true, null);
+    }
+
+    private static bool TryGetIntValue(JsonElement element, out int value)
+    {
+        if (element.ValueKind == JsonValueKind.Number)
+        {
+            return element.TryGetInt32(out value);
+        }
+
+        if (element.ValueKind == JsonValueKind.String &&
+            int.TryParse(element.GetString(), out value))
+        {
+            return true;
+        }
+
+        value = 0;
+        return false;
     }
 }
 

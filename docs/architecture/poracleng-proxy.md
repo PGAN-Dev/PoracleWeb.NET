@@ -115,6 +115,12 @@ PoracleNG wraps certain responses in container objects:
 
 When adding new proxy methods, check the actual PoracleNG response shape and unwrap accordingly.
 
+## Active hours pass-through
+
+The `active_hours` field is a JSON-encoded string stored in the `profiles` table. It passes through the proxy with no special handling — `IPoracleHumanProxy` uses raw `JsonElement` pass-through for profile payloads, so `active_hours` is included automatically in GET responses and accepted in create/update request bodies.
+
+No proxy code changes were needed to support active hours. PoracleNG's profile scheduler evaluates these rules at notification time — PoracleWeb only manages the data (validation, display, editing).
+
 ## Known gaps and workarounds
 
 These operations lack dedicated PoracleNG endpoints and use fetch-modify-repost workarounds:

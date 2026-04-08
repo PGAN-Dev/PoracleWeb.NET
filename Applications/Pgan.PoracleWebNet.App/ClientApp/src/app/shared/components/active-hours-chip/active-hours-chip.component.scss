@@ -1,0 +1,62 @@
+:host {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.chip-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.chip-active {
+  background: #fef3c7;
+  color: #92400e;
+
+  .chip-icon {
+    color: #d97706;
+  }
+}
+
+.chip-empty {
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.06));
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+
+  .chip-icon {
+    color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  }
+}
+
+:host-context(.dark-theme) {
+  .chip-active {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+
+    .chip-icon {
+      color: #f59e0b;
+    }
+  }
+
+  .chip-empty {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-hint, rgba(255, 255, 255, 0.38));
+
+    .chip-icon {
+      color: var(--text-hint, rgba(255, 255, 255, 0.38));
+    }
+  }
+}

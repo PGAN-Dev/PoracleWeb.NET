@@ -136,6 +136,18 @@ Geofence polygons come from the Poracle API (via the unified feed), not the data
 - `humans.current_profile_no` (not `profile_no`) tracks the active profile
 - All alarm tables reference `profile_no` to filter by active profile
 
+### Active hours
+
+The `Profile` model includes an `ActiveHours` (`string?`) property representing a JSON array of time-window rules stored in the `active_hours` column of the `profiles` table. `ProfileService.DeserializeProfiles()` extracts `active_hours` from the PoracleNG proxy's `JsonElement` response and maps it onto the model.
+
+`ProfileController` includes `active_hours` in the proxy payload for Create, Update, and Duplicate endpoints. A `ValidateActiveHours` internal static method validates the JSON structure before forwarding:
+
+- Each entry must specify `day` (1--7), `hours` (0--23), `mins` (0--59)
+- Maximum 28 entries per profile (one per 30-minute slot per day)
+- Returns a `400 Bad Request` with details on validation failure
+
+`InternalsVisibleTo` is added to the API `.csproj` so `ValidateActiveHours` can be tested directly from the xUnit project.
+
 ## Scanner service
 
 The scanner DB (`ScannerDb` connection string) is optional. When not configured, `IScannerService` is not registered and scanner endpoints return appropriate fallback responses.

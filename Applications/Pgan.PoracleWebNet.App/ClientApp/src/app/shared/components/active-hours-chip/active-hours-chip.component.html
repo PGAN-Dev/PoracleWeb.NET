@@ -1,0 +1,13 @@
+@if (isEmpty()) {
+  <span class="chip chip-empty" [matTooltip]="tooltipText()">
+    <mat-icon class="chip-icon">schedule</mat-icon>
+    Manual only
+  </span>
+} @else {
+  @for (pill of pills(); track pill.label) {
+    <span class="chip chip-active" [matTooltip]="tooltipText()">
+      <mat-icon class="chip-icon">schedule</mat-icon>
+      {{ pill.label }}
+    </span>
+  }
+}

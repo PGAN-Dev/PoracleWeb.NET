@@ -1,3 +1,7 @@
+import { ActiveHourEntry } from './active-hours.models';
+
+export * from './active-hours.models';
+
 // ─── Monster ───────────────────────────────────────────────────────────────────
 
 export interface Monster {
@@ -250,6 +254,9 @@ export interface AdminUser {
 
 export interface Profile {
   active: boolean;
+  activeHours: ActiveHourEntry[] | null;
+  latitude: number;
+  longitude: number;
   name: string;
   profileNo: number;
 }
@@ -591,6 +598,8 @@ export interface ProfileOverviewProfile {
   active_hours?: string;
   area?: string;
   id: string;
+  latitude?: number;
+  longitude?: number;
   name: string;
   profile_no: number;
 }

@@ -55,6 +55,14 @@ The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `
 
 `TestAlertService` (`core/services/test-alert.service.ts`) manages test alert requests from alarm list cards. It tracks per-UID cooldowns (15-second TTL via a `Map`) and deduplicates in-flight requests to prevent duplicate API calls. After sending, it displays success/error/cooldown feedback via Material snackbar. The test button appears in `mat-card-actions` on all alarm card types (Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles).
 
+### ProfileService — active hours
+
+`ProfileService` (`core/services/profile.service.ts`) parses the `activeHours` field from the API response in `getAll()`, mapping the snake_case `active_hours` JSON string to a typed `ActiveHoursEntry[]` on each profile model.
+
+- `updateActiveHours(profileNo, entries)` — sends the active hours array to the API for the given profile
+
+The `active-hours.models.ts` file (`core/models/`) defines the `ActiveHoursEntry` interface and utility functions for working with time-window rules (serialization, display formatting, validation).
+
 ### PokemonAvailabilityService
 
 `PokemonAvailabilityService` (`core/services/pokemon-availability.service.ts`) provides Pokemon spawn availability data from the Golbat scanner API. It is a `providedIn: 'root'` singleton.
@@ -93,6 +101,19 @@ Grid items fade in with 30ms stagger delay.
 
 ### Onboarding wizard
 Shows on the dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.
+
+### Active hours components
+
+`ActiveHoursChipComponent` (`shared/components/active-hours-chip/`) renders a compact read-only summary of a profile's active hours schedule as a Material chip. Displayed inline on `ProfileOverviewComponent` cards.
+
+`ActiveHoursEditorDialogComponent` (`shared/components/active-hours-editor-dialog/`) provides a full editing UI for active hours rules. Opened from the profile overview when the user clicks the active hours chip or the "Set active hours" action. Validates entries client-side (day 1--7, hours 0--23, mins 0--59, max 28 entries) before submitting.
+
+`LocationWarningComponent` (`shared/components/location-warning/`) displays a contextual warning when the user's location is not set, since active hours depend on the user's timezone derived from their location.
+
+`ProfileOverviewComponent` integrates active hours display and editing — each profile card shows the `ActiveHoursChipComponent` and opens the editor dialog for modifications.
+
+!!! note "`ProfileListComponent` removed"
+    The unused `ProfileListComponent` has been removed. Profile management is handled entirely by `ProfileOverviewComponent`.
 
 ### Gym picker
 

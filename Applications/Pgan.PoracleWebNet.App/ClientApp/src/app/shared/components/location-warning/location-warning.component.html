@@ -1,0 +1,6 @@
+@if (show()) {
+  <div class="location-warning" [matTooltip]="tooltip">
+    <mat-icon class="warning-icon">warning</mat-icon>
+    <span class="warning-text">No location set &mdash; schedule may use wrong timezone</span>
+  </div>
+}
