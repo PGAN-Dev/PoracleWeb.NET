@@ -17,5 +17,6 @@ export class LocationWarningComponent {
 
   readonly show = computed(() => this.hasActiveHours() && this.latitude() === 0 && this.longitude() === 0);
 
-  readonly tooltip = 'Active hours use the profile location to determine timezone. Without a location set, the schedule may activate at the wrong time.';
+  readonly tooltip =
+    'Active hours use the profile location to determine timezone. Without a location set, the schedule may activate at the wrong time.';
 }

@@ -12,11 +12,11 @@ describe('ProfileService', () => {
   const API = 'http://test-api';
 
   const mockProfile: Profile = {
+    name: 'Default',
     active: true,
     activeHours: null,
     latitude: 0,
     longitude: 0,
-    name: 'Default',
     profileNo: 1,
   };
 
@@ -37,12 +37,10 @@ describe('ProfileService', () => {
       expect(profiles[0].active).toBe(true);
     });
 
-    httpMock
-      .expectOne(`${API}/api/profiles`)
-      .flush([
-        { ...mockProfile, activeHours: null },
-        { name: 'PVP', active: false, activeHours: null, latitude: 0, longitude: 0, profileNo: 2 },
-      ]);
+    httpMock.expectOne(`${API}/api/profiles`).flush([
+      { ...mockProfile, activeHours: null },
+      { name: 'PVP', active: false, activeHours: null, latitude: 0, longitude: 0, profileNo: 2 },
+    ]);
   });
 
   it('should create a profile', () => {
@@ -110,7 +108,7 @@ describe('ProfileService', () => {
 
     httpMock.expectOne(`${API}/api/profiles`).flush([
       { ...mockProfile, activeHours: activeHoursJson },
-      { ...mockProfile, name: 'PVP', profileNo: 2, activeHours: null },
+      { ...mockProfile, name: 'PVP', activeHours: null, profileNo: 2 },
     ]);
   });
 

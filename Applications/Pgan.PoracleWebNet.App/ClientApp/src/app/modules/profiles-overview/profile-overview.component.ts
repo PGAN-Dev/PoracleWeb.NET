@@ -15,7 +15,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { forkJoin } from 'rxjs';
 
-import { ActiveHourEntry, parseActiveHours, ProfileOverviewAlarm, ProfileOverview, ProfileOverviewProfile, Profile } from '../../core/models';
+import {
+  ActiveHourEntry,
+  parseActiveHours,
+  ProfileOverviewAlarm,
+  ProfileOverview,
+  ProfileOverviewProfile,
+  Profile,
+} from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -332,19 +339,19 @@ export class ProfileOverviewComponent implements OnInit {
   editActiveHours(profile: ProfileOverviewProfile): void {
     const entries = parseActiveHours(profile.active_hours);
     const ref = this.dialog.open(ActiveHoursEditorDialogComponent, {
-      width: '560px',
       maxWidth: '95vw',
-      data: { profileName: profile.name, activeHours: entries } as ActiveHoursEditorData,
+      width: '560px',
+      data: { activeHours: entries, profileName: profile.name } as ActiveHoursEditorData,
     });
     ref.afterClosed().subscribe((result: ActiveHourEntry[] | null | undefined) => {
       if (result !== null && result !== undefined) {
         this.profileService.updateActiveHours(profile.profile_no, result).subscribe({
+          error: () => {
+            this.snackBar.open('Failed to update schedule', 'OK', { duration: 3000 });
+          },
           next: () => {
             this.snackBar.open('Schedule updated', 'OK', { duration: 3000 });
             this.loadAll();
-          },
-          error: () => {
-            this.snackBar.open('Failed to update schedule', 'OK', { duration: 3000 });
           },
         });
       }
@@ -548,10 +555,6 @@ export class ProfileOverviewComponent implements OnInit {
     return this.managedProfiles().find(p => p.profileNo === profileNo);
   }
 
-  parseActiveHoursField(activeHours: string | undefined): ActiveHourEntry[] {
-    return parseActiveHours(activeHours);
-  }
-
   getTypeConfig(key: string): AlarmTypeConfig {
     return this.alarmTypes.find(t => t.key === key) ?? this.alarmTypes[0];
   }
@@ -657,6 +660,10 @@ export class ProfileOverviewComponent implements OnInit {
     ref.afterClosed().subscribe(result => {
       if (result) this.loadAll();
     });
+  }
+
+  parseActiveHoursField(activeHours: string | undefined): ActiveHourEntry[] {
+    return parseActiveHours(activeHours);
   }
 
   setTypeFilter(type: string | null): void {

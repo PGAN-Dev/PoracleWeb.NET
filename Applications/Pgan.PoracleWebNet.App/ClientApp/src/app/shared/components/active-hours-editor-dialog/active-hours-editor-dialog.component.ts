@@ -24,15 +24,7 @@ export interface ActiveHoursEditorData {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatSelectModule,
-    MatTooltipModule,
-  ],
+  imports: [FormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatSelectModule, MatTooltipModule],
   selector: 'app-active-hours-editor-dialog',
   standalone: true,
   styleUrl: './active-hours-editor-dialog.component.scss',
@@ -40,18 +32,14 @@ export interface ActiveHoursEditorData {
 })
 export class ActiveHoursEditorDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<ActiveHoursEditorDialogComponent>);
-  readonly data: ActiveHoursEditorData = inject(MAT_DIALOG_DATA);
-
   readonly allDays = [1, 2, 3, 4, 5, 6, 7];
+
+  readonly data: ActiveHoursEditorData = inject(MAT_DIALOG_DATA);
   readonly dayLetters = DAY_LETTERS;
   readonly entries = signal<ActiveHourEntry[]>([...this.data.activeHours]);
   readonly groups = computed<ActiveHourGroup[]>(() => groupActiveHours(this.entries()));
   readonly hourOptions = Array.from({ length: 24 }, (_, i) => i);
   readonly minuteOptions = Array.from({ length: 12 }, (_, i) => i * 5);
-  readonly selectedDays = signal<Set<number>>(new Set<number>());
-  readonly selectedHour = signal(9);
-  readonly selectedMinute = signal(0);
-
   /** Mini-preview: 7 rows x time markers */
   readonly previewData = computed(() => {
     const groups = this.groups();
@@ -60,6 +48,11 @@ export class ActiveHoursEditorDialogComponent {
       markers: groups.filter(g => g.days.includes(day)).map(g => ({ hours: g.hours, mins: g.mins })),
     }));
   });
+
+  readonly selectedDays = signal<Set<number>>(new Set<number>());
+  readonly selectedHour = signal(9);
+
+  readonly selectedMinute = signal(0);
 
   addEntries(): void {
     const days = this.selectedDays();

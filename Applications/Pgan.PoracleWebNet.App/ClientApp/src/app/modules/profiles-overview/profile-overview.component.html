@@ -172,7 +172,9 @@
           <div class="schedule-section">
             <app-active-hours-chip [activeHours]="parseActiveHoursField(group.profile.active_hours)"></app-active-hours-chip>
             <app-location-warning
-              [hasActiveHours]="!!(group.profile.active_hours && group.profile.active_hours !== '[]' && group.profile.active_hours !== '{}')"
+              [hasActiveHours]="
+                !!(group.profile.active_hours && group.profile.active_hours !== '[]' && group.profile.active_hours !== '{}')
+              "
               [latitude]="group.profile.latitude ?? 0"
               [longitude]="group.profile.longitude ?? 0">
             </app-location-warning>

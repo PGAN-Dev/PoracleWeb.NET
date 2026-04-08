@@ -2,10 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-import {
-  ActiveHoursEditorDialogComponent,
-  ActiveHoursEditorData,
-} from './active-hours-editor-dialog.component';
+import { ActiveHoursEditorDialogComponent, ActiveHoursEditorData } from './active-hours-editor-dialog.component';
 import { ActiveHourEntry } from '../../../core/models/active-hours.models';
 
 describe('ActiveHoursEditorDialogComponent', () => {
@@ -17,11 +14,11 @@ describe('ActiveHoursEditorDialogComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [ActiveHoursEditorDialogComponent, NoopAnimationsModule],
       providers: [
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
+      imports: [ActiveHoursEditorDialogComponent, NoopAnimationsModule],
     });
 
     const fixture = TestBed.createComponent(ActiveHoursEditorDialogComponent);

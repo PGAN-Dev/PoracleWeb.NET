@@ -2,12 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import {
-  ActiveHourEntry,
-  compressDayRange,
-  formatTime12h,
-  groupActiveHours,
-} from '../../../core/models/active-hours.models';
+import { ActiveHourEntry, compressDayRange, formatTime12h, groupActiveHours } from '../../../core/models/active-hours.models';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
