@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.3.0] - 2026-04-08
 
+## [2.3.0] - 2026-04-08
+
 ### Added
 - **Area overview map on dashboard**: Non-interactive Leaflet mini-map showing selected areas as color-coded polygons. Lazy-loaded via `@defer(on viewport)` with zero additional API calls. Click navigates to the full Areas page. ([#129](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/129), [PR #160](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/160))
 - **Profile active hours / schedule management UI** ([#158](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/158)) ([#159](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/159))
@@ -407,6 +409,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment with Watchtower auto-updates
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.2.0...v2.3.0
 [2.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.3...v2.2.0
 [2.1.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.2...v2.1.3
