@@ -89,8 +89,8 @@ public class ProfileController(
         var body = JsonSerializer.SerializeToElement(new
         {
             profile_no = profileNo,
-            name = profile.Name,
-            active_hours = profile.ActiveHours
+            name = profile.Name ?? existing.Name,
+            active_hours = profile.ActiveHours ?? existing.ActiveHours
         });
         await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 

@@ -1,10 +1,4 @@
-import {
-  compressDayRange,
-  formatTime12h,
-  groupActiveHours,
-  parseActiveHours,
-  ActiveHourEntry,
-} from '../../core/models/active-hours.models';
+import { compressDayRange, formatTime12h, groupActiveHours, parseActiveHours, ActiveHourEntry } from './active-hours.models';
 
 describe('parseActiveHours', () => {
   it('should parse valid JSON string', () => {
