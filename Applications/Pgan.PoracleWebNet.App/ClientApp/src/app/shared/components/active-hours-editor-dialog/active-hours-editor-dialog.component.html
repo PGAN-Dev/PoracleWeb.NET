@@ -1,0 +1,113 @@
+<h2 mat-dialog-title>
+  <mat-icon class="title-icon">schedule</mat-icon>
+  Active Hours &mdash; {{ data.profileName }}
+</h2>
+
+<mat-dialog-content>
+  <!-- Day picker -->
+  <section class="section">
+    <label class="section-label">Days</label>
+    <div class="day-picker">
+      @for (day of allDays; track day) {
+        <button
+          type="button"
+          class="day-btn"
+          [class.selected]="selectedDays().has(day)"
+          (click)="toggleDay(day)"
+          [matTooltip]="dayLetters[day]">
+          {{ dayLetters[day] }}
+        </button>
+      }
+    </div>
+    <div class="presets">
+      <button mat-button type="button" (click)="presetDays('weekdays')">Weekdays</button>
+      <button mat-button type="button" (click)="presetDays('weekends')">Weekends</button>
+      <button mat-button type="button" (click)="presetDays('everyday')">Every day</button>
+    </div>
+  </section>
+
+  <!-- Time picker -->
+  <section class="section">
+    <label class="section-label">Time</label>
+    <div class="time-picker">
+      <mat-form-field appearance="outline" class="time-field">
+        <mat-label>Hour</mat-label>
+        <mat-select [value]="selectedHour()" (selectionChange)="selectedHour.set($event.value)">
+          @for (h of hourOptions; track h) {
+            <mat-option [value]="h">{{ formatHour(h) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="time-field">
+        <mat-label>Minute</mat-label>
+        <mat-select [value]="selectedMinute()" (selectionChange)="selectedMinute.set($event.value)">
+          @for (m of minuteOptions; track m) {
+            <mat-option [value]="m">{{ formatMinute(m) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        (click)="addEntries()"
+        [disabled]="selectedDays().size === 0"
+        matTooltip="Add activation rule">
+        <mat-icon>add</mat-icon> Add
+      </button>
+    </div>
+  </section>
+
+  <!-- Rules list -->
+  <section class="section">
+    <label class="section-label">Rules ({{ groups().length }})</label>
+    @if (groups().length === 0) {
+      <div class="empty-rules">No activation rules. Profile will require manual start.</div>
+    } @else {
+      <div class="rules-list">
+        @for (group of groups(); track formatGroupLabel(group)) {
+          <div class="rule-item">
+            <mat-icon class="rule-icon">schedule</mat-icon>
+            <span class="rule-label">{{ formatGroupLabel(group) }}</span>
+            <button mat-icon-button type="button" (click)="removeGroup(group)" matTooltip="Remove rule" class="rule-remove">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Mini weekly preview -->
+  @if (groups().length > 0) {
+    <section class="section">
+      <label class="section-label">Weekly Preview</label>
+      <div class="preview-grid">
+        @for (row of previewData(); track row.day) {
+          <div class="preview-row">
+            <span class="preview-day">{{ dayLetters[row.day] }}</span>
+            <div class="preview-bar">
+              @for (marker of row.markers; track marker.hours * 60 + marker.mins) {
+                <span class="preview-dot" [style.left]="markerLeft(marker.hours, marker.mins)"></span>
+              }
+            </div>
+          </div>
+        }
+        <div class="preview-axis">
+          <span>12 AM</span>
+          <span>6 AM</span>
+          <span>12 PM</span>
+          <span>6 PM</span>
+          <span>12 AM</span>
+        </div>
+      </div>
+    </section>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" color="warn" (click)="clearAll()" [disabled]="groups().length === 0">Clear All</button>
+  <span class="spacer"></span>
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()">Save</button>
+</mat-dialog-actions>

@@ -73,6 +73,7 @@ public class ProfileService(
                 Area = item.GetStringPropOrNull("area") ?? "[]",
                 Latitude = item.GetDoubleProp("latitude"),
                 Longitude = item.GetDoubleProp("longitude"),
+                ActiveHours = item.GetStringPropOrNull("active_hours"),
             });
         }
 

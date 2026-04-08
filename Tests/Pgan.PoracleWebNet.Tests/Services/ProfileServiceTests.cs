@@ -124,4 +124,87 @@ public class ProfileServiceTests
         await this._sut.CopyAsync("u1", 1, 2);
         this._humanProxy.Verify(p => p.CopyProfileAsync("u1", 1, 2), Times.Once);
     }
+
+    [Fact]
+    public async Task GetByUserAsyncDeserializesActiveHoursFromProxy()
+    {
+        var proxyResponse = JsonSerializer.SerializeToElement(new
+        {
+            profile = new[]
+            {
+                new
+                {
+                    id = "u1",
+                    profile_no = 1,
+                    name = "Default",
+                    area = "[]",
+                    latitude = 0.0,
+                    longitude = 0.0,
+                    active_hours = "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]"
+                }
+            },
+            status = "ok"
+        });
+        this._humanProxy.Setup(p => p.GetProfilesAsync("u1")).ReturnsAsync(proxyResponse);
+
+        var result = (await this._sut.GetByUserAsync("u1")).ToList();
+
+        Assert.Single(result);
+        Assert.Equal("[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]", result[0].ActiveHours);
+    }
+
+    [Fact]
+    public async Task GetByUserAsyncHandlesNullActiveHours()
+    {
+        var proxyResponse = JsonSerializer.SerializeToElement(new
+        {
+            profile = new[]
+            {
+                new
+                {
+                    id = "u1",
+                    profile_no = 1,
+                    name = "Default",
+                    area = "[]",
+                    latitude = 0.0,
+                    longitude = 0.0
+                }
+            },
+            status = "ok"
+        });
+        this._humanProxy.Setup(p => p.GetProfilesAsync("u1")).ReturnsAsync(proxyResponse);
+
+        var result = (await this._sut.GetByUserAsync("u1")).ToList();
+
+        Assert.Single(result);
+        Assert.Null(result[0].ActiveHours);
+    }
+
+    [Fact]
+    public async Task GetByUserAsyncHandlesEmptyActiveHours()
+    {
+        var proxyResponse = JsonSerializer.SerializeToElement(new
+        {
+            profile = new[]
+            {
+                new
+                {
+                    id = "u1",
+                    profile_no = 1,
+                    name = "Default",
+                    area = "[]",
+                    latitude = 0.0,
+                    longitude = 0.0,
+                    active_hours = "[]"
+                }
+            },
+            status = "ok"
+        });
+        this._humanProxy.Setup(p => p.GetProfilesAsync("u1")).ReturnsAsync(proxyResponse);
+
+        var result = (await this._sut.GetByUserAsync("u1")).ToList();
+
+        Assert.Single(result);
+        Assert.Equal("[]", result[0].ActiveHours);
+    }
 }
