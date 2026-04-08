@@ -66,8 +66,11 @@ Pgan.PoracleWebNet.slnx
 |                                discord-avatar, alarm-info, confirm-dialog,
 |                                language-selector, distance-dialog, onboarding,
 |                                region-selector, geofence-name-dialog,
-|                                geofence-approval-dialog, gym-picker
+|                                geofence-approval-dialog, gym-picker,
+|                                active-hours-chip, active-hours-editor-dialog,
+|                                location-warning
 |                                utils/: geo.utils (point-in-polygon, centroid)
+|                                models/: active-hours.models (interfaces, utilities)
 |
 +-- scripts/
 |   +-- setup.sh                 Interactive first-time setup wizard
@@ -189,6 +192,12 @@ Pgan.PoracleWebNet.slnx
   2. Issues a new JWT with the updated `profileNo`.
 - Profile CRUD (add, update, delete, list) is proxied through `IPoracleHumanProxy`.
 - **Custom geofences and profiles**: Geofences are user-scoped (not profile-scoped), but their area subscriptions are profile-scoped. A user can activate/deactivate a geofence per profile via the toggle UI without affecting other profiles. Deleting a geofence removes it from all profiles.
+- **Active hours**: Each profile has an optional `active_hours` JSON string that controls PoracleNG's profile scheduler -- PoracleNG automatically switches to/from the profile based on these time rules.
+  - **Data format**: JSON array of `{ "day": N, "hours": N, "mins": N }` entries where `day` is 1-7 (Mon-Sun), `hours` is 0-23, `mins` is 0-59. Maximum 28 entries (4 per day). Stored as a JSON string in `profiles.active_hours`.
+  - **Backend**: `Profile.ActiveHours` (string?) property. `ProfileService.DeserializeProfiles` extracts `active_hours` from proxy JSON via `GetStringPropOrNull`. Create/Update/Duplicate endpoints on `ProfileController` and `ProfileOverviewController` include `active_hours` in the proxy payload.
+  - **Validation**: `ProfileController.ValidateActiveHours` (internal static) validates the JSON structure: day 1-7, hours 0-23, mins 0-59, max 28 entries, accepts both string and int types for hours/mins fields (PoracleNG stores these inconsistently).
+  - **Frontend**: `ProfileService.updateActiveHours()` sends the updated schedule. `ActiveHoursChipComponent` renders compact amber schedule pills on profile cards. `ActiveHoursEditorDialogComponent` provides a day picker (circular buttons + Weekdays/Weekends/Every Day presets), time picker, grouped rules list, and mini weekly preview grid.
+  - **Location warning**: `LocationWarningComponent` shows an inline red warning when active hours are set but the profile has 0,0 coordinates, since PoracleNG uses the profile's location for timezone calculations and 0,0 defaults to UTC.
 
 ### Rate Limiting
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
@@ -230,6 +239,9 @@ Pgan.PoracleWebNet.slnx
 - Services in `core/services/` use `HttpClient` to call the .NET API (including `ScannerService` for gym search, `TestAlertService` for test notifications).
 - `TestAlertService` manages per-UID cooldown tracking (15s Map-based TTL) and in-flight request deduplication to prevent duplicate API calls.
 - `GymPickerComponent` is a shared autocomplete component used in gym/raid/egg dialogs for gym selection with photo thumbnails and area names.
+- `ActiveHoursEditorDialogComponent` is a shared dialog for editing profile schedule rules with day/time pickers and a weekly preview grid.
+- `ActiveHoursChipComponent` renders compact amber schedule pills summarizing active hours on profile cards.
+- `LocationWarningComponent` displays an inline warning when a profile has active hours but missing coordinates.
 
 ### UI Patterns
 - **Alarm lists**: Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. Test button in card actions sends a sample notification via PoracleNG.
@@ -239,6 +251,8 @@ Pgan.PoracleWebNet.slnx
 - **Accent themes**: Toolbar gradient, sidenav active link, and UI accent colors are customizable via user menu. Colors are applied as CSS custom properties on `document.body.style` to work across Angular's view encapsulation.
 - **Dark/light mode**: CSS variables bridge Material tokens to component styles. Theme stored in `localStorage('poracle-theme')`.
 - **Onboarding wizard**: Shows on dashboard for new users until explicitly dismissed. Detects existing location/areas/alarms and marks steps as complete. Route-based actions (Choose Areas, Add Alarm) hide the overlay temporarily without setting the localStorage completion flag.
+- **Active hours pills**: Amber schedule chips on profile cards showing compressed day-range + time summaries (e.g., "Mon-Fri 8:00 AM"). Uses `ActiveHoursChipComponent` with `compressDayRange` and `formatTime12h` utilities.
+- **Location warning**: Inline red warning banner (`LocationWarningComponent`) displayed on profile cards when active hours are configured but the profile's coordinates are 0,0 (which defaults to UTC in PoracleNG's scheduler).
 - **Admin geofence submissions**: Three view modes — **card** (map thumbnails, grouped by region), **list** (compact table grouped by region), **table** (flat sortable table with all columns). Region groups use `mat-expansion-panel` with count badges. Sortable columns in table view (name, status, owner, region, points, created, submitted). Discord avatars displayed next to owner and reviewer names. Reviewer names resolved from `reviewedByName` (batch-loaded from humans table).
 
 ## Configuration
@@ -312,6 +326,9 @@ PoracleNG wraps its API responses in container objects. Human data is returned a
 
 ### uid:0 in Create Requests
 When creating new alarms, the model's `uid` defaults to `0`. PoracleNG treats `uid: 0` as an update request (looking for an existing row with uid 0) rather than an insert. The `PoracleJsonHelper.StripUidZero()` method removes `uid` properties with value `0` from the JSON payload before sending to PoracleNG, ensuring the request is treated as an insert.
+
+### PoracleNG active_hours String Types
+PoracleNG stores `hours` and `mins` fields in `active_hours` JSON entries inconsistently -- sometimes as numbers, sometimes as strings (e.g., `"hours": "8"` instead of `"hours": 8`). The frontend `parseActiveHours` utility applies `Number()` coercion when deserializing to ensure consistent numeric types. The backend `ValidateActiveHours` method in `ProfileController` accepts both `JsonValueKind.Number` and `JsonValueKind.String` (parsing strings via `int.TryParse`) for the same reason.
 
 ### Webhook ID URL Encoding
 Webhook IDs in Poracle are URLs (e.g., `http://host:port/path`). When constructing proxy API paths that include a webhook ID as a path segment, the ID must be encoded with `Uri.EscapeDataString()` to escape slashes and other special characters. Both `PoracleTrackingProxy` and `PoracleHumanProxy` apply this encoding.
@@ -515,6 +532,11 @@ dotnet ef migrations script \
 | PokemonAvailabilityService | `Core/Pgan.PoracleWebNet.Core.Services/PokemonAvailabilityService.cs` |
 | PokemonAvailability Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/PokemonAvailabilityController.cs` |
 | Pokemon Availability Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/pokemon-availability.service.ts` |
+| Active Hours Models | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/models/active-hours.models.ts` |
+| Active Hours Chip Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/active-hours-chip/` |
+| Active Hours Editor Dialog | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/active-hours-editor-dialog/` |
+| Location Warning Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/location-warning/` |
+| Active Hours Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/active-hours.utils.spec.ts` |
 | Poracle Servers Page | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/poracle-servers/` |
 | Abstractions | `Core/Pgan.PoracleWebNet.Core.Abstractions/` |
 | Backend Tests | `Tests/Pgan.PoracleWebNet.Tests/` |
@@ -524,6 +546,6 @@ dotnet ef migrations script \
 
 ## Testing
 
-- **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `geofence-submissions.component.spec.ts`, `test-alert.service.spec.ts`).
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `TestAlertControllerTests`, `TestAlertServiceTests`.
+- **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `geofence-submissions.component.spec.ts`, `test-alert.service.spec.ts`, `active-hours.utils.spec.ts`, `active-hours-chip.component.spec.ts`, `active-hours-editor-dialog.component.spec.ts`, `location-warning.component.spec.ts`).
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `TestAlertControllerTests`, `TestAlertServiceTests`, `ActiveHoursValidationTests`.
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.

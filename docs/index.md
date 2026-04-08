@@ -23,6 +23,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **Custom Geofences** — Draw custom polygon geofences on a map, served to PoracleJS via a built-in feed endpoint. Submit for admin review to promote to public areas.
 - **Geofence Admin Review** — Approve or reject user-submitted geofences with Discord forum integration
 - **Profile Switching** — Multiple alarm profiles per user
+- **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **Discord Notification Preview** — Live preview of DTS templates with Handlebars evaluation
 - **Dark/Light Mode** — Theme toggle with localStorage persistence
 - **Accent Themes** — Customizable toolbar and UI accent colors (Pokemon, Raids, Mystic, Valor, Instinct)

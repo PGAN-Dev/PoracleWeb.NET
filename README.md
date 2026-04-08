@@ -37,6 +37,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 - **Geofence Admin Review** — Approve/reject with Discord forum integration
 - **Quick Picks** — One-click alarm templates
 - **Profile Switching** — Multiple alarm profiles per user
+- **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **DTS Preview** — Live Discord notification template preview
 - **Dark/Light Mode** — Theme toggle with accent color customization
 - **Server Management** — Monitor and restart PoracleJS instances remotely

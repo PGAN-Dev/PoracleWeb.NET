@@ -91,7 +91,7 @@ For remote PoracleJS server management. See [Server Management](../features/serv
 | `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
 
 !!! warning "PoracleNG must be reachable"
-    `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb container. All alarm tracking, human/profile management, location, and area operations are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
+    `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.

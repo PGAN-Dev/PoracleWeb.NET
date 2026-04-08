@@ -15,6 +15,28 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
 
+#### Notable columns in `profiles`
+
+| Column | Type | Description |
+|---|---|---|
+| `active_hours` | TEXT, nullable | JSON array of activation time rules |
+
+The `active_hours` column stores a JSON array defining when alarm delivery is active for a given profile. Each entry specifies a day and time:
+
+```json
+[
+  {"day": 1, "hours": "09", "mins": "00"},
+  {"day": 1, "hours": "17", "mins": "30"},
+  {"day": 7, "hours": "10", "mins": "00"}
+]
+```
+
+- `day` — ISO weekday (1 = Monday, 7 = Sunday)
+- `hours` / `mins` — stored as **strings** (zero-padded, e.g. `"09"`, `"00"`)
+
+!!! info "Managed by PoracleNG"
+    The `active_hours` column is part of Poracle's own schema (managed by PoracleJS/PoracleNG) — no PoracleWeb migration is needed. PoracleWeb reads and writes this field through the `IPoracleHumanProxy` API, not via direct DB access.
+
 ### PoracleWebContext
 
 A separate EF Core context for **application-owned data**.

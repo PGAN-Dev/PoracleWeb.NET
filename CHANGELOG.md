@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Profile active hours / schedule management UI** ([#158](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/158)) ([#159](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/159))
+  - View and edit active hours on user profiles for automatic profile switching
+  - Schedule editor dialog with day picker, time picker, and weekly preview
+  - Amber schedule pills on profile cards showing activation times
+  - Location warning when profile has 0,0 coordinates (causes timezone bug in PoracleNG scheduler)
+  - Server-side validation (day 1-7, hours 0-23, mins 0-59, max 28 entries)
+
+### Removed
+- Unused `ProfileListComponent` (was never routed)
+
 ## [2.2.0] - 2026-04-07
 
 ## [2.2.0] - 2026-04-07
