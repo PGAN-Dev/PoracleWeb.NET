@@ -38,6 +38,21 @@ describe('parseActiveHours', () => {
     expect(result).toHaveLength(2);
     expect(result[1]).toEqual({ day: 2, hours: 18, mins: 30 });
   });
+
+  it('should coerce string-typed hours and mins to numbers', () => {
+    const json = '[{"day":1,"hours":"09","mins":"00"},{"day":2,"hours":"18","mins":"30"}]';
+    const result = parseActiveHours(json);
+    expect(result).toEqual([
+      { day: 1, hours: 9, mins: 0 },
+      { day: 2, hours: 18, mins: 30 },
+    ]);
+  });
+
+  it('should coerce string-typed day to number', () => {
+    const json = '[{"day":"3","hours":"12","mins":"15"}]';
+    const result = parseActiveHours(json);
+    expect(result).toEqual([{ day: 3, hours: 12, mins: 15 }]);
+  });
 });
 
 describe('groupActiveHours', () => {

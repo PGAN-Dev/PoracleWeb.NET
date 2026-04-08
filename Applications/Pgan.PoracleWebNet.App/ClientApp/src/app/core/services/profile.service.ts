@@ -31,7 +31,7 @@ export class ProfileService {
       map(profiles =>
         profiles.map(p => ({
           ...p,
-          activeHours: parseActiveHours(p.activeHours as unknown as string),
+          activeHours: parseActiveHours(typeof p.activeHours === 'string' ? p.activeHours : null),
         })),
       ),
     );
