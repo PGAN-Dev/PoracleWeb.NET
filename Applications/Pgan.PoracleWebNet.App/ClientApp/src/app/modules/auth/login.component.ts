@@ -5,6 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -17,7 +18,7 @@ declare global {
 }
 
 @Component({
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TranslateModule],
   selector: 'app-login',
   standalone: true,
   styleUrl: './login.component.scss',
@@ -48,7 +49,7 @@ export class LoginComponent implements OnInit {
 
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
-  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
+  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || '');
   @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
 
   /**

@@ -9,15 +9,20 @@
       <span class="gym-name">{{ gym.name ?? gym.id }}</span>
       <span class="gym-sub">{{ gym.area ?? gym.lat.toFixed(4) + ', ' + gym.lon.toFixed(4) }}</span>
     </div>
-    <button mat-icon-button (click)="clear()" class="clear-btn" aria-label="Clear gym selection">
+    <button mat-icon-button (click)="clear()" class="clear-btn" [attr.aria-label]="'GYM_PICKER.CLEAR_ARIA' | translate">
       <mat-icon>close</mat-icon>
     </button>
   </div>
 } @else {
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Search for a gym (optional)</mat-label>
+    <mat-label>{{ 'GYM_PICKER.SEARCH_LABEL' | translate }}</mat-label>
     <mat-icon matPrefix>search</mat-icon>
-    <input matInput [(ngModel)]="searchText" [matAutocomplete]="auto" (input)="onInput(searchText)" placeholder="Type gym name..." />
+    <input
+      matInput
+      [(ngModel)]="searchText"
+      [matAutocomplete]="auto"
+      (input)="onInput(searchText)"
+      [placeholder]="'GYM_PICKER.SEARCH_HINT' | translate" />
     @if (loading()) {
       <mat-spinner matSuffix diameter="18"></mat-spinner>
     }

@@ -10,12 +10,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { switchMap, forkJoin, EMPTY } from 'rxjs';
 
 import { DashboardCounts, GeofenceData, Location, Profile, WeatherData } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { AreaOverviewMapComponent } from '../../shared/components/area-overview-map/area-overview-map.component';
@@ -55,6 +57,7 @@ interface Tip {
     AreaOverviewMapComponent,
     OnboardingComponent,
     RouterModule,
+    TranslateModule,
   ],
   selector: 'app-dashboard',
   standalone: true,
@@ -88,6 +91,7 @@ export class DashboardComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
@@ -102,29 +106,85 @@ export class DashboardComponent implements OnInit {
   readonly areaWeather = signal<Record<string, WeatherData>>({});
 
   readonly cards: DashboardCard[] = [
-    { colorClass: 'card-pokemon', icon: 'catching_pokemon', key: 'pokemon', label: 'Pokemon', route: '/pokemon', subtitle: 'Wild spawns' },
-    { colorClass: 'card-raids', icon: 'shield', key: 'raids', label: 'Raids', route: '/raids', subtitle: 'Raid bosses' },
-    { colorClass: 'card-eggs', icon: 'egg', key: 'eggs', label: 'Eggs', route: '/raids', subtitle: 'Raid eggs' },
-    { colorClass: 'card-quests', icon: 'explore', key: 'quests', label: 'Quests', route: '/quests', subtitle: 'Field research' },
-    { colorClass: 'card-invasions', icon: 'warning', key: 'invasions', label: 'Invasions', route: '/invasions', subtitle: 'Team Rocket' },
-    { colorClass: 'card-lures', icon: 'location_on', key: 'lures', label: 'Lures', route: '/lures', subtitle: 'Lure modules' },
-    { colorClass: 'card-nests', icon: 'park', key: 'nests', label: 'Nests', route: '/nests', subtitle: 'Nesting species' },
-    { colorClass: 'card-gyms', icon: 'fitness_center', key: 'gyms', label: 'Gyms', route: '/gyms', subtitle: 'Gym activity' },
+    {
+      colorClass: 'card-pokemon',
+      icon: 'catching_pokemon',
+      key: 'pokemon',
+      label: 'DASHBOARD.CARD_POKEMON',
+      route: '/pokemon',
+      subtitle: 'DASHBOARD.CARD_POKEMON_SUB',
+    },
+    {
+      colorClass: 'card-raids',
+      icon: 'shield',
+      key: 'raids',
+      label: 'DASHBOARD.CARD_RAIDS',
+      route: '/raids',
+      subtitle: 'DASHBOARD.CARD_RAIDS_SUB',
+    },
+    {
+      colorClass: 'card-eggs',
+      icon: 'egg',
+      key: 'eggs',
+      label: 'DASHBOARD.CARD_EGGS',
+      route: '/raids',
+      subtitle: 'DASHBOARD.CARD_EGGS_SUB',
+    },
+    {
+      colorClass: 'card-quests',
+      icon: 'explore',
+      key: 'quests',
+      label: 'DASHBOARD.CARD_QUESTS',
+      route: '/quests',
+      subtitle: 'DASHBOARD.CARD_QUESTS_SUB',
+    },
+    {
+      colorClass: 'card-invasions',
+      icon: 'warning',
+      key: 'invasions',
+      label: 'DASHBOARD.CARD_INVASIONS',
+      route: '/invasions',
+      subtitle: 'DASHBOARD.CARD_INVASIONS_SUB',
+    },
+    {
+      colorClass: 'card-lures',
+      icon: 'location_on',
+      key: 'lures',
+      label: 'DASHBOARD.CARD_LURES',
+      route: '/lures',
+      subtitle: 'DASHBOARD.CARD_LURES_SUB',
+    },
+    {
+      colorClass: 'card-nests',
+      icon: 'park',
+      key: 'nests',
+      label: 'DASHBOARD.CARD_NESTS',
+      route: '/nests',
+      subtitle: 'DASHBOARD.CARD_NESTS_SUB',
+    },
+    {
+      colorClass: 'card-gyms',
+      icon: 'fitness_center',
+      key: 'gyms',
+      label: 'DASHBOARD.CARD_GYMS',
+      route: '/gyms',
+      subtitle: 'DASHBOARD.CARD_GYMS_SUB',
+    },
     {
       colorClass: 'card-fort-changes',
       icon: 'domain',
       key: 'fortChanges',
-      label: 'Fort Changes',
+      label: 'DASHBOARD.CARD_FORT_CHANGES',
       route: '/fort-changes',
-      subtitle: 'Fort updates',
+      subtitle: 'DASHBOARD.CARD_FORT_CHANGES_SUB',
     },
     {
       colorClass: 'card-maxbattles',
       icon: 'flash_on',
       key: 'maxBattles',
-      label: 'Max Battles',
+      label: 'DASHBOARD.CARD_MAX_BATTLES',
       route: '/max-battles',
-      subtitle: 'Dynamax battles',
+      subtitle: 'DASHBOARD.CARD_MAX_BATTLES_SUB',
     },
   ];
 
@@ -141,10 +201,10 @@ export class DashboardComponent implements OnInit {
   readonly profiles = signal<Profile[]>([]);
   readonly profileName = computed(() => {
     const profiles = this.profiles();
-    if (profiles.length === 0) return 'Default';
+    if (profiles.length === 0) return this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
     const no = this.profileNo();
     const match = profiles.find(p => p.profileNo === no);
-    return match?.name ?? 'Default';
+    return match?.name ?? this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
   });
 
   readonly selectedAreas = signal<string[]>([]);
@@ -157,9 +217,9 @@ export class DashboardComponent implements OnInit {
     if (!this.userLocation()) {
       tips.push({
         id: 'no-location',
-        action: 'Set Location',
+        action: this.i18n.instant('DASHBOARD.TIP_NO_LOCATION_ACTION'),
         icon: 'location_off',
-        message: 'Set your location to enable distance-based notifications',
+        message: this.i18n.instant('DASHBOARD.TIP_NO_LOCATION'),
         route: null,
         type: 'warning',
       });
@@ -168,9 +228,9 @@ export class DashboardComponent implements OnInit {
     if (this.selectedAreas().length === 0) {
       tips.push({
         id: 'no-areas',
-        action: 'Set Up Areas',
+        action: this.i18n.instant('DASHBOARD.TIP_NO_AREAS_ACTION'),
         icon: 'map',
-        message: 'Configure your areas to receive area-based notifications',
+        message: this.i18n.instant('DASHBOARD.TIP_NO_AREAS'),
         route: '/areas',
         type: 'info',
       });
@@ -180,9 +240,9 @@ export class DashboardComponent implements OnInit {
     if (c && Object.values(c).every(v => v === 0)) {
       tips.push({
         id: 'no-alarms',
-        action: 'Add Pokemon Alarm',
+        action: this.i18n.instant('DASHBOARD.TIP_NO_ALARMS_ACTION'),
         icon: 'add_alert',
-        message: 'You have no active alarms yet. Start by adding Pokemon or Raid alerts!',
+        message: this.i18n.instant('DASHBOARD.TIP_NO_ALARMS'),
         route: '/pokemon',
         type: 'info',
       });
@@ -224,11 +284,11 @@ export class DashboardComponent implements OnInit {
     const w = this.weather();
     if (!w?.updatedAt) return '';
     const diff = Math.floor((Date.now() - new Date(w.updatedAt).getTime()) / 60000);
-    if (diff < 1) return 'Just now';
-    if (diff === 1) return '1 min ago';
-    if (diff < 60) return `${diff} min ago`;
-    if (diff < 120) return '1 hr ago';
-    return `${Math.floor(diff / 60)} hrs ago`;
+    if (diff < 1) return this.i18n.instant('DASHBOARD.WEATHER_JUST_NOW');
+    if (diff === 1) return this.i18n.instant('DASHBOARD.WEATHER_1_MIN_AGO');
+    if (diff < 60) return this.i18n.instant('DASHBOARD.WEATHER_MIN_AGO', { count: diff });
+    if (diff < 120) return this.i18n.instant('DASHBOARD.WEATHER_1_HR_AGO');
+    return this.i18n.instant('DASHBOARD.WEATHER_HRS_AGO', { count: Math.floor(diff / 60) });
   });
 
   dismissTip(tip: Tip): void {
@@ -312,12 +372,15 @@ export class DashboardComponent implements OnInit {
       .switchProfile(profile.profileNo)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => this.snackBar.open('Failed to switch profile', 'OK', { duration: 3000 }),
+        error: () =>
+          this.snackBar.open(this.i18n.instant('DASHBOARD.SWITCH_PROFILE_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
         next: res => {
           if (res.token) {
             this.authService.setToken(res.token);
           }
-          this.snackBar.open(`Switched to "${profile.name}"`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('DASHBOARD.SWITCH_PROFILE_SUCCESS', { name: profile.name }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.authService.loadCurrentUser();
           // Reload all dashboard data for the new profile
           this.loadDashboardData();

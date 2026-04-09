@@ -1,0 +1,478 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+{{ super() }}
+
+<style>
+  /* Hide default content area on home */
+  .md-main__inner { margin: 0; }
+  .md-content { display: none; }
+  .md-sidebar { display: none; }
+
+  /* ─── Hero ─────────────────────────────────────── */
+  .hero {
+    position: relative;
+    padding: 6rem 2rem 4rem;
+    text-align: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0d47a1 0%, #1a237e 50%, #0d47a1 100%);
+    color: #fff;
+  }
+
+  [data-md-color-scheme="default"] .hero {
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 50%, #1565c0 100%);
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    right: -80px;
+    width: 400px;
+    height: 400px;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%23fff'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%23fff'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: -60px;
+    left: -60px;
+    width: 300px;
+    height: 300px;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='95' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M5 100 H80' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M120 100 H195' stroke='%23fff' stroke-width='5'/%3E%3Cpath d='M5 100 A95 95 0 0 1 195 100' fill='%23fff'/%3E%3Ccircle cx='100' cy='100' r='30' fill='none' stroke='%23fff' stroke-width='5'/%3E%3Ccircle cx='100' cy='100' r='15' fill='%23fff'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+    transform: rotate(30deg);
+  }
+
+  .hero__title {
+    font-size: 3.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem;
+    position: relative;
+  }
+
+  .hero__tagline {
+    font-size: 1.25rem;
+    opacity: 0.85;
+    margin: 0 0 2rem;
+    font-weight: 300;
+    position: relative;
+  }
+
+  .hero__badges {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+
+  .hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .hero__actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .hero__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .hero__btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .hero__btn--primary {
+    background: #fff;
+    color: #0d47a1;
+  }
+
+  .hero__btn--secondary {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  /* ─── Features grid ────────────────────────────── */
+  .features {
+    padding: 4rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .features__title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+
+  .features__subtitle {
+    text-align: center;
+    opacity: 0.7;
+    margin: 0 0 3rem;
+    font-size: 1.1rem;
+  }
+
+  .features__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--md-default-fg-color--lightest);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .feature-card:hover {
+    border-color: var(--md-primary-fg-color);
+    transform: translateY(-2px);
+  }
+
+  .feature-card__icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .feature-card__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+  }
+
+  .feature-card__desc {
+    font-size: 0.9rem;
+    opacity: 0.75;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* ─── Screenshot showcase ──────────────────────── */
+  .showcase {
+    padding: 4rem 2rem;
+    background: var(--md-default-fg-color--lightest);
+  }
+
+  [data-md-color-scheme="slate"] .showcase {
+    background: rgba(255,255,255,0.03);
+  }
+
+  .showcase__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .showcase__title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+
+  .showcase__subtitle {
+    opacity: 0.7;
+    margin: 0 0 2rem;
+  }
+
+  .showcase__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.5rem;
+    text-align: left;
+  }
+
+  .showcase__img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--md-default-fg-color--lightest);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  }
+
+  .showcase__caption {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+
+  /* ─── Quick start ──────────────────────────────── */
+  .quickstart {
+    padding: 4rem 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .quickstart__title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 2rem;
+  }
+
+  .quickstart__steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .quickstart__step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .quickstart__num {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--md-primary-fg-color);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .quickstart__text h4 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+  }
+
+  .quickstart__text p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.75;
+  }
+
+  .quickstart__text code {
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--md-code-bg-color);
+  }
+
+  /* ─── Languages banner ─────────────────────────── */
+  .languages {
+    padding: 3rem 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(13,71,161,0.05), rgba(0,188,212,0.05));
+  }
+
+  [data-md-color-scheme="slate"] .languages {
+    background: linear-gradient(135deg, rgba(13,71,161,0.1), rgba(0,188,212,0.06));
+  }
+
+  .languages__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+  }
+
+  .languages__flags {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 2rem;
+  }
+
+  .languages__flag {
+    transition: transform 0.15s ease;
+    cursor: default;
+  }
+
+  .languages__flag:hover {
+    transform: scale(1.3);
+  }
+
+  /* ─── Responsive ───────────────────────────────── */
+  @media (max-width: 600px) {
+    .hero { padding: 4rem 1.5rem 3rem; }
+    .hero__title { font-size: 2.2rem; }
+    .hero__tagline { font-size: 1rem; }
+    .features__grid { grid-template-columns: 1fr; }
+    .showcase__grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- Hero -->
+<section class="hero">
+  <h1 class="hero__title">PoracleWeb</h1>
+  <p class="hero__tagline">Pokemon GO DM Alert Configuration</p>
+  <div class="hero__badges">
+    <span class="hero__badge">Angular 21</span>
+    <span class="hero__badge">.NET 10</span>
+    <span class="hero__badge">Material Design 3</span>
+    <span class="hero__badge">MySQL</span>
+    <span class="hero__badge">11 Languages</span>
+  </div>
+  <div class="hero__actions">
+    <a href="getting-started/quick-start/" class="hero__btn hero__btn--primary">
+      Get Started
+    </a>
+    <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" class="hero__btn hero__btn--secondary">
+      GitHub
+    </a>
+  </div>
+</section>
+
+<!-- Languages -->
+<section class="languages">
+  <h2 class="languages__title">Available in 11 languages</h2>
+  <div class="languages__flags">
+    <span class="languages__flag" title="English">🇬🇧</span>
+    <span class="languages__flag" title="Français">🇫🇷</span>
+    <span class="languages__flag" title="Deutsch">🇩🇪</span>
+    <span class="languages__flag" title="Español">🇪🇸</span>
+    <span class="languages__flag" title="Nederlands">🇳🇱</span>
+    <span class="languages__flag" title="Italiano">🇮🇹</span>
+    <span class="languages__flag" title="Português">🇵🇹</span>
+    <span class="languages__flag" title="Português (BR)">🇧🇷</span>
+    <span class="languages__flag" title="Polski">🇵🇱</span>
+    <span class="languages__flag" title="Dansk">🇩🇰</span>
+    <span class="languages__flag" title="Svenska">🇸🇪</span>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <h2 class="features__title">Features</h2>
+  <p class="features__subtitle">Everything you need to manage Poracle notifications</p>
+  <div class="features__grid">
+    <div class="feature-card">
+      <div class="feature-card__icon">⚡</div>
+      <h3 class="feature-card__title">Real-Time Alerts</h3>
+      <p class="feature-card__desc">Configure filters for Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, and Max Battles with granular IV/CP/PVP controls.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__icon">🌍</div>
+      <h3 class="feature-card__title">Multi-Language</h3>
+      <p class="feature-card__desc">Full UI translation in 11 languages. Browser auto-detection with instant runtime switching. Admin-controlled language availability.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__icon">🔐</div>
+      <h3 class="feature-card__title">Discord & Telegram Auth</h3>
+      <p class="feature-card__desc">Authenticate via Discord OAuth2 or Telegram Bot Login. Role-based access control with admin management.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__icon">📍</div>
+      <h3 class="feature-card__title">Custom Geofences</h3>
+      <p class="feature-card__desc">Draw polygon geofences on an interactive map. Submit for admin review to promote as public areas. Full GeoJSON import/export.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__icon">👤</div>
+      <h3 class="feature-card__title">Profile Management</h3>
+      <p class="feature-card__desc">Multiple alarm profiles per user with scheduled auto-switching. Duplicate, export, and import profiles with all alarms.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card__icon">⚙️</div>
+      <h3 class="feature-card__title">Admin Dashboard</h3>
+      <p class="feature-card__desc">User management, webhook configuration, site settings, geofence review, and multi-server Poracle instance management with SSH restart.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Screenshots -->
+<section class="showcase">
+  <div class="showcase__inner">
+    <h2 class="showcase__title">See It In Action</h2>
+    <p class="showcase__subtitle">Dark mode, Material Design 3, fully responsive</p>
+    <div class="showcase__grid">
+      <div>
+        <img src="screenshots/dashboard.png" alt="Dashboard" class="showcase__img" loading="lazy">
+        <p class="showcase__caption">Dashboard with alarm overview and weather</p>
+      </div>
+      <div>
+        <img src="screenshots/pokemon.png" alt="Pokemon Alarms" class="showcase__img" loading="lazy">
+        <p class="showcase__caption">Pokemon alarm cards with filter pills</p>
+      </div>
+      <div>
+        <img src="screenshots/areas.png" alt="Area Selection" class="showcase__img" loading="lazy">
+        <p class="showcase__caption">Interactive area selection with Leaflet maps</p>
+      </div>
+      <div>
+        <img src="screenshots/profiles.png" alt="Profiles" class="showcase__img" loading="lazy">
+        <p class="showcase__caption">Profile overview with cross-profile alarm view</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Start -->
+<section class="quickstart">
+  <h2 class="quickstart__title">Quick Start</h2>
+  <div class="quickstart__steps">
+    <div class="quickstart__step">
+      <div class="quickstart__num">1</div>
+      <div class="quickstart__text">
+        <h4>Clone & configure</h4>
+        <p><code>git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git</code><br>
+        Copy <code>.env.example</code> to <code>.env</code> and fill in your values</p>
+      </div>
+    </div>
+    <div class="quickstart__step">
+      <div class="quickstart__num">2</div>
+      <div class="quickstart__text">
+        <h4>Create the database</h4>
+        <p><code>CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;</code></p>
+      </div>
+    </div>
+    <div class="quickstart__step">
+      <div class="quickstart__num">3</div>
+      <div class="quickstart__text">
+        <h4>Build & run with Docker</h4>
+        <p><code>docker build -t poracleweb.net:latest .</code><br>
+        <code>docker compose up -d</code></p>
+      </div>
+    </div>
+    <div class="quickstart__step">
+      <div class="quickstart__num">4</div>
+      <div class="quickstart__text">
+        <h4>Open in browser</h4>
+        <p>Navigate to <code>http://localhost:8082</code> and sign in with Discord</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+{% block content %}{% endblock %}
+{% block footer %}{{ super() }}{% endblock %}

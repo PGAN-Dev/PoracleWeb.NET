@@ -9,12 +9,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { FortChangeAddDialogComponent } from './fort-change-add-dialog.component';
 import { FortChangeEditDialogComponent } from './fort-change-edit-dialog.component';
 import { FortChange } from '../../core/models';
 import { FortChangeService } from '../../core/services/fort-change.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 
@@ -30,6 +32,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
   ],
   selector: 'app-fort-change-list',
   standalone: true,
@@ -40,6 +43,7 @@ export class FortChangeListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly fortChangeService = inject(FortChangeService);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly fortChanges = signal<FortChange[]>([]);
   readonly loading = signal(true);
@@ -49,9 +53,9 @@ export class FortChangeListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.selectedIds().size }),
+        title: this.i18n.instant('FORT_CHANGES.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -62,7 +66,7 @@ export class FortChangeListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadItems();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Deleted ${ids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
     }
   }
 
@@ -75,7 +79,7 @@ export class FortChangeListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadItems();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Updated distance for ${uids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
     }
   }
 
@@ -83,9 +87,9 @@ export class FortChangeListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete All',
+          confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
           message: 'Delete ALL fort change alarms? This cannot be undone.',
-          title: 'Delete All Fort Change Alarms',
+          title: this.i18n.instant('FORT_CHANGES.PAGE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -93,9 +97,9 @@ export class FortChangeListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.fortChangeService.deleteAll().subscribe({
-            error: () => this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 }),
+            error: () => this.snackBar.open('Failed to delete alarms', this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('All fort change alarms deleted', 'OK', { duration: 3000 });
+              this.snackBar.open('All fort change alarms deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadItems();
             },
           });
@@ -106,9 +110,9 @@ export class FortChangeListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete',
+          confirmText: this.i18n.instant('COMMON.DELETE'),
           message: `Delete the ${this.formatFortType(item.fortType)} fort change alarm?`,
-          title: 'Delete Fort Change Alarm',
+          title: this.i18n.instant('FORT_CHANGES.PAGE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -116,9 +120,9 @@ export class FortChangeListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.fortChangeService.delete(item.uid).subscribe({
-            error: () => this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 }),
+            error: () => this.snackBar.open('Failed to delete alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('Fort change alarm deleted', 'OK', { duration: 3000 });
+              this.snackBar.open('Fort change alarm deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadItems();
             },
           });
@@ -223,9 +227,9 @@ export class FortChangeListComponent implements OnInit {
     ref.afterClosed().subscribe(distance => {
       if (distance !== null && distance !== undefined) {
         this.fortChangeService.updateAllDistance(distance).subscribe({
-          error: () => this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 }),
+          error: () => this.snackBar.open('Failed to update distances', this.i18n.instant('COMMON.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open('All distances updated', this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadItems();
           },
         });

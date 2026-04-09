@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Edit {{ pokemonName }} Alarm</h2>
+<h2 mat-dialog-title>{{ 'POKEMON.EDIT_DIALOG_TITLE' | translate: { name: pokemonName } }}</h2>
 <mat-dialog-content>
   <div class="pokemon-header">
     @if (data.pokemonId === 0) {
@@ -21,94 +21,94 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>tune</mat-icon>
-        <span class="tab-label">Filters</span>
+        <span class="tab-label">{{ 'POKEMON.TAB_FILTERS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>IV / CP / Level</h4>
+        <h4>{{ 'POKEMON.FILTER_IV_CP_LEVEL' | translate }}</h4>
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Min IV</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MIN_IV' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.minIv" min="0" max="100" />
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Max IV</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MAX_IV' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.maxIv" min="0" max="100" />
           </mat-form-field>
         </div>
 
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Min CP</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MIN_CP' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.minCp" min="0" />
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Max CP</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MAX_CP' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.maxCp" min="0" />
           </mat-form-field>
         </div>
 
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Min Level</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MIN_LEVEL' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.minLevel" min="0" max="55" />
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Max Level</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MAX_LEVEL' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.maxLevel" min="0" max="55" />
           </mat-form-field>
         </div>
 
-        <h4>Stats</h4>
+        <h4>{{ 'POKEMON.FILTER_STATS_SECTION' | translate }}</h4>
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Min ATK</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MIN_ATK' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.atk" min="0" max="15" />
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Max ATK</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MAX_ATK' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.maxAtk" min="0" max="15" />
           </mat-form-field>
         </div>
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Min DEF</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MIN_DEF' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.def" min="0" max="15" />
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Max DEF</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MAX_DEF' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.maxDef" min="0" max="15" />
           </mat-form-field>
         </div>
         <div class="form-row">
           <mat-form-field appearance="outline">
-            <mat-label>Min STA</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MIN_STA' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.sta" min="0" max="15" />
           </mat-form-field>
           <mat-form-field appearance="outline">
-            <mat-label>Max STA</mat-label>
+            <mat-label>{{ 'POKEMON.LABEL_MAX_STA' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.maxSta" min="0" max="15" />
           </mat-form-field>
         </div>
 
         @if (availableForms().length > 0) {
-          <h4>Form & Gender</h4>
+          <h4>{{ 'POKEMON.FILTER_FORM_GENDER' | translate }}</h4>
           <div class="form-row">
             <mat-form-field appearance="outline">
-              <mat-label>Form</mat-label>
+              <mat-label>{{ 'POKEMON.LABEL_FORM' | translate }}</mat-label>
               <mat-select [formControl]="form.controls.form">
-                <mat-option [value]="0">All Forms</mat-option>
+                <mat-option [value]="0">{{ 'POKEMON.ALL_FORMS' | translate }}</mat-option>
                 @for (f of availableForms(); track f.id) {
                   <mat-option [value]="f.id">{{ f.name }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Gender</mat-label>
+              <mat-label>{{ 'POKEMON.LABEL_GENDER' | translate }}</mat-label>
               <mat-select [formControl]="form.controls.gender">
-                <mat-option [value]="0">All</mat-option>
-                <mat-option [value]="1">♂ Male</mat-option>
-                <mat-option [value]="2">♀ Female</mat-option>
-                <mat-option [value]="3">Genderless</mat-option>
+                <mat-option [value]="0">{{ 'POKEMON.GENDER_ALL' | translate }}</mat-option>
+                <mat-option [value]="1">&male; {{ 'POKEMON.GENDER_MALE' | translate }}</mat-option>
+                <mat-option [value]="2">&female; {{ 'POKEMON.GENDER_FEMALE' | translate }}</mat-option>
+                <mat-option [value]="3">{{ 'POKEMON.GENDER_GENDERLESS' | translate }}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
@@ -116,58 +116,58 @@
 
         <mat-expansion-panel>
           <mat-expansion-panel-header>
-            <mat-panel-title> <mat-icon>more_horiz</mat-icon> More Filters </mat-panel-title>
+            <mat-panel-title> <mat-icon>more_horiz</mat-icon> {{ 'POKEMON.MORE_FILTERS' | translate }} </mat-panel-title>
           </mat-expansion-panel-header>
-          <h4>Size</h4>
+          <h4>{{ 'POKEMON.FILTER_SIZE' | translate }}</h4>
           <div class="form-row">
             <mat-form-field appearance="outline">
-              <mat-label>Min Size</mat-label>
+              <mat-label>{{ 'POKEMON.LABEL_MIN_SIZE' | translate }}</mat-label>
               <mat-select [formControl]="form.controls.size">
-                <mat-option [value]="-1">Any</mat-option>
-                <mat-option [value]="1">Tiny (XXS)</mat-option>
-                <mat-option [value]="2">Small (XS)</mat-option>
-                <mat-option [value]="3">Normal</mat-option>
-                <mat-option [value]="4">Large (XL)</mat-option>
-                <mat-option [value]="5">Big (XXL)</mat-option>
+                <mat-option [value]="-1">{{ 'POKEMON.SIZE_ANY' | translate }}</mat-option>
+                <mat-option [value]="1">{{ 'POKEMON.SIZE_TINY' | translate }}</mat-option>
+                <mat-option [value]="2">{{ 'POKEMON.SIZE_SMALL' | translate }}</mat-option>
+                <mat-option [value]="3">{{ 'POKEMON.SIZE_NORMAL' | translate }}</mat-option>
+                <mat-option [value]="4">{{ 'POKEMON.SIZE_LARGE' | translate }}</mat-option>
+                <mat-option [value]="5">{{ 'POKEMON.SIZE_BIG' | translate }}</mat-option>
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Max Size</mat-label>
+              <mat-label>{{ 'POKEMON.LABEL_MAX_SIZE' | translate }}</mat-label>
               <mat-select [formControl]="form.controls.maxSize">
-                <mat-option [value]="5">Any</mat-option>
-                <mat-option [value]="1">Tiny (XXS)</mat-option>
-                <mat-option [value]="2">Small (XS)</mat-option>
-                <mat-option [value]="3">Normal</mat-option>
-                <mat-option [value]="4">Large (XL)</mat-option>
-                <mat-option [value]="5">Big (XXL)</mat-option>
+                <mat-option [value]="5">{{ 'POKEMON.SIZE_ANY' | translate }}</mat-option>
+                <mat-option [value]="1">{{ 'POKEMON.SIZE_TINY' | translate }}</mat-option>
+                <mat-option [value]="2">{{ 'POKEMON.SIZE_SMALL' | translate }}</mat-option>
+                <mat-option [value]="3">{{ 'POKEMON.SIZE_NORMAL' | translate }}</mat-option>
+                <mat-option [value]="4">{{ 'POKEMON.SIZE_LARGE' | translate }}</mat-option>
+                <mat-option [value]="5">{{ 'POKEMON.SIZE_BIG' | translate }}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
           <div class="form-row">
             <mat-form-field appearance="outline">
-              <mat-label>Min Weight</mat-label>
+              <mat-label>{{ 'POKEMON.LABEL_MIN_WEIGHT' | translate }}</mat-label>
               <input matInput type="number" [formControl]="form.controls.minWeight" />
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Max Weight</mat-label>
+              <mat-label>{{ 'POKEMON.LABEL_MAX_WEIGHT' | translate }}</mat-label>
               <input matInput type="number" [formControl]="form.controls.maxWeight" />
             </mat-form-field>
           </div>
           @if (availableForms().length === 0) {
             <div class="form-row">
               <mat-form-field appearance="outline">
-                <mat-label>Gender</mat-label>
+                <mat-label>{{ 'POKEMON.LABEL_GENDER' | translate }}</mat-label>
                 <mat-select [formControl]="form.controls.gender">
-                  <mat-option [value]="0">All</mat-option>
-                  <mat-option [value]="1">♂ Male</mat-option>
-                  <mat-option [value]="2">♀ Female</mat-option>
-                  <mat-option [value]="3">Genderless</mat-option>
+                  <mat-option [value]="0">{{ 'POKEMON.GENDER_ALL' | translate }}</mat-option>
+                  <mat-option [value]="1">&male; {{ 'POKEMON.GENDER_MALE' | translate }}</mat-option>
+                  <mat-option [value]="2">&female; {{ 'POKEMON.GENDER_FEMALE' | translate }}</mat-option>
+                  <mat-option [value]="3">{{ 'POKEMON.GENDER_GENDERLESS' | translate }}</mat-option>
                 </mat-select>
               </mat-form-field>
               <mat-form-field appearance="outline">
-                <mat-label>Form ID</mat-label>
+                <mat-label>{{ 'POKEMON.LABEL_FORM_ID' | translate }}</mat-label>
                 <input matInput type="number" [formControl]="form.controls.form" />
-                <mat-hint>0 = all forms</mat-hint>
+                <mat-hint>{{ 'POKEMON.FORM_ID_HINT' | translate }}</mat-hint>
               </mat-form-field>
             </div>
           }
@@ -179,32 +179,32 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>emoji_events</mat-icon>
-        <span class="tab-label">PVP</span>
+        <span class="tab-label">{{ 'POKEMON.TAB_PVP' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>PVP League</mat-label>
+          <mat-label>{{ 'POKEMON.PVP_LEAGUE' | translate }}</mat-label>
           <mat-select [formControl]="form.controls.pvpRankingLeague">
-            <mat-option [value]="0">None</mat-option>
-            <mat-option [value]="500">Little Cup (500)</mat-option>
-            <mat-option [value]="1500">Great League (1500)</mat-option>
-            <mat-option [value]="2500">Ultra League (2500)</mat-option>
+            <mat-option [value]="0">{{ 'POKEMON.PVP_NONE_EDIT' | translate }}</mat-option>
+            <mat-option [value]="500">{{ 'POKEMON.PVP_LITTLE_CUP_SHORT' | translate }}</mat-option>
+            <mat-option [value]="1500">{{ 'POKEMON.PVP_GREAT_LEAGUE_SHORT' | translate }}</mat-option>
+            <mat-option [value]="2500">{{ 'POKEMON.PVP_ULTRA_LEAGUE_SHORT' | translate }}</mat-option>
           </mat-select>
         </mat-form-field>
 
         @if (form.controls.pvpRankingLeague.value !== 0) {
           <div class="form-row">
             <mat-form-field appearance="outline">
-              <mat-label>Best Rank</mat-label>
+              <mat-label>{{ 'POKEMON.PVP_BEST_RANK' | translate }}</mat-label>
               <input matInput type="number" [formControl]="form.controls.pvpRankingBest" min="1" max="4096" />
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Worst Rank</mat-label>
+              <mat-label>{{ 'POKEMON.PVP_WORST_RANK' | translate }}</mat-label>
               <input matInput type="number" [formControl]="form.controls.pvpRankingWorst" min="1" max="4096" />
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Min CP for League</mat-label>
+            <mat-label>{{ 'POKEMON.PVP_MIN_CP' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.pvpRankingMinCp" min="0" />
           </mat-form-field>
         }
@@ -215,17 +215,17 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">Delivery</span>
+        <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>Location Mode</h4>
+        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
         <mat-radio-group [formControl]="form.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
           <mat-radio-button value="areas">
             <div class="radio-label">
               <mat-icon>map</mat-icon>
               <div>
-                <strong>Use Areas</strong>
-                <p class="radio-hint">Notifications will use your configured area geofences</p>
+                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
               </div>
             </div>
           </mat-radio-button>
@@ -233,8 +233,8 @@
             <div class="radio-label">
               <mat-icon>straighten</mat-icon>
               <div>
-                <strong>Set Distance</strong>
-                <p class="radio-hint">Notify within a radius from your location</p>
+                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
               </div>
             </div>
           </mat-radio-button>
@@ -242,9 +242,9 @@
 
         @if (form.controls.distanceMode.value === 'distance') {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Distance</mat-label>
+            <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
             <input matInput type="number" [formControl]="form.controls.distanceKm" min="0" step="0.1" />
-            <span matSuffix>km</span>
+            <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
           </mat-form-field>
         }
 
@@ -253,10 +253,10 @@
           [distanceKm]="form.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
 
-        <h4>Notifications</h4>
+        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Ping / Role</mat-label>
+            <mat-label>{{ 'ALARM.PING_ROLE' | translate }}</mat-label>
             <input matInput [formControl]="form.controls.ping" />
           </mat-form-field>
         }
@@ -267,16 +267,16 @@
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>
 
-        <mat-slide-toggle [formControl]="form.controls.clean"> Clean mode </mat-slide-toggle>
-        <p class="clean-hint">Automatically deletes the notification from Discord after the Pokemon despawns</p>
+        <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_POKEMON' | translate }}</p>
       </div>
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(false)">Cancel</button>
+  <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="saving()">
-    {{ saving() ? 'Saving...' : 'Save' }}
+    {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

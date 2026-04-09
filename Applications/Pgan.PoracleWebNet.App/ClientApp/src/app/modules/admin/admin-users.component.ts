@@ -14,10 +14,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DiscordAvatarComponent } from '../../shared/components/discord-avatar/discord-avatar.component';
 
@@ -40,6 +42,7 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatPaginatorModule,
     MatSortModule,
     MatSelectModule,
+    TranslateModule,
     DiscordAvatarComponent,
   ],
   selector: 'app-admin-users',
@@ -53,8 +56,9 @@ export class AdminUsersComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
-
   private readonly discordUsers = computed(() => this.allUsers().filter(u => u.type?.startsWith('discord')));
+
+  private readonly i18n = inject(I18nService);
 
   private readonly snackBar = inject(MatSnackBar);
 
@@ -107,11 +111,12 @@ export class AdminUsersComponent implements OnInit {
   readonly usersLoading = signal(true);
 
   deleteAlarms(user: AdminUser): void {
+    const name = user.name || user.id;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete All',
-        message: `Are you sure you want to delete ALL alarms for "${user.name || user.id}"? This action cannot be undone.`,
-        title: 'Delete All Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_ALARMS', { name }),
+        title: this.i18n.instant('ADMIN.DELETE_ALL_ALARMS'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -120,10 +125,14 @@ export class AdminUsersComponent implements OnInit {
       if (confirmed) {
         this.adminService.deleteUserAlarms(user.id).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_ALARMS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: result => {
-            this.snackBar.open(`Deleted ${result.deleted} alarm(s) for "${user.name || user.id}"`, 'OK', { duration: 3000 });
+            this.snackBar.open(
+              this.i18n.instant('ADMIN.SNACK_ALARMS_DELETED', { name, count: result.deleted }),
+              this.i18n.instant('TOAST.OK'),
+              { duration: 3000 },
+            );
           },
         });
       }
@@ -131,11 +140,12 @@ export class AdminUsersComponent implements OnInit {
   }
 
   deleteUser(user: AdminUser): void {
+    const name = user.name || user.id;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete User',
-        message: `Are you sure you want to permanently delete "${user.name || user.id}"? This will remove their account but NOT their alarms. Use "Delete all alarms" first if needed.`,
-        title: 'Delete User',
+        confirmText: this.i18n.instant('ADMIN.DELETE_USER'),
+        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_USER', { name }),
+        title: this.i18n.instant('ADMIN.DELETE_USER'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -144,11 +154,11 @@ export class AdminUsersComponent implements OnInit {
       if (confirmed) {
         this.adminService.deleteUser(user.id).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete user', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
             this.allUsers.update(users => users.filter(u => u.id !== user.id));
-            this.snackBar.open(`"${user.name || user.id}" deleted`, 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_DELETED', { name }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
       }
@@ -177,7 +187,7 @@ export class AdminUsersComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to impersonate user', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_IMPERSONATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: res => {
           this.auth.impersonate(res.token);
@@ -193,7 +203,7 @@ export class AdminUsersComponent implements OnInit {
       .subscribe({
         error: () => {
           this.usersLoading.set(false);
-          this.snackBar.open('Failed to load users', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_USERS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: users => {
           this.allUsers.set(users);
@@ -235,11 +245,13 @@ export class AdminUsersComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to stop alerts', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_STOP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(`Alerts stopped for "${user.name || user.id}"`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
       });
   }
@@ -250,11 +262,13 @@ export class AdminUsersComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to resume alerts', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_START'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(`Alerts resumed for "${user.name || user.id}"`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
       });
   }
@@ -264,13 +278,16 @@ export class AdminUsersComponent implements OnInit {
 
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: () => {
-        this.snackBar.open(`Failed to ${enable ? 'unblock' : 'block'}`, 'OK', {
-          duration: 3000,
-        });
+        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_BLOCK'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       },
       next: updated => {
         this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
-        this.snackBar.open(`"${user.name || user.id}" ${enable ? 'unblocked' : 'blocked'}`, 'OK', { duration: 3000 });
+        const name = user.name || user.id;
+        this.snackBar.open(
+          this.i18n.instant(enable ? 'ADMIN.SNACK_UNBLOCKED' : 'ADMIN.SNACK_BLOCKED', { name }),
+          this.i18n.instant('TOAST.OK'),
+          { duration: 3000 },
+        );
       },
     });
   }

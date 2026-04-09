@@ -7,8 +7,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Profile } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { ProfileService } from '../../core/services/profile.service';
 
 @Component({
@@ -21,6 +23,7 @@ import { ProfileService } from '../../core/services/profile.service';
     MatInputModule,
     MatProgressBarModule,
     MatSnackBarModule,
+    TranslateModule,
   ],
   selector: 'app-profile-duplicate-dialog',
   standalone: true,
@@ -28,6 +31,7 @@ import { ProfileService } from '../../core/services/profile.service';
   templateUrl: './profile-duplicate-dialog.component.html',
 })
 export class ProfileDuplicateDialogComponent {
+  private readonly i18n = inject(I18nService);
   private readonly profileService = inject(ProfileService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Profile>(MAT_DIALOG_DATA);
@@ -44,11 +48,13 @@ export class ProfileDuplicateDialogComponent {
     this.profileService.duplicate(this.data.profileNo, name).subscribe({
       error: () => {
         this.duplicating.set(false);
-        this.snackBar.open('Failed to duplicate profile', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DUPLICATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       },
       next: profile => {
         this.duplicating.set(false);
-        this.snackBar.open(`Profile "${profile.name}" created with all alarms`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DUPLICATED', { count: 'all' }), this.i18n.instant('TOAST.OK'), {
+          duration: 3000,
+        });
         this.dialogRef.close(profile);
       },
     });

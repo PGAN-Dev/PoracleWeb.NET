@@ -12,10 +12,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { MonsterCreate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -40,6 +42,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    TranslateModule,
   ],
   selector: 'app-pokemon-add-dialog',
   standalone: true,
@@ -48,6 +51,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class PokemonAddDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
   private readonly snackBar = inject(MatSnackBar);
@@ -160,11 +164,13 @@ export class PokemonAddDialogComponent {
 
     forkJoin(creates).subscribe({
       error: () => {
-        this.snackBar.open('Failed to create alarm(s)', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_CREATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`${creates.length} Pokemon alarm(s) created`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_CREATED', { count: creates.length }), this.i18n.instant('COMMON.OK'), {
+          duration: 3000,
+        });
         this.dialogRef.close(true);
       },
     });

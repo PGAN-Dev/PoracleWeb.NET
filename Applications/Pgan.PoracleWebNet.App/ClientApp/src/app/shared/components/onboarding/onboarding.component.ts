@@ -5,6 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
 import { RouterLink } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
 
 import { AreaService } from '../../../core/services/area.service';
@@ -14,7 +15,7 @@ import { SettingsService } from '../../../core/services/settings.service';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 @Component({
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatStepperModule, RouterLink],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatStepperModule, RouterLink, TranslateModule],
   selector: 'app-onboarding',
   standalone: true,
   styles: [
@@ -158,10 +159,10 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
   ],
   template: `
     <div class="onboarding-overlay">
-      <div class="onboarding-card" role="dialog" aria-label="Welcome onboarding">
+      <div class="onboarding-card" role="dialog" [attr.aria-label]="'ONBOARDING.ARIA_LABEL' | translate">
         <div class="onboarding-header">
-          <h2>{{ allComplete() ? "You're All Set!" : 'Welcome to ' + siteTitle() + '!' }}</h2>
-          <p>{{ allComplete() ? "Everything is configured — you're ready to go" : "Let's get you set up in a few quick steps" }}</p>
+          <h2>{{ (allComplete() ? 'ONBOARDING.TITLE_COMPLETE' : 'ONBOARDING.TITLE_WELCOME') | translate: { title: siteTitle() } }}</h2>
+          <p>{{ (allComplete() ? 'ONBOARDING.SUBTITLE_COMPLETE' : 'ONBOARDING.SUBTITLE_WELCOME') | translate }}</p>
         </div>
 
         <div class="steps">
@@ -175,28 +176,31 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
                 }
               </div>
               <div class="step-content">
-                <h3>{{ step.title }}</h3>
-                <p>{{ stepComplete(i) ? step.doneDescription : step.description }}</p>
+                <h3>{{ step.titleKey | translate }}</h3>
+                <p>{{ (stepComplete(i) ? step.doneKey : step.descKey) | translate }}</p>
                 @if (currentStep() === i) {
                   <div class="step-action">
                     @if (step.id === 'location') {
                       <button mat-flat-button color="primary" (click)="openLocationDialog()">
                         <mat-icon>my_location</mat-icon>
-                        {{ locationSet() ? 'Update Location' : 'Set Location' }}
+                        {{ (locationSet() ? 'ONBOARDING.STEP_LOCATION_UPDATE' : 'ONBOARDING.STEP_LOCATION_SET') | translate }}
                       </button>
                     } @else if (step.id === 'areas') {
                       <a mat-flat-button color="primary" [routerLink]="step.route" (click)="navigateAway()">
                         <mat-icon>map</mat-icon>
-                        {{ areasSet() ? 'Edit Areas' : 'Choose Areas' }}
+                        {{ (areasSet() ? 'ONBOARDING.STEP_AREAS_EDIT' : 'ONBOARDING.STEP_AREAS_CHOOSE') | translate }}
                       </a>
                     } @else if (step.id === 'alarm') {
                       <a mat-flat-button color="primary" [routerLink]="step.route" (click)="navigateAway()">
                         <mat-icon>add_alert</mat-icon>
-                        {{ alarmsExist() ? 'Manage Alarms' : 'Add Alarm' }}
+                        {{ (alarmsExist() ? 'ONBOARDING.STEP_ALARM_MANAGE' : 'ONBOARDING.STEP_ALARM_ADD') | translate }}
                       </a>
                     }
                     <button mat-button (click)="nextStep()">
-                      {{ stepComplete(i) ? 'Next' : i < steps.length - 1 ? 'Skip' : 'Get Started!' }}
+                      {{
+                        (stepComplete(i) ? 'ONBOARDING.NEXT' : i < steps.length - 1 ? 'ONBOARDING.SKIP' : 'ONBOARDING.GET_STARTED')
+                          | translate
+                      }}
                     </button>
                   </div>
                 }
@@ -207,10 +211,10 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
 
         <div class="onboarding-footer">
           <button mat-button (click)="dismiss()">
-            {{ allComplete() ? 'Close' : 'Skip Setup' }}
+            {{ (allComplete() ? 'ONBOARDING.CLOSE' : 'ONBOARDING.SKIP_SETUP') | translate }}
           </button>
           @if (allComplete()) {
-            <button mat-flat-button color="primary" (click)="dismiss()">Let's Go!</button>
+            <button mat-flat-button color="primary" (click)="dismiss()">{{ 'ONBOARDING.LETS_GO' | translate }}</button>
           } @else {
             <div class="step-dots">
               @for (step of steps; track step.id; let i = $index) {
@@ -243,28 +247,24 @@ export class OnboardingComponent implements OnInit {
   steps = [
     {
       id: 'location',
-      actionText: 'Set Location',
-      description:
-        'Your location is used to calculate distances for nearby notifications. Click below to search by address, enter coordinates, or use your device GPS.',
-      doneDescription: 'Location is configured',
+      descKey: 'ONBOARDING.STEP_LOCATION_DESC',
+      doneKey: 'ONBOARDING.STEP_LOCATION_DONE',
       route: null,
-      title: 'Set Your Location',
+      titleKey: 'ONBOARDING.STEP_LOCATION_TITLE',
     },
     {
       id: 'areas',
-      actionText: 'Choose Areas',
-      description: 'Select the geographic areas you want to receive alerts from',
-      doneDescription: 'Areas are configured',
+      descKey: 'ONBOARDING.STEP_AREAS_DESC',
+      doneKey: 'ONBOARDING.STEP_AREAS_DONE',
       route: '/areas',
-      title: 'Choose Your Areas',
+      titleKey: 'ONBOARDING.STEP_AREAS_TITLE',
     },
     {
       id: 'alarm',
-      actionText: 'Add Alarm',
-      description: 'Set up a Pokemon, Raid, or Quest alarm to start getting notified',
-      doneDescription: 'You have active alarms',
+      descKey: 'ONBOARDING.STEP_ALARM_DESC',
+      doneKey: 'ONBOARDING.STEP_ALARM_DONE',
       route: '/pokemon',
-      title: 'Add Your First Alarm',
+      titleKey: 'ONBOARDING.STEP_ALARM_TITLE',
     },
   ];
 

@@ -21,7 +21,7 @@
       </button>
     }
     <mat-autocomplete #regionAuto="matAutocomplete" (optionSelected)="onOptionSelected($event.option.value)">
-      <mat-option [value]="{ label: '' }">All Regions</mat-option>
+      <mat-option [value]="{ label: '' }">{{ 'REGION_SELECTOR.ALL_REGIONS' | translate }}</mat-option>
       @for (group of filteredGroups(); track group.label) {
         <mat-optgroup [label]="group.label">
           @for (region of group.regions; track region.label) {

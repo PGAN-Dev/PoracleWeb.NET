@@ -7,14 +7,25 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatCardModule, MatTableModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule],
+  imports: [
+    MatCardModule,
+    MatTableModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+    TranslateModule,
+  ],
   selector: 'app-my-webhooks',
   standalone: true,
   styleUrl: './my-webhooks.component.scss',
@@ -24,6 +35,7 @@ export class MyWebhooksComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly columns = ['name', 'url', 'status', 'actions'];
@@ -35,7 +47,8 @@ export class MyWebhooksComponent implements OnInit {
       .impersonateById(webhook.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => this.snackBar.open('Failed to switch to webhook context', 'OK', { duration: 3000 }),
+        error: () =>
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
         next: res => this.auth.impersonate(res.token),
       });
   }
@@ -53,7 +66,7 @@ export class MyWebhooksComponent implements OnInit {
       .subscribe({
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Failed to load webhooks', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_WEBHOOKS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: users => {
           this.webhooks.set(users.filter(u => managedIds.includes(u.id)));

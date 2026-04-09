@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { ActiveHoursEditorDialogComponent, ActiveHoursEditorData } from './active-hours-editor-dialog.component';
 import { ActiveHourEntry } from '../../../core/models/active-hours.models';
@@ -15,6 +16,7 @@ describe('ActiveHoursEditorDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
       ],

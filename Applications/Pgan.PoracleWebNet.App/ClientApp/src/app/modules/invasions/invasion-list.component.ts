@@ -9,12 +9,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
 import { EVENT_TYPE_INFO, getDisplayName as displayName, getGruntIconUrl, isEventType as checkEventType } from './invasion.constants';
 import { Invasion } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
@@ -33,6 +35,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
   ],
   selector: 'app-invasion-list',
   standalone: true,
@@ -42,6 +45,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 export class InvasionListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
@@ -54,9 +58,9 @@ export class InvasionListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('INVASIONS.CONFIRM_DELETE_SELECTED'),
+        message: this.i18n.instant('INVASIONS.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        title: this.i18n.instant('INVASIONS.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -67,7 +71,9 @@ export class InvasionListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadInvasions();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('TOAST.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -80,7 +86,7 @@ export class InvasionListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadInvasions();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+      this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
@@ -90,9 +96,9 @@ export class InvasionListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete All',
-          message: 'Delete ALL invasion alarms? This cannot be undone.',
-          title: 'Delete All Invasion Alarms',
+          confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+          message: this.i18n.instant('INVASIONS.CONFIRM_DELETE_ALL_MSG'),
+          title: this.i18n.instant('INVASIONS.CONFIRM_DELETE_ALL_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -100,9 +106,10 @@ export class InvasionListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.invasionService.deleteAll().subscribe({
-            error: () => this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('All invasion alarms deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_DELETED_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
               this.loadInvasions();
             },
           });
@@ -113,9 +120,11 @@ export class InvasionListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete',
-          message: `Delete alarm for ${invasion.gruntType || 'this grunt'}?`,
-          title: 'Delete Invasion Alarm',
+          confirmText: this.i18n.instant('COMMON.DELETE'),
+          message: this.i18n.instant('INVASIONS.CONFIRM_DELETE_MSG', {
+            name: invasion.gruntType || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT'),
+          }),
+          title: this.i18n.instant('INVASIONS.CONFIRM_DELETE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -123,9 +132,10 @@ export class InvasionListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.invasionService.delete(invasion.uid).subscribe({
-            error: () => this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('Invasion alarm deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
               this.loadInvasions();
             },
           });
@@ -231,9 +241,10 @@ export class InvasionListComponent implements OnInit {
     ref.afterClosed().subscribe(distance => {
       if (distance !== null && distance !== undefined) {
         this.invasionService.updateAllDistance(distance).subscribe({
-          error: () => this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_ALL_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadInvasions();
           },
         });

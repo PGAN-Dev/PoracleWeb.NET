@@ -4,7 +4,7 @@
     {{ distance() | distanceDisplay }}
   </span>
   @if (ping()) {
-    <span class="ping-chip" [matTooltip]="'Ping: ' + ping()">
+    <span class="ping-chip" [matTooltip]="'ALARM_INFO.PING_TOOLTIP' | translate: { ping: ping() }">
       <mat-icon class="info-icon">notifications</mat-icon>
       {{ ping() }}
     </span>

@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { DistanceDialogComponent } from './distance-dialog.component';
 import { ConfigService } from '../../../core/services/config.service';
@@ -16,6 +17,7 @@ describe('DistanceDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: ConfigService, useValue: { apiHost: 'http://test' } },
         provideHttpClient(),

@@ -1,19 +1,19 @@
-<h2 mat-dialog-title>Name Your Geofence</h2>
+<h2 mat-dialog-title>{{ 'GEOFENCES.NAME_DIALOG_TITLE' | translate }}</h2>
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Geofence Name</mat-label>
-    <input matInput [(ngModel)]="displayName" maxlength="50" placeholder="e.g. My Park Route" required />
+    <mat-label>{{ 'GEOFENCES.NAME_LABEL' | translate }}</mat-label>
+    <input matInput [(ngModel)]="displayName" maxlength="50" [placeholder]="'GEOFENCES.NAME_PLACEHOLDER' | translate" required />
     <mat-hint align="end">{{ displayName.length }} / 50</mat-hint>
     @if (displayName.length > 0 && displayName.trim().length === 0) {
-      <mat-error>Name cannot be only whitespace</mat-error>
+      <mat-error>{{ 'GEOFENCES.NAME_WHITESPACE_ERROR' | translate }}</mat-error>
     }
     @if (hasInvalidChars) {
-      <mat-error>Only letters, numbers, spaces, hyphens, apostrophes, and parentheses allowed</mat-error>
+      <mat-error>{{ 'GEOFENCES.NAME_INVALID_CHARS_ERROR' | translate }}</mat-error>
     }
   </mat-form-field>
 
   <div class="region-section">
-    <label class="region-label">Region</label>
+    <label class="region-label">{{ 'GEOFENCES.REGION_LABEL' | translate }}</label>
     @if (!manualSelect()) {
       <div class="detected-region">
         <mat-chip-set>
@@ -22,13 +22,13 @@
             {{ data.detectedRegion!.displayName }}
           </mat-chip>
         </mat-chip-set>
-        <button mat-button color="primary" (click)="onChangeRegion()">Change</button>
+        <button mat-button color="primary" (click)="onChangeRegion()">{{ 'GEOFENCES.CHANGE_REGION' | translate }}</button>
       </div>
     } @else {
       <app-region-selector
         [regions]="regionOptions"
-        label="Select Region"
-        placeholder="Search regions..."
+        [label]="'GEOFENCES.SELECT_REGION' | translate"
+        [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
         [selectedValue]="selectedRegionId"
         (regionSelected)="onRegionPicked($event)"></app-region-selector>
     }
@@ -36,6 +36,6 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(null)">Cancel</button>
-  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="save()">Save</button>
+  <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="save()">{{ 'COMMON.SAVE' | translate }}</button>
 </mat-dialog-actions>

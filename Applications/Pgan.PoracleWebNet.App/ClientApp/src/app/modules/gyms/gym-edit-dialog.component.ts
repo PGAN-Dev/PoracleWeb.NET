@@ -9,10 +9,12 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Gym, GymUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -29,6 +31,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
@@ -41,6 +44,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 export class GymEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly gymService = inject(GymService);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Gym>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
@@ -99,11 +103,11 @@ export class GymEditDialogComponent {
       } as GymUpdate)
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('GYMS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Gym alarm updated', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('GYMS.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

@@ -13,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import {
@@ -24,6 +25,7 @@ import {
   Profile,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ProfileOverviewService } from '../../core/services/profile-overview.service';
@@ -74,6 +76,7 @@ interface DuplicateInfo {
     MatProgressBarModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslateModule,
     ActiveHoursChipComponent,
     LocationWarningComponent,
   ],
@@ -86,6 +89,7 @@ export class ProfileOverviewComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly profileOverviewService = inject(ProfileOverviewService);
   private readonly profileService = inject(ProfileService);
@@ -281,18 +285,19 @@ export class ProfileOverviewComponent implements OnInit {
     if (profile.active) return;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Are you sure you want to delete profile "${profile.name}" (#${profile.profileNo})? All alarms in this profile will be lost.`,
-        title: 'Delete Profile',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('PROFILES.CONFIRM_DELETE_MSG', { name: profile.name, number: profile.profileNo }),
+        title: this.i18n.instant('PROFILES.CONFIRM_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.profileService.delete(profile.profileNo).subscribe({
-          error: () => this.snackBar.open('Failed to delete profile', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('Profile deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadAll();
           },
         });
@@ -304,14 +309,14 @@ export class ProfileOverviewComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
-        confirmText: 'Duplicate',
-        message: `Create a new profile with all of ${profile.name}'s alarms copied over.`,
+        confirmText: this.i18n.instant('PROFILES.DUPLICATE'),
+        message: this.i18n.instant('PROFILES.DUPLICATE_DESC', { name: profile.name }),
         promptField: {
           existingNames: this.managedProfiles().map(p => p.name),
-          label: 'New Profile Name',
+          label: this.i18n.instant('PROFILES.NEW_PROFILE_NAME'),
           value: `${profile.name} (Copy)`,
         },
-        title: 'Duplicate Profile',
+        title: this.i18n.instant('PROFILES.DUPLICATE_DIALOG_TITLE'),
       } as ConfirmDialogData,
     });
     ref.afterClosed().subscribe((name: string | false) => {
@@ -323,14 +328,18 @@ export class ProfileOverviewComponent implements OnInit {
           .subscribe({
             error: () => {
               this.switching.set(false);
-              this.snackBar.open('Failed to duplicate profile', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DUPLICATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             },
             next: res => {
               this.switching.set(false);
               if (res.token) {
                 this.authService.setToken(res.token);
               }
-              this.snackBar.open(`Duplicated profile with ${res.alarmsCopied} alarms`, 'OK', { duration: 3000 });
+              this.snackBar.open(
+                this.i18n.instant('PROFILES.SNACK_DUPLICATED', { count: res.alarmsCopied }),
+                this.i18n.instant('TOAST.OK'),
+                { duration: 3000 },
+              );
               this.loadAll();
             },
           });
@@ -349,10 +358,10 @@ export class ProfileOverviewComponent implements OnInit {
       if (result !== null && result !== undefined) {
         this.profileService.updateActiveHours(profile.profile_no, result).subscribe({
           error: () => {
-            this.snackBar.open('Failed to update schedule', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_SCHEDULE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Schedule updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_SCHEDULE_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadAll();
           },
         });
@@ -404,7 +413,9 @@ export class ProfileOverviewComponent implements OnInit {
     a.download = `profile-${profile.name.toLowerCase().replace(/\s+/g, '-')}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    this.snackBar.open(`Exported "${profile.name}" backup`, 'OK', { duration: 3000 });
+    this.snackBar.open(this.i18n.instant('PROFILES.SNACK_EXPORTED', { name: profile.name }), this.i18n.instant('TOAST.OK'), {
+      duration: 3000,
+    });
   }
 
   formatDistance(meters: number): string {
@@ -576,25 +587,25 @@ export class ProfileOverviewComponent implements OnInit {
       try {
         const backup = JSON.parse(reader.result as string);
         if (!backup.version || !backup.profileName || typeof backup.alarms !== 'object') {
-          this.snackBar.open('Invalid backup file format', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_INVALID_BACKUP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           return;
         }
         if (backup.version !== 1) {
-          this.snackBar.open('Unsupported backup version', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_UNSUPPORTED_VERSION'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           return;
         }
 
         const ref = this.dialog.open(ConfirmDialogComponent, {
           width: '400px',
           data: {
-            confirmText: 'Import',
-            message: 'Create a new profile with all alarms from this backup.',
+            confirmText: this.i18n.instant('PROFILES.IMPORT'),
+            message: this.i18n.instant('PROFILES.IMPORT_DESC'),
             promptField: {
               existingNames: this.managedProfiles().map(p => p.name),
-              label: 'Profile Name',
+              label: this.i18n.instant('PROFILES.PROFILE_NAME'),
               value: backup.profileName,
             },
-            title: 'Import Profile',
+            title: this.i18n.instant('PROFILES.IMPORT_DIALOG_TITLE'),
           } as ConfirmDialogData,
         });
         ref.afterClosed().subscribe((name: string | false) => {
@@ -606,19 +617,23 @@ export class ProfileOverviewComponent implements OnInit {
               .subscribe({
                 error: () => {
                   this.switching.set(false);
-                  this.snackBar.open('Failed to import profile', 'OK', { duration: 3000 });
+                  this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
                 },
                 next: res => {
                   this.switching.set(false);
                   if (res.token) this.authService.setToken(res.token);
-                  this.snackBar.open(`Imported "${name}" with ${res.alarmsCopied} alarms`, 'OK', { duration: 3000 });
+                  this.snackBar.open(
+                    this.i18n.instant('PROFILES.SNACK_IMPORTED', { count: res.alarmsCopied }),
+                    this.i18n.instant('TOAST.OK'),
+                    { duration: 3000 },
+                  );
                   this.loadAll();
                 },
               });
           }
         });
       } catch {
-        this.snackBar.open('Could not read backup file', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_INVALID_BACKUP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       }
     };
     reader.readAsText(file);
@@ -676,14 +691,16 @@ export class ProfileOverviewComponent implements OnInit {
       .subscribe({
         error: () => {
           this.switching.set(false);
-          this.snackBar.open('Failed to switch profile', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_SWITCH'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: res => {
           this.switching.set(false);
           if (res.token) {
             this.authService.setToken(res.token);
           }
-          this.snackBar.open(`Switched to profile "${profile.name}"`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_SWITCHED', { name: profile.name }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.authService.loadCurrentUser();
           this.loadAll();
         },
@@ -790,7 +807,7 @@ export class ProfileOverviewComponent implements OnInit {
       .subscribe({
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Failed to load profiles overview', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_LOAD'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: ([profiles, data]) => {
           this.managedProfiles.set(profiles);

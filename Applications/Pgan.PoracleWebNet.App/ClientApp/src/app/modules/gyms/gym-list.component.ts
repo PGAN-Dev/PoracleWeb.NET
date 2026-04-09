@@ -9,12 +9,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { GymAddDialogComponent } from './gym-add-dialog.component';
 import { GymEditDialogComponent } from './gym-edit-dialog.component';
 import { Gym } from '../../core/models';
 import { GymService } from '../../core/services/gym.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -32,6 +34,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
   ],
   selector: 'app-gym-list',
   standalone: true,
@@ -42,6 +45,7 @@ export class GymListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly gymService = inject(GymService);
+  private readonly i18n = inject(I18nService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
   readonly gymNames = signal<Record<string, string>>({});
@@ -54,9 +58,9 @@ export class GymListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
+        message: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -67,7 +71,9 @@ export class GymListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadGyms();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -80,7 +86,7 @@ export class GymListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadGyms();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
@@ -90,9 +96,9 @@ export class GymListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete All',
-          message: 'Delete ALL gym alarms? This cannot be undone.',
-          title: 'Delete All Gym Alarms',
+          confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+          message: this.i18n.instant('POKEMON.CONFIRM_DELETE_ALL_MSG'),
+          title: this.i18n.instant('GYMS.PAGE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -100,9 +106,10 @@ export class GymListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.gymService.deleteAll().subscribe({
-            error: () => this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('GYMS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('All gym alarms deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('GYMS.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadGyms();
             },
           });
@@ -113,9 +120,9 @@ export class GymListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete',
-          message: `Delete the ${this.getTeamName(gym.team)} gym alarm?`,
-          title: 'Delete Gym Alarm',
+          confirmText: this.i18n.instant('COMMON.DELETE'),
+          message: `${this.i18n.instant('COMMON.DELETE')} ${this.getTeamName(gym.team)}?`,
+          title: this.i18n.instant('GYMS.EDIT_DIALOG_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -123,9 +130,10 @@ export class GymListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.gymService.delete(gym.uid).subscribe({
-            error: () => this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('GYMS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('Gym alarm deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('GYMS.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadGyms();
             },
           });
@@ -236,9 +244,10 @@ export class GymListComponent implements OnInit {
     ref.afterClosed().subscribe(distance => {
       if (distance !== null && distance !== undefined) {
         this.gymService.updateAllDistance(distance).subscribe({
-          error: () => this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadGyms();
           },
         });

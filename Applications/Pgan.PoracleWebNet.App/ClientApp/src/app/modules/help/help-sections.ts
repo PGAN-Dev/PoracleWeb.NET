@@ -1,499 +1,147 @@
 export interface HelpSection {
-  content: string;
+  contentKey: string;
   icon: string;
   iconColor: string;
   id: string;
-  /** Plain-text version of content for search (HTML tags stripped) */
-  searchText: string;
-  subtitle: string;
-  title: string;
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
-}
-
-function section(data: Omit<HelpSection, 'searchText'>): HelpSection {
-  return { ...data, searchText: stripHtml(data.content).toLowerCase() };
+  subtitleKey: string;
+  titleKey: string;
 }
 
 export const HELP_SECTIONS: HelpSection[] = [
-  section({
+  {
     id: 'getting-started',
-    content: `<p>The DM Alerts site lets you customize exactly which Pokemon GO notifications you receive as direct messages. Instead of getting every alert, you choose what matters to you — specific Pokemon, raids, quests, and more — and only get notified about those.</p>
-<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div><strong>Before you can use the site</strong>, you need to register with the Poracle bot on Discord or Telegram first. Once registered, come back here and sign in.</div></div>
-<h4>Signing In</h4>
-<ul>
-<li><strong>Discord</strong> — Click "Sign in with Discord" on the login page. You'll be taken to Discord to authorize the app, then redirected back automatically.</li>
-<li><strong>Telegram</strong> — If enabled, use the Telegram login widget on the login page. Confirm the login in your Telegram app.</li>
-</ul>
-<img class="help-screenshot" src="assets/help/login.png" alt="Login page with Sign in with Discord button" />
-<h4>First-Time Setup</h4>
-<p>When you first sign in, a welcome wizard walks you through three steps:</p>
-<ol>
-<li><strong>Set your location</strong> — Used to calculate distances for nearby notifications.</li>
-<li><strong>Choose your areas</strong> — Select the geographic zones you want alerts from.</li>
-<li><strong>Add your first alarm</strong> — Create a Pokemon, Raid, or Quest alarm to start getting notified.</li>
-</ol>
-<img class="help-screenshot" src="assets/help/onboarding.png" alt="Onboarding wizard showing the three setup steps" />
-<p>You can skip any step and come back later. The wizard won't appear again once you dismiss it or complete all steps.</p>`,
+    contentKey: 'HELP.CONTENT_GETTING_STARTED',
     icon: 'rocket_launch',
     iconColor: '#1976d2',
-    subtitle: 'Login, onboarding wizard, and initial setup',
-    title: 'Getting Started',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_GETTING_STARTED_SUB',
+    titleKey: 'HELP.SECTION_GETTING_STARTED',
+  },
+  {
     id: 'dashboard',
-    content: `<img class="help-screenshot" src="assets/help/dashboard-overview.png" alt="Dashboard showing location, areas, profile cards and alarm counts" />
-<p>The Dashboard is your home base. It shows an overview of your current setup at a glance.</p>
-<h4>Status Cards</h4>
-<ul>
-<li><strong>Location</strong> — Shows your saved coordinates or address. Click to set or update your location.</li>
-<li><strong>Active Areas</strong> — Shows how many areas you're tracking. Click to manage your areas.</li>
-<li><strong>Profile</strong> — Shows your active profile. If you have multiple profiles, click to switch between them.</li>
-</ul>
-<h4>Active Filters</h4>
-<p>A grid of cards shows how many alarms you have for each type (Pokemon, Raids, Quests, etc.). Click any card to jump to that alarm list.</p>
-<h4>Weather</h4>
-<p>If you have a location set, the dashboard shows the current in-game weather at your coordinates along with the last update time. Area weather is also displayed for each of your selected areas, so you can see weather conditions across all the zones you track.</p>
-<h4>Quick Actions</h4>
-<p>Shortcut buttons to add Pokemon, Raid, or Quest alarms, manage areas, or configure cleaning — all without navigating through the sidebar.</p>
-<h4>Tips</h4>
-<p>Helpful reminders appear when your setup is incomplete — like missing location, no areas selected, or no alarms configured. Each tip has an action button to fix it. You can dismiss tips you don't need.</p>
-<h4>Navigation</h4>
-<p>Use the sidebar to navigate between sections. Alarm types are listed at the top, followed by settings like Areas, Geofences, Profiles, and Cleaning. Help is always at the bottom.</p>
-<img class="help-screenshot help-screenshot-sm" src="assets/help/sidenav.png" alt="Sidebar navigation showing Alarms and Settings sections" />`,
+    contentKey: 'HELP.CONTENT_DASHBOARD',
     icon: 'dashboard',
     iconColor: '#1976d2',
-    subtitle: 'Your overview of alarms, areas, and status',
-    title: 'Dashboard',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_DASHBOARD_SUB',
+    titleKey: 'HELP.SECTION_DASHBOARD',
+  },
+  {
     id: 'location',
-    content: `<img class="help-screenshot" src="assets/help/dashboard-overview.png" alt="Dashboard showing the location card with map thumbnail and address" />
-<p>Your location is used for distance-based notifications. When an alarm uses "Set Distance" mode, you'll get notified about events within a radius of this location.</p>
-<h4>Setting Your Location</h4>
-<p>Open the location dialog from the Dashboard or Areas page. You have four ways to set it:</p>
-<ul>
-<li><strong>Search by address</strong> — Type an address, city, or landmark name. Select from the suggestions that appear.</li>
-<li><strong>Enter coordinates</strong> — Type latitude and longitude directly if you know them.</li>
-<li><strong>Use your GPS</strong> — Click "Use My Location" to use your device's current location. Your browser will ask for permission.</li>
-<li><strong>Click the map</strong> — Click anywhere on the mini-map to set that point as your location.</li>
-</ul>
-<p>After selecting a location, the address is shown automatically. Click <strong>Save</strong> to confirm.</p>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>You can clear your location from the Areas page if you only want area-based alerts.</div></div>`,
+    contentKey: 'HELP.CONTENT_LOCATION',
     icon: 'my_location',
     iconColor: '#2196f3',
-    subtitle: 'GPS, address search, and coordinates',
-    title: 'Setting Your Location',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_LOCATION_SUB',
+    titleKey: 'HELP.SECTION_LOCATION',
+  },
+  {
     id: 'areas',
-    content: `<img class="help-screenshot" src="assets/help/areas.png" alt="Areas and Location page showing area selection and location card" />
-<p>Areas are predefined geographic zones set up by your community. When an alarm uses "Use Areas" mode, you get notified about events that happen inside your selected areas.</p>
-<h4>Selecting Areas</h4>
-<p>Go to <strong>Areas & Location</strong> from the sidebar. You can select areas two ways:</p>
-<ul>
-<li><strong>Map view</strong> — Click colored polygons on the map to select or deselect areas. Selected areas turn green. Hover over any area to see its name.</li>
-<li><strong>List view</strong> — Use checkboxes to pick areas from a searchable list.</li>
-</ul>
-<h4>Region Filtering</h4>
-<p>If your community has many areas across different regions, use the region dropdown to zoom in on a specific region. This makes it easier to find areas near you.</p>
-<h4>Nested Areas</h4>
-<p>Some areas overlap — a smaller zone inside a larger one. Both are clickable. Zoom in to make it easier to click the smaller area.</p>
-<h4>Saving</h4>
-<p>A save bar appears at the bottom when you've made changes. Click <strong>Save</strong> to confirm your selections, or <strong>Cancel</strong> to revert.</p>
-<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div><strong>Areas are per-profile.</strong> Each profile has its own set of selected areas. Switching profiles will show different area selections. Custom geofences can also be toggled on or off per profile from the Geofences page.</div></div>`,
+    contentKey: 'HELP.CONTENT_AREAS',
     icon: 'map',
     iconColor: '#ff9800',
-    subtitle: 'Map view, list view, and region filtering',
-    title: 'Choosing Your Areas',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_AREAS_SUB',
+    titleKey: 'HELP.SECTION_AREAS',
+  },
+  {
     id: 'geofences',
-    content: `<img class="help-screenshot" src="assets/help/geofences.png" alt="My Geofences page with map and Draw Geofence button" />
-<p>If the predefined areas don't cover where you want alerts, you can draw your own custom geofence boundaries on the map.</p>
-<h4>Drawing a Geofence</h4>
-<ol>
-<li>Go to <strong>My Geofences</strong> from the sidebar.</li>
-<li>Click <strong>Draw Geofence</strong>.</li>
-<li>Click on the map to place points of your polygon boundary. Click the first point again to close the shape (minimum 3 points).</li>
-<li>Give your geofence a name and select which region it belongs to. The region is usually auto-detected for you.</li>
-<li>Click <strong>Save</strong>.</li>
-</ol>
-<h4>Managing Geofences</h4>
-<ul>
-<li><strong>Edit</strong> — Rename your geofence or change its region.</li>
-<li><strong>Delete</strong> — Remove a geofence you no longer need. The geofence is removed from all profiles automatically.</li>
-</ul>
-<h4>Profile Toggle</h4>
-<p>Each geofence card has a slide toggle to activate or deactivate it for your <strong>current profile</strong>. When you create a geofence, it's automatically activated on the profile you're using. Switch to another profile and the toggle will show "Inactive" — flip it on to receive alerts for that geofence on that profile too. This lets you control which profiles get notifications for each geofence without recreating it.</p>
-<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div>Approved geofences (promoted to public areas) don't show the toggle — manage them from the <strong>Areas</strong> page instead.</div></div>
-<h4>GeoJSON Import &amp; Export</h4>
-<p>You can import and export geofences using the standard GeoJSON format, making it easy to share boundaries or create them in external tools like <a href="https://geojson.io" target="_blank">geojson.io</a>.</p>
-<ul>
-<li><strong>Import</strong> — Click the upload icon and paste or upload a GeoJSON file. Each polygon in the file becomes a new geofence. You can review and rename each one before saving.</li>
-<li><strong>Export</strong> — Click the download icon and select which geofences to include. The exported GeoJSON file contains all selected polygons and can be opened in any GIS tool or map editor.</li>
-</ul>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>GeoJSON import is useful for migrating geofences from other systems or drawing complex boundaries in a desktop GIS tool and then importing them here.</div></div>
-<h4>Submitting for Public Approval</h4>
-<p>If you think your geofence would be useful for the whole community, you can submit it for admin review. If approved, it becomes a public area everyone can select. Your private geofence continues working while the review is pending.</p>
-<h4>Status Badges</h4>
-<ul>
-<li><strong>Active</strong> — Your private geofence, working for you only.</li>
-<li><strong>Pending Review</strong> — Submitted and waiting for admin review.</li>
-<li><strong>Approved</strong> — Promoted to a public area.</li>
-<li><strong>Rejected</strong> — Not approved. You can see the admin's feedback and the geofence remains active as a private zone.</li>
-</ul>
-<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div>You can have up to <strong>10 custom geofences</strong>, each with up to 500 boundary points.</div></div>`,
+    contentKey: 'HELP.CONTENT_GEOFENCES',
     icon: 'draw',
     iconColor: '#2196f3',
-    subtitle: 'Draw boundaries, submit for public approval',
-    title: 'Custom Geofences',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_GEOFENCES_SUB',
+    titleKey: 'HELP.SECTION_GEOFENCES',
+  },
+  {
     id: 'pokemon',
-    content: `<img class="help-screenshot" src="assets/help/pokemon-list.png" alt="Pokemon alarms page with filter options and Add Pokemon button" />
-<p>Pokemon alarms notify you when a wild Pokemon spawns that matches your filters.</p>
-<h4>Adding a Pokemon Alarm</h4>
-<img class="help-screenshot" src="assets/help/pokemon-add-dialog.png" alt="Add Pokemon Alarm dialog showing Pokemon selector with type filters" />
-<ol>
-<li>Go to <strong>Pokemon</strong> from the sidebar and click the <strong>+</strong> button.</li>
-<li><strong>Select Pokemon</strong> — Search by name or Pokedex number, or use the generation and type filter buttons to browse. You can select multiple Pokemon at once.</li>
-<li><strong>Set Filters</strong> — Choose what makes a spawn worth notifying about:</li>
-</ol>
-<ul>
-<li><strong>IV range</strong> — Minimum and maximum IV percentage (0-100%)</li>
-<li><strong>CP range</strong> — Filter by combat power</li>
-<li><strong>Level range</strong> — Filter by Pokemon level (0-55)</li>
-<li><strong>Individual stats</strong> — Filter by ATK, DEF, and STA values (0-15 each)</li>
-<li><strong>Form</strong> — Track specific forms (e.g. Alolan, Galarian) or all forms</li>
-<li><strong>Gender</strong> — Male, female, genderless, or all</li>
-<li><strong>Weight</strong> — Filter by weight range</li>
-<li><strong>Size</strong> — Filter by size category: select ALL (no filter) to match any size, or pick specific sizes from XXS through XXL (XXS, XS, Normal, XL, XXL)</li>
-</ul>
-<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div><strong>Default filter values</strong> are set so that all Pokemon match when no filters are explicitly configured. For example, IV defaults to 0-100%, level to 0-55, and size to ALL. You only need to adjust the filters you care about.</div></div>
-<h4>PVP Filters</h4>
-<p>Get notified when a Pokemon has great PVP IVs. Select a league (Great, Ultra, or Little Cup) and set the rank range you care about (e.g. rank 1-50).</p>
-<h4>"All Pokemon" Alarm</h4>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>Select "All Pokemon" (ID 0) to create one alarm that covers every species. Useful with a high IV filter like 96-100% to catch any valuable spawn.</div></div>
-<h4>Reading Alarm Cards</h4>
-<p>Each alarm card shows colored pills summarizing your filters at a glance:</p>
-<div class="pill-legend">
-<span class="pill-sample" style="background:rgba(76,175,80,0.15);color:#2e7d32">IV 90-100%</span>
-<span class="pill-sample" style="background:rgba(255,152,0,0.15);color:#e65100">CP 2000+</span>
-<span class="pill-sample" style="background:rgba(33,150,243,0.15);color:#0d47a1">L30-35</span>
-<span class="pill-sample" style="background:rgba(156,39,176,0.15);color:#6a1b9a">PVP GL</span>
-<span class="pill-sample" style="background:rgba(233,30,99,0.15);color:#c2185b">&#9794;</span>
-<span class="pill-sample" style="background:rgba(76,175,80,0.15);color:#2e7d32">XXL</span>
-</div>`,
+    contentKey: 'HELP.CONTENT_POKEMON',
     icon: 'catching_pokemon',
     iconColor: '#4caf50',
-    subtitle: 'IV, CP, level, PVP, gender, size, and form filters',
-    title: 'Pokemon Alarms',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_POKEMON_SUB',
+    titleKey: 'HELP.SECTION_POKEMON',
+  },
+  {
     id: 'other-alarms',
-    content: `<img class="help-screenshot" src="assets/help/raids.png" alt="Raids page showing Raids and Eggs tabs with Add Raid button" />
-<h4>Raid & Egg Alarms</h4>
-<p>Get notified when a raid boss or egg appears that you're interested in.</p>
-<ul>
-<li><strong>By Level</strong> — Select raid levels (1-6) or egg levels to track all raids of that tier.</li>
-<li><strong>By Boss</strong> — Select specific Pokemon raid bosses you want to hunt.</li>
-<li><strong>Team filter</strong> — Only notify for raids at gyms controlled by a specific team (Mystic, Valor, Instinct).</li>
-<li><strong>Gym tracking</strong> — Track raids at specific gyms by name so you only get notified about your favorite gyms.</li>
-<li><strong>Move filter</strong> — Filter raid bosses by their fast or charged moves.</li>
-<li><strong>RSVP notifications</strong> — Get notified when other trainers RSVP to a raid or egg you're tracking.</li>
-</ul>
-<p>Raid and Egg alarms are managed on separate tabs within the Raids page. Eggs also support gym-specific tracking and RSVP notifications.</p>
-
-<h4>Max Battle (Dynamax) Alarms</h4>
-<p>Get notified about Dynamax and Gigantamax battles at Power Spots.</p>
-<ul>
-<li><strong>By Level</strong> — Select battle tiers to track any Pokemon at those levels. Tiers range from 1 Star through 5 Star (Legendary) for Dynamax, plus Gigantamax and Legendary Gigantamax for the largest battles. One alarm is created per selected level.</li>
-<li><strong>By Pokemon</strong> — Select specific Pokemon you want to battle across all Max Battle levels. If the scanner database is configured, the selector is filtered to only show Pokemon that have appeared in Max Battles.</li>
-<li><strong>Gigantamax only</strong> — When tracking by Pokemon, toggle this to only receive notifications when that Pokemon appears in Gigantamax battles (the highest-tier battles with unique G-Max moves). For level-based tracking, Gigantamax is handled by selecting the Gigantamax or Legendary Gigantamax levels directly.</li>
-<li><strong>Select All</strong> — Quickly select all available levels at once (equivalent to the bot's <code>!maxbattle everything</code> command).</li>
-</ul>
-
-<h4>Quest Alarms</h4>
-<p>Get notified about field research tasks with specific rewards.</p>
-<ul>
-<li><strong>Pokemon encounters</strong> — Select Pokemon you want as quest rewards.</li>
-<li><strong>Items</strong> — Track quests that reward specific items.</li>
-<li><strong>Mega Energy</strong> — Track quests that give mega energy for specific Pokemon.</li>
-<li><strong>Candy</strong> — Track quests that reward candy for specific Pokemon.</li>
-</ul>
-
-<h4>Invasion Alarms</h4>
-<p>Get notified about Team Rocket invasions.</p>
-<ul>
-<li><strong>Track All</strong> — One alarm for every grunt type and leader.</li>
-<li><strong>By Type</strong> — Select specific grunt types (Bug, Dragon, Fire, etc.), Rocket Leaders, or Giovanni. Grunt type names are automatically normalized (case-insensitive), so you don't need to worry about exact capitalization.</li>
-<li><strong>Gender</strong> — Filter by grunt gender.</li>
-</ul>
-
-<h4>Lure Alarms</h4>
-<p>Get notified when a specific lure type is placed. Choose from Normal, Glacial, Mossy, Magnetic, Rainy, and Golden lures.</p>
-
-<h4>Nest Alarms</h4>
-<p>Track nesting Pokemon species. Set a <strong>minimum spawns per hour</strong> threshold so you only get notified about nests with enough activity.</p>
-
-<h4>Gym Alarms</h4>
-<p>Track gym team changes. Select which teams (Neutral, Mystic, Valor, Instinct) to monitor. Enable <strong>Slot Changes</strong> tracking to get notified when gym slots open up, or enable <strong>Battle Changes</strong> tracking to get notified when a gym is under attack.</p>
-
-<h4>Fort Change Alarms</h4>
-<p>Track changes to pokestops and gyms themselves — not the activities at them, but changes to the actual points of interest.</p>
-<ul>
-<li><strong>Fort Type</strong> — Choose to track Pokestops, Gyms, or Everything.</li>
-<li><strong>Change Types</strong> — Select which changes to monitor: Name changed, Location changed, Image changed, Removal, or New fort added.</li>
-<li><strong>Include Empty</strong> — Include forts that have no name set.</li>
-</ul>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>Fort change alarms are useful for tracking map database updates — new pokestops appearing, gyms being relocated, or POIs being removed from the game.</div></div>
-
-<h4>Targeting a Specific Gym</h4>
-<p>When creating or editing a Raid, Egg, or Gym alarm, you can optionally search for and select a specific gym. This is useful when you only care about activity at your favorite gym — like the one on your lunch route or near your house.</p>
-<ul>
-<li><strong>How to use it</strong> — In the add or edit dialog, type a gym name into the gym search field. Results show the gym's photo, name, and area so you can identify the right one.</li>
-<li><strong>When a gym is selected</strong> — The alarm only fires for events at that specific gym. The gym name appears on the alarm card in your list so you can see which gym it targets at a glance.</li>
-<li><strong>When no gym is selected</strong> — This is the default. The alarm works normally for all gyms in your selected areas or within your distance radius.</li>
-</ul>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>You can combine a gym-specific alarm with a broader alarm. For example, create one raid alarm targeting your local gym for all levels, and a second alarm for level 5 raids across all your areas.</div></div>`,
+    contentKey: 'HELP.CONTENT_OTHER_ALARMS',
     icon: 'shield',
     iconColor: '#f44336',
-    subtitle: 'Raids, eggs, quests, rockets, lures, nests, gyms, fort changes',
-    title: 'Other Alarm Types',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_OTHER_ALARMS_SUB',
+    titleKey: 'HELP.SECTION_OTHER_ALARMS',
+  },
+  {
     id: 'delivery',
-    content: `<img class="help-screenshot" src="assets/help/pokemon-list.png" alt="Pokemon alarm cards showing delivery mode indicators" />
-<p>Every alarm has delivery settings that control <em>where</em> you get notified.</p>
-<h4>Areas vs Distance</h4>
-<p>Each alarm uses one of two delivery modes:</p>
-<div class="mode-compare">
-<div class="mode-card">
-<div class="mode-emoji">&#x1F5FA;</div>
-<strong>Use Areas</strong>
-<span>Notified when events happen inside your selected areas. Good for tracking specific neighborhoods.</span>
-</div>
-<div class="mode-card">
-<div class="mode-emoji">&#x1F4CF;</div>
-<strong>Set Distance</strong>
-<span>Notified within a radius (km) of your saved location. Good for tracking everything near you.</span>
-</div>
-</div>
-<p>You can use different modes for different alarms — for example, use areas for Pokemon and distance for raids.</p>
-<h4>Notification Templates</h4>
-<p>If templates are enabled, you can choose how your notification messages look. The template selector shows a live preview of what your Discord DM will look like, including the embed format, fields, and images.</p>
-<h4>Clean Mode</h4>
-<p>When enabled, the bot automatically deletes the notification from Discord after the event expires (e.g. a Pokemon despawns or a raid ends). This keeps your DMs tidy. You can enable clean mode per-alarm or in bulk from the <strong>Cleaning</strong> page.</p>
-<h4>Ping / Role Mentions</h4>
-<p>If you use webhooks, you can set a Discord role to mention in the notification (e.g. @Pokemon). This is only relevant for webhook setups.</p>`,
+    contentKey: 'HELP.CONTENT_DELIVERY',
     icon: 'tune',
     iconColor: '#607d8b',
-    subtitle: 'Areas vs distance, templates, and clean mode',
-    title: 'Delivery Settings',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_DELIVERY_SUB',
+    titleKey: 'HELP.SECTION_DELIVERY',
+  },
+  {
     id: 'test-alerts',
-    content: `<p>Every alarm card has a <strong>Test</strong> button (paper plane icon) that sends a sample notification to your Discord or Telegram, using the alarm's exact filters and your current delivery template.</p>
-<h4>How It Works</h4>
-<ol>
-<li>Find any alarm card in your list (Pokemon, Raid, Quest, etc.).</li>
-<li>Click the <strong>send</strong> icon in the card's action row.</li>
-<li>A mock event matching your alarm's filters is generated and sent through the notification pipeline. You'll receive a DM just like a real alert.</li>
-</ol>
-<h4>What Gets Tested</h4>
-<p>The test uses your alarm's filter values (Pokemon ID, raid level, quest reward, etc.) and your saved location as the mock event coordinates. The notification is formatted using your selected template, so you see exactly what a real alert would look like.</p>
-<h4>Cooldown</h4>
-<p>To prevent spam, each alarm has a 15-second cooldown between test sends. The button is disabled during the cooldown and a snackbar shows feedback (success, error, or cooldown remaining).</p>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>Test alerts are great for verifying your template looks right or confirming your webhook delivery is working before waiting for a real event to trigger.</div></div>`,
+    contentKey: 'HELP.CONTENT_TEST_ALERTS',
     icon: 'send',
     iconColor: '#00897b',
-    subtitle: 'Send sample notifications to preview your alarms',
-    title: 'Test Alerts',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_TEST_ALERTS_SUB',
+    titleKey: 'HELP.SECTION_TEST_ALERTS',
+  },
+  {
     id: 'pokemon-availability',
-    content: `<p>When adding or editing Pokemon alarms, the Pokemon selector can show <strong>availability indicators</strong> — small badges that tell you which Pokemon are currently spawning in the wild.</p>
-<h4>How It Works</h4>
-<p>If your community has a Golbat scanner configured, the selector shows colored dots next to Pokemon names:</p>
-<ul>
-<li><strong>Green dot</strong> — This Pokemon has been seen spawning recently.</li>
-<li><strong>No dot</strong> — Not currently reported in the scanner data.</li>
-</ul>
-<p>This helps you avoid creating alarms for Pokemon that aren't spawning in your area right now (e.g., seasonal or event-exclusive species).</p>
-<h4>Availability Refresh</h4>
-<p>The data refreshes automatically in the background. You don't need to do anything — just look for the dots when browsing the Pokemon selector.</p>
-<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div>This feature is only visible if your admin has configured the Golbat scanner integration. If you don't see availability dots, the feature is not enabled for your community.</div></div>`,
+    contentKey: 'HELP.CONTENT_POKEMON_AVAILABILITY',
     icon: 'visibility',
     iconColor: '#43a047',
-    subtitle: 'See which Pokemon are currently spawning',
-    title: 'Pokemon Availability',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_POKEMON_AVAILABILITY_SUB',
+    titleKey: 'HELP.SECTION_POKEMON_AVAILABILITY',
+  },
+  {
     id: 'bulk',
-    content: `<img class="help-screenshot" src="assets/help/pokemon-list.png" alt="Pokemon alarm list showing the toolbar with search, filters, and select mode toggle" />
-<p>All alarm pages support bulk operations so you can manage many alarms at once.</p>
-<h4>Select Mode</h4>
-<p>Click the <strong>checklist icon</strong> in the toolbar to enter select mode. Then click individual alarm cards to select them, or use <strong>Select All</strong> to grab everything visible.</p>
-<h4>Bulk Actions</h4>
-<ul>
-<li><strong>Update Distance</strong> — Change the delivery mode (areas or distance) for all selected alarms at once.</li>
-<li><strong>Delete</strong> — Remove all selected alarms with one confirmation.</li>
-</ul>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div>At the bottom of each alarm list, you'll also find <strong>Update All Distance</strong> and <strong>Delete All</strong> buttons that apply to every alarm of that type.</div></div>`,
+    contentKey: 'HELP.CONTENT_BULK',
     icon: 'checklist',
     iconColor: '#795548',
-    subtitle: 'Select, bulk distance update, and bulk delete',
-    title: 'Bulk Operations',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_BULK_SUB',
+    titleKey: 'HELP.SECTION_BULK',
+  },
+  {
     id: 'quick-picks',
-    content: `<img class="help-screenshot" src="assets/help/quick-picks.png" alt="Quick Picks page for applying pre-built alarm templates" />
-<p>Quick Picks are pre-built alarm templates created by your community's admins. They let you set up common alarm configurations with one click instead of creating each alarm individually.</p>
-<h4>Applying a Quick Pick</h4>
-<ol>
-<li>Go to <strong>Quick Picks</strong> from the sidebar.</li>
-<li>Browse the available picks, optionally filtering by category.</li>
-<li>Click <strong>Apply</strong> on a Quick Pick you want.</li>
-<li>Customize before applying: choose your delivery mode (areas or distance), enable clean mode, and optionally exclude specific Pokemon.</li>
-<li>Confirm to create all the alarms at once.</li>
-</ol>
-<h4>Removing Quick Pick Alarms</h4>
-<p>If you no longer want alarms from a Quick Pick, click <strong>Remove</strong> to delete all alarms it created.</p>`,
+    contentKey: 'HELP.CONTENT_QUICK_PICKS',
     icon: 'bolt',
     iconColor: '#ff6f00',
-    subtitle: 'Pre-built alarm templates for quick setup',
-    title: 'Quick Picks',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_QUICK_PICKS_SUB',
+    titleKey: 'HELP.SECTION_QUICK_PICKS',
+  },
+  {
     id: 'profiles',
-    content: `<p>The Profiles page is your unified hub for managing profiles and viewing all alarms across every profile in one place.</p>
-<h4>Why Use Profiles?</h4>
-<p>Profiles let you maintain completely separate alarm configurations. Each profile has its own set of alarms, selected areas, location, and custom geofence activations. Useful for different situations — for example, a "Home" profile for your neighborhood and a "Work" profile for around your office.</p>
-<h4>Overview</h4>
-<p>The page shows a stats bar with total alarm counts per type, a search bar to filter across all profiles, and type filter chips to show only specific alarm types (Pokemon, Raids, Quests, etc.).</p>
-<p>Each profile appears as an expandable panel. Click to expand and see all alarms grouped by type, with game asset images (Pokemon sprites, raid eggs, lure icons) and filter pills showing IV, CP, Level, PVP, and other settings at a glance.</p>
-<h4>Managing Profiles</h4>
-<ul>
-<li><strong>Create</strong> — Click the <strong>+</strong> button in the top right. Profile names must be unique (up to 32 characters).</li>
-<li><strong>Switch</strong> — Click <strong>Switch</strong> inside a profile panel to make it your active profile. Your active profile is marked with a green badge and left border.</li>
-<li><strong>Edit</strong> — Click the pencil icon to rename a profile.</li>
-<li><strong>Delete</strong> — Click the trash icon to remove a profile and all its alarms. You can't delete your active profile.</li>
-</ul>
-<h4>Duplicate</h4>
-<p>Click the copy icon on any profile to create an exact copy with all its alarms. You'll be prompted to name the new profile — a default name like "Profile (Copy)" is suggested. The duplicate includes all alarm filters but gets a fresh set of area selections.</p>
-<h4>Export &amp; Import</h4>
-<ul>
-<li><strong>Export</strong> — Click the download icon on a profile to save a backup file (JSON). The file contains all alarm filters, stripped of internal IDs so it's portable.</li>
-<li><strong>Import</strong> — Click the <strong>Import</strong> button in the top right, select a backup file, and choose a name for the new profile. All alarms from the backup are restored. If a profile with the same name exists, a number suffix is added automatically.</li>
-</ul>
-<h4>Duplicate Detection</h4>
-<p>If the same alarm exists on multiple profiles (e.g., tracking Pikachu on both "Home" and "Work"), those alarms are highlighted with an orange border and a copy icon. When duplicates exist, a <strong>Duplicates</strong> filter chip appears in the filter bar — click it to show only duplicated alarms across profiles.</p>
-<div class="callout callout-warn"><span class="callout-icon">&#x26A0;&#xFE0F;</span><div><strong>Warning:</strong> Deleting a profile permanently removes all alarms in that profile. You can't delete your currently active profile. Consider exporting a backup first.</div></div>`,
+    contentKey: 'HELP.CONTENT_PROFILES',
     icon: 'compare_arrows',
     iconColor: '#7c4dff',
-    subtitle: 'Manage profiles, view alarms, export and import',
-    title: 'Profiles',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_PROFILES_SUB',
+    titleKey: 'HELP.SECTION_PROFILES',
+  },
+  {
     id: 'cleaning',
-    content: `<img class="help-screenshot" src="assets/help/cleaning.png" alt="Cleaning page with toggle switches for each alarm type" />
-<p>The Cleaning page lets you control clean mode across all your alarm types at once.</p>
-<p>When clean mode is on for an alarm type, the bot automatically deletes notifications from Discord after the event expires:</p>
-<ul>
-<li><strong>Pokemon</strong> — Deleted when the spawn despawns</li>
-<li><strong>Raids</strong> — Deleted when the raid ends</li>
-<li><strong>Eggs</strong> — Deleted when the egg hatches</li>
-<li><strong>Quests</strong> — Deleted when quests reset at midnight</li>
-<li><strong>Invasions</strong> — Deleted when the grunt leaves</li>
-<li><strong>Lures</strong> — Deleted when the lure expires</li>
-<li><strong>Nests</strong> — Deleted when nests migrate</li>
-<li><strong>Gyms</strong> — Deleted after gym changes</li>
-<li><strong>Fort Changes</strong> — Deleted after fort change notification expires</li>
-<li><strong>Max Battles</strong> — Deleted when the battle ends</li>
-</ul>
-<p>Use <strong>Enable All</strong> or <strong>Disable All</strong> to toggle everything at once.</p>
-<div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div><strong>Recommended:</strong> Keep clean mode enabled to prevent outdated alerts from piling up in your DMs.</div></div>`,
+    contentKey: 'HELP.CONTENT_CLEANING',
     icon: 'cleaning_services',
     iconColor: '#795548',
-    subtitle: 'Auto-delete expired notifications per alarm type',
-    title: 'Cleaning (Auto-Delete)',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_CLEANING_SUB',
+    titleKey: 'HELP.SECTION_CLEANING',
+  },
+  {
     id: 'appearance',
-    content: `<h4>Dark / Light Mode</h4>
-<p>Click the sun/moon icon in the top toolbar to switch between dark and light themes. Your choice is saved automatically.</p>
-<img class="help-screenshot help-screenshot-sm" src="assets/help/toolbar-theme.png" alt="Toolbar showing the dark/light mode toggle button" />
-<h4>Accent Colors</h4>
-<p>Open the user menu (your avatar in the top-right) and select <strong>Accent Theme</strong>. Choose from:</p>
-<ul>
-<li><strong>Default</strong> — Blue</li>
-<li><strong>Pokemon</strong> — Green</li>
-<li><strong>Raids</strong> — Red</li>
-<li><strong>Mystic</strong> — Blue</li>
-<li><strong>Valor</strong> — Red</li>
-<li><strong>Instinct</strong> — Yellow</li>
-</ul>
-<p>The accent color changes the toolbar gradient, active navigation highlight, and other UI accents throughout the site.</p>
-<img class="help-screenshot" src="assets/help/dark-mode.png" alt="Dashboard in dark mode showing the dark theme applied across the entire interface" />
-<h4>Language</h4>
-<p>If available, use the language selector in the toolbar to switch the interface language. 18 languages are supported.</p>
-<h4>Keyboard Shortcuts</h4>
-<table>
-<tr><td><kbd>?</kbd></td><td>Show keyboard shortcuts</td></tr>
-<tr><td><kbd>Esc</kbd></td><td>Close menus or dialogs</td></tr>
-<tr><td><kbd>[</kbd></td><td>Collapse sidebar</td></tr>
-<tr><td><kbd>]</kbd></td><td>Expand sidebar</td></tr>
-</table>`,
+    contentKey: 'HELP.CONTENT_APPEARANCE',
     icon: 'palette',
     iconColor: '#673ab7',
-    subtitle: 'Themes, accent colors, language, shortcuts',
-    title: 'Appearance & Preferences',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_APPEARANCE_SUB',
+    titleKey: 'HELP.SECTION_APPEARANCE',
+  },
+  {
     id: 'alerts-logout',
-    content: `<img class="help-screenshot help-screenshot-sm" src="assets/help/user-menu.png" alt="User menu showing Pause Alerts, Switch Profile, Areas, Cleaning, Accent Theme, and Logout options" />
-<h4>Pausing Alerts</h4>
-<p>Open the user menu (your avatar) and click <strong>Pause Alerts</strong>. A red banner will appear at the top of the site confirming your alerts are paused. You won't receive any notifications while paused.</p>
-<p>To resume, click <strong>Resume Alerts</strong> from the user menu or the banner.</p>
-<h4>Logging Out</h4>
-<p>Open the user menu and click <strong>Logout</strong>. You'll be returned to the login page.</p>`,
+    contentKey: 'HELP.CONTENT_ALERTS_LOGOUT',
     icon: 'notifications',
     iconColor: '#ff5722',
-    subtitle: 'Pause notifications and sign out',
-    title: 'Pausing Alerts & Logging Out',
-  }),
-  section({
+    subtitleKey: 'HELP.SECTION_ALERTS_LOGOUT_SUB',
+    titleKey: 'HELP.SECTION_ALERTS_LOGOUT',
+  },
+  {
     id: 'faq',
-    content: `<h4>"I can't log in"</h4>
-<p>You must register with the Poracle bot on Discord or Telegram <strong>before</strong> you can sign in to this site. If you see "Your account is not registered," contact your community admin for registration instructions.</p>
-
-<h4>"I'm not getting notifications"</h4>
-<p>Check these common causes:</p>
-<ol>
-<li><strong>Alerts paused</strong> — Look for a red banner at the top of the site. Resume alerts from the user menu.</li>
-<li><strong>No location set</strong> — If your alarms use distance mode, you need a saved location.</li>
-<li><strong>No areas selected</strong> — If your alarms use areas mode, make sure you've selected areas on the Areas page.</li>
-<li><strong>Wrong profile</strong> — You might have alarms on a different profile. Check which profile is active on the Dashboard.</li>
-<li><strong>Filters too strict</strong> — Try relaxing your IV, CP, or level filters to see if notifications start coming through.</li>
-</ol>
-
-<h4>"My alarms disappeared"</h4>
-<p>Alarms are profile-specific. If you switched profiles, your alarms from the other profile are still there — just switch back from the Dashboard or Profiles page.</p>
-
-<h4>"I can't click a small area on the map"</h4>
-<p>When areas overlap, zoom in to make the smaller area easier to click. Smaller areas are always on top of larger ones.</p>
-
-<h4>"What does Clean mode do?"</h4>
-<p>Clean mode tells the bot to automatically delete a notification from Discord after the event expires (e.g. a Pokemon despawns). Without it, old alerts stay in your DMs forever. Enable it on the Cleaning page or per-alarm in the Delivery tab.</p>
-
-<h4>"What's the difference between Areas and Distance?"</h4>
-<p>Each alarm uses one delivery mode. <strong>Areas</strong> notifies you about events inside specific geographic zones. <strong>Distance</strong> notifies you about events within a radius of your saved location. You can mix both across different alarms.</p>`,
+    contentKey: 'HELP.CONTENT_FAQ',
     icon: 'help_outline',
     iconColor: '#ff9800',
-    subtitle: 'Common issues and how to fix them',
-    title: 'Frequently Asked Questions',
-  }),
+    subtitleKey: 'HELP.SECTION_FAQ_SUB',
+    titleKey: 'HELP.SECTION_FAQ',
+  },
 ];

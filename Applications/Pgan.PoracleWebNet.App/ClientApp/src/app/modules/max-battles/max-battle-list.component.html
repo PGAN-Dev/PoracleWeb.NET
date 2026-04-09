@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Max Battle Alarms</h1>
-    <p class="page-description">Get notified about Max Battles featuring specific Pokemon, levels, or Gigantamax forms.</p>
+    <h1>{{ 'MAX_BATTLES.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'MAX_BATTLES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
     <button mat-fab (click)="openAddDialog()" [style.background-color]="'#d500f9'" [style.color]="'white'">
@@ -12,13 +12,13 @@
 
 @if (!loading() && maxBattles().length > 0) {
   <div class="filter-bar">
-    <span class="result-count">{{ maxBattles().length }} alarms</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: maxBattles().length } }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -27,18 +27,18 @@
 @if (selectMode()) {
   <div class="bulk-toolbar">
     @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
     }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
     @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
     <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> Update Distance
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
     </button>
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> Delete
+      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
   </div>
 }
@@ -87,7 +87,7 @@
             <h3>{{ getTitle(mb) }}</h3>
             <div class="level-stars">
               @if (mb.level === 9000) {
-                <span class="any-level-label">Any Level</span>
+                <span class="any-level-label">{{ 'ALARM.ANY_LEVEL' | translate }}</span>
               } @else if (isGmax(mb.level)) {
                 <mat-icon class="gmax-icon">auto_awesome</mat-icon>
                 <span class="level-label-text">{{ getLevelLabel(mb.level) }}</span>
@@ -100,10 +100,10 @@
           </div>
           <div class="card-top-actions">
             @if (isGmax(mb.level) || mb.gmax === 1) {
-              <span class="gmax-tag">GMAX</span>
+              <span class="gmax-tag">{{ 'MAX_BATTLES.GMAX_TAG' | translate }}</span>
             }
             @if (mb.clean === 1) {
-              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+              <span class="clean-tag" [matTooltip]="'ALARM.CLEAN_HINT_MAX_BATTLE' | translate">clean</span>
             }
           </div>
         </div>
@@ -122,10 +122,10 @@
           <app-alarm-info [distance]="mb.distance" [clean]="mb.clean" [template]="mb.template" [ping]="mb.ping" />
         </mat-card-content>
         <mat-card-actions align="end">
-          <button mat-icon-button (click)="editMaxBattle(mb)" matTooltip="Edit">
+          <button mat-icon-button (click)="editMaxBattle(mb)" [matTooltip]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button (click)="deleteMaxBattle(mb)" matTooltip="Delete" color="warn">
+          <button mat-icon-button (click)="deleteMaxBattle(mb)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>
@@ -146,10 +146,10 @@
           <path d="M82 20 L78 32 L84 30 L80 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.12" />
           <path d="M60 88 L56 100 L62 98 L58 110" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.1" />
         </svg>
-        <h2 class="empty-title">No Max Battle Alarms Configured</h2>
-        <p class="empty-subtitle">Get notified about Max Battles featuring specific Pokemon, levels, or Gigantamax forms</p>
+        <h2 class="empty-title">{{ 'MAX_BATTLES.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'MAX_BATTLES.EMPTY_SUBTITLE' | translate }}</p>
         <button mat-flat-button style="background-color: #d500f9; color: white" (click)="openAddDialog()">
-          <mat-icon>add</mat-icon> Add Max Battle
+          <mat-icon>add</mat-icon> {{ 'MAX_BATTLES.ADD_MAX_BATTLE' | translate }}
         </button>
       </div>
     }

@@ -11,9 +11,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
@@ -31,6 +33,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSlideToggleModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -42,6 +45,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 export class FortChangeAddDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly fortChangeService = inject(FortChangeService);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<FortChangeAddDialogComponent>);
   form = this.fb.group({
@@ -91,11 +95,11 @@ export class FortChangeAddDialogComponent {
       })
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to create alarm', 'OK', { duration: 3000 });
+          this.snackBar.open('Failed to create alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Fort change alarm created', 'OK', { duration: 3000 });
+          this.snackBar.open('Fort change alarm created', this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

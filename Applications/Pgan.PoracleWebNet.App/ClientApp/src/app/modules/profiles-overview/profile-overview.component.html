@@ -1,17 +1,16 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1><mat-icon class="header-icon">compare_arrows</mat-icon> Profiles</h1>
+    <h1><mat-icon class="header-icon">compare_arrows</mat-icon> {{ 'PROFILES.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">
-      Manage profiles and view all alarms across every profile. Switch between profiles, spot duplicates, and export your full
-      configuration.
+      {{ 'PROFILES.PAGE_DESC' | translate }}
     </p>
   </div>
   <div class="header-actions">
-    <button mat-stroked-button (click)="fileInput.click()" matTooltip="Import profile from backup file">
-      <mat-icon>upload</mat-icon> Import
+    <button mat-stroked-button (click)="fileInput.click()" [matTooltip]="'PROFILES.IMPORT_TOOLTIP' | translate">
+      <mat-icon>upload</mat-icon> {{ 'PROFILES.IMPORT' | translate }}
     </button>
     <input #fileInput type="file" accept=".json" hidden (change)="importProfile($event)" />
-    <button mat-fab color="primary" (click)="openAddProfileDialog()" matTooltip="Add new profile">
+    <button mat-fab color="primary" (click)="openAddProfileDialog()" [matTooltip]="'PROFILES.ADD_TOOLTIP' | translate">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -23,12 +22,12 @@
     <div class="stat-chip stat-total">
       <mat-icon>notifications</mat-icon>
       <span class="stat-chip-value">{{ s.totalAlarms }}</span>
-      <span class="stat-chip-label">Total Alarms</span>
+      <span class="stat-chip-label">{{ 'PROFILES.TOTAL_ALARMS' | translate }}</span>
     </div>
     <div class="stat-chip stat-profiles">
       <mat-icon>person</mat-icon>
       <span class="stat-chip-value">{{ s.profileCount }}</span>
-      <span class="stat-chip-label">Profiles</span>
+      <span class="stat-chip-label">{{ 'PROFILES.PROFILES_LABEL' | translate }}</span>
     </div>
     @for (type of alarmTypes; track type.key) {
       @if (s.typeCounts[type.key] > 0) {
@@ -43,7 +42,7 @@
       <div class="stat-chip stat-duplicates">
         <mat-icon>content_copy</mat-icon>
         <span class="stat-chip-value">{{ s.duplicateCount }}</span>
-        <span class="stat-chip-label">Duplicates</span>
+        <span class="stat-chip-label">{{ 'PROFILES.DUPLICATES' | translate }}</span>
       </div>
     }
   </div>
@@ -54,7 +53,7 @@
   <div class="filter-bar">
     <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput placeholder="Search across all profiles..." [formControl]="searchControl" />
+      <input matInput [placeholder]="'PROFILES.SEARCH_PLACEHOLDER' | translate" [formControl]="searchControl" />
       @if (searchControl.value) {
         <button matSuffix mat-icon-button (click)="searchControl.reset()">
           <mat-icon>close</mat-icon>
@@ -63,7 +62,9 @@
     </mat-form-field>
 
     <div class="type-filters">
-      <button class="type-chip" [class.type-active]="selectedType() === null" (click)="setTypeFilter(null)">All</button>
+      <button class="type-chip" [class.type-active]="selectedType() === null" (click)="setTypeFilter(null)">
+        {{ 'PROFILES.TYPE_ALL' | translate }}
+      </button>
       @for (type of alarmTypes; track type.key) {
         @if (getTypeCount(type.key) > 0) {
           <button
@@ -84,7 +85,7 @@
           [style.--type-color]="'#ff9800'"
           (click)="toggleDuplicatesFilter()">
           <mat-icon>content_copy</mat-icon>
-          Duplicates
+          {{ 'PROFILES.DUPLICATES' | translate }}
           <span class="type-count">{{ duplicateUids().size }}</span>
         </button>
       }
@@ -159,12 +160,12 @@
                 </svg>
                 <span class="profile-name">{{ group.profile.name }}</span>
                 @if (isActiveProfile(group.profile.profile_no)) {
-                  <span class="active-badge"><mat-icon>check_circle</mat-icon> Active</span>
+                  <span class="active-badge"><mat-icon>check_circle</mat-icon> {{ 'PROFILES.ACTIVE_BADGE' | translate }}</span>
                 }
               </div>
             </mat-panel-title>
             <mat-panel-description>
-              <span class="alarm-count-badge"> {{ group.totalAlarms }} alarm{{ group.totalAlarms === 1 ? '' : 's' }} </span>
+              <span class="alarm-count-badge"> {{ 'ALARM.ALARMS_COUNT' | translate: { count: group.totalAlarms } }} </span>
             </mat-panel-description>
           </mat-expansion-panel-header>
 
@@ -186,25 +187,25 @@
                 color="primary"
                 (click)="switchProfile(group.profile)"
                 [disabled]="switching()"
-                matTooltip="Switch to this profile">
-                <mat-icon>swap_horiz</mat-icon> Switch
+                [matTooltip]="'PROFILES.SWITCH_TOOLTIP' | translate">
+                <mat-icon>swap_horiz</mat-icon> {{ 'PROFILES.SWITCH' | translate }}
               </button>
             }
-            <button mat-icon-button (click)="editActiveHours(group.profile)" matTooltip="Edit active hours schedule">
+            <button mat-icon-button (click)="editActiveHours(group.profile)" [matTooltip]="'PROFILES.SCHEDULE_TOOLTIP' | translate">
               <mat-icon>schedule</mat-icon>
             </button>
-            <button mat-icon-button (click)="exportProfile(group.profile)" matTooltip="Export profile backup">
+            <button mat-icon-button (click)="exportProfile(group.profile)" [matTooltip]="'PROFILES.EXPORT_TOOLTIP' | translate">
               <mat-icon>download</mat-icon>
             </button>
             <button
               mat-icon-button
               (click)="duplicateProfile(group.profile)"
               [disabled]="switching()"
-              matTooltip="Duplicate profile with all alarms">
+              [matTooltip]="'PROFILES.DUPLICATE_TOOLTIP' | translate">
               <mat-icon>content_copy</mat-icon>
             </button>
             @if (getManagedProfile(group.profile.profile_no); as mp) {
-              <button mat-icon-button (click)="editProfile(mp)" matTooltip="Edit profile name">
+              <button mat-icon-button (click)="editProfile(mp)" [matTooltip]="'PROFILES.EDIT_TOOLTIP' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
               <button
@@ -212,7 +213,7 @@
                 color="warn"
                 (click)="deleteProfile(mp)"
                 [disabled]="mp.active"
-                [matTooltip]="mp.active ? 'Cannot delete active profile' : 'Delete profile'">
+                [matTooltip]="mp.active ? ('PROFILES.DELETE_ACTIVE_TOOLTIP' | translate) : ('PROFILES.DELETE_TOOLTIP' | translate)">
                 <mat-icon>delete</mat-icon>
               </button>
             }
@@ -249,10 +250,14 @@
                         </div>
                         <div class="card-top-actions">
                           @if (alarm.clean === 1) {
-                            <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+                            <span class="clean-tag" [matTooltip]="'POKEMON.CLEAN_TAG_TOOLTIP' | translate">{{
+                              'POKEMON.CLEAN_TAG' | translate
+                            }}</span>
                           }
                           @if (isDuplicate(alarm)) {
-                            <span class="duplicate-tag" [matTooltip]="'Also on: ' + getDuplicateProfiles(alarm, type.key).join(', ')">
+                            <span
+                              class="duplicate-tag"
+                              [matTooltip]="('PROFILES.ALSO_ON' | translate) + ' ' + getDuplicateProfiles(alarm, type.key).join(', ')">
                               <mat-icon>content_copy</mat-icon>
                             </span>
                           }
@@ -266,7 +271,7 @@
                               <span class="filter-pill iv-pill">IV {{ alarm.min_iv }}-{{ alarm.max_iv }}%</span>
                             }
                             @if (alarm.min_iv === -1) {
-                              <span class="filter-pill iv-pill iv-disabled">No IV</span>
+                              <span class="filter-pill iv-pill iv-disabled">{{ 'POKEMON.NO_IV_FILTER' | translate }}</span>
                             }
                             @if ((alarm.min_cp ?? 0) > 0 || (alarm.max_cp ?? 9000) < 9000) {
                               <span class="filter-pill cp-pill">CP {{ alarm.min_cp }}-{{ alarm.max_cp }}</span>
@@ -279,12 +284,12 @@
                                 >PVP
                                 {{
                                   alarm.pvp_ranking_league === 1500
-                                    ? 'GL'
+                                    ? ('POKEMON.PVP_GL' | translate)
                                     : alarm.pvp_ranking_league === 2500
-                                      ? 'UL'
+                                      ? ('POKEMON.PVP_UL' | translate)
                                       : alarm.pvp_ranking_league === 500
-                                        ? 'LC'
-                                        : 'ML'
+                                        ? ('POKEMON.PVP_LC' | translate)
+                                        : ('POKEMON.PVP_ML' | translate)
                                 }}</span
                               >
                             }
@@ -310,17 +315,17 @@
                           <!-- Gender pill (pokemon, invasion) -->
                           @if ((alarm.gender ?? 0) > 0) {
                             <span class="filter-pill gender-pill">{{
-                              alarm.gender === 1 ? '\u2642' : alarm.gender === 2 ? '\u2640' : 'Genderless'
+                              alarm.gender === 1 ? '\u2642' : alarm.gender === 2 ? '\u2640' : ('COMMON.GENDERLESS' | translate)
                             }}</span>
                           }
                           <!-- Form pill -->
                           @if ((alarm.form ?? 0) > 0) {
-                            <span class="filter-pill form-pill">Form {{ alarm.form }}</span>
+                            <span class="filter-pill form-pill">{{ 'POKEMON.FORM_BADGE' | translate: { id: alarm.form } }}</span>
                           }
                         </div>
                         <div class="distance-chip-row">
                           @if ((alarm.distance ?? 0) === 0) {
-                            <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+                            <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
                           } @else {
                             <span class="distance-chip distance-mode"
                               ><mat-icon>straighten</mat-icon> {{ formatDistance(alarm.distance!) }}</span
@@ -341,9 +346,11 @@
     <div class="alarm-grid">
       <div class="empty-state">
         <mat-icon class="empty-icon">search_off</mat-icon>
-        <h2 class="empty-title">No Matching Alarms</h2>
-        <p class="empty-subtitle">Try adjusting your search or filter criteria</p>
-        <button mat-stroked-button (click)="searchControl.reset(); setTypeFilter(null)"><mat-icon>clear</mat-icon> Clear Filters</button>
+        <h2 class="empty-title">{{ 'PROFILES.EMPTY_NO_MATCH_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'PROFILES.EMPTY_NO_MATCH_SUBTITLE' | translate }}</p>
+        <button mat-stroked-button (click)="searchControl.reset(); setTypeFilter(null)">
+          <mat-icon>clear</mat-icon> {{ 'PROFILES.CLEAR_FILTERS' | translate }}
+        </button>
       </div>
     </div>
   } @else {
@@ -358,8 +365,8 @@
           <text x="95" y="22" font-size="14" fill="currentColor" opacity="0.15" font-weight="600">z</text>
           <text x="102" y="16" font-size="10" fill="currentColor" opacity="0.1" font-weight="600">z</text>
         </svg>
-        <h2 class="empty-title">No Alarms Configured</h2>
-        <p class="empty-subtitle">You don't have any alarms across any profiles yet. Start by adding Pokemon or Raid alerts!</p>
+        <h2 class="empty-title">{{ 'PROFILES.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'PROFILES.EMPTY_SUBTITLE' | translate }}</p>
       </div>
     </div>
   }

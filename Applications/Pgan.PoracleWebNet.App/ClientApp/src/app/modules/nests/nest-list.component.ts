@@ -9,11 +9,13 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { NestAddDialogComponent } from './nest-add-dialog.component';
 import { NestEditDialogComponent } from './nest-edit-dialog.component';
 import { Nest } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
@@ -33,6 +35,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
   ],
   selector: 'app-nest-list',
   standalone: true,
@@ -42,6 +45,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 export class NestListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly nestService = inject(NestService);
@@ -55,9 +59,9 @@ export class NestListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
+        message: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -68,7 +72,9 @@ export class NestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadNests();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -81,7 +87,7 @@ export class NestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadNests();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
@@ -91,9 +97,9 @@ export class NestListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete All',
-          message: 'Delete ALL nest alarms? This cannot be undone.',
-          title: 'Delete All Nest Alarms',
+          confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+          message: this.i18n.instant('POKEMON.CONFIRM_DELETE_ALL_MSG'),
+          title: this.i18n.instant('NESTS.PAGE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -101,9 +107,10 @@ export class NestListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.nestService.deleteAll().subscribe({
-            error: () => this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('NESTS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('All nest alarms deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('NESTS.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadNests();
             },
           });
@@ -114,9 +121,9 @@ export class NestListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete',
-          message: `Delete the alarm for ${this.getPokemonName(nest.pokemonId)}?`,
-          title: 'Delete Nest Alarm',
+          confirmText: this.i18n.instant('COMMON.DELETE'),
+          message: this.i18n.instant('POKEMON.CONFIRM_DELETE_MSG', { name: this.getPokemonName(nest.pokemonId) }),
+          title: this.i18n.instant('NESTS.EDIT_DIALOG_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -124,9 +131,10 @@ export class NestListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.nestService.delete(nest.uid).subscribe({
-            error: () => this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('NESTS.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('Nest alarm deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('NESTS.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadNests();
             },
           });
@@ -215,9 +223,10 @@ export class NestListComponent implements OnInit {
     ref.afterClosed().subscribe(distance => {
       if (distance !== null && distance !== undefined) {
         this.nestService.updateAllDistance(distance).subscribe({
-          error: () => this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadNests();
           },
         });

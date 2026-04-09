@@ -1,12 +1,12 @@
 <h2 mat-dialog-title>
   <mat-icon class="title-icon">schedule</mat-icon>
-  Active Hours &mdash; {{ data.profileName }}
+  {{ 'PROFILES.ACTIVE_HOURS_TITLE' | translate }} &mdash; {{ data.profileName }}
 </h2>
 
 <mat-dialog-content>
   <!-- Day picker -->
   <section class="section">
-    <label class="section-label">Days</label>
+    <label class="section-label">{{ 'PROFILES.ACTIVE_HOURS_DAYS' | translate }}</label>
     <div class="day-picker">
       @for (day of allDays; track day) {
         <button
@@ -20,18 +20,18 @@
       }
     </div>
     <div class="presets">
-      <button mat-button type="button" (click)="presetDays('weekdays')">Weekdays</button>
-      <button mat-button type="button" (click)="presetDays('weekends')">Weekends</button>
-      <button mat-button type="button" (click)="presetDays('everyday')">Every day</button>
+      <button mat-button type="button" (click)="presetDays('weekdays')">{{ 'PROFILES.ACTIVE_HOURS_WEEKDAYS' | translate }}</button>
+      <button mat-button type="button" (click)="presetDays('weekends')">{{ 'PROFILES.ACTIVE_HOURS_WEEKENDS' | translate }}</button>
+      <button mat-button type="button" (click)="presetDays('everyday')">{{ 'PROFILES.ACTIVE_HOURS_EVERY_DAY' | translate }}</button>
     </div>
   </section>
 
   <!-- Time picker -->
   <section class="section">
-    <label class="section-label">Time</label>
+    <label class="section-label">{{ 'PROFILES.ACTIVE_HOURS_TIME' | translate }}</label>
     <div class="time-picker">
       <mat-form-field appearance="outline" class="time-field">
-        <mat-label>Hour</mat-label>
+        <mat-label>{{ 'PROFILES.ACTIVE_HOURS_HOUR' | translate }}</mat-label>
         <mat-select [value]="selectedHour()" (selectionChange)="selectedHour.set($event.value)">
           @for (h of hourOptions; track h) {
             <mat-option [value]="h">{{ formatHour(h) }}</mat-option>
@@ -39,7 +39,7 @@
         </mat-select>
       </mat-form-field>
       <mat-form-field appearance="outline" class="time-field">
-        <mat-label>Minute</mat-label>
+        <mat-label>{{ 'PROFILES.ACTIVE_HOURS_MINUTE' | translate }}</mat-label>
         <mat-select [value]="selectedMinute()" (selectionChange)="selectedMinute.set($event.value)">
           @for (m of minuteOptions; track m) {
             <mat-option [value]="m">{{ formatMinute(m) }}</mat-option>
@@ -52,24 +52,29 @@
         type="button"
         (click)="addEntries()"
         [disabled]="selectedDays().size === 0"
-        matTooltip="Add activation rule">
-        <mat-icon>add</mat-icon> Add
+        [matTooltip]="'PROFILES.ACTIVE_HOURS_ADD_TOOLTIP' | translate">
+        <mat-icon>add</mat-icon> {{ 'PROFILES.ACTIVE_HOURS_ADD' | translate }}
       </button>
     </div>
   </section>
 
   <!-- Rules list -->
   <section class="section">
-    <label class="section-label">Rules ({{ groups().length }})</label>
+    <label class="section-label">{{ 'PROFILES.ACTIVE_HOURS_RULES' | translate }} ({{ groups().length }})</label>
     @if (groups().length === 0) {
-      <div class="empty-rules">No activation rules. Profile will require manual start.</div>
+      <div class="empty-rules">{{ 'PROFILES.ACTIVE_HOURS_NO_RULES' | translate }}</div>
     } @else {
       <div class="rules-list">
         @for (group of groups(); track formatGroupLabel(group)) {
           <div class="rule-item">
             <mat-icon class="rule-icon">schedule</mat-icon>
             <span class="rule-label">{{ formatGroupLabel(group) }}</span>
-            <button mat-icon-button type="button" (click)="removeGroup(group)" matTooltip="Remove rule" class="rule-remove">
+            <button
+              mat-icon-button
+              type="button"
+              (click)="removeGroup(group)"
+              [matTooltip]="'PROFILES.ACTIVE_HOURS_REMOVE_RULE' | translate"
+              class="rule-remove">
               <mat-icon>close</mat-icon>
             </button>
           </div>
@@ -81,7 +86,7 @@
   <!-- Mini weekly preview -->
   @if (groups().length > 0) {
     <section class="section">
-      <label class="section-label">Weekly Preview</label>
+      <label class="section-label">{{ 'PROFILES.ACTIVE_HOURS_WEEKLY_PREVIEW' | translate }}</label>
       <div class="preview-grid">
         @for (row of previewData(); track row.day) {
           <div class="preview-row">
@@ -106,8 +111,10 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button type="button" color="warn" (click)="clearAll()" [disabled]="groups().length === 0">Clear All</button>
+  <button mat-button type="button" color="warn" (click)="clearAll()" [disabled]="groups().length === 0">
+    {{ 'PROFILES.ACTIVE_HOURS_CLEAR_ALL' | translate }}
+  </button>
   <span class="spacer"></span>
-  <button mat-button type="button" (click)="cancel()">Cancel</button>
-  <button mat-flat-button color="primary" type="button" (click)="save()">Save</button>
+  <button mat-button type="button" (click)="cancel()">{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()">{{ 'COMMON.SAVE' | translate }}</button>
 </mat-dialog-actions>

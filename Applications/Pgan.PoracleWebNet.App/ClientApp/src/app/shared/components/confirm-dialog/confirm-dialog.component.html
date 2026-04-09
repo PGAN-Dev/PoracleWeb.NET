@@ -14,22 +14,22 @@
       <mat-label>{{ data.promptField.label }}</mat-label>
       <input matInput [(ngModel)]="promptValue" />
       @if (hasPromptConflict) {
-        <mat-error>A profile with this name already exists</mat-error>
+        <mat-error>{{ 'DIALOG.PROMPT_CONFLICT' | translate }}</mat-error>
       }
     </mat-form-field>
   }
   @if (data.showDontAskAgain) {
-    <mat-checkbox [(ngModel)]="dontAskAgain" class="dont-ask-checkbox"> Don't ask again for this session </mat-checkbox>
+    <mat-checkbox [(ngModel)]="dontAskAgain" class="dont-ask-checkbox"> {{ 'DIALOG.DONT_ASK_AGAIN' | translate }} </mat-checkbox>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()">
-    {{ data.cancelText || 'Cancel' }}
+    {{ data.cancelText || ('DIALOG.CANCEL' | translate) }}
   </button>
   <button mat-raised-button [color]="data.warn ? 'warn' : 'primary'" (click)="onConfirm()" [disabled]="hasPromptConflict">
     @if (data.warn) {
       <mat-icon>delete</mat-icon>
     }
-    {{ data.confirmText || 'Confirm' }}
+    {{ data.confirmText || ('DIALOG.CONFIRM' | translate) }}
   </button>
 </mat-dialog-actions>

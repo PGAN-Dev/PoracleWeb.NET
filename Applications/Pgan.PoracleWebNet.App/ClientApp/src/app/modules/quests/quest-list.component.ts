@@ -8,11 +8,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { QuestAddDialogComponent } from './quest-add-dialog.component';
 import { QuestEditDialogComponent } from './quest-edit-dialog.component';
 import { Quest } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
@@ -32,6 +34,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
+    TranslateModule,
     AlarmInfoComponent,
   ],
   selector: 'app-quest-list',
@@ -45,6 +48,7 @@ export class QuestListComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
@@ -61,9 +65,9 @@ export class QuestListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('QUESTS.CONFIRM_DELETE_SELECTED'),
+        message: this.i18n.instant('QUESTS.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        title: this.i18n.instant('QUESTS.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -74,7 +78,9 @@ export class QuestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadQuests();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('QUESTS.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('TOAST.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -87,7 +93,7 @@ export class QuestListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadQuests();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+      this.snackBar.open(this.i18n.instant('QUESTS.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
@@ -96,9 +102,9 @@ export class QuestListComponent implements OnInit {
   deleteAll(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete All',
-        message: 'Are you sure you want to delete ALL quest alarms? This action cannot be undone.',
-        title: 'Delete All Quest Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+        message: this.i18n.instant('QUESTS.CONFIRM_DELETE_ALL_MSG'),
+        title: this.i18n.instant('QUESTS.CONFIRM_DELETE_ALL_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -106,10 +112,10 @@ export class QuestListComponent implements OnInit {
       if (confirmed) {
         this.questService.deleteAll().subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All quest alarms deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_DELETED_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadQuests();
           },
         });
@@ -120,9 +126,9 @@ export class QuestListComponent implements OnInit {
   deleteQuest(quest: Quest): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Are you sure you want to delete the alarm for ${this.getQuestTitle(quest)}?`,
-        title: 'Delete Quest Alarm',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('QUESTS.CONFIRM_DELETE_MSG', { name: this.getQuestTitle(quest) }),
+        title: this.i18n.instant('QUESTS.CONFIRM_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -130,10 +136,10 @@ export class QuestListComponent implements OnInit {
       if (confirmed) {
         this.questService.delete(quest.uid).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Quest alarm deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadQuests();
           },
         });
@@ -190,19 +196,21 @@ export class QuestListComponent implements OnInit {
       return this.masterData.getPokemonName(pokemonId);
     }
     if (quest.rewardType === 7 && pokemonId === 0) {
-      return 'Any Pokemon Encounter';
+      return this.i18n.instant('QUESTS.ANY_POKEMON_ENCOUNTER');
     }
     if (quest.rewardType === 12 && pokemonId > 0) {
-      return `${this.masterData.getPokemonName(pokemonId)} Mega Energy`;
+      return this.i18n.instant('QUESTS.MEGA_ENERGY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
     }
     if (quest.rewardType === 4 && pokemonId > 0) {
-      return `${this.masterData.getPokemonName(pokemonId)} Candy`;
+      return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
     }
     if (quest.rewardType === 2) {
       return this.masterData.getItemName(quest.reward);
     }
     if (quest.rewardType === 3) {
-      return quest.reward > 0 ? `${quest.reward}+ Stardust` : 'Stardust';
+      return quest.reward > 0
+        ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
+        : this.i18n.instant('QUESTS.STARDUST');
     }
     return this.getRewardTypeLabel(quest.rewardType);
   }
@@ -225,15 +233,15 @@ export class QuestListComponent implements OnInit {
   getRewardTypeLabel(rewardType: number): string {
     switch (rewardType) {
       case 7:
-        return 'Pokemon';
+        return this.i18n.instant('QUESTS.REWARD_POKEMON');
       case 2:
-        return 'Item';
+        return this.i18n.instant('QUESTS.REWARD_ITEM');
       case 12:
-        return 'Mega Energy';
+        return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
       case 4:
-        return 'Candy';
+        return this.i18n.instant('QUESTS.REWARD_CANDY');
       default:
-        return `Type ${rewardType}`;
+        return this.i18n.instant('QUESTS.REWARD_TYPE_PREFIX', { type: rewardType });
     }
   }
 
@@ -306,10 +314,10 @@ export class QuestListComponent implements OnInit {
       if (distance !== null && distance !== undefined) {
         this.questService.updateAllDistance(distance).subscribe({
           error: () => {
-            this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('QUESTS.SNACK_ALL_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadQuests();
           },
         });

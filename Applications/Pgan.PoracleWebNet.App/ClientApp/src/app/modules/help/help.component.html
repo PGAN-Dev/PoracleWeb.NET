@@ -1,8 +1,8 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Help & User Guide</h1>
+    <h1>{{ 'HELP.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">
-      Everything you need to know about setting up and managing your Pokemon GO DM alerts. Search or browse the sections below.
+      {{ 'HELP.PAGE_DESC' | translate }}
     </p>
   </div>
 </div>
@@ -12,7 +12,7 @@
     <!-- Search -->
     <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput placeholder="Search help topics..." (input)="searchQuery.set($any($event.target).value)" />
+      <input matInput [placeholder]="'HELP.SEARCH_PLACEHOLDER' | translate" (input)="searchQuery.set($any($event.target).value)" />
     </mat-form-field>
 
     <!-- Quick start cards (hidden when searching) -->
@@ -23,8 +23,8 @@
             <mat-icon style="color: #1976d2">rocket_launch</mat-icon>
           </div>
           <div class="quick-card-text">
-            <strong>New here?</strong>
-            <span>Start with Getting Started</span>
+            <strong>{{ 'HELP.QUICK_NEW' | translate }}</strong>
+            <span>{{ 'HELP.QUICK_NEW_SUB' | translate }}</span>
           </div>
           <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
         </button>
@@ -33,8 +33,8 @@
             <mat-icon style="color: #4caf50">catching_pokemon</mat-icon>
           </div>
           <div class="quick-card-text">
-            <strong>Create your first alarm</strong>
-            <span>Pokemon Alarms guide</span>
+            <strong>{{ 'HELP.QUICK_ALARM' | translate }}</strong>
+            <span>{{ 'HELP.QUICK_ALARM_SUB' | translate }}</span>
           </div>
           <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
         </button>
@@ -43,8 +43,8 @@
             <mat-icon style="color: #ff9800">help_outline</mat-icon>
           </div>
           <div class="quick-card-text">
-            <strong>Something not working?</strong>
-            <span>Check the FAQ</span>
+            <strong>{{ 'HELP.QUICK_TROUBLE' | translate }}</strong>
+            <span>{{ 'HELP.QUICK_TROUBLE_SUB' | translate }}</span>
           </div>
           <mat-icon class="quick-card-arrow">chevron_right</mat-icon>
         </button>
@@ -55,8 +55,8 @@
     @if (searchQuery() && filteredSections().length === 0) {
       <div class="no-results">
         <mat-icon>search_off</mat-icon>
-        <p>No help topics match "{{ searchQuery() }}"</p>
-        <button mat-stroked-button (click)="searchQuery.set('')">Clear search</button>
+        <p>{{ 'HELP.NO_RESULTS' | translate: { query: searchQuery() } }}</p>
+        <button mat-stroked-button (click)="searchQuery.set('')">{{ 'HELP.CLEAR_SEARCH' | translate }}</button>
       </div>
     }
 
@@ -71,30 +71,50 @@
                   <mat-icon>{{ section.icon }}</mat-icon>
                 </div>
                 <div class="section-title-block">
-                  <span class="section-title">{{ section.title }}</span>
-                  <span class="section-subtitle">{{ section.subtitle }}</span>
+                  <span class="section-title">{{ section.titleKey | translate }}</span>
+                  <span class="section-subtitle">{{ section.subtitleKey | translate }}</span>
                 </div>
+                @if (isUntranslated(section)) {
+                  <span class="lang-fallback-chip">
+                    <mat-icon>translate</mat-icon>
+                    {{ 'HELP.FALLBACK_CHIP' | translate }}
+                  </span>
+                }
               </div>
             </mat-panel-title>
           </mat-expansion-panel-header>
-          <div class="section-content" [innerHTML]="section.content"></div>
+          <div class="section-content" [innerHTML]="section.contentKey | translate"></div>
         </mat-expansion-panel>
       }
     </mat-accordion>
 
     <div class="help-footer">
       <mat-icon>chat_bubble_outline</mat-icon>
-      <span>Still need help? Reach out to your community admin on Discord.</span>
+      <span>{{ 'HELP.FOOTER' | translate }}</span>
     </div>
+
+    @if (i18n.currentLang() !== 'en') {
+      <div class="translation-cta">
+        <mat-icon>translate</mat-icon>
+        <span>{{ 'HELP.TRANSLATION_CTA' | translate }}</span>
+        <a
+          href="https://github.com/PGAN-Dev/PoracleWeb.NET/blob/main/docs/features/internationalization.md#contributing-translations"
+          target="_blank"
+          mat-stroked-button>
+          <mat-icon>open_in_new</mat-icon>
+          {{ 'HELP.TRANSLATION_CTA_LINK' | translate }}
+        </a>
+      </div>
+    }
   </div>
 
   <!-- Table of Contents sidebar (desktop, right side) -->
   <aside class="toc">
-    <div class="toc-header">On this page</div>
+    <div class="toc-header">{{ 'HELP.TOC_HEADER' | translate }}</div>
     @for (section of sections; track section.id) {
       <button class="toc-item" (click)="scrollToSection(section.id)">
         <mat-icon [style.color]="section.iconColor">{{ section.icon }}</mat-icon>
-        <span>{{ section.title }}</span>
+        <span>{{ section.titleKey | translate }}</span>
       </button>
     }
   </aside>

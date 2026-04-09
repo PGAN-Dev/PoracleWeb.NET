@@ -1,25 +1,25 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Poracle Servers</h1>
-    <p class="page-description">Monitor server status and restart Poracle instances.</p>
+    <h1>{{ 'ADMIN.SERVERS_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.SERVERS_DESC' | translate }}</p>
   </div>
   <div class="page-header-actions">
-    <button mat-raised-button (click)="refreshServers()" [disabled]="loading()" matTooltip="Refresh server status">
+    <button mat-raised-button (click)="refreshServers()" [disabled]="loading()" [matTooltip]="'ADMIN.REFRESH_STATUS' | translate">
       <mat-icon>refresh</mat-icon>
-      Refresh
+      {{ 'ADMIN.REFRESH' | translate }}
     </button>
     <button
       mat-raised-button
       color="warn"
       (click)="restartAll()"
       [disabled]="loading() || restartingAll()"
-      matTooltip="Restart all Poracle servers">
+      [matTooltip]="'ADMIN.RESTART_ALL_TOOLTIP' | translate">
       @if (restartingAll()) {
         <mat-spinner diameter="20"></mat-spinner>
       } @else {
         <mat-icon>restart_alt</mat-icon>
       }
-      Restart All
+      {{ 'ADMIN.RESTART_ALL' | translate }}
     </button>
   </div>
 </div>
@@ -43,13 +43,13 @@
                   <span class="server-card-host">{{ server.host }}</span>
                 </div>
                 <span class="status-chip" [class.status-online]="server.online" [class.status-offline]="!server.online">
-                  {{ server.online ? 'Online' : 'Offline' }}
+                  {{ server.online ? ('ADMIN.SERVER_ONLINE' | translate) : ('ADMIN.SERVER_OFFLINE' | translate) }}
                 </span>
               </div>
               <div class="server-card-meta">
                 <div class="meta-item">
                   <mat-icon>schedule</mat-icon>
-                  <span>Checked {{ server.checkedAt | date: 'medium' }}</span>
+                  <span>{{ 'ADMIN.CHECKED' | translate }} {{ server.checkedAt | date: 'medium' }}</span>
                 </div>
               </div>
               <div class="server-card-actions">
@@ -61,9 +61,9 @@
                     color="warn"
                     (click)="restartServer(server)"
                     [disabled]="restartingAll()"
-                    matTooltip="Restart this server">
+                    [matTooltip]="'ADMIN.RESTART_SERVER' | translate">
                     <mat-icon>restart_alt</mat-icon>
-                    Restart
+                    {{ 'ADMIN.RESTART' | translate }}
                   </button>
                 }
               </div>
@@ -74,8 +74,8 @@
     } @else {
       <div class="empty-state">
         <mat-icon class="empty-icon">dns</mat-icon>
-        <h2>No Poracle servers found</h2>
-        <p>No Poracle server instances are configured.</p>
+        <h2>{{ 'ADMIN.NO_SERVERS' | translate }}</h2>
+        <p>{{ 'ADMIN.NO_SERVERS_DESC' | translate }}</p>
       </div>
     }
   }

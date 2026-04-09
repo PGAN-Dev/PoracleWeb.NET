@@ -6,6 +6,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { IconService } from '../../../core/services/icon.service';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
@@ -18,7 +19,7 @@ interface GenRange {
 }
 
 @Component({
-  imports: [ReactiveFormsModule, MatAutocompleteModule, MatChipsModule, MatFormFieldModule, MatInputModule, MatIconModule],
+  imports: [ReactiveFormsModule, MatAutocompleteModule, MatChipsModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslateModule],
   selector: 'app-pokemon-selector',
   standalone: true,
   styleUrl: './pokemon-selector.component.scss',

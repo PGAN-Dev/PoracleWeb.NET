@@ -2,11 +2,11 @@
   <div class="impersonation-banner">
     <mat-icon>visibility</mat-icon>
     <span
-      >Viewing as <strong>{{ auth.user()?.username }}</strong></span
+      >{{ 'BANNER.VIEWING_AS' | translate }} <strong>{{ auth.user()?.username }}</strong></span
     >
     <button mat-raised-button (click)="stopImpersonating()">
       <mat-icon>arrow_back</mat-icon>
-      Back to Admin
+      {{ 'BANNER.BACK_TO_ADMIN' | translate }}
     </button>
   </div>
 }
@@ -22,10 +22,10 @@
 } @else if (auth.user()?.enabled === false) {
   <div class="disabled-banner">
     <mat-icon>pause_circle</mat-icon>
-    <span>Your alerts are <strong>paused</strong>. You will not receive notifications.</span>
+    <span [innerHTML]="'BANNER.PAUSED_ALERTS' | translate"></span>
     <button mat-raised-button (click)="toggleAlerts()">
       <mat-icon>play_arrow</mat-icon>
-      Resume
+      {{ 'BANNER.RESUME' | translate }}
     </button>
   </div>
 }
@@ -50,7 +50,7 @@
     }
     <div class="app-title-block">
       <span class="app-title">{{ siteTitle() }}</span>
-      <span class="app-subtitle">DM Alerts Configuration</span>
+      <span class="app-subtitle">{{ 'TOOLBAR.SUBTITLE' | translate }}</span>
     </div>
     <span class="toolbar-spacer"></span>
     @if (customNavLink(); as link) {
@@ -61,7 +61,7 @@
     <button
       mat-icon-button
       (click)="toggleTheme()"
-      [matTooltip]="darkMode() ? 'Switch to light mode' : 'Switch to dark mode'"
+      [matTooltip]="darkMode() ? ('TOOLBAR.SWITCH_TO_LIGHT' | translate) : ('TOOLBAR.SWITCH_TO_DARK' | translate)"
       aria-label="Toggle dark mode">
       <mat-icon>{{ darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
@@ -83,65 +83,84 @@
         </div>
         <div class="user-menu-info">
           <span class="user-menu-name">{{ auth.user()?.username }}</span>
-          <span class="user-menu-profile">{{ auth.user()?.profileName || 'Profile #' + auth.user()?.profileNo }}</span>
+          <span class="user-menu-profile">{{
+            auth.user()?.profileName || ('MENU.PROFILE_PREFIX' | translate) + auth.user()?.profileNo
+          }}</span>
         </div>
       </div>
       <mat-divider></mat-divider>
       @if (!auth.user()?.adminDisable) {
         <button mat-menu-item (click)="toggleAlerts()">
           <mat-icon>{{ auth.user()?.enabled ? 'notifications_active' : 'notifications_off' }}</mat-icon>
-          <span>{{ auth.user()?.enabled ? 'Pause Alerts' : 'Resume Alerts' }}</span>
+          <span>{{ auth.user()?.enabled ? ('MENU.PAUSE_ALERTS' | translate) : ('MENU.RESUME_ALERTS' | translate) }}</span>
         </button>
       }
       <mat-divider></mat-divider>
       <button mat-menu-item routerLink="/profiles">
         <mat-icon>swap_horiz</mat-icon>
-        <span>Switch Profile</span>
+        <span>{{ 'MENU.SWITCH_PROFILE' | translate }}</span>
       </button>
       <button mat-menu-item routerLink="/areas">
         <mat-icon>map</mat-icon>
-        <span>Areas & Location</span>
+        <span>{{ 'MENU.AREAS_LOCATION' | translate }}</span>
       </button>
       <button mat-menu-item routerLink="/cleaning">
         <mat-icon>cleaning_services</mat-icon>
-        <span>Cleaning</span>
+        <span>{{ 'MENU.CLEANING' | translate }}</span>
       </button>
       <mat-divider></mat-divider>
       <button mat-menu-item [matMenuTriggerFor]="accentMenu">
         <mat-icon>palette</mat-icon>
-        <span>Accent Theme</span>
+        <span>{{ 'MENU.ACCENT_THEME' | translate }}</span>
       </button>
+      @if (i18n.availableLanguages().length > 1) {
+        <button mat-menu-item [matMenuTriggerFor]="languageMenu">
+          <mat-icon>translate</mat-icon>
+          <span>{{ 'MENU.LANGUAGE' | translate }}</span>
+        </button>
+      }
       <mat-divider></mat-divider>
       <button mat-menu-item (click)="logout()">
         <mat-icon>logout</mat-icon>
-        <span>Logout</span>
+        <span>{{ 'MENU.LOGOUT' | translate }}</span>
       </button>
     </mat-menu>
     <mat-menu #accentMenu="matMenu">
       <button mat-menu-item (click)="setAccentTheme('')">
         <mat-icon>format_color_reset</mat-icon>
-        <span>Default</span>
+        <span>{{ 'MENU.ACCENT_DEFAULT' | translate }}</span>
       </button>
       <button mat-menu-item (click)="setAccentTheme('pokemon')">
         <mat-icon style="color: #4caf50">catching_pokemon</mat-icon>
-        <span>Pokemon</span>
+        <span>{{ 'MENU.ACCENT_POKEMON' | translate }}</span>
       </button>
       <button mat-menu-item (click)="setAccentTheme('raids')">
         <mat-icon style="color: #f44336">shield</mat-icon>
-        <span>Raids</span>
+        <span>{{ 'MENU.ACCENT_RAIDS' | translate }}</span>
       </button>
       <button mat-menu-item (click)="setAccentTheme('mystic')">
         <mat-icon style="color: #2196f3">water_drop</mat-icon>
-        <span>Mystic</span>
+        <span>{{ 'MENU.ACCENT_MYSTIC' | translate }}</span>
       </button>
       <button mat-menu-item (click)="setAccentTheme('valor')">
         <mat-icon style="color: #f44336">local_fire_department</mat-icon>
-        <span>Valor</span>
+        <span>{{ 'MENU.ACCENT_VALOR' | translate }}</span>
       </button>
       <button mat-menu-item (click)="setAccentTheme('instinct')">
         <mat-icon style="color: #ffc107">bolt</mat-icon>
-        <span>Instinct</span>
+        <span>{{ 'MENU.ACCENT_INSTINCT' | translate }}</span>
       </button>
+    </mat-menu>
+    <mat-menu #languageMenu="matMenu" class="language-menu-panel">
+      @for (lang of i18n.availableLanguages(); track lang.code) {
+        <button mat-menu-item (click)="i18n.use(lang.code)" class="language-menu-item">
+          <img class="lang-flag" [src]="'assets/flags/' + lang.countryCode + '.svg'" [alt]="lang.name" />
+          <span class="lang-name">{{ lang.name }}</span>
+          @if (lang.code === i18n.currentLang()) {
+            <mat-icon class="lang-check">check</mat-icon>
+          }
+        </button>
+      }
     </mat-menu>
   </mat-toolbar>
 
@@ -157,7 +176,7 @@
         <mat-nav-list>
           <!-- Alarms Section -->
           @if (!sidenavCollapsed() || isMobile()) {
-            <div class="nav-group-label">Alarms</div>
+            <div class="nav-group-label">{{ 'NAV.GROUP_ALARMS' | translate }}</div>
           }
           @for (item of alarmNavItems(); track item.route) {
             <a
@@ -166,12 +185,12 @@
               routerLinkActive="active-link"
               (click)="onNavClick()"
               class="nav-item"
-              [matTooltip]="item.label"
+              [matTooltip]="item.label | translate"
               [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
               matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               @if (!sidenavCollapsed() || isMobile()) {
-                <span matListItemTitle>{{ item.label }}</span>
+                <span matListItemTitle>{{ item.label | translate }}</span>
               }
             </a>
           }
@@ -180,7 +199,7 @@
 
           <!-- Settings Section -->
           @if (!sidenavCollapsed() || isMobile()) {
-            <div class="nav-group-label">Settings</div>
+            <div class="nav-group-label">{{ 'NAV.GROUP_SETTINGS' | translate }}</div>
           }
           @for (item of settingsNavItems(); track item.route) {
             <a
@@ -189,12 +208,12 @@
               routerLinkActive="active-link"
               (click)="onNavClick()"
               class="nav-item"
-              [matTooltip]="item.label"
+              [matTooltip]="item.label | translate"
               [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
               matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               @if (!sidenavCollapsed() || isMobile()) {
-                <span matListItemTitle>{{ item.label }}</span>
+                <span matListItemTitle>{{ item.label | translate }}</span>
               }
             </a>
           }
@@ -204,7 +223,7 @@
 
             <!-- Admin Section -->
             @if (!sidenavCollapsed() || isMobile()) {
-              <div class="nav-group-label">Admin</div>
+              <div class="nav-group-label">{{ 'NAV.GROUP_ADMIN' | translate }}</div>
             }
             @for (item of adminNavItems(); track item.route) {
               <a
@@ -213,12 +232,12 @@
                 routerLinkActive="active-link"
                 (click)="onNavClick()"
                 class="nav-item"
-                [matTooltip]="item.label"
+                [matTooltip]="item.label | translate"
                 [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
                 matTooltipPosition="right">
                 <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
                 @if (!sidenavCollapsed() || isMobile()) {
-                  <span matListItemTitle>{{ item.label }}</span>
+                  <span matListItemTitle>{{ item.label | translate }}</span>
                 }
               </a>
             }
@@ -229,7 +248,7 @@
 
             <!-- Webhooks Section (for delegates) -->
             @if (!sidenavCollapsed() || isMobile()) {
-              <div class="nav-group-label">Webhooks</div>
+              <div class="nav-group-label">{{ 'NAV.GROUP_WEBHOOKS' | translate }}</div>
             }
             @for (item of webhookNavItems(); track item.route) {
               <a
@@ -238,12 +257,12 @@
                 routerLinkActive="active-link"
                 (click)="onNavClick()"
                 class="nav-item"
-                [matTooltip]="item.label"
+                [matTooltip]="item.label | translate"
                 [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
                 matTooltipPosition="right">
                 <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
                 @if (!sidenavCollapsed() || isMobile()) {
-                  <span matListItemTitle>{{ item.label }}</span>
+                  <span matListItemTitle>{{ item.label | translate }}</span>
                 }
               </a>
             }
@@ -260,12 +279,12 @@
               routerLinkActive="active-link"
               (click)="onNavClick()"
               class="nav-item"
-              [matTooltip]="item.label"
+              [matTooltip]="item.label | translate"
               [matTooltipDisabled]="!sidenavCollapsed() || isMobile()"
               matTooltipPosition="right">
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               @if (!sidenavCollapsed() || isMobile()) {
-                <span matListItemTitle>{{ item.label }}</span>
+                <span matListItemTitle>{{ item.label | translate }}</span>
               }
             </a>
           }
@@ -277,7 +296,7 @@
             <button
               mat-icon-button
               (click)="toggleSidenavCollapse()"
-              [matTooltip]="sidenavCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+              [matTooltip]="sidenavCollapsed() ? ('TOOLBAR.EXPAND_SIDEBAR' | translate) : ('TOOLBAR.COLLAPSE_SIDEBAR' | translate)">
               <mat-icon>{{ sidenavCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
             </button>
           </div>
@@ -298,11 +317,19 @@
 @if (showShortcutHelp()) {
   <div class="shortcut-overlay" (click)="showShortcutHelp.set(false)">
     <div class="shortcut-card" (click)="$event.stopPropagation()">
-      <h3>Keyboard Shortcuts</h3>
-      <div class="shortcut-row"><kbd>?</kbd> <span>Show this help</span></div>
-      <div class="shortcut-row"><kbd>Esc</kbd> <span>Close menu / help</span></div>
-      <div class="shortcut-row"><kbd>[</kbd> <span>Collapse sidebar</span></div>
-      <div class="shortcut-row"><kbd>]</kbd> <span>Expand sidebar</span></div>
+      <h3>{{ 'SHORTCUTS.TITLE' | translate }}</h3>
+      <div class="shortcut-row">
+        <kbd>?</kbd> <span>{{ 'SHORTCUTS.SHOW_HELP' | translate }}</span>
+      </div>
+      <div class="shortcut-row">
+        <kbd>Esc</kbd> <span>{{ 'SHORTCUTS.CLOSE_MENU' | translate }}</span>
+      </div>
+      <div class="shortcut-row">
+        <kbd>[</kbd> <span>{{ 'SHORTCUTS.COLLAPSE_SIDEBAR' | translate }}</span>
+      </div>
+      <div class="shortcut-row">
+        <kbd>]</kbd> <span>{{ 'SHORTCUTS.EXPAND_SIDEBAR' | translate }}</span>
+      </div>
     </div>
   </div>
 }

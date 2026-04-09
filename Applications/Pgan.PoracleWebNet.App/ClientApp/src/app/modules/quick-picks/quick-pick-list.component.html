@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Quick Picks</h1>
-    <p class="page-description">One-click alarm presets. Apply a quick pick to instantly create tracking alarms with predefined filters.</p>
+    <h1>{{ 'QUICK_PICKS.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'QUICK_PICKS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
     @if (isAdmin()) {
@@ -9,7 +9,7 @@
         <mat-icon>more_vert</mat-icon>
       </button>
       <mat-menu #adminMenu="matMenu">
-        <button mat-menu-item (click)="onReseed()"><mat-icon>restart_alt</mat-icon> Reset to Defaults</button>
+        <button mat-menu-item (click)="onReseed()"><mat-icon>restart_alt</mat-icon> {{ 'QUICK_PICKS.RESET_DEFAULTS' | translate }}</button>
       </mat-menu>
       <button mat-fab (click)="onAddNew()" [style.background-color]="'#ff6f00'" [style.color]="'white'">
         <mat-icon>add</mat-icon>
@@ -34,16 +34,16 @@
 @if (loading()) {
   <div class="loading-container">
     <mat-spinner diameter="48"></mat-spinner>
-    <p class="loading-text">Loading quick picks...</p>
+    <p class="loading-text">{{ 'QUICK_PICKS.LOADING' | translate }}</p>
   </div>
 } @else if (groupedPicks().length === 0) {
   <div class="empty-state">
     <mat-icon class="empty-icon">bolt</mat-icon>
-    <h2 class="empty-title">No Quick Picks Available</h2>
-    <p class="empty-subtitle">Quick picks let you apply alarm presets with a single click</p>
+    <h2 class="empty-title">{{ 'QUICK_PICKS.EMPTY_TITLE' | translate }}</h2>
+    <p class="empty-subtitle">{{ 'QUICK_PICKS.EMPTY_SUBTITLE' | translate }}</p>
     @if (isAdmin()) {
       <button mat-flat-button style="background-color: #ff6f00; color: white" (click)="onAddNew()">
-        <mat-icon>add</mat-icon> Create Quick Pick
+        <mat-icon>add</mat-icon> {{ 'QUICK_PICKS.CREATE' | translate }}
       </button>
     }
   </div>
@@ -62,9 +62,9 @@
                 <h3>
                   {{ pick.definition.name }}
                   @if (pick.definition.scope === 'global') {
-                    <mat-icon class="scope-icon" matTooltip="Admin preset">lock</mat-icon>
+                    <mat-icon class="scope-icon" [matTooltip]="'QUICK_PICKS.ADMIN_PRESET' | translate">lock</mat-icon>
                   } @else {
-                    <mat-icon class="scope-icon" matTooltip="Personal preset">person</mat-icon>
+                    <mat-icon class="scope-icon" [matTooltip]="'QUICK_PICKS.PERSONAL_PRESET' | translate">person</mat-icon>
                   }
                 </h3>
                 <span class="pick-description">{{ pick.definition.description }}</span>
@@ -80,9 +80,9 @@
                 <div class="applied-info">
                   <mat-icon>check_circle</mat-icon>
                   <span>
-                    Applied — {{ pick.appliedState.trackedUids.length }} alarm(s)
+                    {{ 'QUICK_PICKS.APPLIED_INFO' | translate: { count: pick.appliedState.trackedUids.length } }}
                     @if (pick.appliedState.excludePokemonIds?.length) {
-                      · {{ pick.appliedState.excludePokemonIds.length }} excluded
+                      · {{ 'QUICK_PICKS.EXCLUDED_INFO' | translate: { count: pick.appliedState.excludePokemonIds.length } }}
                     }
                   </span>
                 </div>
@@ -92,16 +92,16 @@
               @if (removing() === pick.definition.id) {
                 <span class="removing-label">
                   <mat-spinner diameter="16"></mat-spinner>
-                  Removing...
+                  {{ 'QUICK_PICKS.REMOVING' | translate }}
                 </span>
               } @else if (pick.appliedState) {
                 <button mat-button (click)="onApply(pick)" matTooltip="Update delivery settings and re-apply">
                   <mat-icon>refresh</mat-icon>
-                  Re-apply
+                  {{ 'QUICK_PICKS.REAPPLY' | translate }}
                 </button>
                 <button mat-button color="warn" (click)="onRemove(pick)" matTooltip="Remove alarms created by this pick">
                   <mat-icon>delete_outline</mat-icon>
-                  Remove
+                  {{ 'QUICK_PICKS.REMOVE' | translate }}
                 </button>
               } @else {
                 <button
@@ -110,7 +110,7 @@
                   [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'"
                   style="color: white">
                   <mat-icon>add</mat-icon>
-                  Apply
+                  {{ 'QUICK_PICKS.APPLY' | translate }}
                 </button>
               }
               @if (isAdmin() || pick.definition.scope === 'user') {
@@ -120,11 +120,11 @@
                 <mat-menu #pickMenu="matMenu">
                   <button mat-menu-item (click)="onEdit(pick)">
                     <mat-icon>edit</mat-icon>
-                    <span>Edit</span>
+                    <span>{{ 'QUICK_PICKS.EDIT' | translate }}</span>
                   </button>
                   <button mat-menu-item (click)="onDelete(pick)">
                     <mat-icon>delete</mat-icon>
-                    <span>Delete</span>
+                    <span>{{ 'QUICK_PICKS.DELETE_PICK' | translate }}</span>
                   </button>
                 </mat-menu>
               }

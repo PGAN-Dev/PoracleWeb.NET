@@ -140,6 +140,13 @@ const SETTING_GROUPS: SettingGroup[] = [
         label: 'Enable Templates',
         type: 'boolean',
       },
+      {
+        description:
+          'Comma-separated language codes to show in the UI language selector (e.g. "en,de,fr,es"). Leave empty to show all 11 languages.',
+        key: 'allowed_languages',
+        label: 'Allowed UI Languages',
+        type: 'text',
+      },
     ],
   },
   {

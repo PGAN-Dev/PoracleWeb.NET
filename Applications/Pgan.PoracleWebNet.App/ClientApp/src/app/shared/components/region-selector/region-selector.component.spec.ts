@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { RegionOption, RegionSelectorComponent } from './region-selector.component';
 
@@ -17,6 +18,7 @@ describe('RegionSelectorComponent', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
+      providers: [provideTranslateService()],
       imports: [RegionSelectorComponent],
     });
 

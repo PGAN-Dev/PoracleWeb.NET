@@ -10,9 +10,11 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -36,6 +38,7 @@ interface LureOption {
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -46,6 +49,7 @@ interface LureOption {
 })
 export class LureAddDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
@@ -88,11 +92,11 @@ export class LureAddDialogComponent {
     );
     forkJoin(creates).subscribe({
       error: () => {
-        this.snackBar.open('Failed to create alarm(s)', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('LURES.SNACK_FAILED_CREATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`${creates.length} lure alarm(s) created`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('LURES.SNACK_CREATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

@@ -7,11 +7,13 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
 import { MaxBattleEditDialogComponent, MaxBattleEditDialogData } from './max-battle-edit-dialog.component';
 import { MaxBattle } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
@@ -30,6 +32,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
+    TranslateModule,
     AlarmInfoComponent,
   ],
   selector: 'app-max-battle-list',
@@ -40,6 +43,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 export class MaxBattleListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
@@ -57,9 +61,9 @@ export class MaxBattleListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Are you sure you want to delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('ALARM.SELECTED_COUNT', { count: this.selectedIds().size }),
+        title: this.i18n.instant('MAX_BATTLES.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -72,7 +76,7 @@ export class MaxBattleListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Deleted ${ids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
     }
   }
 
@@ -85,16 +89,16 @@ export class MaxBattleListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(`Updated distance for ${ids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
     }
   }
 
   deleteAll(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete All',
+        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
         message: 'Are you sure you want to delete ALL Max Battle alarms? This action cannot be undone.',
-        title: 'Delete All Max Battle Alarms',
+        title: this.i18n.instant('MAX_BATTLES.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -102,10 +106,10 @@ export class MaxBattleListComponent implements OnInit {
       if (confirmed) {
         this.maxBattleService.deleteAll().subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 });
+            this.snackBar.open('Failed to delete alarms', this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All Max Battle alarms deleted', 'OK', { duration: 3000 });
+            this.snackBar.open('All Max Battle alarms deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadData();
           },
         });
@@ -116,9 +120,9 @@ export class MaxBattleListComponent implements OnInit {
   deleteMaxBattle(maxBattle: MaxBattle): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
         message: `Are you sure you want to delete the alarm for ${this.getTitle(maxBattle)}?`,
-        title: 'Delete Max Battle Alarm',
+        title: this.i18n.instant('MAX_BATTLES.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -126,10 +130,10 @@ export class MaxBattleListComponent implements OnInit {
       if (confirmed) {
         this.maxBattleService.delete(maxBattle.uid).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 });
+            this.snackBar.open('Failed to delete alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Max Battle alarm deleted', 'OK', { duration: 3000 });
+            this.snackBar.open('Max Battle alarm deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadData();
           },
         });
@@ -290,10 +294,10 @@ export class MaxBattleListComponent implements OnInit {
       if (distance !== null && distance !== undefined) {
         this.maxBattleService.updateAllDistance(distance).subscribe({
           error: () => {
-            this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 });
+            this.snackBar.open('Failed to update distances', this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open('All distances updated', this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadData();
           },
         });

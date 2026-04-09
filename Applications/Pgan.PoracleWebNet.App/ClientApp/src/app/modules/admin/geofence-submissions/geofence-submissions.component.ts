@@ -21,12 +21,14 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { firstValueFrom } from 'rxjs';
 
 import { GeofenceData, UserGeofence } from '../../../core/models';
 import { AdminGeofenceService } from '../../../core/services/admin-geofence.service';
 import { AreaService } from '../../../core/services/area.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
   GeofenceApprovalDialogComponent,
@@ -57,6 +59,7 @@ export interface RegionGroup {
     MatIconModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslateModule,
   ],
   selector: 'app-geofence-submissions',
   standalone: true,
@@ -69,6 +72,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly elementRef = inject(ElementRef);
+  private readonly i18n = inject(I18nService);
   private readonly mapInstances = new Map<number, L.Map>();
   private readonly ngZone = inject(NgZone);
 
@@ -114,7 +118,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     // "No Region" last
     const noRegionItems = groupMap.get(noRegionKey);
     if (noRegionItems?.length) {
-      groups.push({ name: 'No Region', count: noRegionItems.length, geofences: noRegionItems });
+      groups.push({ name: this.i18n.instant('ADMIN.NO_REGION'), count: noRegionItems.length, geofences: noRegionItems });
     }
 
     return groups;
@@ -166,11 +170,13 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   }
 
   async adminDelete(geofence: UserGeofence): Promise<void> {
+    const name = geofence.displayName;
+    const owner = geofence.ownerName ?? geofence.humanId;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Permanently delete "${geofence.displayName}" (owned by ${geofence.ownerName ?? geofence.humanId})? This will remove it from the user's areas and clean up all associated data.`,
-        title: 'Admin Delete Geofence',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_GEOFENCE', { name, owner }),
+        title: this.i18n.instant('ADMIN.ADMIN_DELETE_GEOFENCE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -180,11 +186,14 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
         .adminDelete(geofence.id)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          error: () => this.snackBar.open('Failed to delete geofence', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_DELETE_GEOFENCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: () => {
             this.destroyMap(geofence.id);
             this.allGeofences.update(list => list.filter(g => g.id !== geofence.id));
-            this.snackBar.open(`"${geofence.displayName}" deleted`, 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_GEOFENCE_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
         });
     }
@@ -197,13 +206,13 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   getStatusLabel(status: string): string {
     switch (status) {
       case 'pending_review':
-        return 'Pending';
+        return this.i18n.instant('ADMIN.GEO_STATUS_PENDING');
       case 'active':
-        return 'Active';
+        return this.i18n.instant('ADMIN.STATUS_ACTIVE');
       case 'approved':
-        return 'Approved';
+        return this.i18n.instant('ADMIN.GEO_STATUS_APPROVED');
       case 'rejected':
-        return 'Rejected';
+        return this.i18n.instant('ADMIN.GEO_STATUS_REJECTED');
       default:
         return status;
     }
@@ -254,10 +263,15 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
             .approveSubmission(geofence.id, { promotedName: result.promotedName })
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
-              error: () => this.snackBar.open('Failed to approve submission', 'OK', { duration: 3000 }),
+              error: () =>
+                this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_APPROVE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
               next: updated => {
                 this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
-                this.snackBar.open(`"${geofence.displayName}" approved`, 'OK', { duration: 3000 });
+                this.snackBar.open(
+                  this.i18n.instant('ADMIN.SNACK_APPROVED', { name: geofence.displayName }),
+                  this.i18n.instant('TOAST.OK'),
+                  { duration: 3000 },
+                );
               },
             });
         } else {
@@ -265,10 +279,15 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
             .rejectSubmission(geofence.id, { reviewNotes: result.reviewNotes! })
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
-              error: () => this.snackBar.open('Failed to reject submission', 'OK', { duration: 3000 }),
+              error: () =>
+                this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_REJECT'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
               next: updated => {
                 this.allGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
-                this.snackBar.open(`"${geofence.displayName}" rejected`, 'OK', { duration: 3000 });
+                this.snackBar.open(
+                  this.i18n.instant('ADMIN.SNACK_REJECTED', { name: geofence.displayName }),
+                  this.i18n.instant('TOAST.OK'),
+                  { duration: 3000 },
+                );
               },
             });
         }
@@ -369,7 +388,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       .subscribe({
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Failed to load geofences', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_GEOFENCES'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: geofences => {
           this.allGeofences.set(geofences);

@@ -1,6 +1,6 @@
 @if (show()) {
-  <div class="location-warning" [matTooltip]="tooltip">
+  <div class="location-warning" [matTooltip]="'LOCATION_WARNING.TOOLTIP' | translate">
     <mat-icon class="warning-icon">warning</mat-icon>
-    <span class="warning-text">No location set &mdash; schedule may use wrong timezone</span>
+    <span class="warning-text">{{ 'LOCATION_WARNING.TEXT' | translate }}</span>
   </div>
 }

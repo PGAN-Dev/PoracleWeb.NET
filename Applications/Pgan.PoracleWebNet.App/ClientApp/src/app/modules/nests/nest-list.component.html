@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Nest Alarms</h1>
-    <p class="page-description">Monitor Pokemon nesting locations with minimum spawn rate filters.</p>
+    <h1>{{ 'NESTS.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'NESTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
     <button mat-fab (click)="openAddDialog()" style="background: #8bc34a; color: #fff"><mat-icon>add</mat-icon></button>
@@ -9,13 +9,13 @@
 </div>
 @if (!loading() && nests().length > 0) {
   <div class="filter-bar">
-    <span class="result-count">{{ nests().length }} alarms</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: nests().length } }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -24,18 +24,18 @@
 @if (selectMode()) {
   <div class="bulk-toolbar">
     @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
     }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
     @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
     <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> Update Distance
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
     </button>
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> Delete
+      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
   </div>
 }
@@ -43,7 +43,7 @@
 @if (loading()) {
   <div class="loading-container">
     <mat-spinner diameter="48"></mat-spinner>
-    <p class="loading-text">Loading alarms...</p>
+    <p class="loading-text">{{ 'ALARM.LOADING_ALARMS' | translate }}</p>
   </div>
 } @else {
   <div class="alarm-grid">
@@ -68,19 +68,20 @@
           </div>
           <div class="card-top-actions">
             @if (nest.clean === 1) {
-              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_NEST' | translate }}">clean</span>
             }
           </div>
         </div>
         <mat-card-content>
           <div class="stat-grid">
             <div class="stat">
-              <span class="stat-label">Min Spawns/Hr</span><span class="stat-value">{{ nest.minSpawnAvg }}</span>
+              <span class="stat-label">{{ 'NESTS.MIN_SPAWNS_HR' | translate }}</span
+              ><span class="stat-value">{{ nest.minSpawnAvg }}</span>
             </div>
           </div>
           <div class="distance-chip-row">
             @if (nest.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
             } @else {
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(nest.distance) }}</span>
             }
@@ -96,7 +97,9 @@
             mat-icon-button
             (click)="sendTestAlert(nest)"
             [disabled]="testAlertService.isSending('nest', nest.uid) || testAlertService.isCoolingDown('nest', nest.uid)"
-            [matTooltip]="testAlertService.isCoolingDown('nest', nest.uid) ? 'Cooldown active' : 'Send test notification'"
+            [matTooltip]="
+              testAlertService.isCoolingDown('nest', nest.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
             class="test-alert-btn">
             @if (testAlertService.isSending('nest', nest.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -104,8 +107,10 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-          <button mat-icon-button (click)="editNest(nest)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button (click)="deleteNest(nest)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
+          <button mat-icon-button (click)="editNest(nest)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button (click)="deleteNest(nest)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
         </mat-card-actions>
       </mat-card>
     } @empty {
@@ -135,10 +140,10 @@
             transform="rotate(10 58 50)" />
           <ellipse cx="48" cy="48" rx="12" ry="16" fill="#8bc34a" opacity="0.2" stroke="#8bc34a" stroke-width="2.5" />
         </svg>
-        <h2 class="empty-title">No Nest Alarms Configured</h2>
-        <p class="empty-subtitle">Monitor Pokemon nesting locations with spawn rate filters</p>
+        <h2 class="empty-title">{{ 'NESTS.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'NESTS.EMPTY_SUBTITLE' | translate }}</p>
         <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #fff">
-          <mat-icon>add</mat-icon> Add Nest
+          <mat-icon>add</mat-icon> {{ 'NESTS.ADD_NEST' | translate }}
         </button>
       </div>
     }

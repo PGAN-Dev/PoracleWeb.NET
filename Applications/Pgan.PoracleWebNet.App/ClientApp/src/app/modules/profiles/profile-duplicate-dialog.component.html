@@ -1,21 +1,25 @@
-<h2 mat-dialog-title>Duplicate Profile</h2>
+<h2 mat-dialog-title>{{ 'PROFILES.DUPLICATE_DIALOG_TITLE' | translate }}</h2>
 @if (duplicating()) {
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
 <mat-dialog-content>
   <p class="duplicate-description">
-    Create a new profile with all alarms from <strong>{{ data.name }}</strong
-    >.
+    {{ 'PROFILES.DUPLICATE_DESC' | translate: { name: data.name } }}
   </p>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>New Profile Name</mat-label>
-    <input matInput [(ngModel)]="profileName" placeholder="Enter profile name" maxlength="32" (keyup.enter)="duplicate()" />
+    <mat-label>{{ 'PROFILES.NEW_PROFILE_NAME' | translate }}</mat-label>
+    <input
+      matInput
+      [(ngModel)]="profileName"
+      [placeholder]="'PROFILES.PROFILE_NAME_PLACEHOLDER' | translate"
+      maxlength="32"
+      (keyup.enter)="duplicate()" />
     <mat-hint>{{ profileName.length }}/32</mat-hint>
   </mat-form-field>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close()">Cancel</button>
+  <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="duplicate()" [disabled]="duplicating() || !profileName.trim()">
-    <mat-icon>content_copy</mat-icon> Duplicate
+    <mat-icon>content_copy</mat-icon> {{ 'PROFILES.DUPLICATE' | translate }}
   </button>
 </mat-dialog-actions>

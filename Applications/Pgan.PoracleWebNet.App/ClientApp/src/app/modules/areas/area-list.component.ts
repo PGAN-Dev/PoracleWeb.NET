@@ -11,9 +11,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { AreaDefinition, GeofenceData, Location } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
@@ -45,6 +47,7 @@ interface GroupInfo {
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    TranslateModule,
     AreaMapComponent,
     RegionSelectorComponent,
   ],
@@ -57,6 +60,7 @@ export class AreaListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
   // Saved state (what's in the DB)
@@ -184,12 +188,13 @@ export class AreaListComponent implements OnInit {
       .setLocation({ latitude: 0, longitude: 0 })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => this.snackBar.open('Failed to clear location', 'OK', { duration: 3000 }),
+        error: () =>
+          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
         next: () => {
           this.location.set(null);
           this.locationAddress.set('');
           this.locationMapUrl.set('');
-          this.snackBar.open('Location cleared', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOCATION_CLEARED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
       });
   }
@@ -275,13 +280,13 @@ export class AreaListComponent implements OnInit {
       .subscribe({
         error: () => {
           this.saving.set(false);
-          this.snackBar.open('Failed to update areas', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('AREAS.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: () => {
           this.savedSelection = [...selected];
           this.selectedAreas.set(selected);
           this.saving.set(false);
-          this.snackBar.open('Areas updated', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('AREAS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
       });
   }

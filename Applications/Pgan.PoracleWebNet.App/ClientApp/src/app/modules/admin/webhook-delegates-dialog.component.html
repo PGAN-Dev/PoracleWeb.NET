@@ -1,12 +1,12 @@
-<h2 mat-dialog-title>Manage Delegates — {{ data.webhook.name || data.webhook.id }}</h2>
+<h2 mat-dialog-title>{{ 'ADMIN.MANAGE_DELEGATES_TITLE' | translate }} — {{ data.webhook.name || data.webhook.id }}</h2>
 <mat-dialog-content>
-  <p class="hint">Delegates can manage alarms for this webhook. Search by name or Discord user ID.</p>
+  <p class="hint">{{ 'ADMIN.DELEGATES_HINT' | translate }}</p>
   @if (loading()) {
     <mat-spinner diameter="32"></mat-spinner>
   } @else {
     <mat-chip-set class="delegates-chips">
       @for (uid of data.poracleAdmins; track uid) {
-        <mat-chip class="admin-chip" [matTooltip]="'Global admin (from Poracle config)'">
+        <mat-chip class="admin-chip" [matTooltip]="'ADMIN.GLOBAL_ADMIN_TOOLTIP' | translate">
           @if (getAvatarUrl(uid)) {
             <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
           }
@@ -15,7 +15,7 @@
         </mat-chip>
       }
       @for (uid of data.porocleDelegates; track uid) {
-        <mat-chip class="admin-chip" [matTooltip]="'Delegate from Poracle config (read-only)'">
+        <mat-chip class="admin-chip" [matTooltip]="'ADMIN.CONFIG_DELEGATE_TOOLTIP' | translate">
           @if (getAvatarUrl(uid)) {
             <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
           }
@@ -29,7 +29,7 @@
             <img matChipAvatar [src]="getAvatarUrl(uid)!" [alt]="getDisplayName(uid)" />
           }
           {{ getDisplayName(uid) }}
-          <button matChipRemove aria-label="Remove delegate">
+          <button matChipRemove [attr.aria-label]="'ADMIN.REMOVE_DELEGATE' | translate">
             <mat-icon>cancel</mat-icon>
           </button>
         </mat-chip>
@@ -37,14 +37,14 @@
     </mat-chip-set>
     <div class="add-row">
       <mat-form-field appearance="outline" class="user-id-field">
-        <mat-label>Search user by name or ID</mat-label>
+        <mat-label>{{ 'ADMIN.SEARCH_USER_LABEL' | translate }}</mat-label>
         <input
           matInput
           [(ngModel)]="searchText"
           (ngModelChange)="onSearchChange($event)"
           (keydown.enter)="addDelegateFromSearch()"
           [matAutocomplete]="userAuto"
-          placeholder="Name or Discord user ID..." />
+          [placeholder]="'ADMIN.SEARCH_USER_PLACEHOLDER' | translate" />
         <mat-autocomplete #userAuto="matAutocomplete" (optionSelected)="onUserSelected($event.option.value)">
           @for (u of filteredUsers(); track u.id) {
             <mat-option [value]="u.id">
@@ -62,11 +62,11 @@
         </mat-autocomplete>
       </mat-form-field>
       <button mat-raised-button color="primary" [disabled]="!searchText.trim()" (click)="addDelegateFromSearch()">
-        <mat-icon>person_add</mat-icon> Add
+        <mat-icon>person_add</mat-icon> {{ 'COMMON.ADD' | translate }}
       </button>
     </div>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close()">Close</button>
+  <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CLOSE' | translate }}</button>
 </mat-dialog-actions>

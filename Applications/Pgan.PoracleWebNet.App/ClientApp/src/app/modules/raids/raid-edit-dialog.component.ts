@@ -10,10 +10,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -38,6 +40,7 @@ export interface RaidEditDialogData {
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
@@ -50,6 +53,7 @@ export interface RaidEditDialogData {
 export class RaidEditDialogComponent {
   private readonly eggService = inject(EggService);
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
@@ -82,13 +86,13 @@ export class RaidEditDialogComponent {
 
   getTitle(): string {
     if (this.data.type === 'egg') {
-      return `Level ${this.data.item.level} Egg`;
+      return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + this.data.item.level + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
-      return `Raid Boss #${raid.pokemonId}`;
+      return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
     }
-    return `Level ${raid.level} Raid`;
+    return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + raid.level + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
 
   onDistanceModeChange(): void {
@@ -129,11 +133,11 @@ export class RaidEditDialogComponent {
       };
       this.raidService.update(this.data.item.uid, update).subscribe({
         error: () => {
-          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Raid alarm updated', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });
@@ -152,11 +156,11 @@ export class RaidEditDialogComponent {
       };
       this.eggService.update(this.data.item.uid, update).subscribe({
         error: () => {
-          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Egg alarm updated', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_EGG_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

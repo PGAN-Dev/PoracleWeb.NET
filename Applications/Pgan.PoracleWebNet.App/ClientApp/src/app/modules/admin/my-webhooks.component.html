@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>My Webhooks</h1>
-    <p class="page-description">Webhooks you are delegated to manage. Click "Manage Alarms" to configure alerts for a webhook.</p>
+    <h1>{{ 'ADMIN.MY_WEBHOOKS_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.MY_WEBHOOKS_DESC' | translate }}</p>
   </div>
 </div>
 
@@ -13,19 +13,19 @@
   } @else if (webhooks().length === 0) {
     <div class="empty-state">
       <mat-icon class="empty-icon">webhook</mat-icon>
-      <h2>No webhooks assigned</h2>
-      <p>You have not been assigned as a delegate for any webhooks.</p>
+      <h2>{{ 'ADMIN.NO_WEBHOOKS_ASSIGNED' | translate }}</h2>
+      <p>{{ 'ADMIN.NO_WEBHOOKS_ASSIGNED_DESC' | translate }}</p>
     </div>
   } @else {
     <div class="table-container">
       <table mat-table [dataSource]="webhooks()" class="webhooks-table">
         <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Name</th>
-          <td mat-cell *matCellDef="let wh">{{ wh.name || '(unnamed)' }}</td>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_NAME' | translate }}</th>
+          <td mat-cell *matCellDef="let wh">{{ wh.name || ('ADMIN.UNNAMED' | translate) }}</td>
         </ng-container>
 
         <ng-container matColumnDef="url">
-          <th mat-header-cell *matHeaderCellDef>URL</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_URL' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
             <span class="webhook-url" [matTooltip]="wh.id" matTooltipClass="url-tooltip">
               {{ truncateUrl(wh.id) }}
@@ -34,23 +34,23 @@
         </ng-container>
 
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_STATUS' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
             @if (wh.adminDisable === 1) {
-              <span class="status-chip status-disabled">Blocked</span>
+              <span class="status-chip status-disabled">{{ 'ADMIN.STATUS_BLOCKED' | translate }}</span>
             } @else if (wh.enabled === 0) {
-              <span class="status-chip status-paused">Stopped</span>
+              <span class="status-chip status-paused">{{ 'ADMIN.STATUS_STOPPED' | translate }}</span>
             } @else {
-              <span class="status-chip status-active">Active</span>
+              <span class="status-chip status-active">{{ 'ADMIN.STATUS_ACTIVE' | translate }}</span>
             }
           </td>
         </ng-container>
 
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
-            <button mat-raised-button color="primary" (click)="manageAlarms(wh)" matTooltip="Manage alarms for this webhook">
-              <mat-icon>tune</mat-icon> Manage Alarms
+            <button mat-raised-button color="primary" (click)="manageAlarms(wh)" [matTooltip]="'ADMIN.MANAGE_ALARMS_TOOLTIP' | translate">
+              <mat-icon>tune</mat-icon> {{ 'ADMIN.MANAGE_ALARMS' | translate }}
             </button>
           </td>
         </ng-container>

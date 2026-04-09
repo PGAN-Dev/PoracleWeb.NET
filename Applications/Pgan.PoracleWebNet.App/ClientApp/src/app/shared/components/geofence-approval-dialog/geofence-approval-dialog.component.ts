@@ -7,6 +7,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { UserGeofence } from '../../../core/models';
 
@@ -30,6 +31,7 @@ export interface GeofenceApprovalDialogResult {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    TranslateModule,
   ],
   selector: 'app-geofence-approval-dialog',
   standalone: true,

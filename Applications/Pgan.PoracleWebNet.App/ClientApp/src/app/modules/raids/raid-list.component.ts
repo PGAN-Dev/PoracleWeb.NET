@@ -8,12 +8,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg } from '../../core/models';
 import { EggService } from '../../core/services/egg.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
@@ -34,6 +36,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTooltipModule,
     MatSnackBarModule,
     MatTabsModule,
+    TranslateModule,
     AlarmInfoComponent,
   ],
   selector: 'app-raid-list',
@@ -45,6 +48,7 @@ export class RaidListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly eggService = inject(EggService);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly raidService = inject(RaidService);
@@ -63,9 +67,9 @@ export class RaidListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Are you sure you want to delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('RAIDS.CONFIRM_DELETE_SELECTED'),
+        message: this.i18n.instant('RAIDS.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        title: this.i18n.instant('RAIDS.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -83,7 +87,9 @@ export class RaidListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('TOAST.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -100,7 +106,7 @@ export class RaidListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(`Updated distance for ${ids.length} alarms`, 'OK', {
+      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DISTANCE', { count: ids.length }), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
@@ -109,9 +115,9 @@ export class RaidListComponent implements OnInit {
   deleteAll(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete All',
-        message: 'Are you sure you want to delete ALL raid and egg alarms? This action cannot be undone.',
-        title: 'Delete All Raid & Egg Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+        message: this.i18n.instant('RAIDS.CONFIRM_DELETE_ALL_MSG'),
+        title: this.i18n.instant('RAIDS.CONFIRM_DELETE_ALL_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -119,10 +125,10 @@ export class RaidListComponent implements OnInit {
       if (confirmed) {
         forkJoin([this.raidService.deleteAll(), this.eggService.deleteAll()]).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All raid & egg alarms deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_DELETED_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadData();
           },
         });
@@ -133,9 +139,9 @@ export class RaidListComponent implements OnInit {
   deleteEgg(egg: Egg): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Are you sure you want to delete the ${this.getRaidLevelName(egg.level)} egg alarm?`,
-        title: 'Delete Egg Alarm',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('RAIDS.CONFIRM_DELETE_EGG_MSG', { name: this.getRaidLevelName(egg.level) }),
+        title: this.i18n.instant('RAIDS.CONFIRM_DELETE_EGG_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -143,10 +149,10 @@ export class RaidListComponent implements OnInit {
       if (confirmed) {
         this.eggService.delete(egg.uid).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Egg alarm deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_EGG_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadData();
           },
         });
@@ -157,9 +163,9 @@ export class RaidListComponent implements OnInit {
   deleteRaid(raid: Raid): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Are you sure you want to delete the alarm for ${this.getRaidTitle(raid)}?`,
-        title: 'Delete Raid Alarm',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('RAIDS.CONFIRM_DELETE_RAID_MSG', { name: this.getRaidTitle(raid) }),
+        title: this.i18n.instant('RAIDS.CONFIRM_DELETE_RAID_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -167,10 +173,10 @@ export class RaidListComponent implements OnInit {
       if (confirmed) {
         this.raidService.delete(raid.uid).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Raid alarm deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadData();
           },
         });
@@ -254,11 +260,11 @@ export class RaidListComponent implements OnInit {
   getRaidLevelName(level: number): string {
     switch (level) {
       case 6:
-        return 'Mega';
+        return this.i18n.instant('RAIDS.LEVEL_MEGA');
       case 9000:
-        return 'Any Level';
+        return this.i18n.instant('ALARM.ANY_LEVEL');
       default:
-        return `Level ${level}`;
+        return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + level;
     }
   }
 
@@ -266,7 +272,9 @@ export class RaidListComponent implements OnInit {
     if (raid.pokemonId && raid.pokemonId !== 9000) {
       return this.masterData.getPokemonName(raid.pokemonId);
     }
-    return raid.level === 9000 ? 'All Raids' : `All ${this.getRaidLevelName(raid.level)} Raids`;
+    return raid.level === 9000
+      ? this.i18n.instant('RAIDS.ALL_RAIDS')
+      : this.i18n.instant('RAIDS.ALL_LEVEL_RAIDS', { level: this.getRaidLevelName(raid.level) });
   }
 
   getTeamColor(team: number): string {
@@ -285,13 +293,13 @@ export class RaidListComponent implements OnInit {
   getTeamName(team: number): string {
     switch (team) {
       case 1:
-        return 'Mystic';
+        return this.i18n.instant('RAIDS.TEAM_MYSTIC');
       case 2:
-        return 'Valor';
+        return this.i18n.instant('RAIDS.TEAM_VALOR');
       case 3:
-        return 'Instinct';
+        return this.i18n.instant('RAIDS.TEAM_INSTINCT');
       default:
-        return 'Any';
+        return this.i18n.instant('RAIDS.TEAM_ANY');
     }
   }
 
@@ -365,10 +373,10 @@ export class RaidListComponent implements OnInit {
       if (distance !== null && distance !== undefined) {
         forkJoin([this.raidService.updateAllDistance(distance), this.eggService.updateAllDistance(distance)]).subscribe({
           error: () => {
-            this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_ALL_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadData();
           },
         });

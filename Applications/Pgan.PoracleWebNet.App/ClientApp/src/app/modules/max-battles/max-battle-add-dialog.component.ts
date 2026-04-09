@@ -12,10 +12,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { MaxBattleCreate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -44,6 +46,7 @@ interface MaxBattleLevel {
     MatRadioModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
@@ -55,6 +58,7 @@ interface MaxBattleLevel {
 })
 export class MaxBattleAddDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
@@ -167,11 +171,11 @@ export class MaxBattleAddDialogComponent {
 
     forkJoin(creates).subscribe({
       error: () => {
-        this.snackBar.open('Failed to create alarm(s)', 'OK', { duration: 3000 });
+        this.snackBar.open('Failed to create alarm(s)', this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`${creates.length} alarm(s) created`, 'OK', { duration: 3000 });
+        this.snackBar.open(`${creates.length} alarm(s) created`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

@@ -1,15 +1,20 @@
-<h2 mat-dialog-title>Edit Profile</h2>
+<h2 mat-dialog-title>{{ 'PROFILES.EDIT_DIALOG_TITLE' | translate }}</h2>
 @if (saving()) {
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Profile Number</mat-label>
+    <mat-label>{{ 'PROFILES.PROFILE_NUMBER' | translate }}</mat-label>
     <input matInput [value]="data.profileNo" disabled />
   </mat-form-field>
   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Profile Name</mat-label>
-    <input matInput [(ngModel)]="profileName" placeholder="Enter profile name" maxlength="32" (keyup.enter)="save()" />
+    <mat-label>{{ 'PROFILES.PROFILE_NAME' | translate }}</mat-label>
+    <input
+      matInput
+      [(ngModel)]="profileName"
+      [placeholder]="'PROFILES.PROFILE_NAME_PLACEHOLDER' | translate"
+      maxlength="32"
+      (keyup.enter)="save()" />
     @if (nameError()) {
       <mat-error>{{ nameError() }}</mat-error>
     } @else {
@@ -18,8 +23,8 @@
   </mat-form-field>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close()">Cancel</button>
+  <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim()">
-    <mat-icon>save</mat-icon> Save
+    <mat-icon>save</mat-icon> {{ 'COMMON.SAVE' | translate }}
   </button>
 </mat-dialog-actions>

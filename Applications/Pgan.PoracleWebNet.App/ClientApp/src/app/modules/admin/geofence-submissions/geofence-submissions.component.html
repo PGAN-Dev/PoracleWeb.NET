@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>User Geofences</h1>
-    <p class="page-description">Review submissions, manage user geofences, and clean up records.</p>
+    <h1>{{ 'ADMIN.GEOFENCES_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.GEOFENCES_DESC' | translate }}</p>
   </div>
 </div>
 
@@ -9,21 +9,23 @@
   <!-- Toolbar: Status filter tabs + view toggle -->
   <div class="toolbar">
     <mat-button-toggle-group [value]="activeFilter()" (change)="activeFilter.set($event.value)" class="filter-tabs">
-      <mat-button-toggle value="all">All ({{ statusCounts().all }})</mat-button-toggle>
-      <mat-button-toggle value="pending_review">Pending ({{ statusCounts().pending_review }})</mat-button-toggle>
-      <mat-button-toggle value="active">Active ({{ statusCounts().active }})</mat-button-toggle>
-      <mat-button-toggle value="approved">Approved ({{ statusCounts().approved }})</mat-button-toggle>
-      <mat-button-toggle value="rejected">Rejected ({{ statusCounts().rejected }})</mat-button-toggle>
+      <mat-button-toggle value="all">{{ 'ADMIN.STATUS_ALL' | translate }} ({{ statusCounts().all }})</mat-button-toggle>
+      <mat-button-toggle value="pending_review"
+        >{{ 'ADMIN.GEO_STATUS_PENDING' | translate }} ({{ statusCounts().pending_review }})</mat-button-toggle
+      >
+      <mat-button-toggle value="active">{{ 'ADMIN.STATUS_ACTIVE' | translate }} ({{ statusCounts().active }})</mat-button-toggle>
+      <mat-button-toggle value="approved">{{ 'ADMIN.GEO_STATUS_APPROVED' | translate }} ({{ statusCounts().approved }})</mat-button-toggle>
+      <mat-button-toggle value="rejected">{{ 'ADMIN.GEO_STATUS_REJECTED' | translate }} ({{ statusCounts().rejected }})</mat-button-toggle>
     </mat-button-toggle-group>
 
     <mat-button-toggle-group [value]="viewMode()" (change)="viewMode.set($event.value)" class="view-toggle">
-      <mat-button-toggle value="card" matTooltip="Card view (grouped by region)">
+      <mat-button-toggle value="card" [matTooltip]="'ADMIN.VIEW_CARD' | translate">
         <mat-icon>grid_view</mat-icon>
       </mat-button-toggle>
-      <mat-button-toggle value="list" matTooltip="List view (grouped by region)">
+      <mat-button-toggle value="list" [matTooltip]="'ADMIN.VIEW_LIST' | translate">
         <mat-icon>view_list</mat-icon>
       </mat-button-toggle>
-      <mat-button-toggle value="table" matTooltip="Table view (all geofences)">
+      <mat-button-toggle value="table" [matTooltip]="'ADMIN.VIEW_TABLE' | translate">
         <mat-icon>table_chart</mat-icon>
       </mat-button-toggle>
     </mat-button-toggle-group>
@@ -52,49 +54,49 @@
             <thead>
               <tr>
                 <th class="col-name sortable-header" (click)="toggleSort('name')">
-                  Name
+                  {{ 'ADMIN.COLUMN_NAME' | translate }}
                   @if (sortField() === 'name') {
                     <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
                   }
                 </th>
                 <th class="col-status sortable-header" (click)="toggleSort('status')">
-                  Status
+                  {{ 'ADMIN.COLUMN_STATUS' | translate }}
                   @if (sortField() === 'status') {
                     <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
                   }
                 </th>
                 <th class="col-owner sortable-header" (click)="toggleSort('owner')">
-                  Owner
+                  {{ 'ADMIN.COLUMN_OWNER' | translate }}
                   @if (sortField() === 'owner') {
                     <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
                   }
                 </th>
                 <th class="col-region sortable-header" (click)="toggleSort('region')">
-                  Region
+                  {{ 'ADMIN.COLUMN_REGION' | translate }}
                   @if (sortField() === 'region') {
                     <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
                   }
                 </th>
                 <th class="col-points sortable-header" (click)="toggleSort('points')">
-                  Points
+                  {{ 'ADMIN.COLUMN_POINTS' | translate }}
                   @if (sortField() === 'points') {
                     <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
                   }
                 </th>
                 <th class="col-created sortable-header" (click)="toggleSort('created')">
-                  Created
+                  {{ 'ADMIN.COLUMN_CREATED' | translate }}
                   @if (sortField() === 'created') {
                     <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
                   }
                 </th>
                 <th class="col-submitted sortable-header" (click)="toggleSort('submitted')">
-                  Submitted
+                  {{ 'ADMIN.COLUMN_SUBMITTED' | translate }}
                   @if (sortField() === 'submitted') {
                     <mat-icon class="sort-icon">{{ sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
                   }
                 </th>
-                <th class="col-reviewed">Reviewed By</th>
-                <th class="col-actions">Actions</th>
+                <th class="col-reviewed">{{ 'ADMIN.COLUMN_REVIEWED_BY' | translate }}</th>
+                <th class="col-actions">{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -146,15 +148,19 @@
                   </td>
                   <td class="col-actions">
                     <div class="list-actions">
-                      <button mat-icon-button (click)="openDetailDialog(geofence)" matTooltip="View details">
+                      <button mat-icon-button (click)="openDetailDialog(geofence)" [matTooltip]="'ADMIN.VIEW_DETAILS' | translate">
                         <mat-icon>visibility</mat-icon>
                       </button>
                       @if (geofence.status === 'pending_review') {
-                        <button mat-icon-button color="primary" (click)="openReviewDialog(geofence)" matTooltip="Review">
+                        <button
+                          mat-icon-button
+                          color="primary"
+                          (click)="openReviewDialog(geofence)"
+                          [matTooltip]="'ADMIN.REVIEW' | translate">
                           <mat-icon>rate_review</mat-icon>
                         </button>
                       }
-                      <button mat-icon-button color="warn" (click)="adminDelete(geofence)" matTooltip="Delete">
+                      <button mat-icon-button color="warn" (click)="adminDelete(geofence)" [matTooltip]="'COMMON.DELETE' | translate">
                         <mat-icon>delete</mat-icon>
                       </button>
                     </div>
@@ -187,7 +193,7 @@
                       @if (!geofence.polygon?.length) {
                         <div class="map-thumbnail-empty">
                           <mat-icon>pentagon</mat-icon>
-                          <span>No polygon data</span>
+                          <span>{{ 'ADMIN.NO_POLYGON_DATA' | translate }}</span>
                         </div>
                       }
                       <div class="map-thumbnail-expand">
@@ -221,32 +227,32 @@
                         </div>
                         @switch (geofence.status) {
                           @case ('pending_review') {
-                            <span class="status-chip status-pending">Pending</span>
+                            <span class="status-chip status-pending">{{ 'ADMIN.GEO_STATUS_PENDING' | translate }}</span>
                           }
                           @case ('active') {
-                            <span class="status-chip status-active">Active</span>
+                            <span class="status-chip status-active">{{ 'ADMIN.STATUS_ACTIVE' | translate }}</span>
                           }
                           @case ('approved') {
-                            <span class="status-chip status-approved">Approved</span>
+                            <span class="status-chip status-approved">{{ 'ADMIN.GEO_STATUS_APPROVED' | translate }}</span>
                           }
                           @case ('rejected') {
-                            <span class="status-chip status-rejected">Rejected</span>
+                            <span class="status-chip status-rejected">{{ 'ADMIN.GEO_STATUS_REJECTED' | translate }}</span>
                           }
                         }
                       </div>
                       <div class="submission-card-meta">
                         <div class="meta-item">
                           <mat-icon>timeline</mat-icon>
-                          <span>{{ getPointCount(geofence) }} points</span>
+                          <span>{{ getPointCount(geofence) }} {{ 'ADMIN.POINTS' | translate }}</span>
                         </div>
                         <div class="meta-item">
                           <mat-icon>schedule</mat-icon>
-                          <span>Created {{ geofence.createdAt | date: 'mediumDate' }}</span>
+                          <span>{{ 'ADMIN.CREATED' | translate }} {{ geofence.createdAt | date: 'mediumDate' }}</span>
                         </div>
                         @if (geofence.submittedAt) {
                           <div class="meta-item">
                             <mat-icon>send</mat-icon>
-                            <span>Submitted {{ geofence.submittedAt | date: 'mediumDate' }}</span>
+                            <span>{{ 'ADMIN.SUBMITTED' | translate }} {{ geofence.submittedAt | date: 'mediumDate' }}</span>
                           </div>
                         }
                         @if (geofence.reviewedBy || geofence.reviewedByName) {
@@ -256,7 +262,7 @@
                             } @else {
                               <mat-icon>person</mat-icon>
                             }
-                            <span>Reviewed by {{ geofence.reviewedByName ?? geofence.reviewedBy }}</span>
+                            <span>{{ 'ADMIN.REVIEWED_BY' | translate }} {{ geofence.reviewedByName ?? geofence.reviewedBy }}</span>
                           </div>
                         }
                         @if (geofence.reviewNotes) {
@@ -268,12 +274,15 @@
                         @if (geofence.promotedName) {
                           <div class="meta-item">
                             <mat-icon>published_with_changes</mat-icon>
-                            <span>Promoted as: {{ geofence.promotedName }}</span>
+                            <span>{{ 'ADMIN.PROMOTED_AS' | translate }} {{ geofence.promotedName }}</span>
                           </div>
                         }
                       </div>
                       <div class="submission-card-actions">
-                        <button mat-icon-button (click)="openDetailDialog(geofence)" matTooltip="View geofence details">
+                        <button
+                          mat-icon-button
+                          (click)="openDetailDialog(geofence)"
+                          [matTooltip]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate">
                           <mat-icon>visibility</mat-icon>
                         </button>
                         @if (geofence.status === 'pending_review') {
@@ -281,12 +290,16 @@
                             mat-raised-button
                             color="primary"
                             (click)="openReviewDialog(geofence)"
-                            matTooltip="Review this submission">
+                            [matTooltip]="'ADMIN.REVIEW_SUBMISSION' | translate">
                             <mat-icon>rate_review</mat-icon>
-                            Review
+                            {{ 'ADMIN.REVIEW' | translate }}
                           </button>
                         }
-                        <button mat-icon-button color="warn" (click)="adminDelete(geofence)" matTooltip="Delete geofence and clean up">
+                        <button
+                          mat-icon-button
+                          color="warn"
+                          (click)="adminDelete(geofence)"
+                          [matTooltip]="'ADMIN.DELETE_GEOFENCE' | translate">
                           <mat-icon>delete</mat-icon>
                         </button>
                       </div>
@@ -302,13 +315,13 @@
                 <table class="list-table">
                   <thead>
                     <tr>
-                      <th class="col-name">Name</th>
-                      <th class="col-status">Status</th>
-                      <th class="col-owner">Owner</th>
-                      <th class="col-region">Region</th>
-                      <th class="col-points">Points</th>
-                      <th class="col-created">Created</th>
-                      <th class="col-actions">Actions</th>
+                      <th class="col-name">{{ 'ADMIN.COLUMN_NAME' | translate }}</th>
+                      <th class="col-status">{{ 'ADMIN.COLUMN_STATUS' | translate }}</th>
+                      <th class="col-owner">{{ 'ADMIN.COLUMN_OWNER' | translate }}</th>
+                      <th class="col-region">{{ 'ADMIN.COLUMN_REGION' | translate }}</th>
+                      <th class="col-points">{{ 'ADMIN.COLUMN_POINTS' | translate }}</th>
+                      <th class="col-created">{{ 'ADMIN.COLUMN_CREATED' | translate }}</th>
+                      <th class="col-actions">{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -347,15 +360,19 @@
                         <td class="col-created">{{ geofence.createdAt | date: 'mediumDate' }}</td>
                         <td class="col-actions">
                           <div class="list-actions">
-                            <button mat-icon-button (click)="openDetailDialog(geofence)" matTooltip="View details">
+                            <button mat-icon-button (click)="openDetailDialog(geofence)" [matTooltip]="'ADMIN.VIEW_DETAILS' | translate">
                               <mat-icon>visibility</mat-icon>
                             </button>
                             @if (geofence.status === 'pending_review') {
-                              <button mat-icon-button color="primary" (click)="openReviewDialog(geofence)" matTooltip="Review">
+                              <button
+                                mat-icon-button
+                                color="primary"
+                                (click)="openReviewDialog(geofence)"
+                                [matTooltip]="'ADMIN.REVIEW' | translate">
                                 <mat-icon>rate_review</mat-icon>
                               </button>
                             }
-                            <button mat-icon-button color="warn" (click)="adminDelete(geofence)" matTooltip="Delete">
+                            <button mat-icon-button color="warn" (click)="adminDelete(geofence)" [matTooltip]="'COMMON.DELETE' | translate">
                               <mat-icon>delete</mat-icon>
                             </button>
                           </div>
@@ -372,17 +389,17 @@
     } @else {
       <div class="empty-state">
         <mat-icon class="empty-icon">{{ activeFilter() === 'pending_review' ? 'rate_review' : 'pentagon' }}</mat-icon>
-        <h2>No {{ activeFilter() === 'all' ? '' : activeFilter().replace('_', ' ') }} geofences</h2>
+        <h2>{{ 'ADMIN.NO_GEOFENCES' | translate }}</h2>
         <p>
           @switch (activeFilter()) {
             @case ('pending_review') {
-              No submissions are waiting for review.
+              {{ 'ADMIN.NO_PENDING_SUBMISSIONS' | translate }}
             }
             @case ('all') {
-              No user-created geofences exist yet.
+              {{ 'ADMIN.NO_GEOFENCES_YET' | translate }}
             }
             @default {
-              No geofences with this status.
+              {{ 'ADMIN.NO_GEOFENCES_STATUS' | translate }}
             }
           }
         </p>

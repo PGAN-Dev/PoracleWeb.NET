@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { ActiveHoursChipComponent } from './active-hours-chip.component';
 import { ActiveHourEntry } from '../../../core/models/active-hours.models';
@@ -10,6 +11,7 @@ describe('ActiveHoursChipComponent', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
+      providers: [provideTranslateService()],
       imports: [ActiveHoursChipComponent],
     });
     fixture = TestBed.createComponent(ActiveHoursChipComponent);
@@ -26,7 +28,7 @@ describe('ActiveHoursChipComponent', () => {
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.chip-empty')?.textContent).toContain('Manual only');
+    expect(el.querySelector('.chip-empty')?.textContent).toContain('ACTIVE_HOURS_CHIP.MANUAL_ONLY');
     expect(el.querySelectorAll('.chip-active')).toHaveLength(0);
   });
 
@@ -35,7 +37,7 @@ describe('ActiveHoursChipComponent', () => {
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.chip-empty')?.textContent).toContain('Manual only');
+    expect(el.querySelector('.chip-empty')?.textContent).toContain('ACTIVE_HOURS_CHIP.MANUAL_ONLY');
   });
 
   it('should show schedule pills when activeHours has entries', () => {

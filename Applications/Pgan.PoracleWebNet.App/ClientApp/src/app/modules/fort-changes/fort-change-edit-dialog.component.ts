@@ -11,10 +11,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { FortChange, FortChangeUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
@@ -32,6 +34,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSlideToggleModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -43,6 +46,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 export class FortChangeEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly fortChangeService = inject(FortChangeService);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<FortChange>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<FortChangeEditDialogComponent>);
@@ -93,11 +97,11 @@ export class FortChangeEditDialogComponent {
       } as FortChangeUpdate)
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.snackBar.open('Failed to update alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Fort change alarm updated', 'OK', { duration: 3000 });
+          this.snackBar.open('Fort change alarm updated', this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

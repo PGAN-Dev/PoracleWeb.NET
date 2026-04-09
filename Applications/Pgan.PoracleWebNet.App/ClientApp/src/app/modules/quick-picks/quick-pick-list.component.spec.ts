@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { QuickPickListComponent } from './quick-pick-list.component';
 import { QuickPickSummary } from '../../core/models';
@@ -28,7 +29,7 @@ describe('QuickPickListComponent', () => {
         },
         QuickPickService,
       ],
-      imports: [QuickPickListComponent],
+      imports: [QuickPickListComponent, TranslateModule.forRoot()],
     });
 
     const fixture = TestBed.createComponent(QuickPickListComponent);
