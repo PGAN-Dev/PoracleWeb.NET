@@ -10,8 +10,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { GeoJsonImportResult, GeofenceRegion } from '../../../core/models';
+import { I18nService } from '../../../core/services/i18n.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 import { detectRegion } from '../../../shared/utils/geo.utils';
 
@@ -49,6 +51,7 @@ type DialogStep = 'upload' | 'preview' | 'results';
     MatProgressBarModule,
     MatSelectModule,
     MatTooltipModule,
+    TranslateModule,
   ],
   selector: 'app-geojson-import-dialog',
   standalone: true,
@@ -57,6 +60,7 @@ type DialogStep = 'upload' | 'preview' | 'results';
 })
 export class GeoJsonImportDialogComponent {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
   private readonly userGeofenceService = inject(UserGeofenceService);
   readonly previewFeatures = signal<PreviewFeature[]>([]);
   readonly allSelected = computed(() => {
@@ -83,11 +87,11 @@ export class GeoJsonImportDialogComponent {
   get dialogTitle(): string {
     switch (this.step()) {
       case 'upload':
-        return 'Import Geofences';
+        return this.i18n.instant('GEOJSON_IMPORT.TITLE_UPLOAD');
       case 'preview':
-        return 'Select & Name Geofences';
+        return this.i18n.instant('GEOJSON_IMPORT.TITLE_PREVIEW');
       case 'results':
-        return 'Import Results';
+        return this.i18n.instant('GEOJSON_IMPORT.TITLE_RESULTS');
     }
   }
 
@@ -116,13 +120,13 @@ export class GeoJsonImportDialogComponent {
   getNameError(feature: PreviewFeature): string | null {
     if (!feature.selected) return null;
     const name = feature.editedName.trim();
-    if (!name) return 'Name is required';
-    if (name.length > 50) return 'Max 50 characters';
-    if (!/^[a-zA-Z0-9 \-'.()&]+$/.test(name)) return 'Invalid characters';
+    if (!name) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_REQUIRED');
+    if (name.length > 50) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_MAX_LENGTH');
+    if (!/^[a-zA-Z0-9 \-'.()&]+$/.test(name)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_INVALID_CHARS');
     const lowerName = name.toLowerCase();
-    if (this.data.existingNames.some(n => n.toLowerCase() === lowerName)) return 'Name already exists';
+    if (this.data.existingNames.some(n => n.toLowerCase() === lowerName)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_EXISTS');
     const others = this.previewFeatures().filter(f => f !== feature && f.selected);
-    if (others.some(f => f.editedName.trim().toLowerCase() === lowerName)) return 'Duplicate name in import';
+    if (others.some(f => f.editedName.trim().toLowerCase() === lowerName)) return this.i18n.instant('GEOJSON_IMPORT.ERR_NAME_DUPLICATE');
     return null;
   }
 
@@ -193,7 +197,7 @@ export class GeoJsonImportDialogComponent {
       .subscribe({
         error: err => {
           this.importing.set(false);
-          this.parseError.set(err?.error?.error ?? 'Import failed. Please try again.');
+          this.parseError.set(err?.error?.error ?? this.i18n.instant('GEOJSON_IMPORT.ERR_IMPORT_FAILED'));
         },
         next: result => {
           this.importing.set(false);
@@ -227,7 +231,7 @@ export class GeoJsonImportDialogComponent {
     } else if (json['type'] === 'Feature') {
       features = [json];
     } else {
-      this.parseError.set('File must be a GeoJSON FeatureCollection or Feature');
+      this.parseError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_INVALID_GEOJSON'));
       this.selectedFile.set(null);
       return;
     }
@@ -278,9 +282,9 @@ export class GeoJsonImportDialogComponent {
 
       let warning: string | undefined;
       if (pointCount < 3) {
-        warning = 'Too few points (minimum 3)';
+        warning = this.i18n.instant('GEOJSON_IMPORT.ERR_TOO_FEW_POINTS');
       } else if (pointCount > 500) {
-        warning = 'Too many points (maximum 500)';
+        warning = this.i18n.instant('GEOJSON_IMPORT.ERR_TOO_MANY_POINTS');
       }
 
       // Auto-detect region from polygon centroid
@@ -306,7 +310,7 @@ export class GeoJsonImportDialogComponent {
     }
 
     if (previews.length === 0) {
-      this.parseError.set('No valid Polygon or MultiPolygon features found');
+      this.parseError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_NO_POLYGONS'));
       this.selectedFile.set(null);
       return;
     }
@@ -321,12 +325,12 @@ export class GeoJsonImportDialogComponent {
     const validTypes = ['.geojson', '.json'];
     const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!validTypes.includes(ext)) {
-      this.fileError.set('Please select a .geojson or .json file');
+      this.fileError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_INVALID_FILE_TYPE'));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      this.fileError.set('File size exceeds 5MB limit');
+      this.fileError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_FILE_TOO_LARGE'));
       return;
     }
 
@@ -339,12 +343,12 @@ export class GeoJsonImportDialogComponent {
         this.parseGeoJson(json);
         this.step.set('preview');
       } catch {
-        this.parseError.set('Invalid JSON file. Please check the file format.');
+        this.parseError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_INVALID_JSON'));
         this.selectedFile.set(null);
       }
     };
     reader.onerror = () => {
-      this.parseError.set('Failed to read file.');
+      this.parseError.set(this.i18n.instant('GEOJSON_IMPORT.ERR_READ_FAILED'));
       this.selectedFile.set(null);
     };
     reader.readAsText(file);

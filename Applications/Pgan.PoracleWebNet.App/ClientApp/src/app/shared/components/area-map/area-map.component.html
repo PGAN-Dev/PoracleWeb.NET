@@ -2,20 +2,23 @@
   <div class="region-select">
     <app-region-selector
       [regions]="regionOptions()"
-      label="Jump to Region"
-      placeholder="Type to search..."
+      [label]="'AREA_MAP.JUMP_TO_REGION' | translate"
+      [placeholder]="'AREA_MAP.SEARCH_PLACEHOLDER' | translate"
       (regionSelected)="onRegionSelected($event)"></app-region-selector>
   </div>
-  <button mat-icon-button matTooltip="Reset zoom to show all areas" (click)="fitAll()">
+  <button mat-icon-button [matTooltip]="'AREA_MAP.RESET_ZOOM' | translate" (click)="fitAll()">
     <mat-icon>fit_screen</mat-icon>
   </button>
-  <button mat-icon-button [matTooltip]="isFullscreen() ? 'Exit fullscreen' : 'Fullscreen map'" (click)="toggleFullscreen()">
+  <button
+    mat-icon-button
+    [matTooltip]="isFullscreen() ? ('AREA_MAP.EXIT_FULLSCREEN' | translate) : ('AREA_MAP.FULLSCREEN' | translate)"
+    (click)="toggleFullscreen()">
     <mat-icon>{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
   </button>
 </div>
 @if (isFullscreen() && selectedAreas.length > 0) {
   <div class="fullscreen-selected">
-    <span class="fs-selected-label">{{ selectedAreas.length }} selected:</span>
+    <span class="fs-selected-label">{{ 'AREA_MAP.SELECTED_COUNT' | translate: { count: selectedAreas.length } }}</span>
     <div class="fs-selected-chips">
       @for (area of selectedAreas; track area) {
         <span class="fs-chip">{{ area }}</span>
@@ -26,6 +29,6 @@
 <div class="map-wrapper">
   <div #mapContainer class="area-map-container"></div>
   @if (selectedAreas.length > 0) {
-    <div class="map-selection-badge">{{ selectedAreas.length }} area{{ selectedAreas.length !== 1 ? 's' : '' }} selected</div>
+    <div class="map-selection-badge">{{ 'AREA_MAP.AREAS_SELECTED' | translate: { count: selectedAreas.length } }}</div>
   }
 </div>

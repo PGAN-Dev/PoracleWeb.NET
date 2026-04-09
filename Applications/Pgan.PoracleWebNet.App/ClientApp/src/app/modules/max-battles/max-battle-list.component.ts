@@ -76,7 +76,9 @@ export class MaxBattleListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -89,7 +91,9 @@ export class MaxBattleListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(`Updated distance for ${ids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_BULK_DISTANCE', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -97,7 +101,7 @@ export class MaxBattleListComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
-        message: 'Are you sure you want to delete ALL Max Battle alarms? This action cannot be undone.',
+        message: this.i18n.instant('MAX_BATTLES.CONFIRM_DELETE_ALL_MSG'),
         title: this.i18n.instant('MAX_BATTLES.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
@@ -106,10 +110,10 @@ export class MaxBattleListComponent implements OnInit {
       if (confirmed) {
         this.maxBattleService.deleteAll().subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarms', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All Max Battle alarms deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_DELETED_ALL'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadData();
           },
         });
@@ -121,7 +125,7 @@ export class MaxBattleListComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         confirmText: this.i18n.instant('COMMON.DELETE'),
-        message: `Are you sure you want to delete the alarm for ${this.getTitle(maxBattle)}?`,
+        message: this.i18n.instant('MAX_BATTLES.CONFIRM_DELETE_MSG', { name: this.getTitle(maxBattle) }),
         title: this.i18n.instant('MAX_BATTLES.PAGE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
@@ -130,10 +134,10 @@ export class MaxBattleListComponent implements OnInit {
       if (confirmed) {
         this.maxBattleService.delete(maxBattle.uid).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Max Battle alarm deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadData();
           },
         });
@@ -191,21 +195,18 @@ export class MaxBattleListComponent implements OnInit {
   getLevelLabel(level: number): string {
     switch (level) {
       case 1:
-        return '1 Star';
       case 2:
-        return '2 Star';
       case 3:
-        return '3 Star';
       case 4:
-        return '4 Star';
+        return this.i18n.instant('MAX_BATTLES.STAR_LABEL', { stars: level });
       case 5:
-        return '5 Star (Legendary)';
+        return this.i18n.instant('MAX_BATTLES.STAR_LEGENDARY', { stars: 5 });
       case 7:
-        return 'Gigantamax';
+        return this.i18n.instant('MAX_BATTLES.GIGANTAMAX');
       case 8:
-        return 'Legendary Gigantamax';
+        return this.i18n.instant('MAX_BATTLES.LEGENDARY_GIGANTAMAX');
       default:
-        return `Level ${level}`;
+        return this.i18n.instant('MAX_BATTLES.LEVEL_NUM', { level });
     }
   }
 
@@ -222,7 +223,7 @@ export class MaxBattleListComponent implements OnInit {
     if (maxBattle.pokemonId && maxBattle.pokemonId !== 9000) {
       return this.masterData.getPokemonName(maxBattle.pokemonId);
     }
-    return 'Any Pokemon';
+    return this.i18n.instant('MAX_BATTLES.ANY_POKEMON');
   }
 
   isGmax(level: number): boolean {
@@ -294,10 +295,10 @@ export class MaxBattleListComponent implements OnInit {
       if (distance !== null && distance !== undefined) {
         this.maxBattleService.updateAllDistance(distance).subscribe({
           error: () => {
-            this.snackBar.open('Failed to update distances', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All distances updated', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadData();
           },
         });

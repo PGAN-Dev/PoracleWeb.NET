@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { DiscordServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { SettingsService } from '../../core/services/settings.service';
@@ -23,9 +24,9 @@ function settingKey(item: AnySettingItem): string {
 }
 
 interface SettingMeta {
-  description: string;
+  descriptionKey: string;
   key: string;
-  label: string;
+  labelKey: string;
   /** Only show this setting when another boolean setting is True */
   showWhen?: string;
   type: 'text' | 'url' | 'boolean';
@@ -34,7 +35,7 @@ interface SettingMeta {
 interface SettingGroup {
   color: string;
   icon: string;
-  label: string;
+  labelKey: string;
   settings: SettingMeta[];
 }
 
@@ -42,32 +43,42 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#1976d2',
     icon: 'palette',
-    label: 'Branding',
+    labelKey: 'ADMIN_SETTINGS.GROUP_BRANDING',
     settings: [
-      { description: 'Name shown in the browser tab and page header.', key: 'custom_title', label: 'Site Title', type: 'text' },
       {
-        description: 'URL for a custom logo image in the header (replaces the Pokeball). Leave empty for default.',
+        descriptionKey: 'ADMIN_SETTINGS.CUSTOM_TITLE_DESC',
+        key: 'custom_title',
+        labelKey: 'ADMIN_SETTINGS.CUSTOM_TITLE_LABEL',
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.HEADER_LOGO_URL_DESC',
         key: 'header_logo_url',
-        label: 'Header Logo URL',
+        labelKey: 'ADMIN_SETTINGS.HEADER_LOGO_URL_LABEL',
         type: 'url',
       },
       {
-        description: 'Hide the Pokeball/logo from the header entirely.',
+        descriptionKey: 'ADMIN_SETTINGS.HIDE_HEADER_LOGO_DESC',
         key: 'hide_header_logo',
-        label: 'Hide Header Logo',
+        labelKey: 'ADMIN_SETTINGS.HIDE_HEADER_LOGO_LABEL',
         type: 'boolean',
       },
       {
-        description: 'Label for the custom navigation link (e.g. "Back To Map").',
+        descriptionKey: 'ADMIN_SETTINGS.CUSTOM_PAGE_NAME_DESC',
         key: 'custom_page_name',
-        label: 'Nav Link Label',
+        labelKey: 'ADMIN_SETTINGS.CUSTOM_PAGE_NAME_LABEL',
         type: 'text',
       },
-      { description: 'URL the custom nav link points to.', key: 'custom_page_url', label: 'Nav Link URL', type: 'url' },
       {
-        description: 'FontAwesome class for the nav link icon (e.g. "fas fa-map").',
+        descriptionKey: 'ADMIN_SETTINGS.CUSTOM_PAGE_URL_DESC',
+        key: 'custom_page_url',
+        labelKey: 'ADMIN_SETTINGS.CUSTOM_PAGE_URL_LABEL',
+        type: 'url',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.CUSTOM_PAGE_ICON_DESC',
         key: 'custom_page_icon',
-        label: 'Nav Link Icon',
+        labelKey: 'ADMIN_SETTINGS.CUSTOM_PAGE_ICON_LABEL',
         type: 'text',
       },
     ],
@@ -75,30 +86,60 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#ff9800',
     icon: 'notifications',
-    label: 'Alarm Types',
+    labelKey: 'ADMIN_SETTINGS.GROUP_ALARM_TYPES',
     settings: [
-      { description: 'Hide Pokémon alarm management from all users.', key: 'disable_mons', label: 'Disable Pokémon', type: 'boolean' },
-      { description: 'Hide raid alarm management from all users.', key: 'disable_raids', label: 'Disable Raids', type: 'boolean' },
-      { description: 'Hide quest alarm management from all users.', key: 'disable_quests', label: 'Disable Quests', type: 'boolean' },
       {
-        description: 'Hide invasion alarm management from all users.',
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_MONS_DESC',
+        key: 'disable_mons',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_MONS_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_RAIDS_DESC',
+        key: 'disable_raids',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_RAIDS_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_QUESTS_DESC',
+        key: 'disable_quests',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_QUESTS_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_INVASIONS_DESC',
         key: 'disable_invasions',
-        label: 'Disable Invasions',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_INVASIONS_LABEL',
         type: 'boolean',
       },
-      { description: 'Hide lure alarm management from all users.', key: 'disable_lures', label: 'Disable Lures', type: 'boolean' },
-      { description: 'Hide nest alarm management from all users.', key: 'disable_nests', label: 'Disable Nests', type: 'boolean' },
-      { description: 'Hide gym alarm management from all users.', key: 'disable_gyms', label: 'Disable Gyms', type: 'boolean' },
       {
-        description: 'Hide fort change alarm management from all users.',
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_LURES_DESC',
+        key: 'disable_lures',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_LURES_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_NESTS_DESC',
+        key: 'disable_nests',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_NESTS_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_GYMS_DESC',
+        key: 'disable_gyms',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_GYMS_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_FORT_CHANGES_DESC',
         key: 'disable_fort_changes',
-        label: 'Disable Fort Changes',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_FORT_CHANGES_LABEL',
         type: 'boolean',
       },
       {
-        description: 'Hide max battle alarm management from all users.',
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_MAXBATTLES_DESC',
         key: 'disable_maxbattles',
-        label: 'Disable Max Battles',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_MAXBATTLES_LABEL',
         type: 'boolean',
       },
     ],
@@ -106,45 +147,54 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#4caf50',
     icon: 'tune',
-    label: 'Features',
+    labelKey: 'ADMIN_SETTINGS.GROUP_FEATURES',
     settings: [
       {
-        description: 'Prevent users from managing their area subscriptions.',
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_AREAS_DESC',
         key: 'disable_areas',
-        label: 'Disable Areas',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_AREAS_LABEL',
         type: 'boolean',
       },
       {
-        description: 'Prevent users from creating and switching alarm profiles.',
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_PROFILES_DESC',
         key: 'disable_profiles',
-        label: 'Disable Profiles',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_PROFILES_LABEL',
         type: 'boolean',
       },
-      { description: 'Prevent users from setting a home location.', key: 'disable_location', label: 'Disable Location', type: 'boolean' },
       {
-        description: 'Disable Nominatim address search for location picking.',
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_LOCATION_DESC',
+        key: 'disable_location',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_LOCATION_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_NOMINATIM_DESC',
         key: 'disable_nominatim',
-        label: 'Disable Geocoding',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_NOMINATIM_LABEL',
         type: 'boolean',
       },
-      { description: 'Hide the interactive geofence map entirely.', key: 'disable_geomap', label: 'Disable Map View', type: 'boolean' },
       {
-        description: 'Prevent users from selecting areas by clicking the map.',
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_DESC',
+        key: 'disable_geomap',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_SELECT_DESC',
         key: 'disable_geomap_select',
-        label: 'Disable Map Area Selection',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_SELECT_LABEL',
         type: 'boolean',
       },
       {
-        description: 'Allow users to choose notification message templates.',
+        descriptionKey: 'ADMIN_SETTINGS.ENABLE_TEMPLATES_DESC',
         key: 'enable_templates',
-        label: 'Enable Templates',
+        labelKey: 'ADMIN_SETTINGS.ENABLE_TEMPLATES_LABEL',
         type: 'boolean',
       },
       {
-        description:
-          'Comma-separated language codes to show in the UI language selector (e.g. "en,de,fr,es"). Leave empty to show all 11 languages.',
+        descriptionKey: 'ADMIN_SETTINGS.ALLOWED_LANGUAGES_DESC',
         key: 'allowed_languages',
-        label: 'Allowed UI Languages',
+        labelKey: 'ADMIN_SETTINGS.ALLOWED_LANGUAGES_LABEL',
         type: 'text',
       },
     ],
@@ -152,25 +202,25 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#f44336',
     icon: 'admin_panel_settings',
-    label: 'Administration',
+    labelKey: 'ADMIN_SETTINGS.GROUP_ADMINISTRATION',
     settings: [
       {
-        description: 'Only allow users with specific Discord roles to log in. Requires Bot Token and Guild ID.',
+        descriptionKey: 'ADMIN_SETTINGS.ENABLE_ROLES_DESC',
         key: 'enable_roles',
-        label: 'Enable Role-Based Access',
+        labelKey: 'ADMIN_SETTINGS.ENABLE_ROLES_LABEL',
         type: 'boolean',
       },
       {
-        description: 'Comma-separated Discord role IDs that grant access (e.g. "123456789,987654321"). Leave empty to allow all.',
+        descriptionKey: 'ADMIN_SETTINGS.ALLOWED_ROLE_IDS_DESC',
         key: 'allowed_role_ids',
-        label: 'Allowed Role IDs',
+        labelKey: 'ADMIN_SETTINGS.ALLOWED_ROLE_IDS_LABEL',
         showWhen: 'enable_roles',
         type: 'text',
       },
       {
-        description: 'Comma-separated list of language codes users can select (e.g. "en,de,fr").',
+        descriptionKey: 'ADMIN_SETTINGS.ADMIN_ALLOWED_LANGUAGES_DESC',
         key: 'allowed_languages',
-        label: 'Allowed Languages',
+        labelKey: 'ADMIN_SETTINGS.ADMIN_ALLOWED_LANGUAGES_LABEL',
         type: 'text',
       },
     ],
@@ -178,18 +228,18 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#607d8b',
     icon: 'terminal',
-    label: 'Commands',
+    labelKey: 'ADMIN_SETTINGS.GROUP_COMMANDS',
     settings: [
       {
-        description: 'The Poracle bot command users run to register (e.g. "$!register").',
+        descriptionKey: 'ADMIN_SETTINGS.REGISTER_COMMAND_DESC',
         key: 'register_command',
-        label: 'Register Command',
+        labelKey: 'ADMIN_SETTINGS.REGISTER_COMMAND_LABEL',
         type: 'text',
       },
       {
-        description: 'The Poracle bot command users run to set their location.',
+        descriptionKey: 'ADMIN_SETTINGS.LOCATION_COMMAND_DESC',
         key: 'location_command',
-        label: 'Location Command',
+        labelKey: 'ADMIN_SETTINGS.LOCATION_COMMAND_LABEL',
         type: 'text',
       },
     ],
@@ -197,28 +247,31 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#0088cc',
     icon: 'send',
-    label: 'Telegram',
+    labelKey: 'ADMIN_SETTINGS.GROUP_TELEGRAM',
     settings: [
       {
-        description:
-          'Allow Telegram login on this site. Requires TELEGRAM_ENABLED=true, bot token, and bot username in .env (server restart required for .env changes).',
+        descriptionKey: 'ADMIN_SETTINGS.ENABLE_TELEGRAM_DESC',
         key: 'enable_telegram',
-        label: 'Enable Telegram Login',
+        labelKey: 'ADMIN_SETTINGS.ENABLE_TELEGRAM_LABEL',
         type: 'boolean',
       },
-      { description: 'Telegram bot username (without @).', key: 'telegram_bot', label: 'Bot Username', type: 'text' },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.TELEGRAM_BOT_DESC',
+        key: 'telegram_bot',
+        labelKey: 'ADMIN_SETTINGS.TELEGRAM_BOT_LABEL',
+        type: 'text',
+      },
     ],
   },
   {
     color: '#5865F2',
     icon: 'forum',
-    label: 'Discord',
+    labelKey: 'ADMIN_SETTINGS.GROUP_DISCORD',
     settings: [
       {
-        description:
-          'Allow Discord login on this site. Requires Discord Client ID and Client Secret in .env (server restart required for .env changes). Does not affect PoracleNG bot delivery.',
+        descriptionKey: 'ADMIN_SETTINGS.ENABLE_DISCORD_DESC',
         key: 'enable_discord',
-        label: 'Enable Discord Login',
+        labelKey: 'ADMIN_SETTINGS.ENABLE_DISCORD_LABEL',
         type: 'boolean',
       },
     ],
@@ -226,12 +279,12 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#2e7d32',
     icon: 'map',
-    label: 'Maps & Assets',
+    labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',
     settings: [
       {
-        description: 'URL template for the map tile provider (used for static maps).',
+        descriptionKey: 'ADMIN_SETTINGS.PROVIDER_URL_DESC',
         key: 'provider_url',
-        label: 'Map Tile URL',
+        labelKey: 'ADMIN_SETTINGS.PROVIDER_URL_LABEL',
         type: 'url',
       },
     ],
@@ -239,25 +292,30 @@ const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#7b1fa2',
     icon: 'bar_chart',
-    label: 'Analytics & Links',
+    labelKey: 'ADMIN_SETTINGS.GROUP_ANALYTICS_LINKS',
     settings: [
-      { description: 'GA4 measurement ID (leave blank to disable).', key: 'gAnalyticsId', label: 'Google Analytics ID', type: 'text' },
-      { description: 'Link to your Patreon page shown in the UI.', key: 'patreonUrl', label: 'Patreon URL', type: 'url' },
-      { description: 'Link to your PayPal donation page shown in the UI.', key: 'paypalUrl', label: 'PayPal URL', type: 'url' },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.GANALYTICSID_DESC',
+        key: 'gAnalyticsId',
+        labelKey: 'ADMIN_SETTINGS.GANALYTICSID_LABEL',
+        type: 'text',
+      },
+      { descriptionKey: 'ADMIN_SETTINGS.PATREONURL_DESC', key: 'patreonUrl', labelKey: 'ADMIN_SETTINGS.PATREONURL_LABEL', type: 'url' },
+      { descriptionKey: 'ADMIN_SETTINGS.PAYPALURL_DESC', key: 'paypalUrl', labelKey: 'ADMIN_SETTINGS.PAYPALURL_LABEL', type: 'url' },
     ],
   },
   {
     color: '#ff5722',
     icon: 'bug_report',
-    label: 'Debug',
+    labelKey: 'ADMIN_SETTINGS.GROUP_DEBUG',
     settings: [
       {
-        description: 'Mark the site as running over HTTPS (affects cookie security).',
+        descriptionKey: 'ADMIN_SETTINGS.SITE_IS_HTTPS_DESC',
         key: 'site_is_https',
-        label: 'Site Is HTTPS',
+        labelKey: 'ADMIN_SETTINGS.SITE_IS_HTTPS_LABEL',
         type: 'boolean',
       },
-      { description: 'Enable verbose debug logging (not recommended in production).', key: 'debug', label: 'Debug Mode', type: 'boolean' },
+      { descriptionKey: 'ADMIN_SETTINGS.DEBUG_DESC', key: 'debug', labelKey: 'ADMIN_SETTINGS.DEBUG_LABEL', type: 'boolean' },
     ],
   },
 ];
@@ -275,6 +333,7 @@ const SETTING_GROUPS: SettingGroup[] = [
     MatSlideToggleModule,
     MatDividerModule,
     MatTooltipModule,
+    TranslateModule,
   ],
   selector: 'app-admin-settings',
   standalone: true,
@@ -394,8 +453,8 @@ export class AdminSettingsComponent implements OnInit {
     SETTING_GROUPS.filter(
       g =>
         g.settings.some(s => this.settingMap().has(s.key)) ||
-        (g.label === 'Discord' && this.discordConfig() !== null) ||
-        (g.label === 'Telegram' && this.telegramConfig() !== null),
+        (g.labelKey === 'ADMIN_SETTINGS.GROUP_DISCORD' && this.discordConfig() !== null) ||
+        (g.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && this.telegramConfig() !== null),
     ),
   );
 

@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Server Settings</h1>
-    <p class="page-description">Configure site behaviour, integrations, and feature flags.</p>
+    <h1>{{ 'ADMIN.SETTINGS_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.SETTINGS_DESC' | translate }}</p>
   </div>
   @if (modifiedSettings().size > 0) {
     <button mat-raised-button color="primary" (click)="saveAllModified()" [disabled]="bulkSaving()">
@@ -21,11 +21,11 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
-    @for (group of visibleGroups(); track group.label; let last = $last) {
+    @for (group of visibleGroups(); track group.labelKey; let last = $last) {
       <section class="settings-section">
         <div class="section-header" [style.border-left]="'4px solid ' + group.color">
           <mat-icon class="section-icon" [style.color]="group.color">{{ group.icon }}</mat-icon>
-          <span class="section-label">{{ group.label }}</span>
+          <span class="section-label">{{ group.labelKey | translate }}</span>
         </div>
 
         <div class="section-rows">
@@ -33,8 +33,8 @@
             @if (getSettingValue(meta.key) !== null && isSettingVisible(meta)) {
               <div class="setting-row" [class.modified]="modifiedSettings().has(meta.key)">
                 <div class="setting-info">
-                  <span class="setting-label">{{ meta.label }}</span>
-                  <span class="setting-desc">{{ meta.description }}</span>
+                  <span class="setting-label">{{ meta.labelKey | translate }}</span>
+                  <span class="setting-desc">{{ meta.descriptionKey | translate }}</span>
                 </div>
                 <div class="setting-control">
                   @if (meta.type === 'boolean') {
@@ -60,30 +60,26 @@
           }
         </div>
 
-        @if (group.label === 'Telegram' && telegramConfig()) {
+        @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && telegramConfig()) {
           @if (!telegramConfig()!.enabled) {
             <div class="config-hint warning">
               <mat-icon>info_outline</mat-icon>
-              <span>
-                Telegram login requires <code>TELEGRAM_ENABLED=true</code> in your <code>.env</code> file along with
-                <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_BOT_USERNAME</code>. A server restart is needed after changing
-                <code>.env</code>. The toggle above is an additional on/off switch that takes effect immediately.
-              </span>
+              <span [innerHTML]="'ADMIN_SETTINGS.TELEGRAM_HINT' | translate"></span>
             </div>
           }
           <div class="server-config-block">
             <div class="server-config-header">
               <mat-icon class="server-config-icon">dns</mat-icon>
-              <span class="server-config-title">Server Configuration</span>
-              <span class="server-config-badge" matTooltip="These values are set in .env and require a server restart to change.">
-                read-only
+              <span class="server-config-title">{{ 'ADMIN_SETTINGS.SERVER_CONFIG' | translate }}</span>
+              <span class="server-config-badge" [matTooltip]="'ADMIN.READ_ONLY_TOOLTIP' | translate">
+                {{ 'ADMIN.READ_ONLY' | translate }}
               </span>
             </div>
             <div class="server-config-rows">
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Enabled in .env</span>
-                  <span class="setting-desc">TELEGRAM_ENABLED value from server config (requires restart to change).</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.TELEGRAM_ENV_ENABLED_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.TELEGRAM_ENV_ENABLED_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
                   <code [class.empty]="!telegramConfig()!.enabled">{{ telegramConfig()!.enabled ? 'true' : 'false' }}</code>
@@ -92,99 +88,109 @@
               <mat-divider></mat-divider>
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Bot Token</span>
-                  <span class="setting-desc">Telegram bot token from BotFather (masked).</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.TELEGRAM_BOT_TOKEN_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.TELEGRAM_BOT_TOKEN_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
                   <code class="secret" [class.empty]="!telegramConfig()!.botToken">{{
-                    telegramConfig()!.botToken || 'Not configured'
+                    telegramConfig()!.botToken || ('ADMIN.NOT_CONFIGURED' | translate)
                   }}</code>
                 </div>
               </div>
               <mat-divider></mat-divider>
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Bot Username</span>
-                  <span class="setting-desc">Telegram bot username configured in .env.</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.TELEGRAM_BOT_USERNAME_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.TELEGRAM_BOT_USERNAME_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
-                  <code [class.empty]="!telegramConfig()!.botUsername">{{ telegramConfig()!.botUsername || 'Not configured' }}</code>
+                  <code [class.empty]="!telegramConfig()!.botUsername">{{
+                    telegramConfig()!.botUsername || ('ADMIN.NOT_CONFIGURED' | translate)
+                  }}</code>
                 </div>
               </div>
             </div>
           </div>
         }
 
-        @if (group.label === 'Discord' && discordConfig()) {
+        @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_DISCORD' && discordConfig()) {
           <div class="server-config-block">
             <div class="server-config-header">
               <mat-icon class="server-config-icon">dns</mat-icon>
-              <span class="server-config-title">Server Configuration</span>
-              <span class="server-config-badge" matTooltip="These values are set in .env and require a server restart to change.">
-                read-only
+              <span class="server-config-title">{{ 'ADMIN_SETTINGS.SERVER_CONFIG' | translate }}</span>
+              <span class="server-config-badge" [matTooltip]="'ADMIN.READ_ONLY_TOOLTIP' | translate">
+                {{ 'ADMIN.READ_ONLY' | translate }}
               </span>
             </div>
             <div class="server-config-rows">
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Client ID</span>
-                  <span class="setting-desc">Discord OAuth2 application client ID.</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.DISCORD_CLIENT_ID_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.DISCORD_CLIENT_ID_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
-                  <code [class.empty]="!discordConfig()!.clientId">{{ discordConfig()!.clientId || 'Not configured' }}</code>
-                </div>
-              </div>
-              <mat-divider></mat-divider>
-              <div class="server-config-row">
-                <div class="setting-info">
-                  <span class="setting-label">Client Secret</span>
-                  <span class="setting-desc">Discord OAuth2 application secret (masked).</span>
-                </div>
-                <div class="server-config-value">
-                  <code class="secret" [class.empty]="!discordConfig()!.clientSecret">{{
-                    discordConfig()!.clientSecret || 'Not configured'
+                  <code [class.empty]="!discordConfig()!.clientId">{{
+                    discordConfig()!.clientId || ('ADMIN.NOT_CONFIGURED' | translate)
                   }}</code>
                 </div>
               </div>
               <mat-divider></mat-divider>
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Bot Token</span>
-                  <span class="setting-desc">Discord bot token for role verification and notifications (masked).</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.DISCORD_CLIENT_SECRET_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.DISCORD_CLIENT_SECRET_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
-                  <code class="secret" [class.empty]="!discordConfig()!.botToken">{{ discordConfig()!.botToken || 'Not configured' }}</code>
+                  <code class="secret" [class.empty]="!discordConfig()!.clientSecret">{{
+                    discordConfig()!.clientSecret || ('ADMIN.NOT_CONFIGURED' | translate)
+                  }}</code>
                 </div>
               </div>
               <mat-divider></mat-divider>
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Guild ID</span>
-                  <span class="setting-desc">Discord server ID for role-based access control.</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.DISCORD_BOT_TOKEN_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.DISCORD_BOT_TOKEN_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
-                  <code [class.empty]="!discordConfig()!.guildId">{{ discordConfig()!.guildId || 'Not configured' }}</code>
+                  <code class="secret" [class.empty]="!discordConfig()!.botToken">{{
+                    discordConfig()!.botToken || ('ADMIN.NOT_CONFIGURED' | translate)
+                  }}</code>
                 </div>
               </div>
               <mat-divider></mat-divider>
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Admin IDs</span>
-                  <span class="setting-desc">Discord user IDs with admin access (masked).</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.DISCORD_GUILD_ID_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.DISCORD_GUILD_ID_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
-                  <code [class.empty]="!discordConfig()!.adminIds">{{ discordConfig()!.adminIds || 'Not configured' }}</code>
+                  <code [class.empty]="!discordConfig()!.guildId">{{
+                    discordConfig()!.guildId || ('ADMIN.NOT_CONFIGURED' | translate)
+                  }}</code>
                 </div>
               </div>
               <mat-divider></mat-divider>
               <div class="server-config-row">
                 <div class="setting-info">
-                  <span class="setting-label">Geofence Forum Channel</span>
-                  <span class="setting-desc">Discord forum channel for geofence submission threads.</span>
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.DISCORD_ADMIN_IDS_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.DISCORD_ADMIN_IDS_DESC' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!discordConfig()!.adminIds">{{
+                    discordConfig()!.adminIds || ('ADMIN.NOT_CONFIGURED' | translate)
+                  }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.DISCORD_GEOFENCE_FORUM_LABEL' | translate }}</span>
+                  <span class="setting-desc">{{ 'ADMIN_SETTINGS.DISCORD_GEOFENCE_FORUM_DESC' | translate }}</span>
                 </div>
                 <div class="server-config-value">
                   <code [class.empty]="!discordConfig()!.geofenceForumChannelId">{{
-                    discordConfig()!.geofenceForumChannelId || 'Not configured'
+                    discordConfig()!.geofenceForumChannelId || ('ADMIN.NOT_CONFIGURED' | translate)
                   }}</code>
                 </div>
               </div>
@@ -203,7 +209,7 @@
     <section class="settings-section">
       <div class="section-header" style="border-left: 4px solid #2e7d32">
         <mat-icon class="section-icon" style="color: #2e7d32">image</mat-icon>
-        <span class="section-label">Icon Repository</span>
+        <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_ICON_REPO' | translate }}</span>
       </div>
       <div class="repo-selector">
         @for (repo of iconRepos; track repo.name) {
@@ -244,7 +250,7 @@
       <section class="settings-section">
         <div class="section-header">
           <mat-icon class="section-icon">help_outline</mat-icon>
-          <span class="section-label">Other</span>
+          <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_OTHER' | translate }}</span>
         </div>
         <div class="section-rows">
           @for (s of unknownSettings(); track itemKey(s); let rowLast = $last) {

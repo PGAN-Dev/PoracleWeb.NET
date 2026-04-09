@@ -66,7 +66,9 @@ export class FortChangeListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadItems();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -79,7 +81,9 @@ export class FortChangeListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadItems();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -88,7 +92,7 @@ export class FortChangeListComponent implements OnInit {
       .open(ConfirmDialogComponent, {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
-          message: 'Delete ALL fort change alarms? This cannot be undone.',
+          message: this.i18n.instant('FORT_CHANGES.CONFIRM_DELETE_ALL_MSG'),
           title: this.i18n.instant('FORT_CHANGES.PAGE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
@@ -97,9 +101,10 @@ export class FortChangeListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.fortChangeService.deleteAll().subscribe({
-            error: () => this.snackBar.open('Failed to delete alarms', this.i18n.instant('COMMON.OK'), { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('All fort change alarms deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_DELETED_ALL'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadItems();
             },
           });
@@ -111,7 +116,7 @@ export class FortChangeListComponent implements OnInit {
       .open(ConfirmDialogComponent, {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
-          message: `Delete the ${this.formatFortType(item.fortType)} fort change alarm?`,
+          message: this.i18n.instant('FORT_CHANGES.CONFIRM_DELETE_MSG', { type: this.formatFortType(item.fortType) }),
           title: this.i18n.instant('FORT_CHANGES.PAGE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
@@ -120,9 +125,10 @@ export class FortChangeListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.fortChangeService.delete(item.uid).subscribe({
-            error: () => this.snackBar.open('Failed to delete alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('Fort change alarm deleted', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadItems();
             },
           });
@@ -143,20 +149,20 @@ export class FortChangeListComponent implements OnInit {
   }
 
   formatChangeTypes(types: string[]): string {
-    if (!types || types.length === 0) return 'All changes';
+    if (!types || types.length === 0) return this.i18n.instant('FORT_CHANGES.ALL_CHANGES');
     return types
       .map(t => {
         switch (t) {
           case 'name':
-            return 'Name';
+            return this.i18n.instant('FORT_CHANGES.LABEL_NAME');
           case 'location':
-            return 'Location';
+            return this.i18n.instant('FORT_CHANGES.LABEL_LOCATION');
           case 'image_url':
-            return 'Image';
+            return this.i18n.instant('FORT_CHANGES.LABEL_IMAGE');
           case 'removal':
-            return 'Removal';
+            return this.i18n.instant('FORT_CHANGES.LABEL_REMOVAL');
           case 'new':
-            return 'New';
+            return this.i18n.instant('FORT_CHANGES.LABEL_NEW');
           default:
             return t;
         }
@@ -171,11 +177,11 @@ export class FortChangeListComponent implements OnInit {
   formatFortType(type: string | null): string {
     switch (type) {
       case 'pokestop':
-        return 'Pokestop';
+        return this.i18n.instant('FORT_CHANGES.FORT_POKESTOP');
       case 'gym':
-        return 'Gym';
+        return this.i18n.instant('FORT_CHANGES.FORT_GYM');
       default:
-        return 'Everything';
+        return this.i18n.instant('FORT_CHANGES.FORT_EVERYTHING');
     }
   }
 
@@ -227,9 +233,10 @@ export class FortChangeListComponent implements OnInit {
     ref.afterClosed().subscribe(distance => {
       if (distance !== null && distance !== undefined) {
         this.fortChangeService.updateAllDistance(distance).subscribe({
-          error: () => this.snackBar.open('Failed to update distances', this.i18n.instant('COMMON.OK'), { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('All distances updated', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadItems();
           },
         });

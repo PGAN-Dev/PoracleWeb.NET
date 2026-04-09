@@ -101,9 +101,9 @@ export class MaxBattleEditDialogComponent {
 
   getLevelLabel(): string {
     const level = this.data.item.level;
-    if (level === 9000) return 'Any Level';
+    if (level === 9000) return this.i18n.instant('MAX_BATTLES.ANY_LEVEL');
     const opt = LEVEL_OPTIONS.find(l => l.value === level);
-    return opt ? opt.label : `Level ${level}`;
+    return opt ? opt.label : this.i18n.instant('MAX_BATTLES.LEVEL_NUM', { level });
   }
 
   getTitle(): string {
@@ -111,7 +111,7 @@ export class MaxBattleEditDialogComponent {
     if (item.pokemonId && item.pokemonId !== 9000) {
       return this.masterData.getPokemonName(item.pokemonId);
     }
-    return 'Any Pokemon';
+    return this.i18n.instant('MAX_BATTLES.ANY_POKEMON');
   }
 
   isGmax(): boolean {
@@ -159,11 +159,11 @@ export class MaxBattleEditDialogComponent {
     };
     this.maxBattleService.update(this.data.item.uid, update).subscribe({
       error: () => {
-        this.snackBar.open('Failed to update alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open('Max Battle alarm updated', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

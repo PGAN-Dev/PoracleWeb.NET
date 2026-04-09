@@ -1,26 +1,30 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { inject, Pipe, PipeTransform } from '@angular/core';
+
+import { I18nService } from '../../core/services/i18n.service';
 
 @Pipe({
   name: 'lureName',
   standalone: true,
 })
 export class LureNamePipe implements PipeTransform {
+  private readonly i18n = inject(I18nService);
+
   transform(lureId: number): string {
     switch (lureId) {
       case 501:
-        return 'Normal';
+        return this.i18n.instant('LURES.TYPE_NORMAL');
       case 502:
-        return 'Glacial';
+        return this.i18n.instant('LURES.TYPE_GLACIAL');
       case 503:
-        return 'Mossy';
+        return this.i18n.instant('LURES.TYPE_MOSSY');
       case 504:
-        return 'Magnetic';
+        return this.i18n.instant('LURES.TYPE_MAGNETIC');
       case 505:
-        return 'Rainy';
+        return this.i18n.instant('LURES.TYPE_RAINY');
       case 506:
-        return 'Golden';
+        return this.i18n.instant('LURES.TYPE_GOLDEN');
       default:
-        return `Lure #${lureId}`;
+        return this.i18n.instant('LURES.TYPE_UNKNOWN', { id: lureId });
     }
   }
 }

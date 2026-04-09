@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { TranslateModule } from '@ngx-translate/core';
 
+import { I18nService } from '../../../core/services/i18n.service';
 import { IconService } from '../../../core/services/icon.service';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
 import { PokemonAvailabilityService } from '../../../core/services/pokemon-availability.service';
@@ -27,6 +28,7 @@ interface GenRange {
 })
 export class PokemonSelectorComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   activeGen = signal<GenRange | null>(null);
@@ -118,7 +120,7 @@ export class PokemonSelectorComponent implements OnInit {
   showAvailability = computed(() => this.availability.enabled());
 
   formatPokemonName(pokemon: PokemonEntry): string {
-    if (pokemon.id === 0) return 'All Pokemon (ID: 0)';
+    if (pokemon.id === 0) return this.i18n.instant('POKEMON_SELECTOR.ALL_POKEMON');
     return `#${String(pokemon.id).padStart(3, '0')} ${pokemon.name}`;
   }
 

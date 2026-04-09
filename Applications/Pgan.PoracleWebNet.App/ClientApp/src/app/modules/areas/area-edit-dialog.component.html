@@ -3,7 +3,7 @@
   <mat-form-field appearance="outline" class="search-field">
     <mat-label>{{ 'AREAS.SEARCH_AREAS' | translate }}</mat-label>
     <mat-icon matPrefix>search</mat-icon>
-    <input matInput [(ngModel)]="searchText" (ngModelChange)="filterAreas()" placeholder="Filter by name..." />
+    <input matInput [(ngModel)]="searchText" (ngModelChange)="filterAreas()" [placeholder]="'AREAS.FILTER_PLACEHOLDER' | translate" />
     @if (searchText) {
       <button mat-icon-button matSuffix (click)="searchText = ''; filterAreas()">
         <mat-icon>close</mat-icon>

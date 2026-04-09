@@ -4,9 +4,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import * as L from 'leaflet';
 
 import { GeofenceData, UserGeofence } from '../../../core/models';
+import { I18nService } from '../../../core/services/i18n.service';
 import { polygonAreaSqKm } from '../../utils/geo.utils';
 import { GEOFENCE_STATUS_COLORS } from '../../utils/geofence.utils';
 
@@ -35,7 +37,7 @@ export interface GeofenceDetailDialogData {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatButtonModule, MatChipsModule, MatDialogModule, MatIconModule],
+  imports: [DatePipe, MatButtonModule, MatChipsModule, MatDialogModule, MatIconModule, TranslateModule],
   selector: 'app-geofence-detail-dialog',
   standalone: true,
   styleUrl: './geofence-detail-dialog.component.scss',
@@ -43,6 +45,7 @@ export interface GeofenceDetailDialogData {
 })
 export class GeofenceDetailDialogComponent implements OnDestroy {
   private readonly dialogRef = inject(MatDialogRef<GeofenceDetailDialogComponent>);
+  private readonly i18n = inject(I18nService);
 
   private map: L.Map | null = null;
   readonly data = inject<GeofenceDetailDialogData>(MAT_DIALOG_DATA);
@@ -81,13 +84,13 @@ export class GeofenceDetailDialogComponent implements OnDestroy {
   get statusLabel(): string {
     switch (this.geofence.status) {
       case 'active':
-        return 'Active';
+        return this.i18n.instant('GEOFENCE_DETAIL.STATUS_ACTIVE');
       case 'approved':
-        return 'Approved';
+        return this.i18n.instant('GEOFENCE_DETAIL.STATUS_APPROVED');
       case 'pending_review':
-        return 'Pending Review';
+        return this.i18n.instant('GEOFENCE_DETAIL.STATUS_PENDING');
       case 'rejected':
-        return 'Rejected';
+        return this.i18n.instant('GEOFENCE_DETAIL.STATUS_REJECTED');
       default:
         return this.geofence.status;
     }

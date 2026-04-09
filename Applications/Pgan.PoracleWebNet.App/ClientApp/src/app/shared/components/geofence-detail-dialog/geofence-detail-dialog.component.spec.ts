@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { GeofenceDetailDialogComponent, GeofenceDetailDialogData } from './geofence-detail-dialog.component';
@@ -56,6 +57,7 @@ describe('GeofenceDetailDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         { provide: MAT_DIALOG_DATA, useValue: { geofence } as GeofenceDetailDialogData },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
@@ -85,7 +87,7 @@ describe('GeofenceDetailDialogComponent', () => {
     const fixture = setup();
     const compiled = fixture.nativeElement as HTMLElement;
     const rows = compiled.querySelectorAll('.summary-row');
-    const ownerRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.trim() === 'Owner');
+    const ownerRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.includes('GEOFENCE_DETAIL.OWNER'));
     expect(ownerRow?.querySelector('.summary-value')?.textContent).toContain('TestUser');
   });
 
@@ -93,32 +95,32 @@ describe('GeofenceDetailDialogComponent', () => {
     const fixture = setup({ ownerName: undefined });
     const compiled = fixture.nativeElement as HTMLElement;
     const rows = compiled.querySelectorAll('.summary-row');
-    const ownerRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.trim() === 'Owner');
+    const ownerRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.includes('GEOFENCE_DETAIL.OWNER'));
     // When ownerName is falsy, the owner row is not shown per the @if template guard
     expect(ownerRow).toBeUndefined();
   });
 
   it('should display status chip with correct color for pending_review', () => {
     expect(component.statusColor).toBe('#ff9800');
-    expect(component.statusLabel).toBe('Pending Review');
+    expect(component.statusLabel).toBe('GEOFENCE_DETAIL.STATUS_PENDING');
   });
 
   it('should display status chip with correct color for active', () => {
     setup({ status: 'active' });
     expect(component.statusColor).toBe('#2196f3');
-    expect(component.statusLabel).toBe('Active');
+    expect(component.statusLabel).toBe('GEOFENCE_DETAIL.STATUS_ACTIVE');
   });
 
   it('should display status chip with correct color for approved', () => {
     setup({ status: 'approved' });
     expect(component.statusColor).toBe('#4caf50');
-    expect(component.statusLabel).toBe('Approved');
+    expect(component.statusLabel).toBe('GEOFENCE_DETAIL.STATUS_APPROVED');
   });
 
   it('should display status chip with correct color for rejected', () => {
     setup({ status: 'rejected' });
     expect(component.statusColor).toBe('#f44336');
-    expect(component.statusLabel).toBe('Rejected');
+    expect(component.statusLabel).toBe('GEOFENCE_DETAIL.STATUS_REJECTED');
   });
 
   it('should display point count', () => {
@@ -134,7 +136,7 @@ describe('GeofenceDetailDialogComponent', () => {
     const fixture = setup();
     const compiled = fixture.nativeElement as HTMLElement;
     const rows = compiled.querySelectorAll('.summary-row');
-    const createdRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.trim() === 'Created');
+    const createdRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.includes('GEOFENCE_DETAIL.CREATED'));
     expect(createdRow).toBeTruthy();
     expect(createdRow?.querySelector('.summary-value')?.textContent?.trim()).toBeTruthy();
   });
@@ -143,7 +145,7 @@ describe('GeofenceDetailDialogComponent', () => {
     const fixture = setup({ submittedAt: '2024-01-16T00:00:00Z' });
     const compiled = fixture.nativeElement as HTMLElement;
     const rows = compiled.querySelectorAll('.summary-row');
-    const submittedRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.trim() === 'Submitted');
+    const submittedRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.includes('GEOFENCE_DETAIL.SUBMITTED'));
     expect(submittedRow).toBeTruthy();
   });
 
@@ -151,7 +153,7 @@ describe('GeofenceDetailDialogComponent', () => {
     const fixture = setup({ submittedAt: undefined });
     const compiled = fixture.nativeElement as HTMLElement;
     const rows = compiled.querySelectorAll('.summary-row');
-    const submittedRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.trim() === 'Submitted');
+    const submittedRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.includes('GEOFENCE_DETAIL.SUBMITTED'));
     expect(submittedRow).toBeUndefined();
   });
 
@@ -159,7 +161,7 @@ describe('GeofenceDetailDialogComponent', () => {
     const fixture = setup({ reviewNotes: 'Area overlaps with existing zone' });
     const compiled = fixture.nativeElement as HTMLElement;
     const rows = compiled.querySelectorAll('.summary-row');
-    const notesRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.trim() === 'Review notes');
+    const notesRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.includes('GEOFENCE_DETAIL.REVIEW_NOTES'));
     expect(notesRow).toBeTruthy();
     expect(notesRow?.querySelector('.summary-value')?.textContent).toContain('Area overlaps with existing zone');
   });
@@ -168,7 +170,7 @@ describe('GeofenceDetailDialogComponent', () => {
     const fixture = setup({ reviewNotes: undefined });
     const compiled = fixture.nativeElement as HTMLElement;
     const rows = compiled.querySelectorAll('.summary-row');
-    const notesRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.trim() === 'Review notes');
+    const notesRow = Array.from(rows).find(r => r.querySelector('.summary-label')?.textContent?.includes('GEOFENCE_DETAIL.REVIEW_NOTES'));
     expect(notesRow).toBeUndefined();
   });
 
@@ -177,6 +179,6 @@ describe('GeofenceDetailDialogComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const closeButton = compiled.querySelector('button[mat-dialog-close]');
     expect(closeButton).toBeTruthy();
-    expect(closeButton?.textContent?.trim()).toBe('Close');
+    expect(closeButton?.textContent).toContain('COMMON.CLOSE');
   });
 });
