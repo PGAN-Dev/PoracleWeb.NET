@@ -164,7 +164,7 @@
                 matInput
                 [(ngModel)]="manualAreaName"
                 (keyup.enter)="addManualArea()"
-                placeholder="Type an area name and press Enter" />
+                [placeholder]="'AREAS.MANUAL_ADD_PLACEHOLDER' | translate" />
               <button mat-icon-button matSuffix (click)="addManualArea()" [disabled]="!manualAreaName.trim()">
                 <mat-icon>add_circle</mat-icon>
               </button>

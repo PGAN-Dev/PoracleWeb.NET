@@ -268,29 +268,29 @@ export class PokemonListComponent implements OnInit {
   getGenderDisplay(gender: number): string {
     switch (gender) {
       case 1:
-        return '\u2642 Male';
+        return '\u2642 ' + this.i18n.instant('POKEMON.GENDER_MALE');
       case 2:
-        return '\u2640 Female';
+        return '\u2640 ' + this.i18n.instant('POKEMON.GENDER_FEMALE');
       case 3:
-        return 'Genderless';
+        return this.i18n.instant('POKEMON.GENDER_GENDERLESS');
       default:
-        return 'All';
+        return this.i18n.instant('POKEMON.GENDER_ALL');
     }
   }
 
   getIvDisplay(minIv: number, maxIv: number): string {
-    if (minIv === -1) return 'No IV Filter';
+    if (minIv === -1) return this.i18n.instant('POKEMON.NO_IV_FILTER');
     return `${minIv}-${maxIv}%`;
   }
 
   getLeagueName(league: number): string {
     switch (league) {
       case 500:
-        return 'Little';
+        return this.i18n.instant('POKEMON.LEAGUE_LITTLE');
       case 1500:
-        return 'Great';
+        return this.i18n.instant('POKEMON.LEAGUE_GREAT');
       case 2500:
-        return 'Ultra';
+        return this.i18n.instant('POKEMON.LEAGUE_ULTRA');
       default:
         return `${league}`;
     }
@@ -308,17 +308,17 @@ export class PokemonListComponent implements OnInit {
   getSizeLabel(value: number): string {
     switch (value) {
       case 1:
-        return 'XXS';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XXS');
       case 2:
-        return 'XS';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XS');
       case 3:
-        return 'Normal';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_NORMAL');
       case 4:
-        return 'XL';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XL');
       case 5:
-        return 'XXL';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XXL');
       default:
-        return 'Any';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_ANY');
     }
   }
 

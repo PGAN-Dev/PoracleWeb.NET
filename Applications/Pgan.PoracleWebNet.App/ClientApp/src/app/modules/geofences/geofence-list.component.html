@@ -119,7 +119,7 @@
                 <mat-slide-toggle
                   [checked]="activeAreaSet().has(geofence.kojiName)"
                   (change)="toggleGeofenceProfile(geofence)"
-                  matTooltip="Toggle notifications for this geofence on the current profile">
+                  [matTooltip]="'GEOFENCES.TOGGLE_TOOLTIP' | translate">
                 </mat-slide-toggle>
                 <span class="geofence-toggle-label">{{
                   activeAreaSet().has(geofence.kojiName)
@@ -129,7 +129,9 @@
               </div>
             }
             <div class="geofence-card-footer">
-              <span class="geofence-card-date">Created {{ geofence.createdAt | date: 'mediumDate' }}</span>
+              <span class="geofence-card-date"
+                >{{ 'GEOFENCES.CREATED_PREFIX' | translate }} {{ geofence.createdAt | date: 'mediumDate' }}</span
+              >
               <div class="geofence-card-actions">
                 @if (geofence.status === 'active') {
                   <button mat-icon-button [matTooltip]="'GEOFENCES.SUBMIT_TOOLTIP' | translate" (click)="submitGeofence(geofence)">

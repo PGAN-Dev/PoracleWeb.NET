@@ -32,7 +32,7 @@
 }
 @if (auth.isLoggedIn()) {
   <mat-toolbar class="app-toolbar" [style.background]="toolbarGradient()">
-    <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation menu">
+    <button mat-icon-button (click)="toggleSidenav()" [attr.aria-label]="'TOOLBAR.TOGGLE_NAV' | translate">
       <mat-icon>menu</mat-icon>
     </button>
     @if (!hideHeaderLogo()) {
@@ -63,10 +63,10 @@
       mat-icon-button
       (click)="toggleTheme()"
       [matTooltip]="darkMode() ? ('TOOLBAR.SWITCH_TO_LIGHT' | translate) : ('TOOLBAR.SWITCH_TO_DARK' | translate)"
-      aria-label="Toggle dark mode">
+      [attr.aria-label]="'TOOLBAR.TOGGLE_DARK_MODE' | translate">
       <mat-icon>{{ darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
     </button>
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger" aria-label="User menu">
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger" [attr.aria-label]="'TOOLBAR.USER_MENU' | translate">
       @if (auth.user()?.avatarUrl) {
         <img [src]="auth.user()!.avatarUrl!" class="user-avatar" alt="avatar" />
       } @else {
@@ -173,7 +173,7 @@
       [style.width]="sidenavCollapsed() && !isMobile() ? '64px' : '250px'"
       class="app-sidenav"
       [class.collapsed]="sidenavCollapsed() && !isMobile()">
-      <nav aria-label="Main navigation">
+      <nav [attr.aria-label]="'TOOLBAR.MAIN_NAV' | translate">
         <mat-nav-list>
           <!-- Alarms Section -->
           @if (!sidenavCollapsed() || isMobile()) {

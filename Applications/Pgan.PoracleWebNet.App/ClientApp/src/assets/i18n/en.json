@@ -35,7 +35,8 @@
     "SWITCH_TO_DARK": "Switch to dark mode",
     "USER_MENU": "User menu",
     "EXPAND_SIDEBAR": "Expand sidebar",
-    "COLLAPSE_SIDEBAR": "Collapse sidebar"
+    "COLLAPSE_SIDEBAR": "Collapse sidebar",
+    "MAIN_NAV": "Main navigation"
   },
   "BANNER": {
     "VIEWING_AS": "Viewing as",
@@ -283,7 +284,16 @@
     "PVP_LEAGUE_SUFFIX": "League",
     "PVP_RANK_RANGE": "Rank {{best}}-{{worst}}",
     "PVP_BEST_RANK_HINT": "e.g. 1",
-    "PVP_WORST_RANK_HINT": "e.g. 100"
+    "PVP_WORST_RANK_HINT": "e.g. 100",
+    "LEAGUE_LITTLE": "Little",
+    "LEAGUE_GREAT": "Great",
+    "LEAGUE_ULTRA": "Ultra",
+    "SIZE_LABEL_ANY": "Any",
+    "SIZE_LABEL_XXS": "XXS",
+    "SIZE_LABEL_XS": "XS",
+    "SIZE_LABEL_NORMAL": "Normal",
+    "SIZE_LABEL_XL": "XL",
+    "SIZE_LABEL_XXL": "XXL"
   },
   "ALARM": {
     "LOCATION_MODE": "Location Mode",
@@ -603,6 +613,7 @@
     "SEARCH_REGION": "Search by region",
     "API_OFFLINE": "Area geofences are not available. The Poracle API may be offline.",
     "MANUAL_ADD_LABEL": "Add area name manually",
+    "MANUAL_ADD_PLACEHOLDER": "Type an area name and press Enter",
     "SELECT_ALL_VISIBLE": "Select All",
     "DESELECT_ALL_VISIBLE": "Deselect All",
     "NO_RESULTS": "No areas found",
@@ -744,7 +755,9 @@
     "REGION_LABEL": "Region",
     "CHANGE_REGION": "Change",
     "SELECT_REGION": "Select Region",
-    "SEARCH_REGIONS": "Search regions..."
+    "SEARCH_REGIONS": "Search regions...",
+    "TOGGLE_TOOLTIP": "Toggle notifications for this geofence on the current profile",
+    "CREATED_PREFIX": "Created"
   },
   "CLEANING": {
     "PAGE_TITLE": "Clean Mode",
@@ -777,6 +790,9 @@
     "PAGE_TITLE": "Quick Picks",
     "PAGE_DESC": "One-click alarm presets.",
     "RESET_DEFAULTS": "Reset to Defaults",
+    "ADMIN_ACTIONS": "Admin Actions",
+    "REAPPLY_TOOLTIP": "Update delivery settings and re-apply",
+    "REMOVE_TOOLTIP": "Remove alarms created by this pick",
     "LOADING": "Loading quick picks...",
     "EMPTY_TITLE": "No Quick Picks Available",
     "EMPTY_SUBTITLE": "Quick picks let you apply alarm presets with a single click",

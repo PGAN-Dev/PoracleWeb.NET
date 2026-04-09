@@ -5,7 +5,7 @@
   </div>
   <div class="header-actions">
     @if (isAdmin()) {
-      <button mat-icon-button [matMenuTriggerFor]="adminMenu" matTooltip="Admin Actions">
+      <button mat-icon-button [matMenuTriggerFor]="adminMenu" [matTooltip]="'QUICK_PICKS.ADMIN_ACTIONS' | translate">
         <mat-icon>more_vert</mat-icon>
       </button>
       <mat-menu #adminMenu="matMenu">
@@ -95,11 +95,11 @@
                   {{ 'QUICK_PICKS.REMOVING' | translate }}
                 </span>
               } @else if (pick.appliedState) {
-                <button mat-button (click)="onApply(pick)" matTooltip="Update delivery settings and re-apply">
+                <button mat-button (click)="onApply(pick)" [matTooltip]="'QUICK_PICKS.REAPPLY_TOOLTIP' | translate">
                   <mat-icon>refresh</mat-icon>
                   {{ 'QUICK_PICKS.REAPPLY' | translate }}
                 </button>
-                <button mat-button color="warn" (click)="onRemove(pick)" matTooltip="Remove alarms created by this pick">
+                <button mat-button color="warn" (click)="onRemove(pick)" [matTooltip]="'QUICK_PICKS.REMOVE_TOOLTIP' | translate">
                   <mat-icon>delete_outline</mat-icon>
                   {{ 'QUICK_PICKS.REMOVE' | translate }}
                 </button>
