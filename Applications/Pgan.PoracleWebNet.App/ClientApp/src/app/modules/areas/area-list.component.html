@@ -150,7 +150,7 @@
         <app-region-selector
           [regions]="groupOptions()"
           [label]="'AREAS.SEARCH_REGION' | translate"
-          placeholder="Type to search regions..."
+          [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
           [showCounts]="true"
           (regionSelected)="onGroupFilterSelected($event)"></app-region-selector>
 

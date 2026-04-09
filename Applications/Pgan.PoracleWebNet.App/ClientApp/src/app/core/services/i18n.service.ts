@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 
 export interface UiLanguage {
@@ -36,11 +36,11 @@ export class I18nService {
   ];
 
   /** Languages available for selection (filtered by admin setting). */
-  readonly availableLanguages = () => {
+  readonly availableLanguages = computed(() => {
     const allowed = this.allowedCodes();
     if (allowed.length === 0) return this.allLanguages;
     return this.allLanguages.filter(l => l.code === 'en' || allowed.includes(l.code));
-  };
+  });
 
   /** Currently active UI language code. */
   readonly currentLang = signal('en');
