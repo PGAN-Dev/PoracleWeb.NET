@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.0] - 2026-04-09
 
+## [2.4.0] - 2026-04-09
+
 ### Added
 - **Multi-language / i18n support (11 languages)**: Full internationalization of the entire UI matching the original PoracleWeb PHP language set — English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish. Runtime language switching via ngx-translate with no page reload. Browser language auto-detection on first visit. SVG country flag icons in the language selector menu. Admin `allowed_languages` site setting to restrict available languages. All 17 help guide sections translated with rich HTML content. Amber "English" fallback chip on untranslated sections. "Help improve translations" CTA for non-English users. 1,121 translation keys per language (12,331 total translated strings). I18nService with browser detection, localStorage persistence, computed signal reactivity, and admin-controlled filtering. ([#161](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/161), [PR #162](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/162))
 - **Shared pipes i18n**: League name, gender display, lure name, team name, and distance display pipes now use I18nService for translated output ([PR #162](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/162))
@@ -418,7 +420,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.2.0...v2.3.0
 [2.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.1.3...v2.2.0
