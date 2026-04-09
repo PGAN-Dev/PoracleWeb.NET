@@ -9,9 +9,11 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Quest, QuestUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
@@ -30,6 +32,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -43,6 +46,7 @@ export class QuestEditDialogComponent {
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
@@ -83,17 +87,17 @@ export class QuestEditDialogComponent {
   getRewardTypeLabel(): string {
     switch (this.data.rewardType) {
       case 7:
-        return 'Pokemon Encounter';
+        return this.i18n.instant('QUESTS.REWARD_POKEMON_ENCOUNTER');
       case 2:
-        return 'Item';
+        return this.i18n.instant('QUESTS.REWARD_ITEM');
       case 3:
-        return 'Stardust';
+        return this.i18n.instant('QUESTS.STARDUST');
       case 12:
-        return 'Mega Energy';
+        return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
       case 4:
-        return 'Candy';
+        return this.i18n.instant('QUESTS.REWARD_CANDY');
       default:
-        return `Type ${this.data.rewardType}`;
+        return this.i18n.instant('QUESTS.REWARD_TYPE_PREFIX', { type: this.data.rewardType });
     }
   }
 
@@ -103,16 +107,18 @@ export class QuestEditDialogComponent {
       return this.masterData.getPokemonName(pid);
     }
     if (this.data.rewardType === 7 && pid === 0) {
-      return 'Any Pokemon Encounter';
+      return this.i18n.instant('QUESTS.ANY_POKEMON_ENCOUNTER');
     }
     if (this.data.rewardType === 12 && pid > 0) {
-      return `${this.masterData.getPokemonName(pid)} Mega Energy`;
+      return this.i18n.instant('QUESTS.MEGA_ENERGY_SUFFIX', { name: this.masterData.getPokemonName(pid) });
     }
     if (this.data.rewardType === 4 && pid > 0) {
-      return `${this.masterData.getPokemonName(pid)} Candy`;
+      return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pid) });
     }
     if (this.data.rewardType === 3) {
-      return this.data.reward > 0 ? `${this.data.reward}+ Stardust` : 'Stardust';
+      return this.data.reward > 0
+        ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: this.data.reward })
+        : this.i18n.instant('QUESTS.STARDUST');
     }
     if (this.data.rewardType === 2) {
       return this.masterData.getItemName(this.data.reward);
@@ -156,11 +162,11 @@ export class QuestEditDialogComponent {
 
     this.questService.update(this.data.uid, update).subscribe({
       error: () => {
-        this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('QUESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open('Quest alarm updated', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('QUESTS.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

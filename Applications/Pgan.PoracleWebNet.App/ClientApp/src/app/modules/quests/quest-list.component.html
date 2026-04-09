@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Quest Alarms</h1>
-    <p class="page-description">Track field research tasks by reward type: Pokemon encounters, items, mega energy, or candy.</p>
+    <h1>{{ 'QUESTS.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'QUESTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
     <button mat-fab class="fab-quest" (click)="openAddDialog()">
@@ -12,13 +12,13 @@
 
 @if (!loading() && quests().length > 0) {
   <div class="filter-bar">
-    <span class="result-count">{{ quests().length }} alarms</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: quests().length } }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -27,18 +27,18 @@
 @if (selectMode()) {
   <div class="bulk-toolbar">
     @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
     }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
     @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
     <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> Update Distance
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
     </button>
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> Delete
+      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
   </div>
 }
@@ -85,7 +85,7 @@
           </div>
           <div class="card-top-actions">
             @if (quest.clean === 1) {
-              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+              <span class="clean-tag" [matTooltip]="'QUESTS.CLEAN_TOOLTIP' | translate">{{ 'QUESTS.CLEAN_TAG' | translate }}</span>
             }
           </div>
         </div>
@@ -97,7 +97,7 @@
             mat-icon-button
             (click)="sendTestAlert(quest)"
             [disabled]="testAlertService.isSending('quest', quest.uid) || testAlertService.isCoolingDown('quest', quest.uid)"
-            [matTooltip]="testAlertService.isCoolingDown('quest', quest.uid) ? 'Cooldown active' : 'Send test notification'"
+            [matTooltip]="(testAlertService.isCoolingDown('quest', quest.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
             class="test-alert-btn">
             @if (testAlertService.isSending('quest', quest.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -105,10 +105,10 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-          <button mat-icon-button (click)="editQuest(quest)" matTooltip="Edit">
+          <button mat-icon-button (click)="editQuest(quest)" [matTooltip]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button (click)="deleteQuest(quest)" matTooltip="Delete" color="warn">
+          <button mat-icon-button (click)="deleteQuest(quest)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>
@@ -129,9 +129,11 @@
           <line x1="92" y1="30" x2="96" y2="26" stroke="currentColor" stroke-width="2" opacity="0.1" />
           <line x1="60" y1="22" x2="60" y2="16" stroke="currentColor" stroke-width="2" opacity="0.1" />
         </svg>
-        <h2 class="empty-title">No Quest Alarms Configured</h2>
-        <p class="empty-subtitle">Track field research tasks by reward type</p>
-        <button mat-flat-button class="cta-quest" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Quest</button>
+        <h2 class="empty-title">{{ 'QUESTS.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'QUESTS.EMPTY_SUBTITLE' | translate }}</p>
+        <button mat-flat-button class="cta-quest" (click)="openAddDialog()">
+          <mat-icon>add</mat-icon> {{ 'QUESTS.ADD_QUEST' | translate }}
+        </button>
       </div>
     }
   </div>

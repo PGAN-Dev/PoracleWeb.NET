@@ -6,6 +6,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { GeofenceRegion } from '../../../core/models';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
@@ -31,6 +32,7 @@ export interface GeofenceNameDialogResult {
     MatIconModule,
     MatInputModule,
     RegionSelectorComponent,
+    TranslateModule,
   ],
   selector: 'app-geofence-name-dialog',
   standalone: true,

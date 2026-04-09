@@ -7,6 +7,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { AreaDefinition } from '../../core/models';
 
@@ -39,6 +40,7 @@ interface AreaGroup {
     MatInputModule,
     MatExpansionModule,
     FormsModule,
+    TranslateModule,
   ],
   selector: 'app-area-edit-dialog',
   standalone: true,

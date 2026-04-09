@@ -8,7 +8,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule } from '@ngx-translate/core';
 
+import { I18nService } from '../../core/services/i18n.service';
 import { ProfileService } from '../../core/services/profile.service';
 
 @Component({
@@ -21,6 +23,7 @@ import { ProfileService } from '../../core/services/profile.service';
     MatIconModule,
     MatSnackBarModule,
     MatProgressBarModule,
+    TranslateModule,
   ],
   selector: 'app-profile-add-dialog',
   standalone: true,
@@ -28,6 +31,7 @@ import { ProfileService } from '../../core/services/profile.service';
   templateUrl: './profile-add-dialog.component.html',
 })
 export class ProfileAddDialogComponent {
+  private readonly i18n = inject(I18nService);
   private readonly profileService = inject(ProfileService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<ProfileAddDialogComponent>);
@@ -52,7 +56,7 @@ export class ProfileAddDialogComponent {
     if (!name) return;
 
     if (this.existingNames().has(name.toLowerCase())) {
-      this.nameError.set('A profile with this name already exists');
+      this.nameError.set(this.i18n.instant('DIALOG.PROMPT_CONFLICT'));
       return;
     }
     this.nameError.set('');
@@ -61,11 +65,11 @@ export class ProfileAddDialogComponent {
     this.profileService.create({ name }).subscribe({
       error: () => {
         this.saving.set(false);
-        this.snackBar.open('Failed to create profile', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       },
       next: profile => {
         this.saving.set(false);
-        this.snackBar.open(`Profile "${profile.name}" created`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_CREATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.dialogRef.close(profile);
       },
     });

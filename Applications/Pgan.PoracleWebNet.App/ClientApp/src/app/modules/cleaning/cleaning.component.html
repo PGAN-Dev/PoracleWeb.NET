@@ -1,19 +1,16 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Clean Mode</h1>
-    <p class="page-description">
-      When enabled, Poracle will automatically delete notification messages from your Discord after they expire (e.g. a Pokemon despawns, a
-      raid ends). This keeps your DMs or channel clean instead of filling up with outdated alerts.
-    </p>
+    <h1>{{ 'CLEANING.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'CLEANING.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
     <button
       mat-stroked-button
       [disabled]="loading() || toggling()"
       (click)="toggleAll(!allEnabled())"
-      [matTooltip]="allEnabled() ? 'Disable clean mode for all alarm types' : 'Enable clean mode for all alarm types'">
+      [matTooltip]="(allEnabled() ? 'CLEANING.DISABLE_TOOLTIP' : 'CLEANING.ENABLE_TOOLTIP') | translate">
       <mat-icon>{{ allEnabled() ? 'toggle_off' : 'toggle_on' }}</mat-icon>
-      {{ allEnabled() ? 'Disable All' : 'Enable All' }}
+      {{ (allEnabled() ? 'CLEANING.DISABLE_ALL' : 'CLEANING.ENABLE_ALL') | translate }}
     </button>
   </div>
 </div>
@@ -22,8 +19,7 @@
   <div class="recommendation-banner">
     <mat-icon>lightbulb</mat-icon>
     <div>
-      <strong>Recommended:</strong> Enable clean mode to keep your notifications tidy. Without it, expired alerts stay in your DMs forever
-      and can't be bulk-deleted.
+      <strong>{{ 'CLEANING.RECOMMENDATION' | translate }}</strong> {{ 'CLEANING.RECOMMENDATION_TEXT' | translate }}
     </div>
   </div>
 }
@@ -41,10 +37,10 @@
             <mat-icon>{{ item.icon }}</mat-icon>
           </div>
           <div class="label-text">
-            <span class="label-name">{{ item.label }}</span>
-            <span class="label-description">{{ item.description }}</span>
+            <span class="label-name">{{ item.labelKey | translate }}</span>
+            <span class="label-description">{{ item.descriptionKey | translate }}</span>
             @if (!item.hasAlarms()) {
-              <span class="label-hint">No alarms configured</span>
+              <span class="label-hint">{{ 'CLEANING.NO_ALARMS_HINT' | translate }}</span>
             }
           </div>
         </div>

@@ -10,15 +10,15 @@ theme:
   palette:
     - media: '(prefers-color-scheme: light)'
       scheme: default
-      primary: deep purple
-      accent: amber
+      primary: blue
+      accent: cyan
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: '(prefers-color-scheme: dark)'
       scheme: slate
-      primary: deep purple
-      accent: amber
+      primary: blue
+      accent: cyan
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -35,6 +35,7 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
+  custom_dir: docs/overrides
   icon:
     repo: fontawesome/brands/github
 
@@ -89,6 +90,7 @@ nav:
       - Alarm Management: features/alarms.md
       - Profiles: features/profiles.md
       - Custom Geofences: features/custom-geofences.md
+      - Internationalization (i18n): features/internationalization.md
       - Server Management: features/server-management.md
   - Development:
       - Testing: development/testing.md

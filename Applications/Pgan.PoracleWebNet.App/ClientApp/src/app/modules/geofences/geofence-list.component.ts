@@ -8,10 +8,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { AreaDefinition, GeoJsonImportResult, GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { UserGeofenceService } from '../../core/services/user-geofence.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -45,6 +47,7 @@ const MAX_CUSTOM_GEOFENCES = 10;
     MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslateModule,
     AreaMapComponent,
   ],
   selector: 'app-geofence-list',
@@ -56,6 +59,7 @@ export class GeofenceListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
   private readonly snackBar = inject(MatSnackBar);
   private readonly userGeofenceService = inject(UserGeofenceService);
@@ -115,9 +119,9 @@ export class GeofenceListComponent implements OnInit {
   async deleteGeofence(geofence: UserGeofence): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Are you sure you want to delete "${geofence.displayName}"? This geofence will be removed from all alarms using it.`,
-        title: 'Delete Custom Geofence',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('GEOFENCES.CONFIRM_DELETE_MSG', { name: geofence.displayName }),
+        title: this.i18n.instant('GEOFENCES.CONFIRM_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -127,11 +131,12 @@ export class GeofenceListComponent implements OnInit {
         .deleteGeofence(geofence.id)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          error: () => this.snackBar.open('Failed to delete geofence', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: () => {
             this.customGeofences.update(list => list.filter(g => g.id !== geofence.id));
             this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
-            this.snackBar.open('Geofence deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
     }
@@ -164,7 +169,7 @@ export class GeofenceListComponent implements OnInit {
         .subscribe({
           error: () => {
             this.savingGeofence.set(false);
-            this.snackBar.open('Failed to update geofence', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
             this.userGeofenceService
@@ -178,13 +183,13 @@ export class GeofenceListComponent implements OnInit {
               .subscribe({
                 error: () => {
                   this.savingGeofence.set(false);
-                  this.snackBar.open('Failed to update geofence', 'OK', { duration: 3000 });
+                  this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
                 },
                 next: created => {
                   this.savingGeofence.set(false);
                   this.customGeofences.update(list => [...list.filter(g => g.id !== geofence.id), created]);
                   this.activeAreas.update(areas => [...areas.filter(a => a !== geofence.kojiName), created.kojiName]);
-                  this.snackBar.open('Geofence updated', 'OK', { duration: 3000 });
+                  this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
                 },
               });
           },
@@ -195,7 +200,7 @@ export class GeofenceListComponent implements OnInit {
   exportGeoJson(): void {
     const geofences = this.customGeofences().filter(g => g.polygon && g.polygon.length > 0);
     if (geofences.length === 0) {
-      this.snackBar.open('No geofences to export', 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_NO_EXPORT'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       return;
     }
 
@@ -222,7 +227,7 @@ export class GeofenceListComponent implements OnInit {
     this.drawMode.set(false);
 
     if (polygon.length < 3) {
-      this.snackBar.open('A geofence needs at least 3 points', 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_MIN_POINTS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       return;
     }
 
@@ -252,13 +257,13 @@ export class GeofenceListComponent implements OnInit {
         .subscribe({
           error: () => {
             this.savingGeofence.set(false);
-            this.snackBar.open('Failed to save geofence', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: created => {
             this.savingGeofence.set(false);
             this.customGeofences.update(list => [...list, created]);
             this.activeAreas.update(areas => [...areas, created.kojiName]);
-            this.snackBar.open(`Geofence "${created.displayName}" created`, 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_CREATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
     });
@@ -291,7 +296,9 @@ export class GeofenceListComponent implements OnInit {
       if (result && result.created.length > 0) {
         this.loadCustomGeofences();
         this.loadActiveAreas();
-        this.snackBar.open(`Imported ${result.created.length} geofence(s)`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_IMPORTED', { count: result.created.length }), this.i18n.instant('TOAST.OK'), {
+          duration: 3000,
+        });
       }
     });
   }
@@ -299,9 +306,9 @@ export class GeofenceListComponent implements OnInit {
   async submitGeofence(geofence: UserGeofence): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Submit for Review',
-        message: `This will send "${geofence.displayName}" to the admin team for review. If approved, your geofence will be promoted to a public area that all users can select and receive notifications from. Your private geofence will continue to work while the review is pending.`,
-        title: 'Submit Geofence for Public Review',
+        confirmText: this.i18n.instant('GEOFENCES.SUBMIT_CONFIRM_TEXT'),
+        message: this.i18n.instant('GEOFENCES.SUBMIT_CONFIRM_MSG', { name: geofence.displayName }),
+        title: this.i18n.instant('GEOFENCES.SUBMIT_CONFIRM_TITLE'),
       } as ConfirmDialogData,
     });
     const confirmed = await firstValueFrom(ref.afterClosed());
@@ -310,10 +317,11 @@ export class GeofenceListComponent implements OnInit {
         .submitForReview(geofence.kojiName)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          error: () => this.snackBar.open('Failed to submit geofence', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_SUBMIT'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: updated => {
             this.customGeofences.update(list => list.map(g => (g.id === geofence.id ? updated : g)));
-            this.snackBar.open('Geofence submitted for review', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_SUBMITTED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
     }
@@ -321,7 +329,9 @@ export class GeofenceListComponent implements OnInit {
 
   toggleDrawMode(): void {
     if (this.hasReachedLimit() && !this.drawMode()) {
-      this.snackBar.open(`Maximum of ${MAX_CUSTOM_GEOFENCES} custom geofences reached`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('GEOFENCES.LIMIT_NOTICE', { max: MAX_CUSTOM_GEOFENCES }), this.i18n.instant('TOAST.OK'), {
+        duration: 3000,
+      });
       return;
     }
     this.drawMode.update(v => !v);
@@ -348,12 +358,20 @@ export class GeofenceListComponent implements OnInit {
         } else {
           this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
         }
-        this.snackBar.open(`Failed to ${active ? 'deactivate' : 'activate'} geofence`, 'OK', { duration: 3000 });
+        this.snackBar.open(
+          this.i18n.instant(active ? 'GEOFENCES.SNACK_FAILED_DEACTIVATE' : 'GEOFENCES.SNACK_FAILED_ACTIVATE'),
+          this.i18n.instant('TOAST.OK'),
+          { duration: 3000 },
+        );
       },
       next: () => {
-        this.snackBar.open(active ? 'Geofence deactivated for this profile' : 'Geofence activated for this profile', 'OK', {
-          duration: 3000,
-        });
+        this.snackBar.open(
+          this.i18n.instant(active ? 'GEOFENCES.SNACK_DEACTIVATED' : 'GEOFENCES.SNACK_ACTIVATED'),
+          this.i18n.instant('TOAST.OK'),
+          {
+            duration: 3000,
+          },
+        );
       },
     });
   }
@@ -382,7 +400,9 @@ export class GeofenceListComponent implements OnInit {
     a.download = 'geofences.geojson';
     a.click();
     URL.revokeObjectURL(url);
-    this.snackBar.open(`Exported ${features.length} geofence(s)`, 'OK', { duration: 3000 });
+    this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_EXPORTED', { count: features.length }), this.i18n.instant('TOAST.OK'), {
+      duration: 3000,
+    });
   }
 
   private loadActiveAreas(): void {

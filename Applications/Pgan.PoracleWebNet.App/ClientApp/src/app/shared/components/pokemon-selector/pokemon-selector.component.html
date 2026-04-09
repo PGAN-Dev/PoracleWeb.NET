@@ -1,5 +1,5 @@
 <div class="gen-filter">
-  <span class="gen-label">Gen</span>
+  <span class="gen-label">{{ 'POKEMON_SELECTOR.GEN' | translate }}</span>
   @for (gen of generations; track gen.label) {
     <button class="gen-chip" [class.gen-active]="activeGen() === gen" (click)="toggleGen(gen)">G{{ gen.label }}</button>
   }
@@ -7,7 +7,7 @@
 
 @if (availableTypes().length > 0) {
   <div class="gen-filter type-filter">
-    <span class="gen-label">Type</span>
+    <span class="gen-label">{{ 'POKEMON_SELECTOR.TYPE' | translate }}</span>
     @for (type of availableTypes(); track type) {
       <button class="gen-chip type-chip" [class.gen-active]="activeType() === type" (click)="toggleType(type)">
         <img [src]="getTypeIcon(type)" [alt]="type" class="type-icon" (error)="onImageError($event)" />{{ type }}
@@ -18,19 +18,19 @@
 
 @if (showAvailability()) {
   <div class="gen-filter spawning-filter">
-    <span class="gen-label">Live</span>
+    <span class="gen-label">{{ 'POKEMON_SELECTOR.LIVE' | translate }}</span>
     <button class="gen-chip spawning-chip" [class.gen-active]="filterSpawning()" (click)="toggleSpawning()">
-      <span class="spawning-dot" [class.dot-active]="filterSpawning()"></span>Spawning
+      <span class="spawning-dot" [class.dot-active]="filterSpawning()"></span>{{ 'POKEMON_SELECTOR.SPAWNING' | translate }}
     </button>
     @if (availability.getAvailableCount() > 0) {
-      <span class="spawning-count">{{ availability.getAvailableCount() }} species active</span>
+      <span class="spawning-count">{{ 'POKEMON_SELECTOR.SPECIES_ACTIVE' | translate: { count: availability.getAvailableCount() } }}</span>
     }
   </div>
 }
 
 <mat-form-field class="full-width" appearance="outline">
-  <mat-label>Search Pokemon</mat-label>
-  <input matInput [formControl]="searchControl" [matAutocomplete]="auto" placeholder="Type name or ID..." />
+  <mat-label>{{ 'POKEMON_SELECTOR.SEARCH_LABEL' | translate }}</mat-label>
+  <input matInput [formControl]="searchControl" [matAutocomplete]="auto" [placeholder]="'POKEMON_SELECTOR.SEARCH_HINT' | translate" />
   <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onSelected($event)">
     @if (!showTileGrid()) {
       @for (pokemon of filteredPokemon(); track pokemon.id) {
@@ -69,7 +69,7 @@
         <img [src]="getPokemonImage(pokemon.id)" [alt]="pokemon.name" class="tile-img" (error)="onImageError($event)" />
         @if (showAvailability()) {
           @if (availability.isAvailable(pokemon.id)) {
-            <span class="availability-badge" title="Currently spawning">&#x25CF;</span>
+            <span class="availability-badge" [title]="'POKEMON_SELECTOR.CURRENTLY_SPAWNING' | translate">&#x25CF;</span>
           }
         }
         <span class="tile-name">{{ pokemon.name }}</span>

@@ -10,9 +10,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { MaxBattle, MaxBattleUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
@@ -53,6 +55,7 @@ const LEVEL_OPTIONS: MaxBattleLevelOption[] = [
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -63,6 +66,7 @@ const LEVEL_OPTIONS: MaxBattleLevelOption[] = [
 })
 export class MaxBattleEditDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly maxBattleService = inject(MaxBattleService);
@@ -97,9 +101,9 @@ export class MaxBattleEditDialogComponent {
 
   getLevelLabel(): string {
     const level = this.data.item.level;
-    if (level === 9000) return 'Any Level';
+    if (level === 9000) return this.i18n.instant('MAX_BATTLES.ANY_LEVEL');
     const opt = LEVEL_OPTIONS.find(l => l.value === level);
-    return opt ? opt.label : `Level ${level}`;
+    return opt ? opt.label : this.i18n.instant('MAX_BATTLES.LEVEL_NUM', { level });
   }
 
   getTitle(): string {
@@ -107,7 +111,7 @@ export class MaxBattleEditDialogComponent {
     if (item.pokemonId && item.pokemonId !== 9000) {
       return this.masterData.getPokemonName(item.pokemonId);
     }
-    return 'Any Pokemon';
+    return this.i18n.instant('MAX_BATTLES.ANY_POKEMON');
   }
 
   isGmax(): boolean {
@@ -155,11 +159,11 @@ export class MaxBattleEditDialogComponent {
     };
     this.maxBattleService.update(this.data.item.uid, update).subscribe({
       error: () => {
-        this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open('Max Battle alarm updated', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

@@ -16,17 +16,19 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 // ─── Add Webhook Dialog ───────────────────────────────────────────────────────
 
 @Component({
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslateModule],
   selector: 'app-add-webhook-dialog',
   standalone: true,
   styleUrl: './add-webhook-dialog.component.scss',
@@ -69,6 +71,7 @@ interface DelegatesDialogData {
     MatProgressSpinnerModule,
     MatAutocompleteModule,
     MatTooltipModule,
+    TranslateModule,
   ],
   selector: 'app-webhook-delegates-dialog',
   standalone: true,
@@ -77,6 +80,7 @@ interface DelegatesDialogData {
 })
 export class WebhookDelegatesDialogComponent implements OnInit {
   private readonly adminService = inject(AdminService);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<DelegatesDialogData>(MAT_DIALOG_DATA);
   readonly delegates = signal<string[]>([]);
@@ -92,7 +96,8 @@ export class WebhookDelegatesDialogComponent implements OnInit {
 
   addDelegate(userId: string): void {
     this.adminService.addWebhookDelegate(this.data.webhook.id, userId).subscribe({
-      error: () => this.snackBar.open('Failed to add delegate', 'OK', { duration: 3000 }),
+      error: () =>
+        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_ADD_DELEGATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
       next: d => {
         this.delegates.set(d);
         this.searchText = '';
@@ -120,7 +125,7 @@ export class WebhookDelegatesDialogComponent implements OnInit {
     this.adminService.getWebhookDelegates(this.data.webhook.id).subscribe({
       error: () => {
         this.loading.set(false);
-        this.snackBar.open('Failed to load delegates', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_DELEGATES'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       },
       next: d => {
         this.delegates.set(d);
@@ -146,7 +151,8 @@ export class WebhookDelegatesDialogComponent implements OnInit {
 
   removeDelegate(userId: string): void {
     this.adminService.removeWebhookDelegate(this.data.webhook.id, userId).subscribe({
-      error: () => this.snackBar.open('Failed to remove delegate', 'OK', { duration: 3000 }),
+      error: () =>
+        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_REMOVE_DELEGATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
       next: d => this.delegates.set(d),
     });
   }
@@ -174,6 +180,7 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatSortModule,
     MatSelectModule,
     MatChipsModule,
+    TranslateModule,
   ],
   selector: 'app-admin-webhooks',
   standalone: true,
@@ -186,6 +193,7 @@ export class AdminWebhooksComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
 
   private readonly poracleAdmins = signal<string[]>([]);
   private readonly porocleDelegates = signal<Record<string, string[]>>({});
@@ -245,16 +253,17 @@ export class AdminWebhooksComponent implements OnInit {
 
   copyUrl(url: string): void {
     navigator.clipboard.writeText(url).then(() => {
-      this.snackBar.open('URL copied to clipboard', undefined, { duration: 2000 });
+      this.snackBar.open(this.i18n.instant('ADMIN.SNACK_URL_COPIED'), undefined, { duration: 2000 });
     });
   }
 
   deleteAlarms(user: AdminUser): void {
+    const name = user.name || user.id;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete All',
-        message: `Are you sure you want to delete ALL alarms for "${user.name || user.id}"? This action cannot be undone.`,
-        title: 'Delete All Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_ALARMS', { name }),
+        title: this.i18n.instant('ADMIN.DELETE_ALL_ALARMS'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -263,10 +272,14 @@ export class AdminWebhooksComponent implements OnInit {
       if (confirmed) {
         this.adminService.deleteUserAlarms(user.id).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_ALARMS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: result => {
-            this.snackBar.open(`Deleted ${result.deleted} alarm(s) for "${user.name || user.id}"`, 'OK', { duration: 3000 });
+            this.snackBar.open(
+              this.i18n.instant('ADMIN.SNACK_ALARMS_DELETED', { name, count: result.deleted }),
+              this.i18n.instant('TOAST.OK'),
+              { duration: 3000 },
+            );
           },
         });
       }
@@ -274,11 +287,12 @@ export class AdminWebhooksComponent implements OnInit {
   }
 
   deleteWebhook(user: AdminUser): void {
+    const name = user.name || user.id;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Webhook',
-        message: `Are you sure you want to permanently delete "${user.name || user.id}"? This will remove the webhook account but NOT its alarms. Use "Delete all alarms" first if needed.`,
-        title: 'Delete Webhook',
+        confirmText: this.i18n.instant('ADMIN.DELETE_WEBHOOK'),
+        message: this.i18n.instant('ADMIN.CONFIRM_DELETE_WEBHOOK', { name }),
+        title: this.i18n.instant('ADMIN.DELETE_WEBHOOK'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -287,11 +301,13 @@ export class AdminWebhooksComponent implements OnInit {
       if (confirmed) {
         this.adminService.deleteUser(user.id).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete webhook', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_DELETE_WEBHOOK'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
             this.allUsers.update(users => users.filter(u => u.id !== user.id));
-            this.snackBar.open(`"${user.name || user.id}" deleted`, 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_WEBHOOK_DELETED', { name }), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
         });
       }
@@ -339,7 +355,7 @@ export class AdminWebhooksComponent implements OnInit {
       .subscribe({
         error: () => {
           this.usersLoading.set(false);
-          this.snackBar.open('Failed to load webhooks', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_WEBHOOKS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: ({ delegates, poracleAdmins, porocleDelegates, users }) => {
           this.allUsers.set(users);
@@ -356,7 +372,8 @@ export class AdminWebhooksComponent implements OnInit {
       .impersonateById(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => this.snackBar.open('Failed to switch to webhook context', 'OK', { duration: 3000 }),
+        error: () =>
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_SWITCH_WEBHOOK'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
         next: res => this.auth.impersonate(res.token),
       });
   }
@@ -395,11 +412,13 @@ export class AdminWebhooksComponent implements OnInit {
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             error: err => {
-              const msg = err?.error?.error ?? 'Failed to add webhook';
-              this.snackBar.open(msg, 'OK', { duration: 4000 });
+              const msg = err?.error?.error ?? this.i18n.instant('ADMIN.SNACK_FAILED_ADD_WEBHOOK');
+              this.snackBar.open(msg, this.i18n.instant('TOAST.OK'), { duration: 4000 });
             },
             next: () => {
-              this.snackBar.open(`Webhook "${result.name}" added`, 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('ADMIN.SNACK_WEBHOOK_ADDED', { name: result.name }), this.i18n.instant('TOAST.OK'), {
+                duration: 3000,
+              });
               this.loadUsers();
             },
           });
@@ -436,11 +455,13 @@ export class AdminWebhooksComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to stop alerts', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_STOP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(`Alerts stopped for "${user.name || user.id}"`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STOPPED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
       });
   }
@@ -451,11 +472,13 @@ export class AdminWebhooksComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to start alerts', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_START'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: updated => {
           this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, enabled: updated.enabled } : u)));
-          this.snackBar.open(`Alerts started for "${user.name || user.id}"`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_STARTED', { name: user.name || user.id }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
         },
       });
   }
@@ -465,11 +488,16 @@ export class AdminWebhooksComponent implements OnInit {
 
     action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: () => {
-        this.snackBar.open(`Failed to ${unblock ? 'unblock' : 'block'}`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_BLOCK'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       },
       next: updated => {
         this.allUsers.update(users => users.map(u => (u.id === user.id ? { ...u, adminDisable: updated.adminDisable } : u)));
-        this.snackBar.open(`"${user.name || user.id}" ${unblock ? 'unblocked' : 'blocked'}`, 'OK', { duration: 3000 });
+        const name = user.name || user.id;
+        this.snackBar.open(
+          this.i18n.instant(unblock ? 'ADMIN.SNACK_UNBLOCKED' : 'ADMIN.SNACK_BLOCKED', { name }),
+          this.i18n.instant('TOAST.OK'),
+          { duration: 3000 },
+        );
       },
     });
   }

@@ -4,9 +4,9 @@
 
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Dashboard</h1>
-    <p class="dashboard-subtitle">Welcome back, {{ username() }}</p>
-    <p class="page-description">Your notification alarm overview. Click any card to manage alarms, or use Quick Actions to get started.</p>
+    <h1>{{ 'DASHBOARD.TITLE' | translate }}</h1>
+    <p class="dashboard-subtitle">{{ 'DASHBOARD.WELCOME' | translate: { username: username() } }}</p>
+    <p class="page-description">{{ 'DASHBOARD.DESCRIPTION' | translate }}</p>
   </div>
 </div>
 
@@ -16,14 +16,14 @@
     <!-- Location Card -->
     <mat-card class="status-card location-card-full" (click)="openLocationDialog()">
       @if (locationMapUrl()) {
-        <img [src]="locationMapUrl()" class="location-map-thumb" alt="Location" loading="lazy" />
+        <img [src]="locationMapUrl()" class="location-map-thumb" [alt]="'DASHBOARD.LOCATION' | translate" loading="lazy" />
       }
       <div class="location-card-body">
         <div class="status-icon-wrap location-icon">
           <mat-icon>my_location</mat-icon>
         </div>
         <div class="status-info">
-          <span class="status-label">Location</span>
+          <span class="status-label">{{ 'DASHBOARD.LOCATION' | translate }}</span>
           @if (location(); as loc) {
             @if (locationAddress()) {
               <span class="status-value status-address" [title]="loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4)">{{
@@ -33,7 +33,7 @@
               <span class="status-value">{{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}</span>
             }
           } @else {
-            <span class="status-value not-set">Not set</span>
+            <span class="status-value not-set">{{ 'DASHBOARD.LOCATION_NOT_SET' | translate }}</span>
           }
         </div>
         <mat-icon class="status-arrow">chevron_right</mat-icon>
@@ -46,11 +46,11 @@
         <mat-icon>map</mat-icon>
       </div>
       <div class="status-info">
-        <span class="status-label">Active Areas</span>
+        <span class="status-label">{{ 'DASHBOARD.ACTIVE_AREAS' | translate }}</span>
         @if (selectedAreas().length > 0) {
-          <span class="status-value">{{ selectedAreas().length }} area(s)</span>
+          <span class="status-value">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
         } @else {
-          <span class="status-value not-set">No areas selected</span>
+          <span class="status-value not-set">{{ 'DASHBOARD.NO_AREAS' | translate }}</span>
         }
       </div>
       <mat-icon class="status-arrow">chevron_right</mat-icon>
@@ -63,7 +63,7 @@
           <mat-icon>person</mat-icon>
         </div>
         <div class="status-info">
-          <span class="status-label">Profile</span>
+          <span class="status-label">{{ 'DASHBOARD.PROFILE' | translate }}</span>
           <span class="status-value">{{ profileName() }}</span>
         </div>
         <mat-icon class="status-arrow">expand_more</mat-icon>
@@ -77,7 +77,7 @@
         }
         <button mat-menu-item (click)="navigate('/profiles')">
           <mat-icon>settings</mat-icon>
-          <span>Manage Profiles</span>
+          <span>{{ 'DASHBOARD.MANAGE_PROFILES' | translate }}</span>
         </button>
       </mat-menu>
     } @else {
@@ -86,7 +86,7 @@
           <mat-icon>person</mat-icon>
         </div>
         <div class="status-info">
-          <span class="status-label">Profile</span>
+          <span class="status-label">{{ 'DASHBOARD.PROFILE' | translate }}</span>
           <span class="status-value">{{ profileName() }}</span>
         </div>
         <mat-icon class="status-arrow">chevron_right</mat-icon>
@@ -100,19 +100,19 @@
             <div class="skeleton-circle"></div>
           </div>
           <div class="status-info">
-            <span class="status-label">Weather</span>
+            <span class="status-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
             <div class="skeleton-line-sm"></div>
           </div>
         } @else if (weather(); as w) {
           <div class="status-icon-wrap weather-icon" [class.weather-warning]="w.hasWarning">
             <mat-icon>{{ w.icon }}</mat-icon>
             @if (w.hasWarning) {
-              <mat-icon class="weather-warn-badge" matTooltip="Severe weather warning">crisis_alert</mat-icon>
+              <mat-icon class="weather-warn-badge" [matTooltip]="'DASHBOARD.WEATHER_WARNING' | translate">crisis_alert</mat-icon>
             }
           </div>
           <div class="status-info">
             <span class="status-label">
-              Weather
+              {{ 'DASHBOARD.WEATHER' | translate }}
               @if (weatherUpdatedAgo()) {
                 <span class="weather-updated">· {{ weatherUpdatedAgo() }}</span>
               }
@@ -137,8 +137,8 @@
             <mat-icon>cloud_off</mat-icon>
           </div>
           <div class="status-info">
-            <span class="status-label">Weather</span>
-            <span class="status-value not-set">No data</span>
+            <span class="status-label">{{ 'DASHBOARD.WEATHER' | translate }}</span>
+            <span class="status-value not-set">{{ 'DASHBOARD.NO_WEATHER_DATA' | translate }}</span>
           </div>
         }
       </mat-card>
@@ -151,16 +151,18 @@
       <mat-card-content>
         <div class="areas-header">
           <mat-icon>place</mat-icon>
-          <span>Tracking areas</span>
+          <span>{{ 'DASHBOARD.TRACKING_AREAS' | translate }}</span>
         </div>
         <mat-chip-set class="area-chips">
           @for (area of selectedAreas(); track area) {
             <mat-chip highlighted color="primary">
               <span class="area-dot"></span>{{ area }}
               @if (getAreaWeatherData(area); as aw) {
-                <mat-icon class="area-weather-icon" [matTooltip]="aw.conditionName + ' — ' + aw.boostedTypes.join(', ') + ' boosted'">{{
-                  aw.icon
-                }}</mat-icon>
+                <mat-icon
+                  class="area-weather-icon"
+                  [matTooltip]="aw.conditionName + ' — ' + aw.boostedTypes.join(', ') + ' ' + ('DASHBOARD.BOOSTED_SUFFIX' | translate)"
+                  >{{ aw.icon }}</mat-icon
+                >
               }
             </mat-chip>
           }
@@ -174,8 +176,8 @@
     <mat-card class="area-overview-card" (click)="navigate('/areas')">
       <div class="area-overview-header">
         <mat-icon>map</mat-icon>
-        <span>Area Coverage</span>
-        <span class="area-overview-count">{{ selectedAreas().length }} area(s)</span>
+        <span>{{ 'DASHBOARD.AREA_COVERAGE' | translate }}</span>
+        <span class="area-overview-count">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
         <mat-icon class="status-arrow">chevron_right</mat-icon>
       </div>
       @defer (on viewport) {
@@ -183,7 +185,7 @@
       } @placeholder {
         <div class="map-placeholder">
           <mat-icon>map</mat-icon>
-          <span>Loading map...</span>
+          <span>{{ 'DASHBOARD.LOADING_MAP' | translate }}</span>
         </div>
       }
     </mat-card>
@@ -213,24 +215,30 @@
 
   <!-- Quick Actions -->
   <div class="section-header">
-    <h2>Quick Actions</h2>
+    <h2>{{ 'DASHBOARD.QUICK_ACTIONS' | translate }}</h2>
   </div>
   <div class="quick-actions">
     <button mat-flat-button (click)="navigate('/pokemon')" class="action-btn action-pokemon">
-      <mat-icon>catching_pokemon</mat-icon> Add Pokemon
+      <mat-icon>catching_pokemon</mat-icon> {{ 'DASHBOARD.ADD_POKEMON' | translate }}
     </button>
-    <button mat-flat-button (click)="navigate('/raids')" class="action-btn action-raids"><mat-icon>shield</mat-icon> Add Raid</button>
-    <button mat-flat-button (click)="navigate('/quests')" class="action-btn action-quests"><mat-icon>explore</mat-icon> Add Quest</button>
-    <button mat-flat-button (click)="navigate('/areas')" class="action-btn action-areas"><mat-icon>map</mat-icon> Manage Areas</button>
+    <button mat-flat-button (click)="navigate('/raids')" class="action-btn action-raids">
+      <mat-icon>shield</mat-icon> {{ 'DASHBOARD.ADD_RAID' | translate }}
+    </button>
+    <button mat-flat-button (click)="navigate('/quests')" class="action-btn action-quests">
+      <mat-icon>explore</mat-icon> {{ 'DASHBOARD.ADD_QUEST' | translate }}
+    </button>
+    <button mat-flat-button (click)="navigate('/areas')" class="action-btn action-areas">
+      <mat-icon>map</mat-icon> {{ 'DASHBOARD.MANAGE_AREAS' | translate }}
+    </button>
     <button mat-flat-button (click)="navigate('/cleaning')" class="action-btn action-cleaning">
-      <mat-icon>cleaning_services</mat-icon> Cleaning
+      <mat-icon>cleaning_services</mat-icon> {{ 'DASHBOARD.CLEANING_ACTION' | translate }}
     </button>
   </div>
 
   <!-- Alarm Counts Section -->
   <div class="section-header">
-    <h2>Active Filters</h2>
-    <span class="total-count">{{ totalAlarms() }} total alarms</span>
+    <h2>{{ 'DASHBOARD.ACTIVE_FILTERS' | translate }}</h2>
+    <span class="total-count">{{ 'DASHBOARD.TOTAL_ALARMS' | translate: { count: totalAlarms() } }}</span>
   </div>
 
   <div class="dashboard-grid">
@@ -244,11 +252,11 @@
           </div>
           <mat-card-content>
             <span class="count" [class.count-zero]="c[card.key] === 0">{{ c[card.key] }}</span>
-            <span class="label">{{ card.label }}</span>
-            <span class="subtitle">{{ card.subtitle }}</span>
+            <span class="label">{{ card.label | translate }}</span>
+            <span class="subtitle">{{ card.subtitle | translate }}</span>
           </mat-card-content>
           <div class="card-view-all">
-            <span>View all</span>
+            <span>{{ 'DASHBOARD.VIEW_ALL' | translate }}</span>
             <mat-icon>arrow_forward</mat-icon>
           </div>
         </mat-card>

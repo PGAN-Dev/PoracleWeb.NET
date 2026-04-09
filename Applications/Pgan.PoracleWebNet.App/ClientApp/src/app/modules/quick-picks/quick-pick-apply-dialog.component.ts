@@ -11,8 +11,10 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -33,6 +35,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSnackBarModule,
     MatTabsModule,
     MatProgressSpinnerModule,
+    TranslateModule,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
@@ -44,6 +47,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class QuickPickApplyDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
@@ -85,9 +89,9 @@ export class QuickPickApplyDialogComponent {
     this.dialogRef.disableClose = true;
 
     if (this.willTrackIndividually()) {
-      this.applyStatus.set(`Creating ${this.individualAlarmCount()} individual alarms...`);
+      this.applyStatus.set(this.i18n.instant('QUICK_PICKS.APPLY_STATUS_CREATING', { count: this.individualAlarmCount() }));
     } else {
-      this.applyStatus.set('Applying quick pick...');
+      this.applyStatus.set(this.i18n.instant('QUICK_PICKS.APPLY_STATUS_APPLYING'));
     }
 
     const delivery = this.deliveryForm.getRawValue();
@@ -106,7 +110,7 @@ export class QuickPickApplyDialogComponent {
 
     obs.subscribe({
       error: () => {
-        this.snackBar.open('Failed to apply quick pick', 'OK', {
+        this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_APPLY'), this.i18n.instant('TOAST.OK'), {
           duration: 3000,
         });
         this.applying.set(false);
@@ -115,7 +119,7 @@ export class QuickPickApplyDialogComponent {
       },
       next: state => {
         const count = state.trackedUids?.length ?? 0;
-        this.snackBar.open(`Quick pick ${this.isReapply ? 're-applied' : 'applied'}: ${count} alarm(s) created`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_APPLIED', { count }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

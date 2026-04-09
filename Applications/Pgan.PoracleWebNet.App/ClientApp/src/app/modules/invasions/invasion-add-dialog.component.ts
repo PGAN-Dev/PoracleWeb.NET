@@ -11,10 +11,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { UICONS_BASE } from './invasion.constants';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
@@ -46,6 +48,7 @@ interface GruntOption {
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -86,6 +89,7 @@ export class InvasionAddDialogComponent implements OnInit {
   ];
 
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
@@ -167,11 +171,11 @@ export class InvasionAddDialogComponent implements OnInit {
         })
         .subscribe({
           error: () => {
-            this.snackBar.open('Failed to create alarm', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.saving.set(false);
           },
           next: () => {
-            this.snackBar.open('All invasions alarm created', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_ALL_CREATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.dialogRef.close(true);
           },
         });
@@ -195,11 +199,13 @@ export class InvasionAddDialogComponent implements OnInit {
     );
     forkJoin(creates).subscribe({
       error: () => {
-        this.snackBar.open('Failed to create alarm(s)', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`${creates.length} invasion alarm(s) created`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_CREATED_COUNT', { count: creates.length }), this.i18n.instant('TOAST.OK'), {
+          duration: 3000,
+        });
         this.dialogRef.close(true);
       },
     });

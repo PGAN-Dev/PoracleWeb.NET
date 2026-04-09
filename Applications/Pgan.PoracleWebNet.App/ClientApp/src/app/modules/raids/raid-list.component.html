@@ -1,8 +1,8 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Raid & Egg Alarms</h1>
+    <h1>{{ 'RAIDS.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">
-      Get notified about raid bosses and egg hatches at nearby gyms. Add by raid level for all bosses at that tier, or by specific Pokemon.
+      {{ 'RAIDS.PAGE_DESC' | translate }}
     </p>
   </div>
   <div class="header-actions">
@@ -14,13 +14,13 @@
 
 @if (!loading() && (raids().length > 0 || eggs().length > 0)) {
   <div class="filter-bar">
-    <span class="result-count">{{ raids().length + eggs().length }} alarms</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: raids().length + eggs().length } }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -29,18 +29,18 @@
 @if (selectMode()) {
   <div class="bulk-toolbar">
     @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
     }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
     @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
     <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> Update Distance
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
     </button>
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> Delete
+      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
   </div>
 }
@@ -71,7 +71,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>shield</mat-icon>
-        <span class="tab-label">Raids ({{ raids().length }})</span>
+        <span class="tab-label">{{ 'RAIDS.TAB_RAIDS' | translate: { count: raids().length } }}</span>
       </ng-template>
       <div class="alarm-grid">
         @for (raid of raids(); track raid.uid) {
@@ -90,7 +90,7 @@
                 <h3>{{ getRaidTitle(raid) }}</h3>
                 <div class="level-stars">
                   @if (raid.level === 9000) {
-                    <span class="any-level-label">Any Level</span>
+                    <span class="any-level-label">{{ 'ALARM.ANY_LEVEL' | translate }}</span>
                   } @else {
                     @for (s of getLevelStars(raid.level); track s) {
                       <mat-icon class="star-icon">star</mat-icon>
@@ -103,14 +103,14 @@
               </div>
               <div class="card-top-actions">
                 @if (raid.clean === 1) {
-                  <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+                  <span class="clean-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate">{{ 'RAIDS.CLEAN_TAG' | translate }}</span>
                 }
               </div>
             </div>
             <mat-card-content>
               <div class="stat-grid">
                 <div class="stat">
-                  <span class="stat-label">Team</span>
+                  <span class="stat-label">{{ 'RAIDS.TEAM_LABEL' | translate }}</span>
                   <span class="stat-value"
                     ><img [src]="getGymIcon(raid.team)" class="team-icon-inline" /> {{ getTeamName(raid.team) }}</span
                   >
@@ -123,7 +123,7 @@
                 mat-icon-button
                 (click)="sendTestAlert('raid', raid)"
                 [disabled]="testAlertService.isSending('raid', raid.uid) || testAlertService.isCoolingDown('raid', raid.uid)"
-                [matTooltip]="testAlertService.isCoolingDown('raid', raid.uid) ? 'Cooldown active' : 'Send test notification'"
+                [matTooltip]="(testAlertService.isCoolingDown('raid', raid.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
                 class="test-alert-btn">
                 @if (testAlertService.isSending('raid', raid.uid)) {
                   <mat-icon class="spin">sync</mat-icon>
@@ -131,10 +131,10 @@
                   <mat-icon>send</mat-icon>
                 }
               </button>
-              <button mat-icon-button (click)="editRaid(raid)" matTooltip="Edit">
+              <button mat-icon-button (click)="editRaid(raid)" [matTooltip]="'COMMON.EDIT' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
-              <button mat-icon-button (click)="deleteRaid(raid)" matTooltip="Delete" color="warn">
+              <button mat-icon-button (click)="deleteRaid(raid)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
             </mat-card-actions>
@@ -158,10 +158,10 @@
               <line x1="78" y1="16" x2="84" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
               <line x1="42" y1="16" x2="36" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
             </svg>
-            <h2 class="empty-title">No Raid Alarms Configured</h2>
-            <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
+            <h2 class="empty-title">{{ 'RAIDS.EMPTY_RAIDS_TITLE' | translate }}</h2>
+            <p class="empty-subtitle">{{ 'RAIDS.EMPTY_RAIDS_SUBTITLE' | translate }}</p>
             <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
-              <mat-icon>add</mat-icon> Add Raid
+              <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_RAID' | translate }}
             </button>
           </div>
         }
@@ -172,7 +172,7 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>egg</mat-icon>
-        <span class="tab-label">Eggs ({{ eggs().length }})</span>
+        <span class="tab-label">{{ 'RAIDS.TAB_EGGS' | translate: { count: eggs().length } }}</span>
       </ng-template>
       <div class="alarm-grid">
         @for (egg of eggs(); track egg.uid) {
@@ -186,12 +186,16 @@
               </mat-checkbox>
             }
             <div class="card-top" [style.border-top-color]="getLevelColor(egg.level)">
-              <img [src]="getEggImage(egg.level)" [alt]="'Level ' + egg.level + ' Egg'" class="item-img" (error)="onImageError($event)" />
+              <img
+                [src]="getEggImage(egg.level)"
+                [alt]="('RAIDS.LEVEL_PREFIX' | translate) + ' ' + egg.level + ' ' + ('RAIDS.EGG_SUFFIX' | translate)"
+                class="item-img"
+                (error)="onImageError($event)" />
               <div class="item-info">
-                <h3>{{ getRaidLevelName(egg.level) }} Egg</h3>
+                <h3>{{ getRaidLevelName(egg.level) }} {{ 'RAIDS.EGG_SUFFIX' | translate }}</h3>
                 <div class="level-stars">
                   @if (egg.level === 9000) {
-                    <span class="any-level-label">Any Level</span>
+                    <span class="any-level-label">{{ 'ALARM.ANY_LEVEL' | translate }}</span>
                   } @else {
                     @for (s of getLevelStars(egg.level); track s) {
                       <mat-icon class="star-icon">star</mat-icon>
@@ -204,14 +208,14 @@
               </div>
               <div class="card-top-actions">
                 @if (egg.clean === 1) {
-                  <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+                  <span class="clean-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate">{{ 'RAIDS.CLEAN_TAG' | translate }}</span>
                 }
               </div>
             </div>
             <mat-card-content>
               <div class="stat-grid">
                 <div class="stat">
-                  <span class="stat-label">Team</span>
+                  <span class="stat-label">{{ 'RAIDS.TEAM_LABEL' | translate }}</span>
                   <span class="stat-value"><img [src]="getGymIcon(egg.team)" class="team-icon-inline" /> {{ getTeamName(egg.team) }}</span>
                 </div>
               </div>
@@ -222,7 +226,7 @@
                 mat-icon-button
                 (click)="sendTestAlert('egg', egg)"
                 [disabled]="testAlertService.isSending('egg', egg.uid) || testAlertService.isCoolingDown('egg', egg.uid)"
-                [matTooltip]="testAlertService.isCoolingDown('egg', egg.uid) ? 'Cooldown active' : 'Send test notification'"
+                [matTooltip]="(testAlertService.isCoolingDown('egg', egg.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
                 class="test-alert-btn">
                 @if (testAlertService.isSending('egg', egg.uid)) {
                   <mat-icon class="spin">sync</mat-icon>
@@ -230,10 +234,10 @@
                   <mat-icon>send</mat-icon>
                 }
               </button>
-              <button mat-icon-button (click)="editEgg(egg)" matTooltip="Edit">
+              <button mat-icon-button (click)="editEgg(egg)" [matTooltip]="'COMMON.EDIT' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
-              <button mat-icon-button (click)="deleteEgg(egg)" matTooltip="Delete" color="warn">
+              <button mat-icon-button (click)="deleteEgg(egg)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
                 <mat-icon>delete</mat-icon>
               </button>
             </mat-card-actions>
@@ -256,10 +260,10 @@
               <line x1="78" y1="16" x2="84" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
               <line x1="42" y1="16" x2="36" y2="10" stroke="currentColor" stroke-width="2" opacity="0.1" />
             </svg>
-            <h2 class="empty-title">No Egg Alarms Configured</h2>
-            <p class="empty-subtitle">Get notified about raid bosses and egg hatches at nearby gyms</p>
+            <h2 class="empty-title">{{ 'RAIDS.EMPTY_EGGS_TITLE' | translate }}</h2>
+            <p class="empty-subtitle">{{ 'RAIDS.EMPTY_EGGS_SUBTITLE' | translate }}</p>
             <button mat-flat-button style="background-color: #f44336; color: white" (click)="openAddDialog()">
-              <mat-icon>add</mat-icon> Add Egg
+              <mat-icon>add</mat-icon> {{ 'RAIDS.ADD_EGG' | translate }}
             </button>
           </div>
         }

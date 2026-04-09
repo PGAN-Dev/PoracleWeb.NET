@@ -1,7 +1,7 @@
 @if (isEmpty()) {
   <span class="chip chip-empty" [matTooltip]="tooltipText()">
     <mat-icon class="chip-icon">schedule</mat-icon>
-    Manual only
+    {{ 'ACTIVE_HOURS_CHIP.MANUAL_ONLY' | translate }}
   </span>
 } @else {
   @for (pill of pills(); track pill.label) {

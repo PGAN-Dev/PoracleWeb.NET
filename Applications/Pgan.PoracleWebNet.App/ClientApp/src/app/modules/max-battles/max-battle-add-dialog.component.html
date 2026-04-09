@@ -1,16 +1,16 @@
-<h2 mat-dialog-title>Add Max Battle Alarm</h2>
+<h2 mat-dialog-title>{{ 'MAX_BATTLES.ADD_DIALOG_TITLE' | translate }}</h2>
 <mat-dialog-content>
   <mat-tab-group animationDuration="200ms" class="alarm-tabs">
     <!-- Tab 1: Selection -->
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>flash_on</mat-icon>
-        <span class="tab-label">Selection</span>
+        <span class="tab-label">{{ 'RAIDS.TAB_SELECTION' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         <mat-tab-group [(selectedIndex)]="tabIndex">
           <!-- By Level -->
-          <mat-tab label="By Level">
+          <mat-tab [label]="'MAX_BATTLES.BY_LEVEL' | translate">
             <div class="tab-content">
               <p class="tab-hint">Track any Pokemon at these battle tiers. One alarm is created per selected level.</p>
               <div class="level-grid">
@@ -32,20 +32,22 @@
                 }
               </div>
               <button mat-stroked-button type="button" (click)="selectAllLevels()" class="select-all-btn">
-                <mat-icon>select_all</mat-icon> Select All
+                <mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}
               </button>
             </div>
           </mat-tab>
 
           <!-- By Pokemon -->
-          <mat-tab label="By Pokemon">
+          <mat-tab [label]="'MAX_BATTLES.BY_POKEMON' | translate">
             <div class="tab-content">
               <p class="tab-hint">Track specific Pokemon in Max Battles regardless of level.</p>
               <app-pokemon-selector [multi]="true" [allowedIds]="maxBattlePokemonIds()" (selectionChange)="onPokemonSelected($event)" />
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
               }
-              <mat-slide-toggle [formControl]="commonForm.controls.gmaxOnly" class="gmax-toggle"> Gigantamax only </mat-slide-toggle>
+              <mat-slide-toggle [formControl]="commonForm.controls.gmaxOnly" class="gmax-toggle">
+                {{ 'MAX_BATTLES.GIGANTAMAX_ONLY' | translate }}
+              </mat-slide-toggle>
               <p class="gmax-hint">When enabled, only notifies about Gigantamax battles for the selected Pokemon.</p>
             </div>
           </mat-tab>
@@ -57,17 +59,17 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">Delivery</span>
+        <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>Location Mode</h4>
+        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
         <mat-radio-group [formControl]="commonForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
           <mat-radio-button value="areas">
             <div class="radio-label">
               <mat-icon>map</mat-icon>
               <div>
-                <strong>Use Areas</strong>
-                <p class="radio-hint">Notifications will use your configured area geofences</p>
+                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
               </div>
             </div>
           </mat-radio-button>
@@ -75,8 +77,8 @@
             <div class="radio-label">
               <mat-icon>straighten</mat-icon>
               <div>
-                <strong>Set Distance</strong>
-                <p class="radio-hint">Notify within a radius from your location</p>
+                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
               </div>
             </div>
           </mat-radio-button>
@@ -84,9 +86,9 @@
 
         @if (commonForm.controls.distanceMode.value === 'distance') {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Distance</mat-label>
+            <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
             <input matInput type="number" [formControl]="commonForm.controls.distanceKm" min="0" step="0.1" />
-            <span matSuffix>km</span>
+            <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
           </mat-form-field>
         }
 
@@ -95,11 +97,11 @@
           [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
 
-        <h4>Message Settings</h4>
+        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Ping / Role</mat-label>
-            <input matInput [formControl]="commonForm.controls.ping" placeholder="e.g. @role or empty" />
+            <mat-label>{{ 'ALARM.PING_ROLE' | translate }}</mat-label>
+            <input matInput [formControl]="commonForm.controls.ping" [placeholder]="'ALARM.PING_PLACEHOLDER' | translate" />
           </mat-form-field>
         }
 
@@ -109,19 +111,19 @@
           (valueChange)="commonForm.controls.template.setValue($event)">
         </app-template-selector>
 
-        <mat-slide-toggle [formControl]="commonForm.controls.clean"> Clean mode </mat-slide-toggle>
-        <p class="clean-hint">Automatically deletes the notification from Discord after the max battle ends</p>
+        <mat-slide-toggle [formControl]="commonForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_MAX_BATTLE' | translate }}</p>
       </div>
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(false)">Cancel</button>
+  <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave()">
     @if (saving()) {
       <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
     }
-    {{ saving() ? 'Saving...' : 'Save' }}
+    {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

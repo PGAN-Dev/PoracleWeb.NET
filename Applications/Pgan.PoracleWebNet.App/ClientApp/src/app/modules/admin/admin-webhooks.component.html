@@ -1,17 +1,23 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Webhooks</h1>
-    <p class="page-description">Manage registered webhook destinations: block/unblock, stop/start alerts, and delete alarms.</p>
+    <h1>{{ 'ADMIN.WEBHOOKS_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.WEBHOOKS_DESC' | translate }}</p>
   </div>
-  <button mat-raised-button color="primary" (click)="openAddDialog()"><mat-icon>add</mat-icon> Add Webhook</button>
+  <button mat-raised-button color="primary" (click)="openAddDialog()">
+    <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_WEBHOOK' | translate }}
+  </button>
 </div>
 
 <div class="page-content">
   <div class="toolbar">
     <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Search webhooks</mat-label>
+      <mat-label>{{ 'ADMIN.SEARCH_WEBHOOKS' | translate }}</mat-label>
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput [ngModel]="searchTerm()" (ngModelChange)="onSearchChange($event)" placeholder="Filter by name or URL..." />
+      <input
+        matInput
+        [ngModel]="searchTerm()"
+        (ngModelChange)="onSearchChange($event)"
+        [placeholder]="'ADMIN.FILTER_WEBHOOK_PLACEHOLDER' | translate" />
       @if (searchTerm()) {
         <button matSuffix mat-icon-button (click)="onSearchChange('')">
           <mat-icon>clear</mat-icon>
@@ -19,15 +25,15 @@
       }
     </mat-form-field>
     <mat-form-field appearance="outline" class="status-filter">
-      <mat-label>Status</mat-label>
+      <mat-label>{{ 'ADMIN.STATUS_LABEL' | translate }}</mat-label>
       <mat-select [ngModel]="statusFilter()" (ngModelChange)="onStatusFilterChange($event)">
-        <mat-option value="all">All</mat-option>
-        <mat-option value="active">Active</mat-option>
-        <mat-option value="stopped">Stopped</mat-option>
-        <mat-option value="blocked">Blocked</mat-option>
+        <mat-option value="all">{{ 'ADMIN.STATUS_ALL' | translate }}</mat-option>
+        <mat-option value="active">{{ 'ADMIN.STATUS_ACTIVE' | translate }}</mat-option>
+        <mat-option value="stopped">{{ 'ADMIN.STATUS_STOPPED' | translate }}</mat-option>
+        <mat-option value="blocked">{{ 'ADMIN.STATUS_BLOCKED' | translate }}</mat-option>
       </mat-select>
     </mat-form-field>
-    <button mat-raised-button (click)="loadUsers()"><mat-icon>refresh</mat-icon> Refresh</button>
+    <button mat-raised-button (click)="loadUsers()"><mat-icon>refresh</mat-icon> {{ 'ADMIN.REFRESH' | translate }}</button>
   </div>
 
   @if (usersLoading()) {
@@ -38,34 +44,39 @@
     <div class="table-container">
       <table mat-table matSort (matSortChange)="onSortChange($event)" [dataSource]="paginatedWebhooks()" class="users-table">
         <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-          <td mat-cell *matCellDef="let wh">{{ wh.name || '(unnamed)' }}</td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_NAME' | translate }}</th>
+          <td mat-cell *matCellDef="let wh">{{ wh.name || ('ADMIN.UNNAMED' | translate) }}</td>
         </ng-container>
 
         <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>URL</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_URL' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
-            <span class="webhook-url" [matTooltip]="wh.id" matTooltipClass="url-tooltip" (click)="copyUrl(wh.id)" title="Click to copy">
+            <span
+              class="webhook-url"
+              [matTooltip]="wh.id"
+              matTooltipClass="url-tooltip"
+              (click)="copyUrl(wh.id)"
+              [title]="'ADMIN.CLICK_TO_COPY' | translate">
               <mat-icon class="copy-icon">content_copy</mat-icon>{{ truncateUrl(wh.id) }}
             </span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="enabled">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>{{ 'ADMIN.COLUMN_STATUS' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
             @if (wh.adminDisable === 1) {
-              <span class="status-chip status-disabled">Blocked</span>
+              <span class="status-chip status-disabled">{{ 'ADMIN.STATUS_BLOCKED' | translate }}</span>
             } @else if (wh.enabled === 0) {
-              <span class="status-chip status-paused">Stopped</span>
+              <span class="status-chip status-paused">{{ 'ADMIN.STATUS_STOPPED' | translate }}</span>
             } @else {
-              <span class="status-chip status-active">Active</span>
+              <span class="status-chip status-active">{{ 'ADMIN.STATUS_ACTIVE' | translate }}</span>
             }
           </td>
         </ng-container>
 
         <ng-container matColumnDef="delegates">
-          <th mat-header-cell *matHeaderCellDef>Delegates</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_DELEGATES' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
             <div class="delegate-avatars">
               @for (uid of getDelegateUserIds(wh.id); track uid) {
@@ -73,7 +84,11 @@
                   class="delegate-avatar-wrap"
                   [matTooltip]="
                     getDelegateName(uid) +
-                    (isPoracleAdmin(uid) ? ' (global admin)' : isPorocleDelegateForWebhook(wh.id, uid) ? ' (config delegate)' : '')
+                    (isPoracleAdmin(uid)
+                      ? ' (' + ('ADMIN.GLOBAL_ADMIN' | translate) + ')'
+                      : isPorocleDelegateForWebhook(wh.id, uid)
+                        ? ' (' + ('ADMIN.CONFIG_DELEGATE' | translate) + ')'
+                        : '')
                   ">
                   @if (getDelegateAvatarUrl(uid)) {
                     <img class="delegate-avatar" [src]="getDelegateAvatarUrl(uid)!" alt="" />
@@ -92,37 +107,37 @@
         </ng-container>
 
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
             <div class="action-buttons">
               @if (wh.adminDisable !== 1) {
-                <button mat-icon-button color="warn" (click)="toggleBlock(wh, false)" matTooltip="Block webhook">
+                <button mat-icon-button color="warn" (click)="toggleBlock(wh, false)" [matTooltip]="'ADMIN.BLOCK_WEBHOOK' | translate">
                   <mat-icon>block</mat-icon>
                 </button>
               } @else {
-                <button mat-icon-button color="primary" (click)="toggleBlock(wh, true)" matTooltip="Unblock webhook">
+                <button mat-icon-button color="primary" (click)="toggleBlock(wh, true)" [matTooltip]="'ADMIN.UNBLOCK_WEBHOOK' | translate">
                   <mat-icon>check_circle</mat-icon>
                 </button>
               }
               @if (wh.enabled === 0) {
-                <button mat-icon-button color="primary" (click)="resumeWebhook(wh)" matTooltip="Start alerts">
+                <button mat-icon-button color="primary" (click)="resumeWebhook(wh)" [matTooltip]="'ADMIN.START_ALERTS' | translate">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
               } @else {
-                <button mat-icon-button (click)="pauseWebhook(wh)" matTooltip="Stop alerts">
+                <button mat-icon-button (click)="pauseWebhook(wh)" [matTooltip]="'ADMIN.STOP_ALERTS' | translate">
                   <mat-icon>pause</mat-icon>
                 </button>
               }
-              <button mat-icon-button (click)="manageAlarms(wh)" matTooltip="Manage alarms">
+              <button mat-icon-button (click)="manageAlarms(wh)" [matTooltip]="'ADMIN.MANAGE_ALARMS' | translate">
                 <mat-icon>tune</mat-icon>
               </button>
-              <button mat-icon-button (click)="openDelegatesDialog(wh)" matTooltip="Manage delegates">
+              <button mat-icon-button (click)="openDelegatesDialog(wh)" [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate">
                 <mat-icon>group_add</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteAlarms(wh)" matTooltip="Delete all alarms">
+              <button mat-icon-button color="warn" (click)="deleteAlarms(wh)" [matTooltip]="'ADMIN.DELETE_ALL_ALARMS' | translate">
                 <mat-icon>delete_sweep</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteWebhook(wh)" matTooltip="Delete webhook">
+              <button mat-icon-button color="warn" (click)="deleteWebhook(wh)" [matTooltip]="'ADMIN.DELETE_WEBHOOK' | translate">
                 <mat-icon>person_remove</mat-icon>
               </button>
             </div>
@@ -137,8 +152,12 @@
     @if (filteredWebhooks().length === 0) {
       <div class="empty-state">
         <mat-icon class="empty-icon">webhook</mat-icon>
-        <h2>No webhooks found</h2>
-        <p>{{ searchTerm() || statusFilter() !== 'all' ? 'Try adjusting your filters.' : 'No webhooks registered.' }}</p>
+        <h2>{{ 'ADMIN.NO_WEBHOOKS' | translate }}</h2>
+        <p>
+          {{
+            searchTerm() || statusFilter() !== 'all' ? ('ADMIN.TRY_ADJUSTING_FILTERS' | translate) : ('ADMIN.NO_WEBHOOKS_YET' | translate)
+          }}
+        </p>
       </div>
     }
 

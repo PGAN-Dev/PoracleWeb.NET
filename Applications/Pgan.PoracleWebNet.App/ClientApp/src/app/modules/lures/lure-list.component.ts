@@ -9,11 +9,13 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { LureAddDialogComponent } from './lure-add-dialog.component';
 import { LureEditDialogComponent } from './lure-edit-dialog.component';
 import { Lure } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -31,6 +33,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
   ],
   selector: 'app-lure-list',
   standalone: true,
@@ -40,6 +43,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 export class LureListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
@@ -51,9 +55,9 @@ export class LureListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete Selected',
-        message: `Delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
+        message: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -64,7 +68,9 @@ export class LureListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadLures();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -77,7 +83,7 @@ export class LureListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadLures();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
@@ -87,9 +93,9 @@ export class LureListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete All',
-          message: 'Delete ALL lure alarms? This cannot be undone.',
-          title: 'Delete All Lure Alarms',
+          confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+          message: this.i18n.instant('POKEMON.CONFIRM_DELETE_ALL_MSG'),
+          title: this.i18n.instant('LURES.PAGE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -97,9 +103,10 @@ export class LureListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.lureService.deleteAll().subscribe({
-            error: () => this.snackBar.open('Failed to delete alarms', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('LURES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('All lure alarms deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('LURES.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadLures();
             },
           });
@@ -110,9 +117,9 @@ export class LureListComponent implements OnInit {
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          confirmText: 'Delete',
-          message: `Delete the ${this.getLureName(lure.lureId)} lure alarm?`,
-          title: 'Delete Lure Alarm',
+          confirmText: this.i18n.instant('COMMON.DELETE'),
+          message: `${this.i18n.instant('COMMON.DELETE')} ${this.getLureName(lure.lureId)} ${this.i18n.instant('LURES.LURE_SUFFIX')}?`,
+          title: this.i18n.instant('LURES.EDIT_DIALOG_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })
@@ -120,9 +127,10 @@ export class LureListComponent implements OnInit {
       .subscribe(c => {
         if (c)
           this.lureService.delete(lure.uid).subscribe({
-            error: () => this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 }),
+            error: () =>
+              this.snackBar.open(this.i18n.instant('LURES.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
             next: () => {
-              this.snackBar.open('Lure alarm deleted', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('LURES.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
               this.loadLures();
             },
           });
@@ -240,9 +248,10 @@ export class LureListComponent implements OnInit {
     ref.afterClosed().subscribe(distance => {
       if (distance !== null && distance !== undefined) {
         this.lureService.updateAllDistance(distance).subscribe({
-          error: () => this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadLures();
           },
         });

@@ -7,15 +7,26 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { PoracleServerStatus } from '../../../core/models';
 import { AdminService } from '../../../core/services/admin.service';
+import { I18nService } from '../../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule],
+  imports: [
+    DatePipe,
+    MatButtonModule,
+    MatDialogModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+    TranslateModule,
+  ],
   selector: 'app-poracle-servers',
   standalone: true,
   styleUrl: './poracle-servers.component.scss',
@@ -25,6 +36,7 @@ export class PoracleServersComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly loading = signal(true);
@@ -43,9 +55,9 @@ export class PoracleServersComponent implements OnInit {
   async restartAll(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Restart All',
-        message: 'This will restart ALL Poracle servers. Users will briefly stop receiving alerts until the servers come back online.',
-        title: 'Restart All Poracle Servers',
+        confirmText: this.i18n.instant('ADMIN.RESTART_ALL'),
+        message: this.i18n.instant('ADMIN.CONFIRM_RESTART_ALL'),
+        title: this.i18n.instant('ADMIN.RESTART_ALL_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -58,12 +70,12 @@ export class PoracleServersComponent implements OnInit {
         .subscribe({
           error: () => {
             this.restartingAll.set(false);
-            this.snackBar.open('Failed to restart servers', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_RESTART_ALL'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: servers => {
             this.servers.set(servers);
             this.restartingAll.set(false);
-            this.snackBar.open('All servers restarted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_ALL_RESTARTED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
     }
@@ -72,9 +84,9 @@ export class PoracleServersComponent implements OnInit {
   async restartServer(server: PoracleServerStatus): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Restart',
-        message: `Are you sure you want to restart "${server.name}" (${server.host})? Alert processing will briefly pause on this server.`,
-        title: 'Restart Poracle Server',
+        confirmText: this.i18n.instant('ADMIN.RESTART'),
+        message: this.i18n.instant('ADMIN.CONFIRM_RESTART_SERVER', { name: server.name, host: server.host }),
+        title: this.i18n.instant('ADMIN.RESTART_SERVER_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -87,12 +99,16 @@ export class PoracleServersComponent implements OnInit {
         .subscribe({
           error: () => {
             this.restarting.update(r => ({ ...r, [server.host]: false }));
-            this.snackBar.open(`Failed to restart "${server.name}"`, 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_RESTART', { name: server.name }), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
           next: updated => {
             this.servers.update(list => list.map(s => (s.host === updated.host ? updated : s)));
             this.restarting.update(r => ({ ...r, [server.host]: false }));
-            this.snackBar.open(`"${server.name}" restarted`, 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('ADMIN.SNACK_RESTARTED', { name: server.name }), this.i18n.instant('TOAST.OK'), {
+              duration: 3000,
+            });
           },
         });
     }
@@ -106,7 +122,7 @@ export class PoracleServersComponent implements OnInit {
       .subscribe({
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Failed to load Poracle servers', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_SERVERS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: servers => {
           this.servers.set(servers);

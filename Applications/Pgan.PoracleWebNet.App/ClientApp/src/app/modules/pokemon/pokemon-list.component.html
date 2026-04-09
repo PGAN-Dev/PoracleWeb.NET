@@ -1,9 +1,8 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Pokemon Alarms</h1>
+    <h1>{{ 'POKEMON.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">
-      Track wild Pokemon spawns with custom IV, CP, level, and PVP filters. Use <mat-icon class="inline-icon">map</mat-icon> Areas for
-      geofence-based alerts, or set a <mat-icon class="inline-icon">straighten</mat-icon> Distance radius from your location.
+      {{ 'POKEMON.PAGE_DESC' | translate }}
     </p>
   </div>
   <div class="header-actions">
@@ -17,7 +16,7 @@
   <div class="filter-bar" [class.sticky]="monsters().length > 6">
     <mat-form-field class="search-field" appearance="outline" subscriptSizing="dynamic">
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput placeholder="Search by name or #..." [formControl]="searchControl" />
+      <input matInput [placeholder]="'POKEMON.SEARCH_PLACEHOLDER' | translate" [formControl]="searchControl" />
       @if (searchControl.value) {
         <button matSuffix mat-icon-button (click)="searchControl.reset()">
           <mat-icon>close</mat-icon>
@@ -27,30 +26,34 @@
 
     <div class="quick-filters">
       <button mat-stroked-button [class.filter-active]="activeFilter() === 'highiv'" (click)="toggleFilter('highiv')">
-        <mat-icon>stars</mat-icon> High IV
+        <mat-icon>stars</mat-icon> {{ 'POKEMON.FILTER_HIGH_IV' | translate }}
       </button>
       <button mat-stroked-button [class.filter-active]="activeFilter() === 'pvp'" (click)="toggleFilter('pvp')">
-        <mat-icon>shield</mat-icon> PVP
+        <mat-icon>shield</mat-icon> {{ 'POKEMON.FILTER_PVP' | translate }}
       </button>
       <button mat-stroked-button [class.filter-active]="activeFilter() === 'distance'" (click)="toggleFilter('distance')">
-        <mat-icon>straighten</mat-icon> Distance
+        <mat-icon>straighten</mat-icon> {{ 'POKEMON.FILTER_DISTANCE' | translate }}
       </button>
     </div>
 
     <div class="filter-meta">
-      <span class="result-count">{{ filteredMonsters().length }} of {{ monsters().length }} alarms</span>
+      <span class="result-count">{{
+        'POKEMON.RESULT_COUNT' | translate: { filtered: filteredMonsters().length, total: monsters().length }
+      }}</span>
       <button
         mat-icon-button
         (click)="toggleSelectMode()"
         [class.select-mode-active]="selectMode()"
-        matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+        [matTooltip]="selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate)">
         <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
       </button>
     </div>
   </div>
 
   <div class="gen-filter-bar">
-    <button class="gen-chip" [class.gen-active]="activeGen() === null" (click)="activeGen.set(null)">All</button>
+    <button class="gen-chip" [class.gen-active]="activeGen() === null" (click)="activeGen.set(null)">
+      {{ 'POKEMON.GEN_ALL' | translate }}
+    </button>
     @for (gen of generations; track gen.label) {
       <button
         class="gen-chip"
@@ -65,32 +68,32 @@
     <mat-form-field appearance="outline" class="sort-field">
       <mat-icon matPrefix>sort</mat-icon>
       <mat-select [value]="sortBy()" (valueChange)="sortBy.set($event)">
-        <mat-option value="name">Name</mat-option>
-        <mat-option value="id">Pokedex #</mat-option>
-        <mat-option value="generation">Generation</mat-option>
-        <mat-option value="evolution">Evolution</mat-option>
+        <mat-option value="name">{{ 'POKEMON.SORT_NAME' | translate }}</mat-option>
+        <mat-option value="id">{{ 'POKEMON.SORT_ID' | translate }}</mat-option>
+        <mat-option value="generation">{{ 'POKEMON.SORT_GENERATION' | translate }}</mat-option>
+        <mat-option value="evolution">{{ 'POKEMON.SORT_EVOLUTION' | translate }}</mat-option>
       </mat-select>
     </mat-form-field>
     @if (activeGen()) {
-      <span class="gen-count">{{ filteredMonsters().length }} alarm{{ filteredMonsters().length === 1 ? '' : 's' }}</span>
+      <span class="gen-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: filteredMonsters().length } }}</span>
     }
   </div>
 
   @if (selectMode()) {
     <div class="bulk-toolbar">
       @if (selectedIds().size > 0) {
-        <span class="bulk-count">{{ selectedIds().size }} selected</span>
+        <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
       }
-      <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+      <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
       @if (selectedIds().size > 0) {
-        <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+        <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
       }
       <div class="bulk-spacer"></div>
       <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-        <mat-icon>straighten</mat-icon> Update Distance
+        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
       </button>
       <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-        <mat-icon>delete</mat-icon> Delete
+        <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
       </button>
     </div>
   }
@@ -151,12 +154,12 @@
               <span class="pokemon-id">#{{ monster.pokemonId }}</span>
             }
             @if (monster.form > 0) {
-              <span class="form-badge">Form {{ monster.form }}</span>
+              <span class="form-badge">{{ 'POKEMON.FORM_BADGE' | translate: { id: monster.form } }}</span>
             }
           </div>
           <div class="card-top-actions">
             @if (monster.clean === 1) {
-              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+              <span class="clean-tag" [matTooltip]="'POKEMON.CLEAN_TAG_TOOLTIP' | translate">{{ 'POKEMON.CLEAN_TAG' | translate }}</span>
             }
           </div>
         </div>
@@ -166,7 +169,7 @@
               <span class="filter-pill iv-pill">IV {{ monster.minIv }}-{{ monster.maxIv }}%</span>
             }
             @if (monster.minIv === -1) {
-              <span class="filter-pill iv-pill iv-disabled">No IV Filter</span>
+              <span class="filter-pill iv-pill iv-disabled">{{ 'POKEMON.NO_IV_FILTER' | translate }}</span>
             }
             @if (monster.minCp > 0 || monster.maxCp < 9000) {
               <span class="filter-pill cp-pill">CP {{ monster.minCp }}-{{ monster.maxCp }}</span>
@@ -179,18 +182,18 @@
                 >PVP
                 {{
                   monster.pvpRankingLeague === 1500
-                    ? 'GL'
+                    ? ('POKEMON.PVP_GL' | translate)
                     : monster.pvpRankingLeague === 2500
-                      ? 'UL'
+                      ? ('POKEMON.PVP_UL' | translate)
                       : monster.pvpRankingLeague === 500
-                        ? 'LC'
-                        : 'ML'
+                        ? ('POKEMON.PVP_LC' | translate)
+                        : ('POKEMON.PVP_ML' | translate)
                 }}</span
               >
             }
             @if (monster.gender > 0) {
               <span class="filter-pill gender-pill">{{
-                monster.gender === 1 ? '\u2642' : monster.gender === 2 ? '\u2640' : 'Genderless'
+                monster.gender === 1 ? '\u2642' : monster.gender === 2 ? '\u2640' : ('POKEMON.GENDER_GENDERLESS' | translate)
               }}</span>
             }
             @if (monster.size > 0 || monster.maxSize < 5) {
@@ -199,7 +202,7 @@
           </div>
           <div class="distance-chip-row">
             @if (monster.distance === 0) {
-              <span class="distance-chip area-mode"> <mat-icon>map</mat-icon> Using Areas </span>
+              <span class="distance-chip area-mode"> <mat-icon>map</mat-icon> {{ 'POKEMON.USING_AREAS' | translate }} </span>
             } @else {
               <span class="distance-chip distance-mode"> <mat-icon>straighten</mat-icon> {{ formatDistance(monster.distance) }} </span>
             }
@@ -208,9 +211,11 @@
             <div class="pvp-row">
               <span class="pvp-badge">
                 <mat-icon>emoji_events</mat-icon>
-                {{ getLeagueName(monster.pvpRankingLeague) }} League
+                {{ getLeagueName(monster.pvpRankingLeague) }} {{ 'POKEMON.PVP_LEAGUE_SUFFIX' | translate }}
               </span>
-              <span class="pvp-rank">Rank {{ monster.pvpRankingBest }}-{{ monster.pvpRankingWorst }}</span>
+              <span class="pvp-rank">{{
+                'POKEMON.PVP_RANK_RANGE' | translate: { best: monster.pvpRankingBest, worst: monster.pvpRankingWorst }
+              }}</span>
             </div>
           }
           @if (monster.ping) {
@@ -225,7 +230,9 @@
             mat-icon-button
             (click)="sendTestAlert(monster)"
             [disabled]="testAlertService.isSending('pokemon', monster.uid) || testAlertService.isCoolingDown('pokemon', monster.uid)"
-            [matTooltip]="testAlertService.isCoolingDown('pokemon', monster.uid) ? 'Cooldown active' : 'Send test notification'"
+            [matTooltip]="
+              testAlertService.isCoolingDown('pokemon', monster.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
             class="test-alert-btn">
             @if (testAlertService.isSending('pokemon', monster.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -233,10 +240,10 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-          <button mat-icon-button (click)="editMonster(monster)" matTooltip="Edit">
+          <button mat-icon-button (click)="editMonster(monster)" [matTooltip]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button (click)="deleteMonster(monster)" matTooltip="Delete" color="warn">
+          <button mat-icon-button (click)="deleteMonster(monster)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>
@@ -252,10 +259,10 @@
           <text x="95" y="22" font-size="14" fill="currentColor" opacity="0.15" font-weight="600">z</text>
           <text x="102" y="16" font-size="10" fill="currentColor" opacity="0.1" font-weight="600">z</text>
         </svg>
-        <h2 class="empty-title">No Pokemon Alarms Configured</h2>
-        <p class="empty-subtitle">Track wild spawns with custom IV, CP, and level filters</p>
+        <h2 class="empty-title">{{ 'POKEMON.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'POKEMON.EMPTY_SUBTITLE' | translate }}</p>
         <button mat-flat-button style="background-color: #4caf50; color: white" (click)="openAddDialog()">
-          <mat-icon>add</mat-icon> Add Pokemon
+          <mat-icon>add</mat-icon> {{ 'POKEMON.ADD_POKEMON' | translate }}
         </button>
       </div>
     }

@@ -6,6 +6,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslateModule } from '@ngx-translate/core';
 
 export interface RegionOption {
   count?: number;
@@ -22,7 +23,16 @@ export interface RegionGroup {
 }
 
 @Component({
-  imports: [FormsModule, MatAutocompleteModule, MatButtonModule, MatChipsModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [
+    FormsModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    TranslateModule,
+  ],
   selector: 'app-region-selector',
   standalone: true,
   styleUrl: './region-selector.component.scss',

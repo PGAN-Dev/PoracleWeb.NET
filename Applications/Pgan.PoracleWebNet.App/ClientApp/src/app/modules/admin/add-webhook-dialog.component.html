@@ -1,26 +1,28 @@
-<h2 mat-dialog-title>Add Webhook</h2>
+<h2 mat-dialog-title>{{ 'ADMIN.ADD_WEBHOOK' | translate }}</h2>
 <mat-dialog-content>
   <form [formGroup]="form" class="webhook-form">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Name</mat-label>
-      <input matInput formControlName="name" placeholder="e.g. #pogo-alerts" />
+      <mat-label>{{ 'ADMIN.WEBHOOK_NAME' | translate }}</mat-label>
+      <input matInput formControlName="name" [placeholder]="'ADMIN.WEBHOOK_NAME_PLACEHOLDER' | translate" />
       @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
-        <mat-error>Name is required</mat-error>
+        <mat-error>{{ 'ADMIN.WEBHOOK_NAME_REQUIRED' | translate }}</mat-error>
       }
     </mat-form-field>
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Webhook URL</mat-label>
-      <input matInput formControlName="url" placeholder="https://discord.com/api/webhooks/..." />
+      <mat-label>{{ 'ADMIN.WEBHOOK_URL' | translate }}</mat-label>
+      <input matInput formControlName="url" [placeholder]="'ADMIN.WEBHOOK_URL_PLACEHOLDER' | translate" />
       @if (form.get('url')?.hasError('required') && form.get('url')?.touched) {
-        <mat-error>URL is required</mat-error>
+        <mat-error>{{ 'ADMIN.WEBHOOK_URL_REQUIRED' | translate }}</mat-error>
       }
       @if (form.get('url')?.hasError('pattern') && form.get('url')?.touched) {
-        <mat-error>Must be a valid https:// URL</mat-error>
+        <mat-error>{{ 'ADMIN.WEBHOOK_URL_INVALID' | translate }}</mat-error>
       }
     </mat-form-field>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(null)">Cancel</button>
-  <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="submit()"><mat-icon>add</mat-icon> Add Webhook</button>
+  <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="submit()">
+    <mat-icon>add</mat-icon> {{ 'ADMIN.ADD_WEBHOOK' | translate }}
+  </button>
 </mat-dialog-actions>

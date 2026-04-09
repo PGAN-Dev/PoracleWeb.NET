@@ -1,14 +1,14 @@
-<h2 mat-dialog-title>Add Gym Alarm</h2>
+<h2 mat-dialog-title>{{ 'GYMS.ADD_DIALOG_TITLE' | translate }}</h2>
 <mat-dialog-content>
   <mat-tab-group animationDuration="200ms" class="alarm-tabs">
     <!-- Tab 1: Teams -->
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>fitness_center</mat-icon>
-        <span class="tab-label">Teams</span>
+        <span class="tab-label">{{ 'GYMS.TAB_TEAMS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>Teams</h4>
+        <h4>{{ 'GYMS.TAB_TEAMS' | translate }}</h4>
         <div class="team-grid">
           @for (team of teams; track team.id) {
             <mat-checkbox [checked]="selectedTeamIds().includes(team.id)" (change)="toggleTeam(team.id)">
@@ -17,13 +17,13 @@
           }
         </div>
         @if (selectedTeamIds().length > 0) {
-          <p class="selection-count">{{ selectedTeamIds().length }} team(s) selected</p>
+          <p class="selection-count">{{ 'GYMS.TEAMS_SELECTED' | translate: { count: selectedTeamIds().length } }}</p>
         }
-        <h4>Specific Gym</h4>
+        <h4>{{ 'RAIDS.SPECIFIC_GYM' | translate }}</h4>
         <app-gym-picker [(gymId)]="selectedGymId" />
-        <p class="gym-picker-hint">Optionally track a specific gym. Leave empty to track all gyms in your areas.</p>
-        <mat-slide-toggle [formControl]="form.controls.slotChanges">Track Slot Changes</mat-slide-toggle>
-        <mat-slide-toggle [formControl]="form.controls.battleChanges">Track Battle Changes</mat-slide-toggle>
+        <p class="gym-picker-hint">{{ 'GYMS.GYM_PICKER_HINT' | translate }}</p>
+        <mat-slide-toggle [formControl]="form.controls.slotChanges">{{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}</mat-slide-toggle>
+        <mat-slide-toggle [formControl]="form.controls.battleChanges">{{ 'GYMS.TRACK_BATTLE_CHANGES' | translate }}</mat-slide-toggle>
       </div>
     </mat-tab>
 
@@ -31,17 +31,17 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">Delivery</span>
+        <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>Location Mode</h4>
+        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
         <mat-radio-group [formControl]="form.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
           <mat-radio-button value="areas"
             ><div class="radio-label">
               <mat-icon>map</mat-icon>
               <div>
-                <strong>Use Areas</strong>
-                <p class="radio-hint">Notifications will use your configured area geofences</p>
+                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
               </div>
             </div></mat-radio-button
           >
@@ -49,43 +49,44 @@
             ><div class="radio-label">
               <mat-icon>straighten</mat-icon>
               <div>
-                <strong>Set Distance</strong>
-                <p class="radio-hint">Notify within a radius from your location</p>
+                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
               </div>
             </div></mat-radio-button
           >
         </mat-radio-group>
         @if (form.controls.distanceMode.value === 'distance') {
           <mat-form-field appearance="outline" class="full-width"
-            ><mat-label>Distance</mat-label
-            ><input matInput type="number" [formControl]="form.controls.distanceKm" min="0" step="0.1" /><span matSuffix
-              >km</span
-            ></mat-form-field
+            ><mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label
+            ><input matInput type="number" [formControl]="form.controls.distanceKm" min="0" step="0.1" /><span matSuffix>{{
+              'ALARM.DISTANCE_SUFFIX' | translate
+            }}</span></mat-form-field
           >
         }
         <app-delivery-preview
           [mode]="form.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
           [distanceKm]="form.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
-        <h4>Common Settings</h4>
+        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         @if (isWebhook) {
           <mat-form-field appearance="outline" class="full-width"
-            ><mat-label>Ping / Role</mat-label><input matInput [formControl]="form.controls.ping" placeholder="e.g. @role or empty"
+            ><mat-label>{{ 'ALARM.PING_ROLE' | translate }}</mat-label
+            ><input matInput [formControl]="form.controls.ping" [placeholder]="'ALARM.PING_PLACEHOLDER' | translate"
           /></mat-form-field>
         }
         <app-template-selector
           [alarmType]="'gym'"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
-        <mat-slide-toggle [formControl]="form.controls.clean"> Clean mode </mat-slide-toggle>
-        <p class="clean-hint">Automatically deletes the notification from Discord after gym activity changes</p>
+        <mat-slide-toggle [formControl]="form.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_GYM' | translate }}</p>
       </div>
     </mat-tab>
   </mat-tab-group>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(false)">Cancel</button>
+  <button mat-button (click)="dialogRef.close(false)">{{ 'COMMON.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || selectedTeamIds().length === 0">
-    {{ saving() ? 'Saving...' : 'Save' }}
+    {{ saving() ? ('COMMON.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
   </button>
 </mat-dialog-actions>

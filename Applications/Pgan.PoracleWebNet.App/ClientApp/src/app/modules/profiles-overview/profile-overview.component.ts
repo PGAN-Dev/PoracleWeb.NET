@@ -13,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import {
@@ -24,6 +25,7 @@ import {
   Profile,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ProfileOverviewService } from '../../core/services/profile-overview.service';
@@ -74,6 +76,7 @@ interface DuplicateInfo {
     MatProgressBarModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslateModule,
     ActiveHoursChipComponent,
     LocationWarningComponent,
   ],
@@ -86,6 +89,7 @@ export class ProfileOverviewComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly profileOverviewService = inject(ProfileOverviewService);
   private readonly profileService = inject(ProfileService);
@@ -93,16 +97,16 @@ export class ProfileOverviewComponent implements OnInit {
   readonly activeProfileNo = signal<number>(1);
 
   readonly alarmTypes: AlarmTypeConfig[] = [
-    { color: '#4caf50', icon: 'catching_pokemon', key: 'pokemon', label: 'Pokemon' },
-    { color: '#f44336', icon: 'shield', key: 'raid', label: 'Raids' },
-    { color: '#ff9800', icon: 'egg', key: 'egg', label: 'Eggs' },
-    { color: '#d500f9', icon: 'flash_on', key: 'maxbattle', label: 'Max Battles' },
-    { color: '#9c27b0', icon: 'assignment', key: 'quest', label: 'Quests' },
-    { color: '#607d8b', icon: 'warning', key: 'invasion', label: 'Invasions' },
-    { color: '#e91e63', icon: 'place', key: 'lure', label: 'Lures' },
-    { color: '#8bc34a', icon: 'park', key: 'nest', label: 'Nests' },
-    { color: '#00bcd4', icon: 'fitness_center', key: 'gym', label: 'Gyms' },
-    { color: '#795548', icon: 'domain', key: 'fort', label: 'Fort Changes' },
+    { color: '#4caf50', icon: 'catching_pokemon', key: 'pokemon', label: this.i18n.instant('PROFILES.TYPE_POKEMON') },
+    { color: '#f44336', icon: 'shield', key: 'raid', label: this.i18n.instant('PROFILES.TYPE_RAIDS') },
+    { color: '#ff9800', icon: 'egg', key: 'egg', label: this.i18n.instant('PROFILES.TYPE_EGGS') },
+    { color: '#d500f9', icon: 'flash_on', key: 'maxbattle', label: this.i18n.instant('PROFILES.TYPE_MAX_BATTLES') },
+    { color: '#9c27b0', icon: 'assignment', key: 'quest', label: this.i18n.instant('PROFILES.TYPE_QUESTS') },
+    { color: '#607d8b', icon: 'warning', key: 'invasion', label: this.i18n.instant('PROFILES.TYPE_INVASIONS') },
+    { color: '#e91e63', icon: 'place', key: 'lure', label: this.i18n.instant('PROFILES.TYPE_LURES') },
+    { color: '#8bc34a', icon: 'park', key: 'nest', label: this.i18n.instant('PROFILES.TYPE_NESTS') },
+    { color: '#00bcd4', icon: 'fitness_center', key: 'gym', label: this.i18n.instant('PROFILES.TYPE_GYMS') },
+    { color: '#795548', icon: 'domain', key: 'fort', label: this.i18n.instant('PROFILES.TYPE_FORT_CHANGES') },
   ];
 
   readonly overview = signal<ProfileOverview | null>(null);
@@ -281,18 +285,19 @@ export class ProfileOverviewComponent implements OnInit {
     if (profile.active) return;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Are you sure you want to delete profile "${profile.name}" (#${profile.profileNo})? All alarms in this profile will be lost.`,
-        title: 'Delete Profile',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('PROFILES.CONFIRM_DELETE_MSG', { name: profile.name, number: profile.profileNo }),
+        title: this.i18n.instant('PROFILES.CONFIRM_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
     ref.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.profileService.delete(profile.profileNo).subscribe({
-          error: () => this.snackBar.open('Failed to delete profile', 'OK', { duration: 3000 }),
+          error: () =>
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: () => {
-            this.snackBar.open('Profile deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadAll();
           },
         });
@@ -304,14 +309,14 @@ export class ProfileOverviewComponent implements OnInit {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {
-        confirmText: 'Duplicate',
-        message: `Create a new profile with all of ${profile.name}'s alarms copied over.`,
+        confirmText: this.i18n.instant('PROFILES.DUPLICATE'),
+        message: this.i18n.instant('PROFILES.DUPLICATE_DESC', { name: profile.name }),
         promptField: {
           existingNames: this.managedProfiles().map(p => p.name),
-          label: 'New Profile Name',
+          label: this.i18n.instant('PROFILES.NEW_PROFILE_NAME'),
           value: `${profile.name} (Copy)`,
         },
-        title: 'Duplicate Profile',
+        title: this.i18n.instant('PROFILES.DUPLICATE_DIALOG_TITLE'),
       } as ConfirmDialogData,
     });
     ref.afterClosed().subscribe((name: string | false) => {
@@ -323,14 +328,18 @@ export class ProfileOverviewComponent implements OnInit {
           .subscribe({
             error: () => {
               this.switching.set(false);
-              this.snackBar.open('Failed to duplicate profile', 'OK', { duration: 3000 });
+              this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DUPLICATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             },
             next: res => {
               this.switching.set(false);
               if (res.token) {
                 this.authService.setToken(res.token);
               }
-              this.snackBar.open(`Duplicated profile with ${res.alarmsCopied} alarms`, 'OK', { duration: 3000 });
+              this.snackBar.open(
+                this.i18n.instant('PROFILES.SNACK_DUPLICATED', { count: res.alarmsCopied }),
+                this.i18n.instant('TOAST.OK'),
+                { duration: 3000 },
+              );
               this.loadAll();
             },
           });
@@ -349,10 +358,10 @@ export class ProfileOverviewComponent implements OnInit {
       if (result !== null && result !== undefined) {
         this.profileService.updateActiveHours(profile.profile_no, result).subscribe({
           error: () => {
-            this.snackBar.open('Failed to update schedule', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_SCHEDULE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Schedule updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_SCHEDULE_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
             this.loadAll();
           },
         });
@@ -404,7 +413,9 @@ export class ProfileOverviewComponent implements OnInit {
     a.download = `profile-${profile.name.toLowerCase().replace(/\s+/g, '-')}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    this.snackBar.open(`Exported "${profile.name}" backup`, 'OK', { duration: 3000 });
+    this.snackBar.open(this.i18n.instant('PROFILES.SNACK_EXPORTED', { name: profile.name }), this.i18n.instant('TOAST.OK'), {
+      duration: 3000,
+    });
   }
 
   formatDistance(meters: number): string {
@@ -418,7 +429,7 @@ export class ProfileOverviewComponent implements OnInit {
     switch (type) {
       case 'pokemon': {
         const id = alarm.pokemon_id ?? 0;
-        if (id === 0) return 'All Pokemon';
+        if (id === 0) return this.i18n.instant('PROFILES.ALL_POKEMON');
         const name = this.masterData.getPokemonName(id);
         const form = this.masterData.getFormName(id, alarm.form ?? 0);
         return form ? `${name} (${form})` : name;
@@ -427,25 +438,26 @@ export class ProfileOverviewComponent implements OnInit {
         const id = alarm.pokemon_id ?? alarm.raid_pokemon_id ?? 0;
         if (id > 0 && id !== 9000) return this.masterData.getPokemonName(id);
         const level = alarm.level ?? 9000;
-        if (level === 9000) return 'All Raids';
-        return level === 6 ? 'All Mega Raids' : `All Level ${level} Raids`;
+        if (level === 9000) return this.i18n.instant('PROFILES.ALL_RAIDS');
+        return level === 6 ? this.i18n.instant('PROFILES.ALL_MEGA_RAIDS') : this.i18n.instant('PROFILES.ALL_LEVEL_RAIDS', { level });
       }
       case 'egg': {
         const level = alarm.level ?? 9000;
-        if (level === 9000) return 'All Eggs';
-        return level === 6 ? 'Mega Egg' : `Level ${level} Egg`;
+        if (level === 9000) return this.i18n.instant('PROFILES.ALL_EGGS');
+        return level === 6 ? this.i18n.instant('PROFILES.MEGA_EGG') : this.i18n.instant('PROFILES.LEVEL_EGG', { level });
       }
       case 'quest': {
         const rt = alarm.reward_type ?? 0;
         const id = alarm.pokemon_id ?? alarm.reward ?? 0;
         if (rt === 7 && id > 0) return this.masterData.getPokemonName(id);
-        if (rt === 7) return 'Any Pokemon Encounter';
-        if (rt === 12 && id > 0) return `${this.masterData.getPokemonName(id)} Mega Energy`;
-        if (rt === 4 && id > 0) return `${this.masterData.getPokemonName(id)} Candy`;
-        if (rt === 3) return alarm.amount ? `${alarm.amount}+ Stardust` : 'Stardust';
+        if (rt === 7) return this.i18n.instant('PROFILES.ANY_POKEMON_ENCOUNTER');
+        if (rt === 12 && id > 0) return this.i18n.instant('PROFILES.MEGA_ENERGY', { name: this.masterData.getPokemonName(id) });
+        if (rt === 4 && id > 0) return this.i18n.instant('PROFILES.CANDY', { name: this.masterData.getPokemonName(id) });
+        if (rt === 3)
+          return alarm.amount ? `${alarm.amount}+ ${this.i18n.instant('PROFILES.STARDUST')}` : this.i18n.instant('PROFILES.STARDUST');
         if (rt === 2 && (alarm.reward ?? 0) > 0) return this.masterData.getItemName(alarm.reward!);
-        if (rt === 2) return 'Item Reward';
-        return 'Quest Reward';
+        if (rt === 2) return this.i18n.instant('PROFILES.ITEM_REWARD');
+        return this.i18n.instant('PROFILES.QUEST_REWARD');
       }
       case 'invasion':
         return getGruntDisplayName(alarm.grunt_type ?? null);
@@ -453,14 +465,14 @@ export class ProfileOverviewComponent implements OnInit {
         return this.getLureName(alarm.lure_id ?? 0);
       case 'nest': {
         const id = alarm.pokemon_id ?? 0;
-        if (id === 0) return 'Any Nest';
+        if (id === 0) return this.i18n.instant('PROFILES.ANY_NEST');
         const name = this.masterData.getPokemonName(id);
-        return `${name} Nest`;
+        return this.i18n.instant('PROFILES.POKEMON_NEST', { name });
       }
       case 'gym': {
         const team = alarm.team ?? 0;
-        if (alarm.slot_changes || alarm.battle_changes) return 'Gym Activity';
-        if (team === 0) return 'Any Team';
+        if (alarm.slot_changes || alarm.battle_changes) return this.i18n.instant('PROFILES.GYM_ACTIVITY');
+        if (team === 0) return this.i18n.instant('PROFILES.ANY_TEAM');
         return this.getTeamName(team);
       }
       case 'maxbattle': {
@@ -475,7 +487,7 @@ export class ProfileOverviewComponent implements OnInit {
         return changes ? `${fortType} · ${changes}` : fortType;
       }
       default:
-        return 'Alarm';
+        return this.i18n.instant('PROFILES.ALARM');
     }
   }
 
@@ -576,25 +588,25 @@ export class ProfileOverviewComponent implements OnInit {
       try {
         const backup = JSON.parse(reader.result as string);
         if (!backup.version || !backup.profileName || typeof backup.alarms !== 'object') {
-          this.snackBar.open('Invalid backup file format', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_INVALID_BACKUP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           return;
         }
         if (backup.version !== 1) {
-          this.snackBar.open('Unsupported backup version', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_UNSUPPORTED_VERSION'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           return;
         }
 
         const ref = this.dialog.open(ConfirmDialogComponent, {
           width: '400px',
           data: {
-            confirmText: 'Import',
-            message: 'Create a new profile with all alarms from this backup.',
+            confirmText: this.i18n.instant('PROFILES.IMPORT'),
+            message: this.i18n.instant('PROFILES.IMPORT_DESC'),
             promptField: {
               existingNames: this.managedProfiles().map(p => p.name),
-              label: 'Profile Name',
+              label: this.i18n.instant('PROFILES.PROFILE_NAME'),
               value: backup.profileName,
             },
-            title: 'Import Profile',
+            title: this.i18n.instant('PROFILES.IMPORT_DIALOG_TITLE'),
           } as ConfirmDialogData,
         });
         ref.afterClosed().subscribe((name: string | false) => {
@@ -606,19 +618,23 @@ export class ProfileOverviewComponent implements OnInit {
               .subscribe({
                 error: () => {
                   this.switching.set(false);
-                  this.snackBar.open('Failed to import profile', 'OK', { duration: 3000 });
+                  this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
                 },
                 next: res => {
                   this.switching.set(false);
                   if (res.token) this.authService.setToken(res.token);
-                  this.snackBar.open(`Imported "${name}" with ${res.alarmsCopied} alarms`, 'OK', { duration: 3000 });
+                  this.snackBar.open(
+                    this.i18n.instant('PROFILES.SNACK_IMPORTED', { count: res.alarmsCopied }),
+                    this.i18n.instant('TOAST.OK'),
+                    { duration: 3000 },
+                  );
                   this.loadAll();
                 },
               });
           }
         });
       } catch {
-        this.snackBar.open('Could not read backup file', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_INVALID_BACKUP'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       }
     };
     reader.readAsText(file);
@@ -676,14 +692,16 @@ export class ProfileOverviewComponent implements OnInit {
       .subscribe({
         error: () => {
           this.switching.set(false);
-          this.snackBar.open('Failed to switch profile', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_SWITCH'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: res => {
           this.switching.set(false);
           if (res.token) {
             this.authService.setToken(res.token);
           }
-          this.snackBar.open(`Switched to profile "${profile.name}"`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_SWITCHED', { name: profile.name }), this.i18n.instant('TOAST.OK'), {
+            duration: 3000,
+          });
           this.authService.loadCurrentUser();
           this.loadAll();
         },
@@ -710,7 +728,13 @@ export class ProfileOverviewComponent implements OnInit {
     if (!raw) return '';
     try {
       const types: string[] = JSON.parse(raw);
-      const labels: Record<string, string> = { name: 'Name', image_url: 'Image', location: 'Location', new: 'New', removal: 'Removal' };
+      const labels: Record<string, string> = {
+        name: this.i18n.instant('FORT_CHANGES.LABEL_NAME'),
+        image_url: this.i18n.instant('FORT_CHANGES.LABEL_IMAGE'),
+        location: this.i18n.instant('FORT_CHANGES.LABEL_LOCATION'),
+        new: this.i18n.instant('FORT_CHANGES.LABEL_NEW'),
+        removal: this.i18n.instant('FORT_CHANGES.LABEL_REMOVAL'),
+      };
       return types.map(t => labels[t] ?? t).join(', ');
     } catch {
       return raw;
@@ -720,66 +744,62 @@ export class ProfileOverviewComponent implements OnInit {
   private formatFortType(type: string | null): string {
     switch (type) {
       case 'pokestop':
-        return 'Pokestop Changes';
+        return this.i18n.instant('PROFILES.POKESTOP_CHANGES');
       case 'gym':
-        return 'Gym Changes';
+        return this.i18n.instant('PROFILES.GYM_CHANGES');
       default:
-        return 'All Fort Changes';
+        return this.i18n.instant('PROFILES.ALL_FORT_CHANGES');
     }
   }
 
   private getLureName(id: number): string {
     switch (id) {
       case 0:
-        return 'All Lures';
+        return this.i18n.instant('PROFILES.ALL_LURES');
       case 501:
-        return 'Normal Lure';
+        return this.i18n.instant('PROFILES.LURE_NORMAL');
       case 502:
-        return 'Glacial Lure';
+        return this.i18n.instant('PROFILES.LURE_GLACIAL');
       case 503:
-        return 'Mossy Lure';
+        return this.i18n.instant('PROFILES.LURE_MOSSY');
       case 504:
-        return 'Magnetic Lure';
+        return this.i18n.instant('PROFILES.LURE_MAGNETIC');
       case 505:
-        return 'Rainy Lure';
+        return this.i18n.instant('PROFILES.LURE_RAINY');
       case 506:
-        return 'Golden Lure';
+        return this.i18n.instant('PROFILES.LURE_GOLDEN');
       default:
-        return `Lure #${id}`;
+        return this.i18n.instant('PROFILES.LURE_NUM', { id });
     }
   }
 
   private getMaxBattleLabel(level: number): string {
     switch (level) {
       case 1:
-        return '1 Star Max Battle';
       case 2:
-        return '2 Star Max Battle';
       case 3:
-        return '3 Star Max Battle';
       case 4:
-        return '4 Star Max Battle';
       case 5:
-        return '5 Star Max Battle';
+        return this.i18n.instant('PROFILES.STAR_MAX_BATTLE', { stars: level });
       case 7:
-        return 'Gigantamax';
+        return this.i18n.instant('PROFILES.GIGANTAMAX');
       case 8:
-        return 'Legendary Gigantamax';
+        return this.i18n.instant('PROFILES.LEGENDARY_GIGANTAMAX');
       default:
-        return 'Any Max Battle';
+        return this.i18n.instant('PROFILES.ANY_MAX_BATTLE');
     }
   }
 
   private getTeamName(team: number): string {
     switch (team) {
       case 1:
-        return 'Mystic';
+        return this.i18n.instant('PROFILES.TEAM_MYSTIC');
       case 2:
-        return 'Valor';
+        return this.i18n.instant('PROFILES.TEAM_VALOR');
       case 3:
-        return 'Instinct';
+        return this.i18n.instant('PROFILES.TEAM_INSTINCT');
       default:
-        return `Team ${team}`;
+        return this.i18n.instant('PROFILES.TEAM_NUM', { team });
     }
   }
 
@@ -790,7 +810,7 @@ export class ProfileOverviewComponent implements OnInit {
       .subscribe({
         error: () => {
           this.loading.set(false);
-          this.snackBar.open('Failed to load profiles overview', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_LOAD'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: ([profiles, data]) => {
           this.managedProfiles.set(profiles);

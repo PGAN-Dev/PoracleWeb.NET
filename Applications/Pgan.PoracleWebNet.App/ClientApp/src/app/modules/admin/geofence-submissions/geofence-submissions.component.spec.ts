@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { GeofenceSubmissionsComponent } from './geofence-submissions.component';
@@ -142,6 +143,7 @@ describe('GeofenceSubmissionsComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AdminGeofenceService, useValue: adminGeofenceService },
@@ -188,7 +190,7 @@ describe('GeofenceSubmissionsComponent', () => {
     component.ngOnInit();
 
     expect(component.loading()).toBe(false);
-    expect(mockSnackBar.open).toHaveBeenCalledWith('Failed to load geofences', 'OK', { duration: 3000 });
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_LOAD_GEOFENCES', 'TOAST.OK', { duration: 3000 });
   });
 
   // ─── Status Filtering ───────────────────────────────────────────────────────
@@ -538,7 +540,7 @@ describe('GeofenceSubmissionsComponent', () => {
     const geofence = component.allGeofences()[0];
     await component.adminDelete(geofence);
 
-    expect(mockSnackBar.open).toHaveBeenCalledWith('Failed to delete geofence', 'OK', { duration: 3000 });
+    expect(mockSnackBar.open).toHaveBeenCalledWith('ADMIN.SNACK_FAILED_DELETE_GEOFENCE', 'TOAST.OK', { duration: 3000 });
   });
 
   // ─── Geofence Reference Polygons ────────────────────────────────────────────
@@ -630,7 +632,7 @@ describe('GeofenceSubmissionsComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const metaItems = compiled.querySelectorAll('.meta-item');
-    const reviewerItem = Array.from(metaItems).find(el => el.textContent?.includes('Reviewed by'));
+    const reviewerItem = Array.from(metaItems).find(el => el.textContent?.includes('ADMIN.REVIEWED_BY'));
     expect(reviewerItem).toBeTruthy();
     expect(reviewerItem?.textContent).toContain('AdminReviewer');
   });
@@ -703,7 +705,7 @@ describe('GeofenceSubmissionsComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const metaItems = compiled.querySelectorAll('.meta-item');
-    const promotedItem = Array.from(metaItems).find(el => el.textContent?.includes('Promoted as:'));
+    const promotedItem = Array.from(metaItems).find(el => el.textContent?.includes('ADMIN.PROMOTED_AS'));
     expect(promotedItem).toBeTruthy();
     expect(promotedItem?.textContent).toContain('Official Park Area');
   });

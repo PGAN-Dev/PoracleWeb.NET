@@ -1,9 +1,9 @@
-<h2 mat-dialog-title>Select Areas</h2>
+<h2 mat-dialog-title>{{ 'AREAS.SELECT_AREAS' | translate }}</h2>
 <mat-dialog-content>
   <mat-form-field appearance="outline" class="search-field">
-    <mat-label>Search areas</mat-label>
+    <mat-label>{{ 'AREAS.SEARCH_AREAS' | translate }}</mat-label>
     <mat-icon matPrefix>search</mat-icon>
-    <input matInput [(ngModel)]="searchText" (ngModelChange)="filterAreas()" placeholder="Filter by name..." />
+    <input matInput [(ngModel)]="searchText" (ngModelChange)="filterAreas()" [placeholder]="'AREAS.FILTER_PLACEHOLDER' | translate" />
     @if (searchText) {
       <button mat-icon-button matSuffix (click)="searchText = ''; filterAreas()">
         <mat-icon>close</mat-icon>
@@ -12,9 +12,9 @@
   </mat-form-field>
 
   <div class="select-actions">
-    <button mat-button (click)="selectAll()">Select All</button>
-    <button mat-button (click)="deselectAll()">Deselect All</button>
-    <span class="selection-count">{{ selectedCount() }} selected</span>
+    <button mat-button (click)="selectAll()">{{ 'AREAS.SELECT_ALL_VISIBLE' | translate }}</button>
+    <button mat-button (click)="deselectAll()">{{ 'AREAS.DESELECT_ALL_VISIBLE' | translate }}</button>
+    <span class="selection-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedCount() } }}</span>
   </div>
 
   @if (hasMultipleGroups) {
@@ -31,8 +31,8 @@
             </mat-panel-title>
           </mat-expansion-panel-header>
           <div class="group-actions">
-            <button mat-button color="primary" (click)="selectGroup(group.name)">Select All</button>
-            <button mat-button (click)="deselectGroup(group.name)">Deselect All</button>
+            <button mat-button color="primary" (click)="selectGroup(group.name)">{{ 'AREAS.SELECT_ALL_VISIBLE' | translate }}</button>
+            <button mat-button (click)="deselectGroup(group.name)">{{ 'AREAS.DESELECT_ALL_VISIBLE' | translate }}</button>
           </div>
           @for (area of group.areas; track area.name) {
             <mat-checkbox [checked]="area.selected" (change)="toggle(area, $event.checked)" class="area-checkbox">
@@ -53,10 +53,10 @@
   }
 
   @if (filteredGroups().length === 0) {
-    <p class="no-results">No areas match your search</p>
+    <p class="no-results">{{ 'AREAS.NO_RESULTS' | translate }}</p>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close()">Cancel</button>
-  <button mat-raised-button color="primary" (click)="save()"><mat-icon>save</mat-icon> Save</button>
+  <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-raised-button color="primary" (click)="save()"><mat-icon>save</mat-icon> {{ 'COMMON.SAVE' | translate }}</button>
 </mat-dialog-actions>

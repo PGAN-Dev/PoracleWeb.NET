@@ -6,6 +6,7 @@ import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { TranslateModule } from '@ngx-translate/core';
 
 export interface ConfirmDialogData {
   cancelText?: string;
@@ -28,7 +29,16 @@ export interface ConfirmDialogResult {
     'aria-describedby': 'confirm-dialog-message',
     role: 'alertdialog',
   },
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    TranslateModule,
+  ],
   selector: 'app-confirm-dialog',
   standalone: true,
   styleUrl: './confirm-dialog.component.scss',

@@ -9,9 +9,11 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Lure, LureUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -28,6 +30,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -38,6 +41,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class LureEditDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Lure>(MAT_DIALOG_DATA);
@@ -95,11 +99,11 @@ export class LureEditDialogComponent {
       } as LureUpdate)
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('LURES.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Lure alarm updated', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('LURES.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

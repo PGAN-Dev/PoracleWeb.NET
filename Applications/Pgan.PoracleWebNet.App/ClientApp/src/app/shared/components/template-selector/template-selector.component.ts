@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfigService } from '../../../core/services/config.service';
@@ -58,7 +59,16 @@ const CONDITION_LABELS: Record<string, string> = {
 };
 
 @Component({
-  imports: [MatFormFieldModule, MatSelectModule, FormsModule, MatIconModule, MatSlideToggleModule, MatChipsModule, MatButtonModule],
+  imports: [
+    MatFormFieldModule,
+    MatSelectModule,
+    FormsModule,
+    MatIconModule,
+    MatSlideToggleModule,
+    MatChipsModule,
+    MatButtonModule,
+    TranslateModule,
+  ],
   selector: 'app-template-selector',
   standalone: true,
   styleUrl: './template-selector.component.scss',

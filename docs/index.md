@@ -1,3 +1,7 @@
+---
+template: home.html
+---
+
 # PoracleWeb.NET
 
 A web application for managing Pokemon GO notification alarms through the Poracle bot system. Compatible with both [PoracleJS](https://github.com/KartulUdus/PoracleJS) and [PoracleNG](https://github.com/jfberry/PoracleNG). Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
@@ -30,7 +34,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **Responsive Design** — Full mobile support with fullscreen dialogs and collapsible sidebar
 - **Onboarding Wizard** — First-run setup guide for new users
 - **Keyboard Shortcuts** — ++question++ for help, ++bracket-left++ / ++bracket-right++ for sidebar collapse
-- **18 Languages** — Pokemon name localization
+- **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish) plus 18 Pokemon name locales
 - **Poracle Server Management** — Monitor health and restart PoracleJS instances remotely
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
 - **Test Alerts** — Send sample notifications from any alarm card to preview exactly what your alerts look like

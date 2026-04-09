@@ -11,9 +11,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Monster, MonsterUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
@@ -36,6 +38,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSnackBarModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    TranslateModule,
   ],
   selector: 'app-pokemon-edit-dialog',
   standalone: true,
@@ -44,6 +47,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class PokemonEditDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
@@ -87,7 +91,7 @@ export class PokemonEditDialogComponent {
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  pokemonName = this.data.pokemonId === 0 ? 'All Pokemon' : this.masterData.getPokemonName(this.data.pokemonId);
+  pokemonName = this.data.pokemonId === 0 ? this.i18n.instant('POKEMON.ALL_POKEMON') : this.masterData.getPokemonName(this.data.pokemonId);
 
   saving = signal(false);
 
@@ -152,11 +156,11 @@ export class PokemonEditDialogComponent {
 
     this.monsterService.update(this.data.uid, update).subscribe({
       error: () => {
-        this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open('Pokemon alarm updated', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

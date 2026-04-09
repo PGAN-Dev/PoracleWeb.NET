@@ -1,14 +1,14 @@
-<h2 mat-dialog-title>Update All Distance</h2>
+<h2 mat-dialog-title>{{ 'DIALOG.DISTANCE_TITLE' | translate }}</h2>
 <mat-dialog-content>
-  <p class="dialog-desc">Set the location mode for all alarms of this type.</p>
+  <p class="dialog-desc">{{ 'DIALOG.DISTANCE_DESC' | translate }}</p>
 
   <mat-radio-group [(ngModel)]="mode" class="mode-group">
     <mat-radio-button value="areas">
       <div class="radio-label">
         <mat-icon>map</mat-icon>
         <div>
-          <strong>Use Areas</strong>
-          <p class="radio-hint">Notifications will use your configured geofence areas</p>
+          <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
+          <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
         </div>
       </div>
     </mat-radio-button>
@@ -16,8 +16,8 @@
       <div class="radio-label">
         <mat-icon>straighten</mat-icon>
         <div>
-          <strong>Set Distance</strong>
-          <p class="radio-hint">Notify within a radius from your location</p>
+          <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
+          <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
         </div>
       </div>
     </mat-radio-button>
@@ -25,9 +25,9 @@
 
   @if (mode() === 'distance') {
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Distance</mat-label>
+      <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
       <input matInput type="number" [(ngModel)]="distanceKm" min="0.1" step="0.1" />
-      <span matSuffix>km</span>
+      <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
     </mat-form-field>
   }
 
@@ -35,6 +35,6 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(null)">Cancel</button>
-  <button mat-raised-button color="primary" (click)="apply()">Update All</button>
+  <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-raised-button color="primary" (click)="apply()">{{ 'DIALOG.DISTANCE_UPDATE_ALL' | translate }}</button>
 </mat-dialog-actions>

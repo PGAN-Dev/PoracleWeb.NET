@@ -2,7 +2,7 @@
   <div class="preview-box areas-preview">
     <div class="preview-label">
       <mat-icon>map</mat-icon>
-      <span>Notifications will be sent for these areas:</span>
+      <span>{{ 'DELIVERY_PREVIEW.AREAS_LABEL' | translate }}</span>
     </div>
     @if (areas().length > 0) {
       <mat-chip-set class="area-chips">
@@ -11,17 +11,20 @@
         }
       </mat-chip-set>
     } @else {
-      <p class="no-areas">No areas configured. <a href="/areas">Set up areas</a> first.</p>
+      <p class="no-areas">
+        {{ 'DELIVERY_PREVIEW.NO_AREAS' | translate }} <a href="/areas">{{ 'DELIVERY_PREVIEW.SET_UP_AREAS' | translate }}</a>
+        {{ 'DELIVERY_PREVIEW.FIRST' | translate }}
+      </p>
     }
   </div>
 } @else if (mode === 'distance' && distanceKm > 0) {
   <div class="preview-box distance-preview">
     <div class="preview-label">
       <mat-icon>straighten</mat-icon>
-      <span>Notifications within {{ distanceKm }} km of your location:</span>
+      <span>{{ 'DELIVERY_PREVIEW.DISTANCE_LABEL' | translate: { distance: distanceKm } }}</span>
     </div>
     @if (mapUrl()) {
-      <img [src]="mapUrl()" class="distance-map" alt="Distance radius map" loading="lazy" />
+      <img [src]="mapUrl()" class="distance-map" [alt]="'DELIVERY_PREVIEW.MAP_ALT' | translate" loading="lazy" />
     } @else if (loading()) {
       <div class="map-loading">
         <mat-spinner diameter="24"></mat-spinner>

@@ -4,6 +4,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { LoginComponent } from './login.component';
@@ -24,6 +25,7 @@ describe('LoginComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
         provideNoopAnimations(),
@@ -106,7 +108,7 @@ describe('LoginComponent', () => {
       fixture.detectChanges();
       const btn = fixture.nativeElement.querySelector('.discord-btn');
       expect(btn).toBeTruthy();
-      expect(btn.textContent).toContain('Sign in with Discord');
+      expect(btn.textContent).toContain('AUTH.SIGN_IN_DISCORD');
     });
 
     it('should hide Discord button when disabled', () => {
@@ -123,7 +125,7 @@ describe('LoginComponent', () => {
       fixture.detectChanges();
       const msg = fixture.nativeElement.querySelector('.no-methods-message');
       expect(msg).toBeTruthy();
-      expect(msg.textContent).toContain('No login methods are currently enabled');
+      expect(msg.textContent).toContain('AUTH.NO_METHODS');
     });
 
     it('should not show no-methods message when Discord is enabled', () => {

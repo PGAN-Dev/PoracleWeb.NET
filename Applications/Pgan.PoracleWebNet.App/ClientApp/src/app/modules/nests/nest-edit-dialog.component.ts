@@ -9,9 +9,11 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Nest, NestUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
@@ -30,6 +32,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
@@ -40,6 +43,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class NestEditDialogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly nestService = inject(NestService);
@@ -87,11 +91,11 @@ export class NestEditDialogComponent {
       } as NestUpdate)
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to update alarm', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('NESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Nest alarm updated', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('NESTS.SNACK_UPDATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

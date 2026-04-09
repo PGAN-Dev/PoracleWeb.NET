@@ -1,20 +1,20 @@
 <h2 mat-dialog-title class="dialog-title">
   <mat-icon class="title-icon">rate_review</mat-icon>
-  Review Geofence
+  {{ 'ADMIN.APPROVAL_DIALOG_TITLE' | translate }}
 </h2>
 <mat-dialog-content>
   <div class="geofence-summary">
     <div class="summary-row">
-      <span class="summary-label">Name</span>
+      <span class="summary-label">{{ 'ADMIN.APPROVAL_NAME' | translate }}</span>
       <span class="summary-value">{{ data.geofence.displayName }}</span>
     </div>
     <div class="summary-row">
-      <span class="summary-label">Group</span>
+      <span class="summary-label">{{ 'ADMIN.APPROVAL_GROUP' | translate }}</span>
       <span class="summary-value">{{ data.geofence.groupName }}</span>
     </div>
     @if (data.geofence.submittedAt) {
       <div class="summary-row">
-        <span class="summary-label">Submitted</span>
+        <span class="summary-label">{{ 'ADMIN.APPROVAL_SUBMITTED' | translate }}</span>
         <span class="summary-value">{{ data.geofence.submittedAt | date: 'medium' }}</span>
       </div>
     }
@@ -23,41 +23,41 @@
   <mat-button-toggle-group [(ngModel)]="mode" class="mode-toggle" hideSingleSelectionIndicator>
     <mat-button-toggle value="approve">
       <mat-icon>check_circle</mat-icon>
-      Approve
+      {{ 'ADMIN.APPROVAL_APPROVE' | translate }}
     </mat-button-toggle>
     <mat-button-toggle value="reject">
       <mat-icon>cancel</mat-icon>
-      Reject
+      {{ 'ADMIN.APPROVAL_REJECT' | translate }}
     </mat-button-toggle>
   </mat-button-toggle-group>
 
   @if (mode === 'approve') {
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Promoted name</mat-label>
-      <input matInput [(ngModel)]="promotedName" placeholder="Name for the promoted geofence" />
-      <mat-hint>Optional. Defaults to the current display name.</mat-hint>
+      <mat-label>{{ 'ADMIN.APPROVAL_PROMOTED_NAME' | translate }}</mat-label>
+      <input matInput [(ngModel)]="promotedName" [placeholder]="'ADMIN.APPROVAL_PROMOTED_NAME_PLACEHOLDER' | translate" />
+      <mat-hint>{{ 'ADMIN.APPROVAL_PROMOTED_NAME_HINT' | translate }}</mat-hint>
     </mat-form-field>
   }
 
   @if (mode === 'reject') {
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Reason for rejection</mat-label>
-      <textarea matInput [(ngModel)]="reviewNotes" rows="3" placeholder="Explain why this geofence is being rejected..."></textarea>
+      <mat-label>{{ 'ADMIN.APPROVAL_REJECT_REASON' | translate }}</mat-label>
+      <textarea matInput [(ngModel)]="reviewNotes" rows="3" [placeholder]="'ADMIN.APPROVAL_REJECT_PLACEHOLDER' | translate"></textarea>
     </mat-form-field>
   }
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()">{{ 'COMMON.CANCEL' | translate }}</button>
   @if (mode === 'approve') {
     <button mat-raised-button color="primary" (click)="onApprove()">
       <mat-icon>check_circle</mat-icon>
-      Approve
+      {{ 'ADMIN.APPROVAL_APPROVE' | translate }}
     </button>
   }
   @if (mode === 'reject') {
     <button mat-raised-button color="warn" (click)="onReject()" [disabled]="!reviewNotes.trim()">
       <mat-icon>cancel</mat-icon>
-      Reject
+      {{ 'ADMIN.APPROVAL_REJECT' | translate }}
     </button>
   }
 </mat-dialog-actions>

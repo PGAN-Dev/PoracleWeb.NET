@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Gym Alarms</h1>
-    <p class="page-description">Get notified about gym team changes and open slots for your team.</p>
+    <h1>{{ 'GYMS.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'GYMS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
     <button mat-fab (click)="openAddDialog()" style="background: #00bcd4; color: #fff"><mat-icon>add</mat-icon></button>
@@ -9,13 +9,13 @@
 </div>
 @if (!loading() && gyms().length > 0) {
   <div class="filter-bar">
-    <span class="result-count">{{ gyms().length }} alarms</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: gyms().length } }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -24,18 +24,18 @@
 @if (selectMode()) {
   <div class="bulk-toolbar">
     @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
     }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
     @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
     <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> Update Distance
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
     </button>
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> Delete
+      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
   </div>
 }
@@ -43,7 +43,7 @@
 @if (loading()) {
   <div class="loading-container">
     <mat-spinner diameter="48"></mat-spinner>
-    <p class="loading-text">Loading alarms...</p>
+    <p class="loading-text">{{ 'ALARM.LOADING_ALARMS' | translate }}</p>
   </div>
 } @else {
   <div class="alarm-grid">
@@ -65,20 +65,22 @@
             }
             <div class="change-indicators">
               @if (gym.slotChanges === 1) {
-                <span class="change-badge" matTooltip="Tracking slot changes"><mat-icon>swap_vert</mat-icon> Slots</span>
+                <span class="change-badge" matTooltip="{{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}"
+                  ><mat-icon>swap_vert</mat-icon> {{ 'GYMS.TRACK_SLOT_CHANGES' | translate }}</span
+                >
               }
             </div>
           </div>
           <div class="card-top-actions">
             @if (gym.clean === 1) {
-              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_GYM' | translate }}">clean</span>
             }
           </div>
         </div>
         <mat-card-content>
           <div class="distance-chip-row">
             @if (gym.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
             } @else {
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(gym.distance) }}</span>
             }
@@ -94,7 +96,9 @@
             mat-icon-button
             (click)="sendTestAlert(gym)"
             [disabled]="testAlertService.isSending('gym', gym.uid) || testAlertService.isCoolingDown('gym', gym.uid)"
-            [matTooltip]="testAlertService.isCoolingDown('gym', gym.uid) ? 'Cooldown active' : 'Send test notification'"
+            [matTooltip]="
+              testAlertService.isCoolingDown('gym', gym.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
             class="test-alert-btn">
             @if (testAlertService.isSending('gym', gym.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -102,8 +106,10 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-          <button mat-icon-button (click)="editGym(gym)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button (click)="deleteGym(gym)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
+          <button mat-icon-button (click)="editGym(gym)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button (click)="deleteGym(gym)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
         </mat-card-actions>
       </mat-card>
     } @empty {
@@ -118,9 +124,11 @@
           <circle cx="40" cy="50" r="10" fill="none" stroke="#00bcd4" stroke-width="3" opacity="0.5" />
           <circle cx="40" cy="50" r="4" fill="#00bcd4" opacity="0.4" />
         </svg>
-        <h2 class="empty-title">No Gym Alarms Configured</h2>
-        <p class="empty-subtitle">Get notified about gym team changes and open slots</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #00bcd4; color: #fff"><mat-icon>add</mat-icon> Add Gym</button>
+        <h2 class="empty-title">{{ 'GYMS.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'GYMS.EMPTY_SUBTITLE' | translate }}</p>
+        <button mat-flat-button (click)="openAddDialog()" style="background: #00bcd4; color: #fff">
+          <mat-icon>add</mat-icon> {{ 'GYMS.ADD_GYM' | translate }}
+        </button>
       </div>
     }
   </div>

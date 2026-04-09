@@ -12,11 +12,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { RaidCreate, EggCreate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
@@ -38,6 +40,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatRadioModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
@@ -51,6 +54,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 export class RaidAddDialogComponent {
   private readonly eggService = inject(EggService);
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
   bossForm = this.fb.group({
@@ -167,11 +171,13 @@ export class RaidAddDialogComponent {
 
     forkJoin(creates).subscribe({
       error: () => {
-        this.snackBar.open('Failed to create alarm(s)', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`${creates.length} alarm(s) created`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('RAIDS.SNACK_CREATED_COUNT', { count: creates.length }), this.i18n.instant('TOAST.OK'), {
+          duration: 3000,
+        });
         this.dialogRef.close(true);
       },
     });

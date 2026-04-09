@@ -9,11 +9,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { Subject } from 'rxjs';
 import { debounceTime, switchMap, takeUntil, filter, distinctUntilChanged } from 'rxjs/operators';
 
 import { Location, GeocodingResult } from '../../../core/models';
+import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
 
 @Component({
@@ -28,6 +30,7 @@ import { LocationService } from '../../../core/services/location.service';
     MatProgressBarModule,
     MatAutocompleteModule,
     MatListModule,
+    TranslateModule,
   ],
   selector: 'app-location-dialog',
   standalone: true,
@@ -36,6 +39,8 @@ import { LocationService } from '../../../core/services/location.service';
 })
 export class LocationDialogComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  private readonly i18n = inject(I18nService);
+
   private readonly locationIcon = L.divIcon({
     className: 'location-pin-marker',
     html: '<div style="width:16px;height:16px;background:#1976D2;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
@@ -44,14 +49,14 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   });
 
   private readonly locationService = inject(LocationService);
+
   private map: L.Map | null = null;
 
   private readonly mapContainerRef = viewChild<ElementRef<HTMLElement>>('mapContainer');
-
   private marker: L.Marker | null = null;
   private readonly search$ = new Subject<string>();
-  private skipNextReverse = false;
 
+  private skipNextReverse = false;
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Location | null>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<LocationDialogComponent>);
@@ -182,11 +187,11 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     this.locationService.setLocation(loc).subscribe({
       error: () => {
         this.saving.set(false);
-        this.snackBar.open('Failed to update location', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('DIALOG.LOCATION_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
       },
       next: () => {
         this.saving.set(false);
-        this.snackBar.open('Location updated successfully', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('DIALOG.LOCATION_SAVE_SUCCESS'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.dialogRef.close(loc);
       },
     });
@@ -204,7 +209,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
 
   useMyLocation(): void {
     if (!navigator.geolocation) {
-      this.snackBar.open('Geolocation is not supported by your browser', 'OK', {
+      this.snackBar.open(this.i18n.instant('DIALOG.LOCATION_GEO_UNSUPPORTED'), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
       return;
@@ -221,11 +226,11 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
       },
       error => {
         this.locating.set(false);
-        let msg = 'Unable to get location';
+        let msg = this.i18n.instant('DIALOG.LOCATION_GEO_UNABLE');
         if (error.code === error.PERMISSION_DENIED) {
-          msg = 'Location permission denied';
+          msg = this.i18n.instant('DIALOG.LOCATION_GEO_DENIED');
         }
-        this.snackBar.open(msg, 'OK', { duration: 3000 });
+        this.snackBar.open(msg, this.i18n.instant('COMMON.OK'), { duration: 3000 });
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );

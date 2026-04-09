@@ -8,8 +8,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { Profile } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { ProfileService } from '../../core/services/profile.service';
 
 @Component({
@@ -22,6 +24,7 @@ import { ProfileService } from '../../core/services/profile.service';
     MatIconModule,
     MatSnackBarModule,
     MatProgressBarModule,
+    TranslateModule,
   ],
   selector: 'app-profile-edit-dialog',
   standalone: true,
@@ -29,6 +32,7 @@ import { ProfileService } from '../../core/services/profile.service';
   templateUrl: './profile-edit-dialog.component.html',
 })
 export class ProfileEditDialogComponent {
+  private readonly i18n = inject(I18nService);
   private readonly profileService = inject(ProfileService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Profile>(MAT_DIALOG_DATA);
@@ -55,7 +59,7 @@ export class ProfileEditDialogComponent {
     if (!name) return;
 
     if (this.existingNames().has(name.toLowerCase())) {
-      this.nameError.set('A profile with this name already exists');
+      this.nameError.set(this.i18n.instant('DIALOG.PROMPT_CONFLICT'));
       return;
     }
     this.nameError.set('');
@@ -64,11 +68,13 @@ export class ProfileEditDialogComponent {
     this.profileService.update(this.data.profileNo, name).subscribe({
       error: () => {
         this.saving.set(false);
-        this.snackBar.open('Failed to update profile', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
       },
       next: profile => {
         this.saving.set(false);
-        this.snackBar.open(`Profile renamed to "${profile.name}"`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('PROFILES.SNACK_UPDATED', { name: profile.name }), this.i18n.instant('TOAST.OK'), {
+          duration: 3000,
+        });
         this.dialogRef.close(profile);
       },
     });

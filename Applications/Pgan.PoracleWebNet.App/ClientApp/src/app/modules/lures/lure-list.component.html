@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Lure Alarms</h1>
-    <p class="page-description">Track active lure modules: Normal, Glacial, Mossy, Magnetic, Rainy, or Golden.</p>
+    <h1>{{ 'LURES.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'LURES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
     <button mat-fab (click)="openAddDialog()" style="background: #e91e63; color: #fff"><mat-icon>add</mat-icon></button>
@@ -9,13 +9,13 @@
 </div>
 @if (!loading() && lures().length > 0) {
   <div class="filter-bar">
-    <span class="result-count">{{ lures().length }} alarms</span>
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: lures().length } }}</span>
     <div class="bulk-spacer"></div>
     <button
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      matTooltip="{{ selectMode() ? 'Exit select mode' : 'Select multiple' }}">
+      matTooltip="{{ selectMode() ? ('ALARM.EXIT_SELECT_MODE' | translate) : ('ALARM.SELECT_MULTIPLE' | translate) }}">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -24,18 +24,18 @@
 @if (selectMode()) {
   <div class="bulk-toolbar">
     @if (selectedIds().size > 0) {
-      <span class="bulk-count">{{ selectedIds().size }} selected</span>
+      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
     }
-    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> Select All</button>
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
     @if (selectedIds().size > 0) {
-      <button mat-stroked-button (click)="deselectAll()">Deselect All</button>
+      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
     <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> Update Distance
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
     </button>
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
-      <mat-icon>delete</mat-icon> Delete
+      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
   </div>
 }
@@ -43,7 +43,7 @@
 @if (loading()) {
   <div class="loading-container">
     <mat-spinner diameter="48"></mat-spinner>
-    <p class="loading-text">Loading alarms...</p>
+    <p class="loading-text">{{ 'ALARM.LOADING_ALARMS' | translate }}</p>
   </div>
 } @else {
   <div class="alarm-grid">
@@ -59,24 +59,24 @@
         <div class="card-top" [style.border-top-color]="getLureColor(lure.lureId)">
           <img [src]="getLureIcon(lure.lureId)" class="lure-img" alt="" (error)="$any($event.target).style.display = 'none'" />
           <div class="item-info">
-            <h3>{{ getLureName(lure.lureId) }} Lure</h3>
+            <h3>{{ getLureName(lure.lureId) }} {{ 'LURES.LURE_SUFFIX' | translate }}</h3>
           </div>
           <div class="card-top-actions">
             @if (lure.clean === 1) {
-              <span class="clean-tag" matTooltip="Auto-deletes after expiry">clean</span>
+              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">clean</span>
             }
           </div>
         </div>
         <mat-card-content>
           <div class="stat-grid">
             <div class="stat">
-              <span class="stat-label">Type</span
+              <span class="stat-label">{{ 'LURES.LURE_TYPES' | translate }}</span
               ><span class="stat-value" [style.color]="getLureColor(lure.lureId)">{{ getLureName(lure.lureId) }}</span>
             </div>
           </div>
           <div class="distance-chip-row">
             @if (lure.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> Using Areas</span>
+              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
             } @else {
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(lure.distance) }}</span>
             }
@@ -92,7 +92,9 @@
             mat-icon-button
             (click)="sendTestAlert(lure)"
             [disabled]="testAlertService.isSending('lure', lure.uid) || testAlertService.isCoolingDown('lure', lure.uid)"
-            [matTooltip]="testAlertService.isCoolingDown('lure', lure.uid) ? 'Cooldown active' : 'Send test notification'"
+            [matTooltip]="
+              testAlertService.isCoolingDown('lure', lure.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
             class="test-alert-btn">
             @if (testAlertService.isSending('lure', lure.uid)) {
               <mat-icon class="spin">sync</mat-icon>
@@ -100,8 +102,10 @@
               <mat-icon>send</mat-icon>
             }
           </button>
-          <button mat-icon-button (click)="editLure(lure)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
-          <button mat-icon-button (click)="deleteLure(lure)" matTooltip="Delete" color="warn"><mat-icon>delete</mat-icon></button>
+          <button mat-icon-button (click)="editLure(lure)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button (click)="deleteLure(lure)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
         </mat-card-actions>
       </mat-card>
     } @empty {
@@ -115,10 +119,10 @@
           <line x1="58" y1="26" x2="48" y2="30" stroke="#e91e63" stroke-width="2" opacity="0.4" />
           <line x1="20" y1="44" x2="32" y2="42" stroke="#e91e63" stroke-width="2" opacity="0.3" />
         </svg>
-        <h2 class="empty-title">No Lure Alarms Configured</h2>
-        <p class="empty-subtitle">Track active lure modules nearby</p>
+        <h2 class="empty-title">{{ 'LURES.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'LURES.EMPTY_SUBTITLE' | translate }}</p>
         <button mat-flat-button (click)="openAddDialog()" style="background: #e91e63; color: #fff">
-          <mat-icon>add</mat-icon> Add Lure
+          <mat-icon>add</mat-icon> {{ 'LURES.ADD_LURE' | translate }}
         </button>
       </div>
     }

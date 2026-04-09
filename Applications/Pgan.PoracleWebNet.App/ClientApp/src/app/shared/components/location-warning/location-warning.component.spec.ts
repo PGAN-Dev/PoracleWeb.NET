@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { LocationWarningComponent } from './location-warning.component';
 
@@ -9,6 +10,7 @@ describe('LocationWarningComponent', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
+      providers: [provideTranslateService()],
       imports: [LocationWarningComponent],
     });
     fixture = TestBed.createComponent(LocationWarningComponent);

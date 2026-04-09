@@ -10,10 +10,12 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -37,6 +39,7 @@ interface TeamOption {
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
+    TranslateModule,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
@@ -49,6 +52,7 @@ interface TeamOption {
 export class GymAddDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly gymService = inject(GymService);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<GymAddDialogComponent>);
   form = this.fb.group({
@@ -101,11 +105,11 @@ export class GymAddDialogComponent {
     );
     forkJoin(creates).subscribe({
       error: () => {
-        this.snackBar.open('Failed to create alarm(s)', 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('GYMS.SNACK_FAILED_CREATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`${creates.length} gym alarm(s) created`, 'OK', { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('GYMS.SNACK_CREATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.dialogRef.close(true);
       },
     });

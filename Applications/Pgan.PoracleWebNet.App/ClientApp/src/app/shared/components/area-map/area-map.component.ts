@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  inject,
   Input,
   OnChanges,
   OnDestroy,
@@ -18,10 +19,12 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 
 import { GeofenceData } from '../../../core/models';
+import { I18nService } from '../../../core/services/i18n.service';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
 const GROUP_COLORS = [
@@ -50,7 +53,7 @@ interface RegionEntry {
 }
 
 @Component({
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule, RegionSelectorComponent],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, TranslateModule, RegionSelectorComponent],
   selector: 'app-area-map',
   standalone: true,
   styleUrl: './area-map.component.scss',
@@ -59,7 +62,6 @@ interface RegionEntry {
 export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private allBoundsRect: L.LatLngBounds | null = null;
   private customGeofenceLayer: L.LayerGroup = L.layerGroup();
-
   private drawControl: L.Control.Draw | null = null;
 
   private fullscreenHandler = () => {
@@ -70,7 +72,9 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   };
 
   private groupColorMap = new Map<string, string>();
+
   private hasFittedInitialBounds = false;
+  private readonly i18n = inject(I18nService);
   private initialized = false;
   private map: L.Map | null = null;
 
@@ -514,7 +518,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
           iconSize: [20, 20],
         }),
       })
-        .bindTooltip('Your Location', { direction: 'top' })
+        .bindTooltip(this.i18n.instant('AREA_MAP.YOUR_LOCATION'), { direction: 'top' })
         .addTo(this.map);
 
       this.userCircle = L.circle([this.userLocation.lat, this.userLocation.lng], {

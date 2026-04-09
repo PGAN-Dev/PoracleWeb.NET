@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>
   <mat-icon [style.color]="'#4caf50'">{{ data.definition.icon }}</mat-icon>
-  {{ isReapply ? 'Re-apply' : 'Apply' }}: {{ data.definition.name }}
+  {{ (isReapply ? 'QUICK_PICKS.REAPPLY' : 'QUICK_PICKS.APPLY') | translate }}: {{ data.definition.name }}
 </h2>
 
 <mat-dialog-content>
@@ -11,29 +11,29 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>tune</mat-icon>
-        <span class="tab-label">Options</span>
+        <span class="tab-label">{{ 'QUICK_PICKS.TAB_OPTIONS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
         @if (showExclusions) {
           <div class="exclusion-toggle">
             <mat-slide-toggle [checked]="excludeEnabled()" (change)="excludeEnabled.set($event.checked)">
-              Exclude specific Pokemon
+              {{ 'QUICK_PICKS.EXCLUDE_POKEMON' | translate }}
             </mat-slide-toggle>
-            <p class="exclusion-hint">Skip certain Pokemon from this quick pick. Without exclusions, a single "all" alarm is created.</p>
+            <p class="exclusion-hint">{{ 'QUICK_PICKS.EXCLUDE_HINT' | translate }}</p>
           </div>
 
           @if (excludeEnabled()) {
             <app-pokemon-selector [multi]="true" (selectionChange)="onExcludedPokemonChange($event)" />
 
             @if (excludedPokemonIds().length > 0) {
-              <p class="exclusion-summary">{{ excludedPokemonIds().length }} Pokemon excluded</p>
+              <p class="exclusion-summary">{{ 'QUICK_PICKS.EXCLUDED_SUMMARY' | translate: { count: excludedPokemonIds().length } }}</p>
             }
 
             @if (willTrackIndividually()) {
               <div class="individual-warning">
                 <mat-icon>info</mat-icon>
                 <span>
-                  This will create <strong>{{ individualAlarmCount() }}</strong> individual alarm rows. This may take a moment.
+                  {{ 'QUICK_PICKS.INDIVIDUAL_WARNING' | translate: { count: individualAlarmCount() } }}
                 </span>
               </div>
             }
@@ -41,7 +41,7 @@
         } @else {
           <div class="no-options-hint">
             <mat-icon>check_circle</mat-icon>
-            <p>No additional options for this quick pick. Switch to the Delivery tab to configure notification settings.</p>
+            <p>{{ 'QUICK_PICKS.NO_OPTIONS_HINT' | translate }}</p>
           </div>
         }
       </div>
@@ -51,17 +51,17 @@
     <mat-tab>
       <ng-template mat-tab-label>
         <mat-icon>notifications</mat-icon>
-        <span class="tab-label">Delivery</span>
+        <span class="tab-label">{{ 'QUICK_PICKS.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>Location Mode</h4>
+        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
         <mat-radio-group [formControl]="deliveryForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
           <mat-radio-button value="areas">
             <div class="radio-label">
               <mat-icon>map</mat-icon>
               <div>
-                <strong>Use Areas</strong>
-                <p class="radio-hint">Notify based on your configured geofence areas</p>
+                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
               </div>
             </div>
           </mat-radio-button>
@@ -69,8 +69,8 @@
             <div class="radio-label">
               <mat-icon>straighten</mat-icon>
               <div>
-                <strong>Set Distance</strong>
-                <p class="radio-hint">Notify within a radius from your location</p>
+                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
+                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
               </div>
             </div>
           </mat-radio-button>
@@ -78,9 +78,9 @@
 
         @if (deliveryForm.controls.distanceMode.value === 'distance') {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Distance</mat-label>
+            <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
             <input matInput type="number" [formControl]="deliveryForm.controls.distanceKm" min="0" step="0.1" />
-            <span matSuffix>km</span>
+            <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
           </mat-form-field>
         }
 
@@ -89,15 +89,15 @@
           [distanceKm]="deliveryForm.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
 
-        <h4>Message Settings</h4>
+        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         <app-template-selector
           [alarmType]="data.definition.alarmType"
           [value]="deliveryForm.controls.template.value ?? ''"
           (valueChange)="deliveryForm.controls.template.setValue($event)">
         </app-template-selector>
 
-        <mat-slide-toggle [formControl]="deliveryForm.controls.clean"> Clean mode </mat-slide-toggle>
-        <p class="clean-hint">Automatically deletes the notification from Discord after expiry</p>
+        <mat-slide-toggle [formControl]="deliveryForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'QUICK_PICKS.CLEAN_HINT' | translate }}</p>
       </div>
     </mat-tab>
   </mat-tab-group>
@@ -111,17 +111,17 @@
 }
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close()" [disabled]="applying()">Cancel</button>
+  <button mat-button (click)="dialogRef.close()" [disabled]="applying()">{{ 'COMMON.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="apply()" [disabled]="applying()">
     @if (applying()) {
       <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
     }
     @if (applying()) {
-      Applying...
+      {{ 'QUICK_PICKS.APPLYING' | translate }}
     } @else if (willTrackIndividually()) {
-      Apply ({{ individualAlarmCount() }} alarms)
+      {{ 'QUICK_PICKS.APPLY_WITH_COUNT' | translate: { count: individualAlarmCount() } }}
     } @else {
-      {{ isReapply ? 'Re-apply' : 'Apply' }}
+      {{ (isReapply ? 'QUICK_PICKS.REAPPLY' : 'QUICK_PICKS.APPLY') | translate }}
     }
   </button>
 </mat-dialog-actions>

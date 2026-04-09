@@ -10,10 +10,12 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { DashboardCounts } from './core/models';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
+import { I18nService } from './core/services/i18n.service';
 import { SettingsService } from './core/services/settings.service';
 import { LanguageSelectorComponent } from './shared/components/language-selector/language-selector.component';
 
@@ -44,6 +46,7 @@ interface NavItem {
     MatDividerModule,
     MatBadgeModule,
     MatTooltipModule,
+    TranslateModule,
     LanguageSelectorComponent,
   ],
   selector: 'app-root',
@@ -73,15 +76,15 @@ export class App implements OnInit {
   protected readonly auth = inject(AuthService);
 
   protected readonly navItems: NavItem[] = [
-    { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'Dashboard', route: '/dashboard' },
-    { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'Quick Picks', route: '/quick-picks' },
+    { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'NAV.DASHBOARD', route: '/dashboard' },
+    { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'NAV.QUICK_PICKS', route: '/quick-picks' },
     {
       countKey: 'pokemon',
       disableKey: 'disable_mons',
       group: 'alarms',
       icon: 'catching_pokemon',
       iconColor: '#4caf50',
-      label: 'Pokemon',
+      label: 'NAV.POKEMON',
       route: '/pokemon',
     },
     {
@@ -90,7 +93,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'shield',
       iconColor: '#f44336',
-      label: 'Raids',
+      label: 'NAV.RAIDS',
       route: '/raids',
     },
     {
@@ -99,7 +102,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'flash_on',
       iconColor: '#d500f9',
-      label: 'Max Battles',
+      label: 'NAV.MAX_BATTLES',
       route: '/max-battles',
     },
     {
@@ -108,7 +111,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'assignment',
       iconColor: '#9c27b0',
-      label: 'Quests',
+      label: 'NAV.QUESTS',
       route: '/quests',
     },
     {
@@ -117,7 +120,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'warning',
       iconColor: '#607d8b',
-      label: 'Invasions',
+      label: 'NAV.INVASIONS',
       route: '/invasions',
     },
     {
@@ -126,7 +129,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'place',
       iconColor: '#e91e63',
-      label: 'Lures',
+      label: 'NAV.LURES',
       route: '/lures',
     },
     {
@@ -135,7 +138,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'park',
       iconColor: '#8bc34a',
-      label: 'Nests',
+      label: 'NAV.NESTS',
       route: '/nests',
     },
     {
@@ -144,7 +147,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'fitness_center',
       iconColor: '#00bcd4',
-      label: 'Gyms',
+      label: 'NAV.GYMS',
       route: '/gyms',
     },
     {
@@ -153,7 +156,7 @@ export class App implements OnInit {
       group: 'alarms',
       icon: 'domain',
       iconColor: '#795548',
-      label: 'Fort Changes',
+      label: 'NAV.FORT_CHANGES',
       route: '/fort-changes',
     },
     {
@@ -161,26 +164,26 @@ export class App implements OnInit {
       group: 'settings',
       icon: 'compare_arrows',
       iconColor: '#7c4dff',
-      label: 'Profiles',
+      label: 'NAV.PROFILES',
       route: '/profiles',
     },
-    { disableKey: 'disable_areas', group: 'settings', icon: 'map', iconColor: '#ff9800', label: 'Areas', route: '/areas' },
-    { group: 'settings', icon: 'draw', iconColor: '#2196f3', label: 'My Geofences', route: '/geofences' },
-    { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'Cleaning', route: '/cleaning' },
-    { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'Help', route: '/help' },
-    { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'Users', route: '/admin/users' },
-    { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'Webhooks', route: '/admin/webhooks' },
-    { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'Settings', route: '/admin/settings' },
+    { disableKey: 'disable_areas', group: 'settings', icon: 'map', iconColor: '#ff9800', label: 'NAV.AREAS', route: '/areas' },
+    { group: 'settings', icon: 'draw', iconColor: '#2196f3', label: 'NAV.MY_GEOFENCES', route: '/geofences' },
+    { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'NAV.CLEANING', route: '/cleaning' },
+    { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
+    { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
+    { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'NAV.WEBHOOKS', route: '/admin/webhooks' },
+    { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'NAV.SETTINGS', route: '/admin/settings' },
     {
       adminOnly: true,
       group: 'admin',
       icon: 'rate_review',
       iconColor: '#ff9800',
-      label: 'User Geofences',
+      label: 'NAV.USER_GEOFENCES',
       route: '/admin/geofence-submissions',
     },
-    { adminOnly: true, group: 'admin', icon: 'dns', iconColor: '#607d8b', label: 'Poracle Servers', route: '/admin/poracle-servers' },
-    { delegateOnly: true, group: 'webhooks', icon: 'webhook', iconColor: '#00897b', label: 'My Webhooks', route: '/my-webhooks' },
+    { adminOnly: true, group: 'admin', icon: 'dns', iconColor: '#607d8b', label: 'NAV.PORACLE_SERVERS', route: '/admin/poracle-servers' },
+    { delegateOnly: true, group: 'webhooks', icon: 'webhook', iconColor: '#00897b', label: 'NAV.MY_WEBHOOKS', route: '/my-webhooks' },
   ];
 
   protected readonly adminNavItems = computed(() =>
@@ -214,6 +217,8 @@ export class App implements OnInit {
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
 
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
+
+  protected readonly i18n = inject(I18nService);
 
   protected readonly isMobile = signal(window.innerWidth < 768);
 
@@ -250,6 +255,8 @@ export class App implements OnInit {
   constructor() {
     this.applyTheme();
     this.applyAccentTheme();
+    // Initialize i18n early with defaults; ngOnInit re-inits with admin settings once loaded
+    this.i18n.init();
   }
 
   getCount(item: NavItem): number {
@@ -269,7 +276,12 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
-    this.settingsService.loadOnce().subscribe();
+    this.settingsService.loadOnce().subscribe({
+      next: () => {
+        const allowed = this.settingsService.siteSettings()['allowed_languages'];
+        this.i18n.init(allowed);
+      },
+    });
   }
 
   @HostListener('document:keydown', ['$event'])

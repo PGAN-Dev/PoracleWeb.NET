@@ -14,11 +14,13 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
 import { Monster } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
@@ -43,6 +45,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    TranslateModule,
   ],
   selector: 'app-pokemon-list',
   standalone: true,
@@ -52,6 +55,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 export class PokemonListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
@@ -151,9 +155,9 @@ export class PokemonListComponent implements OnInit {
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete All',
-        message: `Are you sure you want to delete ${this.selectedIds().size} alarms?`,
-        title: 'Delete Selected Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+        message: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_MSG', { count: this.selectedIds().size }),
+        title: this.i18n.instant('POKEMON.CONFIRM_BULK_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -166,7 +170,9 @@ export class PokemonListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadMonsters();
-      this.snackBar.open(`Deleted ${ids.length} alarms`, 'OK', { duration: 3000 });
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+        duration: 3000,
+      });
     }
   }
 
@@ -179,7 +185,7 @@ export class PokemonListComponent implements OnInit {
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadMonsters();
-      this.snackBar.open(`Updated distance for ${uids.length} alarms`, 'OK', {
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DISTANCE', { count: uids.length }), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }
@@ -188,9 +194,9 @@ export class PokemonListComponent implements OnInit {
   deleteAll(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete All',
-        message: 'Are you sure you want to delete ALL Pokemon alarms? This action cannot be undone.',
-        title: 'Delete All Pokemon Alarms',
+        confirmText: this.i18n.instant('COMMON.DELETE_ALL'),
+        message: this.i18n.instant('POKEMON.CONFIRM_DELETE_ALL_MSG'),
+        title: this.i18n.instant('POKEMON.CONFIRM_DELETE_ALL_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -198,12 +204,12 @@ export class PokemonListComponent implements OnInit {
       if (confirmed) {
         this.monsterService.deleteAll().subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarms', 'OK', {
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DELETE_ALL'), this.i18n.instant('COMMON.OK'), {
               duration: 3000,
             });
           },
           next: () => {
-            this.snackBar.open('All Pokemon alarms deleted', 'OK', {
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_DELETED_ALL'), this.i18n.instant('COMMON.OK'), {
               duration: 3000,
             });
             this.loadMonsters();
@@ -216,9 +222,9 @@ export class PokemonListComponent implements OnInit {
   deleteMonster(monster: Monster): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        confirmText: 'Delete',
-        message: `Are you sure you want to delete the alarm for ${this.getPokemonName(monster.pokemonId)}?`,
-        title: 'Delete Pokemon Alarm',
+        confirmText: this.i18n.instant('COMMON.DELETE'),
+        message: this.i18n.instant('POKEMON.CONFIRM_DELETE_MSG', { name: this.getPokemonName(monster.pokemonId) }),
+        title: this.i18n.instant('POKEMON.CONFIRM_DELETE_TITLE'),
         warn: true,
       } as ConfirmDialogData,
     });
@@ -226,10 +232,10 @@ export class PokemonListComponent implements OnInit {
       if (confirmed) {
         this.monsterService.delete(monster.uid).subscribe({
           error: () => {
-            this.snackBar.open('Failed to delete alarm', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DELETE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('Pokemon alarm deleted', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_DELETED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadMonsters();
           },
         });
@@ -262,29 +268,29 @@ export class PokemonListComponent implements OnInit {
   getGenderDisplay(gender: number): string {
     switch (gender) {
       case 1:
-        return '\u2642 Male';
+        return '\u2642 ' + this.i18n.instant('POKEMON.GENDER_MALE');
       case 2:
-        return '\u2640 Female';
+        return '\u2640 ' + this.i18n.instant('POKEMON.GENDER_FEMALE');
       case 3:
-        return 'Genderless';
+        return this.i18n.instant('POKEMON.GENDER_GENDERLESS');
       default:
-        return 'All';
+        return this.i18n.instant('POKEMON.GENDER_ALL');
     }
   }
 
   getIvDisplay(minIv: number, maxIv: number): string {
-    if (minIv === -1) return 'No IV Filter';
+    if (minIv === -1) return this.i18n.instant('POKEMON.NO_IV_FILTER');
     return `${minIv}-${maxIv}%`;
   }
 
   getLeagueName(league: number): string {
     switch (league) {
       case 500:
-        return 'Little';
+        return this.i18n.instant('POKEMON.LEAGUE_LITTLE');
       case 1500:
-        return 'Great';
+        return this.i18n.instant('POKEMON.LEAGUE_GREAT');
       case 2500:
-        return 'Ultra';
+        return this.i18n.instant('POKEMON.LEAGUE_ULTRA');
       default:
         return `${league}`;
     }
@@ -295,24 +301,24 @@ export class PokemonListComponent implements OnInit {
   }
 
   getPokemonName(id: number): string {
-    if (id === 0) return 'All Pokemon';
+    if (id === 0) return this.i18n.instant('POKEMON.ALL_POKEMON');
     return this.masterData.getPokemonName(id);
   }
 
   getSizeLabel(value: number): string {
     switch (value) {
       case 1:
-        return 'XXS';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XXS');
       case 2:
-        return 'XS';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XS');
       case 3:
-        return 'Normal';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_NORMAL');
       case 4:
-        return 'XL';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XL');
       case 5:
-        return 'XXL';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_XXL');
       default:
-        return 'Any';
+        return this.i18n.instant('POKEMON.SIZE_LABEL_ANY');
     }
   }
 
@@ -416,10 +422,10 @@ export class PokemonListComponent implements OnInit {
       if (distance !== null && distance !== undefined) {
         this.monsterService.updateAllDistance(distance).subscribe({
           error: () => {
-            this.snackBar.open('Failed to update distances', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           },
           next: () => {
-            this.snackBar.open('All distances updated', 'OK', { duration: 3000 });
+            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_ALL_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
             this.loadMonsters();
           },
         });

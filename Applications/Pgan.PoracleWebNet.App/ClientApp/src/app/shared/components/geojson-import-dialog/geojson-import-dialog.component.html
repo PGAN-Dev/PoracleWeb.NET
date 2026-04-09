@@ -11,9 +11,9 @@
       (drop)="onDrop($event)"
       (click)="fileInput.click()">
       <mat-icon class="drop-zone-icon">upload_file</mat-icon>
-      <p class="drop-zone-title">Drag & drop a GeoJSON file</p>
-      <p class="drop-zone-subtitle">or click to browse</p>
-      <p class="drop-zone-hint">.geojson or .json &middot; Max 5MB</p>
+      <p class="drop-zone-title">{{ 'GEOJSON_IMPORT.DROP_TITLE' | translate }}</p>
+      <p class="drop-zone-subtitle">{{ 'GEOJSON_IMPORT.DROP_SUBTITLE' | translate }}</p>
+      <p class="drop-zone-hint">{{ 'GEOJSON_IMPORT.DROP_HINT' | translate }}</p>
       <input #fileInput type="file" accept=".geojson,.json" hidden (change)="onFileSelected($event)" />
     </div>
     @if (fileError()) {
@@ -44,17 +44,16 @@
       @if (wouldExceedLimit) {
         <div class="warning-banner">
           <mat-icon>warning</mat-icon>
-          <span
-            >Only {{ remainingSlots }} slot{{ remainingSlots !== 1 ? 's' : '' }} remaining ({{ data.maxGeofences }} max). Some geofences may
-            not be imported.</span
-          >
+          <span>{{ 'GEOJSON_IMPORT.SLOTS_WARNING' | translate: { remaining: remainingSlots, max: data.maxGeofences } }}</span>
         </div>
       }
 
       <!-- Select all toggle -->
       <div class="select-all-row">
-        <mat-checkbox [checked]="allSelected()" (change)="toggleAll($event.checked)"> Select All </mat-checkbox>
-        <span class="selected-count">{{ selectedValidCount() }} ready to import</span>
+        <mat-checkbox [checked]="allSelected()" (change)="toggleAll($event.checked)">
+          {{ 'GEOJSON_IMPORT.SELECT_ALL' | translate }}
+        </mat-checkbox>
+        <span class="selected-count">{{ 'GEOJSON_IMPORT.READY_TO_IMPORT' | translate: { count: selectedValidCount() } }}</span>
       </div>
 
       <div class="feature-list">
@@ -65,16 +64,16 @@
               @if (feature.selected && !feature.warning) {
                 <div class="feature-fields">
                   <mat-form-field appearance="outline" class="name-field" subscriptSizing="dynamic">
-                    <mat-label>Name</mat-label>
+                    <mat-label>{{ 'GEOJSON_IMPORT.NAME_LABEL' | translate }}</mat-label>
                     <input
                       matInput
                       [ngModel]="feature.editedName"
                       (ngModelChange)="updateName($index, $event)"
                       maxlength="50"
-                      placeholder="Geofence name" />
+                      [placeholder]="'GEOJSON_IMPORT.NAME_PLACEHOLDER' | translate" />
                   </mat-form-field>
                   <mat-form-field appearance="outline" class="region-field" subscriptSizing="dynamic">
-                    <mat-label>Region</mat-label>
+                    <mat-label>{{ 'GEOJSON_IMPORT.REGION_LABEL' | translate }}</mat-label>
                     <mat-select [ngModel]="feature.regionId" (ngModelChange)="updateRegion($index, $event)">
                       @for (region of data.regions; track region.id) {
                         <mat-option [value]="region.id">{{ region.displayName }}</mat-option>
@@ -83,19 +82,19 @@
                   </mat-form-field>
                 </div>
                 <span class="feature-meta">
-                  {{ feature.geometryType }} &middot; {{ feature.pointCount }} points
+                  {{ feature.geometryType }} &middot; {{ 'GEOJSON_IMPORT.POINTS_COUNT' | translate: { count: feature.pointCount } }}
                   @if (getNameError(feature); as nameErr) {
                     <span class="feature-warning">{{ nameErr }}</span>
                   }
                   @if (!getNameError(feature) && feature.regionId === null) {
-                    <span class="feature-warning">Region required</span>
+                    <span class="feature-warning">{{ 'GEOJSON_IMPORT.REGION_REQUIRED' | translate }}</span>
                   }
                 </span>
               } @else {
                 <span class="feature-name">{{ feature.name }}</span>
                 <span class="feature-meta">
                   @if (feature.geometryType) {
-                    {{ feature.geometryType }} &middot; {{ feature.pointCount }} points
+                    {{ feature.geometryType }} &middot; {{ 'GEOJSON_IMPORT.POINTS_COUNT' | translate: { count: feature.pointCount } }}
                   }
                   @if (feature.warning) {
                     <span class="feature-warning">{{ feature.warning }}</span>
@@ -126,13 +125,13 @@
       @if (importResult()?.created?.length) {
         <div class="result-row success">
           <mat-icon>check_circle</mat-icon>
-          <span>{{ importResult()!.created.length }} geofence{{ importResult()!.created.length !== 1 ? 's' : '' }} imported</span>
+          <span>{{ 'GEOJSON_IMPORT.RESULT_IMPORTED' | translate: { count: importResult()!.created.length } }}</span>
         </div>
       }
       @if (importResult()?.errors?.length) {
         <div class="result-row error">
           <mat-icon>warning</mat-icon>
-          <span>{{ importResult()!.errors.length }} failed</span>
+          <span>{{ 'GEOJSON_IMPORT.RESULT_FAILED' | translate: { count: importResult()!.errors.length } }}</span>
         </div>
         <div class="error-list">
           @for (err of importResult()!.errors; track err.featureName) {
@@ -146,7 +145,7 @@
       @if (!importResult()?.created?.length && !importResult()?.errors?.length) {
         <div class="result-row">
           <mat-icon>info</mat-icon>
-          <span>No geofences were processed</span>
+          <span>{{ 'GEOJSON_IMPORT.NO_GEOFENCES_PROCESSED' | translate }}</span>
         </div>
       }
     </div>
@@ -155,16 +154,16 @@
 
 <mat-dialog-actions align="end">
   @if (step() === 'upload') {
-    <button mat-button (click)="dialogRef.close(null)">Cancel</button>
+    <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
   }
   @if (step() === 'preview') {
-    <button mat-button (click)="goBack()" [disabled]="importing()">Back</button>
+    <button mat-button (click)="goBack()" [disabled]="importing()">{{ 'GEOJSON_IMPORT.BACK' | translate }}</button>
     <button mat-raised-button color="primary" (click)="startImport()" [disabled]="importing() || selectedValidCount() === 0 || hasErrors">
       <mat-icon>upload</mat-icon>
-      Import {{ selectedValidCount() }} Geofence{{ selectedValidCount() !== 1 ? 's' : '' }}
+      {{ 'GEOJSON_IMPORT.IMPORT_BTN' | translate: { count: selectedValidCount() } }}
     </button>
   }
   @if (step() === 'results') {
-    <button mat-raised-button color="primary" (click)="closeWithResult()">Done</button>
+    <button mat-raised-button color="primary" (click)="closeWithResult()">{{ 'GEOJSON_IMPORT.DONE' | translate }}</button>
   }
 </mat-dialog-actions>

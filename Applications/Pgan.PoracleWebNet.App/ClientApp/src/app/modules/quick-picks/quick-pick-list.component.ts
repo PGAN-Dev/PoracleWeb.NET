@@ -7,9 +7,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { QuickPickSummary } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
@@ -23,6 +25,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/c
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
+    TranslateModule,
   ],
   selector: 'app-quick-pick-list',
   standalone: true,
@@ -32,6 +35,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/c
 export class QuickPickListComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly dialog = inject(MatDialog);
+  private readonly i18n = inject(I18nService);
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -84,7 +88,7 @@ export class QuickPickListComponent implements OnInit {
     this.loading.set(true);
     this.quickPickService.getAll().subscribe({
       error: () => {
-        this.snackBar.open('Failed to load quick picks', 'OK', {
+        this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_LOAD'), this.i18n.instant('TOAST.OK'), {
           duration: 3000,
         });
         this.loading.set(false);
@@ -134,8 +138,8 @@ export class QuickPickListComponent implements OnInit {
   onDelete(pick: QuickPickSummary): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: `Permanently delete "${pick.definition.name}"?`,
-        title: 'Delete Quick Pick',
+        message: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_MSG', { name: pick.definition.name }),
+        title: this.i18n.instant('QUICK_PICKS.CONFIRM_DELETE_TITLE'),
       },
     });
     ref.afterClosed().subscribe(confirmed => {
@@ -145,9 +149,10 @@ export class QuickPickListComponent implements OnInit {
           ? this.quickPickService.deleteAdmin(pick.definition.id)
           : this.quickPickService.deleteUser(pick.definition.id);
       obs.subscribe({
-        error: () => this.snackBar.open('Failed to delete', 'OK', { duration: 3000 }),
+        error: () =>
+          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
         next: () => {
-          this.snackBar.open('Quick pick deleted', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.loadPicks();
         },
       });
@@ -170,8 +175,8 @@ export class QuickPickListComponent implements OnInit {
     const count = pick.appliedState?.trackedUids?.length ?? 0;
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: `Remove "${pick.definition.name}"? This will delete ${count} alarm(s) created by this quick pick.${count > 10 ? ' This may take a moment.' : ''}`,
-        title: 'Remove Quick Pick',
+        message: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_MSG', { name: pick.definition.name, count }),
+        title: this.i18n.instant('QUICK_PICKS.CONFIRM_REMOVE_TITLE'),
       },
     });
     ref.afterClosed().subscribe(confirmed => {
@@ -179,11 +184,11 @@ export class QuickPickListComponent implements OnInit {
       this.removing.set(pick.definition.id);
       this.quickPickService.remove(pick.definition.id).subscribe({
         error: () => {
-          this.snackBar.open('Failed to remove', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_REMOVE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.removing.set(null);
         },
         next: () => {
-          this.snackBar.open(`Quick pick removed — ${count} alarm(s) deleted`, 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_REMOVED', { count }), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.removing.set(null);
           this.loadPicks();
         },
@@ -194,8 +199,8 @@ export class QuickPickListComponent implements OnInit {
   onReseed(): void {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
-        message: 'This will delete all admin quick picks and re-create the defaults. User picks are not affected.',
-        title: 'Reset to Defaults',
+        message: this.i18n.instant('QUICK_PICKS.CONFIRM_RESET_MSG'),
+        title: this.i18n.instant('QUICK_PICKS.RESET_DEFAULTS'),
       },
     });
     ref.afterClosed().subscribe(confirmed => {
@@ -203,11 +208,11 @@ export class QuickPickListComponent implements OnInit {
       this.loading.set(true);
       this.quickPickService.seed().subscribe({
         error: () => {
-          this.snackBar.open('Failed to re-seed defaults', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_RESET'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.loading.set(false);
         },
         next: () => {
-          this.snackBar.open('Defaults restored', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_RESET'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           this.loadPicks(false);
         },
       });

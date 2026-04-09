@@ -9,9 +9,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { QuickPickDefinition } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 
 @Component({
@@ -26,6 +28,7 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
     MatSlideToggleModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    TranslateModule,
   ],
   selector: 'app-quick-pick-admin-dialog',
   standalone: true,
@@ -35,6 +38,7 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
 export class QuickPickAdminDialogComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
   readonly alarmTypes = ['monster', 'raid', 'egg', 'quest', 'invasion', 'lure', 'nest', 'gym', 'maxbattle'];
@@ -208,13 +212,17 @@ export class QuickPickAdminDialogComponent implements OnInit {
 
     obs.subscribe({
       error: () => {
-        this.snackBar.open('Failed to save quick pick', 'OK', {
+        this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_SAVE'), this.i18n.instant('TOAST.OK'), {
           duration: 3000,
         });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`Quick pick ${this.isEdit ? 'updated' : 'created'}`, 'OK', { duration: 3000 });
+        this.snackBar.open(
+          this.i18n.instant(this.isEdit ? 'QUICK_PICKS.SNACK_UPDATED' : 'QUICK_PICKS.SNACK_CREATED'),
+          this.i18n.instant('TOAST.OK'),
+          { duration: 3000 },
+        );
         this.dialogRef.close(true);
       },
     });

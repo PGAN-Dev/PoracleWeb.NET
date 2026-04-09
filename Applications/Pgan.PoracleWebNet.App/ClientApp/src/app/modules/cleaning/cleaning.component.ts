@@ -7,17 +7,19 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { CleaningService, CleanAlarmType } from '../../core/services/cleaning.service';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { I18nService } from '../../core/services/i18n.service';
 
 interface CleaningItem {
   color: string;
-  description: string;
+  descriptionKey: string;
   enabled: ReturnType<typeof signal<boolean>>;
   hasAlarms: ReturnType<typeof signal<boolean>>;
   icon: string;
-  label: string;
+  labelKey: string;
   type: CleanAlarmType;
 }
 
@@ -31,6 +33,7 @@ interface CleaningItem {
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    TranslateModule,
   ],
   selector: 'app-cleaning',
   standalone: true,
@@ -41,97 +44,98 @@ export class CleaningComponent implements OnInit {
   private readonly cleaningService = inject(CleaningService);
   private readonly dashboardService = inject(DashboardService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly cleaningItems: CleaningItem[] = [
     {
       color: '#4CAF50',
-      description: 'Auto-delete spawn notifications when the Pokemon despawns',
+      descriptionKey: 'CLEANING.POKEMON_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'catching_pokemon',
-      label: 'Pokemon',
+      labelKey: 'NAV.POKEMON',
       type: 'monsters',
     },
     {
       color: '#F44336',
-      description: 'Auto-delete raid notifications when the raid ends',
+      descriptionKey: 'CLEANING.RAIDS_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'shield',
-      label: 'Raids',
+      labelKey: 'NAV.RAIDS',
       type: 'raids',
     },
     {
       color: '#FF9800',
-      description: 'Auto-delete egg notifications when the egg hatches',
+      descriptionKey: 'CLEANING.EGGS_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'egg',
-      label: 'Eggs',
+      labelKey: 'CLEANING.LABEL_EGGS',
       type: 'eggs',
     },
     {
       color: '#9C27B0',
-      description: 'Auto-delete quest notifications at midnight',
+      descriptionKey: 'CLEANING.QUESTS_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'assignment',
-      label: 'Quests',
+      labelKey: 'NAV.QUESTS',
       type: 'quests',
     },
     {
       color: '#607D8B',
-      description: 'Auto-delete invasion notifications when the grunt leaves',
+      descriptionKey: 'CLEANING.INVASIONS_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'warning',
-      label: 'Invasions',
+      labelKey: 'NAV.INVASIONS',
       type: 'invasions',
     },
     {
       color: '#E91E63',
-      description: 'Auto-delete lure notifications when the lure expires',
+      descriptionKey: 'CLEANING.LURES_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'place',
-      label: 'Lures',
+      labelKey: 'NAV.LURES',
       type: 'lures',
     },
     {
       color: '#8BC34A',
-      description: 'Auto-delete nest notifications when nests rotate',
+      descriptionKey: 'CLEANING.NESTS_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'park',
-      label: 'Nests',
+      labelKey: 'NAV.NESTS',
       type: 'nests',
     },
     {
       color: '#00BCD4',
-      description: 'Auto-delete gym notifications when gym status changes',
+      descriptionKey: 'CLEANING.GYMS_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'fitness_center',
-      label: 'Gyms',
+      labelKey: 'NAV.GYMS',
       type: 'gyms',
     },
     {
       color: '#795548',
-      description: 'Auto-delete fort change notifications after expiry',
+      descriptionKey: 'CLEANING.FORT_CHANGES_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'domain',
-      label: 'Fort Changes',
+      labelKey: 'NAV.FORT_CHANGES',
       type: 'fortchanges',
     },
     {
       color: '#d500f9',
-      description: 'Auto-delete max battle notifications when the battle ends',
+      descriptionKey: 'CLEANING.MAX_BATTLES_DESC',
       enabled: signal(false),
       hasAlarms: signal(false),
       icon: 'flash_on',
-      label: 'Max Battles',
+      labelKey: 'NAV.MAX_BATTLES',
       type: 'maxbattles',
     },
   ];
@@ -152,15 +156,19 @@ export class CleaningComponent implements OnInit {
       .subscribe({
         error: () => {
           this.toggling.set(false);
-          this.snackBar.open('Failed to update cleaning', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: result => {
           for (const item of this.cleaningItems) {
             item.enabled.set(enabled);
           }
           this.toggling.set(false);
-          const action = enabled ? 'enabled' : 'disabled';
-          this.snackBar.open(`Cleaning ${action} for all types (${result.updated} alarms updated)`, 'OK', { duration: 3000 });
+          const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
+          this.snackBar.open(
+            this.i18n.instant('CLEANING.SNACK_TOGGLE_ALL', { action, count: result.updated }),
+            this.i18n.instant('TOAST.OK'),
+            { duration: 3000 },
+          );
         },
       });
   }
@@ -173,15 +181,18 @@ export class CleaningComponent implements OnInit {
       .subscribe({
         error: () => {
           this.toggling.set(false);
-          this.snackBar.open(`Failed to update cleaning for ${item.label}`, 'OK', {
-            duration: 3000,
-          });
+          this.snackBar.open(this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: result => {
           item.enabled.set(enabled);
           this.toggling.set(false);
-          const action = enabled ? 'enabled' : 'disabled';
-          this.snackBar.open(`Cleaning ${action} for ${item.label} (${result.updated} alarms updated)`, 'OK', { duration: 3000 });
+          const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
+          const type = this.i18n.instant(item.labelKey);
+          this.snackBar.open(
+            this.i18n.instant('CLEANING.SNACK_TOGGLE_TYPE', { action, count: result.updated, type }),
+            this.i18n.instant('TOAST.OK'),
+            { duration: 3000 },
+          );
         },
       });
   }

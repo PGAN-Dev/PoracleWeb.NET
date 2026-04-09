@@ -1,7 +1,7 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Areas & Location</h1>
-    <p class="page-description">Control where you receive notifications. Choose one or both methods below.</p>
+    <h1>{{ 'AREAS.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'AREAS.PAGE_DESC' | translate }}</p>
   </div>
 </div>
 
@@ -17,23 +17,22 @@
         <div class="method-header">
           <mat-icon class="method-icon">map</mat-icon>
           <div>
-            <h3>Areas</h3>
+            <h3>{{ 'AREAS.METHOD_AREAS' | translate }}</h3>
             <span class="method-status">
               @if (selectedAreas().length > 0) {
-                {{ selectedAreas().length }} area(s) active
+                {{ 'AREAS.METHOD_AREAS_ACTIVE' | translate: { count: selectedAreas().length } }}
               } @else {
-                Not configured
+                {{ 'AREAS.METHOD_NOT_CONFIGURED' | translate }}
               }
             </span>
           </div>
         </div>
         <p class="method-description">
-          Get notified about anything that happens inside your selected geofenced zones. Set alarms to <strong>"Use Areas"</strong> in the
-          delivery settings.
+          {{ 'AREAS.METHOD_AREAS_DESC' | translate }}
         </p>
         <p class="method-example">
           <mat-icon>lightbulb</mat-icon>
-          Best for: covering entire cities, neighborhoods, or parks
+          {{ 'AREAS.METHOD_AREAS_TIP' | translate }}
         </p>
       </div>
 
@@ -41,7 +40,7 @@
         <div class="method-header">
           <mat-icon class="method-icon">my_location</mat-icon>
           <div>
-            <h3>Location</h3>
+            <h3>{{ 'AREAS.METHOD_LOCATION' | translate }}</h3>
             <span class="method-status">
               @if (location(); as loc) {
                 @if (locationAddress()) {
@@ -50,43 +49,41 @@
                   {{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}
                 }
               } @else {
-                Not set
+                {{ 'AREAS.METHOD_LOCATION_NOT_SET' | translate }}
               }
             </span>
           </div>
           <div class="method-actions">
             @if (location()) {
-              <button mat-button color="warn" (click)="clearLocation()"><mat-icon>location_off</mat-icon> Clear</button>
+              <button mat-button color="warn" (click)="clearLocation()">
+                <mat-icon>location_off</mat-icon> {{ 'AREAS.CLEAR_LOCATION' | translate }}
+              </button>
             }
             <button mat-stroked-button (click)="openLocationDialog()">
               <mat-icon>edit_location</mat-icon>
-              {{ location() ? 'Change' : 'Set' }}
+              {{ location() ? ('AREAS.CHANGE_LOCATION' | translate) : ('AREAS.SET_LOCATION' | translate) }}
             </button>
           </div>
         </div>
         <p class="method-description">
-          Get notified about anything within a set distance from your pinned location. Set alarms to <strong>"Set Distance"</strong> (e.g.,
-          5 km) in the delivery settings.
+          {{ 'AREAS.METHOD_LOCATION_DESC' | translate }}
         </p>
         <p class="method-example">
           <mat-icon>lightbulb</mat-icon>
-          Best for: alerts near your home, work, or a specific spot
+          {{ 'AREAS.METHOD_LOCATION_TIP' | translate }}
         </p>
       </div>
     </div>
 
     <div class="method-note">
       <mat-icon>info</mat-icon>
-      <span
-        >Each alarm chooses one method in its Delivery tab: "Use Areas" or "Set Distance". You can use both methods across different
-        alarms.</span
-      >
+      <span>{{ 'AREAS.METHOD_NOTE' | translate }}</span>
     </div>
 
     <!-- Area Selection Section -->
     <h2 class="section-title">
       <mat-icon>map</mat-icon>
-      Select Areas
+      {{ 'AREAS.SELECT_AREAS' | translate }}
     </h2>
 
     <!-- Mode Toggle -->
@@ -98,16 +95,18 @@
           (click)="viewMode.set('map')"
           [disabled]="geofenceData().length === 0">
           <mat-icon>public</mat-icon>
-          Map
+          {{ 'AREAS.MAP_VIEW' | translate }}
         </button>
         <button class="mode-btn" [class.mode-active]="viewMode() === 'list'" (click)="viewMode.set('list')">
           <mat-icon>list</mat-icon>
-          List
+          {{ 'AREAS.LIST_VIEW' | translate }}
         </button>
       </div>
-      <span class="selection-summary">{{ selectedAreas().length }} area(s) selected</span>
+      <span class="selection-summary">{{ 'AREAS.SELECTION_SUMMARY' | translate: { count: selectedAreas().length } }}</span>
       @if (selectedAreas().length > 0) {
-        <button mat-button color="warn" (click)="clearAllAreas()"><mat-icon>delete_sweep</mat-icon> Clear All</button>
+        <button mat-button color="warn" (click)="clearAllAreas()">
+          <mat-icon>delete_sweep</mat-icon> {{ 'AREAS.CLEAR_ALL' | translate }}
+        </button>
       }
     </div>
 
@@ -136,11 +135,11 @@
             [groupMapping]="groupMapping()"
             (areaClicked)="onMapAreaClicked($event)"></app-area-map>
         </div>
-        <p class="map-hint">Click an area on the map to toggle it</p>
+        <p class="map-hint">{{ 'AREAS.MAP_HINT' | translate }}</p>
       } @else {
         <div class="empty-map">
           <mat-icon>map</mat-icon>
-          <p>No geofence data available. Use the List view to select areas.</p>
+          <p>{{ 'AREAS.NO_GEOFENCE_DATA' | translate }}</p>
         </div>
       }
     }
@@ -150,22 +149,22 @@
       <div class="list-view">
         <app-region-selector
           [regions]="groupOptions()"
-          label="Search by region"
-          placeholder="Type to search regions..."
+          [label]="'AREAS.SEARCH_REGION' | translate"
+          [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
           [showCounts]="true"
           (regionSelected)="onGroupFilterSelected($event)"></app-region-selector>
 
         @if (availableAreas().length === 0) {
           <div class="api-offline-notice">
             <mat-icon class="warning-icon">cloud_off</mat-icon>
-            <p>Area geofences are not available. The Poracle API may be offline.</p>
+            <p>{{ 'AREAS.API_OFFLINE' | translate }}</p>
             <mat-form-field appearance="outline" class="manual-input">
-              <mat-label>Add area name manually</mat-label>
+              <mat-label>{{ 'AREAS.MANUAL_ADD_LABEL' | translate }}</mat-label>
               <input
                 matInput
                 [(ngModel)]="manualAreaName"
                 (keyup.enter)="addManualArea()"
-                placeholder="Type an area name and press Enter" />
+                [placeholder]="'AREAS.MANUAL_ADD_PLACEHOLDER' | translate" />
               <button mat-icon-button matSuffix (click)="addManualArea()" [disabled]="!manualAreaName.trim()">
                 <mat-icon>add_circle</mat-icon>
               </button>
@@ -173,8 +172,12 @@
           </div>
         } @else {
           <div class="list-actions">
-            <button mat-button color="primary" (click)="selectAllVisible()"><mat-icon>select_all</mat-icon> Select All</button>
-            <button mat-button (click)="deselectAllVisible()"><mat-icon>deselect</mat-icon> Deselect All</button>
+            <button mat-button color="primary" (click)="selectAllVisible()">
+              <mat-icon>select_all</mat-icon> {{ 'AREAS.SELECT_ALL_VISIBLE' | translate }}
+            </button>
+            <button mat-button (click)="deselectAllVisible()">
+              <mat-icon>deselect</mat-icon> {{ 'AREAS.DESELECT_ALL_VISIBLE' | translate }}
+            </button>
           </div>
           <div class="area-checklist">
             @for (area of visibleAreas(); track area.name) {
@@ -186,7 +189,7 @@
                 }
               </div>
             } @empty {
-              <p class="no-results">No areas found</p>
+              <p class="no-results">{{ 'AREAS.NO_RESULTS' | translate }}</p>
             }
           </div>
         }
@@ -196,15 +199,15 @@
     <!-- Floating Save Bar -->
     @if (hasChanges()) {
       <div class="save-bar">
-        <span class="save-info">{{ selectedAreas().length }} area(s) selected</span>
-        <button mat-button (click)="cancelChanges()">Cancel</button>
+        <span class="save-info">{{ 'AREAS.SELECTION_SUMMARY' | translate: { count: selectedAreas().length } }}</span>
+        <button mat-button (click)="cancelChanges()">{{ 'AREAS.CANCEL_CHANGES' | translate }}</button>
         <button mat-raised-button color="primary" (click)="saveAreas()" [disabled]="saving()">
           @if (saving()) {
             <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
           } @else {
             <mat-icon>save</mat-icon>
           }
-          Save
+          {{ 'AREAS.SAVE' | translate }}
         </button>
       </div>
     }
