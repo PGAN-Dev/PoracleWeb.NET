@@ -14,9 +14,11 @@
   <div class="disabled-banner admin-disabled">
     <mat-icon>block</mat-icon>
     <span [innerHTML]="'BANNER.DISABLED_ACCOUNT' | translate"></span>
-    <span>{{ 'BANNER.DISABLED_SUPPORT' | translate }}
+    <span
+      >{{ 'BANNER.DISABLED_SUPPORT' | translate }}
       <a href="https://discord.com/channels/237964415822069760/280486070628384778" target="_blank">#support</a> /
-      <a href="https://discord.com/channels/237964415822069760/722557616982720593" target="_blank">ticket</a>.</span>
+      <a href="https://discord.com/channels/237964415822069760/722557616982720593" target="_blank">ticket</a>.</span
+    >
   </div>
 } @else if (auth.user()?.enabled === false) {
   <div class="disabled-banner">

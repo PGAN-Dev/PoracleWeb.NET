@@ -13,11 +13,7 @@ describe('ConfirmDialogComponent', () => {
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        provideTranslateService(),
-        { provide: MAT_DIALOG_DATA, useValue: data },
-        { provide: MatDialogRef, useValue: dialogRef },
-      ],
+      providers: [provideTranslateService(), { provide: MAT_DIALOG_DATA, useValue: data }, { provide: MatDialogRef, useValue: dialogRef }],
       imports: [ConfirmDialogComponent],
     });
 
