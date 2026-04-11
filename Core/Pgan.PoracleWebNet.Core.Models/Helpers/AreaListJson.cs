@@ -14,9 +14,12 @@ public static class AreaListJson
     /// <summary>
     /// Parses an area column value into a mutable list. Returns an empty list for null/empty
     /// input. Accepts both JSON array format (preferred) and legacy comma-separated format.
-    /// Input that starts with <c>[</c> or <c>{</c> is treated as JSON only — a failed JSON parse
-    /// on bracketed input returns an empty list rather than falling through to the CSV split,
-    /// which would otherwise turn garbage like <c>[1,2,3]</c> into <c>["[1", "2", "3]"]</c>.
+    /// Input that starts with <c>[</c>, <c>{</c>, or <c>"</c> is treated as JSON only — a failed
+    /// JSON parse on JSON-shaped input returns an empty list rather than falling through to the
+    /// CSV split, which would otherwise turn garbage like <c>[1,2,3]</c> into
+    /// <c>["[1", "2", "3]"]</c> or <c>"foo"</c> into <c>["\"foo\""]</c>. Bare literals like
+    /// <c>true</c>/<c>false</c>/<c>null</c>/numbers can't be reliably distinguished from
+    /// legacy CSV values starting with the same characters and still fall back to CSV.
     /// </summary>
     public static List<string> Parse(string? areaJson)
     {
@@ -26,7 +29,8 @@ public static class AreaListJson
         }
 
         var trimmed = areaJson.AsSpan().TrimStart();
-        var looksLikeJson = trimmed.Length > 0 && (trimmed[0] == '[' || trimmed[0] == '{');
+        var looksLikeJson = trimmed.Length > 0
+            && (trimmed[0] == '[' || trimmed[0] == '{' || trimmed[0] == '"');
 
         try
         {
@@ -37,7 +41,7 @@ public static class AreaListJson
             if (looksLikeJson)
             {
                 // Malformed or wrong-shape JSON — never fall through to CSV, which would
-                // produce bracketed garbage from the failed JSON string.
+                // produce bracketed/quoted garbage from the failed JSON string.
                 return [];
             }
 

@@ -37,7 +37,10 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
             ?? throw new InvalidOperationException($"Human with id {humanId} not found.");
 
         var humanAreas = AreaListJson.Parse(human.Area);
-        var humanChanged = humanAreas.Remove(lowerName);
+        // Case-insensitive removal — symmetric with the Add side's OrdinalIgnoreCase HashSet.
+        // Defensive against mixed-case DB rows: a manual DB poke or migration state shouldn't
+        // leave the user unable to deactivate a geofence because the case doesn't match.
+        var humanChanged = humanAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0;
         if (humanChanged)
         {
             human.Area = AreaListJson.Serialize(humanAreas);
@@ -49,7 +52,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         if (profile is not null)
         {
             var profileAreas = AreaListJson.Parse(profile.Area);
-            if (profileAreas.Remove(lowerName))
+            if (profileAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0)
             {
                 profile.Area = AreaListJson.Serialize(profileAreas);
                 profileChanged = true;
@@ -94,7 +97,10 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         var humanAreas = AreaListJson.Parse(human.Area);
         // HashSet lookup turns the inner loop from O(N·M) to O(N+M). Preserves insertion
         // order in the backing list so the on-disk ordering is stable across writes.
-        var humanSet = new HashSet<string>(humanAreas);
+        // OrdinalIgnoreCase is defensive — the DB convention guarantees lowercase, but if
+        // a row is ever written with mixed case (manual DB poke, future PoracleJS change)
+        // we still dedupe correctly instead of producing duplicate "Downtown"/"downtown" entries.
+        var humanSet = new HashSet<string>(humanAreas, StringComparer.OrdinalIgnoreCase);
         var humanChanged = false;
         foreach (var name in normalized)
         {
@@ -115,7 +121,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         if (profile is not null)
         {
             var profileAreas = AreaListJson.Parse(profile.Area);
-            var profileSet = new HashSet<string>(profileAreas);
+            var profileSet = new HashSet<string>(profileAreas, StringComparer.OrdinalIgnoreCase);
             foreach (var name in normalized)
             {
                 if (profileSet.Add(name))
@@ -151,7 +157,8 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         if (human is not null)
         {
             var humanAreas = AreaListJson.Parse(human.Area);
-            if (humanAreas.Remove(lowerName))
+            // Case-insensitive — symmetric with RemoveAreaFromActiveProfileAsync.
+            if (humanAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0)
             {
                 human.Area = AreaListJson.Serialize(humanAreas);
                 humanChanged = true;
@@ -165,7 +172,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         foreach (var profile in profiles)
         {
             var profileAreas = AreaListJson.Parse(profile.Area);
-            if (profileAreas.Remove(lowerName))
+            if (profileAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0)
             {
                 profile.Area = AreaListJson.Serialize(profileAreas);
                 anyProfileChanged = true;

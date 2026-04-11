@@ -253,6 +253,61 @@ public partial class UserAreaDualWriterTests : IDisposable
         Assert.Single(MyRegex().Matches(human.Area));
     }
 
+    [Fact]
+    public async Task AddAreasToActiveProfileAsyncDoesNotDuplicateWhenDbHasMixedCase()
+    {
+        // Defensive: the DB convention is lowercase, but if a row is ever written with mixed
+        // case (manual DB poke, future PoracleJS change, mid-migration state) the dedup must
+        // still treat "Downtown" and "downtown" as the same area instead of producing both.
+        await this.SeedHumanAsync(area: "[\"Downtown\"]");
+        await this.SeedProfileAsync("u1", 1, area: "[\"Downtown\"]");
+
+        var modified = await this._sut.AddAreasToActiveProfileAsync("u1", ["downtown"]);
+
+        Assert.False(modified);
+        var human = await this._context.Humans.SingleAsync(h => h.Id == "u1");
+        // Original "Downtown" preserved — no duplicate "downtown" added.
+        Assert.Equal("[\"Downtown\"]", human.Area);
+    }
+
+    [Fact]
+    public async Task RemoveAreaFromActiveProfileAsyncIsCaseInsensitive()
+    {
+        // Symmetric guard with the Add side: if the DB has "Downtown" (mixed case) and the
+        // user toggles off "downtown" (lowercase, the standard), the removal must still find
+        // and delete the entry rather than silently no-op.
+        await this.SeedHumanAsync(area: "[\"Downtown\",\"other\"]");
+        await this.SeedProfileAsync("u1", 1, area: "[\"Downtown\",\"other\"]");
+
+        var modified = await this._sut.RemoveAreaFromActiveProfileAsync("u1", "downtown");
+
+        Assert.True(modified);
+        var human = await this._context.Humans.SingleAsync(h => h.Id == "u1");
+        var profile = await this._context.Profiles.SingleAsync(p => p.Id == "u1" && p.ProfileNo == 1);
+        Assert.DoesNotContain("Downtown", human.Area);
+        Assert.DoesNotContain("Downtown", profile.Area);
+        Assert.Contains("other", human.Area);
+    }
+
+    [Fact]
+    public async Task RemoveAreaFromAllProfilesAsyncIsCaseInsensitive()
+    {
+        // Same defensive case-insensitive behavior on the all-profiles delete path.
+        await this.SeedHumanAsync(area: "[\"Downtown\"]");
+        await this.SeedProfileAsync("u1", 1, area: "[\"Downtown\"]");
+        await this.SeedProfileAsync("u1", 2, area: "[\"DOWNTOWN\"]");
+
+        var modified = await this._sut.RemoveAreaFromAllProfilesAsync("u1", "downtown");
+
+        Assert.True(modified);
+        var human = await this._context.Humans.SingleAsync(h => h.Id == "u1");
+        var p1 = await this._context.Profiles.SingleAsync(p => p.Id == "u1" && p.ProfileNo == 1);
+        var p2 = await this._context.Profiles.SingleAsync(p => p.Id == "u1" && p.ProfileNo == 2);
+        Assert.Equal("[]", human.Area);
+        Assert.Equal("[]", p1.Area);
+        Assert.Equal("[]", p2.Area);
+    }
+
     // --- RemoveAreaFromAllProfilesAsync ---
 
     [Fact]
@@ -299,13 +354,13 @@ public partial class UserAreaDualWriterTests : IDisposable
 
     // --- Input validation ---
 
+    // Guard clause: the writer is a public interface and shouldn't accept garbage humanIds
+    // even though the current call sites always pass valid values.
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
     public async Task AddAreaToActiveProfileAsyncRejectsInvalidHumanId(string? humanId) =>
-        // Guard clause: the writer is a public interface and shouldn't accept garbage humanIds
-        // even though the current call sites always pass valid values.
         await Assert.ThrowsAnyAsync<ArgumentException>(
             () => this._sut.AddAreaToActiveProfileAsync(humanId!, "my park"));
 

@@ -64,6 +64,18 @@ public class AreaListJsonTests
         Assert.Empty(result);
     }
 
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "\"foo\"")]
+    [InlineData(/*lang=json,strict*/ "\"some,csv,looking,thing\"")]
+    public void ParseReturnsEmptyForJsonStringLiteralInsteadOfQuotedGarbage(string input)
+    {
+        // String literals are valid JSON but not valid List<string>. The pre-fix CSV fallback
+        // would turn "\"foo\"" into ["\"foo\""] (one entry with literal quotes) — empty is
+        // the right answer for any JSON-shaped input that fails the List<string> shape check.
+        var result = AreaListJson.Parse(input);
+        Assert.Empty(result);
+    }
+
     [Fact]
     public void ParseStillFallsBackToCsvForNonBracketedInput()
     {
