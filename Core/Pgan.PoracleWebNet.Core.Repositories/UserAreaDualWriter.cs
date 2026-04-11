@@ -14,6 +14,14 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
 {
     private readonly PoracleContext _context = context;
 
+    /// <summary>
+    /// Removes every entry in <paramref name="list"/> that matches <paramref name="lowerName"/>
+    /// case-insensitively. Returns whether any were removed. Defensive against the DB ever
+    /// holding mixed-case area names — see the OrdinalIgnoreCase comment on the Add path.
+    /// </summary>
+    private static bool RemoveCaseInsensitive(List<string> list, string lowerName) =>
+        list.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0;
+
     public Task<bool> AddAreaToActiveProfileAsync(string humanId, string areaName)
     {
         // Both guards run in the wrapper so the single-item contract fails fast and gives a
@@ -37,10 +45,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
             ?? throw new InvalidOperationException($"Human with id {humanId} not found.");
 
         var humanAreas = AreaListJson.Parse(human.Area);
-        // Case-insensitive removal — symmetric with the Add side's OrdinalIgnoreCase HashSet.
-        // Defensive against mixed-case DB rows: a manual DB poke or migration state shouldn't
-        // leave the user unable to deactivate a geofence because the case doesn't match.
-        var humanChanged = humanAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0;
+        var humanChanged = RemoveCaseInsensitive(humanAreas, lowerName);
         if (humanChanged)
         {
             human.Area = AreaListJson.Serialize(humanAreas);
@@ -52,7 +57,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         if (profile is not null)
         {
             var profileAreas = AreaListJson.Parse(profile.Area);
-            if (profileAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0)
+            if (RemoveCaseInsensitive(profileAreas, lowerName))
             {
                 profile.Area = AreaListJson.Serialize(profileAreas);
                 profileChanged = true;
@@ -157,8 +162,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         if (human is not null)
         {
             var humanAreas = AreaListJson.Parse(human.Area);
-            // Case-insensitive — symmetric with RemoveAreaFromActiveProfileAsync.
-            if (humanAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0)
+            if (RemoveCaseInsensitive(humanAreas, lowerName))
             {
                 human.Area = AreaListJson.Serialize(humanAreas);
                 humanChanged = true;
@@ -172,7 +176,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         foreach (var profile in profiles)
         {
             var profileAreas = AreaListJson.Parse(profile.Area);
-            if (profileAreas.RemoveAll(a => string.Equals(a, lowerName, StringComparison.OrdinalIgnoreCase)) > 0)
+            if (RemoveCaseInsensitive(profileAreas, lowerName))
             {
                 profile.Area = AreaListJson.Serialize(profileAreas);
                 anyProfileChanged = true;
