@@ -125,10 +125,31 @@ If PoracleNG already handles this, PoracleWeb can simply proxy the call.
 ### Atomic Area Update
 
 **ID:** `atomic-area-update`  
-**Priority:** Low (adopted)  
+**Priority:** Low (partially adopted)  
 **Code refs:** `AreaController.cs:UpdateAreas`, `PoracleHumanProxy.cs:SetAreasAsync`
 
-**Status: Adopted.** `AreaController.UpdateAreas` now calls `IPoracleHumanProxy.SetAreasAsync(userId, areas)` -- a single atomic call. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally. `UserGeofenceService` also uses `SetAreasAsync` for geofence activate/deactivate operations on the active profile.
+**Status: Partially adopted.** `AreaController.UpdateAreas` calls `IPoracleHumanProxy.SetAreasAsync(userId, areas)` for admin-area writes. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally. However, user-drawn geofence names are silently stripped by PoracleNG's `userSelectable` intersection filter -- see the **Trusted setAreas (bypass userSelectable filter)** gap below.
+
+---
+
+### Trusted setAreas (bypass userSelectable filter)
+
+**ID:** `trusted-set-areas`  
+**Priority:** High  
+**Code refs:** `UserGeofenceService.cs:AddAreaToHumanAsync`, `UserGeofenceService.cs:RemoveAreaFromHumanAsync`, `UserGeofenceService.cs:RemoveAreaFromAllProfilesAsync`, `UserGeofenceService.cs:PreserveOwnedAreasInHumanAsync`, `AreaController.cs:UpdateAreas`
+
+**Current behavior:** PoracleNG's `POST /api/humans/{id}/setAreas` handler (`processor/internal/api/humans.go:HandleSetAreas`) intersects the submitted area list against fences where `UserSelectable == true` for non-admin users. Any area whose fence has `userSelectable=false` is silently dropped -- no error, no warning. PoracleWeb's `GeofenceFeedController.cs` serves user-drawn custom geofences with `userSelectable: false` (to hide them from the Poracle bot's `!area` picker and from other users' views), so every `SetAreasAsync` call that contains a user-drawn geofence name loses that name. This is the root cause of [#163](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/163) -- "custom geofence toggle doesn't persist."
+
+**What's needed:** Any of the following would resolve the gap:
+1. **`POST /api/humans/{id}/setAreas?trusted=true`** -- query flag that skips the userSelectable intersection but still honors community-membership filtering. The caller already holds the `X-Poracle-Secret`, so trust is established.
+2. **`POST /api/humans/{id}/setAreasTrusted`** -- separate endpoint with the same body shape.
+3. **Per-fence ownership:** add an `ownedBy: humanId` field to the fence definition. PoracleNG's intersection allows selection when `ownedBy == request user ID`, regardless of `userSelectable`.
+
+Option 1 is the smallest surface area change. The filter exists to stop users from selecting restricted admin fences via a browser hack; since PoracleWeb writes are already gated behind the shared secret and user geofences are owned by the requesting user, the filter is not a meaningful defense in this path.
+
+**Workaround (HACK):** `UserGeofenceService` writes directly to `humans.area` and the active `profiles.area` row via `IHumanRepository` / `IProfileRepository`, skipping the proxy entirely for user geofence mutations. `AreaController.UpdateAreas` additionally calls `IUserGeofenceService.PreserveOwnedAreasInHumanAsync` after the proxy `SetAreasAsync` call to re-add any user-owned geofences that PoracleNG stripped. These are the only remaining direct-DB writes in the alarm / human / area code path and are tagged with `HACK: trusted-set-areas` comments.
+
+**Regression history:** Before PR #88 (v2.0.0), the direct-DB path was the only path. The proxy migration routed user geofence area writes through `setAreas`, which introduced the silent-strip bug. The direct-DB code is the restored pre-#88 behavior, scoped specifically to user geofence names.
 
 ---
 

@@ -509,6 +509,11 @@ public partial class UserGeofenceService(
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
+    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+    // Re-adds user-owned geofence names via direct DB after PoracleNG's setAreas stripped them.
+    // Remove this method and its callsite in AreaController.UpdateAreas once PoracleNG ships a
+    // trusted setAreas variant (query flag or dedicated endpoint) that skips the userSelectable
+    // intersection filter. Trust is already established via X-Poracle-Secret.
     public async Task<IReadOnlyList<string>> PreserveOwnedAreasInHumanAsync(string humanId, IReadOnlyCollection<string> candidateAreaNames)
     {
         if (candidateAreaNames.Count == 0)
@@ -551,6 +556,11 @@ public partial class UserGeofenceService(
     /// Bypasses PoracleNG's <c>/setAreas</c> endpoint, which silently drops user geofences because
     /// they are served from the PoracleWeb feed with <c>userSelectable=false</c>.
     /// </summary>
+    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+    // Direct-DB write scoped to user geofence names only. Revert to IPoracleHumanProxy.SetAreasAsync
+    // once PoracleNG ships a trusted setAreas variant that skips the userSelectable intersection.
+    // Regression history: this is the restored pre-#88 behavior; the proxy migration in v2.0.0
+    // introduced the silent-strip bug because PoracleNG's filter discards userSelectable=false.
     private async Task AddAreaToHumanAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
@@ -588,6 +598,8 @@ public partial class UserGeofenceService(
     /// directly to <c>humans.area</c> and the current <c>profiles.area</c> row in the Poracle DB.
     /// Mirror of <see cref="AddAreaToHumanAsync"/>.
     /// </summary>
+    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+    // Same rationale as AddAreaToHumanAsync — the proxy path strips user geofences on every write.
     private async Task RemoveAreaFromHumanAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
@@ -621,6 +633,10 @@ public partial class UserGeofenceService(
     /// Removes a geofence area name from <c>humans.area</c> and every profile in <c>profiles.area</c>
     /// for the user. Used on geofence delete so the stale name is wiped out everywhere.
     /// </summary>
+    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+    // Direct-DB loop across all profiles — the proxy path can only touch the active profile
+    // and would strip user geofences on every write. Revert both once PoracleNG ships a trusted
+    // setAreas variant (or a per-profile setAreas endpoint — see Atomic Area Update).
     private async Task RemoveAreaFromAllProfilesAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();

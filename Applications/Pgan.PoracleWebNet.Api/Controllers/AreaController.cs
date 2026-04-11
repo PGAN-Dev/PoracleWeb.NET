@@ -68,10 +68,12 @@ public partial class AreaController(
         // as userSelectable=false to hide them from the Poracle bot's area picker).
         await this._humanProxy.SetAreasAsync(this.UserId, normalizedAreas);
 
+        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
         // Re-add any user-owned custom geofences that were in the submitted list by writing
         // directly to humans.area + active profiles.area — bypassing the setAreas filter.
         // Without this merge, saving on the Areas page would strip every user geofence the
-        // user has activated via the Geofences page.
+        // user has activated via the Geofences page. Remove this call once PoracleNG ships
+        // a trusted setAreas variant that skips the userSelectable intersection.
         var restored = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
 
         // Effective list = what PoracleNG accepted plus what we restored directly.
