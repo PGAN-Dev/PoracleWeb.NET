@@ -14,7 +14,7 @@ public partial class UserGeofenceService(
     IPoracleServerService poracleServerService,
     IPoracleHumanProxy humanProxy,
     IHumanRepository humanRepository,
-    IProfileRepository profileRepository,
+    IUserAreaDualWriter areaWriter,
     IDiscordNotificationService discordNotificationService,
     ILogger<UserGeofenceService> logger) : IUserGeofenceService
 {
@@ -26,7 +26,7 @@ public partial class UserGeofenceService(
     private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanRepository _humanRepository = humanRepository;
-    private readonly IProfileRepository _profileRepository = profileRepository;
+    private readonly IUserAreaDualWriter _areaWriter = areaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly ILogger<UserGeofenceService> _logger = logger;
 
@@ -127,8 +127,10 @@ public partial class UserGeofenceService(
             Status = "active",
         });
 
-        // Add kojiName to user's area list via proxy (handles humans.area + profiles.area dual-write)
-        await this.AddAreaToHumanAsync(humanId, kojiName);
+        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+        // Atomic direct-DB dual-write of humans.area + current profiles.area. Revert to
+        // IPoracleHumanProxy.SetAreasAsync once PoracleNG ships a trusted setAreas variant.
+        await this._areaWriter.AddAreaToActiveProfileAsync(humanId, kojiName);
 
         // Reload Poracle geofences (Poracle reads from our feed + Koji)
         await this.ReloadGeofencesSafeAsync();
@@ -151,8 +153,9 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // Remove kojiName from all profiles (humans.area + profiles.area)
-        await this.RemoveAreaFromAllProfilesAsync(humanId, geofence.KojiName);
+        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+        // Atomic direct-DB removal from humans.area + every profiles.area row.
+        await this._areaWriter.RemoveAreaFromAllProfilesAsync(humanId, geofence.KojiName);
 
         // Delete from local DB
         await this._repository.DeleteAsync(id);
@@ -242,7 +245,8 @@ public partial class UserGeofenceService(
             var areaName = geofence.Status == "approved" && geofence.PromotedName != null
                 ? geofence.PromotedName.ToLowerInvariant()
                 : geofence.KojiName;
-            await this.RemoveAreaFromAllProfilesAsync(geofence.HumanId, areaName);
+            // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+            await this._areaWriter.RemoveAreaFromAllProfilesAsync(geofence.HumanId, areaName);
         }
         catch (Exception ex)
         {
@@ -485,14 +489,16 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        await this.AddAreaToHumanAsync(humanId, geofence.KojiName);
-
         // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // PoracleNG's HandleSetAreas ends with `reloadState(deps)` so the proxy path used to
-        // trigger the in-memory state refresh automatically. Direct-DB writes skip that, so we
-        // ask PoracleNG to reload manually — otherwise the toggle only takes effect on the next
-        // organic reload (which can be minutes). Drop this line when the direct-DB write is
-        // reverted to a trusted setAreas proxy call.
+        // Atomic direct-DB dual-write. Revert to IPoracleHumanProxy.SetAreasAsync once
+        // PoracleNG ships a trusted setAreas variant.
+        await this._areaWriter.AddAreaToActiveProfileAsync(humanId, geofence.KojiName);
+
+        // HACK: trusted-set-areas — PoracleNG's HandleSetAreas ends with reloadState(deps) so
+        // the proxy path used to trigger the in-memory state refresh automatically. Direct-DB
+        // writes skip that, so we ask PoracleNG to reload manually — otherwise the toggle only
+        // takes effect on the next organic reload (which can be minutes). Drop this line when
+        // the direct-DB write is reverted to a trusted setAreas proxy call.
         await this.ReloadGeofencesSafeAsync();
     }
 
@@ -506,7 +512,8 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        await this.RemoveAreaFromHumanAsync(humanId, geofence.KojiName);
+        // HACK: trusted-set-areas — atomic direct-DB removal, mirror of AddToProfileAsync.
+        await this._areaWriter.RemoveAreaFromActiveProfileAsync(humanId, geofence.KojiName);
         // HACK: trusted-set-areas — manual reload, same rationale as AddToProfileAsync.
         await this.ReloadGeofencesSafeAsync();
     }
@@ -539,137 +546,22 @@ public partial class UserGeofenceService(
             .Distinct()
             .ToList();
 
-        foreach (var name in toRestore)
+        if (toRestore.Count == 0)
         {
-            await this.AddAreaToHumanAsync(humanId, name);
+            return [];
         }
+
+        // Single bulk write — one load of humans + profiles, one SaveChangesAsync, atomic.
+        await this._areaWriter.AddAreasToActiveProfileAsync(humanId, toRestore);
 
         // HACK: trusted-set-areas — manual reload because the direct-DB merge above skipped
-        // PoracleNG's internal reloadState hook. Conditional: if nothing was restored, the
-        // caller's own setAreas call already triggered a reload and a second one would be
-        // wasted work. Drop the whole block when the method is removed.
-        if (toRestore.Count > 0)
-        {
-            await this.ReloadGeofencesSafeAsync();
-        }
+        // PoracleNG's internal reloadState hook. The caller (AreaController.UpdateAreas)
+        // already triggered a reload via setAreas, but we need a fresh one so PoracleNG picks
+        // up the restored names too. PoracleNG's reload is debounced 500ms server-side so the
+        // back-to-back calls coalesce. Drop this line when the method is removed.
+        await this.ReloadGeofencesSafeAsync();
 
         return toRestore;
-    }
-
-    /// <summary>
-    /// Adds a user-drawn geofence area name to the user's active profile area list by writing
-    /// directly to <c>humans.area</c> and the current <c>profiles.area</c> row in the Poracle DB.
-    /// Bypasses PoracleNG's <c>/setAreas</c> endpoint, which silently drops user geofences because
-    /// they are served from the PoracleWeb feed with <c>userSelectable=false</c>.
-    /// </summary>
-    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-    // Direct-DB write scoped to user geofence names only. Revert to IPoracleHumanProxy.SetAreasAsync
-    // once PoracleNG ships a trusted setAreas variant that skips the userSelectable intersection.
-    // Regression history: this is the restored pre-#88 behavior; the proxy migration in v2.0.0
-    // introduced the silent-strip bug because PoracleNG's filter discards userSelectable=false.
-    private async Task AddAreaToHumanAsync(string humanId, string geofenceName)
-    {
-        var lowerName = geofenceName.ToLowerInvariant();
-
-        var human = await this._humanRepository.GetByIdAsync(humanId);
-        if (human is null)
-        {
-            return;
-        }
-
-        var humanAreas = ParseAreas(human.Area);
-        if (!humanAreas.Contains(lowerName))
-        {
-            humanAreas.Add(lowerName);
-            human.Area = JsonSerializer.Serialize(humanAreas);
-            await this._humanRepository.UpdateAsync(human);
-        }
-
-        // Dual-write to the currently active profile so the state survives profile switches.
-        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, human.CurrentProfileNo);
-        if (profile is not null)
-        {
-            var profileAreas = ParseAreas(profile.Area);
-            if (!profileAreas.Contains(lowerName))
-            {
-                profileAreas.Add(lowerName);
-                profile.Area = JsonSerializer.Serialize(profileAreas);
-                await this._profileRepository.UpdateAsync(profile);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Removes a user-drawn geofence area name from the user's active profile area list by writing
-    /// directly to <c>humans.area</c> and the current <c>profiles.area</c> row in the Poracle DB.
-    /// Mirror of <see cref="AddAreaToHumanAsync"/>.
-    /// </summary>
-    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-    // Same rationale as AddAreaToHumanAsync — the proxy path strips user geofences on every write.
-    private async Task RemoveAreaFromHumanAsync(string humanId, string geofenceName)
-    {
-        var lowerName = geofenceName.ToLowerInvariant();
-
-        var human = await this._humanRepository.GetByIdAsync(humanId);
-        if (human is null)
-        {
-            return;
-        }
-
-        var humanAreas = ParseAreas(human.Area);
-        if (humanAreas.Remove(lowerName))
-        {
-            human.Area = humanAreas.Count > 0 ? JsonSerializer.Serialize(humanAreas) : "[]";
-            await this._humanRepository.UpdateAsync(human);
-        }
-
-        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, human.CurrentProfileNo);
-        if (profile is not null)
-        {
-            var profileAreas = ParseAreas(profile.Area);
-            if (profileAreas.Remove(lowerName))
-            {
-                profile.Area = profileAreas.Count > 0 ? JsonSerializer.Serialize(profileAreas) : "[]";
-                await this._profileRepository.UpdateAsync(profile);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Removes a geofence area name from <c>humans.area</c> and every profile in <c>profiles.area</c>
-    /// for the user. Used on geofence delete so the stale name is wiped out everywhere.
-    /// </summary>
-    // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-    // Direct-DB loop across all profiles — the proxy path can only touch the active profile
-    // and would strip user geofences on every write. Revert both once PoracleNG ships a trusted
-    // setAreas variant (or a per-profile setAreas endpoint — see Atomic Area Update).
-    private async Task RemoveAreaFromAllProfilesAsync(string humanId, string geofenceName)
-    {
-        var lowerName = geofenceName.ToLowerInvariant();
-
-        var human = await this._humanRepository.GetByIdAsync(humanId);
-        if (human is not null)
-        {
-            var humanAreas = ParseAreas(human.Area);
-            if (humanAreas.Remove(lowerName))
-            {
-                human.Area = humanAreas.Count > 0 ? JsonSerializer.Serialize(humanAreas) : "[]";
-                await this._humanRepository.UpdateAsync(human);
-            }
-        }
-
-        var profiles = await this._profileRepository.GetByUserAsync(humanId);
-        foreach (var profile in profiles)
-        {
-            var areas = ParseAreas(profile.Area);
-            if (areas.Remove(lowerName))
-            {
-                profile.Area = areas.Count > 0
-                    ? JsonSerializer.Serialize(areas)
-                    : "[]";
-                await this._profileRepository.UpdateAsync(profile);
-            }
-        }
     }
 
     /// <summary>

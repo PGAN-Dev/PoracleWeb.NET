@@ -74,14 +74,13 @@ public partial class AreaController(
         // Without this merge, saving on the Areas page would strip every user geofence the
         // user has activated via the Geofences page. Remove this call once PoracleNG ships
         // a trusted setAreas variant that skips the userSelectable intersection.
-        var restored = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
+        //
+        // The returned list is always a subset of `normalizedAreas` (it's filtered down to the
+        // user-owned subset), so the effective response is just `normalizedAreas` — no Union
+        // needed. The discard is intentional.
+        _ = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
 
-        // Effective list = what PoracleNG accepted plus what we restored directly.
-        var effective = restored.Count == 0
-            ? normalizedAreas
-            : [.. normalizedAreas.Union(restored, StringComparer.OrdinalIgnoreCase)];
-
-        return this.Ok(effective);
+        return this.Ok(normalizedAreas);
     }
 
     [HttpGet("geofence")]

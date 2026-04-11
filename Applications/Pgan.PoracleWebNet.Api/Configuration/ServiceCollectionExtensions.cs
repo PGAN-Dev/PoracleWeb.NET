@@ -39,6 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
+        services.AddScoped<IUserAreaDualWriter, UserAreaDualWriter>();
 
         // Register Services
         services.AddScoped<IMonsterService, MonsterService>();
