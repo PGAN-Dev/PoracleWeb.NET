@@ -297,6 +297,94 @@ public partial class UserAreaDualWriterTests : IDisposable
         Assert.False(modified);
     }
 
+    // --- Input validation ---
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task AddAreaToActiveProfileAsyncRejectsInvalidHumanId(string? humanId) =>
+        // Guard clause: the writer is a public interface and shouldn't accept garbage humanIds
+        // even though the current call sites always pass valid values.
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => this._sut.AddAreaToActiveProfileAsync(humanId!, "my park"));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task AddAreaToActiveProfileAsyncRejectsInvalidAreaName(string? areaName)
+    {
+        await this.SeedHumanAsync();
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => this._sut.AddAreaToActiveProfileAsync("u1", areaName!));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RemoveAreaFromActiveProfileAsyncRejectsInvalidHumanId(string? humanId) => await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => this._sut.RemoveAreaFromActiveProfileAsync(humanId!, "my park"));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RemoveAreaFromActiveProfileAsyncRejectsInvalidAreaName(string? areaName)
+    {
+        await this.SeedHumanAsync();
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => this._sut.RemoveAreaFromActiveProfileAsync("u1", areaName!));
+    }
+
+    [Fact]
+    public async Task AddAreasToActiveProfileAsyncRejectsNullCollection() =>
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => this._sut.AddAreasToActiveProfileAsync("u1", null!));
+
+    [Fact]
+    public async Task AddAreasToActiveProfileAsyncStripsBlankEntriesFromInput()
+    {
+        // Whitespace-only names are indistinguishable from "no area" — they shouldn't be
+        // persisted even if a caller accidentally includes them.
+        await this.SeedHumanAsync();
+        await this.SeedProfileAsync("u1", 1);
+
+        var modified = await this._sut.AddAreasToActiveProfileAsync("u1", ["my park", "", "   ", "my square"]);
+
+        Assert.True(modified);
+        var human = await this._context.Humans.SingleAsync(h => h.Id == "u1");
+        Assert.Contains("my park", human.Area);
+        Assert.Contains("my square", human.Area);
+        // No empty string in the serialized array
+        Assert.DoesNotContain("\"\"", human.Area);
+    }
+
+    [Fact]
+    public async Task AddAreasToActiveProfileAsyncReturnsFalseWhenAllInputIsBlank()
+    {
+        await this.SeedHumanAsync();
+        var modified = await this._sut.AddAreasToActiveProfileAsync("u1", ["", "   "]);
+        Assert.False(modified);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RemoveAreaFromAllProfilesAsyncRejectsInvalidHumanId(string? humanId) =>
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => this._sut.RemoveAreaFromAllProfilesAsync(humanId!, "my park"));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RemoveAreaFromAllProfilesAsyncRejectsInvalidAreaName(string? areaName) =>
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => this._sut.RemoveAreaFromAllProfilesAsync("u1", areaName!));
+
     [System.Text.RegularExpressions.GeneratedRegex("my park")]
     private static partial System.Text.RegularExpressions.Regex MyRegex();
 }

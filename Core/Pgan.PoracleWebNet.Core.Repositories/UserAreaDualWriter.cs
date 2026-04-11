@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 using Pgan.PoracleWebNet.Data;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
@@ -16,17 +16,20 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
 
     public async Task<bool> AddAreaToActiveProfileAsync(string humanId, string areaName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(humanId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(areaName);
+
         var lowerName = areaName.ToLowerInvariant();
 
         var human = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == humanId)
             ?? throw new InvalidOperationException($"Human with id {humanId} not found.");
 
-        var humanAreas = ParseAreas(human.Area);
+        var humanAreas = AreaListJson.Parse(human.Area);
         var humanChanged = false;
         if (!humanAreas.Contains(lowerName))
         {
             humanAreas.Add(lowerName);
-            human.Area = JsonSerializer.Serialize(humanAreas);
+            human.Area = AreaListJson.Serialize(humanAreas);
             humanChanged = true;
         }
 
@@ -35,11 +38,11 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         var profileChanged = false;
         if (profile is not null)
         {
-            var profileAreas = ParseAreas(profile.Area);
+            var profileAreas = AreaListJson.Parse(profile.Area);
             if (!profileAreas.Contains(lowerName))
             {
                 profileAreas.Add(lowerName);
-                profile.Area = JsonSerializer.Serialize(profileAreas);
+                profile.Area = AreaListJson.Serialize(profileAreas);
                 profileChanged = true;
             }
         }
@@ -56,16 +59,19 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
 
     public async Task<bool> RemoveAreaFromActiveProfileAsync(string humanId, string areaName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(humanId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(areaName);
+
         var lowerName = areaName.ToLowerInvariant();
 
         var human = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == humanId)
             ?? throw new InvalidOperationException($"Human with id {humanId} not found.");
 
-        var humanAreas = ParseAreas(human.Area);
+        var humanAreas = AreaListJson.Parse(human.Area);
         var humanChanged = humanAreas.Remove(lowerName);
         if (humanChanged)
         {
-            human.Area = humanAreas.Count > 0 ? JsonSerializer.Serialize(humanAreas) : "[]";
+            human.Area = AreaListJson.Serialize(humanAreas);
         }
 
         var profile = await this._context.Profiles
@@ -73,10 +79,10 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         var profileChanged = false;
         if (profile is not null)
         {
-            var profileAreas = ParseAreas(profile.Area);
+            var profileAreas = AreaListJson.Parse(profile.Area);
             if (profileAreas.Remove(lowerName))
             {
-                profile.Area = profileAreas.Count > 0 ? JsonSerializer.Serialize(profileAreas) : "[]";
+                profile.Area = AreaListJson.Serialize(profileAreas);
                 profileChanged = true;
             }
         }
@@ -92,25 +98,38 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
 
     public async Task<bool> AddAreasToActiveProfileAsync(string humanId, IReadOnlyCollection<string> areaNames)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(humanId);
+        ArgumentNullException.ThrowIfNull(areaNames);
+
         if (areaNames.Count == 0)
         {
             return false;
         }
 
-        // Deduplicate and lowercase once — avoids repeated allocations in the inner loops.
+        // Deduplicate and lowercase once. Skip blank/whitespace-only entries — they're
+        // indistinguishable from "no area" and shouldn't bloat the list.
         var normalized = areaNames
+            .Where(a => !string.IsNullOrWhiteSpace(a))
             .Select(a => a.ToLowerInvariant())
             .Distinct()
             .ToList();
 
+        if (normalized.Count == 0)
+        {
+            return false;
+        }
+
         var human = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == humanId)
             ?? throw new InvalidOperationException($"Human with id {humanId} not found.");
 
-        var humanAreas = ParseAreas(human.Area);
+        var humanAreas = AreaListJson.Parse(human.Area);
+        // HashSet lookup turns the inner loop from O(N·M) to O(N+M). Preserves insertion
+        // order in the backing list so the on-disk ordering is stable across writes.
+        var humanSet = new HashSet<string>(humanAreas);
         var humanChanged = false;
         foreach (var name in normalized)
         {
-            if (!humanAreas.Contains(name))
+            if (humanSet.Add(name))
             {
                 humanAreas.Add(name);
                 humanChanged = true;
@@ -118,7 +137,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         }
         if (humanChanged)
         {
-            human.Area = JsonSerializer.Serialize(humanAreas);
+            human.Area = AreaListJson.Serialize(humanAreas);
         }
 
         var profile = await this._context.Profiles
@@ -126,10 +145,11 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         var profileChanged = false;
         if (profile is not null)
         {
-            var profileAreas = ParseAreas(profile.Area);
+            var profileAreas = AreaListJson.Parse(profile.Area);
+            var profileSet = new HashSet<string>(profileAreas);
             foreach (var name in normalized)
             {
-                if (!profileAreas.Contains(name))
+                if (profileSet.Add(name))
                 {
                     profileAreas.Add(name);
                     profileChanged = true;
@@ -137,7 +157,7 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
             }
             if (profileChanged)
             {
-                profile.Area = JsonSerializer.Serialize(profileAreas);
+                profile.Area = AreaListJson.Serialize(profileAreas);
             }
         }
 
@@ -152,16 +172,19 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
 
     public async Task<bool> RemoveAreaFromAllProfilesAsync(string humanId, string areaName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(humanId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(areaName);
+
         var lowerName = areaName.ToLowerInvariant();
 
         var human = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == humanId);
         var humanChanged = false;
         if (human is not null)
         {
-            var humanAreas = ParseAreas(human.Area);
+            var humanAreas = AreaListJson.Parse(human.Area);
             if (humanAreas.Remove(lowerName))
             {
-                human.Area = humanAreas.Count > 0 ? JsonSerializer.Serialize(humanAreas) : "[]";
+                human.Area = AreaListJson.Serialize(humanAreas);
                 humanChanged = true;
             }
         }
@@ -172,10 +195,10 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         var anyProfileChanged = false;
         foreach (var profile in profiles)
         {
-            var profileAreas = ParseAreas(profile.Area);
+            var profileAreas = AreaListJson.Parse(profile.Area);
             if (profileAreas.Remove(lowerName))
             {
-                profile.Area = profileAreas.Count > 0 ? JsonSerializer.Serialize(profileAreas) : "[]";
+                profile.Area = AreaListJson.Serialize(profileAreas);
                 anyProfileChanged = true;
             }
         }
@@ -187,22 +210,5 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
         }
 
         return false;
-    }
-
-    private static List<string> ParseAreas(string? areaJson)
-    {
-        if (string.IsNullOrWhiteSpace(areaJson))
-        {
-            return [];
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<string>>(areaJson) ?? [];
-        }
-        catch
-        {
-            return [.. areaJson.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
-        }
     }
 }

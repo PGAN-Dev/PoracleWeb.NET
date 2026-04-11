@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -390,13 +391,13 @@ public partial class UserGeofenceService(
                     var human = await this._humanRepository.GetByIdAndProfileAsync(geofence.HumanId, 1);
                     if (human != null)
                     {
-                        var areas = ParseAreas(human.Area);
+                        var areas = AreaListJson.Parse(human.Area);
                         var oldLower = geofence.KojiName.ToLowerInvariant();
                         var newLower = promotedName.ToLowerInvariant();
                         if (areas.Remove(oldLower))
                         {
                             areas.Add(newLower);
-                            human.Area = JsonSerializer.Serialize(areas);
+                            human.Area = AreaListJson.Serialize(areas);
                             await this._humanRepository.UpdateAsync(human);
                         }
                     }
@@ -574,28 +575,10 @@ public partial class UserGeofenceService(
         if (humanJson is not null)
         {
             var areaStr = humanJson.Value.GetStringPropOrNull("area");
-            return ParseAreas(areaStr);
+            return AreaListJson.Parse(areaStr);
         }
 
         return [];
-    }
-
-    private static List<string> ParseAreas(string? areaJson)
-    {
-        if (string.IsNullOrWhiteSpace(areaJson))
-        {
-            return [];
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<string>>(areaJson) ?? [];
-        }
-        catch
-        {
-            // Fallback: treat as comma-separated
-            return [.. areaJson.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
-        }
     }
 
     private async Task ReloadGeofencesSafeAsync()
