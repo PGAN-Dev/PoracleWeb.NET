@@ -17,4 +17,12 @@ public interface IUserGeofenceService
     public Task AddToProfileAsync(string humanId, int profileNo, int geofenceId);
     public Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId);
     public Task<List<GeofenceRegion>> GetRegionsAsync();
+
+    /// <summary>
+    /// Given a list of requested area names, re-adds any that correspond to user-owned custom
+    /// geofences back into <c>humans.area</c> and the current <c>profiles.area</c> via direct DB.
+    /// Used to undo PoracleNG's setAreas filter which silently drops userSelectable=false fences.
+    /// Returns the subset of names that were preserved.
+    /// </summary>
+    public Task<IReadOnlyList<string>> PreserveOwnedAreasInHumanAsync(string humanId, IReadOnlyCollection<string> candidateAreaNames);
 }

@@ -5,10 +5,15 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/areas")]
-public partial class AreaController(IPoracleHumanProxy humanProxy, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
+public partial class AreaController(
+    IPoracleHumanProxy humanProxy,
+    IPoracleApiProxy poracleApiProxy,
+    IUserGeofenceService userGeofenceService,
+    ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
     private readonly ILogger<AreaController> _logger = logger;
 
     [HttpGet]
@@ -57,10 +62,24 @@ public partial class AreaController(IPoracleHumanProxy humanProxy, IPoracleApiPr
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
 
-        // PoracleNG handles the dual-write to humans.area + profiles.area atomically
+        // PoracleNG handles the dual-write to humans.area + profiles.area atomically.
+        // It also silently filters out any area name whose fence has userSelectable=false,
+        // which includes every user-drawn custom geofence (PoracleWeb's feed serves them
+        // as userSelectable=false to hide them from the Poracle bot's area picker).
         await this._humanProxy.SetAreasAsync(this.UserId, normalizedAreas);
 
-        return this.Ok(normalizedAreas);
+        // Re-add any user-owned custom geofences that were in the submitted list by writing
+        // directly to humans.area + active profiles.area — bypassing the setAreas filter.
+        // Without this merge, saving on the Areas page would strip every user geofence the
+        // user has activated via the Geofences page.
+        var restored = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
+
+        // Effective list = what PoracleNG accepted plus what we restored directly.
+        var effective = restored.Count == 0
+            ? normalizedAreas
+            : [.. normalizedAreas.Union(restored, StringComparer.OrdinalIgnoreCase)];
+
+        return this.Ok(effective);
     }
 
     [HttpGet("geofence")]

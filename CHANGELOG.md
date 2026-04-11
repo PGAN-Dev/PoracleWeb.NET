@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Custom geofence toggle not persisting** ([#163](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/163)): Activating/deactivating a user-drawn geofence via the Geofences page toggle appeared to succeed but silently reverted on the next page load. Root cause: PoracleNG's `POST /api/humans/{id}/setAreas` handler intersects the submitted area list against fences where `userSelectable=true` (for non-admin users), and user geofences are served from PoracleWeb's feed with `userSelectable=false` so they were silently stripped. Regression introduced in v2.0.0 by the PoracleNG API proxy migration, which routed user geofence area writes through `SetAreasAsync` instead of the pre-migration direct-DB path. Restored the direct-DB path for `UserGeofenceService.Create`/`Delete`/`AddToProfile`/`RemoveFromProfile`/`AdminDelete` — they now write directly to `humans.area` and the active `profiles.area` via `IHumanRepository`/`IProfileRepository`. Also fixed a related bug where saving on the Areas page would silently strip user geofences the user had activated: `AreaController.UpdateAreas` now calls the new `IUserGeofenceService.PreserveOwnedAreasInHumanAsync` after `SetAreasAsync` to re-add any user-owned geofence names via direct DB.
+
 ## [2.4.0] - 2026-04-09
 
 ## [2.4.0] - 2026-04-09

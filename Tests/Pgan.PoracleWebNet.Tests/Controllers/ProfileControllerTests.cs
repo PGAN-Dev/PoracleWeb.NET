@@ -38,7 +38,7 @@ public class ProfileControllerTests : ControllerTestBase
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
         var result = await this._sut.Create(profile);
         Assert.IsType<CreatedAtActionResult>(result);
-        this._humanProxy.Verify(p => p.AddProfileAsync("123456789", It.IsAny<System.Text.Json.JsonElement>()), Times.Once);
+        this._humanProxy.Verify(p => p.AddProfileAsync("123456789", It.IsAny<JsonElement>()), Times.Once);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class ProfileControllerTests : ControllerTestBase
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
         var result = await this._sut.Update(1, new Profile { Name = "Updated" });
         Assert.IsType<OkObjectResult>(result);
-        this._humanProxy.Verify(p => p.UpdateProfileAsync("123456789", It.IsAny<System.Text.Json.JsonElement>()), Times.Once);
+        this._humanProxy.Verify(p => p.UpdateProfileAsync("123456789", It.IsAny<JsonElement>()), Times.Once);
     }
 
     [Fact]
@@ -97,23 +97,23 @@ public class ProfileControllerTests : ControllerTestBase
         var result = await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Main (copy)" });
 
         Assert.IsType<CreatedAtActionResult>(result);
-        this._humanProxy.Verify(p => p.AddProfileAsync("123456789", It.IsAny<System.Text.Json.JsonElement>()), Times.Once);
+        this._humanProxy.Verify(p => p.AddProfileAsync("123456789", It.IsAny<JsonElement>()), Times.Once);
         this._profileService.Verify(s => s.CopyAsync("123456789", 1, 2), Times.Once);
     }
 
     [Fact]
     public async Task DuplicateCopiesActiveHoursFromSource()
     {
-        var schedule = "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]";
+        var schedule = /*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]";
         var sourceProfile = new Profile { Id = "123456789", ProfileNo = 1, Name = "Main", ActiveHours = schedule };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(sourceProfile);
         this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([sourceProfile]);
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(new Profile { ProfileNo = 2, Name = "Copy" });
 
-        System.Text.Json.JsonElement? capturedBody = null;
+        JsonElement? capturedBody = null;
         this._humanProxy
-            .Setup(p => p.AddProfileAsync("123456789", It.IsAny<System.Text.Json.JsonElement>()))
-            .Callback<string, System.Text.Json.JsonElement>((_, body) => capturedBody = body);
+            .Setup(p => p.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
+            .Callback<string, JsonElement>((_, body) => capturedBody = body);
 
         await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" });
 
@@ -156,12 +156,12 @@ public class ProfileControllerTests : ControllerTestBase
         this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
             .Callback<string, JsonElement>((_, body) => capturedBody = body);
 
-        var profile = new Profile { Name = "Updated", ActiveHours = "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]" };
+        var profile = new Profile { Name = "Updated", ActiveHours = /*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]" };
         await this._sut.Update(1, profile);
 
         Assert.NotNull(capturedBody);
         Assert.True(capturedBody.Value.TryGetProperty("active_hours", out var ah));
-        Assert.Equal("[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]", ah.GetString());
+        Assert.Equal(/*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]", ah.GetString());
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class ProfileControllerTests : ControllerTestBase
     [Fact]
     public async Task CreateIncludesActiveHoursInProxyPayload()
     {
-        var activeHours = "[{\"day\":2,\"hours\":\"18\",\"mins\":\"30\"}]";
+        var activeHours = /*lang=json,strict*/ "[{\"day\":2,\"hours\":\"18\",\"mins\":\"30\"}]";
         var profile = new Profile { Name = "New", ActiveHours = activeHours };
         this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([]);
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(profile);
@@ -204,7 +204,7 @@ public class ProfileControllerTests : ControllerTestBase
     [Fact]
     public async Task GetAllReturnsProfilesWithActiveHours()
     {
-        var activeHours = "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]";
+        var activeHours = /*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]";
         var profiles = new List<Profile>
         {
             new() { ProfileNo = 1, Name = "Default", ActiveHours = activeHours },
@@ -215,7 +215,7 @@ public class ProfileControllerTests : ControllerTestBase
 
         var result = await this._sut.GetAll();
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedProfiles = Assert.IsAssignableFrom<List<Profile>>(okResult.Value);
+        var returnedProfiles = Assert.IsType<List<Profile>>(okResult.Value, exactMatch: false);
 
         Assert.Equal(2, returnedProfiles.Count);
         Assert.Equal(activeHours, returnedProfiles[0].ActiveHours);

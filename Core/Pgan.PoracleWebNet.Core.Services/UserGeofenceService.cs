@@ -503,51 +503,126 @@ public partial class UserGeofenceService(
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
+    public async Task<IReadOnlyList<string>> PreserveOwnedAreasInHumanAsync(string humanId, IReadOnlyCollection<string> candidateAreaNames)
+    {
+        if (candidateAreaNames.Count == 0)
+        {
+            return [];
+        }
+
+        // Only write back names that the user actually owns as custom geofences.
+        var owned = await this._repository.GetByHumanIdAsync(humanId);
+        if (owned.Count == 0)
+        {
+            return [];
+        }
+
+        var ownedNames = new HashSet<string>(owned.Select(g => g.KojiName.ToLowerInvariant()));
+        var toRestore = candidateAreaNames
+            .Select(a => a.ToLowerInvariant())
+            .Where(ownedNames.Contains)
+            .Distinct()
+            .ToList();
+
+        foreach (var name in toRestore)
+        {
+            await this.AddAreaToHumanAsync(humanId, name);
+        }
+
+        return toRestore;
+    }
+
     /// <summary>
-    /// Adds a geofence area name to the user's active profile area list via the PoracleNG proxy.
-    /// PoracleNG handles the dual-write to humans.area + profiles.area atomically.
+    /// Adds a user-drawn geofence area name to the user's active profile area list by writing
+    /// directly to <c>humans.area</c> and the current <c>profiles.area</c> row in the Poracle DB.
+    /// Bypasses PoracleNG's <c>/setAreas</c> endpoint, which silently drops user geofences because
+    /// they are served from the PoracleWeb feed with <c>userSelectable=false</c>.
     /// </summary>
     private async Task AddAreaToHumanAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
 
-        var areas = await this.GetCurrentAreasAsync(humanId);
-        if (!areas.Contains(lowerName))
+        var human = await this._humanRepository.GetByIdAsync(humanId);
+        if (human is null)
         {
-            areas.Add(lowerName);
-            await this._humanProxy.SetAreasAsync(humanId, [.. areas]);
+            return;
+        }
+
+        var humanAreas = ParseAreas(human.Area);
+        if (!humanAreas.Contains(lowerName))
+        {
+            humanAreas.Add(lowerName);
+            human.Area = JsonSerializer.Serialize(humanAreas);
+            await this._humanRepository.UpdateAsync(human);
+        }
+
+        // Dual-write to the currently active profile so the state survives profile switches.
+        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, human.CurrentProfileNo);
+        if (profile is not null)
+        {
+            var profileAreas = ParseAreas(profile.Area);
+            if (!profileAreas.Contains(lowerName))
+            {
+                profileAreas.Add(lowerName);
+                profile.Area = JsonSerializer.Serialize(profileAreas);
+                await this._profileRepository.UpdateAsync(profile);
+            }
         }
     }
 
     /// <summary>
-    /// Removes a geofence area name from the user's active profile area list via the PoracleNG proxy.
-    /// PoracleNG handles the dual-write to humans.area + profiles.area atomically.
+    /// Removes a user-drawn geofence area name from the user's active profile area list by writing
+    /// directly to <c>humans.area</c> and the current <c>profiles.area</c> row in the Poracle DB.
+    /// Mirror of <see cref="AddAreaToHumanAsync"/>.
     /// </summary>
     private async Task RemoveAreaFromHumanAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
 
-        var areas = await this.GetCurrentAreasAsync(humanId);
-        if (areas.Remove(lowerName))
+        var human = await this._humanRepository.GetByIdAsync(humanId);
+        if (human is null)
         {
-            await this._humanProxy.SetAreasAsync(humanId, [.. areas]);
+            return;
+        }
+
+        var humanAreas = ParseAreas(human.Area);
+        if (humanAreas.Remove(lowerName))
+        {
+            human.Area = humanAreas.Count > 0 ? JsonSerializer.Serialize(humanAreas) : "[]";
+            await this._humanRepository.UpdateAsync(human);
+        }
+
+        var profile = await this._profileRepository.GetByUserAndProfileNoAsync(humanId, human.CurrentProfileNo);
+        if (profile is not null)
+        {
+            var profileAreas = ParseAreas(profile.Area);
+            if (profileAreas.Remove(lowerName))
+            {
+                profile.Area = profileAreas.Count > 0 ? JsonSerializer.Serialize(profileAreas) : "[]";
+                await this._profileRepository.UpdateAsync(profile);
+            }
         }
     }
 
     /// <summary>
-    /// Removes a geofence area name from the active profile (via proxy) and all non-active
-    /// profiles (via direct DB, since PoracleNG's setAreas only targets the active profile).
+    /// Removes a geofence area name from <c>humans.area</c> and every profile in <c>profiles.area</c>
+    /// for the user. Used on geofence delete so the stale name is wiped out everywhere.
     /// </summary>
     private async Task RemoveAreaFromAllProfilesAsync(string humanId, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
 
-        // Remove from active profile via proxy (handles humans.area + active profiles.area)
-        await this.RemoveAreaFromHumanAsync(humanId, geofenceName);
+        var human = await this._humanRepository.GetByIdAsync(humanId);
+        if (human is not null)
+        {
+            var humanAreas = ParseAreas(human.Area);
+            if (humanAreas.Remove(lowerName))
+            {
+                human.Area = humanAreas.Count > 0 ? JsonSerializer.Serialize(humanAreas) : "[]";
+                await this._humanRepository.UpdateAsync(human);
+            }
+        }
 
-        // Remove from all non-active profiles via direct DB
-        // PoracleNG's setAreas only writes to the active profile, so we must update
-        // non-active profiles directly. Users typically have 2-4 profiles.
         var profiles = await this._profileRepository.GetByUserAsync(humanId);
         foreach (var profile in profiles)
         {
@@ -563,7 +638,8 @@ public partial class UserGeofenceService(
     }
 
     /// <summary>
-    /// Gets the current area list for a user from the PoracleNG proxy (human.area field).
+    /// Gets the current area list from <c>humans.area</c> via the PoracleNG proxy. Used by
+    /// <see cref="ApproveSubmissionAsync"/> for name-swap bookkeeping.
     /// </summary>
     private async Task<List<string>> GetCurrentAreasAsync(string humanId)
     {

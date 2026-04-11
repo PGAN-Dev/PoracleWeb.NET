@@ -140,7 +140,7 @@ public class ProfileServiceTests
                     area = "[]",
                     latitude = 0.0,
                     longitude = 0.0,
-                    active_hours = "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]"
+                    active_hours = /*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]"
                 }
             },
             status = "ok"
@@ -150,7 +150,7 @@ public class ProfileServiceTests
         var result = (await this._sut.GetByUserAsync("u1")).ToList();
 
         Assert.Single(result);
-        Assert.Equal("[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]", result[0].ActiveHours);
+        Assert.Equal(/*lang=json,strict*/ "[{\"day\":1,\"hours\":\"09\",\"mins\":\"00\"}]", result[0].ActiveHours);
     }
 
     [Fact]

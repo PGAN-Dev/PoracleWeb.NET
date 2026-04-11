@@ -11,13 +11,22 @@ public class AreaControllerTests : ControllerTestBase
 {
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
+    private readonly Mock<IUserGeofenceService> _userGeofenceService = new();
     private readonly Mock<ILogger<AreaController>> _logger = new();
     private readonly AreaController _sut;
     private static readonly string[] areasArray = ["west", "east"];
 
     public AreaControllerTests()
     {
-        this._sut = new AreaController(this._humanProxy.Object, this._proxy.Object, this._logger.Object);
+        this._sut = new AreaController(
+            this._humanProxy.Object,
+            this._proxy.Object,
+            this._userGeofenceService.Object,
+            this._logger.Object);
+        // Default: no user geofences to preserve
+        this._userGeofenceService
+            .Setup(s => s.PreserveOwnedAreasInHumanAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()))
+            .ReturnsAsync([]);
         SetupUser(this._sut);
     }
 
@@ -121,6 +130,46 @@ public class AreaControllerTests : ControllerTestBase
         await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = [] });
 
         this._humanProxy.Verify(p => p.SetAreasAsync("123456789", Array.Empty<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAreasPreservesUserOwnedGeofencesAfterProxyCall()
+    {
+        // Regression guard: PoracleNG's setAreas silently strips user geofences (served
+        // with userSelectable=false). The controller must re-add them via direct DB so
+        // saving on the Areas page doesn't nuke the user's custom geofence activations.
+        this._userGeofenceService
+            .Setup(s => s.PreserveOwnedAreasInHumanAsync("123456789", It.Is<IReadOnlyCollection<string>>(c =>
+                c.Contains("downtown") && c.Contains("my park"))))
+            .ReturnsAsync(["my park"]);
+
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest
+        {
+            Areas = ["Downtown", "My Park"],
+        });
+
+        // Proxy was called first with normalized (lowercase) areas
+        this._humanProxy.Verify(p => p.SetAreasAsync("123456789",
+            It.Is<string[]>(a => a.Contains("downtown") && a.Contains("my park"))), Times.Once);
+        // Merge step was called after the proxy
+        this._userGeofenceService.Verify(s => s.PreserveOwnedAreasInHumanAsync("123456789",
+            It.IsAny<IReadOnlyCollection<string>>()), Times.Once);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var effective = Assert.IsType<string[]>(ok.Value);
+        Assert.Contains("downtown", effective);
+        Assert.Contains("my park", effective);
+    }
+
+    [Fact]
+    public async Task UpdateAreasReturnsNormalizedAreasWhenNothingToPreserve()
+    {
+        // Default mock returns []. Response should equal the normalized input.
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["West", "EAST"] });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var areas = Assert.IsType<string[]>(ok.Value);
+        Assert.Equal(["west", "east"], areas);
     }
 
     // --- GetGeofencePolygons ---
