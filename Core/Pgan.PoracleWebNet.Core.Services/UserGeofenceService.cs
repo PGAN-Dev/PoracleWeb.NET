@@ -486,6 +486,11 @@ public partial class UserGeofenceService(
         }
 
         await this.AddAreaToHumanAsync(humanId, geofence.KojiName);
+
+        // The proxy-based setAreas path used to trigger PoracleNG's internal reloadState
+        // automatically. Since we now write directly to the DB, we must ask PoracleNG to
+        // reload its in-memory state so the toggle takes effect on the next alarm event.
+        await this.ReloadGeofencesSafeAsync();
     }
 
     public async Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId)
@@ -499,6 +504,7 @@ public partial class UserGeofenceService(
         }
 
         await this.RemoveAreaFromHumanAsync(humanId, geofence.KojiName);
+        await this.ReloadGeofencesSafeAsync();
     }
 
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
@@ -527,6 +533,13 @@ public partial class UserGeofenceService(
         foreach (var name in toRestore)
         {
             await this.AddAreaToHumanAsync(humanId, name);
+        }
+
+        // Direct-DB writes bypass PoracleNG's internal reloadState — ask it to refresh
+        // so the preserved geofences take effect immediately.
+        if (toRestore.Count > 0)
+        {
+            await this.ReloadGeofencesSafeAsync();
         }
 
         return toRestore;

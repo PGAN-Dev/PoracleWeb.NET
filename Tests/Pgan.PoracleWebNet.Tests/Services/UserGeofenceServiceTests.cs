@@ -979,6 +979,10 @@ public class UserGeofenceServiceTests
         this._profileRepo.Verify(r => r.UpdateAsync(It.Is<Profile>(p =>
             p.Area != null && p.Area.Contains("downtown") && p.Area.Contains("existing"))), Times.Once);
         this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        // Direct-DB writes bypass PoracleNG's internal reloadState, so we must trigger
+        // one ourselves so the toggle takes effect immediately instead of on the next
+        // organic state reload.
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     [Fact]
@@ -1062,6 +1066,7 @@ public class UserGeofenceServiceTests
         this._profileRepo.Verify(r => r.UpdateAsync(It.Is<Profile>(p =>
             p.Area != null && !p.Area.Contains("downtown") && p.Area.Contains("existing"))), Times.Once);
         this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     [Fact]
@@ -1110,6 +1115,26 @@ public class UserGeofenceServiceTests
         // humans.area should now include "my square" (written once, after the idempotent "my park")
         this._humanRepo.Verify(r => r.UpdateAsync(It.Is<Human>(h =>
             h.Area != null && h.Area.Contains("my square") && h.Area.Contains("my park"))), Times.AtLeastOnce);
+        // Reload must fire so PoracleNG picks up the merged state
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task PreserveOwnedAreasInHumanAsyncSkipsReloadWhenNothingToRestore()
+    {
+        // If no candidates match owned geofences, the direct-DB path is a no-op and we
+        // should NOT trigger a reload — PoracleNG already reloaded after the caller's
+        // own setAreas call and a second reload would be wasted work.
+        var owned = new List<UserGeofence>
+        {
+            new() { Id = 1, HumanId = "u1", KojiName = "my park" },
+        };
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(owned);
+
+        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", ["downtown", "central"]);
+
+        Assert.Empty(restored);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
     }
 
     [Fact]
