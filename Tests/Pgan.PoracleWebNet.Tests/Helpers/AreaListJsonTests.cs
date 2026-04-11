@@ -51,6 +51,28 @@ public class AreaListJsonTests
         Assert.Contains("west end", result);
     }
 
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "[1, 2, 3]")]
+    [InlineData(/*lang=json,strict*/ "[{\"nested\":\"object\"}]")]
+    [InlineData(/*lang=json,strict*/ "{\"not\":\"an_array\"}")]
+    public void ParseReturnsEmptyForMalformedJsonInsteadOfCsvGarbage(string input)
+    {
+        // Bracketed input that fails JSON deserialization must not fall through to the CSV
+        // split — otherwise "[1, 2, 3]" becomes ["[1", " 2", " 3]"] which is garbage masquerading
+        // as a valid area list. Empty is the only safe answer.
+        var result = AreaListJson.Parse(input);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void ParseStillFallsBackToCsvForNonBracketedInput()
+    {
+        // Guard against the previous fix being too aggressive — unbracketed input that can't
+        // parse as JSON is still assumed to be CSV (the legacy PoracleWeb format).
+        var result = AreaListJson.Parse("downtown,west end");
+        Assert.Equal(2, result.Count);
+    }
+
     // --- Serialize ---
 
     [Fact]

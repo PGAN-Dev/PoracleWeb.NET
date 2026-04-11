@@ -14,47 +14,16 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
 {
     private readonly PoracleContext _context = context;
 
-    public async Task<bool> AddAreaToActiveProfileAsync(string humanId, string areaName)
+    public Task<bool> AddAreaToActiveProfileAsync(string humanId, string areaName)
     {
+        // Both guards run in the wrapper so the single-item contract fails fast and gives a
+        // direct error for the offending parameter (the bulk path strips blank entries from
+        // its input collection rather than throwing, which is the right call there but the
+        // wrong contract here — passing a blank single-item name is a programming error).
         ArgumentException.ThrowIfNullOrWhiteSpace(humanId);
         ArgumentException.ThrowIfNullOrWhiteSpace(areaName);
-
-        var lowerName = areaName.ToLowerInvariant();
-
-        var human = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == humanId)
-            ?? throw new InvalidOperationException($"Human with id {humanId} not found.");
-
-        var humanAreas = AreaListJson.Parse(human.Area);
-        var humanChanged = false;
-        if (!humanAreas.Contains(lowerName))
-        {
-            humanAreas.Add(lowerName);
-            human.Area = AreaListJson.Serialize(humanAreas);
-            humanChanged = true;
-        }
-
-        var profile = await this._context.Profiles
-            .FirstOrDefaultAsync(p => p.Id == humanId && p.ProfileNo == human.CurrentProfileNo);
-        var profileChanged = false;
-        if (profile is not null)
-        {
-            var profileAreas = AreaListJson.Parse(profile.Area);
-            if (!profileAreas.Contains(lowerName))
-            {
-                profileAreas.Add(lowerName);
-                profile.Area = AreaListJson.Serialize(profileAreas);
-                profileChanged = true;
-            }
-        }
-
-        if (humanChanged || profileChanged)
-        {
-            // Single SaveChangesAsync → single implicit transaction → atomic dual-write.
-            await this._context.SaveChangesAsync();
-            return true;
-        }
-
-        return false;
+        // Delegate to the bulk path so there's a single read-modify-write implementation.
+        return this.AddAreasToActiveProfileAsync(humanId, [areaName]);
     }
 
     public async Task<bool> RemoveAreaFromActiveProfileAsync(string humanId, string areaName)
