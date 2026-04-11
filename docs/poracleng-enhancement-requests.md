@@ -149,6 +149,8 @@ Option 1 is the smallest surface area change. The filter exists to stop users fr
 
 **Workaround (HACK):** `UserGeofenceService` writes directly to `humans.area` and the active `profiles.area` row via `IHumanRepository` / `IProfileRepository`, skipping the proxy entirely for user geofence mutations. `AreaController.UpdateAreas` additionally calls `IUserGeofenceService.PreserveOwnedAreasInHumanAsync` after the proxy `SetAreasAsync` call to re-add any user-owned geofences that PoracleNG stripped. These are the only remaining direct-DB writes in the alarm / human / area code path and are tagged with `HACK: trusted-set-areas` comments.
 
+Because the direct-DB writes skip PoracleNG's `HandleSetAreas` handler, they also skip its terminal `reloadState(deps)` call — so `AddToProfileAsync`, `RemoveFromProfileAsync`, and `PreserveOwnedAreasInHumanAsync` each call `ReloadGeofencesSafeAsync` manually to ask PoracleNG to refresh its in-memory state. Without the manual reload, a toggle would only take effect on the next organic state reload (potentially minutes). These manual reload calls are part of the same `HACK: trusted-set-areas` surface area and are removed together when the workaround is reverted.
+
 **Regression history:** Before PR #88 (v2.0.0), the direct-DB path was the only path. The proxy migration routed user geofence area writes through `setAreas`, which introduced the silent-strip bug. The direct-DB code is the restored pre-#88 behavior, scoped specifically to user geofence names.
 
 ---

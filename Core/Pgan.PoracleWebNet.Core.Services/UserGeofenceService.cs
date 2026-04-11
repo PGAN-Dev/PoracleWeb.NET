@@ -487,9 +487,12 @@ public partial class UserGeofenceService(
 
         await this.AddAreaToHumanAsync(humanId, geofence.KojiName);
 
-        // The proxy-based setAreas path used to trigger PoracleNG's internal reloadState
-        // automatically. Since we now write directly to the DB, we must ask PoracleNG to
-        // reload its in-memory state so the toggle takes effect on the next alarm event.
+        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+        // PoracleNG's HandleSetAreas ends with `reloadState(deps)` so the proxy path used to
+        // trigger the in-memory state refresh automatically. Direct-DB writes skip that, so we
+        // ask PoracleNG to reload manually — otherwise the toggle only takes effect on the next
+        // organic reload (which can be minutes). Drop this line when the direct-DB write is
+        // reverted to a trusted setAreas proxy call.
         await this.ReloadGeofencesSafeAsync();
     }
 
@@ -504,6 +507,7 @@ public partial class UserGeofenceService(
         }
 
         await this.RemoveAreaFromHumanAsync(humanId, geofence.KojiName);
+        // HACK: trusted-set-areas — manual reload, same rationale as AddToProfileAsync.
         await this.ReloadGeofencesSafeAsync();
     }
 
@@ -540,8 +544,10 @@ public partial class UserGeofenceService(
             await this.AddAreaToHumanAsync(humanId, name);
         }
 
-        // Direct-DB writes bypass PoracleNG's internal reloadState — ask it to refresh
-        // so the preserved geofences take effect immediately.
+        // HACK: trusted-set-areas — manual reload because the direct-DB merge above skipped
+        // PoracleNG's internal reloadState hook. Conditional: if nothing was restored, the
+        // caller's own setAreas call already triggered a reload and a second one would be
+        // wasted work. Drop the whole block when the method is removed.
         if (toRestore.Count > 0)
         {
             await this.ReloadGeofencesSafeAsync();
