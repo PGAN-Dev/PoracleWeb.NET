@@ -16,19 +16,15 @@ public class AdminControllerTests : ControllerTestBase
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleServerService> _poracleServerService = new();
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
+    private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
     private readonly AdminController _sut;
 
     public AdminControllerTests()
     {
         var poracleSettings = Options.Create(new PoracleSettings { AdminIds = "admin1,admin2" });
-        var jwtSettings = Options.Create(new JwtSettings
-        {
-            Secret = "a-very-long-secret-key-for-jwt-testing-at-least-32-bytes",
-            Issuer = "test",
-            Audience = "test",
-            ExpirationMinutes = 60
-        });
+        this._jwtService.Setup(j => j.GenerateImpersonationToken(It.IsAny<UserInfo>(), It.IsAny<string>()))
+            .Returns("test-impersonation-jwt");
         this._sut = new AdminController(
             this._humanService.Object,
             this._webhookDelegateService.Object,
@@ -36,7 +32,7 @@ public class AdminControllerTests : ControllerTestBase
             this._humanProxy.Object,
             this._poracleServerService.Object,
             poracleSettings,
-            jwtSettings,
+            this._jwtService.Object,
             this._logger.Object);
     }
 

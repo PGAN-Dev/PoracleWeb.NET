@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -15,20 +14,17 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     private readonly Mock<IProfileOverviewService> _service = new();
     private readonly ProfileOverviewController _sut;
 
+    private readonly Mock<IJwtService> _jwtService = new();
+
     public ProfileOverviewControllerTests()
     {
-        var jwtSettings = Options.Create(new JwtSettings
-        {
-            Audience = "test",
-            ExpirationMinutes = 60,
-            Issuer = "test",
-            Secret = "test-secret-key-that-is-at-least-32-characters-long",
-        });
+        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>()))
+            .Returns("test-jwt-token");
         this._sut = new ProfileOverviewController(
             this._service.Object,
             this._profileService.Object,
             this._humanProxy.Object,
-            jwtSettings);
+            this._jwtService.Object);
         SetupUser(this._sut);
     }
 

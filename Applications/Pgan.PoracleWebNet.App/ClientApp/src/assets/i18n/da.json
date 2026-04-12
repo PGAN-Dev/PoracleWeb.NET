@@ -145,7 +145,8 @@
     "TIP_NO_ALARMS": "Du har ingen aktive alarmer endnu. Start med at tilføje Pokemon- eller Raid-alarmer!",
     "TIP_NO_ALARMS_ACTION": "Tilføj Pokemon-alarm",
     "SWITCH_PROFILE_SUCCESS": "Skiftet til \"{{name}}\"",
-    "SWITCH_PROFILE_FAILED": "Kunne ikke skifte profil"
+    "SWITCH_PROFILE_FAILED": "Kunne ikke skifte profil",
+    "PROFILE_RESYNCED": "Profil skiftet til \"{{name}}\" efter tidsplan"
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Du er klar!",

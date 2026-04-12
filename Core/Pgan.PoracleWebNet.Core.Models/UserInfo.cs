@@ -26,4 +26,14 @@ public class UserInfo
     {
         get; set;
     }
+
+    /// <summary>
+    /// Optional refreshed JWT token. Returned by <c>/api/auth/me</c> when the JWT's
+    /// <c>profileNo</c> claim is stale (e.g. PoracleNG changed the active profile via
+    /// the active_hours scheduler or a bot command). Null when no resync is needed.
+    /// </summary>
+    public string? Token
+    {
+        get; set;
+    }
 }

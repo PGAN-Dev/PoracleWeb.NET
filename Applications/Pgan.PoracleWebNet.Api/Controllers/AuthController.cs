@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -8,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -23,7 +20,7 @@ public partial class AuthController(
     IPoracleHumanProxy humanProxy,
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
-    IOptions<JwtSettings> jwtSettings,
+    IJwtService jwtService,
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
     IOptions<PoracleSettings> poracleSettings,
@@ -38,7 +35,7 @@ public partial class AuthController(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
-    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly IJwtService _jwtService = jwtService;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
@@ -217,7 +214,7 @@ public partial class AuthController(
             Services.AvatarCacheService.Save();
         }
 
-        var jwt = this.GenerateJwtToken(userInfo);
+        var jwt = this._jwtService.GenerateToken(userInfo);
 
         // Redirect browser to Angular with token in URL fragment to avoid server-side leakage
         return this.Redirect($"{frontendUrl}/auth/discord/callback#token={jwt}");
@@ -325,7 +322,7 @@ public partial class AuthController(
             ManagedWebhooks = managedWebhooks
         };
 
-        var jwt = this.GenerateJwtToken(userInfo);
+        var jwt = this._jwtService.GenerateToken(userInfo);
 
         return this.Ok(new
         {
@@ -360,6 +357,7 @@ public partial class AuthController(
         var human = await this._humanService.GetByIdAsync(this.UserId);
         var adminDisable = human != null && human.AdminDisable == 1;
         var enabled = human == null || (human.Enabled == 1 && human.AdminDisable == 0);
+        var dbProfileNo = human?.CurrentProfileNo ?? this.ProfileNo;
 
         var userInfo = new UserInfo
         {
@@ -369,10 +367,20 @@ public partial class AuthController(
             IsAdmin = this.IsAdmin,
             AdminDisable = adminDisable,
             Enabled = enabled,
-            ProfileNo = human?.CurrentProfileNo ?? this.ProfileNo,
+            ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
             ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null
         };
+
+        // Detect JWT/DB profile desync — PoracleNG can change current_profile_no
+        // out-of-band via the active_hours scheduler or bot !profile commands.
+        // When mismatched, issue a refreshed JWT so subsequent API calls use the
+        // correct profile and alarms don't land on the wrong profile.
+        if (human != null && dbProfileNo != this.ProfileNo)
+        {
+            LogProfileResync(this._logger, this.UserId, this.ProfileNo, dbProfileNo);
+            userInfo.Token = this._jwtService.GenerateToken(userInfo);
+        }
 
         return this.Ok(userInfo);
     }
@@ -417,41 +425,6 @@ public partial class AuthController(
     {
         message = "Logged out successfully."
     });
-
-    private string GenerateJwtToken(UserInfo user)
-    {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>
-        {
-            new("userId", user.Id),
-            new("username", user.Username),
-            new("type", user.Type),
-            new("isAdmin", user.IsAdmin.ToString().ToLowerInvariant()),
-            new("enabled", user.Enabled.ToString().ToLowerInvariant()),
-            new("profileNo", user.ProfileNo.ToString(CultureInfo.InvariantCulture)),
-        };
-
-        if (!string.IsNullOrEmpty(user.AvatarUrl))
-        {
-            claims.Add(new Claim("avatarUrl", user.AvatarUrl));
-        }
-
-        if (user.ManagedWebhooks is { Length: > 0 })
-        {
-            claims.Add(new Claim("managedWebhooks", string.Join(',', user.ManagedWebhooks)));
-        }
-
-        var token = new JwtSecurityToken(
-            issuer: this._jwtSettings.Issuer,
-            audience: this._jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
-            signingCredentials: credentials);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
 
     /// <summary>
     /// Calls PoracleJS getAdministrationRoles once and returns (isAdmin, managedWebhooks).
@@ -685,4 +658,7 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt blocked: {Method} login is disabled by site setting.")]
     private static partial void LogAuthMethodDisabled(ILogger logger, string method);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Profile resync for {UserId}: JWT had profile {JwtProfileNo}, DB has {DbProfileNo}. Issuing refreshed token.")]
+    private static partial void LogProfileResync(ILogger logger, string userId, int jwtProfileNo, int dbProfileNo);
 }

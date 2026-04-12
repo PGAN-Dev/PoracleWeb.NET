@@ -198,6 +198,7 @@ Pgan.PoracleWebNet.slnx
   - **Validation**: `ProfileController.ValidateActiveHours` (internal static) validates the JSON structure: day 1-7, hours 0-23, mins 0-59, max 28 entries, accepts both string and int types for hours/mins fields (PoracleNG stores these inconsistently).
   - **Frontend**: `ProfileService.updateActiveHours()` sends the updated schedule. `ActiveHoursChipComponent` renders compact amber schedule pills on profile cards. `ActiveHoursEditorDialogComponent` provides a day picker (circular buttons + Weekdays/Weekends/Every Day presets), time picker, grouped rules list, and mini weekly preview grid.
   - **Location warning**: `LocationWarningComponent` shows an inline red warning when active hours are set but the profile has 0,0 coordinates, since PoracleNG uses the profile's location for timezone calculations and 0,0 defaults to UTC.
+- **JWT profile resync**: PoracleNG can change `current_profile_no` out-of-band (active-hours scheduler, bot `!profile` command). `GET /api/auth/me` detects when the JWT's `profileNo` claim differs from the DB value and returns a refreshed JWT with the corrected profile number, preventing alarm CRUD from targeting a stale profile. The dashboard shows a snackbar notification when this resync occurs.
 
 ### Rate Limiting
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
@@ -337,6 +338,12 @@ PoracleNG stores `hours` and `mins` fields in `active_hours` JSON entries incons
 
 ### Webhook ID URL Encoding
 Webhook IDs in Poracle are URLs (e.g., `http://host:port/path`). When constructing proxy API paths that include a webhook ID as a path segment, the ID must be encoded with `Uri.EscapeDataString()` to escape slashes and other special characters. Both `PoracleTrackingProxy` and `PoracleHumanProxy` apply this encoding.
+
+### JWT Profile Desync
+PoracleNG can change `current_profile_no` outside of PoracleWeb — the active-hours scheduler switches profiles on a cron, and bot commands like `!profile` update the DB directly. When this happens the JWT's `profileNo` claim goes stale, causing all alarm reads and writes to target the wrong profile. The `/api/auth/me` endpoint detects the mismatch by comparing the JWT claim against the live `current_profile_no` from `IHumanService` and returns a refreshed token (via the `Token` property on `UserInfo`) when they diverge. Frontend callers (`AuthService.loadCurrentUser`) must always check for and store the returned token.
+
+### JWT Generation (IJwtService)
+JWT token generation is centralized in `IJwtService` / `JwtService` (singleton). Three methods: `GenerateToken(UserInfo)` for fresh tokens, `GenerateImpersonationToken(UserInfo, impersonatedBy)` for admin impersonation, and `GenerateTokenWithReplacedProfile(ClaimsPrincipal, profileNo)` for profile switches. The latter filters out registered JWT claims (`exp`, `nbf`, `iat`, `iss`, `aud`) before copying to prevent stale claim duplication. All controllers (`AuthController`, `ProfileController`, `ProfileOverviewController`, `AdminController`) use this service — no inline JWT generation.
 
 ## Build & Run
 
@@ -482,6 +489,7 @@ dotnet ef migrations script \
 | Area Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/AreaController.cs` |
 | Profile Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/ProfileController.cs` |
 | DI Registration | `Applications/Pgan.PoracleWebNet.Api/Configuration/ServiceCollectionExtensions.cs` |
+| IJwtService / JwtService | `Applications/Pgan.PoracleWebNet.Api/Configuration/IJwtService.cs`, `JwtService.cs` |
 | Settings Classes | `Applications/Pgan.PoracleWebNet.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, PoracleServerSettings, etc.) |
 | Settings Migration Service | `Applications/Pgan.PoracleWebNet.Api/Services/SettingsMigrationStartupService.cs` |
 | Angular App Root | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/` |

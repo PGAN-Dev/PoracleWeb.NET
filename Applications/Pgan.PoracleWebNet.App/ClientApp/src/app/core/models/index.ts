@@ -291,6 +291,7 @@ export interface UserInfo {
   managedWebhooks?: string[] | null;
   profileName: string | null;
   profileNo: number;
+  token?: string | null;
   type: string;
   username: string;
 }

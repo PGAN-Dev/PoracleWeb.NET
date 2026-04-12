@@ -145,7 +145,8 @@
     "TIP_NO_ALARMS": "Je hebt nog geen actieve alarmen. Begin met het toevoegen van Pokemon of Raid meldingen!",
     "TIP_NO_ALARMS_ACTION": "Pokemon Alarm Toevoegen",
     "SWITCH_PROFILE_SUCCESS": "Gewisseld naar \"{{name}}\"",
-    "SWITCH_PROFILE_FAILED": "Profiel wisselen mislukt"
+    "SWITCH_PROFILE_FAILED": "Profiel wisselen mislukt",
+    "PROFILE_RESYNCED": "Profiel gewisseld naar \"{{name}}\" volgens schema"
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Je bent klaar!",

@@ -13,6 +13,7 @@ const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
+  private readonly _profileResynced = signal(false);
   private readonly config = inject(ConfigService);
   private readonly currentUser = signal<UserInfo | null>(null);
 
@@ -26,6 +27,7 @@ export class AuthService {
   readonly isImpersonating = this._isImpersonating.asReadonly();
   readonly isLoggedIn = computed(() => !!this.currentUser());
   readonly managedWebhooks = computed(() => this.currentUser()?.managedWebhooks ?? []);
+  readonly profileResynced = this._profileResynced.asReadonly();
   readonly user = this.currentUser.asReadonly();
 
   constructor() {
@@ -35,6 +37,10 @@ export class AuthService {
     } else {
       this.userLoaded$.next(null);
     }
+  }
+
+  clearProfileResynced(): void {
+    this._profileResynced.set(false);
   }
 
   getTelegramConfig(): Observable<TelegramConfig> {
@@ -83,6 +89,15 @@ export class AuthService {
           resolve(null);
         },
         next: user => {
+          // Handle JWT profile resync — when PoracleNG changes the active profile
+          // out-of-band (active_hours scheduler, bot commands), the backend detects
+          // the mismatch and returns a refreshed token with the correct profileNo.
+          if (user.token) {
+            this.setToken(user.token);
+            this._profileResynced.set(true);
+          } else {
+            this._profileResynced.set(false);
+          }
           this.currentUser.set(user);
           this.userLoaded$.next(user);
           resolve(user);

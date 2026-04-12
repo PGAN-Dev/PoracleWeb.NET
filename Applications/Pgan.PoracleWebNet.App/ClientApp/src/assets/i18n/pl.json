@@ -145,7 +145,8 @@
     "TIP_NO_ALARMS": "Nie masz jeszcze żadnych aktywnych alarmów. Zacznij od dodania alertów Pokemon lub rajdów!",
     "TIP_NO_ALARMS_ACTION": "Dodaj alarm Pokemon",
     "SWITCH_PROFILE_SUCCESS": "Przełączono na \"{{name}}\"",
-    "SWITCH_PROFILE_FAILED": "Nie udało się przełączyć profilu"
+    "SWITCH_PROFILE_FAILED": "Nie udało się przełączyć profilu",
+    "PROFILE_RESYNCED": "Profil przełączony na \"{{name}}\" według harmonogramu"
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Wszystko gotowe!",

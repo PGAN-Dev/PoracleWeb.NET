@@ -326,6 +326,13 @@ export class DashboardComponent implements OnInit {
     // Re-check on each visit so wizard reappears after navigating away
     this.showOnboarding.set(!localStorage.getItem('poracle-onboarding-complete'));
     this.loadDashboardData();
+
+    // Notify user if PoracleNG changed their active profile (via active_hours or bot command)
+    if (this.authService.profileResynced()) {
+      const name = this.profileName();
+      this.snackBar.open(this.i18n.instant('DASHBOARD.PROFILE_RESYNCED', { name }), this.i18n.instant('TOAST.OK'), { duration: 5000 });
+      this.authService.clearProfileResynced();
+    }
   }
 
   openLocationDialog(): void {

@@ -178,6 +178,31 @@ describe('AuthService', () => {
       // token should NOT be cleared for non-401 errors
       expect(localStorage.getItem('poracle_token')).toBe('some-token');
     });
+
+    it('should store refreshed token and signal resync when backend detects mismatch', async () => {
+      localStorage.setItem('poracle_token', 'old-token');
+      const promise = service.loadCurrentUser();
+
+      const req = httpMock.expectOne(`${API}/api/auth/me`);
+      req.flush({ ...mockUser, profileNo: 3, token: 'refreshed-jwt' });
+
+      const result = await promise;
+      expect(result?.profileNo).toBe(3);
+      expect(localStorage.getItem('poracle_token')).toBe('refreshed-jwt');
+      expect(service.profileResynced()).toBe(true);
+    });
+
+    it('should not call setToken and should clear resync signal when no token in response', async () => {
+      localStorage.setItem('poracle_token', 'original-token');
+      const promise = service.loadCurrentUser();
+
+      const req = httpMock.expectOne(`${API}/api/auth/me`);
+      req.flush(mockUser);
+
+      await promise;
+      expect(localStorage.getItem('poracle_token')).toBe('original-token');
+      expect(service.profileResynced()).toBe(false);
+    });
   });
 
   describe('computed signals', () => {

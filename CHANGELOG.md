@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Alarms silently landing on the wrong profile after PoracleNG auto-switches via active_hours scheduler** ([#167](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/167)): When PoracleNG's active-hours scheduler (or a bot `!profile` command) changed `current_profile_no` out-of-band, the JWT's `profileNo` claim went stale. All subsequent alarm CRUD was scoped to the old profile — users unknowingly created, edited, and deleted alarms on a profile they were no longer viewing. Fixed by adding a profile-resync check to `GET /api/auth/me`: the endpoint now compares the JWT's `profileNo` claim against `humans.current_profile_no` from the database and returns a refreshed JWT when they diverge. The frontend's `AuthService.loadCurrentUser()` picks up the new token transparently, and the dashboard shows a snackbar ("Profile switched to X by schedule") so the user knows which profile they're on.
+
+### Changed
+- **Extracted `IJwtService`**: JWT token generation was duplicated across `AuthController`, `ProfileController`, `ProfileOverviewController`, and `AdminController` (4 independent implementations). Consolidated into a shared `IJwtService` / `JwtService` singleton registered in DI. `GenerateTokenWithReplacedProfile` now filters out registered JWT claims (`exp`, `nbf`, `iat`, `iss`, `aud`) to prevent stale claim duplication — a latent bug in the previous copy-all-claims approach.
+
 ## [2.4.1] - 2026-04-12
 
 ### Fixed

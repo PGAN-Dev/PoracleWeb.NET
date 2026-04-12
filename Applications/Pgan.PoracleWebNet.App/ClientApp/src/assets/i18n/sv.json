@@ -145,7 +145,8 @@
     "TIP_NO_ALARMS": "Du har inga aktiva larm ännu. Börja med att lägga till Pokemon- eller Raid-larm!",
     "TIP_NO_ALARMS_ACTION": "Lägg till Pokemon-larm",
     "SWITCH_PROFILE_SUCCESS": "Bytt till \"{{name}}\"",
-    "SWITCH_PROFILE_FAILED": "Kunde inte byta profil"
+    "SWITCH_PROFILE_FAILED": "Kunde inte byta profil",
+    "PROFILE_RESYNCED": "Profil byttes till \"{{name}}\" enligt schema"
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Du är redo!",

@@ -1,10 +1,5 @@
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -19,7 +14,7 @@ public partial class AdminController(
     IPoracleHumanProxy humanProxy,
     IPoracleServerService poracleServerService,
     IOptions<PoracleSettings> poracleSettings,
-    IOptions<JwtSettings> jwtSettings,
+    IJwtService jwtService,
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
@@ -28,7 +23,7 @@ public partial class AdminController(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
-    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly IJwtService _jwtService = jwtService;
     private readonly ILogger<AdminController> _logger = logger;
 
     [HttpGet("users")]
@@ -438,32 +433,18 @@ public partial class AdminController(
 
         var avatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(request.UserId, human.Type);
 
-        var claims = new List<Claim>
+        var userInfo = new UserInfo
         {
-            new("userId", human.Id),
-            new("username", human.Name ?? human.Id),
-            new("type", human.Type ?? "discord:user"),
-            new("isAdmin", "false"),
-            new("enabled", (human.Enabled == 1 && human.AdminDisable == 0).ToString().ToLowerInvariant()),
-            new("profileNo", human.CurrentProfileNo.ToString(CultureInfo.InvariantCulture)),
-            new("impersonatedBy", this.UserId),
+            Id = human.Id,
+            Username = human.Name ?? human.Id,
+            Type = human.Type ?? "discord:user",
+            IsAdmin = false,
+            Enabled = human.Enabled == 1 && human.AdminDisable == 0,
+            ProfileNo = human.CurrentProfileNo,
+            AvatarUrl = avatarUrl,
         };
 
-        if (!string.IsNullOrEmpty(avatarUrl))
-        {
-            claims.Add(new Claim("avatarUrl", avatarUrl));
-        }
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var token = new JwtSecurityToken(
-            issuer: this._jwtSettings.Issuer,
-            audience: this._jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
-            signingCredentials: credentials);
-
-        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+        var jwt = this._jwtService.GenerateImpersonationToken(userInfo, this.UserId);
         LogAdminImpersonating(this._logger, this.UserId, request.UserId);
         return this.Ok(new
         {
@@ -507,32 +488,18 @@ public partial class AdminController(
 
         var avatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(id, human.Type);
 
-        var claims = new List<Claim>
+        var userInfo = new UserInfo
         {
-            new("userId", human.Id),
-            new("username", human.Name ?? human.Id),
-            new("type", human.Type ?? "discord:user"),
-            new("isAdmin", "false"),
-            new("enabled", (human.Enabled == 1 && human.AdminDisable == 0).ToString().ToLowerInvariant()),
-            new("profileNo", human.CurrentProfileNo.ToString(CultureInfo.InvariantCulture)),
-            new("impersonatedBy", this.UserId),
+            Id = human.Id,
+            Username = human.Name ?? human.Id,
+            Type = human.Type ?? "discord:user",
+            IsAdmin = false,
+            Enabled = human.Enabled == 1 && human.AdminDisable == 0,
+            ProfileNo = human.CurrentProfileNo,
+            AvatarUrl = avatarUrl,
         };
 
-        if (!string.IsNullOrEmpty(avatarUrl))
-        {
-            claims.Add(new Claim("avatarUrl", avatarUrl));
-        }
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var token = new JwtSecurityToken(
-            issuer: this._jwtSettings.Issuer,
-            audience: this._jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
-            signingCredentials: credentials);
-
-        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+        var jwt = this._jwtService.GenerateImpersonationToken(userInfo, this.UserId);
 
         LogAdminImpersonatingUser(this._logger, this.UserId, id);
 

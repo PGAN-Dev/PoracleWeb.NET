@@ -146,7 +146,8 @@
     "TIP_NO_ALARMS": "You have no active alarms yet. Start by adding Pokemon or Raid alerts!",
     "TIP_NO_ALARMS_ACTION": "Add Pokemon Alarm",
     "SWITCH_PROFILE_SUCCESS": "Switched to \"{{name}}\"",
-    "SWITCH_PROFILE_FAILED": "Failed to switch profile"
+    "SWITCH_PROFILE_FAILED": "Failed to switch profile",
+    "PROFILE_RESYNCED": "Profile switched to \"{{name}}\" by schedule"
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "You're All Set!",

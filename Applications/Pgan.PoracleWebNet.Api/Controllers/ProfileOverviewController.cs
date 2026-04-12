@@ -1,11 +1,5 @@
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
@@ -16,11 +10,11 @@ public class ProfileOverviewController(
     IProfileOverviewService profileOverviewService,
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
-    IOptions<JwtSettings> jwtSettings) : BaseApiController
+    IJwtService jwtService) : BaseApiController
 {
     private readonly IProfileOverviewService _profileOverviewService = profileOverviewService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
-    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly IJwtService _jwtService = jwtService;
     private readonly IProfileService _profileService = profileService;
 
     [HttpGet]
@@ -77,7 +71,7 @@ public class ProfileOverviewController(
         }
 
         // Issue a new JWT so the current profile stays correct
-        var newToken = this.GenerateTokenWithProfile(this.ProfileNo);
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo);
 
         return this.Ok(new
         {
@@ -122,7 +116,7 @@ public class ProfileOverviewController(
         var alarmsCopied = await this._profileOverviewService.ImportAlarmsAsync(
             this.UserId, newProfileNo, request.Alarms);
 
-        var newToken = this.GenerateTokenWithProfile(this.ProfileNo);
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo);
 
         return this.Ok(new
         {
@@ -132,32 +126,6 @@ public class ProfileOverviewController(
         });
     }
 
-    private string GenerateTokenWithProfile(int profileNo)
-    {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._jwtSettings.Secret));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>();
-        foreach (var claim in this.User.Claims)
-        {
-            if (claim.Type == "profileNo")
-            {
-                continue;
-            }
-
-            claims.Add(new Claim(claim.Type, claim.Value));
-        }
-        claims.Add(new Claim("profileNo", profileNo.ToString(CultureInfo.InvariantCulture)));
-
-        var token = new JwtSecurityToken(
-            issuer: this._jwtSettings.Issuer,
-            audience: this._jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(this._jwtSettings.ExpirationMinutes),
-            signingCredentials: credentials);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
 }
 
 public record ProfileOverviewDuplicateRequest(string Name);

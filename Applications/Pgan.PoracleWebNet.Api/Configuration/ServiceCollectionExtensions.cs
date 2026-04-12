@@ -139,6 +139,9 @@ public static class ServiceCollectionExtensions
             }
         });
 
+        // Register JWT service (shared token generation across controllers)
+        services.AddSingleton<IJwtService, JwtService>();
+
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));

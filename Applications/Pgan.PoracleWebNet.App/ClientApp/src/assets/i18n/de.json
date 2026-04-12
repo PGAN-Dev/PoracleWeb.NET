@@ -145,7 +145,8 @@
     "TIP_NO_ALARMS": "Du hast noch keine aktiven Alarme. Füge zuerst Pokemon- oder Raid-Alarme hinzu!",
     "TIP_NO_ALARMS_ACTION": "Pokemon-Alarm hinzufügen",
     "SWITCH_PROFILE_SUCCESS": "Gewechselt zu \"{{name}}\"",
-    "SWITCH_PROFILE_FAILED": "Profilwechsel fehlgeschlagen"
+    "SWITCH_PROFILE_FAILED": "Profilwechsel fehlgeschlagen",
+    "PROFILE_RESYNCED": "Profil wurde planmäßig auf \"{{name}}\" gewechselt"
   },
   "ONBOARDING": {
     "TITLE_COMPLETE": "Alles fertig!",
