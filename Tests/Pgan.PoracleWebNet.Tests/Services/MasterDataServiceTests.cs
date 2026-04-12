@@ -99,6 +99,79 @@ public class MasterDataServiceTests : IDisposable
         await this._sut.RefreshCacheAsync();
     }
 
+    [Fact]
+    public async Task GetBaseStatsAsyncReturnsStatsForKnownSpecies()
+    {
+        var masterJson = /*lang=json,strict*/ """
+        {
+            "monsters": {
+                "1_0": { "name": "Bulbasaur", "stats": { "baseAttack": 118, "baseDefense": 111, "baseStamina": 128 } },
+                "184_0": { "name": "Azumarill", "stats": { "baseAttack": 112, "baseDefense": 152, "baseStamina": 225 } }
+            },
+            "items": {}
+        }
+        """;
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FakeHandler(masterJson)));
+
+        var stats = await this._sut.GetBaseStatsAsync(184, 0);
+
+        Assert.NotNull(stats);
+        Assert.Equal(112, stats.Value.Attack);
+        Assert.Equal(152, stats.Value.Defense);
+        Assert.Equal(225, stats.Value.Stamina);
+    }
+
+    [Fact]
+    public async Task GetBaseStatsAsyncFallsBackToForm0WhenFormSpecificMissing()
+    {
+        var masterJson = /*lang=json,strict*/ """
+        {
+            "monsters": {
+                "1_0": { "name": "Bulbasaur", "stats": { "baseAttack": 118, "baseDefense": 111, "baseStamina": 128 } }
+            },
+            "items": {}
+        }
+        """;
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FakeHandler(masterJson)));
+
+        var stats = await this._sut.GetBaseStatsAsync(1, 253); // unknown form, should fall back
+
+        Assert.NotNull(stats);
+        Assert.Equal(118, stats.Value.Attack);
+    }
+
+    [Fact]
+    public async Task GetBaseStatsAsyncReturnsNullForUnknownSpecies()
+    {
+        var masterJson = /*lang=json,strict*/ """
+        {
+            "monsters": {
+                "1_0": { "name": "Bulbasaur", "stats": { "baseAttack": 118, "baseDefense": 111, "baseStamina": 128 } }
+            },
+            "items": {}
+        }
+        """;
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FakeHandler(masterJson)));
+
+        var stats = await this._sut.GetBaseStatsAsync(9999, 0);
+
+        Assert.Null(stats);
+    }
+
+    [Fact]
+    public async Task GetBaseStatsAsyncReturnsNullWhenFetchFails()
+    {
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FailingHandler()));
+
+        var stats = await this._sut.GetBaseStatsAsync(1, 0);
+
+        Assert.Null(stats);
+    }
+
     private sealed class FailingHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => throw new HttpRequestException("Network error");

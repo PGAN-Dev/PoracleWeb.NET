@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models.Pvp;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -16,6 +17,7 @@ public partial class MasterDataService(
 
     private const string PokemonCacheKey = "MasterData_Pokemon";
     private const string ItemCacheKey = "MasterData_Items";
+    private const string BaseStatsCacheKey = "MasterData_BaseStats";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
 
     private const string MasterfileUrl =
@@ -37,6 +39,27 @@ public partial class MasterDataService(
         return data;
     }
 
+    public async Task<BaseStats?> GetBaseStatsAsync(int pokemonId, int form)
+    {
+        await this.EnsureInitializedAsync();
+        if (!this._cache.TryGetValue(BaseStatsCacheKey, out Dictionary<string, BaseStats>? map) || map is null)
+        {
+            return null;
+        }
+
+        if (map.TryGetValue($"{pokemonId}_{form}", out var stats))
+        {
+            return stats;
+        }
+
+        if (form != 0 && map.TryGetValue($"{pokemonId}_0", out var fallback))
+        {
+            return fallback;
+        }
+
+        return null;
+    }
+
     public async Task RefreshCacheAsync()
     {
         try
@@ -53,6 +76,7 @@ public partial class MasterDataService(
             // Build pokemon name map: { "1": "Bulbasaur", "2": "Ivysaur", ... }
             // Masterfile keys are "{pokemonId}_{formId}", e.g. "1_0" for Bulbasaur
             var pokemonMap = new Dictionary<string, string>();
+            var baseStatsMap = new Dictionary<string, BaseStats>();
             if (root.TryGetProperty("monsters", out var monsters))
             {
                 foreach (var entry in monsters.EnumerateObject())
@@ -67,10 +91,24 @@ public partial class MasterDataService(
                         // Only store the first (base form) name per pokemon ID
                         pokemonMap.TryAdd(pokemonId, name);
                     }
+
+                    if (entry.Value.TryGetProperty("stats", out var statsProp)
+                        && statsProp.ValueKind == JsonValueKind.Object
+                        && statsProp.TryGetProperty("baseAttack", out var atkProp)
+                        && statsProp.TryGetProperty("baseDefense", out var defProp)
+                        && statsProp.TryGetProperty("baseStamina", out var staProp))
+                    {
+                        baseStatsMap[entry.Name] = new BaseStats(
+                            atkProp.GetInt32(),
+                            defProp.GetInt32(),
+                            staProp.GetInt32());
+                    }
                 }
             }
             this._cache.Set(PokemonCacheKey, JsonSerializer.Serialize(pokemonMap), CacheDuration);
+            this._cache.Set(BaseStatsCacheKey, baseStatsMap, CacheDuration);
             LogCachedPokemonEntries(this._logger, pokemonMap.Count);
+            LogCachedBaseStats(this._logger, baseStatsMap.Count);
 
             // Build item name map
             var itemMap = new Dictionary<string, string>();
@@ -117,6 +155,9 @@ public partial class MasterDataService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} pokemon entries.")]
     private static partial void LogCachedPokemonEntries(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} base stat entries.")]
+    private static partial void LogCachedBaseStats(ILogger logger, int count);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} item entries.")]
     private static partial void LogCachedItemEntries(ILogger logger, int count);
