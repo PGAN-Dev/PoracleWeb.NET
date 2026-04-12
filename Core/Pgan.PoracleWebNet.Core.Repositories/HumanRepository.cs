@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Mappings;
