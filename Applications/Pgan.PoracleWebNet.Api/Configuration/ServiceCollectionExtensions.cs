@@ -34,8 +34,19 @@ public static class ServiceCollectionExtensions
         // Docker: DATA_DIR=/app/data (set in Dockerfile, volume-mounted in docker-compose.yml).
         // Standalone: falls back to ./data/ relative to the working directory.
         var dataDir = configuration["DATA_DIR"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+        var dataDirFullPath = Path.GetFullPath(dataDir);
+        var keyDirectoryPath = Path.GetFullPath(Path.Combine(dataDirFullPath, "dataprotection-keys"));
+        var expectedPrefix = dataDirFullPath.EndsWith(Path.DirectorySeparatorChar)
+            ? dataDirFullPath
+            : dataDirFullPath + Path.DirectorySeparatorChar;
+
+        if (!keyDirectoryPath.StartsWith(expectedPrefix, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Resolved DataProtection key path is outside DATA_DIR.");
+        }
+
         services.AddDataProtection()
-            .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDir, "dataprotection-keys")))
+            .PersistKeysToFileSystem(new DirectoryInfo(keyDirectoryPath))
             .SetApplicationName("Pgan.PoracleWebNet.Api");
 
         // Register Repositories
