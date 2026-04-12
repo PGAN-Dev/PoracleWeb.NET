@@ -154,8 +154,9 @@ export class LoginComponent implements OnInit {
     this.telegramEnabledByAdmin.set(providers.telegram.enabledByAdmin);
     this.telegramBotUsername = providers.telegram.botUsername;
 
-    if (this.telegramActive()) {
-      // Need to wait for view to init before loading widget
+    if (this.telegramConfigured()) {
+      // Load the widget for all configured Telegram — even when admin-disabled,
+      // because admins can still log in (the backend enforces the setting post-auth).
       setTimeout(() => this.loadTelegramWidget(), 0);
     }
   }

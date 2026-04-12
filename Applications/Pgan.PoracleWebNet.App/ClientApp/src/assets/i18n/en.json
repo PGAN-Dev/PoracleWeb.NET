@@ -1040,6 +1040,7 @@
     "SIGN_IN_DISCORD": "Sign in with Discord",
     "SIGN_IN_TELEGRAM": "Sign in with Telegram",
     "PROVIDER_DISABLED_BY_ADMIN": "This login method has been disabled by an administrator.",
+    "PROVIDER_DISABLED_HINT": "This login method is currently disabled for non-admin users.",
     "ERR_TELEGRAM_DISABLED": "Telegram login is currently disabled.",
     "OR": "or",
     "NO_METHODS": "No login methods are currently enabled. Please contact an administrator.",

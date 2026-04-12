@@ -81,7 +81,7 @@ describe('LoginComponent', () => {
       expect(btn.disabled).toBe(false);
     });
 
-    it('should show Discord button as disabled when configured but admin-disabled', () => {
+    it('should show Discord button as clickable with hint when configured but admin-disabled', () => {
       setup({
         providers: {
           discord: { configured: true, enabledByAdmin: false },
@@ -91,7 +91,7 @@ describe('LoginComponent', () => {
       fixture.detectChanges();
       const btn = fixture.nativeElement.querySelector('.discord-btn');
       expect(btn).toBeTruthy();
-      expect(btn.disabled).toBe(true);
+      expect(btn.disabled).toBe(false);
       const hint = fixture.nativeElement.querySelector('.provider-disabled-hint');
       expect(hint).toBeTruthy();
     });
@@ -120,7 +120,7 @@ describe('LoginComponent', () => {
       expect(widget).toBeTruthy();
     });
 
-    it('should show disabled Telegram button when configured but admin-disabled', () => {
+    it('should show Telegram widget with hint when configured but admin-disabled', () => {
       setup({
         providers: {
           discord: { configured: true, enabledByAdmin: true },
@@ -128,9 +128,8 @@ describe('LoginComponent', () => {
         },
       });
       fixture.detectChanges();
-      const btn = fixture.nativeElement.querySelector('.telegram-btn');
-      expect(btn).toBeTruthy();
-      expect(btn.disabled).toBe(true);
+      const widget = fixture.nativeElement.querySelector('.telegram-widget');
+      expect(widget).toBeTruthy();
       const hints = fixture.nativeElement.querySelectorAll('.provider-disabled-hint');
       expect(hints.length).toBeGreaterThanOrEqual(1);
     });

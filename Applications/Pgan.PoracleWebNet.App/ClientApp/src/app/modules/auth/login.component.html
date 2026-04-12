@@ -27,7 +27,7 @@
             <div class="skeleton-btn"></div>
           } @else {
             @if (discordVisible()) {
-              <button class="auth-btn discord-btn" (click)="loginWithDiscord()" [disabled]="loading() || !discordActive()">
+              <button class="auth-btn discord-btn" (click)="loginWithDiscord()" [disabled]="loading()">
                 <svg class="auth-icon" viewBox="0 0 24 24" width="24" height="24">
                   <path
                     fill="currentColor"
@@ -36,7 +36,7 @@
                 {{ 'AUTH.SIGN_IN_DISCORD' | translate }}
               </button>
               @if (!discordActive()) {
-                <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_BY_ADMIN' | translate }}</p>
+                <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_HINT' | translate }}</p>
               }
             }
 
@@ -46,14 +46,11 @@
               </div>
             }
 
-            @if (telegramActive()) {
+            @if (telegramVisible()) {
               <div #telegramContainer class="telegram-widget"></div>
-            } @else if (telegramVisible()) {
-              <button class="auth-btn telegram-btn" disabled>
-                <mat-icon>send</mat-icon>
-                {{ 'AUTH.SIGN_IN_TELEGRAM' | translate }}
-              </button>
-              <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_BY_ADMIN' | translate }}</p>
+              @if (!telegramActive()) {
+                <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_HINT' | translate }}</p>
+              }
             }
 
             @if (!discordVisible() && !telegramVisible()) {
