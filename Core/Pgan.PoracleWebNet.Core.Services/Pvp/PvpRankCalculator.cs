@@ -151,6 +151,19 @@ public static class PvpRankCalculator
         return new RankedCombo(0, a, d, s, level, cp, statProduct, 0);
     }
 
+    /// <summary>
+    /// Canonical Pokémon GO CP formula: <c>floor(atk * sqrt(def) * sqrt(sta) * cpm² / 10)</c>
+    /// clamped to a minimum of 10. Inputs are effective stats (base + IV), not IVs alone.
+    /// Exposed so the test-alert payload builder can reuse the same math when synthesizing
+    /// a non-PVP combo from a species' base stats.
+    /// </summary>
+    public static int ComputeCpForStats(BaseStats baseStats, int atkIv, int defIv, int staIv, double level)
+    {
+        var idx = CpMultiplierTable.IndexForLevel(level);
+        var cpm = CpMultiplierTable.Values[idx];
+        return ComputeCp(baseStats.Attack + atkIv, baseStats.Defense + defIv, baseStats.Stamina + staIv, cpm);
+    }
+
     private static int ComputeCp(int atk, int def, int sta, double cpm)
     {
         var raw = atk * Math.Sqrt(def) * Math.Sqrt(sta) * cpm * cpm / 10.0;

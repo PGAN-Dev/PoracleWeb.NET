@@ -74,17 +74,11 @@ public sealed class PokemonTestPayloadBuilder(
             {
                 (atkIv, defIv, staIv, level, cp) = FallbackStats(stats, atkFloor, defFloor, staFloor, atkCeil, defCeil, staCeil, minLevel, maxLevel);
             }
-
-            // Emit rank panels for both leagues so the DM renders full PVP info.
-            AppendRankPanel(greatLeagueRanks, pvpRankService, pokemonId, form, stats, PvpLeague.Great, atkIv, defIv, staIv);
-            AppendRankPanel(ultraLeagueRanks, pvpRankService, pokemonId, form, stats, PvpLeague.Ultra, atkIv, defIv, staIv);
         }
         else if (baseStats is { } s)
         {
             // Non-PVP filter path — pick IVs/level from explicit ranges, compute CP from base stats.
             (atkIv, defIv, staIv, level, cp) = FallbackStats(s, atkFloor, defFloor, staFloor, atkCeil, defCeil, staCeil, minLevel, maxLevel);
-            AppendRankPanel(greatLeagueRanks, pvpRankService, pokemonId, form, s, PvpLeague.Great, atkIv, defIv, staIv);
-            AppendRankPanel(ultraLeagueRanks, pvpRankService, pokemonId, form, s, PvpLeague.Ultra, atkIv, defIv, staIv);
         }
         else
         {
@@ -96,17 +90,32 @@ public sealed class PokemonTestPayloadBuilder(
             cp = Math.Clamp(1000, minCp, maxCp == 0 ? int.MaxValue : maxCp);
         }
 
-        // Honor combined-IV percentage filter when it's strict (rare — most users set it).
+        // Honor combined-IV percentage filter when it's strict. A small local search is
+        // enough — the space is tiny (16³) and we only need ONE combo that satisfies both
+        // the per-stat ranges AND the combined %-IV range. Applied BEFORE the rank panel
+        // build so the rendered PVP rank is computed against the final IVs, not stale ones.
         var totalIv = atkIv + defIv + staIv;
         var ivPct = totalIv / 45.0 * 100.0;
         if (ivPct < minIvPct || ivPct > maxIvPct)
         {
-            // Combined %IV fell outside the filter — bump to the rounded midpoint.
-            var targetPct = (minIvPct + Math.Min(maxIvPct, 100)) / 2.0;
-            var targetIv = (int)Math.Round(targetPct / 100.0 * 45.0);
-            atkIv = Math.Clamp((targetIv / 3) + (targetIv % 3 > 0 ? 1 : 0), atkFloor, atkCeil);
-            defIv = Math.Clamp((targetIv / 3) + (targetIv % 3 > 1 ? 1 : 0), defFloor, defCeil);
-            staIv = Math.Clamp(targetIv / 3, staFloor, staCeil);
+            var found = FindCombinedIv(atkFloor, atkCeil, defFloor, defCeil, staFloor, staCeil, minIvPct, maxIvPct);
+            if (found is { } f)
+            {
+                atkIv = f.Atk;
+                defIv = f.Def;
+                staIv = f.Sta;
+                if (baseStats is { } ivStats)
+                {
+                    cp = ComputeCp(ivStats, atkIv, defIv, staIv, level);
+                }
+            }
+        }
+
+        // Rank panels built from the FINAL IVs so the DM body and rank panel stay consistent.
+        if (baseStats is { } panelStats)
+        {
+            AppendRankPanel(greatLeagueRanks, pvpRankService, pokemonId, form, panelStats, PvpLeague.Great, atkIv, defIv, staIv);
+            AppendRankPanel(ultraLeagueRanks, pvpRankService, pokemonId, form, panelStats, PvpLeague.Ultra, atkIv, defIv, staIv);
         }
 
         var disappearTime = context.Now.AddMinutes(10).ToUnixTimeSeconds();
@@ -177,16 +186,8 @@ public sealed class PokemonTestPayloadBuilder(
         return (atkIv, defIv, staIv, level, cp);
     }
 
-    private static int ComputeCp(BaseStats baseStats, int atkIv, int defIv, int staIv, double level)
-    {
-        var cpm = CpmForLevel(level);
-        var atk = baseStats.Attack + atkIv;
-        var def = baseStats.Defense + defIv;
-        var sta = baseStats.Stamina + staIv;
-        var raw = atk * Math.Sqrt(def) * Math.Sqrt(sta) * cpm * cpm / 10.0;
-        var cp = (int)Math.Floor(raw);
-        return cp < 10 ? 10 : cp;
-    }
+    private static int ComputeCp(BaseStats baseStats, int atkIv, int defIv, int staIv, double level) =>
+        PvpRankCalculator.ComputeCpForStats(baseStats, atkIv, defIv, staIv, level);
 
     private static double CpmForLevel(double level)
     {
@@ -194,15 +195,60 @@ public sealed class PokemonTestPayloadBuilder(
         return CpMultiplierTable.Values[idx];
     }
 
+    /// <summary>
+    /// Maps <c>pvp_ranking_league</c> stored as a CP cap (500 = Little, 1500 = Great,
+    /// 2500 = Ultra, 10000+ = Master) to the ranker's <see cref="PvpLeague"/> enum. The
+    /// frontend (<c>pokemon-edit-dialog</c>) and <c>QuickPickService</c> presets write the
+    /// CP cap directly — this is verified against the database column semantics.
+    /// </summary>
     private static PvpLeague MapLeague(int pvpRankingLeague) => pvpRankingLeague switch
     {
-        // PoracleNG encoding (best-effort — the core encoding is stable across forks):
-        // 1 = Great, 2 = Ultra, 3 = Master, any → Great as a safe default.
-        1 => PvpLeague.Great,
-        2 => PvpLeague.Ultra,
-        3 => PvpLeague.Master,
+        500 => PvpLeague.Little,
+        1500 => PvpLeague.Great,
+        2500 => PvpLeague.Ultra,
+        >= 10000 => PvpLeague.Master,
         _ => PvpLeague.Great,
     };
+
+    /// <summary>
+    /// Tiny search to find an IV combination satisfying both per-stat ranges and the
+    /// combined %-IV range. Used when the initial synthesis falls outside the %-IV filter.
+    /// Returns null when no combination can satisfy both constraint sets (should be rare —
+    /// means the user's filter is unsatisfiable).
+    /// </summary>
+    private static (int Atk, int Def, int Sta)? FindCombinedIv(
+        int atkFloor, int atkCeil,
+        int defFloor, int defCeil,
+        int staFloor, int staCeil,
+        int minIvPct, int maxIvPct)
+    {
+        // Clamp %-IV bounds so we can compute the allowable total-IV range once.
+        var lowerTotal = (int)Math.Ceiling(Math.Max(0, minIvPct) / 100.0 * 45.0);
+        var upperTotal = (int)Math.Floor(Math.Min(100, maxIvPct) / 100.0 * 45.0);
+        if (lowerTotal > upperTotal)
+        {
+            return null;
+        }
+
+        // Walk from the ceiling downward — higher IVs look closer to what a user expects
+        // when they filter for e.g. "80%+".
+        for (var a = atkCeil; a >= atkFloor; a--)
+        {
+            for (var d = defCeil; d >= defFloor; d--)
+            {
+                for (var s = staCeil; s >= staFloor; s--)
+                {
+                    var total = a + d + s;
+                    if (total >= lowerTotal && total <= upperTotal)
+                    {
+                        return (a, d, s);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
 
     private static void AppendRankPanel(
         List<Dictionary<string, object>> sink,

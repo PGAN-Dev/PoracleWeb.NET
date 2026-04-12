@@ -45,14 +45,15 @@ public class PokemonTestPayloadBuilderTests
     }
 
     [Fact]
-    public async Task BuildAsyncPvpFilterResolvesRealRankOneCombo()
+    public async Task BuildAsyncGreatLeagueFilterResolvesRankOneCombo()
     {
-        // Alarm: Azumarill, Great League, rank 1-1. Expect the ranker to supply bulky IVs.
+        // Alarm: Azumarill, Great League (pvp_ranking_league = 1500 CP cap), rank 1-1.
+        // Encoding matches the live frontend (pokemon-edit-dialog) and QuickPickService.cs:773.
         var ctx = Ctx(new
         {
             pokemon_id = 184,
             form = 0,
-            pvp_ranking_league = 1,
+            pvp_ranking_league = 1500,
             pvp_ranking_best = 1,
             pvp_ranking_worst = 1,
         });
@@ -64,16 +65,89 @@ public class PokemonTestPayloadBuilderTests
         var sta = (int)result.Webhook["individual_stamina"];
         var cp = (int)result.Webhook["cp"];
 
-        Assert.True(def >= 14, $"expected bulky def, got {def}");
-        Assert.True(sta >= 14, $"expected bulky sta, got {sta}");
+        Assert.True(def >= 14, $"expected bulky def for rank 1 GL Azumarill, got {def}");
+        Assert.True(sta >= 14, $"expected bulky sta for rank 1 GL Azumarill, got {sta}");
         Assert.True(atk <= 5, $"expected low atk for rank 1 GL Azumarill, got {atk}");
         Assert.InRange(cp, 1480, 1500);
 
-        // PVP panel should include the real rank from the ranker.
         Assert.True(result.Webhook.ContainsKey("pvp_rankings_great_league"));
         var greatPanel = (List<Dictionary<string, object>>)result.Webhook["pvp_rankings_great_league"];
         Assert.NotEmpty(greatPanel);
         Assert.Equal(1, (int)greatPanel[0]["rank"]);
+    }
+
+    [Fact]
+    public async Task BuildAsyncUltraLeagueFilterResolvesAgainstUltraCap()
+    {
+        // Regression guard: an earlier revision mapped pvp_ranking_league via a 1/2/3 ordinal,
+        // which silently collapsed every real filter (stored as CP cap) to Great League.
+        var ctx = Ctx(new
+        {
+            pokemon_id = 184,
+            form = 0,
+            pvp_ranking_league = 2500,
+            pvp_ranking_best = 1,
+            pvp_ranking_worst = 1,
+        });
+
+        var result = await this._sut.BuildAsync(ctx);
+
+        var cp = (int)result.Webhook["cp"];
+        Assert.True(cp > 1500, $"UL rank 1 should push CP above the GL cap, got {cp}");
+        Assert.True(cp <= 2500, $"UL rank 1 must honor the Ultra cap, got {cp}");
+
+        Assert.True(result.Webhook.ContainsKey("pvp_rankings_ultra_league"));
+        var ultraPanel = (List<Dictionary<string, object>>)result.Webhook["pvp_rankings_ultra_league"];
+        Assert.NotEmpty(ultraPanel);
+        Assert.Equal(1, (int)ultraPanel[0]["rank"]);
+    }
+
+    [Fact]
+    public async Task BuildAsyncLittleLeagueFilterResolvesAgainstLittleCap()
+    {
+        // Wooper (#194, 75/75/160) is a canonical Little League pick.
+        this._masterData.Setup(m => m.GetBaseStatsAsync(194, It.IsAny<int>())).ReturnsAsync(new BaseStats(75, 75, 160));
+
+        var ctx = Ctx(new
+        {
+            pokemon_id = 194,
+            form = 0,
+            pvp_ranking_league = 500,
+            pvp_ranking_best = 1,
+            pvp_ranking_worst = 1,
+        });
+
+        var result = await this._sut.BuildAsync(ctx);
+
+        var cp = (int)result.Webhook["cp"];
+        Assert.True(cp <= 500, $"LL rank 1 must honor the 500 CP cap, got {cp}");
+        Assert.True(cp >= 480, $"LL rank 1 should hug the cap, got {cp}");
+    }
+
+    [Fact]
+    public async Task BuildAsyncCombinedIvFilterProducesConsistentBodyAndRankPanel()
+    {
+        // When a user combines a non-PVP IV floor with species-level synthesis, the
+        // resolved IVs must satisfy the %-IV range AND the rank panel must be recomputed
+        // from those final IVs (not stale pre-adjustment IVs).
+        var ctx = Ctx(new
+        {
+            pokemon_id = 184,
+            form = 0,
+            min_iv = 80,
+            max_iv = 100,
+        });
+
+        var result = await this._sut.BuildAsync(ctx);
+
+        var atk = (int)result.Webhook["individual_attack"];
+        var def = (int)result.Webhook["individual_defense"];
+        var sta = (int)result.Webhook["individual_stamina"];
+        var totalPct = (atk + def + sta) / 45.0 * 100.0;
+        Assert.InRange(totalPct, 80.0, 100.0);
+
+        var greatPanel = (List<Dictionary<string, object>>)result.Webhook["pvp_rankings_great_league"];
+        Assert.Single(greatPanel);
     }
 
     [Fact]
