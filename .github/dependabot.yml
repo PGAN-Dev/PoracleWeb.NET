@@ -61,6 +61,10 @@ updates:
       # migration work, not a simple version bump.
       - dependency-name: '@angular-eslint/*'
         update-types: [version-update:semver-major]
+      # TypeScript majors are gated by Angular's peer-dependency ranges — upgraded via
+      # 'ng update @angular/core @angular/cli' together with Angular majors.
+      - dependency-name: 'typescript'
+        update-types: [version-update:semver-major]
     groups:
       angular:
         patterns:
