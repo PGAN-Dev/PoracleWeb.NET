@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooki",
     "SETTINGS": "Ustawienia",
     "USER_GEOFENCES": "Geofence użytkowników",
-    "PORACLE_SERVERS": "Serwery Poracle",
     "MY_WEBHOOKS": "Moje webhooki"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Nie udało się zatwierdzić zgłoszenia",
     "SNACK_APPROVED": "\"{{name}}\" zatwierdzony",
     "SNACK_FAILED_REJECT": "Nie udało się odrzucić zgłoszenia",
-    "SNACK_REJECTED": "\"{{name}}\" odrzucony",
-    "SERVERS_TITLE": "Serwery Poracle",
-    "SERVERS_DESC": "Monitoruj status serwerów i restartuj instancje Poracle.",
-    "REFRESH_STATUS": "Odśwież status serwerów",
-    "RESTART_ALL": "Restartuj wszystko",
-    "RESTART_ALL_TOOLTIP": "Restartuj wszystkie serwery Poracle",
-    "RESTART_ALL_TITLE": "Restartuj wszystkie serwery Poracle",
-    "CONFIRM_RESTART_ALL": "To zrestartuje WSZYSTKIE serwery Poracle. Użytkownicy na krótko przestaną otrzymywać alerty.",
-    "RESTART": "Restartuj",
-    "RESTART_SERVER": "Restartuj ten serwer",
-    "RESTART_SERVER_TITLE": "Restartuj serwer Poracle",
-    "CONFIRM_RESTART_SERVER": "Czy na pewno chcesz zrestartować \"{{name}}\" ({{host}})?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Sprawdzono",
-    "NO_SERVERS": "Nie znaleziono serwerów Poracle",
-    "NO_SERVERS_DESC": "Brak skonfigurowanych instancji serwerów Poracle.",
-    "SNACK_FAILED_RESTART_ALL": "Nie udało się zrestartować serwerów",
-    "SNACK_ALL_RESTARTED": "Wszystkie serwery zrestartowane",
-    "SNACK_FAILED_RESTART": "Nie udało się zrestartować \"{{name}}\"",
-    "SNACK_RESTARTED": "\"{{name}}\" zrestartowany",
-    "SNACK_FAILED_LOAD_SERVERS": "Nie udało się załadować serwerów Poracle"
+    "SNACK_REJECTED": "\"{{name}}\" odrzucony"
   },
   "DIALOG": {
     "CANCEL": "Anuluj",

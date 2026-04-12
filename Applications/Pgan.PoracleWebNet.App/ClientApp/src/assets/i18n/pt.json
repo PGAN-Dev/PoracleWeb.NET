@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Definições",
     "USER_GEOFENCES": "Geofences dos Utilizadores",
-    "PORACLE_SERVERS": "Servidores Poracle",
     "MY_WEBHOOKS": "Os Meus Webhooks"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Falha ao aprovar submissão",
     "SNACK_APPROVED": "\"{{name}}\" aprovada",
     "SNACK_FAILED_REJECT": "Falha ao rejeitar submissão",
-    "SNACK_REJECTED": "\"{{name}}\" rejeitada",
-    "SERVERS_TITLE": "Servidores Poracle",
-    "SERVERS_DESC": "Monitoriza o estado dos servidores e reinicia instâncias Poracle.",
-    "REFRESH_STATUS": "Atualizar estado dos servidores",
-    "RESTART_ALL": "Reiniciar Todos",
-    "RESTART_ALL_TOOLTIP": "Reiniciar todos os servidores Poracle",
-    "RESTART_ALL_TITLE": "Reiniciar Todos os Servidores Poracle",
-    "CONFIRM_RESTART_ALL": "Isto reiniciará TODOS os servidores Poracle. Os utilizadores deixarão brevemente de receber alertas.",
-    "RESTART": "Reiniciar",
-    "RESTART_SERVER": "Reiniciar este servidor",
-    "RESTART_SERVER_TITLE": "Reiniciar Servidor Poracle",
-    "CONFIRM_RESTART_SERVER": "Tens a certeza de que queres reiniciar \"{{name}}\" ({{host}})?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Verificado",
-    "NO_SERVERS": "Nenhum servidor Poracle encontrado",
-    "NO_SERVERS_DESC": "Nenhuma instância de servidor Poracle está configurada.",
-    "SNACK_FAILED_RESTART_ALL": "Falha ao reiniciar servidores",
-    "SNACK_ALL_RESTARTED": "Todos os servidores reiniciados",
-    "SNACK_FAILED_RESTART": "Falha ao reiniciar \"{{name}}\"",
-    "SNACK_RESTARTED": "\"{{name}}\" reiniciado",
-    "SNACK_FAILED_LOAD_SERVERS": "Falha ao carregar servidores Poracle"
+    "SNACK_REJECTED": "\"{{name}}\" rejeitada"
   },
   "DIALOG": {
     "CANCEL": "Cancelar",

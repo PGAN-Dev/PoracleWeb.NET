@@ -56,24 +56,6 @@ volumes:
   - /path/to/PoracleJS/config:/poracle-config:ro
 ```
 
-### SSH key (optional)
-
-For remote server management, mount an SSH private key:
-
-```yaml
-volumes:
-  - ~/.ssh/id_ed25519:/app/ssh_key:ro
-```
-
-Or in `docker-compose.override.yml`:
-
-```yaml
-services:
-  poracle-web:
-    volumes:
-      - ~/.ssh/id_ed25519:/app/ssh_key:ro
-```
-
 ## Building locally
 
 Using the convenience script:

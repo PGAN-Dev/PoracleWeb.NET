@@ -120,19 +120,6 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
         services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
 
-        // Register Poracle Server settings and service (multi-server restart)
-        services.Configure<PoracleServerSettings>(config =>
-        {
-            var servers = configuration.GetSection("Poracle:Servers").Get<List<PoracleServerConfig>>();
-            if (servers != null)
-            {
-                config.Servers = servers;
-            }
-
-            config.SshKeyPath = configuration["Poracle:SshKeyPath"] ?? "/app/ssh_key";
-        });
-        services.AddHttpClient<IPoracleServerService, PoracleServerService>();
-
         // Register HttpClient for Discord notification service
         services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>
         {

@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Indstillinger",
     "USER_GEOFENCES": "Bruger-geofences",
-    "PORACLE_SERVERS": "Poracle-servere",
     "MY_WEBHOOKS": "Mine webhooks"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Kunne ikke godkende indsendelse",
     "SNACK_APPROVED": "\"{{name}}\" godkendt",
     "SNACK_FAILED_REJECT": "Kunne ikke afvise indsendelse",
-    "SNACK_REJECTED": "\"{{name}}\" afvist",
-    "SERVERS_TITLE": "Poracle-servere",
-    "SERVERS_DESC": "Overvåg serverstatus og genstart Poracle-instanser.",
-    "REFRESH_STATUS": "Opdater serverstatus",
-    "RESTART_ALL": "Genstart alle",
-    "RESTART_ALL_TOOLTIP": "Genstart alle Poracle-servere",
-    "RESTART_ALL_TITLE": "Genstart alle Poracle-servere",
-    "CONFIRM_RESTART_ALL": "Dette vil genstarte ALLE Poracle-servere. Brugere vil kortvarigt stoppe med at modtage alarmer.",
-    "RESTART": "Genstart",
-    "RESTART_SERVER": "Genstart denne server",
-    "RESTART_SERVER_TITLE": "Genstart Poracle-server",
-    "CONFIRM_RESTART_SERVER": "Er du sikker på, at du vil genstarte \"{{name}}\" ({{host}})?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Kontrolleret",
-    "NO_SERVERS": "Ingen Poracle-servere fundet",
-    "NO_SERVERS_DESC": "Ingen Poracle-serverinstanser er konfigureret.",
-    "SNACK_FAILED_RESTART_ALL": "Kunne ikke genstarte servere",
-    "SNACK_ALL_RESTARTED": "Alle servere genstartet",
-    "SNACK_FAILED_RESTART": "Kunne ikke genstarte \"{{name}}\"",
-    "SNACK_RESTARTED": "\"{{name}}\" genstartet",
-    "SNACK_FAILED_LOAD_SERVERS": "Kunne ikke indlæse Poracle-servere"
+    "SNACK_REJECTED": "\"{{name}}\" afvist"
   },
   "DIALOG": {
     "CANCEL": "Annuller",

@@ -34,20 +34,6 @@ services:
       - Poracle__ApiAddress=${PORACLE_API_ADDRESS}
       - Poracle__ApiSecret=${PORACLE_API_SECRET}
       - Poracle__AdminIds=${PORACLE_ADMIN_IDS}
-      # Poracle Multi-Server Restart
-      - Poracle__Servers__0__Name=Main
-      - Poracle__Servers__0__Host=${PORACLE_SERVER_1_HOST:-}
-      - Poracle__Servers__0__ApiAddress=${PORACLE_SERVER_1_API:-}
-      - Poracle__Servers__0__SshUser=${PORACLE_SERVER_1_SSH_USER:-root}
-      - Poracle__Servers__0__RestartCommand=${PORACLE_SERVER_1_RESTART_CMD:-pm2 restart all}
-      - Poracle__Servers__0__GroupMapPath=${PORACLE_SERVER_1_GROUP_MAP:-/source/PoracleJS/config/group_map.json}
-      - Poracle__Servers__1__Name=Secondary
-      - Poracle__Servers__1__Host=${PORACLE_SERVER_2_HOST:-}
-      - Poracle__Servers__1__ApiAddress=${PORACLE_SERVER_2_API:-}
-      - Poracle__Servers__1__SshUser=${PORACLE_SERVER_2_SSH_USER:-root}
-      - Poracle__Servers__1__RestartCommand=${PORACLE_SERVER_2_RESTART_CMD:-pm2 restart all}
-      - Poracle__Servers__1__GroupMapPath=${PORACLE_SERVER_2_GROUP_MAP:-/source/PoracleJS/config/group_map.json}
-      - Poracle__SshKeyPath=${PORACLE_SSH_KEY_PATH:-/app/ssh_key}
       # Golbat API (optional — enables "currently spawning" Pokemon indicators)
       - Golbat__ApiAddress=${GOLBAT_API_ADDRESS:-}
       - Golbat__ApiSecret=${GOLBAT_API_SECRET:-}
@@ -67,8 +53,6 @@ services:
       - ./data:/app/data
       # Mount Poracle config for DTS templates (read-only)
       - ${PORACLE_CONFIG_DIR:-./data}:/poracle-config:ro
-      # Mount SSH key for Poracle server restart (read-only, optional)
-      - ${SSH_KEY_PATH:-./data/ssh_key}:/app/ssh_key:ro
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

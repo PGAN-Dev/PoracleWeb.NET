@@ -34,7 +34,7 @@ Pgan.PoracleWebNet.slnx
 |   +-- Core.Services/           Business logic (MonsterService, DashboardService,
 |   |                            UserGeofenceService, KojiService, SiteSettingService,
 |   |                            WebhookDelegateService, QuickPickService,
-|   |                            DiscordNotificationService, PoracleServerService,
+|   |                            DiscordNotificationService,
 |   |                            PoracleTrackingProxy, PoracleHumanProxy,
 |   |                            TestAlertService, GolbatApiProxy,
 |   |                            PokemonAvailabilityService, etc.)
@@ -165,12 +165,6 @@ Pgan.PoracleWebNet.slnx
 - Geofence statuses: `active` (private, user-only), `pending_review` (submitted for admin review), `approved` (promoted to Koji as public), `rejected` (remains private with review notes).
 - `KojiService` fetches region (parent) geofences from Koji's reference API and serves them to the frontend `region-selector` component for auto-detection of which region a drawn polygon belongs to.
 
-### Poracle Server Management
-- Servers configured via `Poracle:Servers` array in appsettings (name, host, API address, SSH user).
-- Health check pings each server's API endpoint to determine online/offline status.
-- Restart executes `ssh user@host "pm2 restart all"` via `System.Diagnostics.Process`.
-- SSH key mounted as read-only volume at `/app/ssh_key` (path configurable via `Poracle:SshKeyPath`).
-
 ### PoracleWeb Database
 - Second `DbContext`: `PoracleWebContext` using `ConnectionStrings:PoracleWebDb`.
 - Separate `poracle_web` MariaDB/MySQL database for application-owned data (not managed by PoracleJS).
@@ -262,7 +256,7 @@ Pgan.PoracleWebNet.slnx
 ## Configuration
 
 - **Unified `.env` file**: A single `.env` file (copied from `.env.example`) configures PoracleWeb for both Docker and standalone mode. `Program.cs` loads `.env` at startup, bridges short env var names (e.g., `JWT_SECRET`, `DISCORD_CLIENT_ID`) to .NET's `__` convention (e.g., `Jwt__Secret`, `Discord__ClientId`), and auto-composes MySQL connection strings from `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (and `WEB_DB_*` for the PoracleWeb DB). Docker Compose also reads `.env` natively; the Program.cs bridge covers the standalone (`dotnet run`) case.
-- **Env var bridge** (in `Program.cs`): Maps ~19 short env var names to .NET config paths. Also maps `PORACLE_SERVER_N_*` vars (1-based) to `Poracle__Servers__N__*` (0-based). Two static helpers at the end of Program.cs: `MapEnvVar()` and `ComposeConnectionString()`.
+- **Env var bridge** (in `Program.cs`): Maps ~18 short env var names to .NET config paths. Two static helpers at the end of Program.cs: `MapEnvVar()` and `ComposeConnectionString()`.
 - **`appsettings.Development.json`** (gitignored) can still be used for overrides, but `.env` is the primary configuration mechanism.
 - **Poracle API** (critical for all writes): `Poracle:ApiAddress` and `Poracle:ApiSecret` are required for the application to function. All alarm CRUD, human/profile management, area updates, and profile switches are proxied through the PoracleNG REST API. If the API is unreachable, all alarm, human, and profile operations will fail (no DB fallback). (**Deprecated**: previously also read from the `pweb_settings` table in the Poracle DB; now stored in `poracle_web.site_settings`.)
 - **Site Settings**: Admin-configurable settings (custom title, feature flags, etc.) are stored in `poracle_web.site_settings`. On first startup after upgrade, `SettingsMigrationStartupService` migrates any existing data from the deprecated `pweb_settings` table automatically.
@@ -276,8 +270,6 @@ Pgan.PoracleWebNet.slnx
   - `Koji:ProjectId` -- Koji project ID for admin-promoted geofences.
   - `Koji:ProjectName` -- Koji project name used for the `/geofence/poracle/{name}` endpoint to fetch admin geofences. Settings class: `KojiSettings`.
 - **Discord Geofence Forum**: `Discord:GeofenceForumChannelId` -- Discord forum channel ID where geofence submission threads are created.
-- **Poracle Servers**: `Poracle:Servers` -- array of PoracleJS server configs (name, host, API address, SSH user) for multi-server management. Also configurable via `PORACLE_SERVER_N_*` env vars in `.env` (1-based indexing, bridged to 0-based by `Program.cs`; supports up to 10 servers).
-- **SSH Key Path**: `Poracle:SshKeyPath` -- path to SSH private key inside the container (default `/app/ssh_key`).
 - **DataProtection**: Keys are persisted to `DATA_DIR/dataprotection-keys` (Docker: `/app/data/dataprotection-keys`, standalone: `./data/dataprotection-keys`). Configured in `ServiceCollectionExtensions.cs` via `AddDataProtection().PersistKeysToFileSystem().SetApplicationName("Pgan.PoracleWebNet.Api")`. Uses the existing `DATA_DIR` env var (set in Dockerfile, read via `configuration["DATA_DIR"]`) with a fallback to `Path.Combine(Directory.GetCurrentDirectory(), "data")` for local dev. No additional env vars or NuGet packages needed.
 - **PoracleJS config**: `geofence.path` in PoracleJS config is a single URL pointing to the PoracleWeb unified feed endpoint (e.g., `"http://poracleweb:8082/api/geofence-feed"`). PoracleWeb fetches admin geofences from Koji internally and merges them with user geofences.
 
@@ -494,7 +486,7 @@ dotnet ef migrations script \
 | Profile Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/ProfileController.cs` |
 | DI Registration | `Applications/Pgan.PoracleWebNet.Api/Configuration/ServiceCollectionExtensions.cs` |
 | IJwtService / JwtService | `Applications/Pgan.PoracleWebNet.Api/Configuration/IJwtService.cs`, `JwtService.cs` |
-| Settings Classes | `Applications/Pgan.PoracleWebNet.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, PoracleServerSettings, etc.) |
+| Settings Classes | `Applications/Pgan.PoracleWebNet.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, etc.) |
 | Settings Migration Service | `Applications/Pgan.PoracleWebNet.Api/Services/SettingsMigrationStartupService.cs` |
 | Angular App Root | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/` |
 | Angular Routes | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/app.routes.ts` |
@@ -532,9 +524,7 @@ dotnet ef migrations script \
 | PwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Services/PwebSettingService.cs` |
 | KojiService | `Core/Pgan.PoracleWebNet.Core.Services/KojiService.cs` |
 | DiscordNotificationService | `Core/Pgan.PoracleWebNet.Core.Services/DiscordNotificationService.cs` |
-| IPoracleServerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/` |
 | IPwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPwebSettingService.cs` |
-| PoracleServerService | `Core/Pgan.PoracleWebNet.Core.Services/PoracleServerService.cs` |
 | RdmScannerService | `Core/Pgan.PoracleWebNet.Core.Services/RdmScannerService.cs` |
 | IScannerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IScannerService.cs` |
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
@@ -557,7 +547,6 @@ dotnet ef migrations script \
 | Active Hours Editor Dialog | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/active-hours-editor-dialog/` |
 | Location Warning Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/location-warning/` |
 | Active Hours Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/active-hours.utils.spec.ts` |
-| Poracle Servers Page | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/poracle-servers/` |
 | Abstractions | `Core/Pgan.PoracleWebNet.Core.Abstractions/` |
 | DataProtection Configuration Tests | `Tests/Pgan.PoracleWebNet.Tests/Configuration/DataProtectionConfigurationTests.cs` |
 | Backend Tests | `Tests/Pgan.PoracleWebNet.Tests/` |

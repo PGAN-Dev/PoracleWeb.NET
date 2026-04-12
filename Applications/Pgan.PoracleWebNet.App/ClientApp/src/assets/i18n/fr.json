@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Paramètres",
     "USER_GEOFENCES": "Geofences utilisateurs",
-    "PORACLE_SERVERS": "Serveurs Poracle",
     "MY_WEBHOOKS": "Mes Webhooks"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Échec de l'approbation de la soumission",
     "SNACK_APPROVED": "\"{{name}}\" approuvée",
     "SNACK_FAILED_REJECT": "Échec du rejet de la soumission",
-    "SNACK_REJECTED": "\"{{name}}\" rejetée",
-    "SERVERS_TITLE": "Serveurs Poracle",
-    "SERVERS_DESC": "Surveiller le statut des serveurs et redémarrer les instances Poracle.",
-    "REFRESH_STATUS": "Actualiser le statut des serveurs",
-    "RESTART_ALL": "Tout redémarrer",
-    "RESTART_ALL_TOOLTIP": "Redémarrer tous les serveurs Poracle",
-    "RESTART_ALL_TITLE": "Redémarrer tous les serveurs Poracle",
-    "CONFIRM_RESTART_ALL": "Cela redémarrera TOUS les serveurs Poracle. Les utilisateurs cesseront brièvement de recevoir des alertes.",
-    "RESTART": "Redémarrer",
-    "RESTART_SERVER": "Redémarrer ce serveur",
-    "RESTART_SERVER_TITLE": "Redémarrer le serveur Poracle",
-    "CONFIRM_RESTART_SERVER": "Es-tu sûr de vouloir redémarrer \"{{name}}\" ({{host}}) ?",
-    "SERVER_ONLINE": "En ligne",
-    "SERVER_OFFLINE": "Hors ligne",
-    "CHECKED": "Vérifié",
-    "NO_SERVERS": "Aucun serveur Poracle trouvé",
-    "NO_SERVERS_DESC": "Aucune instance de serveur Poracle configurée.",
-    "SNACK_FAILED_RESTART_ALL": "Échec du redémarrage des serveurs",
-    "SNACK_ALL_RESTARTED": "Tous les serveurs redémarrés",
-    "SNACK_FAILED_RESTART": "Échec du redémarrage de \"{{name}}\"",
-    "SNACK_RESTARTED": "\"{{name}}\" redémarré",
-    "SNACK_FAILED_LOAD_SERVERS": "Échec du chargement des serveurs Poracle"
+    "SNACK_REJECTED": "\"{{name}}\" rejetée"
   },
   "DIALOG": {
     "CANCEL": "Annuler",

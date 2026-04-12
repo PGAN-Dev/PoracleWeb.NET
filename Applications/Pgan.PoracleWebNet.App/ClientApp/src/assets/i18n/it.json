@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Impostazioni",
     "USER_GEOFENCES": "Geofence Utenti",
-    "PORACLE_SERVERS": "Server Poracle",
     "MY_WEBHOOKS": "I Miei Webhooks"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Approvazione invio fallita",
     "SNACK_APPROVED": "\"{{name}}\" approvata",
     "SNACK_FAILED_REJECT": "Rifiuto invio fallito",
-    "SNACK_REJECTED": "\"{{name}}\" rifiutata",
-    "SERVERS_TITLE": "Server Poracle",
-    "SERVERS_DESC": "Monitora lo stato dei server e riavvia le istanze Poracle.",
-    "REFRESH_STATUS": "Aggiorna stato server",
-    "RESTART_ALL": "Riavvia Tutti",
-    "RESTART_ALL_TOOLTIP": "Riavvia tutti i server Poracle",
-    "RESTART_ALL_TITLE": "Riavvia Tutti i Server Poracle",
-    "CONFIRM_RESTART_ALL": "Questo riavvierà TUTTI i server Poracle. Gli utenti smetteranno brevemente di ricevere avvisi.",
-    "RESTART": "Riavvia",
-    "RESTART_SERVER": "Riavvia questo server",
-    "RESTART_SERVER_TITLE": "Riavvia Server Poracle",
-    "CONFIRM_RESTART_SERVER": "Sei sicuro di voler riavviare \"{{name}}\" ({{host}})?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Verificato",
-    "NO_SERVERS": "Nessun server Poracle trovato",
-    "NO_SERVERS_DESC": "Nessuna istanza server Poracle configurata.",
-    "SNACK_FAILED_RESTART_ALL": "Riavvio server fallito",
-    "SNACK_ALL_RESTARTED": "Tutti i server riavviati",
-    "SNACK_FAILED_RESTART": "Riavvio di \"{{name}}\" fallito",
-    "SNACK_RESTARTED": "\"{{name}}\" riavviato",
-    "SNACK_FAILED_LOAD_SERVERS": "Caricamento server Poracle fallito"
+    "SNACK_REJECTED": "\"{{name}}\" rifiutata"
   },
   "DIALOG": {
     "CANCEL": "Annulla",

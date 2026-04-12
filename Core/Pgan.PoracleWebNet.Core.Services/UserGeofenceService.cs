@@ -12,7 +12,6 @@ public partial class UserGeofenceService(
     IUserGeofenceRepository repository,
     IKojiService kojiService,
     IPoracleApiProxy poracleApiProxy,
-    IPoracleServerService poracleServerService,
     IPoracleHumanProxy humanProxy,
     IHumanRepository humanRepository,
     IUserAreaDualWriter areaWriter,
@@ -24,7 +23,6 @@ public partial class UserGeofenceService(
     private readonly IUserGeofenceRepository _repository = repository;
     private readonly IKojiService _kojiService = kojiService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
-    private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanRepository _humanRepository = humanRepository;
     private readonly IUserAreaDualWriter _areaWriter = areaWriter;
@@ -417,16 +415,6 @@ public partial class UserGeofenceService(
 
         var updated = await this._repository.UpdateAsync(geofence);
 
-        // Update group_map.json on all Poracle servers so the promoted geofence shows with correct group
-        try
-        {
-            await this._poracleServerService.UpdateGroupMapAsync(targetName, geofence.GroupName);
-        }
-        catch (Exception ex)
-        {
-            LogGroupMapUpdateFailed(this._logger, ex, targetName);
-        }
-
         // Reload Poracle geofences
         await this.ReloadGeofencesSafeAsync();
 
@@ -623,9 +611,6 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "User {HumanId} submitted geofence '{KojiName}' for review")]
     private static partial void LogGeofenceSubmittedForReview(ILogger logger, string humanId, string kojiName);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to update group_map.json for geofence '{Name}'")]
-    private static partial void LogGroupMapUpdateFailed(ILogger logger, Exception ex, string name);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post approval to Discord thread {ThreadId}")]
     private static partial void LogApprovalDiscordPostFailed(ILogger logger, Exception ex, string threadId);
