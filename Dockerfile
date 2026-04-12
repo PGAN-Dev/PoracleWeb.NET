@@ -1,5 +1,5 @@
 # Stage 1: Build Angular SPA
-FROM node:22-alpine AS angular-build
+FROM node:25-alpine AS angular-build
 WORKDIR /app/angular
 COPY Applications/Pgan.PoracleWebNet.App/ClientApp/package*.json ./
 RUN npm ci
