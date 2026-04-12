@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- redirect non-subscribers to signup page (fixes #168) ([PR #171](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/171))
+
 ### Fixed
 - **Alarms silently landing on the wrong profile after PoracleNG auto-switches via active_hours scheduler** ([#167](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/167), [PR #170](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/170)): When PoracleNG's active-hours scheduler (or a bot `!profile` command) changed `current_profile_no` out-of-band, the JWT's `profileNo` claim went stale. All subsequent alarm CRUD was scoped to the old profile — users unknowingly created, edited, and deleted alarms on a profile they were no longer viewing. Fixed by adding a profile-resync check to `GET /api/auth/me`: the endpoint now compares the JWT's `profileNo` claim against `humans.current_profile_no` from the database and returns a refreshed JWT when they diverge. The frontend's `AuthService.loadCurrentUser()` picks up the new token transparently, and the dashboard shows a snackbar ("Profile switched to X by schedule") so the user knows which profile they're on.
 
