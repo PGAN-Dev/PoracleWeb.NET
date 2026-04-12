@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - use 'PoracleWeb.NET' branding consistently (fixes #175) ([PR #180](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/180))
+- **Persist ASP.NET Core DataProtection keys to filesystem** ([#174](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/174), [PR #179](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/179)): Configured `AddDataProtection().PersistKeysToFileSystem()` to store keys in `DATA_DIR/dataprotection-keys` (defaults to `/app/data/dataprotection-keys` in Docker, `./data/dataprotection-keys` standalone). Eliminates startup warnings about ephemeral key storage and ensures keys survive container restarts. No new NuGet packages — uses the ASP.NET Core shared framework. No Dockerfile or docker-compose changes — the existing `./data:/app/data` volume mount covers the key directory.
 
 ### Removed
 - **AutoMapper dependency** ([#173](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/173), [PR #178](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/178)): Removed `AutoMapper` 16.1.1 NuGet package from Api, Core.Mappings, Core.Repositories, Core.Services, and Tests projects. Eliminates the production license requirement and "Lucky Penny" startup warning.
