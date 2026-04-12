@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -28,6 +29,25 @@ public static class ServiceCollectionExtensions
 
         // Register MemoryCache
         services.AddMemoryCache();
+
+        // Persist DataProtection keys so they survive container restarts.
+        // Docker: DATA_DIR=/app/data (set in Dockerfile, volume-mounted in docker-compose.yml).
+        // Standalone: falls back to ./data/ relative to the working directory.
+        var dataDir = configuration["DATA_DIR"] ?? Path.Join(Directory.GetCurrentDirectory(), "data");
+        var dataDirFullPath = Path.GetFullPath(dataDir);
+        var keyDirectoryPath = Path.GetFullPath(Path.Join(dataDirFullPath, "dataprotection-keys"));
+        var expectedPrefix = dataDirFullPath.EndsWith(Path.DirectorySeparatorChar)
+            ? dataDirFullPath
+            : dataDirFullPath + Path.DirectorySeparatorChar;
+
+        if (!keyDirectoryPath.StartsWith(expectedPrefix, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Resolved DataProtection key path is outside DATA_DIR.");
+        }
+
+        services.AddDataProtection()
+            .PersistKeysToFileSystem(new DirectoryInfo(keyDirectoryPath))
+            .SetApplicationName("Pgan.PoracleWebNet.Api");
 
         // Register Repositories
         services.AddScoped<IHumanRepository, HumanRepository>();
