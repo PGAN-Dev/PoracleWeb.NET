@@ -118,7 +118,6 @@ public class TestAlertServiceTests
     [InlineData("quest", "quest")]
     [InlineData("invasion", "pokestop")]
     [InlineData("lure", "pokestop")]
-    [InlineData("nest", "nest")]
     [InlineData("gym", "gym")]
     public async Task SendTestAlertAsyncAllValidTypesSendsRequest(string alarmType, string expectedWireType)
     {
@@ -156,6 +155,33 @@ public class TestAlertServiceTests
             this._sut.SendTestAlertAsync("user1", invalidType, 1));
 
         this._trackingProxy.Verify(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._apiProxy.Verify(p => p.SendTestAlertAsync(It.IsAny<TestAlertRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SendTestAlertAsyncNestThrowsNotSupportedException()
+    {
+        // Nest alarms are a valid UI type but PoracleNG's /api/test endpoint has no nest
+        // surface — the builder throws NotSupportedException which the controller maps to
+        // HTTP 501. Regression guard against reviving the best-effort nest payload.
+        var alarms = CreateJsonArray(new
+        {
+            uid = 10,
+            pokemon_id = 246
+        });
+        this._trackingProxy.Setup(p => p.GetByUserAsync("nest", "user1")).ReturnsAsync(alarms);
+
+        var human = CreateJsonElement(new
+        {
+            id = "user1",
+            name = "TestUser",
+            type = "discord:user"
+        });
+        this._humanProxy.Setup(p => p.GetHumanAsync("user1")).ReturnsAsync(human);
+
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            this._sut.SendTestAlertAsync("user1", "nest", 10));
+
         this._apiProxy.Verify(p => p.SendTestAlertAsync(It.IsAny<TestAlertRequest>()), Times.Never);
     }
 

@@ -16,12 +16,17 @@ internal static class FilterFieldExtensions
             return defaultValue;
         }
 
+        // IDE0072 off: the wildcard arm is the intentional fall-through for every other
+        // JsonValueKind (undefined/object/array/bool/null). dotnet format insists on
+        // expanding these to explicit throws — not what we want for defensive parsing.
+#pragma warning disable IDE0072
         return prop.ValueKind switch
         {
             JsonValueKind.Number when prop.TryGetInt32(out var val) => val,
             JsonValueKind.String when int.TryParse(prop.GetString(), out var parsed) => parsed,
             _ => defaultValue,
         };
+#pragma warning restore IDE0072
     }
 
     public static double GetDouble(this JsonElement element, string property, double defaultValue)
@@ -31,12 +36,14 @@ internal static class FilterFieldExtensions
             return defaultValue;
         }
 
+#pragma warning disable IDE0072
         return prop.ValueKind switch
         {
             JsonValueKind.Number when prop.TryGetDouble(out var val) => val,
             JsonValueKind.String when double.TryParse(prop.GetString(), out var parsed) => parsed,
             _ => defaultValue,
         };
+#pragma warning restore IDE0072
     }
 
     public static string GetString(this JsonElement element, string property, string defaultValue)

@@ -199,16 +199,26 @@ public class NestTestPayloadBuilderTests
     private readonly NestTestPayloadBuilder _sut = new();
 
     [Fact]
-    public async Task BuildAsyncHonorsSpeciesFilter()
-    {
-        var ctx = new TestPayloadContext("nest", TestJsonHelpers.ToJson(new
-        {
-            pokemon_id = 246
-        }), 40.0, -74.0, DateTimeOffset.UtcNow);
-        var result = await this._sut.BuildAsync(ctx);
+    public void CanBuildClaimsNest() => Assert.True(this._sut.CanBuild("nest"));
 
-        Assert.Equal("nest", result.WireType);
-        Assert.Equal(246, (int)result.Webhook["pokemon_id"]);
+    [Fact]
+    public async Task BuildAsyncThrowsNotSupportedBecauseUpstreamHasNoNestTestSurface()
+    {
+        // Nest test alerts are not supported — the builder claims the type (so the
+        // dispatcher matches) but throws a specific NotSupportedException the controller
+        // translates to HTTP 501. Regression guard against accidentally reviving the
+        // best-effort path.
+        var ctx = new TestPayloadContext(
+            "nest",
+            TestJsonHelpers.ToJson(new
+            {
+                pokemon_id = 246
+            }),
+            40.0,
+            -74.0,
+            DateTimeOffset.UtcNow);
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => this._sut.BuildAsync(ctx));
     }
 }
 

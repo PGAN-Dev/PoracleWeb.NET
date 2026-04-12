@@ -14,7 +14,9 @@ public sealed class PvpRankService(IMemoryCache memoryCache) : IPvpRankService
 
     public RankedCombo[] GetRankTable(int pokemonId, int form, BaseStats baseStats, PvpLeague league)
     {
-        var key = $"pvp_rank::{pokemonId}::{form}::{(int)league}";
+        // Base stats are baked into the key so a game master refresh with updated stats
+        // automatically misses the old entry instead of returning a stale ranking table.
+        var key = $"pvp_rank::{pokemonId}::{form}::{(int)league}::{baseStats.Attack}_{baseStats.Defense}_{baseStats.Stamina}";
         return this._memoryCache.GetOrCreate(key, entry =>
         {
             entry.Priority = CacheItemPriority.NeverRemove;

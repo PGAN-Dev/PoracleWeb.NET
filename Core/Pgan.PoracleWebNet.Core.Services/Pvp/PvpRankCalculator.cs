@@ -14,6 +14,13 @@ public static class PvpRankCalculator
     private const int ComboCount = IvCount * IvCount * IvCount;
 
     /// <summary>
+    /// Highest legal in-game Pokémon level at the time of writing (Best Buddy boost on a
+    /// maxed buddy Pokémon). Used to clamp master league rankings; raise this if Niantic
+    /// uncaps further.
+    /// </summary>
+    public const double CurrentInGameMaxLevel = 51.0;
+
+    /// <summary>
     /// Rank every IV combination (0–15 × 0–15 × 0–15) for the given base stats and league cap.
     /// For each combo, picks the highest legal level under the cap, computes the effective stat
     /// product, sorts descending, and assigns 1-based ranks (ties share a rank).
@@ -101,7 +108,13 @@ public static class PvpRankCalculator
         var def = baseStats.Defense + d;
         var sta = baseStats.Stamina + s;
 
-        var maxIdx = CpMultiplierTable.Values.Length - 1;
+        // Clamp the ranker to the current in-game trainer level ceiling. The CPM table
+        // extends to level 55 for future-proofing, but no player can actually reach that
+        // yet — Best Buddy boost tops out at level 51. Using 55 for master league would
+        // produce CP values that cannot exist in-game, which looks wrong in test DMs.
+        var maxIdx = Math.Min(
+            CpMultiplierTable.Values.Length - 1,
+            CpMultiplierTable.IndexForLevel(CurrentInGameMaxLevel));
 
         // Master league — no cap, use max level directly.
         if (cap == int.MaxValue)

@@ -50,12 +50,14 @@ public partial class TestAlertService(
         // entry by matching (target.template, alarmType). Some alarm rows store it as an int.
         if (alarm.TryGetProperty("template", out var tmpl))
         {
+#pragma warning disable IDE0072
             target.Template = tmpl.ValueKind switch
             {
                 JsonValueKind.String => tmpl.GetString() ?? "1",
                 JsonValueKind.Number when tmpl.TryGetInt32(out var n) => n.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 _ => "1",
             };
+#pragma warning restore IDE0072
         }
         else
         {

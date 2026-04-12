@@ -68,10 +68,13 @@ public class PvpRankCalculatorTests
     }
 
     [Fact]
-    public void RankMasterLeagueAllCombosAtMaxLevel()
+    public void RankMasterLeagueAllCombosAtCurrentInGameMaxLevel()
     {
+        // Master league rank 1 must honor the current in-game level ceiling (L51 with
+        // Best Buddy boost), not the CPM table maximum of L55. Every combo should sit
+        // at that level since no cap is enforced and higher levels are unreachable.
         var ranked = PvpRankCalculator.Rank(Mewtwo, PvpLeague.Master);
-        Assert.All(ranked, combo => Assert.Equal(CpMultiplierTable.MaxLevel, combo.Level));
+        Assert.All(ranked, combo => Assert.Equal(PvpRankCalculator.CurrentInGameMaxLevel, combo.Level));
     }
 
     [Fact]
@@ -141,6 +144,37 @@ public class PvpRankCalculatorTests
     public void CpMultiplierTableHasExpectedSize() =>
         // 109 entries covers levels 1.0 → 55.0 in 0.5 steps.
         Assert.Equal(109, CpMultiplierTable.Values.Length);
+
+    [Fact]
+    public void ComputeCpForStatsMatchesKnownMewtwoL40Hundo()
+    {
+        // Canonical known-answer: Mewtwo at L40 15/15/15 = CP 4178 (in-game, PokeMiners,
+        // every community calculator). This anchors the CPM table, effective-stat
+        // composition, and CP floor formula all in a single assertion — any regression
+        // in CPM indexing, base-stat addition, or rounding would miss by ≥1.
+        var cp = PvpRankCalculator.ComputeCpForStats(Mewtwo, 15, 15, 15, 40.0);
+        Assert.Equal(4178, cp);
+    }
+
+    [Fact]
+    public void RankTiesAreBrokenByAttackIvDescending()
+    {
+        // Documented tiebreak: when two combos share a stat product, the higher attack
+        // IV comes first. Walk the Registeel GL sweep looking for adjacent ties and
+        // assert the invariant on each one. Fails loudly if the sort comparator drifts.
+        var ranked = PvpRankCalculator.Rank(Registeel, PvpLeague.Great);
+        var tiesChecked = 0;
+        for (var i = 1; i < ranked.Length; i++)
+        {
+            if (ranked[i].StatProduct == ranked[i - 1].StatProduct)
+            {
+                Assert.True(ranked[i - 1].Attack >= ranked[i].Attack, $"tiebreak violated at index {i}");
+                tiesChecked++;
+            }
+        }
+
+        Assert.True(tiesChecked > 0, "expected at least one stat-product tie in the Registeel GL table");
+    }
 
     [Fact]
     public void CpMultiplierTableIndexForLevelRoundTrip()

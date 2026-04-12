@@ -40,6 +40,14 @@ public partial class TestAlertController(ITestAlertService testAlertService, ILo
                 error = "Alarm not found"
             });
         }
+        catch (NotSupportedException ex)
+        {
+            // Alarm types with no upstream /api/test surface (currently: nest).
+            return this.StatusCode(StatusCodes.Status501NotImplemented, new
+            {
+                error = ex.Message
+            });
+        }
         catch (OperationCanceledException ex)
         {
             LogSendTestAlertFailed(this._logger, ex, type, uid, this.UserId);

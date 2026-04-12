@@ -51,6 +51,20 @@ public class TestAlertControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task SendTestAlertNotSupportedReturns501()
+    {
+        // Nest alarms surface as NotSupportedException from the service — the controller
+        // must translate that into HTTP 501 so the frontend can render a clear message.
+        this._service.Setup(s => s.SendTestAlertAsync("123456789", "nest", 7))
+            .ThrowsAsync(new NotSupportedException("Nest test alerts aren't supported by PoracleNG's /api/test endpoint."));
+
+        var result = await this._sut.SendTestAlert("nest", 7);
+
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(501, status.StatusCode);
+    }
+
+    [Fact]
     public async Task SendTestAlertAlarmNotFoundReturnsNotFound()
     {
         this._service.Setup(s => s.SendTestAlertAsync("123456789", "pokemon", 999))
