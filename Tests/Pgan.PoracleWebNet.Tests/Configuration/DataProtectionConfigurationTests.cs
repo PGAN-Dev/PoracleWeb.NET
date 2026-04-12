@@ -13,21 +13,6 @@ public class DataProtectionConfigurationTests : IDisposable
 {
     private readonly string _tempDir;
 
-    private static string EnsureRelativePath(string pathSegment)
-    {
-        if (string.IsNullOrWhiteSpace(pathSegment))
-        {
-            throw new ArgumentException("Path segment must not be null, empty, or whitespace.", nameof(pathSegment));
-        }
-
-        if (Path.IsPathRooted(pathSegment))
-        {
-            throw new ArgumentException("Path segment must be relative.", nameof(pathSegment));
-        }
-
-        return pathSegment;
-    }
-
     public DataProtectionConfigurationTests()
     {
         this._tempDir = Path.Join(Path.GetTempPath(), $"dp-test-{Path.GetRandomFileName()}");
@@ -221,7 +206,7 @@ public class DataProtectionConfigurationTests : IDisposable
             .CreateProtector("accumulate-test")
             .Protect("trigger");
 
-        var keysDir = Path.Join(this._tempDir, EnsureRelativePath("dataprotection-keys"));
+        var keysDir = Path.Combine(this._tempDir, "dataprotection-keys");
         var keyCountAfterFirst = Directory.GetFiles(keysDir, "key-*.xml").Length;
 
         var provider2 = BuildServiceProvider(this._tempDir);
@@ -260,8 +245,8 @@ public class DataProtectionConfigurationTests : IDisposable
             .Build();
 
         // When DATA_DIR is not set, the fallback is Path.Join(Directory.GetCurrentDirectory(), "data")
-        var expectedDir = Path.Join(Directory.GetCurrentDirectory(), "data");
-        var resolvedDir = config["DATA_DIR"] ?? Path.Join(Directory.GetCurrentDirectory(), "data");
+        var expectedDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+        var resolvedDir = config["DATA_DIR"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
 
         Assert.Equal(expectedDir, resolvedDir);
     }
