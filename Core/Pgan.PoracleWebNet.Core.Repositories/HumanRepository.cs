@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Mappings;
@@ -109,12 +110,9 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
 
     private static void EnsureNotNullDefaults(HumanEntity entity)
     {
-        foreach (var prop in WritableStringProperties)
+        foreach (var prop in WritableStringProperties.Where(prop => prop.GetValue(entity) == null))
         {
-            if (prop.GetValue(entity) == null)
-            {
-                prop.SetValue(entity, string.Empty);
-            }
+            prop.SetValue(entity, string.Empty);
         }
     }
 }
