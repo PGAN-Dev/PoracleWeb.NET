@@ -32,14 +32,15 @@ interface MaxBattleLevelOption {
   value: number;
 }
 
-const LEVEL_OPTIONS: MaxBattleLevelOption[] = [
-  { gmax: false, label: '1 Star', value: 1 },
-  { gmax: false, label: '2 Star', value: 2 },
-  { gmax: false, label: '3 Star', value: 3 },
-  { gmax: false, label: '4 Star', value: 4 },
-  { gmax: false, label: '5 Star (Legendary)', value: 5 },
-  { gmax: true, label: 'Gigantamax', value: 7 },
-  { gmax: true, label: 'Legendary Gigantamax', value: 8 },
+/** i18n keys for level labels, resolved at component instantiation */
+const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
+  { gmax: false, i18nKey: 'MAX_BATTLES.LEVEL_1', value: 1 },
+  { gmax: false, i18nKey: 'MAX_BATTLES.LEVEL_2', value: 2 },
+  { gmax: false, i18nKey: 'MAX_BATTLES.LEVEL_3', value: 3 },
+  { gmax: false, i18nKey: 'MAX_BATTLES.LEVEL_4', value: 4 },
+  { gmax: false, i18nKey: 'MAX_BATTLES.LEVEL_5', value: 5 },
+  { gmax: true, i18nKey: 'MAX_BATTLES.LEVEL_GMAX', value: 7 },
+  { gmax: true, i18nKey: 'MAX_BATTLES.LEVEL_GMAX_LEGENDARY', value: 8 },
 ];
 
 @Component({
@@ -87,7 +88,11 @@ export class MaxBattleEditDialogComponent {
 
   readonly isLevelBased = this.data.item.pokemonId === 9000;
   readonly isWebhook = inject(AuthService).isImpersonating();
-  readonly levelOptions = LEVEL_OPTIONS;
+  readonly levelOptions: MaxBattleLevelOption[] = LEVEL_OPTION_KEYS.map(k => ({
+    gmax: k.gmax,
+    label: this.i18n.instant(k.i18nKey),
+    value: k.value,
+  }));
 
   saving = signal(false);
 
@@ -102,7 +107,7 @@ export class MaxBattleEditDialogComponent {
   getLevelLabel(): string {
     const level = this.data.item.level;
     if (level === 9000) return this.i18n.instant('MAX_BATTLES.ANY_LEVEL');
-    const opt = LEVEL_OPTIONS.find(l => l.value === level);
+    const opt = this.levelOptions.find(l => l.value === level);
     return opt ? opt.label : this.i18n.instant('MAX_BATTLES.LEVEL_NUM', { level });
   }
 
@@ -139,7 +144,7 @@ export class MaxBattleEditDialogComponent {
 
     const item = this.data.item;
     const levelVal = this.isLevelBased ? (values.level ?? item.level) : 9000;
-    const levelDef = LEVEL_OPTIONS.find(l => l.value === levelVal);
+    const levelDef = this.levelOptions.find(l => l.value === levelVal);
     // For level-based alarms, gmax is derived from the level (7/8 = gmax).
     // For pokemon-based alarms, gmax is an independent toggle (e.g. "only Gigantamax Charizard").
     const gmaxVal = this.isLevelBased ? (levelDef?.gmax ? 1 : 0) : values.gmax ? 1 : 0;

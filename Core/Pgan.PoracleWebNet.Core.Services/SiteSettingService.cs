@@ -21,6 +21,7 @@ public partial class SiteSettingService(
         "custom_title",
         "enable_discord",
         "enable_telegram",
+        "signup_url",
     };
 
     public async Task<IEnumerable<SiteSetting>> GetAllAsync() => await this._repository.GetAllAsync();

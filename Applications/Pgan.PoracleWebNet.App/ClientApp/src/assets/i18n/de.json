@@ -562,7 +562,11 @@
     "CHANGE_IMAGE": "Bild geändert",
     "CHANGE_REMOVAL": "Entfernt",
     "CHANGE_NEW": "Neues Fort",
-    "INCLUDE_EMPTY": "Forts ohne Namen einschließen"
+    "INCLUDE_EMPTY": "Forts ohne Namen einschließen",
+    "CREATE_FAILED": "Failed to create alarm",
+    "CREATE_SUCCESS": "Fort change alarm created",
+    "UPDATE_FAILED": "Failed to update alarm",
+    "UPDATE_SUCCESS": "Fort change alarm updated"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max-Kampf-Alarme",
@@ -576,7 +580,16 @@
     "BY_POKEMON": "Nach Pokemon",
     "GIGANTAMAX_ONLY": "Nur Gigantamax",
     "GMAX_TAG": "GMAX",
-    "BATTLE_LEVEL": "Kampf-Level"
+    "BATTLE_LEVEL": "Kampf-Level",
+    "LEVEL_1": "1 Star",
+    "LEVEL_2": "2 Star",
+    "LEVEL_3": "3 Star",
+    "LEVEL_4": "4 Star",
+    "LEVEL_5": "5 Star (Legendary)",
+    "LEVEL_GMAX": "Gigantamax",
+    "LEVEL_GMAX_LEGENDARY": "Legendary Gigantamax",
+    "CREATE_FAILED": "Failed to create alarm(s)",
+    "CREATE_SUCCESS": "{{count}} alarm(s) created"
   },
   "AREAS": {
     "PAGE_TITLE": "Gebiete & Standort",
@@ -921,12 +934,27 @@
     "FOOTER": "Verwalte Alarme für Pokemon, Raids, Quests und mehr",
     "AUTH_FAILED": "Authentifizierung fehlgeschlagen",
     "BACK_TO_LOGIN": "Zurück zur Anmeldung",
-    "ERR_DISCORD_FETCH": "Discord-Benutzerinformationen konnten nicht abgerufen werden.",
-    "ERR_MISSING_CODE": "Kein Autorisierungscode von Discord erhalten.",
-    "ERR_TOKEN_EXCHANGE": "Autorisierungscode konnte nicht mit Discord ausgetauscht werden.",
-    "ERR_NOT_REGISTERED": "Dein Konto ist nicht bei Poracle registriert.",
+    "ERR_DISCORD_DISABLED": "Discord login is currently disabled.",
+    "ERR_DISCORD_FETCH": "Could not retrieve your Discord profile. Please try again.",
+    "ERR_MISSING_CODE": "Discord authentication was cancelled or failed.",
+    "ERR_MISSING_ROLE": "You do not have the required Discord role to access this site.",
+    "ERR_NOT_IN_GUILD": "You must be a member of the Discord server to access this site.",
+    "ERR_NOT_REGISTERED": "Your account is not registered. Please sign up to get started.",
+    "ERR_ROLE_CHECK_FAILED": "Unable to verify your Discord roles. Please try again later.",
+    "ERR_TELEGRAM_FAILED": "Telegram authentication failed. Please try again.",
+    "ERR_TOKEN_EXCHANGE": "Discord authentication failed. Please try again.",
     "ERR_GENERIC": "Authentifizierungsfehler: {{error}}",
-    "ERR_NO_TOKEN": "Kein Authentifizierungstoken erhalten."
+    "ERR_NO_TOKEN": "Kein Authentifizierungstoken erhalten.",
+    "SIGN_UP": "Sign Up",
+    "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
+  },
+  "ERROR": {
+    "SESSION_EXPIRED": "Session expired. Please log in again.",
+    "PERMISSION_DENIED": "You don't have permission for this action.",
+    "NOT_FOUND": "The requested resource was not found.",
+    "NETWORK": "Network error. Check your connection.",
+    "GENERIC": "Something went wrong. Please try again.",
+    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
   },
   "ADMIN": {
     "USERS_TITLE": "Benutzerverwaltung",
@@ -1125,7 +1153,11 @@
     "SUCCESS": "Testalarm gesendet! Überprüfe deine DMs.",
     "ERROR_RATE_LIMIT": "Zu viele Testalarme. Bitte warte einen Moment.",
     "ERROR_NOT_FOUND": "Alarm nicht gefunden — er wurde möglicherweise gelöscht.",
-    "ERROR_GENERIC": "Testalarm konnte nicht gesendet werden. Versuche es später erneut."
+    "ERROR_GENERIC": "Testalarm konnte nicht gesendet werden. Versuche es später erneut.",
+    "RATE_LIMITED": "Too many test alerts. Please wait a moment.",
+    "NOT_FOUND": "Alarm not found — it may have been deleted.",
+    "UNSUPPORTED": "Test alerts are not supported for this alarm type.",
+    "FAILED": "Failed to send test alert. Try again later."
   },
   "COMMON": {
     "CANCEL": "Abbrechen",
@@ -1170,6 +1202,23 @@
     "PREVIEW_OPTIONS": "Vorschau-Optionen",
     "MAP_PREVIEW": "Kartenvorschau"
   },
+  "TEMPLATE": {
+    "COND_BOOST_WEATHER": "Weather Boosted",
+    "COND_CONFIRMED_DESPAWN": "Confirmed Despawn",
+    "COND_DISGUISE_ZORUA": "Disguise (Zorua)",
+    "COND_EX_ELIGIBLE": "EX Raid Eligible",
+    "COND_FORM_NAME": "Has Form Name",
+    "COND_UPCOMING_EVENT": "Upcoming Event",
+    "COND_PVP_AVAILABLE": "PVP Data Available",
+    "COND_PVP_GREAT": "Great League",
+    "COND_PVP_GREAT_BEST": "Great League Best",
+    "COND_PVP_LITTLE": "Little League",
+    "COND_PVP_LITTLE_BEST": "Little League Best",
+    "COND_PVP_ULTRA": "Ultra League",
+    "COND_PVP_ULTRA_BEST": "Ultra League Best",
+    "COND_PVP_RANKING": "PVP Ranking",
+    "COND_WEATHER_CHANGING": "Weather Changing"
+  },
   "REGION_SELECTOR": {
     "ALL_REGIONS": "Alle Regionen"
   },
@@ -1196,5 +1245,13 @@
   },
   "ALARM_INFO": {
     "PING_TOOLTIP": "Ping: {{ping}}"
+  },
+  "ADMIN_SETTINGS": {
+    "SIGNUP_URL_LABEL": "Signup URL",
+    "SIGNUP_URL_DESC": "External signup/registration page URL. When set, non-registered users will see a sign-up button on the login page.",
+    "LOAD_FAILED": "Failed to load settings",
+    "SAVE_SUCCESS": "{{count}} setting(s) saved",
+    "SAVE_PARTIAL": "{{done}} saved, {{errors}} failed",
+    "ICONS_SELECTED": "Selected {{repo}} icons — click Save to apply"
   }
 }

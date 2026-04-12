@@ -1,6 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 import { catchError, throwError } from 'rxjs';
 
 import { ToastService } from '../services/toast.service';
@@ -22,6 +23,7 @@ function isAuthCallbackRoute(): boolean {
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
   const router = inject(Router);
+  const translate = inject(TranslateService);
 
   return next(req).pipe(
     catchError(error => {
@@ -39,24 +41,24 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (!silent) {
         switch (error.status) {
           case 401:
-            toast.error('Session expired. Please log in again.');
+            toast.error(translate.instant('ERROR.SESSION_EXPIRED'));
             break;
           case 403:
-            toast.error("You don't have permission for this action.");
+            toast.error(translate.instant('ERROR.PERMISSION_DENIED'));
             break;
           case 404:
-            toast.error('The requested resource was not found.');
+            toast.error(translate.instant('ERROR.NOT_FOUND'));
             break;
           case 0:
-            toast.error('Network error. Check your connection.');
+            toast.error(translate.instant('ERROR.NETWORK'));
             break;
           case 500:
-            toast.error('Something went wrong. Please try again.');
+            toast.error(translate.instant('ERROR.GENERIC'));
             break;
           case 502:
           case 503:
           case 504:
-            toast.error('Server is temporarily unavailable.');
+            toast.error(translate.instant('ERROR.SERVER_UNAVAILABLE'));
             break;
         }
       }

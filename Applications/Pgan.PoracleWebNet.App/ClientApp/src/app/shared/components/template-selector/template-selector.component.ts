@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfigService } from '../../../core/services/config.service';
@@ -39,23 +39,23 @@ interface ConditionToggle {
   name: string;
 }
 
-// Friendly labels for Handlebars conditions
-const CONDITION_LABELS: Record<string, string> = {
-  boostWeatherEmoji: 'Weather Boosted',
-  confirmedTime: 'Confirmed Despawn',
-  disguisePokemonName: 'Disguise (Zorua)',
-  ex: 'EX Raid Eligible',
-  formNormalisedEng: 'Has Form Name',
-  futureEvent: 'Upcoming Event',
-  pvpAvailable: 'PVP Data Available',
-  pvpGreat: 'Great League',
-  pvpGreatBest: 'Great League Best',
-  pvpLittle: 'Little League',
-  pvpLittleBest: 'Little League Best',
-  pvpUltra: 'Ultra League',
-  pvpUltraBest: 'Ultra League Best',
-  pvpUserRanking: 'PVP Ranking',
-  weatherChange: 'Weather Changing',
+// i18n keys for Handlebars condition labels
+const CONDITION_I18N_KEYS: Record<string, string> = {
+  boostWeatherEmoji: 'TEMPLATE.COND_BOOST_WEATHER',
+  confirmedTime: 'TEMPLATE.COND_CONFIRMED_DESPAWN',
+  disguisePokemonName: 'TEMPLATE.COND_DISGUISE_ZORUA',
+  ex: 'TEMPLATE.COND_EX_ELIGIBLE',
+  formNormalisedEng: 'TEMPLATE.COND_FORM_NAME',
+  futureEvent: 'TEMPLATE.COND_UPCOMING_EVENT',
+  pvpAvailable: 'TEMPLATE.COND_PVP_AVAILABLE',
+  pvpGreat: 'TEMPLATE.COND_PVP_GREAT',
+  pvpGreatBest: 'TEMPLATE.COND_PVP_GREAT_BEST',
+  pvpLittle: 'TEMPLATE.COND_PVP_LITTLE',
+  pvpLittleBest: 'TEMPLATE.COND_PVP_LITTLE_BEST',
+  pvpUltra: 'TEMPLATE.COND_PVP_ULTRA',
+  pvpUltraBest: 'TEMPLATE.COND_PVP_ULTRA_BEST',
+  pvpUserRanking: 'TEMPLATE.COND_PVP_RANKING',
+  weatherChange: 'TEMPLATE.COND_WEATHER_CHANGING',
 };
 
 @Component({
@@ -82,6 +82,7 @@ export class TemplateSelectorComponent implements OnInit {
   private http = inject(HttpClient);
   private settings = inject(SettingsService);
   private templateService = inject(TemplateService);
+  private translate = inject(TranslateService);
   conditions = signal<ConditionToggle[]>([]);
   activeConditionCount = computed(() => this.conditions().filter(c => c.enabled).length);
   @Input() alarmType = 'monster';
@@ -158,7 +159,8 @@ export class TemplateSelectorComponent implements OnInit {
       for (const name of condNames) {
         // Skip internal/nested conditions
         if (name.includes('.')) continue;
-        const label = CONDITION_LABELS[name] || name.replace(/([A-Z])/g, ' $1').trim();
+        const i18nKey = CONDITION_I18N_KEYS[name];
+        const label = i18nKey ? this.translate.instant(i18nKey) : name.replace(/([A-Z])/g, ' $1').trim();
         const defaultOn = ['boostWeatherEmoji', 'confirmedTime', 'formNormalisedEng'].includes(name);
         toggles.push({ name, enabled: defaultOn, label });
         defaults[name] = defaultOn;

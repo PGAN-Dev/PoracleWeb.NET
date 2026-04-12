@@ -95,11 +95,11 @@ export class FortChangeAddDialogComponent {
       })
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to create alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('FORT_CHANGES.CREATE_FAILED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Fort change alarm created', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('FORT_CHANGES.CREATE_SUCCESS'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

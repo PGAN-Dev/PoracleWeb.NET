@@ -60,7 +60,17 @@
           @if (error()) {
             <div class="error-message">
               <mat-icon>error_outline</mat-icon>
-              <span>{{ error() }}</span>
+              <span>{{ error() | translate }}</span>
+            </div>
+          }
+
+          @if (signupUrl()) {
+            <div class="signup-cta">
+              <p class="signup-text">{{ 'AUTH.SIGN_UP_DESC' | translate }}</p>
+              <a class="auth-btn signup-btn" [href]="signupUrl()" target="_blank" rel="noopener noreferrer">
+                <mat-icon>person_add</mat-icon>
+                {{ 'AUTH.SIGN_UP' | translate }}
+              </a>
             </div>
           }
         </div>

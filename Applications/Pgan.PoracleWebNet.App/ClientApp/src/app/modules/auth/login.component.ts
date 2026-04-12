@@ -49,6 +49,11 @@ export class LoginComponent implements OnInit {
 
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
+
+  protected readonly signupUrl = computed(() => {
+    return this.settingsService.siteSettings()['signup_url'] || null;
+  });
+
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || '');
   @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
 
@@ -78,17 +83,17 @@ export class LoginComponent implements OnInit {
     const fragmentParams = new URLSearchParams(fragment);
     const errorCode = fragmentParams.get('error');
     if (errorCode) {
-      const messages: Record<string, string> = {
-        discord_disabled: 'Discord login is currently disabled.',
-        discord_user_fetch_failed: 'Could not retrieve your Discord profile. Please try again.',
-        missing_code: 'Discord authentication was cancelled or failed.',
-        missing_required_role: 'You do not have the required Discord role to access this site.',
-        not_in_guild: 'You must be a member of the Discord server to access this site.',
-        role_check_failed: 'Unable to verify your Discord roles. Please try again later.',
-        token_exchange_failed: 'Discord authentication failed. Please try again.',
-        user_not_registered: 'Your account is not registered with Poracle. Please register using the bot first.',
+      const errorKeys: Record<string, string> = {
+        discord_disabled: 'AUTH.ERR_DISCORD_DISABLED',
+        discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
+        missing_code: 'AUTH.ERR_MISSING_CODE',
+        missing_required_role: 'AUTH.ERR_MISSING_ROLE',
+        not_in_guild: 'AUTH.ERR_NOT_IN_GUILD',
+        role_check_failed: 'AUTH.ERR_ROLE_CHECK_FAILED',
+        token_exchange_failed: 'AUTH.ERR_TOKEN_EXCHANGE',
+        user_not_registered: 'AUTH.ERR_NOT_REGISTERED',
       };
-      this.error.set(messages[errorCode] || `Login failed: ${errorCode}`);
+      this.error.set(errorKeys[errorCode] || errorCode);
       // Clear any stale token without navigating (logout() would redirect away)
       localStorage.removeItem('poracle_token');
       localStorage.removeItem('poracle_admin_token');
@@ -129,7 +134,7 @@ export class LoginComponent implements OnInit {
       .subscribe({
         error: err => {
           this.loading.set(false);
-          this.error.set(err.error?.error || 'Telegram authentication failed. Please try again.');
+          this.error.set('AUTH.ERR_TELEGRAM_FAILED');
         },
         next: () => this.router.navigate(['/dashboard']),
       });

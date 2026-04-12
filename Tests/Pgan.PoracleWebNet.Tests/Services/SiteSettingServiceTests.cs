@@ -78,6 +78,18 @@ public class SiteSettingServiceTests
     }
 
     [Fact]
+    public async Task GetPublicAsyncIncludesSignupUrlSetting()
+    {
+        this._repository.Setup(r => r.GetByKeyAsync("signup_url"))
+            .ReturnsAsync(new SiteSetting { Key = "signup_url", Value = "https://signup.example.com", Category = "features" });
+
+        var result = (await this._sut.GetPublicAsync()).ToList();
+
+        Assert.Contains(result, s => s.Key == "signup_url");
+        Assert.Equal("https://signup.example.com", result.First(s => s.Key == "signup_url").Value);
+    }
+
+    [Fact]
     public async Task GetPublicAsyncSkipsMissingLoginMethodSettings()
     {
         // Only custom_title exists; enable_discord and enable_telegram are absent from DB

@@ -2,6 +2,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 import { errorInterceptor } from './error.interceptor';
 import { ToastService } from '../services/toast.service';
@@ -24,6 +25,7 @@ describe('errorInterceptor', () => {
         provideHttpClientTesting(),
         { provide: ToastService, useValue: toast },
         { provide: Router, useValue: router },
+        { provide: TranslateService, useValue: { instant: jest.fn((key: string) => key) } },
       ],
     });
     http = TestBed.inject(HttpClient);
@@ -44,7 +46,7 @@ describe('errorInterceptor', () => {
 
     expect(localStorage.getItem('poracle_token')).toBeNull();
     expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
-    expect(toast.error).toHaveBeenCalledWith('Session expired. Please log in again.');
+    expect(toast.error).toHaveBeenCalledWith('ERROR.SESSION_EXPIRED');
   });
 
   it('should show permission toast for 403', () => {
@@ -55,7 +57,7 @@ describe('errorInterceptor', () => {
       statusText: 'Forbidden',
     });
 
-    expect(toast.error).toHaveBeenCalledWith("You don't have permission for this action.");
+    expect(toast.error).toHaveBeenCalledWith('ERROR.PERMISSION_DENIED');
   });
 
   it('should show not found toast for 404', () => {
@@ -66,7 +68,7 @@ describe('errorInterceptor', () => {
       statusText: 'Not Found',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('The requested resource was not found.');
+    expect(toast.error).toHaveBeenCalledWith('ERROR.NOT_FOUND');
   });
 
   it('should show server error toast for 500', () => {
@@ -77,7 +79,7 @@ describe('errorInterceptor', () => {
       statusText: 'Error',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('Something went wrong. Please try again.');
+    expect(toast.error).toHaveBeenCalledWith('ERROR.GENERIC');
   });
 
   it('should show unavailable toast for 502/503/504', () => {
@@ -90,7 +92,7 @@ describe('errorInterceptor', () => {
         statusText: 'Unavailable',
       });
 
-      expect(toast.error).toHaveBeenCalledWith('Server is temporarily unavailable.');
+      expect(toast.error).toHaveBeenCalledWith('ERROR.SERVER_UNAVAILABLE');
     }
   });
 
@@ -99,7 +101,7 @@ describe('errorInterceptor', () => {
 
     httpMock.expectOne('/api/dashboard').error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
 
-    expect(toast.error).toHaveBeenCalledWith('Network error. Check your connection.');
+    expect(toast.error).toHaveBeenCalledWith('ERROR.NETWORK');
   });
 
   describe('silent endpoints', () => {

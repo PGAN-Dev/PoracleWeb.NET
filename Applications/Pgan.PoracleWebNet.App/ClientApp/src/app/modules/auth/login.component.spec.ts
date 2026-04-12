@@ -156,7 +156,42 @@ describe('LoginComponent', () => {
       window.location.hash = '#error=discord_disabled';
       setup();
       fixture.detectChanges();
-      expect(component['error']()).toBe('Discord login is currently disabled.');
+      expect(component['error']()).toBe('AUTH.ERR_DISCORD_DISABLED');
+    });
+  });
+
+  describe('signup URL', () => {
+    it('should show signup button when signup_url is in site settings', () => {
+      setup();
+      settingsSignal.set({ signup_url: 'https://example.com/signup' });
+      fixture.detectChanges();
+      const btn = fixture.nativeElement.querySelector('.signup-btn');
+      expect(btn).toBeTruthy();
+      expect(btn.getAttribute('href')).toBe('https://example.com/signup');
+    });
+
+    it('should hide signup button when no signup_url', () => {
+      setup();
+      fixture.detectChanges();
+      const btn = fixture.nativeElement.querySelector('.signup-btn');
+      expect(btn).toBeNull();
+    });
+
+    it('should not use signup_url from URL fragment', () => {
+      window.location.hash = '#error=user_not_registered&signup_url=https%3A%2F%2Fattacker.example.com';
+      setup();
+      fixture.detectChanges();
+      const btn = fixture.nativeElement.querySelector('.signup-btn');
+      expect(btn).toBeNull();
+    });
+
+    it('should show signup description text when signup_url is set', () => {
+      setup();
+      settingsSignal.set({ signup_url: 'https://example.com/signup' });
+      fixture.detectChanges();
+      const text = fixture.nativeElement.querySelector('.signup-text');
+      expect(text).toBeTruthy();
+      expect(text.textContent).toContain('AUTH.SIGN_UP_DESC');
     });
   });
 });

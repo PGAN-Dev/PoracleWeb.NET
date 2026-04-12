@@ -79,13 +79,13 @@ export class MaxBattleAddDialogComponent {
 
   /** PoracleNG max battle levels: 1-5 = Dynamax, 7 = Gigantamax, 8 = Legendary Gigantamax */
   readonly levels: MaxBattleLevel[] = [
-    { gmax: false, label: '1 Star', value: 1 },
-    { gmax: false, label: '2 Star', value: 2 },
-    { gmax: false, label: '3 Star', value: 3 },
-    { gmax: false, label: '4 Star', value: 4 },
-    { gmax: false, label: '5 Star (Legendary)', value: 5 },
-    { gmax: true, label: 'Gigantamax', value: 7 },
-    { gmax: true, label: 'Legendary Gigantamax', value: 8 },
+    { gmax: false, label: this.i18n.instant('MAX_BATTLES.LEVEL_1'), value: 1 },
+    { gmax: false, label: this.i18n.instant('MAX_BATTLES.LEVEL_2'), value: 2 },
+    { gmax: false, label: this.i18n.instant('MAX_BATTLES.LEVEL_3'), value: 3 },
+    { gmax: false, label: this.i18n.instant('MAX_BATTLES.LEVEL_4'), value: 4 },
+    { gmax: false, label: this.i18n.instant('MAX_BATTLES.LEVEL_5'), value: 5 },
+    { gmax: true, label: this.i18n.instant('MAX_BATTLES.LEVEL_GMAX'), value: 7 },
+    { gmax: true, label: this.i18n.instant('MAX_BATTLES.LEVEL_GMAX_LEGENDARY'), value: 8 },
   ];
 
   maxBattlePokemonIds = signal<number[] | null>(null);
@@ -171,11 +171,15 @@ export class MaxBattleAddDialogComponent {
 
     forkJoin(creates).subscribe({
       error: () => {
-        this.snackBar.open('Failed to create alarm(s)', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        this.snackBar.open(this.i18n.instant('MAX_BATTLES.CREATE_FAILED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(`${creates.length} alarm(s) created`, this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        this.snackBar.open(
+          this.i18n.instant('MAX_BATTLES.CREATE_SUCCESS', { count: creates.length }),
+          this.i18n.instant('COMMON.OK'),
+          { duration: 3000 },
+        );
         this.dialogRef.close(true);
       },
     });

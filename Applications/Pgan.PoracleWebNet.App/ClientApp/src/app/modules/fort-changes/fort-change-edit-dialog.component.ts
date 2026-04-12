@@ -97,11 +97,11 @@ export class FortChangeEditDialogComponent {
       } as FortChangeUpdate)
       .subscribe({
         error: () => {
-          this.snackBar.open('Failed to update alarm', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('FORT_CHANGES.UPDATE_FAILED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.saving.set(false);
         },
         next: () => {
-          this.snackBar.open('Fort change alarm updated', this.i18n.instant('COMMON.OK'), { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('FORT_CHANGES.UPDATE_SUCCESS'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
           this.dialogRef.close(true);
         },
       });

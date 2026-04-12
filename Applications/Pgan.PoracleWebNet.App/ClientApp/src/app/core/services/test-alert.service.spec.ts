@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslateService } from '@ngx-translate/core';
 
 import { ConfigService } from './config.service';
 import { TestAlertService } from './test-alert.service';
@@ -20,6 +21,7 @@ describe('TestAlertService', () => {
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: API } },
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
+        { provide: TranslateService, useValue: { instant: jest.fn((key: string) => key) } },
       ],
     });
     service = TestBed.inject(TestAlertService);
@@ -47,7 +49,7 @@ describe('TestAlertService', () => {
     const req = httpMock.expectOne(`${API}/api/test-alert/raid/7`);
     req.flush({ message: 'sent', status: 'ok' });
 
-    expect(snackBar.open).toHaveBeenCalledWith('Test alert sent! Check your DMs.', 'OK', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.SUCCESS', 'OK', { duration: 4000 });
   });
 
   it('should show error snackbar on HTTP error', () => {
@@ -56,7 +58,7 @@ describe('TestAlertService', () => {
     const req = httpMock.expectOne(`${API}/api/test-alert/quest/5`);
     req.flush('Server error', { status: 500, statusText: 'Internal Server Error' });
 
-    expect(snackBar.open).toHaveBeenCalledWith('Failed to send test alert. Try again later.', 'OK', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.FAILED', 'OK', { duration: 4000 });
   });
 
   it('should show rate limit message on 429', () => {
@@ -65,7 +67,7 @@ describe('TestAlertService', () => {
     const req = httpMock.expectOne(`${API}/api/test-alert/pokemon/1`);
     req.flush('Too many requests', { status: 429, statusText: 'Too Many Requests' });
 
-    expect(snackBar.open).toHaveBeenCalledWith('Too many test alerts. Please wait a moment.', 'OK', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.RATE_LIMITED', 'OK', { duration: 4000 });
   });
 
   it('should show not found message on 404', () => {
@@ -74,7 +76,7 @@ describe('TestAlertService', () => {
     const req = httpMock.expectOne(`${API}/api/test-alert/egg/3`);
     req.flush('Not found', { status: 404, statusText: 'Not Found' });
 
-    expect(snackBar.open).toHaveBeenCalledWith('Alarm not found — it may have been deleted.', 'OK', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.NOT_FOUND', 'OK', { duration: 4000 });
   });
 
   it('should surface the server message on 501 unsupported-type', () => {
@@ -106,7 +108,7 @@ describe('TestAlertService', () => {
     const req = httpMock.expectOne(`${API}/api/test-alert/nest/13`);
     req.flush(null, { status: 501, statusText: 'Not Implemented' });
 
-    expect(snackBar.open).toHaveBeenCalledWith('Test alerts are not supported for this alarm type.', 'OK', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith('TEST_ALERT.UNSUPPORTED', 'OK', { duration: 4000 });
   });
 
   it('should track sending state', () => {

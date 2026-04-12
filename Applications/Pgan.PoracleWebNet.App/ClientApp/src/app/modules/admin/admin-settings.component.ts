@@ -13,6 +13,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { DiscordServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 
 /** Union type for backward compatibility during migration */
@@ -295,6 +296,12 @@ const SETTING_GROUPS: SettingGroup[] = [
     labelKey: 'ADMIN_SETTINGS.GROUP_ANALYTICS_LINKS',
     settings: [
       {
+        descriptionKey: 'ADMIN_SETTINGS.SIGNUP_URL_DESC',
+        key: 'signup_url',
+        labelKey: 'ADMIN_SETTINGS.SIGNUP_URL_LABEL',
+        type: 'url',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.GANALYTICSID_DESC',
         key: 'gAnalyticsId',
         labelKey: 'ADMIN_SETTINGS.GANALYTICSID_LABEL',
@@ -350,6 +357,7 @@ export class AdminSettingsComponent implements OnInit {
   ]);
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
   private readonly internalPrefixes = [
     'webhook_delegates:',
     'quick_pick:',
@@ -489,7 +497,7 @@ export class AdminSettingsComponent implements OnInit {
       .subscribe({
         error: () => {
           this.settingsLoading.set(false);
-          this.snackBar.open('Failed to load settings', 'OK', { duration: 3000 });
+          this.snackBar.open(this.i18n.instant('ADMIN_SETTINGS.LOAD_FAILED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
         },
         next: settings => {
           this.settings.set(settings);
@@ -572,7 +580,11 @@ export class AdminSettingsComponent implements OnInit {
         return [...list, { key, value } as unknown as AnySettingItem];
       });
     }
-    this.snackBar.open(`Selected ${repo.base.split('/').pop()} icons — click Save to apply`, 'OK', { duration: 4000 });
+    this.snackBar.open(
+      this.i18n.instant('ADMIN_SETTINGS.ICONS_SELECTED', { repo: repo.base.split('/').pop() }),
+      this.i18n.instant('COMMON.OK'),
+      { duration: 4000 },
+    );
   }
 
   private applyChange(key: string, value: string): void {
@@ -591,7 +603,11 @@ export class AdminSettingsComponent implements OnInit {
   private finish(done: number, errors: number, errorMessages: string[] = []): void {
     this.bulkSaving.set(false);
     const msg =
-      errors === 0 ? `${done} setting(s) saved` : errorMessages.length > 0 ? errorMessages.join(' ') : `${done} saved, ${errors} failed`;
-    this.snackBar.open(msg, 'OK', { duration: errors ? 5000 : 3000 });
+      errors === 0
+        ? this.i18n.instant('ADMIN_SETTINGS.SAVE_SUCCESS', { count: done })
+        : errorMessages.length > 0
+          ? errorMessages.join(' ')
+          : this.i18n.instant('ADMIN_SETTINGS.SAVE_PARTIAL', { done, errors });
+    this.snackBar.open(msg, this.i18n.instant('COMMON.OK'), { duration: errors ? 5000 : 3000 });
   }
 }

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslateService } from '@ngx-translate/core';
 import { EMPTY, catchError, finalize, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
@@ -18,6 +19,7 @@ export class TestAlertService {
   private readonly sending = signal<Set<string>>(new Set());
 
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   isCoolingDown(type: string, uid: number): boolean {
     const key = `${type}:${uid}`;
@@ -46,7 +48,7 @@ export class TestAlertService {
       .post<{ status: string; message: string }>(`${this.config.apiHost}/api/test-alert/${type}/${uid}`, {})
       .pipe(
         tap(() => {
-          this.snackBar.open('Test alert sent! Check your DMs.', 'OK', { duration: 4000 });
+          this.snackBar.open(this.translate.instant('TEST_ALERT.SUCCESS'), 'OK', { duration: 4000 });
           this.startCooldown(key);
         }),
         catchError(err => {
@@ -57,12 +59,12 @@ export class TestAlertService {
           const serverMessage = err?.error?.error;
           const message =
             err.status === 429
-              ? 'Too many test alerts. Please wait a moment.'
+              ? this.translate.instant('TEST_ALERT.RATE_LIMITED')
               : err.status === 404
-                ? 'Alarm not found — it may have been deleted.'
+                ? this.translate.instant('TEST_ALERT.NOT_FOUND')
                 : err.status === 501
-                  ? (serverMessage ?? 'Test alerts are not supported for this alarm type.')
-                  : 'Failed to send test alert. Try again later.';
+                  ? (serverMessage ?? this.translate.instant('TEST_ALERT.UNSUPPORTED'))
+                  : this.translate.instant('TEST_ALERT.FAILED');
           this.snackBar.open(message, 'OK', { duration: 4000 });
           // Start the cooldown on unsupported-type errors so the user can't spam-click
           // the button and waste rate-limit quota on a known no-op.
