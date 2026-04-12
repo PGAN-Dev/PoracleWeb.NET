@@ -33,7 +33,7 @@ public static class ServiceCollectionExtensions
         // Persist DataProtection keys so they survive container restarts.
         // Docker: DATA_DIR=/app/data (set in Dockerfile, volume-mounted in docker-compose.yml).
         // Standalone: falls back to ./data/ relative to the working directory.
-        var dataDir = configuration["DATA_DIR"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+        var dataDir = configuration["DATA_DIR"] ?? Path.Join(Directory.GetCurrentDirectory(), "data");
         var dataDirFullPath = Path.GetFullPath(dataDir);
         var keyDirectoryPath = Path.GetFullPath(Path.Combine(dataDirFullPath, "dataprotection-keys"));
         var expectedPrefix = dataDirFullPath.EndsWith(Path.DirectorySeparatorChar)
