@@ -12,6 +12,9 @@ import { AuthProviders } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 
+/** Timeout for provider config and public settings fetches on the login page. */
+const LOGIN_FETCH_TIMEOUT_MS = 10_000;
+
 // Extend Window to allow the Telegram callback
 declare global {
   interface Window {
@@ -92,11 +95,11 @@ export class LoginComponent implements OnInit {
     // never gets stuck in an unrecoverable state.
     forkJoin({
       providers: this.auth.getProviders().pipe(
-        timeout(10_000),
+        timeout(LOGIN_FETCH_TIMEOUT_MS),
         catchError(() => of(null)),
       ),
       settings: this.settingsService.loadPublic().pipe(
-        timeout(10_000),
+        timeout(LOGIN_FETCH_TIMEOUT_MS),
         catchError(() => of([])),
       ),
     })

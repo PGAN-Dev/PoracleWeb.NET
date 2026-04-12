@@ -259,6 +259,11 @@
 .telegram-btn {
   background-color: #54a9eb;
   color: #fff;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .no-methods-message {

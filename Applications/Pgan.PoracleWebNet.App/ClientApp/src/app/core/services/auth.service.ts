@@ -47,6 +47,7 @@ export class AuthService {
     return this.http.get<AuthProviders>(`${this.config.apiHost}/api/auth/providers`);
   }
 
+  /** @deprecated Use `getProviders()` instead — kept for backward compatibility. */
   getTelegramConfig(): Observable<TelegramConfig> {
     return this.http.get<TelegramConfig>(`${this.config.apiHost}/api/auth/telegram/config`);
   }
