@@ -175,11 +175,9 @@ export class MaxBattleAddDialogComponent {
         this.saving.set(false);
       },
       next: () => {
-        this.snackBar.open(
-          this.i18n.instant('MAX_BATTLES.CREATE_SUCCESS', { count: creates.length }),
-          this.i18n.instant('COMMON.OK'),
-          { duration: 3000 },
-        );
+        this.snackBar.open(this.i18n.instant('MAX_BATTLES.CREATE_SUCCESS', { count: creates.length }), this.i18n.instant('COMMON.OK'), {
+          duration: 3000,
+        });
         this.dialogRef.close(true);
       },
     });
