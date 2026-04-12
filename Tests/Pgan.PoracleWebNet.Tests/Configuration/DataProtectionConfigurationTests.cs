@@ -15,7 +15,7 @@ public class DataProtectionConfigurationTests : IDisposable
 
     public DataProtectionConfigurationTests()
     {
-        this._tempDir = Path.Combine(Path.GetTempPath(), $"dp-test-{Guid.NewGuid()}");
+        this._tempDir = Path.Join(Path.GetTempPath(), $"dp-test-{Path.GetRandomFileName()}");
         Directory.CreateDirectory(this._tempDir);
     }
 
