@@ -4,6 +4,8 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Repositories;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Core.Services.Pvp;
+using Pgan.PoracleWebNet.Core.Services.TestAlerts;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Scanner;
 
@@ -58,6 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICleaningService, CleaningService>();
         services.AddScoped<IPwebSettingService, PwebSettingService>();
         services.AddSingleton<IMasterDataService, MasterDataService>();
+        services.AddSingleton<IPvpRankService, PvpRankService>();
         services.AddScoped<IQuickPickService, QuickPickService>();
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
@@ -65,6 +68,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
         services.AddScoped<IProfileOverviewService, ProfileOverviewService>();
         services.AddScoped<ITestAlertService, TestAlertService>();
+        services.AddScoped<ITestPayloadBuilder, PokemonTestPayloadBuilder>();
+        services.AddScoped<ITestPayloadBuilder, RaidOrEggTestPayloadBuilder>();
+        services.AddScoped<ITestPayloadBuilder, QuestTestPayloadBuilder>();
+        services.AddScoped<ITestPayloadBuilder, PokestopTestPayloadBuilder>();
+        services.AddScoped<ITestPayloadBuilder, NestTestPayloadBuilder>();
+        services.AddScoped<ITestPayloadBuilder, GymTestPayloadBuilder>();
         services.AddScoped<IGeoJsonService, GeoJsonService>();
 
         // Register Scanner DB (optional - only if connection string is configured)

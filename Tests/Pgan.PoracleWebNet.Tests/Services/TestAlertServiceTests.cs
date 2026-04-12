@@ -1,9 +1,12 @@
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Core.Services.Pvp;
+using Pgan.PoracleWebNet.Core.Services.TestAlerts;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -17,14 +20,31 @@ public class TestAlertServiceTests
     private readonly Mock<IPoracleApiProxy> _apiProxy = new();
     private readonly Mock<IPoracleTrackingProxy> _trackingProxy = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
+    private readonly Mock<IMasterDataService> _masterData = new();
     private readonly Mock<ILogger<TestAlertService>> _logger = new();
     private readonly TestAlertService _sut;
 
-    public TestAlertServiceTests() => this._sut = new TestAlertService(
+    public TestAlertServiceTests()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var pvpService = new PvpRankService(cache);
+        var builders = new ITestPayloadBuilder[]
+        {
+            new PokemonTestPayloadBuilder(pvpService, this._masterData.Object),
+            new RaidOrEggTestPayloadBuilder(),
+            new QuestTestPayloadBuilder(),
+            new PokestopTestPayloadBuilder(),
+            new NestTestPayloadBuilder(),
+            new GymTestPayloadBuilder(),
+        };
+
+        this._sut = new TestAlertService(
             this._apiProxy.Object,
             this._trackingProxy.Object,
             this._humanProxy.Object,
+            builders,
             this._logger.Object);
+    }
 
     [Fact]
     public async Task SendTestAlertAsyncValidPokemonSendsRequest()
@@ -93,14 +113,14 @@ public class TestAlertServiceTests
     }
 
     [Theory]
-    [InlineData("raid")]
-    [InlineData("egg")]
-    [InlineData("quest")]
-    [InlineData("invasion")]
-    [InlineData("lure")]
-    [InlineData("nest")]
-    [InlineData("gym")]
-    public async Task SendTestAlertAsyncAllValidTypesSendsRequest(string alarmType)
+    [InlineData("raid", "raid")]
+    [InlineData("egg", "raid")]
+    [InlineData("quest", "quest")]
+    [InlineData("invasion", "pokestop")]
+    [InlineData("lure", "pokestop")]
+    [InlineData("nest", "nest")]
+    [InlineData("gym", "gym")]
+    public async Task SendTestAlertAsyncAllValidTypesSendsRequest(string alarmType, string expectedWireType)
     {
         var alarms = CreateJsonArray(new
         {
@@ -122,7 +142,7 @@ public class TestAlertServiceTests
         await this._sut.SendTestAlertAsync("user1", alarmType, 10);
 
         this._apiProxy.Verify(p => p.SendTestAlertAsync(It.Is<TestAlertRequest>(r =>
-            r.Type == alarmType
+            r.Type == expectedWireType
         )), Times.Once);
     }
 
