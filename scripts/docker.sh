@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PoracleWeb — Docker convenience commands
+# PoracleWeb.NET — Docker convenience commands
 # Run from anywhere: ./scripts/docker.sh <command>
 set -euo pipefail
 
@@ -14,7 +14,7 @@ else
 fi
 
 usage() {
-  echo -e "${BOLD}PoracleWeb Docker${RESET} — Docker commands from the project root"
+  echo -e "${BOLD}PoracleWeb.NET Docker${RESET} — Docker commands from the project root"
   echo ""
   echo "Usage: ./scripts/docker.sh <command>"
   echo ""

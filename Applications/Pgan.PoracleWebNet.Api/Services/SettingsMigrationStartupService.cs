@@ -20,6 +20,7 @@ public partial class SettingsMigrationStartupService(
             using var scope = scopeFactory.CreateScope();
             var migrationService = scope.ServiceProvider.GetRequiredService<ISettingsMigrationService>();
             await migrationService.MigrateAsync();
+            await migrationService.SeedDefaultsAsync();
             LogMigrationCompleted(logger);
         }
         catch (Exception ex)

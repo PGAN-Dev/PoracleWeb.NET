@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PoracleWeb — Development convenience commands
+# PoracleWeb.NET — Development convenience commands
 # Run from anywhere: ./scripts/dev.sh <command>
 set -euo pipefail
 
@@ -17,7 +17,7 @@ else
 fi
 
 usage() {
-  echo -e "${BOLD}PoracleWeb Dev${RESET} — development commands from the project root"
+  echo -e "${BOLD}PoracleWeb.NET Dev${RESET} — development commands from the project root"
   echo ""
   echo "Usage: ./scripts/dev.sh <command>"
   echo ""
