@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Documentation branding: replaced 88 remaining bare `PoracleWeb` references with `PoracleWeb.NET` across 16 files under `docs/`, completing the branding cleanup from PR #180. URLs, path identifiers, `.csproj` names, and Mermaid diagram node IDs were preserved.
 
+### Changed
+- **Dependabot auto-merge workflow**: added `.github/workflows/dependabot-auto-merge.yml` to auto-approve and queue patch bumps, grouped bundles, and GitHub Actions minor bumps for auto-merge (gated on CI). Major-version bumps still require manual review. Pinned the `node` Docker base image to the current major (22) to require deliberate Angular-coordinated upgrades.
+
 ## [2.6.0] - 2026-04-12
 
 ### Added

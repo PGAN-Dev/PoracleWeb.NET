@@ -108,3 +108,7 @@ updates:
       - build
     commit-message:
       prefix: build
+    ignore:
+      # Node base image majors are coordinated with Angular upgrades — pin manually.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
