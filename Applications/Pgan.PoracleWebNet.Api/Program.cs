@@ -97,6 +97,19 @@ for (var i = 1; i <= 10; i++)
 ComposeConnectionString("PoracleDb", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD", "poracle");
 ComposeConnectionString("PoracleWebDb", "WEB_DB_HOST", "WEB_DB_PORT", "WEB_DB_NAME", "WEB_DB_USER", "WEB_DB_PASSWORD", "poracle_web");
 
+// Auto-infer TELEGRAM_ENABLED=true when bot credentials are both set but Enabled was not
+// explicitly configured. Prevents the common first-time-setup mistake of setting bot token
+// and username but forgetting TELEGRAM_ENABLED=true, which silently hides the Telegram button.
+var telegramEnabled = Environment.GetEnvironmentVariable("Telegram__Enabled");
+var telegramToken = Environment.GetEnvironmentVariable("Telegram__BotToken");
+var telegramUsername = Environment.GetEnvironmentVariable("Telegram__BotUsername");
+if (string.IsNullOrEmpty(telegramEnabled)
+    && !string.IsNullOrEmpty(telegramToken)
+    && !string.IsNullOrEmpty(telegramUsername))
+{
+    Environment.SetEnvironmentVariable("Telegram__Enabled", "true");
+}
+
 // Reload configuration after env var bridging
 builder.Configuration.AddEnvironmentVariables();
 
@@ -336,7 +349,7 @@ app.Use(async (context, next) =>
         headers.XFrameOptions = "DENY";
         headers.XXSSProtection = "0";
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        headers.ContentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://raw.githubusercontent.com";
+        headers.ContentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc=' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://raw.githubusercontent.com; frame-src https://oauth.telegram.org";
         return Task.CompletedTask;
     });
     await next();

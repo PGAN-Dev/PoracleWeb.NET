@@ -6,7 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+import { catchError, forkJoin, of, timeout } from 'rxjs';
 
+import { AuthProviders } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { SettingsService } from '../../core/services/settings.service';
 
@@ -34,18 +36,23 @@ export class LoginComponent implements OnInit {
 
   private telegramBotUsername = '';
 
+  /** Whether the providers config has finished loading (success or failure). */
+  protected readonly configLoaded = signal(false);
+
+  /** Whether Discord is configured in the server's .env / appsettings. */
+  protected readonly discordConfigured = signal(false);
+
   /**
-   * Whether Discord login is enabled (PoracleWeb.NET site setting `enable_discord`).
-   * This controls button visibility on the login page. The backend AuthController also
-   * enforces this as defense-in-depth. Safe default: enabled when setting is absent.
-   *
-   * Note: This is a PoracleWeb.NET-only setting stored in `poracle_web.site_settings`.
-   * It does NOT affect PoracleNG's Discord integration or webhook delivery.
+   * Whether Discord login is enabled by the admin (site setting `enable_discord`).
+   * When false but configured, the button renders in a disabled state with a message.
    */
-  protected readonly discordEnabled = computed(() => {
-    const val = this.settingsService.siteSettings()['enable_discord'];
-    return val?.toLowerCase() !== 'false';
-  });
+  protected readonly discordEnabledByAdmin = signal(true);
+
+  /** Computed: can the user actually click the Discord button? Configured + admin-enabled. */
+  protected readonly discordActive = computed(() => this.discordConfigured() && this.discordEnabledByAdmin());
+
+  /** Computed: should the Discord button be shown at all? Only if configured in .env. */
+  protected readonly discordVisible = computed(() => this.discordConfigured());
 
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
@@ -55,18 +62,22 @@ export class LoginComponent implements OnInit {
   });
 
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || '');
-  @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
+
+  /** Whether Telegram is configured in the server's .env / appsettings. */
+  protected readonly telegramConfigured = signal(false);
 
   /**
-   * Whether Telegram login is enabled. Driven by the `/api/auth/telegram/config` endpoint,
-   * which combines two independent settings:
-   *   1. `Telegram:Enabled` in appsettings.json (PoracleNG server config, requires restart)
-   *   2. `enable_telegram` site setting in `poracle_web.site_settings` (PoracleWeb.NET, runtime toggle)
-   * Both must be truthy for Telegram login to be available.
-   *
-   * Note: Neither setting affects PoracleNG's Telegram bot or DM delivery — only login.
+   * Whether Telegram login is enabled by the admin (site setting `enable_telegram`).
+   * When false but configured, the widget area renders with a disabled message.
    */
-  protected readonly telegramEnabled = signal(false);
+  protected readonly telegramEnabledByAdmin = signal(true);
+
+  /** Computed: can the user actually use Telegram login? Configured + admin-enabled. */
+  protected readonly telegramActive = computed(() => this.telegramConfigured() && this.telegramEnabledByAdmin());
+  @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
+
+  /** Computed: should the Telegram section be shown at all? Only if configured in .env. */
+  protected readonly telegramVisible = computed(() => this.telegramConfigured());
 
   loginWithDiscord(): void {
     this.loading.set(true);
@@ -76,7 +87,30 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.settingsService.loadPublic().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    // Load public site settings (custom_title, signup_url) and provider config in parallel.
+    // Both calls use a 10s timeout and fallback to defaults on error so the login page
+    // never gets stuck in an unrecoverable state.
+    forkJoin({
+      providers: this.auth.getProviders().pipe(
+        timeout(10_000),
+        catchError(() => of(null)),
+      ),
+      settings: this.settingsService.loadPublic().pipe(
+        timeout(10_000),
+        catchError(() => of([])),
+      ),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ providers }) => {
+        if (providers) {
+          this.applyProviders(providers);
+        } else {
+          // API unreachable — default to showing Discord (safe default) so user isn't locked out
+          this.discordConfigured.set(true);
+          this.discordEnabledByAdmin.set(true);
+        }
+        this.configLoaded.set(true);
+      });
 
     // Show error from URL fragment (e.g. /login#error=missing_required_role)
     const fragment = window.location.hash?.substring(1) ?? '';
@@ -90,6 +124,7 @@ export class LoginComponent implements OnInit {
         missing_required_role: 'AUTH.ERR_MISSING_ROLE',
         not_in_guild: 'AUTH.ERR_NOT_IN_GUILD',
         role_check_failed: 'AUTH.ERR_ROLE_CHECK_FAILED',
+        telegram_disabled: 'AUTH.ERR_TELEGRAM_DISABLED',
         token_exchange_failed: 'AUTH.ERR_TOKEN_EXCHANGE',
         user_not_registered: 'AUTH.ERR_NOT_REGISTERED',
       };
@@ -104,24 +139,22 @@ export class LoginComponent implements OnInit {
       this.router.navigate(['/dashboard']);
       return;
     }
+  }
 
-    // Check if Telegram auth is enabled (combines PoracleNG config + PoracleWeb.NET site setting)
-    this.auth
-      .getTelegramConfig()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        error: () => {
-          // Telegram config not available, just show Discord
-        },
-        next: config => {
-          this.telegramEnabled.set(config.enabled);
-          this.telegramBotUsername = config.botUsername;
-          if (config.enabled) {
-            // Need to wait for view to init before loading widget
-            setTimeout(() => this.loadTelegramWidget(), 0);
-          }
-        },
-      });
+  private applyProviders(providers: AuthProviders): void {
+    // Discord
+    this.discordConfigured.set(providers.discord.configured);
+    this.discordEnabledByAdmin.set(providers.discord.enabledByAdmin);
+
+    // Telegram
+    this.telegramConfigured.set(providers.telegram.configured);
+    this.telegramEnabledByAdmin.set(providers.telegram.enabledByAdmin);
+    this.telegramBotUsername = providers.telegram.botUsername;
+
+    if (this.telegramActive()) {
+      // Need to wait for view to init before loading widget
+      setTimeout(() => this.loadTelegramWidget(), 0);
+    }
   }
 
   private handleTelegramAuth(telegramData: Record<string, string>): void {

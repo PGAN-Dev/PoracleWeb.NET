@@ -7,7 +7,14 @@ import { catchError, throwError } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 
 /** Endpoints where errors should be silently swallowed (no user-facing toast). */
-const SILENT_URL_PATTERNS = ['/api/config', '/api/masterdata', '/api/auth/me', '/api/admin/users/avatars', '/api/settings'];
+const SILENT_URL_PATTERNS = [
+  '/api/config',
+  '/api/masterdata',
+  '/api/auth/me',
+  '/api/auth/providers',
+  '/api/admin/users/avatars',
+  '/api/settings',
+];
 
 function shouldSilence(url: string): boolean {
   return SILENT_URL_PATTERNS.some(pattern => url.includes(pattern));

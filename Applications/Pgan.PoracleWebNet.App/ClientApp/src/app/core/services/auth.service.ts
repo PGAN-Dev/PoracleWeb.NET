@@ -5,7 +5,7 @@ import { Observable, ReplaySubject, tap, firstValueFrom } from 'rxjs';
 
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
-import { UserInfo, LoginResponse, TelegramConfig } from '../models';
+import { UserInfo, LoginResponse, TelegramConfig, AuthProviders } from '../models';
 
 const TOKEN_KEY = 'poracle_token';
 const ADMIN_TOKEN_KEY = 'poracle_admin_token';
@@ -41,6 +41,10 @@ export class AuthService {
 
   clearProfileResynced(): void {
     this._profileResynced.set(false);
+  }
+
+  getProviders(): Observable<AuthProviders> {
+    return this.http.get<AuthProviders>(`${this.config.apiHost}/api/auth/providers`);
   }
 
   getTelegramConfig(): Observable<TelegramConfig> {

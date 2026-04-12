@@ -349,6 +349,49 @@ public partial class AuthController(
         });
     }
 
+    /// <summary>
+    /// Returns auth provider availability for the login page. Combines server-side
+    /// .env/appsettings configuration ("configured") with admin-togglable site
+    /// settings ("enabled"). The login page uses this to decide which buttons to
+    /// render and whether to show a "disabled by admin" message.
+    /// </summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-read")]
+    [HttpGet("providers")]
+    public async Task<IActionResult> Providers()
+    {
+        // Discord is "configured" if the server has ClientId and ClientSecret (validated at startup).
+        var discordConfigured = !string.IsNullOrEmpty(this._discordSettings.ClientId)
+                                && !string.IsNullOrEmpty(this._discordSettings.ClientSecret);
+
+        // Telegram is "configured" if Telegram:Enabled is true in .env/appsettings
+        // (auto-inferred by Program.cs when bot credentials are present).
+        var telegramConfigured = this._telegramSettings.Enabled;
+
+        // Admin can disable either provider at runtime via site_settings without restart.
+        // Absent/null = enabled (safe default — prevents lockout on first-time setup).
+        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
+        var discordDisabledByAdmin = string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase);
+
+        var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
+        var telegramDisabledByAdmin = string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase);
+
+        return this.Ok(new
+        {
+            discord = new
+            {
+                configured = discordConfigured,
+                enabledByAdmin = !discordDisabledByAdmin,
+            },
+            telegram = new
+            {
+                configured = telegramConfigured,
+                enabledByAdmin = !telegramDisabledByAdmin,
+                botUsername = telegramConfigured ? this._telegramSettings.BotUsername : string.Empty,
+            },
+        });
+    }
+
     [EnableRateLimiting("auth-read")]
     [HttpGet("me")]
     public async Task<IActionResult> Me()

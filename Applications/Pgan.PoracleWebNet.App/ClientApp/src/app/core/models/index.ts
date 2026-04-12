@@ -306,6 +306,20 @@ export interface TelegramConfig {
   enabled: boolean;
 }
 
+export interface AuthProviderStatus {
+  configured: boolean;
+  enabledByAdmin: boolean;
+}
+
+export interface TelegramProviderStatus extends AuthProviderStatus {
+  botUsername: string;
+}
+
+export interface AuthProviders {
+  discord: AuthProviderStatus;
+  telegram: TelegramProviderStatus;
+}
+
 // ─── Poracle Config ────────────────────────────────────────────────────────────
 
 export interface PoracleConfig {

@@ -226,6 +226,41 @@
   flex-shrink: 0;
 }
 
+.skeleton-btn {
+  height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--hover-overlay, rgba(0, 0, 0, 0.06)) 25%,
+    rgba(0, 0, 0, 0.1) 50%,
+    var(--hover-overlay, rgba(0, 0, 0, 0.06)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.provider-disabled-hint {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  text-align: center;
+  margin: -8px 0 0;
+  font-style: italic;
+}
+
+.telegram-btn {
+  background-color: #54a9eb;
+  color: #fff;
+}
+
 .no-methods-message {
   display: flex;
   align-items: center;

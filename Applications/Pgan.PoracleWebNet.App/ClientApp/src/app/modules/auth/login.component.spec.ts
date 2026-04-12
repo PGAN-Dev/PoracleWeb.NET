@@ -5,9 +5,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { LoginComponent } from './login.component';
+import { AuthProviders } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -19,8 +20,15 @@ describe('LoginComponent', () => {
   let settingsSignal: WritableSignal<Record<string, string>>;
   const API = 'http://test-api';
 
-  const setup = (opts?: { telegramEnabled?: boolean }) => {
+  const defaultProviders: AuthProviders = {
+    discord: { configured: true, enabledByAdmin: true },
+    telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+  };
+
+  const setup = (opts?: { providers?: AuthProviders; providersError?: boolean }) => {
     settingsSignal = signal<Record<string, string>>({});
+
+    const providers = opts?.providers ?? defaultProviders;
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -37,9 +45,8 @@ describe('LoginComponent', () => {
         {
           provide: AuthService,
           useValue: {
-            getTelegramConfig: jest.fn(() =>
-              of({ botUsername: opts?.telegramEnabled ? 'testbot' : '', enabled: opts?.telegramEnabled ?? false }),
-            ),
+            getProviders: jest.fn(() => (opts?.providersError ? throwError(() => new Error('fail')) : of(providers))),
+            getTelegramConfig: jest.fn(() => of({ botUsername: '', enabled: false })),
             isLoggedIn: jest.fn(() => false),
             loginWithDiscord: jest.fn(),
             loginWithTelegram: jest.fn(),
@@ -65,85 +72,153 @@ describe('LoginComponent', () => {
     window.location.hash = '';
   });
 
-  describe('discordEnabled', () => {
-    it('should default to true when enable_discord setting is absent', () => {
+  describe('provider visibility', () => {
+    it('should show Discord button when Discord is configured and enabled', () => {
       setup();
-      fixture.detectChanges();
-      expect(component['discordEnabled']()).toBe(true);
-    });
-
-    it('should be true when enable_discord is "True"', () => {
-      setup();
-      settingsSignal.set({ enable_discord: 'True' });
-      fixture.detectChanges();
-      expect(component['discordEnabled']()).toBe(true);
-    });
-
-    it('should be false when enable_discord is "False"', () => {
-      setup();
-      settingsSignal.set({ enable_discord: 'False' });
-      fixture.detectChanges();
-      expect(component['discordEnabled']()).toBe(false);
-    });
-
-    it('should be false when enable_discord is "false" (lowercase)', () => {
-      setup();
-      settingsSignal.set({ enable_discord: 'false' });
-      fixture.detectChanges();
-      expect(component['discordEnabled']()).toBe(false);
-    });
-
-    it('should be true when enable_discord is empty string', () => {
-      setup();
-      settingsSignal.set({ enable_discord: '' });
-      fixture.detectChanges();
-      expect(component['discordEnabled']()).toBe(true);
-    });
-  });
-
-  describe('template rendering', () => {
-    it('should show Discord button when enabled', () => {
-      setup();
-      settingsSignal.set({ enable_discord: 'True' });
       fixture.detectChanges();
       const btn = fixture.nativeElement.querySelector('.discord-btn');
       expect(btn).toBeTruthy();
-      expect(btn.textContent).toContain('AUTH.SIGN_IN_DISCORD');
+      expect(btn.disabled).toBe(false);
     });
 
-    it('should hide Discord button when disabled', () => {
-      setup();
-      settingsSignal.set({ enable_discord: 'False' });
+    it('should show Discord button as disabled when configured but admin-disabled', () => {
+      setup({
+        providers: {
+          discord: { configured: true, enabledByAdmin: false },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const btn = fixture.nativeElement.querySelector('.discord-btn');
+      expect(btn).toBeTruthy();
+      expect(btn.disabled).toBe(true);
+      const hint = fixture.nativeElement.querySelector('.provider-disabled-hint');
+      expect(hint).toBeTruthy();
+    });
+
+    it('should hide Discord button when not configured', () => {
+      setup({
+        providers: {
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
       fixture.detectChanges();
       const btn = fixture.nativeElement.querySelector('.discord-btn');
       expect(btn).toBeNull();
     });
 
-    it('should show no-methods message when both methods are disabled', () => {
+    it('should show Telegram widget when configured and enabled', () => {
+      setup({
+        providers: {
+          discord: { configured: true, enabledByAdmin: true },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const widget = fixture.nativeElement.querySelector('.telegram-widget');
+      expect(widget).toBeTruthy();
+    });
+
+    it('should show disabled Telegram button when configured but admin-disabled', () => {
+      setup({
+        providers: {
+          discord: { configured: true, enabledByAdmin: true },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: false },
+        },
+      });
+      fixture.detectChanges();
+      const btn = fixture.nativeElement.querySelector('.telegram-btn');
+      expect(btn).toBeTruthy();
+      expect(btn.disabled).toBe(true);
+      const hints = fixture.nativeElement.querySelectorAll('.provider-disabled-hint');
+      expect(hints.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should hide Telegram section when not configured', () => {
       setup();
-      settingsSignal.set({ enable_discord: 'False' });
+      fixture.detectChanges();
+      const widget = fixture.nativeElement.querySelector('.telegram-widget');
+      const btn = fixture.nativeElement.querySelector('.telegram-btn');
+      expect(widget).toBeNull();
+      expect(btn).toBeNull();
+    });
+  });
+
+  describe('no-methods message', () => {
+    it('should show no-methods message when neither provider is configured', () => {
+      setup({
+        providers: {
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
       fixture.detectChanges();
       const msg = fixture.nativeElement.querySelector('.no-methods-message');
       expect(msg).toBeTruthy();
-      expect(msg.textContent).toContain('AUTH.NO_METHODS');
     });
 
-    it('should not show no-methods message when Discord is enabled', () => {
+    it('should not show no-methods when Discord is configured', () => {
       setup();
       fixture.detectChanges();
       const msg = fixture.nativeElement.querySelector('.no-methods-message');
       expect(msg).toBeNull();
     });
 
-    it('should show divider when both Discord and Telegram are enabled', () => {
-      setup({ telegramEnabled: true });
-      settingsSignal.set({ enable_discord: 'True' });
+    it('should not show no-methods before config has loaded', () => {
+      // Before detectChanges, configLoaded is false — skeleton should show, not no-methods
+      setup();
+      // Don't call detectChanges so ngOnInit doesn't run
+      const msg = fixture.nativeElement.querySelector('.no-methods-message');
+      expect(msg).toBeNull();
+    });
+  });
+
+  describe('loading skeleton', () => {
+    it('should show skeleton before config loads', () => {
+      setup();
+      // The component hasn't run ngOnInit yet, configLoaded is false
+      // We need to check before the forkJoin completes
+      // Since setup uses synchronous of(), the skeleton will flash briefly
+      // Let's verify configLoaded starts as false
+      expect(component['configLoaded']()).toBe(false);
+    });
+
+    it('should hide skeleton after config loads', () => {
+      setup();
+      fixture.detectChanges();
+      expect(component['configLoaded']()).toBe(true);
+      const skeleton = fixture.nativeElement.querySelector('.skeleton-btn');
+      expect(skeleton).toBeNull();
+    });
+  });
+
+  describe('error handling', () => {
+    it('should default to showing Discord when providers API fails', () => {
+      setup({ providersError: true });
+      fixture.detectChanges();
+      expect(component['discordConfigured']()).toBe(true);
+      expect(component['discordEnabledByAdmin']()).toBe(true);
+      expect(component['configLoaded']()).toBe(true);
+      const btn = fixture.nativeElement.querySelector('.discord-btn');
+      expect(btn).toBeTruthy();
+    });
+  });
+
+  describe('divider', () => {
+    it('should show divider when both Discord and Telegram are visible', () => {
+      setup({
+        providers: {
+          discord: { configured: true, enabledByAdmin: true },
+          telegram: { botUsername: 'testbot', configured: true, enabledByAdmin: true },
+        },
+      });
       fixture.detectChanges();
       const divider = fixture.nativeElement.querySelector('.divider');
       expect(divider).toBeTruthy();
     });
 
-    it('should not show divider when only Discord is enabled', () => {
+    it('should not show divider when only Discord is visible', () => {
       setup();
       fixture.detectChanges();
       const divider = fixture.nativeElement.querySelector('.divider');
@@ -157,6 +232,13 @@ describe('LoginComponent', () => {
       setup();
       fixture.detectChanges();
       expect(component['error']()).toBe('AUTH.ERR_DISCORD_DISABLED');
+    });
+
+    it('should display telegram_disabled error from URL fragment', () => {
+      window.location.hash = '#error=telegram_disabled';
+      setup();
+      fixture.detectChanges();
+      expect(component['error']()).toBe('AUTH.ERR_TELEGRAM_DISABLED');
     });
   });
 
