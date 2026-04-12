@@ -72,7 +72,7 @@ public static class PvpRankCalculator
             combos[i] = c with
             {
                 Rank = rank,
-                Percentage = top == 0 ? 0 : c.StatProduct / top,
+                Percentage = Math.Abs(top) < double.Epsilon ? 0 : c.StatProduct / top,
             };
         }
 
