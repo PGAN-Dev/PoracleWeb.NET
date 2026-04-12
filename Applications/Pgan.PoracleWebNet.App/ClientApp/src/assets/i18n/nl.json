@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Instellingen",
     "USER_GEOFENCES": "Gebruiker Geofences",
-    "PORACLE_SERVERS": "Poracle Servers",
     "MY_WEBHOOKS": "Mijn Webhooks"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Inzending goedkeuren mislukt",
     "SNACK_APPROVED": "\"{{name}}\" goedgekeurd",
     "SNACK_FAILED_REJECT": "Inzending afwijzen mislukt",
-    "SNACK_REJECTED": "\"{{name}}\" afgewezen",
-    "SERVERS_TITLE": "Poracle Servers",
-    "SERVERS_DESC": "Monitor serverstatus en herstart Poracle instanties.",
-    "REFRESH_STATUS": "Serverstatus vernieuwen",
-    "RESTART_ALL": "Alles Herstarten",
-    "RESTART_ALL_TOOLTIP": "Alle Poracle servers herstarten",
-    "RESTART_ALL_TITLE": "Alle Poracle Servers Herstarten",
-    "CONFIRM_RESTART_ALL": "Dit herstart ALLE Poracle servers. Gebruikers ontvangen kort geen meldingen.",
-    "RESTART": "Herstarten",
-    "RESTART_SERVER": "Deze server herstarten",
-    "RESTART_SERVER_TITLE": "Poracle Server Herstarten",
-    "CONFIRM_RESTART_SERVER": "Weet je zeker dat je \"{{name}}\" ({{host}}) wilt herstarten?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Gecontroleerd",
-    "NO_SERVERS": "Geen Poracle servers gevonden",
-    "NO_SERVERS_DESC": "Er zijn geen Poracle serverinstanties geconfigureerd.",
-    "SNACK_FAILED_RESTART_ALL": "Servers herstarten mislukt",
-    "SNACK_ALL_RESTARTED": "Alle servers herstart",
-    "SNACK_FAILED_RESTART": "\"{{name}}\" herstarten mislukt",
-    "SNACK_RESTARTED": "\"{{name}}\" herstart",
-    "SNACK_FAILED_LOAD_SERVERS": "Poracle servers laden mislukt"
+    "SNACK_REJECTED": "\"{{name}}\" afgewezen"
   },
   "DIALOG": {
     "CANCEL": "Annuleren",

@@ -182,7 +182,6 @@ export class App implements OnInit {
       label: 'NAV.USER_GEOFENCES',
       route: '/admin/geofence-submissions',
     },
-    { adminOnly: true, group: 'admin', icon: 'dns', iconColor: '#607d8b', label: 'NAV.PORACLE_SERVERS', route: '/admin/poracle-servers' },
     { delegateOnly: true, group: 'webhooks', icon: 'webhook', iconColor: '#00897b', label: 'NAV.MY_WEBHOOKS', route: '/my-webhooks' },
   ];
 

@@ -65,15 +65,6 @@ Required for the custom geofences feature.
 | Koji Project ID | `KOJI_PROJECT_ID` | `Koji__ProjectId` | Koji project ID for admin-promoted geofences (default: `0`) |
 | Koji Project Name | `KOJI_PROJECT_NAME` | `Koji__ProjectName` | Koji project name for `/geofence/poracle/{name}` endpoint |
 
-### Poracle servers
-
-For remote PoracleJS server management. See [Server Management](../features/server-management.md) for full setup.
-
-| Setting | `.env` name | `.NET` env variable | Description |
-|---|---|---|---|
-| Server Config | `PORACLE_SERVER_1_HOST`, `_API`, `_SSH_USER`, `_RESTART_CMD`, `_GROUP_MAP` | `Poracle__Servers__0__Host`, etc. | PoracleJS server configs. Use 1-based numbering in `.env` (auto-converted to 0-based). Up to 10 servers. |
-| SSH Key Path | `PORACLE_SSH_KEY_PATH` | `Poracle__SshKeyPath` | Path to SSH private key inside container (default `/app/ssh_key`) |
-
 ### CORS
 
 | Setting | `.env` name | `.NET` env variable | Description |

@@ -58,7 +58,6 @@ MapEnvVar("TELEGRAM_BOT_USERNAME", "Telegram__BotUsername");
 MapEnvVar("PORACLE_API_ADDRESS", "Poracle__ApiAddress");
 MapEnvVar("PORACLE_API_SECRET", "Poracle__ApiSecret");
 MapEnvVar("PORACLE_ADMIN_IDS", "Poracle__AdminIds");
-MapEnvVar("PORACLE_SSH_KEY_PATH", "Poracle__SshKeyPath");
 MapEnvVar("KOJI_API_ADDRESS", "Koji__ApiAddress");
 MapEnvVar("KOJI_BEARER_TOKEN", "Koji__BearerToken");
 MapEnvVar("KOJI_PROJECT_ID", "Koji__ProjectId");
@@ -67,30 +66,6 @@ MapEnvVar("GOLBAT_API_ADDRESS", "Golbat__ApiAddress");
 MapEnvVar("GOLBAT_API_SECRET", "Golbat__ApiSecret");
 MapEnvVar("CORS_ORIGIN", "Cors__AllowedOrigins__0");
 MapEnvVar("SCANNER_DB_CONNECTION", "ConnectionStrings__ScannerDb");
-
-// Map Poracle server env vars (PORACLE_SERVER_N_*) to Poracle__Servers__N__*
-for (var i = 1; i <= 10; i++)
-{
-    var idx = i - 1; // .env uses 1-based, .NET config uses 0-based
-    var host = Environment.GetEnvironmentVariable($"PORACLE_SERVER_{i}_HOST");
-    if (string.IsNullOrEmpty(host))
-    {
-        continue;
-    }
-
-    MapEnvVar($"PORACLE_SERVER_{i}_HOST", $"Poracle__Servers__{idx}__Host");
-    MapEnvVar($"PORACLE_SERVER_{i}_API", $"Poracle__Servers__{idx}__ApiAddress");
-    MapEnvVar($"PORACLE_SERVER_{i}_SSH_USER", $"Poracle__Servers__{idx}__SshUser");
-    MapEnvVar($"PORACLE_SERVER_{i}_RESTART_CMD", $"Poracle__Servers__{idx}__RestartCommand");
-    MapEnvVar($"PORACLE_SERVER_{i}_GROUP_MAP", $"Poracle__Servers__{idx}__GroupMapPath");
-
-    // Set server name default if not already set
-    var nameKey = $"Poracle__Servers__{idx}__Name";
-    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(nameKey)))
-    {
-        Environment.SetEnvironmentVariable(nameKey, i == 1 ? "Main" : $"Server {i}");
-    }
-}
 
 // Auto-compose MySQL connection strings from short env vars (DB_HOST, DB_PORT, etc.)
 // so the same .env works for both Docker Compose and standalone mode.

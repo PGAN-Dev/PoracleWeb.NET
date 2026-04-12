@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Einstellungen",
     "USER_GEOFENCES": "Benutzer-Geofences",
-    "PORACLE_SERVERS": "Poracle-Server",
     "MY_WEBHOOKS": "Meine Webhooks"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Einreichung konnte nicht genehmigt werden",
     "SNACK_APPROVED": "\"{{name}}\" genehmigt",
     "SNACK_FAILED_REJECT": "Einreichung konnte nicht abgelehnt werden",
-    "SNACK_REJECTED": "\"{{name}}\" abgelehnt",
-    "SERVERS_TITLE": "Poracle-Server",
-    "SERVERS_DESC": "Serverstatus überwachen und Poracle-Instanzen neustarten.",
-    "REFRESH_STATUS": "Serverstatus aktualisieren",
-    "RESTART_ALL": "Alle neustarten",
-    "RESTART_ALL_TOOLTIP": "Alle Poracle-Server neustarten",
-    "RESTART_ALL_TITLE": "Alle Poracle-Server neustarten",
-    "CONFIRM_RESTART_ALL": "Dies startet ALLE Poracle-Server neu. Benutzer erhalten kurzzeitig keine Alarme.",
-    "RESTART": "Neustarten",
-    "RESTART_SERVER": "Diesen Server neustarten",
-    "RESTART_SERVER_TITLE": "Poracle-Server neustarten",
-    "CONFIRM_RESTART_SERVER": "Möchtest du \"{{name}}\" ({{host}}) wirklich neustarten?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Geprüft",
-    "NO_SERVERS": "Keine Poracle-Server gefunden",
-    "NO_SERVERS_DESC": "Keine Poracle-Serverinstanzen konfiguriert.",
-    "SNACK_FAILED_RESTART_ALL": "Server konnten nicht neugestartet werden",
-    "SNACK_ALL_RESTARTED": "Alle Server neugestartet",
-    "SNACK_FAILED_RESTART": "\"{{name}}\" konnte nicht neugestartet werden",
-    "SNACK_RESTARTED": "\"{{name}}\" neugestartet",
-    "SNACK_FAILED_LOAD_SERVERS": "Poracle-Server konnten nicht geladen werden"
+    "SNACK_REJECTED": "\"{{name}}\" abgelehnt"
   },
   "DIALOG": {
     "CANCEL": "Abbrechen",

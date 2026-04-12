@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Settings",
     "USER_GEOFENCES": "User Geofences",
-    "PORACLE_SERVERS": "Poracle Servers",
     "MY_WEBHOOKS": "My Webhooks"
   },
   "TOOLBAR": {
@@ -1218,28 +1217,7 @@
     "SNACK_FAILED_APPROVE": "Failed to approve submission",
     "SNACK_APPROVED": "\"{{name}}\" approved",
     "SNACK_FAILED_REJECT": "Failed to reject submission",
-    "SNACK_REJECTED": "\"{{name}}\" rejected",
-    "SERVERS_TITLE": "Poracle Servers",
-    "SERVERS_DESC": "Monitor server status and restart Poracle instances.",
-    "REFRESH_STATUS": "Refresh server status",
-    "RESTART_ALL": "Restart All",
-    "RESTART_ALL_TOOLTIP": "Restart all Poracle servers",
-    "RESTART_ALL_TITLE": "Restart All Poracle Servers",
-    "CONFIRM_RESTART_ALL": "This will restart ALL Poracle servers. Users will briefly stop receiving alerts.",
-    "RESTART": "Restart",
-    "RESTART_SERVER": "Restart this server",
-    "RESTART_SERVER_TITLE": "Restart Poracle Server",
-    "CONFIRM_RESTART_SERVER": "Are you sure you want to restart \"{{name}}\" ({{host}})?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Checked",
-    "NO_SERVERS": "No Poracle servers found",
-    "NO_SERVERS_DESC": "No Poracle server instances are configured.",
-    "SNACK_FAILED_RESTART_ALL": "Failed to restart servers",
-    "SNACK_ALL_RESTARTED": "All servers restarted",
-    "SNACK_FAILED_RESTART": "Failed to restart \"{{name}}\"",
-    "SNACK_RESTARTED": "\"{{name}}\" restarted",
-    "SNACK_FAILED_LOAD_SERVERS": "Failed to load Poracle servers"
+    "SNACK_REJECTED": "\"{{name}}\" rejected"
   },
   "DIALOG": {
     "CANCEL": "Cancel",

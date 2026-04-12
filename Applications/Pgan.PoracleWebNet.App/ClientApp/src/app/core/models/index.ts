@@ -484,16 +484,6 @@ export interface GeoJsonImportError {
   reason: string;
 }
 
-// ─── Poracle Server ──────────────────────────────────────────────────────────
-
-export interface PoracleServerStatus {
-  checkedAt: string;
-  host: string;
-  message?: string;
-  name: string;
-  online: boolean;
-}
-
 // ─── Weather ──────────────────────────────────────────────────────────────────
 
 export interface WeatherData {

@@ -12,7 +12,6 @@ public partial class AdminController(
     IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
-    IPoracleServerService poracleServerService,
     IOptions<PoracleSettings> poracleSettings,
     IJwtService jwtService,
     ILogger<AdminController> logger) : BaseApiController
@@ -21,7 +20,6 @@ public partial class AdminController(
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
-    private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IJwtService _jwtService = jwtService;
     private readonly ILogger<AdminController> _logger = logger;
@@ -509,62 +507,6 @@ public partial class AdminController(
         });
     }
 
-    [HttpGet("poracle/servers")]
-    public async Task<IActionResult> GetPoracleServers()
-    {
-        if (!this.IsAdmin)
-        {
-            return this.Forbid();
-        }
-
-        var servers = await this._poracleServerService.GetServersAsync();
-        return this.Ok(servers);
-    }
-
-    [HttpPost("poracle/servers/{host}/restart")]
-    public async Task<IActionResult> RestartPoracleServer(string host)
-    {
-        if (!this.IsAdmin)
-        {
-            return this.Forbid();
-        }
-
-        try
-        {
-            LogServerRestarting(this._logger, this.UserId, host);
-            var status = await this._poracleServerService.RestartServerAsync(host);
-            return this.Ok(status);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return this.NotFound(new
-            {
-                error = ex.Message
-            });
-        }
-        catch (Exception ex)
-        {
-            LogServerRestartFailed(this._logger, ex, host);
-            return this.StatusCode(500, new
-            {
-                error = "Failed to restart server"
-            });
-        }
-    }
-
-    [HttpPost("poracle/servers/restart-all")]
-    public async Task<IActionResult> RestartAllPoracleServers()
-    {
-        if (!this.IsAdmin)
-        {
-            return this.Forbid();
-        }
-
-        LogAllServersRestarting(this._logger, this.UserId);
-        var statuses = await this._poracleServerService.RestartAllAsync();
-        return this.Ok(statuses);
-    }
-
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} created webhook {WebhookId}")]
     private static partial void LogWebhookCreated(ILogger logger, string adminId, string webhookId);
 
@@ -585,13 +527,4 @@ public partial class AdminController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} impersonating user {UserId}")]
     private static partial void LogAdminImpersonatingUser(ILogger logger, string adminId, string userId);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} restarting Poracle server {Host}")]
-    private static partial void LogServerRestarting(ILogger logger, string adminId, string host);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to restart Poracle server {Host}")]
-    private static partial void LogServerRestartFailed(ILogger logger, Exception exception, string host);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} restarting all Poracle servers")]
-    private static partial void LogAllServersRestarting(ILogger logger, string adminId);
 }

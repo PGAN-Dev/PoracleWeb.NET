@@ -91,7 +91,6 @@ nav:
       - Profiles: features/profiles.md
       - Custom Geofences: features/custom-geofences.md
       - Internationalization (i18n): features/internationalization.md
-      - Server Management: features/server-management.md
   - Development:
       - Testing: development/testing.md
       - CI/CD: development/ci-cd.md

@@ -24,7 +24,6 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Inställningar",
     "USER_GEOFENCES": "Användar-geofences",
-    "PORACLE_SERVERS": "Poracle-servrar",
     "MY_WEBHOOKS": "Mina webhooks"
   },
   "TOOLBAR": {
@@ -1108,28 +1107,7 @@
     "SNACK_FAILED_APPROVE": "Kunde inte godkänna inskickning",
     "SNACK_APPROVED": "\"{{name}}\" godkänd",
     "SNACK_FAILED_REJECT": "Kunde inte avvisa inskickning",
-    "SNACK_REJECTED": "\"{{name}}\" avvisad",
-    "SERVERS_TITLE": "Poracle-servrar",
-    "SERVERS_DESC": "Övervaka serverstatus och starta om Poracle-instanser.",
-    "REFRESH_STATUS": "Uppdatera serverstatus",
-    "RESTART_ALL": "Starta om alla",
-    "RESTART_ALL_TOOLTIP": "Starta om alla Poracle-servrar",
-    "RESTART_ALL_TITLE": "Starta om alla Poracle-servrar",
-    "CONFIRM_RESTART_ALL": "Detta startar om ALLA Poracle-servrar. Användare slutar kort att ta emot larm.",
-    "RESTART": "Starta om",
-    "RESTART_SERVER": "Starta om denna server",
-    "RESTART_SERVER_TITLE": "Starta om Poracle-server",
-    "CONFIRM_RESTART_SERVER": "Är du säker på att du vill starta om \"{{name}}\" ({{host}})?",
-    "SERVER_ONLINE": "Online",
-    "SERVER_OFFLINE": "Offline",
-    "CHECKED": "Kontrollerad",
-    "NO_SERVERS": "Inga Poracle-servrar hittades",
-    "NO_SERVERS_DESC": "Inga Poracle-serverinstanser är konfigurerade.",
-    "SNACK_FAILED_RESTART_ALL": "Kunde inte starta om servrar",
-    "SNACK_ALL_RESTARTED": "Alla servrar omstartade",
-    "SNACK_FAILED_RESTART": "Kunde inte starta om \"{{name}}\"",
-    "SNACK_RESTARTED": "\"{{name}}\" omstartad",
-    "SNACK_FAILED_LOAD_SERVERS": "Kunde inte ladda Poracle-servrar"
+    "SNACK_REJECTED": "\"{{name}}\" avvisad"
   },
   "DIALOG": {
     "CANCEL": "Avbryt",
