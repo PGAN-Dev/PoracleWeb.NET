@@ -8,17 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- replace AutoMapper with manual mapping extensions (fixes #173) ([PR #178](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/178))
 - show login buttons based on .env config, with admin-disabled state (#172) ([PR #177](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/177))
 
 ### Changed
-- **Replaced AutoMapper with manual mapping extension methods** ([#173](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/173)): Removed the AutoMapper 16.1.1 dependency (which requires a commercial license for production use) and replaced all mappings with static extension methods in `Core.Mappings`. `AlarmMappingExtensions` provides `To*()` and `ApplyUpdate()` methods for all 10 alarm types with identical null-skip semantics. `EntityMappingExtensions` provides `ToModel()`, `ToEntity()`, and `ApplyTo()` methods for Human, Profile, UserGeofence, SiteSetting, WebhookDelegate, QuickPickDefinition, QuickPickAppliedState, and PwebSetting entity-model pairs. Removed AutoMapper NuGet from all 5 projects, removed `IMapper` injection from 10 controllers and 8 repositories, removed `AddAutoMapper` DI registration, and deleted `PoracleMappingProfile.cs`. No API contract or behavioral changes — all mappings produce identical results.
+- **Replaced AutoMapper with manual mapping extension methods** ([#173](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/173), [PR #178](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/178)): Removed the AutoMapper 16.1.1 dependency (which requires a commercial license for production use) and replaced all mappings with static extension methods in `Core.Mappings`. `AlarmMappingExtensions` provides `To*()` and `ApplyUpdate()` methods for all 10 alarm types with identical null-skip semantics. `EntityMappingExtensions` provides `ToModel()`, `ToEntity()`, and `ApplyTo()` methods for Human, Profile, UserGeofence, SiteSetting, WebhookDelegate, QuickPickDefinition, QuickPickAppliedState, and PwebSetting entity-model pairs. Removed AutoMapper NuGet from all 5 projects, removed `IMapper` injection from 10 controllers and 8 repositories, removed `AddAutoMapper` DI registration, and deleted `PoracleMappingProfile.cs`. No API contract or behavioral changes — all mappings produce identical results.
 
 ### Fixed
 - use 'PoracleWeb.NET' branding consistently (fixes #175) ([PR #180](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/180))
 
 ### Removed
-- **AutoMapper dependency**: Removed `AutoMapper` 16.1.1 NuGet package from Api, Core.Mappings, Core.Repositories, Core.Services, and Tests projects. Eliminates the production license requirement and "Lucky Penny" startup warning.
+- **AutoMapper dependency** ([#173](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/173), [PR #178](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/178)): Removed `AutoMapper` 16.1.1 NuGet package from Api, Core.Mappings, Core.Repositories, Core.Services, and Tests projects. Eliminates the production license requirement and "Lucky Penny" startup warning.
+
 ## [2.5.0] - 2026-04-12
 
 ### Added
