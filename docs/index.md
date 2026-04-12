@@ -35,7 +35,6 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **Onboarding Wizard** — First-run setup guide for new users
 - **Keyboard Shortcuts** — ++question++ for help, ++bracket-left++ / ++bracket-right++ for sidebar collapse
 - **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish) plus 18 Pokemon name locales
-- **Poracle Server Management** — Monitor health and restart PoracleJS instances remotely
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
 - **Test Alerts** — Send sample notifications from any alarm card to preview exactly what your alerts look like
 - **Weather Display** — View current in-game weather at your location and across all tracked areas on the dashboard
