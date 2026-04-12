@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, signal, OnInit, ElementRef, ViewChild, NgZone } from '@angular/core';
+import { Component, computed, DestroyRef, ElementRef, inject, NgZone, OnInit, signal, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -38,6 +38,7 @@ export class LoginComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
 
   private telegramBotUsername = '';
+  private telegramWidgetLoaded = false;
 
   /** Whether the providers config has finished loading (success or failure). */
   protected readonly configLoaded = signal(false);
@@ -47,7 +48,8 @@ export class LoginComponent implements OnInit {
 
   /**
    * Whether Discord login is enabled by the admin (site setting `enable_discord`).
-   * When false but configured, the button renders in a disabled state with a message.
+   * When false but configured, the button still renders but the backend will reject
+   * non-admin users after authentication.
    */
   protected readonly discordEnabledByAdmin = signal(true);
 
@@ -71,16 +73,28 @@ export class LoginComponent implements OnInit {
 
   /**
    * Whether Telegram login is enabled by the admin (site setting `enable_telegram`).
-   * When false but configured, the widget area renders with a disabled message.
+   * When false but configured, the widget still renders but the backend will reject
+   * non-admin users after authentication.
    */
   protected readonly telegramEnabledByAdmin = signal(true);
 
-  /** Computed: can the user actually use Telegram login? Configured + admin-enabled. */
+  /** Computed: can the user actually use Telegram login without admin rejection? */
   protected readonly telegramActive = computed(() => this.telegramConfigured() && this.telegramEnabledByAdmin());
-  @ViewChild('telegramContainer') telegramContainer?: ElementRef<HTMLDivElement>;
 
   /** Computed: should the Telegram section be shown at all? Only if configured in .env. */
   protected readonly telegramVisible = computed(() => this.telegramConfigured());
+
+  /**
+   * ViewChild setter — fires automatically when the #telegramContainer element enters
+   * the DOM (i.e., after Angular renders the @if (telegramVisible()) block). This avoids
+   * the unreliable setTimeout + detectChanges pattern for elements inside @if blocks.
+   */
+  @ViewChild('telegramContainer') set telegramContainerRef(el: ElementRef<HTMLDivElement> | undefined) {
+    if (el && this.telegramBotUsername && !this.telegramWidgetLoaded) {
+      this.telegramWidgetLoaded = true;
+      this.loadTelegramWidget(el.nativeElement);
+    }
+  }
 
   loginWithDiscord(): void {
     this.loading.set(true);
@@ -149,16 +163,11 @@ export class LoginComponent implements OnInit {
     this.discordConfigured.set(providers.discord.configured);
     this.discordEnabledByAdmin.set(providers.discord.enabledByAdmin);
 
-    // Telegram
+    // Telegram — set botUsername before signals so the ViewChild setter has it
+    // when Angular renders the @if block and triggers the setter.
+    this.telegramBotUsername = providers.telegram.botUsername;
     this.telegramConfigured.set(providers.telegram.configured);
     this.telegramEnabledByAdmin.set(providers.telegram.enabledByAdmin);
-    this.telegramBotUsername = providers.telegram.botUsername;
-
-    if (this.telegramConfigured()) {
-      // Load the widget for all configured Telegram — even when admin-disabled,
-      // because admins can still log in (the backend enforces the setting post-auth).
-      setTimeout(() => this.loadTelegramWidget(), 0);
-    }
   }
 
   private handleTelegramAuth(telegramData: Record<string, string>): void {
@@ -177,8 +186,8 @@ export class LoginComponent implements OnInit {
       });
   }
 
-  private loadTelegramWidget(): void {
-    if (!this.telegramContainer?.nativeElement || !this.telegramBotUsername) return;
+  private loadTelegramWidget(container: HTMLDivElement): void {
+    if (!this.telegramBotUsername) return;
 
     // Set up global callback for Telegram widget
     window.onTelegramAuth = (user: Record<string, string>) => {
@@ -193,6 +202,6 @@ export class LoginComponent implements OnInit {
     script.setAttribute('data-request-access', 'write');
     script.async = true;
 
-    this.telegramContainer.nativeElement.appendChild(script);
+    container.appendChild(script);
   }
 }
