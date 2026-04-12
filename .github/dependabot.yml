@@ -56,6 +56,11 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: '@angular/cdk'
         update-types: [version-update:semver-major]
+      # angular-eslint must be upgraded as a coordinated set via 'ng update angular-eslint'.
+      # Majors add new recommended rules (e.g. prefer-control-flow) that require codebase
+      # migration work, not a simple version bump.
+      - dependency-name: '@angular-eslint/*'
+        update-types: [version-update:semver-major]
     groups:
       angular:
         patterns:
