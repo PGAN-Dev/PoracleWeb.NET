@@ -1,16 +1,15 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class WebhookDelegateRepository(PoracleWebContext context, IMapper mapper) : IWebhookDelegateRepository
+public class WebhookDelegateRepository(PoracleWebContext context) : IWebhookDelegateRepository
 {
     private readonly PoracleWebContext _context = context;
-    private readonly IMapper _mapper = mapper;
 
     public async Task<IEnumerable<WebhookDelegate>> GetAllAsync()
     {
@@ -18,7 +17,7 @@ public class WebhookDelegateRepository(PoracleWebContext context, IMapper mapper
             .AsNoTracking()
             .ToListAsync();
 
-        return this._mapper.Map<IEnumerable<WebhookDelegate>>(entities);
+        return entities.Select(e => e.ToModel());
     }
 
     public async Task<IEnumerable<WebhookDelegate>> GetByWebhookIdAsync(string webhookId)
@@ -28,7 +27,7 @@ public class WebhookDelegateRepository(PoracleWebContext context, IMapper mapper
             .Where(d => d.WebhookId == webhookId)
             .ToListAsync();
 
-        return this._mapper.Map<IEnumerable<WebhookDelegate>>(entities);
+        return entities.Select(e => e.ToModel());
     }
 
     public async Task<IEnumerable<string>> GetWebhookIdsByUserIdAsync(string userId) => await this._context.WebhookDelegates
@@ -45,7 +44,7 @@ public class WebhookDelegateRepository(PoracleWebContext context, IMapper mapper
 
         if (existing is not null)
         {
-            return this._mapper.Map<WebhookDelegate>(existing);
+            return existing.ToModel();
         }
 
         var entity = new WebhookDelegateEntity
@@ -58,7 +57,7 @@ public class WebhookDelegateRepository(PoracleWebContext context, IMapper mapper
         this._context.WebhookDelegates.Add(entity);
         await this._context.SaveChangesAsync();
 
-        return this._mapper.Map<WebhookDelegate>(entity);
+        return entity.ToModel();
     }
 
     public async Task<bool> RemoveAsync(string webhookId, string userId)

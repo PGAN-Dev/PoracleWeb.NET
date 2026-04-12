@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class EggControllerTests : ControllerTestBase
 {
     private readonly Mock<IEggService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly EggController _sut;
 
     public EggControllerTests()
     {
-        this._sut = new EggController(this._service.Object, this._mapper.Object);
+        this._sut = new EggController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -43,8 +41,7 @@ public class EggControllerTests : ControllerTestBase
     {
         var model = new EggCreate();
         var egg = new Egg { Uid = 1 };
-        this._mapper.Setup(m => m.Map<Egg>(model)).Returns(egg);
-        this._service.Setup(s => s.CreateAsync("123456789", egg)).ReturnsAsync(egg);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Egg>())).ReturnsAsync(egg);
         var result = await this._sut.Create(model);
         var created = Assert.IsType<CreatedAtActionResult>(result);
         Assert.Equal(nameof(EggController.GetByUid), created.ActionName);
@@ -57,7 +54,6 @@ public class EggControllerTests : ControllerTestBase
         this._service.Setup(s => s.GetByUidAsync("123456789", 1)).ReturnsAsync(existing);
         this._service.Setup(s => s.UpdateAsync("123456789", existing)).ReturnsAsync(existing);
         Assert.IsType<OkObjectResult>(await this._sut.Update(1, new EggUpdate()));
-        this._mapper.Verify(m => m.Map(It.IsAny<EggUpdate>(), existing), Times.Once);
     }
 
     [Fact]

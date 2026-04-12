@@ -1,17 +1,16 @@
 using System.Reflection;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class HumanRepository(PoracleContext context, IMapper mapper) : IHumanRepository
+public class HumanRepository(PoracleContext context) : IHumanRepository
 {
     private readonly PoracleContext _context = context;
-    private readonly IMapper _mapper = mapper;
 
     // Cached reflection results for EnsureNotNullDefaults
     private static readonly PropertyInfo[] WritableStringProperties =
@@ -20,13 +19,13 @@ public class HumanRepository(PoracleContext context, IMapper mapper) : IHumanRep
     public async Task<IEnumerable<Human>> GetAllAsync()
     {
         var entities = await this._context.Humans.ToListAsync();
-        return this._mapper.Map<IEnumerable<Human>>(entities);
+        return entities.Select(e => e.ToModel());
     }
 
     public async Task<Human?> GetByIdAsync(string id)
     {
         var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == id);
-        return entity is null ? null : this._mapper.Map<Human>(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids)
@@ -49,23 +48,23 @@ public class HumanRepository(PoracleContext context, IMapper mapper) : IHumanRep
             }
         }
 
-        return this._mapper.Map<IEnumerable<Human>>(results);
+        return results.Select(e => e.ToModel());
     }
 
     public async Task<Human?> GetByIdAndProfileAsync(string id, int profileNo)
     {
         var entity = await this._context.Humans
             .FirstOrDefaultAsync(h => h.Id == id && h.CurrentProfileNo == profileNo);
-        return entity is null ? null : this._mapper.Map<Human>(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<Human> CreateAsync(Human human)
     {
-        var entity = this._mapper.Map<HumanEntity>(human);
+        var entity = human.ToEntity();
         EnsureNotNullDefaults(entity);
         this._context.Humans.Add(entity);
         await this._context.SaveChangesAsync();
-        return this._mapper.Map<Human>(entity);
+        return entity.ToModel();
     }
 
     public async Task<Human> UpdateAsync(Human human)
@@ -73,10 +72,10 @@ public class HumanRepository(PoracleContext context, IMapper mapper) : IHumanRep
         var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == human.Id)
             ?? throw new InvalidOperationException($"Human with id {human.Id} not found.");
 
-        this._mapper.Map(human, entity);
+        human.ApplyTo(entity);
         EnsureNotNullDefaults(entity);
         await this._context.SaveChangesAsync();
-        return this._mapper.Map<Human>(entity);
+        return entity.ToModel();
     }
 
     public async Task<bool> ExistsAsync(string id) => await this._context.Humans.AnyAsync(h => h.Id == id);

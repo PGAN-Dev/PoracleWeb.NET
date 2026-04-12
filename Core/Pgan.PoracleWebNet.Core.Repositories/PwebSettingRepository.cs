@@ -1,21 +1,20 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class PwebSettingRepository(PoracleContext context, IMapper mapper) : IPwebSettingRepository
+public class PwebSettingRepository(PoracleContext context) : IPwebSettingRepository
 {
     private readonly PoracleContext _context = context;
-    private readonly IMapper _mapper = mapper;
 
     public async Task<IEnumerable<PwebSetting>> GetAllAsync()
     {
         var entities = await this._context.PwebSettings.ToListAsync();
-        return this._mapper.Map<IEnumerable<PwebSetting>>(entities);
+        return entities.Select(e => e.ToModel());
     }
 
     public async Task<PwebSetting?> GetByKeyAsync(string key)
@@ -23,7 +22,7 @@ public class PwebSettingRepository(PoracleContext context, IMapper mapper) : IPw
         var entity = await this._context.PwebSettings
             .FirstOrDefaultAsync(s => s.Setting == key);
 
-        return entity is null ? null : this._mapper.Map<PwebSetting>(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<PwebSetting> CreateOrUpdateAsync(PwebSetting setting)
@@ -33,16 +32,16 @@ public class PwebSettingRepository(PoracleContext context, IMapper mapper) : IPw
 
         if (entity is null)
         {
-            entity = this._mapper.Map<PwebSettingEntity>(setting);
+            entity = setting.ToEntity();
             this._context.PwebSettings.Add(entity);
         }
         else
         {
-            this._mapper.Map(setting, entity);
+            setting.ApplyTo(entity);
         }
 
         await this._context.SaveChangesAsync();
-        return this._mapper.Map<PwebSetting>(entity);
+        return entity.ToModel();
     }
 
     public async Task<bool> DeleteAsync(string key)

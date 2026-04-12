@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/maxbattles")]
-public class MaxBattleController(IMaxBattleService maxBattleService, IMapper mapper) : BaseApiController
+public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiController
 {
     private readonly IMaxBattleService _maxBattleService = maxBattleService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class MaxBattleController(IMaxBattleService maxBattleService, IMapper map
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] MaxBattleCreate model)
     {
-        var maxBattle = this._mapper.Map<MaxBattle>(model);
+        var maxBattle = model.ToMaxBattle();
         maxBattle.ProfileNo = this.ProfileNo;
         var result = await this._maxBattleService.CreateAsync(this.UserId, maxBattle);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class MaxBattleController(IMaxBattleService maxBattleService, IMapper map
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._maxBattleService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

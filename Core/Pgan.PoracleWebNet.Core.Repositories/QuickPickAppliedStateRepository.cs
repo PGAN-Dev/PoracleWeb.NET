@@ -1,5 +1,4 @@
 using System.Text.Json;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Models;
@@ -8,10 +7,9 @@ using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class QuickPickAppliedStateRepository(PoracleWebContext context, IMapper mapper) : IQuickPickAppliedStateRepository
+public class QuickPickAppliedStateRepository(PoracleWebContext context) : IQuickPickAppliedStateRepository
 {
     private readonly PoracleWebContext _context = context;
-    private readonly IMapper _mapper = mapper;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

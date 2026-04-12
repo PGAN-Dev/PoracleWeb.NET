@@ -1,16 +1,15 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) : IUserGeofenceRepository
+public class UserGeofenceRepository(PoracleWebContext context) : IUserGeofenceRepository
 {
     private readonly PoracleWebContext _context = context;
-    private readonly IMapper _mapper = mapper;
 
     public async Task<List<UserGeofence>> GetByHumanIdAsync(string humanId)
     {
@@ -21,7 +20,7 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .ThenBy(g => g.DisplayName)
             .ToListAsync();
 
-        return this._mapper.Map<List<UserGeofence>>(entities);
+        return entities.Select(e => e.ToModel()).ToList();
     }
 
     public async Task<UserGeofence?> GetByIdAsync(int id)
@@ -30,7 +29,7 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.Id == id);
 
-        return entity is null ? null : this._mapper.Map<UserGeofence>(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<UserGeofence?> GetByKojiNameAsync(string kojiName)
@@ -39,7 +38,7 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .AsNoTracking()
             .FirstOrDefaultAsync(g => g.KojiName == kojiName);
 
-        return entity is null ? null : this._mapper.Map<UserGeofence>(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<int> GetCountByHumanIdAsync(string humanId) => await this._context.UserGeofences
@@ -54,7 +53,7 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .OrderBy(g => g.CreatedAt)
             .ToListAsync();
 
-        return this._mapper.Map<List<UserGeofence>>(entities);
+        return entities.Select(e => e.ToModel()).ToList();
     }
 
     public async Task<List<UserGeofence>> GetAllActiveAsync()
@@ -65,7 +64,7 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .OrderBy(g => g.KojiName)
             .ToListAsync();
 
-        return this._mapper.Map<List<UserGeofence>>(entities);
+        return entities.Select(e => e.ToModel()).ToList();
     }
 
     public async Task<List<UserGeofence>> GetAllAsync()
@@ -75,19 +74,19 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .OrderByDescending(g => g.CreatedAt)
             .ToListAsync();
 
-        return this._mapper.Map<List<UserGeofence>>(entities);
+        return entities.Select(e => e.ToModel()).ToList();
     }
 
     public async Task<UserGeofence> CreateAsync(UserGeofence geofence)
     {
-        var entity = this._mapper.Map<UserGeofenceEntity>(geofence);
+        var entity = geofence.ToEntity();
         entity.CreatedAt = DateTime.UtcNow;
         entity.UpdatedAt = DateTime.UtcNow;
 
         this._context.UserGeofences.Add(entity);
         await this._context.SaveChangesAsync();
 
-        return this._mapper.Map<UserGeofence>(entity);
+        return entity.ToModel();
     }
 
     public async Task<UserGeofence> UpdateAsync(UserGeofence geofence)
@@ -96,12 +95,12 @@ public class UserGeofenceRepository(PoracleWebContext context, IMapper mapper) :
             .FirstOrDefaultAsync(g => g.Id == geofence.Id)
             ?? throw new InvalidOperationException($"UserGeofence with id {geofence.Id} not found.");
 
-        this._mapper.Map(geofence, entity);
+        geofence.ApplyTo(entity);
         entity.UpdatedAt = DateTime.UtcNow;
 
         await this._context.SaveChangesAsync();
 
-        return this._mapper.Map<UserGeofence>(entity);
+        return entity.ToModel();
     }
 
     public async Task DeleteAsync(int id)

@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/fort-changes")]
-public class FortChangeController(IFortChangeService fortChangeService, IMapper mapper) : BaseApiController
+public class FortChangeController(IFortChangeService fortChangeService) : BaseApiController
 {
     private readonly IFortChangeService _fortChangeService = fortChangeService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class FortChangeController(IFortChangeService fortChangeService, IMapper 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] FortChangeCreate model)
     {
-        var fortChange = this._mapper.Map<FortChange>(model);
+        var fortChange = model.ToFortChange();
         fortChange.ProfileNo = this.ProfileNo;
         var result = await this._fortChangeService.CreateAsync(this.UserId, fortChange);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class FortChangeController(IFortChangeService fortChangeService, IMapper 
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._fortChangeService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

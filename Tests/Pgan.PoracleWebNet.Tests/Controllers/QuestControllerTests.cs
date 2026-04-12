@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class QuestControllerTests : ControllerTestBase
 {
     private readonly Mock<IQuestService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly QuestController _sut;
 
     public QuestControllerTests()
     {
-        this._sut = new QuestController(this._service.Object, this._mapper.Object);
+        this._sut = new QuestController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -42,8 +40,7 @@ public class QuestControllerTests : ControllerTestBase
     {
         var m = new QuestCreate();
         var q = new Quest { Uid = 1 };
-        this._mapper.Setup(x => x.Map<Quest>(m)).Returns(q);
-        this._service.Setup(s => s.CreateAsync("123456789", q)).ReturnsAsync(q);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Quest>())).ReturnsAsync(q);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(m));
     }
     [Fact]

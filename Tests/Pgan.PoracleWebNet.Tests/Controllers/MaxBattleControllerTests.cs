@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class MaxBattleControllerTests : ControllerTestBase
 {
     private readonly Mock<IMaxBattleService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly MaxBattleController _sut;
 
     public MaxBattleControllerTests()
     {
-        this._sut = new MaxBattleController(this._service.Object, this._mapper.Object);
+        this._sut = new MaxBattleController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -46,8 +44,7 @@ public class MaxBattleControllerTests : ControllerTestBase
     {
         var model = new MaxBattleCreate();
         var maxBattle = new MaxBattle { Uid = 1 };
-        this._mapper.Setup(m => m.Map<MaxBattle>(model)).Returns(maxBattle);
-        this._service.Setup(s => s.CreateAsync("123456789", maxBattle)).ReturnsAsync(maxBattle);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<MaxBattle>())).ReturnsAsync(maxBattle);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(model));
     }
 

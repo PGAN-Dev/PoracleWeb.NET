@@ -1,6 +1,6 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Entities;
 
@@ -8,10 +8,9 @@ using Profile = Pgan.PoracleWebNet.Core.Models.Profile;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class ProfileRepository(PoracleContext context, IMapper mapper) : IProfileRepository
+public class ProfileRepository(PoracleContext context) : IProfileRepository
 {
     private readonly PoracleContext _context = context;
-    private readonly IMapper _mapper = mapper;
 
     public async Task<IEnumerable<Profile>> GetByUserAsync(string userId)
     {
@@ -19,7 +18,7 @@ public class ProfileRepository(PoracleContext context, IMapper mapper) : IProfil
             .Where(p => p.Id == userId)
             .ToListAsync();
 
-        return this._mapper.Map<IEnumerable<Profile>>(entities);
+        return entities.Select(e => e.ToModel());
     }
 
     public async Task<Profile?> GetByUserAndProfileNoAsync(string userId, int profileNo)
@@ -27,15 +26,15 @@ public class ProfileRepository(PoracleContext context, IMapper mapper) : IProfil
         var entity = await this._context.Profiles
             .FirstOrDefaultAsync(p => p.Id == userId && p.ProfileNo == profileNo);
 
-        return entity is null ? null : this._mapper.Map<Profile>(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<Profile> CreateAsync(Profile profile)
     {
-        var entity = this._mapper.Map<ProfileEntity>(profile);
+        var entity = profile.ToEntity();
         this._context.Profiles.Add(entity);
         await this._context.SaveChangesAsync();
-        return this._mapper.Map<Profile>(entity);
+        return entity.ToModel();
     }
 
     public async Task<Profile> UpdateAsync(Profile profile)
@@ -45,9 +44,9 @@ public class ProfileRepository(PoracleContext context, IMapper mapper) : IProfil
             ?? throw new InvalidOperationException(
                 $"Profile with id {profile.Id} and profileNo {profile.ProfileNo} not found.");
 
-        this._mapper.Map(profile, entity);
+        profile.ApplyTo(entity);
         await this._context.SaveChangesAsync();
-        return this._mapper.Map<Profile>(entity);
+        return entity.ToModel();
     }
 
     public async Task<bool> DeleteAsync(string userId, int profileNo)

@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class FortChangeControllerTests : ControllerTestBase
 {
     private readonly Mock<IFortChangeService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly FortChangeController _sut;
 
     public FortChangeControllerTests()
     {
-        this._sut = new FortChangeController(this._service.Object, this._mapper.Object);
+        this._sut = new FortChangeController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -45,8 +43,7 @@ public class FortChangeControllerTests : ControllerTestBase
     {
         var m = new FortChangeCreate { FortType = "pokestop" };
         var n = new FortChange { Uid = 1, FortType = "pokestop" };
-        this._mapper.Setup(x => x.Map<FortChange>(m)).Returns(n);
-        this._service.Setup(s => s.CreateAsync("123456789", n)).ReturnsAsync(n);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<FortChange>())).ReturnsAsync(n);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(m));
     }
 

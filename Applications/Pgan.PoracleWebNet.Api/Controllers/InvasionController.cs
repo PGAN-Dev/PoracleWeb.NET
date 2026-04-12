@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/invasions")]
-public class InvasionController(IInvasionService invasionService, IMapper mapper) : BaseApiController
+public class InvasionController(IInvasionService invasionService) : BaseApiController
 {
     private readonly IInvasionService _invasionService = invasionService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] InvasionCreate model)
     {
-        var invasion = this._mapper.Map<Invasion>(model);
+        var invasion = model.ToInvasion();
         invasion.ProfileNo = this.ProfileNo;
         var result = await this._invasionService.CreateAsync(this.UserId, invasion);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class InvasionController(IInvasionService invasionService, IMapper mapper
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._invasionService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

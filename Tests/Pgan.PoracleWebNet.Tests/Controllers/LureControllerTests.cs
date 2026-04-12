@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class LureControllerTests : ControllerTestBase
 {
     private readonly Mock<ILureService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly LureController _sut;
 
     public LureControllerTests()
     {
-        this._sut = new LureController(this._service.Object, this._mapper.Object);
+        this._sut = new LureController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -42,8 +40,7 @@ public class LureControllerTests : ControllerTestBase
     {
         var m = new LureCreate();
         var l = new Lure { Uid = 1 };
-        this._mapper.Setup(x => x.Map<Lure>(m)).Returns(l);
-        this._service.Setup(s => s.CreateAsync("123456789", l)).ReturnsAsync(l);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Lure>())).ReturnsAsync(l);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(m));
     }
     [Fact]

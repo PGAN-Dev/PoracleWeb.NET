@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
-using Pgan.PoracleWebNet.Core.Mappings;
+
 using Pgan.PoracleWebNet.Core.Repositories;
 using Pgan.PoracleWebNet.Core.Services;
 using Pgan.PoracleWebNet.Core.Services.Pvp;
@@ -28,9 +28,6 @@ public static class ServiceCollectionExtensions
 
         // Register MemoryCache
         services.AddMemoryCache();
-
-        // Register AutoMapper
-        services.AddAutoMapper(cfg => cfg.AddProfile<PoracleMappingProfile>());
 
         // Register Repositories
         services.AddScoped<IHumanRepository, HumanRepository>();

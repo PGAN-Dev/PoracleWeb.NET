@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/monsters")]
-public class MonsterController(IMonsterService monsterService, IMapper mapper) : BaseApiController
+public class MonsterController(IMonsterService monsterService) : BaseApiController
 {
     private readonly IMonsterService _monsterService = monsterService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] MonsterCreate model)
     {
-        var monster = this._mapper.Map<Monster>(model);
+        var monster = model.ToMonster();
         monster.ProfileNo = this.ProfileNo;
         var result = await this._monsterService.CreateAsync(this.UserId, monster);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class MonsterController(IMonsterService monsterService, IMapper mapper) :
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._monsterService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
