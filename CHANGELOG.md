@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- remove Poracle server management feature (fixes #176) ([PR #181](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/181))
 - show login buttons based on .env config, with admin-disabled state (#172) ([PR #177](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/177))
 
 ### Changed
