@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-04-12
+
 ### Added
 - remove Poracle server management feature (fixes #176) ([PR #181](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/181))
 - show login buttons based on .env config, with admin-disabled state (#172) ([PR #177](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/177))
@@ -454,7 +456,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.4.1...v2.6.0
 [2.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.4.0...v2.5.0
 [2.4.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.3.0...v2.4.1
 [2.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.3.0...v2.4.0
