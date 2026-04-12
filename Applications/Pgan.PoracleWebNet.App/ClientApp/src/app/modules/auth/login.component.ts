@@ -168,7 +168,7 @@ export class LoginComponent implements OnInit {
       .loginWithTelegram(telegramData)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: err => {
+        error: () => {
           this.loading.set(false);
           this.error.set('AUTH.ERR_TELEGRAM_FAILED');
         },
