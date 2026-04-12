@@ -35,7 +35,7 @@ public static class ServiceCollectionExtensions
         // Standalone: falls back to ./data/ relative to the working directory.
         var dataDir = configuration["DATA_DIR"] ?? Path.Join(Directory.GetCurrentDirectory(), "data");
         var dataDirFullPath = Path.GetFullPath(dataDir);
-        var keyDirectoryPath = Path.GetFullPath(Path.Combine(dataDirFullPath, "dataprotection-keys"));
+        var keyDirectoryPath = Path.GetFullPath(Path.Join(dataDirFullPath, "dataprotection-keys"));
         var expectedPrefix = dataDirFullPath.EndsWith(Path.DirectorySeparatorChar)
             ? dataDirFullPath
             : dataDirFullPath + Path.DirectorySeparatorChar;
