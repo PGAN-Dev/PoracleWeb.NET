@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+### Added
+- show login buttons based on .env config, with admin-disabled state (#172) ([PR #177](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/177))
+
 ### Fixed
 - use 'PoracleWeb.NET' branding consistently (fixes #175) ([PR #180](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/180))
 ## [2.5.0] - 2026-04-12
