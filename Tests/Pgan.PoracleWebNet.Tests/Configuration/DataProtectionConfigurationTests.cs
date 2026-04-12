@@ -259,9 +259,9 @@ public class DataProtectionConfigurationTests : IDisposable
             .AddInMemoryCollection(new Dictionary<string, string?>())
             .Build();
 
-        // When DATA_DIR is not set, the fallback is Path.Combine(Directory.GetCurrentDirectory(), "data")
-        var expectedDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
-        var resolvedDir = config["DATA_DIR"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+        // When DATA_DIR is not set, the fallback is Path.Join(Directory.GetCurrentDirectory(), "data")
+        var expectedDir = Path.Join(Directory.GetCurrentDirectory(), "data");
+        var resolvedDir = config["DATA_DIR"] ?? Path.Join(Directory.GetCurrentDirectory(), "data");
 
         Assert.Equal(expectedDir, resolvedDir);
     }
