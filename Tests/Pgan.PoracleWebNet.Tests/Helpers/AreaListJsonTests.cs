@@ -35,7 +35,7 @@ public class AreaListJsonTests
     [Fact]
     public void ParseFallsBackToCommaSeparatedForLegacyRows()
     {
-        // Older PoracleWeb rows stored areas as CSV rather than JSON. Must still parse.
+        // Older PoracleWeb.NET rows stored areas as CSV rather than JSON. Must still parse.
         var result = AreaListJson.Parse("downtown,west end,uptown");
         Assert.Equal(3, result.Count);
         Assert.Contains("downtown", result);
@@ -80,7 +80,7 @@ public class AreaListJsonTests
     public void ParseStillFallsBackToCsvForNonBracketedInput()
     {
         // Guard against the previous fix being too aggressive — unbracketed input that can't
-        // parse as JSON is still assumed to be CSV (the legacy PoracleWeb format).
+        // parse as JSON is still assumed to be CSV (the legacy PoracleWeb.NET format).
         var result = AreaListJson.Parse("downtown,west end");
         Assert.Equal(2, result.Count);
     }

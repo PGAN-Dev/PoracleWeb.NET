@@ -388,6 +388,43 @@ public partial class SettingsMigrationService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid qp_applied key format: '{Key}'")]
     private static partial void LogInvalidAppliedStateKey(ILogger logger, string key);
 
+    // ── Default seeding ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Default site settings seeded on fresh installs. Each entry is only
+    /// written when the key does not yet exist in the database, so admin
+    /// overrides are never clobbered.
+    /// </summary>
+    private static readonly (string Key, string Value, string Category, string ValueType)[] DefaultSettings =
+    [
+        ("custom_title", "PoracleWeb.NET", "branding", "string"),
+    ];
+
+    public async Task SeedDefaultsAsync()
+    {
+        foreach (var (key, value, category, valueType) in DefaultSettings)
+        {
+            var existing = await this._siteSettingService.GetByKeyAsync(key);
+            if (existing != null)
+            {
+                continue;
+            }
+
+            await this._siteSettingService.CreateOrUpdateAsync(new SiteSetting
+            {
+                Key = key,
+                Value = value,
+                Category = category,
+                ValueType = valueType,
+            });
+
+            LogDefaultSeeded(this._logger, key, value);
+        }
+    }
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Settings migration completed: {SiteSettings} site settings, {WebhookDelegates} webhook delegates, {QuickPickDefinitions} quick pick definitions, {QuickPickAppliedStates} quick pick applied states, {Failed} failed")]
     private static partial void LogMigrationCompleted(ILogger logger, int siteSettings, int webhookDelegates, int quickPickDefinitions, int quickPickAppliedStates, int failed);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Seeded default setting '{Key}' = '{Value}'")]
+    private static partial void LogDefaultSeeded(ILogger logger, string key, string value);
 }

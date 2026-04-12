@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PoracleWeb — Interactive first-time setup
+# PoracleWeb.NET — Interactive first-time setup
 # Creates and configures your .env file from .env.example
 set -euo pipefail
 
@@ -47,7 +47,7 @@ set_env() {
 
 # ─────────────────────────────────────────────────────────────────────────────
 
-echo -e "${BOLD}PoracleWeb Setup${RESET}"
+echo -e "${BOLD}PoracleWeb.NET Setup${RESET}"
 echo "This will create and configure your .env file."
 echo "Press Enter to accept the default value shown in brackets."
 
@@ -99,8 +99,8 @@ set_env "DB_NAME" "$DB_NAME"
 set_env "DB_USER" "$DB_USER"
 set_env "DB_PASSWORD" "$DB_PASSWORD"
 
-header "5. PoracleWeb database"
-info "  A separate database for PoracleWeb's own data."
+header "5. PoracleWeb.NET database"
+info "  A separate database for PoracleWeb.NET's own data."
 info "  Uses the same server by default — only change if different."
 WEB_DB_HOST=$(ask WEB_DB_HOST "Host" "$DB_HOST")
 WEB_DB_PORT=$(ask WEB_DB_PORT "Port" "$DB_PORT")

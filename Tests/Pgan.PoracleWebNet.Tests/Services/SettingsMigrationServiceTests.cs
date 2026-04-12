@@ -140,6 +140,33 @@ public class SettingsMigrationServiceTests
             ss.Key == "succeeding_key")), Times.Once);
     }
 
+    // ── SeedDefaultsAsync ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SeedDefaultsAsyncSeedsCustomTitleWhenMissing()
+    {
+        this._siteSettingService.Setup(s => s.GetByKeyAsync("custom_title"))
+            .ReturnsAsync((SiteSetting?)null);
+        this._siteSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
+            .ReturnsAsync((SiteSetting s) => s);
+
+        await this._sut.SeedDefaultsAsync();
+
+        this._siteSettingService.Verify(s => s.CreateOrUpdateAsync(It.Is<SiteSetting>(ss =>
+            ss.Key == "custom_title" && ss.Value == "PoracleWeb.NET")), Times.Once);
+    }
+
+    [Fact]
+    public async Task SeedDefaultsAsyncDoesNotOverwriteExistingCustomTitle()
+    {
+        this._siteSettingService.Setup(s => s.GetByKeyAsync("custom_title"))
+            .ReturnsAsync(new SiteSetting { Key = "custom_title", Value = "My Custom Title" });
+
+        await this._sut.SeedDefaultsAsync();
+
+        this._siteSettingService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
     private void SetupNotMigrated() => this._siteSettingService.Setup(s => s.GetByKeyAsync("migration_completed"))
             .ReturnsAsync((SiteSetting?)null);
 }
