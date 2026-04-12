@@ -370,13 +370,12 @@ public partial class AuthController(
 
         // Admin can disable either provider at runtime via site_settings without restart.
         // Absent/null = enabled (safe default — prevents lockout on first-time setup).
-        // Fetch both in parallel since this is an unauthenticated endpoint hit on every login page load.
-        var discordTask = this._siteSettingService.GetValueAsync(EnableDiscordKey);
-        var telegramTask = this._siteSettingService.GetValueAsync(EnableTelegramKey);
-        await Task.WhenAll(discordTask, telegramTask);
+        // Sequential awaits — EF Core DbContext is not thread-safe so Task.WhenAll is not viable.
+        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
+        var discordDisabledByAdmin = string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase);
 
-        var discordDisabledByAdmin = string.Equals(discordTask.Result, "false", StringComparison.OrdinalIgnoreCase);
-        var telegramDisabledByAdmin = string.Equals(telegramTask.Result, "false", StringComparison.OrdinalIgnoreCase);
+        var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
+        var telegramDisabledByAdmin = string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase);
 
         return this.Ok(new
         {
