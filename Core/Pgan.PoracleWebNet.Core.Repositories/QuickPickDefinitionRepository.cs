@@ -1,22 +1,15 @@
-using System.Text.Json;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Data;
 using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper mapper) : IQuickPickDefinitionRepository
+public class QuickPickDefinitionRepository(PoracleWebContext context) : IQuickPickDefinitionRepository
 {
     private readonly PoracleWebContext _context = context;
-    private readonly IMapper _mapper = mapper;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
 
     public async Task<List<QuickPickDefinition>> GetAllGlobalAsync()
     {
@@ -27,7 +20,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .ThenBy(d => d.Name)
             .ToListAsync();
 
-        return [.. entities.Select(this.MapToModel)];
+        return [.. entities.Select(e => e.ToModel())];
     }
 
     public async Task<List<QuickPickDefinition>> GetByOwnerAsync(string userId)
@@ -39,7 +32,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .ThenBy(d => d.Name)
             .ToListAsync();
 
-        return [.. entities.Select(this.MapToModel)];
+        return [.. entities.Select(e => e.ToModel())];
     }
 
     public async Task<QuickPickDefinition?> GetByIdAsync(string id)
@@ -48,7 +41,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == id);
 
-        return entity is null ? null : this.MapToModel(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<QuickPickDefinition?> GetByIdAndOwnerAsync(string id, string userId)
@@ -57,7 +50,7 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == id && d.OwnerUserId == userId);
 
-        return entity is null ? null : this.MapToModel(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task CreateOrUpdateAsync(QuickPickDefinition definition)
@@ -67,17 +60,12 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
 
         if (entity is null)
         {
-            entity = this._mapper.Map<QuickPickDefinitionEntity>(definition);
-            entity.FiltersJson = JsonSerializer.Serialize(definition.Filters, JsonOptions);
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.UpdatedAt = DateTime.UtcNow;
+            entity = definition.ToEntity();
             this._context.QuickPickDefinitions.Add(entity);
         }
         else
         {
-            this._mapper.Map(definition, entity);
-            entity.FiltersJson = JsonSerializer.Serialize(definition.Filters, JsonOptions);
-            entity.UpdatedAt = DateTime.UtcNow;
+            definition.ApplyTo(entity);
         }
 
         await this._context.SaveChangesAsync();
@@ -120,14 +108,4 @@ public class QuickPickDefinitionRepository(PoracleWebContext context, IMapper ma
         }
     }
 
-    private QuickPickDefinition MapToModel(QuickPickDefinitionEntity entity)
-    {
-        var model = this._mapper.Map<QuickPickDefinition>(entity);
-
-        model.Filters = string.IsNullOrEmpty(entity.FiltersJson)
-            ? []
-            : JsonSerializer.Deserialize<Dictionary<string, object?>>(entity.FiltersJson, JsonOptions) ?? [];
-
-        return model;
-    }
 }

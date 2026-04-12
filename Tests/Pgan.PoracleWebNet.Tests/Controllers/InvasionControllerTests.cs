@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class InvasionControllerTests : ControllerTestBase
 {
     private readonly Mock<IInvasionService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly InvasionController _sut;
 
     public InvasionControllerTests()
     {
-        this._sut = new InvasionController(this._service.Object, this._mapper.Object);
+        this._sut = new InvasionController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -42,8 +40,7 @@ public class InvasionControllerTests : ControllerTestBase
     {
         var m = new InvasionCreate();
         var i = new Invasion { Uid = 1 };
-        this._mapper.Setup(x => x.Map<Invasion>(m)).Returns(i);
-        this._service.Setup(s => s.CreateAsync("123456789", i)).ReturnsAsync(i);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Invasion>())).ReturnsAsync(i);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(m));
     }
     [Fact]

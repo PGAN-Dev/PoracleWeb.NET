@@ -10,7 +10,7 @@ This is a full-stack web application for configuring Pokemon GO DM notification 
 
 - **Backend**: .NET 10, ASP.NET Core Web API, EF Core with MySQL (Oracle provider -- `MySql.EntityFrameworkCore`, NOT Pomelo)
 - **Frontend**: Angular 21, standalone components with `inject()` and signals, Angular Material 21 (Material Design 3)
-- **Mapping**: AutoMapper for Entity-to-Model conversions (Human, Profile, PoracleWeb-owned tables only -- alarm CRUD uses JSON via PoracleNG proxy)
+- **Mapping**: Manual extension methods (`AlarmMappingExtensions`, `EntityMappingExtensions`) for Entity-to-Model and DTO-to-Model conversions (alarm CRUD uses JSON via PoracleNG proxy)
 - **Maps**: Leaflet 1.9 for interactive geofence display
 - **Auth**: JWT bearer tokens, Discord OAuth2, Telegram Bot Login
 - **Testing**: Jest (frontend), xUnit (backend)
@@ -25,8 +25,9 @@ Pgan.PoracleWebNet.slnx
 |   |                            IPoracleHumanProxy, ITestAlertService,
 |   |                            IGolbatApiProxy, IPokemonAvailabilityService
 |   +-- Core.Models/             DTOs passed between layers (not EF entities)
-|   +-- Core.Mappings/           AutoMapper PoracleMappingProfile (Human, Profile,
-|   |                            PoracleWeb-owned tables; alarm Create/Update DTOs)
+|   +-- Core.Mappings/           Static extension methods: AlarmMappingExtensions (alarm
+|   |                            Create/Update DTOs), EntityMappingExtensions (Human, Profile,
+|   |                            PoracleWeb-owned tables)
 |   +-- Core.Repositories/       HumanRepository, ProfileRepository,
 |   |                            SiteSettingRepository, WebhookDelegateRepository,
 |   |                            QuickPickDefinitionRepository, QuickPickAppliedStateRepository
@@ -99,14 +100,16 @@ Pgan.PoracleWebNet.slnx
 - Repositories remain for **non-alarm** data: `HumanRepository` (admin bulk ops only -- `GetAllAsync`, `DeleteUserAsync`), `ProfileRepository` (admin bulk ops and non-active profile cleanup in `UserGeofenceService`), and all PoracleWeb-owned tables (`SiteSettingRepository`, `WebhookDelegateRepository`, `UserGeofenceRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`). Single-user human and profile reads/writes are fully proxied through `IPoracleHumanProxy`.
 - **Removed**: 8 alarm repository classes (MonsterRepository, RaidRepository, etc.), `BaseRepository<TEntity, TModel>`, `PoracleUnitOfWork`, `IUnitOfWork`, and all alarm repository interfaces. `EnsureNotNullDefaults()` is no longer needed for alarm writes (PoracleNG handles NULL defaults).
 
-### AutoMapper
-- AutoMapper is still used for **Entity-to-Model** conversions on `Human`, `Profile`, and PoracleWeb-owned tables (`UserGeofence`, `SiteSetting`, `WebhookDelegate`, `QuickPickDefinition`, `QuickPickAppliedState`).
-- Alarm `*Create` and `*Update` model mappings remain in the profile for controller-level DTO mapping, but are no longer used for Entity writes.
-- The `ForAllMembers` null-skip condition on `*Update` mappings is still active for DTO merging.
+### Manual Mapping Extensions
+- **No AutoMapper dependency.** All mappings use static extension methods in `Core.Mappings/`.
+- `AlarmMappingExtensions` provides `To*()` (e.g., `model.ToMonster()`) and `ApplyUpdate()` (e.g., `model.ApplyUpdate(existing)`) methods for all 10 alarm types. `ApplyUpdate()` replicates the null-skip semantics: only non-null source properties overwrite the destination.
+- `EntityMappingExtensions` provides `ToModel()`, `ToEntity()`, and `ApplyTo()` methods for `Human`, `Profile`, `PwebSetting`, `UserGeofence`, `SiteSetting`, `WebhookDelegate`, `QuickPickDefinition`, and `QuickPickAppliedState` entity-model pairs.
+- `QuickPickDefinition` mappings handle `FiltersJson` (string) to `Filters` (`Dictionary<string, object?>`) JSON deserialization with `CamelCase` naming policy. `QuickPickAppliedState` mappings handle `ExcludePokemonIdsJson`/`TrackedUidsJson` to `List<int>` deserialization.
+- `UserGeofence` entity-to-model mapping intentionally skips `Polygon` (populated by service layer). Model-to-entity mapping intentionally skips `Id` (auto-generated).
 
 ### Bulk Operations
 - Each alarm controller has three distance endpoints:
-  - `PUT /{uid}` -- Update a single alarm (full object, sent to PoracleNG as a create-with-uid which performs an upsert)
+  - `PUT /{uid}` -- Update a single alarm (uses `*Update.ApplyUpdate(existing)` extension method for null-skip merge, then sends to PoracleNG as a create-with-uid which performs an upsert)
   - `PUT /distance` -- Update ALL alarms' distance for the current user/profile (fetch-mutate-POST pattern)
   - `PUT /distance/bulk` -- Update distance for specific UIDs (fetch-mutate-POST pattern)
 - **CleaningService** uses a fetch-mutate-POST workaround: fetches all alarms of a type, sets the `clean` flag on each, and POSTs them back. PoracleNG has no dedicated bulk-clean endpoint yet.
@@ -296,7 +299,7 @@ Many Poracle DB columns are `NOT NULL` with empty-string defaults but EF Core ma
 The `ScannerDb` connection string is optional. If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses. The gym search endpoints (`GET /api/scanner/gyms?search=` and `GET /api/scanner/gyms/{id}`) gracefully return empty results when the scanner DB is unavailable, and the `GymPickerComponent` hides itself in the UI.
 
 ### Bulk Update Preserving Fields
-When updating alarms, the frontend still sends full alarm objects to `PUT /{uid}`. The backend now proxies these to PoracleNG's create endpoint (which performs an upsert when a `uid` is present). PoracleNG handles field defaults, so the risk of zeroing out fields is lower than with direct DB writes, but sending the full object remains best practice.
+When updating alarms, the frontend sends `*Update` DTOs to `PUT /{uid}`. The controller uses `model.ApplyUpdate(existing)` (null-skip extension method) to merge only non-null fields onto the existing alarm, then proxies to PoracleNG's create endpoint (which performs an upsert when a `uid` is present). PoracleNG handles field defaults, so the risk of zeroing out fields is lower than with direct DB writes, but sending the full object remains best practice.
 
 ### Discord API Version for Geofence Notifications
 Use `discordapp.com/api/v9` (not v10) -- v10 is not supported on the `discordapp.com` domain. The `DiscordNotificationService` HttpClient is configured with base address `https://discordapp.com/api/v9/`.
@@ -322,7 +325,7 @@ On first startup after upgrade, the `SettingsMigrationStartupService` automatica
 The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` string that defaults to `""` (empty string) meaning "any gym". PoracleNG handles the null-to-empty normalization on its side. The `GymPickerComponent` emits `null` when cleared and the gym's `id` string when selected.
 
 ### Monster Filter Defaults
-PoracleNG applies `cleanRow` defaults (template, PVP ranking, size, max values, etc.) on every create/update, so PoracleWeb no longer needs to maintain its own set of `*Create` model defaults for alarm filter fields. The `*Create` models still exist for DTO mapping but their field defaults are no longer critical -- PoracleNG is the authoritative source for filter defaults.
+PoracleNG applies `cleanRow` defaults (template, PVP ranking, size, max values, etc.) on every create/update, so PoracleWeb no longer needs to maintain its own set of `*Create` model defaults for alarm filter fields. The `*Create` models still exist for DTO mapping (via `AlarmMappingExtensions.To*()` methods) but their field defaults are no longer critical -- PoracleNG is the authoritative source for filter defaults.
 
 ### PoracleNG API Availability
 The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. Only admin bulk operations (`GetAllAsync`, `DeleteUserAsync`) and non-active profile cleanup in `UserGeofenceService` use direct DB. Monitor PoracleNG uptime as a hard dependency.
@@ -506,7 +509,8 @@ dotnet ef migrations script \
 | Gym Picker Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/gym-picker/` |
 | Scanner Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/scanner.service.ts` |
 | Geo Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
-| AutoMapper Profile | `Core/Pgan.PoracleWebNet.Core.Mappings/PoracleMappingProfile.cs` |
+| Alarm Mapping Extensions | `Core/Pgan.PoracleWebNet.Core.Mappings/AlarmMappingExtensions.cs` |
+| Entity Mapping Extensions | `Core/Pgan.PoracleWebNet.Core.Mappings/EntityMappingExtensions.cs` |
 | IPoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleTrackingProxy.cs` |
 | IPoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleHumanProxy.cs` |
 | PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |
@@ -562,5 +566,5 @@ dotnet ef migrations script \
 ## Testing
 
 - **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `geofence-submissions.component.spec.ts`, `test-alert.service.spec.ts`, `active-hours.utils.spec.ts`, `active-hours-chip.component.spec.ts`, `active-hours-editor-dialog.component.spec.ts`, `location-warning.component.spec.ts`).
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `TestAlertControllerTests`, `TestAlertServiceTests`, `ActiveHoursValidationTests`.
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and manual mapping extensions. Alarm service tests mock `IPoracleTrackingProxy` (returning `JsonElement` payloads) instead of repositories. Human/Profile/Area controller tests mock `IPoracleHumanProxy`. Key test classes: `MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`, `HumanServiceTests`, `DashboardServiceTests`, `CleaningServiceTests`, `AreaControllerTests`, `ProfileControllerTests`, `AdminControllerTests`, `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `TestAlertControllerTests`, `TestAlertServiceTests`, `ActiveHoursValidationTests`, `MappingExtensionTests`.
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.

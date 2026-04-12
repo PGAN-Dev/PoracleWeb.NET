@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class RaidControllerTests : ControllerTestBase
 {
     private readonly Mock<IRaidService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly RaidController _sut;
 
     public RaidControllerTests()
     {
-        this._sut = new RaidController(this._service.Object, this._mapper.Object);
+        this._sut = new RaidController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -46,8 +44,7 @@ public class RaidControllerTests : ControllerTestBase
     {
         var model = new RaidCreate();
         var raid = new Raid { Uid = 1 };
-        this._mapper.Setup(m => m.Map<Raid>(model)).Returns(raid);
-        this._service.Setup(s => s.CreateAsync("123456789", raid)).ReturnsAsync(raid);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Raid>())).ReturnsAsync(raid);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(model));
     }
 

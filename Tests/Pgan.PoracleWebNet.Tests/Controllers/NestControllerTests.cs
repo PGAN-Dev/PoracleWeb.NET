@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class NestControllerTests : ControllerTestBase
 {
     private readonly Mock<INestService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly NestController _sut;
 
     public NestControllerTests()
     {
-        this._sut = new NestController(this._service.Object, this._mapper.Object);
+        this._sut = new NestController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -42,8 +40,7 @@ public class NestControllerTests : ControllerTestBase
     {
         var m = new NestCreate();
         var n = new Nest { Uid = 1 };
-        this._mapper.Setup(x => x.Map<Nest>(m)).Returns(n);
-        this._service.Setup(s => s.CreateAsync("123456789", n)).ReturnsAsync(n);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Nest>())).ReturnsAsync(n);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(m));
     }
     [Fact]

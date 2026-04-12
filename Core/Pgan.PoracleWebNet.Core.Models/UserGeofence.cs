@@ -58,7 +58,7 @@ public class UserGeofence
         get; set;
     }
 
-    // Enriched in service layer (not mapped by AutoMapper)
+    // Enriched in service layer (not mapped from entity)
     public string? OwnerName
     {
         get; set;

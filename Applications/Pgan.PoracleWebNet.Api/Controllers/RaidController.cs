@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/raids")]
-public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiController
+public class RaidController(IRaidService raidService) : BaseApiController
 {
     private readonly IRaidService _raidService = raidService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] RaidCreate model)
     {
-        var raid = this._mapper.Map<Raid>(model);
+        var raid = model.ToRaid();
         raid.ProfileNo = this.ProfileNo;
         var result = await this._raidService.CreateAsync(this.UserId, raid);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class RaidController(IRaidService raidService, IMapper mapper) : BaseApiC
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._raidService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

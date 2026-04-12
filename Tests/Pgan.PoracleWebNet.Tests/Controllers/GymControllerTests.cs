@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class GymControllerTests : ControllerTestBase
 {
     private readonly Mock<IGymService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly GymController _sut;
 
     public GymControllerTests()
     {
-        this._sut = new GymController(this._service.Object, this._mapper.Object);
+        this._sut = new GymController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -42,8 +40,7 @@ public class GymControllerTests : ControllerTestBase
     {
         var m = new GymCreate();
         var g = new Gym { Uid = 1 };
-        this._mapper.Setup(x => x.Map<Gym>(m)).Returns(g);
-        this._service.Setup(s => s.CreateAsync("123456789", g)).ReturnsAsync(g);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Gym>())).ReturnsAsync(g);
         Assert.IsType<CreatedAtActionResult>(await this._sut.Create(m));
     }
     [Fact]

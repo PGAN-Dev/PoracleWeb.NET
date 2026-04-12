@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/lures")]
-public class LureController(ILureService lureService, IMapper mapper) : BaseApiController
+public class LureController(ILureService lureService) : BaseApiController
 {
     private readonly ILureService _lureService = lureService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] LureCreate model)
     {
-        var lure = this._mapper.Map<Lure>(model);
+        var lure = model.ToLure();
         lure.ProfileNo = this.ProfileNo;
         var result = await this._lureService.CreateAsync(this.UserId, lure);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class LureController(ILureService lureService, IMapper mapper) : BaseApiC
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._lureService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

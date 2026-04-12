@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/eggs")]
-public class EggController(IEggService eggService, IMapper mapper) : BaseApiController
+public class EggController(IEggService eggService) : BaseApiController
 {
     private readonly IEggService _eggService = eggService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] EggCreate model)
     {
-        var egg = this._mapper.Map<Egg>(model);
+        var egg = model.ToEgg();
         egg.ProfileNo = this.ProfileNo;
         var result = await this._eggService.CreateAsync(this.UserId, egg);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class EggController(IEggService eggService, IMapper mapper) : BaseApiCont
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._eggService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

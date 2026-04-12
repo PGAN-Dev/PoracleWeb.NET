@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/gyms")]
-public class GymController(IGymService gymService, IMapper mapper) : BaseApiController
+public class GymController(IGymService gymService) : BaseApiController
 {
     private readonly IGymService _gymService = gymService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] GymCreate model)
     {
-        var gym = this._mapper.Map<Gym>(model);
+        var gym = model.ToGym();
         gym.ProfileNo = this.ProfileNo;
         var result = await this._gymService.CreateAsync(this.UserId, gym);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class GymController(IGymService gymService, IMapper mapper) : BaseApiCont
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._gymService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

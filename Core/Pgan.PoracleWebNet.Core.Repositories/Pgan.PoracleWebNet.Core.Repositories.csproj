@@ -7,11 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.1.1" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Pgan.PoracleWebNet.Core.Abstractions\Pgan.PoracleWebNet.Core.Abstractions.csproj" />
+    <ProjectReference Include="..\Pgan.PoracleWebNet.Core.Mappings\Pgan.PoracleWebNet.Core.Mappings.csproj" />
     <ProjectReference Include="..\..\Data\Pgan.PoracleWebNet.Data\Pgan.PoracleWebNet.Data.csproj" />
   </ItemGroup>
 

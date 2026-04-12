@@ -1,16 +1,14 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Data;
-using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Core.Repositories;
 
-public class SiteSettingRepository(PoracleWebContext context, IMapper mapper) : ISiteSettingRepository
+public class SiteSettingRepository(PoracleWebContext context) : ISiteSettingRepository
 {
     private readonly PoracleWebContext _context = context;
-    private readonly IMapper _mapper = mapper;
 
     public async Task<IEnumerable<SiteSetting>> GetAllAsync()
     {
@@ -18,7 +16,7 @@ public class SiteSettingRepository(PoracleWebContext context, IMapper mapper) : 
             .AsNoTracking()
             .ToListAsync();
 
-        return this._mapper.Map<IEnumerable<SiteSetting>>(entities);
+        return entities.Select(e => e.ToModel());
     }
 
     public async Task<IEnumerable<SiteSetting>> GetByCategoryAsync(string category)
@@ -28,7 +26,7 @@ public class SiteSettingRepository(PoracleWebContext context, IMapper mapper) : 
             .Where(s => s.Category == category)
             .ToListAsync();
 
-        return this._mapper.Map<IEnumerable<SiteSetting>>(entities);
+        return entities.Select(e => e.ToModel());
     }
 
     public async Task<SiteSetting?> GetByKeyAsync(string key)
@@ -37,7 +35,7 @@ public class SiteSettingRepository(PoracleWebContext context, IMapper mapper) : 
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Key == key);
 
-        return entity is null ? null : this._mapper.Map<SiteSetting>(entity);
+        return entity is null ? null : entity.ToModel();
     }
 
     public async Task<SiteSetting> CreateOrUpdateAsync(SiteSetting setting)
@@ -47,7 +45,7 @@ public class SiteSettingRepository(PoracleWebContext context, IMapper mapper) : 
 
         if (entity is null)
         {
-            entity = this._mapper.Map<SiteSettingEntity>(setting);
+            entity = setting.ToEntity();
             this._context.SiteSettings.Add(entity);
         }
         else
@@ -58,7 +56,7 @@ public class SiteSettingRepository(PoracleWebContext context, IMapper mapper) : 
         }
 
         await this._context.SaveChangesAsync();
-        return this._mapper.Map<SiteSetting>(entity);
+        return entity.ToModel();
     }
 
     public async Task<bool> DeleteAsync(string key)

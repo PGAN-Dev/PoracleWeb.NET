@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -10,12 +9,11 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class MonsterControllerTests : ControllerTestBase
 {
     private readonly Mock<IMonsterService> _service = new();
-    private readonly Mock<IMapper> _mapper = new();
     private readonly MonsterController _sut;
 
     public MonsterControllerTests()
     {
-        this._sut = new MonsterController(this._service.Object, this._mapper.Object);
+        this._sut = new MonsterController(this._service.Object);
         SetupUser(this._sut);
     }
 
@@ -58,8 +56,7 @@ public class MonsterControllerTests : ControllerTestBase
     {
         var createModel = new MonsterCreate();
         var monster = new Monster { Uid = 1, PokemonId = 25 };
-        this._mapper.Setup(m => m.Map<Monster>(createModel)).Returns(monster);
-        this._service.Setup(s => s.CreateAsync("123456789", monster)).ReturnsAsync(monster);
+        this._service.Setup(s => s.CreateAsync("123456789", It.IsAny<Monster>())).ReturnsAsync(monster);
 
         var result = await this._sut.Create(createModel);
 

@@ -1,15 +1,14 @@
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/quests")]
-public class QuestController(IQuestService questService, IMapper mapper) : BaseApiController
+public class QuestController(IQuestService questService) : BaseApiController
 {
     private readonly IQuestService _questService = questService;
-    private readonly IMapper _mapper = mapper;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -33,7 +32,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] QuestCreate model)
     {
-        var quest = this._mapper.Map<Quest>(model);
+        var quest = model.ToQuest();
         quest.ProfileNo = this.ProfileNo;
         var result = await this._questService.CreateAsync(this.UserId, quest);
         return this.CreatedAtAction(nameof(GetByUid), new
@@ -51,7 +50,7 @@ public class QuestController(IQuestService questService, IMapper mapper) : BaseA
             return this.NotFound();
         }
 
-        this._mapper.Map(model, existing);
+        model.ApplyUpdate(existing);
         var result = await this._questService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
