@@ -96,6 +96,7 @@ public sealed class PokemonTestPayloadBuilder(
         // build so the rendered PVP rank is computed against the final IVs, not stale ones.
         var totalIv = atkIv + defIv + staIv;
         var ivPct = totalIv / 45.0 * 100.0;
+        var filterIsSatisfiable = true;
         if (ivPct < minIvPct || ivPct > maxIvPct)
         {
             var found = FindCombinedIv(atkFloor, atkCeil, defFloor, defCeil, staFloor, staCeil, minIvPct, maxIvPct);
@@ -106,13 +107,21 @@ public sealed class PokemonTestPayloadBuilder(
                 staIv = f.Sta;
                 if (baseStats is { } ivStats)
                 {
-                    cp = ComputeCp(ivStats, atkIv, defIv, staIv, level);
+                    cp = PvpRankCalculator.ComputeCpForStats(ivStats, atkIv, defIv, staIv, level);
                 }
+            }
+            else
+            {
+                // The user's per-stat box can't contain any combo inside the %-IV range
+                // (e.g. atk≤10, def≤10, sta≤10, min_iv=90). We deliberately skip the rank
+                // panel in this case — the IVs we ship won't satisfy the filter, so
+                // stapling a computed rank on top would hide the inconsistency from the user.
+                filterIsSatisfiable = false;
             }
         }
 
         // Rank panels built from the FINAL IVs so the DM body and rank panel stay consistent.
-        if (baseStats is { } panelStats)
+        if (baseStats is { } panelStats && filterIsSatisfiable)
         {
             AppendRankPanel(greatLeagueRanks, pvpRankService, pokemonId, form, panelStats, PvpLeague.Great, atkIv, defIv, staIv);
             AppendRankPanel(ultraLeagueRanks, pvpRankService, pokemonId, form, panelStats, PvpLeague.Ultra, atkIv, defIv, staIv);
@@ -182,12 +191,9 @@ public sealed class PokemonTestPayloadBuilder(
         var defIv = FilterFieldExtensions.PickInRange(defFloor, defCeil, 15);
         var staIv = FilterFieldExtensions.PickInRange(staFloor, staCeil, 15);
         var level = FilterFieldExtensions.PickLevelInRange(minLevel, Math.Min(maxLevel, 40), 35);
-        var cp = ComputeCp(baseStats, atkIv, defIv, staIv, level);
+        var cp = PvpRankCalculator.ComputeCpForStats(baseStats, atkIv, defIv, staIv, level);
         return (atkIv, defIv, staIv, level, cp);
     }
-
-    private static int ComputeCp(BaseStats baseStats, int atkIv, int defIv, int staIv, double level) =>
-        PvpRankCalculator.ComputeCpForStats(baseStats, atkIv, defIv, staIv, level);
 
     private static double CpmForLevel(double level)
     {

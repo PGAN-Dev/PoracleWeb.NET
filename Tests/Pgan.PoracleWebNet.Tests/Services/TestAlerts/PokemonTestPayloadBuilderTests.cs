@@ -125,6 +125,30 @@ public class PokemonTestPayloadBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsyncUnsatisfiableIvFilterDropsRankPanelInsteadOfLying()
+    {
+        // Filter box: atk≤5, def≤5, sta≤5 AND min_iv=90. No combo satisfies both —
+        // the maximum attainable %IV in that box is (5+5+5)/45 = 33%. Rather than
+        // staple a rank panel onto IVs that don't match the filter (re-introducing the
+        // class of bug #165 reported), drop the panel so the inconsistency is visible.
+        var ctx = Ctx(new
+        {
+            pokemon_id = 184,
+            form = 0,
+            max_atk = 5,
+            max_def = 5,
+            max_sta = 5,
+            min_iv = 90,
+            max_iv = 100,
+        });
+
+        var result = await this._sut.BuildAsync(ctx);
+
+        Assert.False(result.Webhook.ContainsKey("pvp_rankings_great_league"));
+        Assert.False(result.Webhook.ContainsKey("pvp_rankings_ultra_league"));
+    }
+
+    [Fact]
     public async Task BuildAsyncCombinedIvFilterProducesConsistentBodyAndRankPanel()
     {
         // When a user combines a non-PVP IV floor with species-level synthesis, the

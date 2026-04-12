@@ -77,6 +77,38 @@ describe('TestAlertService', () => {
     expect(snackBar.open).toHaveBeenCalledWith('Alarm not found — it may have been deleted.', 'OK', { duration: 4000 });
   });
 
+  it('should surface the server message on 501 unsupported-type', () => {
+    service.sendTestAlert('nest', 11);
+
+    const req = httpMock.expectOne(`${API}/api/test-alert/nest/11`);
+    req.flush(
+      { error: "Nest test alerts aren't supported by PoracleNG's /api/test endpoint." },
+      { status: 501, statusText: 'Not Implemented' },
+    );
+
+    expect(snackBar.open).toHaveBeenCalledWith("Nest test alerts aren't supported by PoracleNG's /api/test endpoint.", 'OK', {
+      duration: 4000,
+    });
+  });
+
+  it('should start a cooldown on 501 to avoid rate-limit burn from retry spam', () => {
+    service.sendTestAlert('nest', 12);
+
+    const req = httpMock.expectOne(`${API}/api/test-alert/nest/12`);
+    req.flush({ error: 'Unsupported' }, { status: 501, statusText: 'Not Implemented' });
+
+    expect(service.isCoolingDown('nest', 12)).toBe(true);
+  });
+
+  it('should fall back to a generic 501 message when the server omits the error body', () => {
+    service.sendTestAlert('nest', 13);
+
+    const req = httpMock.expectOne(`${API}/api/test-alert/nest/13`);
+    req.flush(null, { status: 501, statusText: 'Not Implemented' });
+
+    expect(snackBar.open).toHaveBeenCalledWith('Test alerts are not supported for this alarm type.', 'OK', { duration: 4000 });
+  });
+
   it('should track sending state', () => {
     expect(service.isSending('pokemon', 10)).toBe(false);
 

@@ -50,13 +50,25 @@ export class TestAlertService {
           this.startCooldown(key);
         }),
         catchError(err => {
+          // 501 is returned for alarm types that have no upstream /api/test surface
+          // (currently: nest). The backend ships a human-readable reason on the response
+          // body — surface it so the user knows why the test didn't go out, rather than
+          // seeing a generic retry message and burning rate-limit quota.
+          const serverMessage = err?.error?.error;
           const message =
             err.status === 429
               ? 'Too many test alerts. Please wait a moment.'
               : err.status === 404
                 ? 'Alarm not found — it may have been deleted.'
-                : 'Failed to send test alert. Try again later.';
+                : err.status === 501
+                  ? (serverMessage ?? 'Test alerts are not supported for this alarm type.')
+                  : 'Failed to send test alert. Try again later.';
           this.snackBar.open(message, 'OK', { duration: 4000 });
+          // Start the cooldown on unsupported-type errors so the user can't spam-click
+          // the button and waste rate-limit quota on a known no-op.
+          if (err.status === 501) {
+            this.startCooldown(key);
+          }
           return EMPTY;
         }),
         finalize(() => this.clearSending(key)),
