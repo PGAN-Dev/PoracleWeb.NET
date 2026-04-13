@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **i18n**: bulk-delete confirm button on Quests and Invasions pages rendered the raw translation key (`QUESTS.CONFIRM_DELETE_SELECTED` / `INVASIONS.CONFIRM_DELETE_SELECTED`) instead of the translated text. Added the missing keys to all 11 locale files, reusing the existing `RAIDS.CONFIRM_DELETE_SELECTED` translations. ([#209](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/209))
-- **i18n**: closed a 277-key coverage gap where keys added to `en.json` had not been propagated to the 10 non-English locale files (fr, de, es, nl, it, pt, pt-BR, pl, da, sv). Backfilled every missing key with the English string as a placeholder so translators can see what needs localizing — runtime behavior is unchanged (ngx-translate was already falling back to English), but the locale files are now structurally complete. ([#209](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/209))
+- **i18n**: closed a 277-key coverage gap where keys added to `en.json` had not been propagated to the 10 non-English locale files (fr, de, es, nl, it, pt, pt-BR, pl, da, sv). Translated all 277 keys into each target language — covering alarm snackbars, admin settings labels and descriptions, GeoJSON import wizard, geofence detail fields, profile picker, map controls, and game brand terms (leagues, teams, lure types, Gigantamax). 2,770 translations applied. ([#209](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/209))
 - Documentation branding: replaced 88 remaining bare `PoracleWeb` references with `PoracleWeb.NET` across 16 files under `docs/`, completing the branding cleanup from PR #180. URLs, path identifiers, `.csproj` names, and Mermaid diagram node IDs were preserved.
 
 ### Changed
