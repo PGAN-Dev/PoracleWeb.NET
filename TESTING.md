@@ -1,6 +1,6 @@
 # Testing Pre-release Builds
 
-PoracleWeb publishes three Docker image channels on GHCR. Pick one based on how much risk you're willing to accept.
+PoracleWeb.NET publishes three Docker image channels on GHCR. Pick one based on how much risk you're willing to accept.
 
 | Channel | Tag | What it is | Updates |
 |---|---|---|---|

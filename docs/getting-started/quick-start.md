@@ -1,9 +1,9 @@
 # Quick Start (Docker)
 
-This is the recommended way to run PoracleWeb in production.
+This is the recommended way to run PoracleWeb.NET in production.
 
 !!! tip "Not using Docker?"
-    See the [Standalone Setup](standalone-setup.md) guide for running PoracleWeb directly — no Docker or .NET experience required.
+    See the [Standalone Setup](standalone-setup.md) guide for running PoracleWeb.NET directly — no Docker or .NET experience required.
 
 ## 1. Get the files
 
@@ -31,7 +31,7 @@ Open `.env` in any editor and fill in the values below. Lines starting with `#` 
 ### Required settings
 
 ```env
-# Port — the port you'll access PoracleWeb on (http://your-server:8082)
+# Port — the port you'll access PoracleWeb.NET on (http://your-server:8082)
 PORT=8082
 
 # Database — your existing Poracle MySQL/MariaDB instance
@@ -41,7 +41,7 @@ DB_NAME=poracle             # Your Poracle database name
 DB_USER=root
 DB_PASSWORD=your_db_password
 
-# PoracleWeb database — a separate database for PoracleWeb's own data
+# PoracleWeb.NET database — a separate database for PoracleWeb.NET's own data
 # Create this database first (see step 3 below), tables are auto-created
 WEB_DB_HOST=localhost
 WEB_DB_PORT=3306
@@ -60,7 +60,7 @@ DISCORD_CLIENT_SECRET=your_discord_client_secret
 DISCORD_BOT_TOKEN=your_discord_bot_token
 
 # Poracle API — your running PoracleNG instance
-# This is how PoracleWeb talks to Poracle. It must be reachable from the container.
+# This is how PoracleWeb.NET talks to Poracle. It must be reachable from the container.
 PORACLE_API_ADDRESS=http://host.docker.internal:3030
 PORACLE_API_SECRET=your_poracle_api_secret    # Must match PoracleNG's server.apiSecret
 PORACLE_ADMIN_IDS=your_discord_user_id        # Comma-separated Discord user IDs for admin access
@@ -92,9 +92,9 @@ TELEGRAM_BOT_USERNAME=
 
 See the [Configuration Reference](../configuration/reference.md) for the full list of settings.
 
-## 3. Create the PoracleWeb database
+## 3. Create the PoracleWeb.NET database
 
-PoracleWeb needs its own database (separate from your Poracle bot database). Tables are created automatically on first start — you just need to create the empty database:
+PoracleWeb.NET needs its own database (separate from your Poracle bot database). Tables are created automatically on first start — you just need to create the empty database:
 
 ```bash
 # If you ran ./scripts/setup.sh, it offered to create this for you.
@@ -109,7 +109,7 @@ CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
 !!! note
-    This database is separate from your Poracle database. PoracleWeb never modifies the Poracle DB schema.
+    This database is separate from your Poracle database. PoracleWeb.NET never modifies the Poracle DB schema.
 
 ## 4. Start
 
@@ -186,7 +186,7 @@ The app will now be available at `http://your-server:9090`. Remember to update y
 : Check logs with `docker compose logs`. Usually a missing or invalid required setting in `.env`.
 
 **Container crashes: "Configuration 'Cors:AllowedOrigins' is required"**
-: Set `CORS_ORIGIN` in your `.env` to the URL you access PoracleWeb from (e.g., `CORS_ORIGIN=http://192.168.1.50:8082`). This is required in production mode.
+: Set `CORS_ORIGIN` in your `.env` to the URL you access PoracleWeb.NET from (e.g., `CORS_ORIGIN=http://192.168.1.50:8082`). This is required in production mode.
 
 **Can't connect to database**
 : If your database is on the host machine (not in Docker), set `DB_HOST=host.docker.internal` in `.env`. The default in `.env.example` is `localhost` (for standalone use); Docker users connecting to the host must change this.

@@ -4,15 +4,15 @@
 
 **Problem**: All alarm operations (create, edit, delete, list) fail with HTTP 500 errors. The dashboard shows zero alarms. Logs show `HttpRequestException` or `TaskCanceledException` when calling the PoracleNG API.
 
-**Solution**: Check that PoracleNG is running and reachable from the PoracleWeb container:
+**Solution**: Check that PoracleNG is running and reachable from the PoracleWeb.NET container:
 
 1. Verify `Poracle:ApiAddress` points to the correct PoracleNG host and port
 2. If using Docker, ensure both containers are on the same network or the PoracleNG port is exposed
-3. Test connectivity: `curl http://<poracle-api-address>/api/config/poracleWeb` from inside the PoracleWeb container
+3. Test connectivity: `curl http://<poracle-api-address>/api/config/poracleWeb` from inside the PoracleWeb.NET container
 4. Verify `Poracle:ApiSecret` matches PoracleNG's `server.apiSecret` config value
 
 !!! danger "All operations go through PoracleNG"
-    Unlike previous versions where PoracleWeb wrote directly to MySQL, all alarm tracking, user registration, location setting, area management, and profile switching now require a running PoracleNG instance. If PoracleNG is down, users cannot create/edit/delete/view alarms, register, set their location, update areas, or switch profiles. Only admin bulk operations (list all users, delete user) use direct DB access.
+    Unlike previous versions where PoracleWeb.NET wrote directly to MySQL, all alarm tracking, user registration, location setting, area management, and profile switching now require a running PoracleNG instance. If PoracleNG is down, users cannot create/edit/delete/view alarms, register, set their location, update areas, or switch profiles. Only admin bulk operations (list all users, delete user) use direct DB access.
 
 ---
 
@@ -57,7 +57,7 @@ Common causes:
 
 **Problem**: Alarm data appears empty or fields are null/zero even though alarms exist in the database.
 
-**Solution**: PoracleNG returns alarm data in snake_case JSON (`pokemon_id`, `min_iv`, `max_cp`). PoracleWeb deserializes this with `JsonNamingPolicy.SnakeCaseLower`. If a field is not deserializing correctly:
+**Solution**: PoracleNG returns alarm data in snake_case JSON (`pokemon_id`, `min_iv`, `max_cp`). PoracleWeb.NET deserializes this with `JsonNamingPolicy.SnakeCaseLower`. If a field is not deserializing correctly:
 
 1. Check that the C# model property name matches the snake_case convention (e.g., `PokemonId` maps to `pokemon_id`)
 2. Verify `PropertyNameCaseInsensitive = true` is set on the `JsonSerializerOptions`
@@ -85,7 +85,7 @@ Common causes:
 
 **Problem**: Discord API calls return errors or time out.
 
-**Solution**: Use `discordapp.com` (not `discord.com`) for API calls. The `discord.com` domain is blocked by Cloudflare in some server environments. PoracleWeb is already configured to use `discordapp.com`.
+**Solution**: Use `discordapp.com` (not `discord.com`) for API calls. The `discord.com` domain is blocked by Cloudflare in some server environments. PoracleWeb.NET is already configured to use `discordapp.com`.
 
 Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.com` domain.
 
@@ -127,7 +127,7 @@ Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.
 
 **Problem**: User geofence names appear in DMs even though `displayInMatches` is set to `false`.
 
-**Solution**: Koji's `displayInMatches` custom property is not reliably honored by all Poracle format serializers. Serve user geofences from the PoracleWeb feed endpoint (`/api/geofence-feed`) instead of pushing them to Koji. Only promote to Koji when an admin approves a geofence for public use.
+**Solution**: Koji's `displayInMatches` custom property is not reliably honored by all Poracle format serializers. Serve user geofences from the PoracleWeb.NET feed endpoint (`/api/geofence-feed`) instead of pushing them to Koji. Only promote to Koji when an admin approves a geofence for public use.
 
 ---
 
@@ -203,7 +203,7 @@ UPDATE gym SET team = 4 WHERE team = 0;
 
 **Problem**: New monster alarms created via the web UI may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly in the old PHP UI as "-XXL".
 
-**Solution**: All Create model defaults are aligned with the PHP PoracleWeb `include/defaults.php`. Key values:
+**Solution**: All Create model defaults are aligned with the PHP PoracleWeb.NET `include/defaults.php`. Key values:
 
 - `size=-1` means "no size filter" (not `0`)
 - `max_size=5` means "up to XXL"
@@ -235,22 +235,22 @@ SELECT * FROM monsters WHERE size = 0;
 
 **Problem**: All profiles display "Manual only" even though active hours were configured via the Discord bot.
 
-**Solution**: PoracleWeb reads active hours from PoracleNG's profile API responses — they should appear automatically. If they don't:
+**Solution**: PoracleWeb.NET reads active hours from PoracleNG's profile API responses — they should appear automatically. If they don't:
 
 1. Verify PoracleNG is reachable (`Poracle:ApiAddress`)
 2. Check that PoracleNG is returning `active_hours` in profile responses (`GET /api/humans/one/{id}` should include profile data with `active_hours`)
-3. If active hours were set via `$!profile` bot commands, they are stored in the same place PoracleWeb reads from — no separate sync is needed
+3. If active hours were set via `$!profile` bot commands, they are stored in the same place PoracleWeb.NET reads from — no separate sync is needed
 
 ---
 
 ## Schedule changes don't take effect
 
-**Problem**: After saving active hours in PoracleWeb, the profile doesn't auto-switch at the expected time.
+**Problem**: After saving active hours in PoracleWeb.NET, the profile doesn't auto-switch at the expected time.
 
-**Solution**: PoracleNG's profile scheduler checks on a periodic cycle (every few minutes) with a 10-minute matching window. Changes saved in PoracleWeb are written to PoracleNG immediately, but the scheduler picks them up on its next cycle. Wait up to 10 minutes for changes to take effect.
+**Solution**: PoracleNG's profile scheduler checks on a periodic cycle (every few minutes) with a 10-minute matching window. Changes saved in PoracleWeb.NET are written to PoracleNG immediately, but the scheduler picks them up on its next cycle. Wait up to 10 minutes for changes to take effect.
 
 !!! note "PoracleNG owns the scheduler"
-    PoracleWeb only manages the active hours data. The actual profile switching logic runs in PoracleNG's processor. If auto-switching isn't working at all, check PoracleNG's logs for scheduler errors.
+    PoracleWeb.NET only manages the active hours data. The actual profile switching logic runs in PoracleNG's processor. If auto-switching isn't working at all, check PoracleNG's logs for scheduler errors.
 
 ---
 

@@ -17,7 +17,7 @@ Site settings are admin-configurable runtime settings stored in the `poracle_web
 
 ## Branding
 
-Customize the appearance and navigation of your PoracleWeb instance.
+Customize the appearance and navigation of your PoracleWeb.NET instance.
 
 | Key | Label | Type | Description |
 |---|---|---|---|

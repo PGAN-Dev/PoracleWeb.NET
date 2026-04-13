@@ -42,7 +42,7 @@ All configuration can be provided via environment variables or `appsettings.json
 
 | Setting | `.env` name | `.NET` env variable | Description |
 |---|---|---|---|
-| PoracleWeb DB | `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` | `ConnectionStrings__PoracleWebDb` | MySQL connection to PoracleWeb database (site settings, webhook delegates, quick picks, user geofences). Short vars are auto-composed into a connection string. |
+| PoracleWeb.NET DB | `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` | `ConnectionStrings__PoracleWebDb` | MySQL connection to PoracleWeb.NET database (site settings, webhook delegates, quick picks, user geofences). Short vars are auto-composed into a connection string. |
 | Scanner DB | `SCANNER_DB_CONNECTION` | `ConnectionStrings__ScannerDb` | Scanner database connection (RDM). Optional. Used by the gym picker search in raid/gym/egg add dialogs. Provide a full connection string. |
 
 ### Golbat API
@@ -82,7 +82,7 @@ Required for the custom geofences feature.
 | `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
 
 !!! warning "PoracleNG must be reachable"
-    `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
+    `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb.NET container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.
