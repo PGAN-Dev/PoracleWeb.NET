@@ -76,7 +76,7 @@
             "type": "natural",
             "order": "asc",
             "groups": ["top"],
-            "customGroups": { "top": ["id", "name"] }
+            "customGroups": [{ "groupName": "top", "elementNamePattern": ["id", "name"] }]
           }
         ],
         "perfectionist/sort-interfaces": [
