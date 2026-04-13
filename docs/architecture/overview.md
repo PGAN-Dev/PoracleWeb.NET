@@ -1,6 +1,6 @@
 # Architecture Overview
 
-PoracleWeb is a full-stack application with a .NET 10 backend API and Angular 21 frontend SPA.
+PoracleWeb.NET is a full-stack application with a .NET 10 backend API and Angular 21 frontend SPA.
 
 ## Solution structure
 
@@ -19,7 +19,7 @@ Pgan.PoracleWebNet.slnx
 ├── Core/
 │   ├── Core.Abstractions/          Interfaces (IService, IPoracleTrackingProxy, IPoracleHumanProxy)
 │   ├── Core.Models/                DTOs passed between layers
-│   ├── Core.Mappings/              AutoMapper profiles (Human, Profile, PoracleWeb tables)
+│   ├── Core.Mappings/              AutoMapper profiles (Human, Profile, PoracleWeb.NET tables)
 │   ├── Core.Repositories/          Data access (Human, Profile, PoracleWeb-owned tables)
 │   └── Core.Services/              Business logic + PoracleNG API proxies
 ├── Data/
@@ -86,10 +86,10 @@ graph TB
 All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, handles area dual-writes, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication uses PoracleNG's copy endpoint to clone all tracking rules atomically. Supported alarm types include Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, and Max Battles. Test alerts are sent via PoracleNG's `POST /api/test` endpoint, which formats and delivers a mock notification to the user. See [PoracleNG API Proxy](poracleng-proxy.md).
 
 ### Separate databases
-PoracleWeb does **not** modify the Poracle DB schema. The Poracle database is managed by PoracleNG. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
+PoracleWeb.NET does **not** modify the Poracle DB schema. The Poracle database is managed by PoracleNG. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
 
 ### Unified geofence feed
-PoracleWeb acts as the single geofence source for PoracleJS. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleJS or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.
+PoracleWeb.NET acts as the single geofence source for PoracleJS. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleJS or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.
 
 ### AutoMapper for partial updates
 All update models use nullable `int?` properties so partial updates don't zero out unset fields. The mapping profile skips null properties automatically. Note: AutoMapper is now only used for non-alarm entities (humans, profiles). Alarm data flows as raw JSON through the PoracleNG API proxy.

@@ -1,6 +1,6 @@
 # Discord OAuth2 Setup
 
-PoracleWeb uses Discord OAuth2 for user authentication. This page walks through creating and configuring a Discord application.
+PoracleWeb.NET uses Discord OAuth2 for user authentication. This page walks through creating and configuring a Discord application.
 
 ## Create a Discord application
 
@@ -68,4 +68,4 @@ If using the geofence submission feature with Discord forum integration, the bot
     ```
 
 !!! warning "Discord API domain"
-    PoracleWeb uses `discordapp.com` (not `discord.com`) for API calls. The `discord.com` domain is blocked by Cloudflare in some server environments. This is already configured in the application — no action needed.
+    PoracleWeb.NET uses `discordapp.com` (not `discord.com`) for API calls. The `discord.com` domain is blocked by Cloudflare in some server environments. This is already configured in the application — no action needed.

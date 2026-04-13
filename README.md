@@ -12,6 +12,14 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **Testing**: Jest (frontend), xUnit (backend)
 - **CI/CD**: GitHub Actions, Docker (ghcr.io)
 
+## Community & Support
+
+There is **no Discord server** for PoracleWeb.NET at this time. All support, bug reports, feature requests, and community discussion happen directly on GitHub:
+
+- **[Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues)** — bug reports and feature requests
+- **[Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions)** — questions, ideas, and general conversation
+- **[Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls)** — contributions welcome
+
 ## Quick Start (Docker)
 
 ```bash
@@ -40,7 +48,6 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 - **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **DTS Preview** — Live Discord notification template preview
 - **Dark/Light Mode** — Theme toggle with accent color customization
-- **Server Management** — Monitor and restart PoracleJS instances remotely
 - **18 Languages** — Pokemon name localization
 - **Admin Panel** — User management, webhooks, settings, geofence review
 
@@ -53,7 +60,6 @@ Full documentation is available at **[pgan-dev.github.io/PoracleWeb.NET](https:/
 - [Configuration Reference](https://pgan-dev.github.io/PoracleWeb.NET/configuration/reference/)
 - [Architecture Overview](https://pgan-dev.github.io/PoracleWeb.NET/architecture/overview/)
 - [Custom Geofences](https://pgan-dev.github.io/PoracleWeb.NET/features/custom-geofences/)
-- [Server Management](https://pgan-dev.github.io/PoracleWeb.NET/features/server-management/)
 - [Troubleshooting](https://pgan-dev.github.io/PoracleWeb.NET/troubleshooting/)
 
 ## Development

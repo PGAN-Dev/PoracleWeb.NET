@@ -42,7 +42,7 @@ All `*Update` models for non-alarm entities use **nullable `int?`** properties s
 
 ## Alarm field defaults
 
-PoracleNG's `cleanRow()` function applies field defaults on every create/update. PoracleWeb no longer needs to manage alarm defaults directly. However, the frontend still sends sensible initial values to avoid confusing the user when the add dialog opens:
+PoracleNG's `cleanRow()` function applies field defaults on every create/update. PoracleWeb.NET no longer needs to manage alarm defaults directly. However, the frontend still sends sensible initial values to avoid confusing the user when the add dialog opens:
 
 | Property | Frontend default | Notes |
 |---|---|---|

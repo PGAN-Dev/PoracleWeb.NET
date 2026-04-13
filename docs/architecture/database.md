@@ -1,6 +1,6 @@
 # Database
 
-PoracleWeb uses two separate MySQL databases and optionally connects to a third scanner database.
+PoracleWeb.NET uses two separate MySQL databases and optionally connects to a third scanner database.
 
 ## Database contexts
 
@@ -35,7 +35,7 @@ The `active_hours` column stores a JSON array defining when alarm delivery is ac
 - `hours` / `mins` — stored as **strings** (zero-padded, e.g. `"09"`, `"00"`)
 
 !!! info "Managed by PoracleNG"
-    The `active_hours` column is part of Poracle's own schema (managed by PoracleJS/PoracleNG) — no PoracleWeb migration is needed. PoracleWeb reads and writes this field through the `IPoracleHumanProxy` API, not via direct DB access.
+    The `active_hours` column is part of Poracle's own schema (managed by PoracleJS/PoracleNG) — no PoracleWeb.NET migration is needed. PoracleWeb.NET reads and writes this field through the `IPoracleHumanProxy` API, not via direct DB access.
 
 ### PoracleWebContext
 

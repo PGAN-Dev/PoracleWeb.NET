@@ -4,7 +4,7 @@ This document tracks PoracleNG API gaps that require workarounds in PoracleWeb. 
 
 ## Background
 
-PoracleWeb now proxies all alarm tracking writes through the PoracleNG REST API (see [PoracleNG API Proxy](architecture/poracleng-proxy.md)). This migration was prompted by a March 31, 2026 incident where a NULL `template` column written directly by PoracleWeb crashed PoracleNG's state reload for 15 hours.
+PoracleWeb.NET now proxies all alarm tracking writes through the PoracleNG REST API (see [PoracleNG API Proxy](architecture/poracleng-proxy.md)). This migration was prompted by a March 31, 2026 incident where a NULL `template` column written directly by PoracleWeb.NET crashed PoracleNG's state reload for 15 hours.
 
 The migration is complete for all alarm CRUD operations. However, some operations lack dedicated PoracleNG endpoints and use fetch-modify-repost workarounds that are less efficient. The gaps listed below are these operations.
 
@@ -18,7 +18,7 @@ The migration is complete for all alarm CRUD operations. However, some operation
 **Priority:** High  
 **Code refs:** Each alarm service's `UpdateDistanceAsync` and `UpdateDistanceBulkAsync` methods
 
-**Current behavior:** PoracleWeb fetches all alarms of a type via the proxy, modifies the `distance` field in memory, and POSTs them back. Two variants:
+**Current behavior:** PoracleWeb.NET fetches all alarms of a type via the proxy, modifies the `distance` field in memory, and POSTs them back. Two variants:
 1. Update ALL alarms of a type for a user/profile
 2. Update specific alarms by UID list
 
@@ -43,7 +43,7 @@ Body: { "uids": [1, 2, 3], "distance": 500 }
 **Priority:** High  
 **Code refs:** `CleaningService.cs`
 
-**Current behavior:** PoracleWeb fetches all alarms of a type via the proxy, sets the `clean` field (0 or 1), and POSTs them back. Used for the "auto-clean" feature that deletes alarms after they fire.
+**Current behavior:** PoracleWeb.NET fetches all alarms of a type via the proxy, sets the `clean` field (0 or 1), and POSTs them back. Used for the "auto-clean" feature that deletes alarms after they fire.
 
 **What's needed:** A PoracleNG endpoint to batch-toggle the clean flag:
 ```
@@ -80,7 +80,7 @@ Response: { "pokemon": 537, "raid": 27, "egg": 17, "quest": 38, ... }
 **Priority:** Medium  
 **Code refs:** `HumanService.cs:DeleteAllAlarmsByUserAsync`
 
-**Current behavior:** PoracleWeb fetches all UIDs per alarm type via the proxy, then bulk-deletes each type sequentially.
+**Current behavior:** PoracleWeb.NET fetches all UIDs per alarm type via the proxy, then bulk-deletes each type sequentially.
 
 **What's needed:** A PoracleNG admin endpoint:
 ```
@@ -98,7 +98,7 @@ DELETE /api/tracking/all/{id}
 **Priority:** Medium  
 **Code refs:** `ProfileController.cs:Delete`
 
-**Current behavior:** PoracleWeb only deletes the `profiles` row. It does NOT:
+**Current behavior:** PoracleWeb.NET only deletes the `profiles` row. It does NOT:
 - Delete alarm records scoped to that profile (`monsters`, `raid`, `egg`, etc. with matching `profile_no`)
 - Reassign `humans.current_profile_no` if the active profile is deleted
 - Remove the profile's areas from `humans.area`
@@ -108,7 +108,7 @@ DELETE /api/tracking/all/{id}
 2. Reassigns `humans.current_profile_no` to profile 1 (or another valid profile) if the active profile is deleted
 3. Updates `humans.area` if the deleted profile was active
 
-If PoracleNG already handles this, PoracleWeb can simply proxy the call.
+If PoracleNG already handles this, PoracleWeb.NET can simply proxy the call.
 
 ---
 
@@ -138,14 +138,14 @@ If PoracleNG already handles this, PoracleWeb can simply proxy the call.
 **Priority:** High  
 **Code refs:** `IUserAreaDualWriter.cs`, `UserAreaDualWriter.cs`, `UserGeofenceService.cs:CreateAsync`, `UserGeofenceService.cs:DeleteAsync`, `UserGeofenceService.cs:AdminDeleteAsync`, `UserGeofenceService.cs:AddToProfileAsync`, `UserGeofenceService.cs:RemoveFromProfileAsync`, `UserGeofenceService.cs:PreserveOwnedAreasInHumanAsync`, `AreaController.cs:UpdateAreas`
 
-**Current behavior:** PoracleNG's `POST /api/humans/{id}/setAreas` handler (`processor/internal/api/humans.go:HandleSetAreas`) intersects the submitted area list against fences where `UserSelectable == true` for non-admin users. Any area whose fence has `userSelectable=false` is silently dropped -- no error, no warning. PoracleWeb's `GeofenceFeedController.cs` serves user-drawn custom geofences with `userSelectable: false` (to hide them from the Poracle bot's `!area` picker and from other users' views), so every `SetAreasAsync` call that contains a user-drawn geofence name loses that name. This is the root cause of [#163](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/163) -- "custom geofence toggle doesn't persist."
+**Current behavior:** PoracleNG's `POST /api/humans/{id}/setAreas` handler (`processor/internal/api/humans.go:HandleSetAreas`) intersects the submitted area list against fences where `UserSelectable == true` for non-admin users. Any area whose fence has `userSelectable=false` is silently dropped -- no error, no warning. PoracleWeb.NET's `GeofenceFeedController.cs` serves user-drawn custom geofences with `userSelectable: false` (to hide them from the Poracle bot's `!area` picker and from other users' views), so every `SetAreasAsync` call that contains a user-drawn geofence name loses that name. This is the root cause of [#163](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/163) -- "custom geofence toggle doesn't persist."
 
 **What's needed:** Any of the following would resolve the gap:
 1. **`POST /api/humans/{id}/setAreas?trusted=true`** -- query flag that skips the userSelectable intersection but still honors community-membership filtering. The caller already holds the `X-Poracle-Secret`, so trust is established.
 2. **`POST /api/humans/{id}/setAreasTrusted`** -- separate endpoint with the same body shape.
 3. **Per-fence ownership:** add an `ownedBy: humanId` field to the fence definition. PoracleNG's intersection allows selection when `ownedBy == request user ID`, regardless of `userSelectable`.
 
-Option 1 is the smallest surface area change. The filter exists to stop users from selecting restricted admin fences via a browser hack; since PoracleWeb writes are already gated behind the shared secret and user geofences are owned by the requesting user, the filter is not a meaningful defense in this path.
+Option 1 is the smallest surface area change. The filter exists to stop users from selecting restricted admin fences via a browser hack; since PoracleWeb.NET writes are already gated behind the shared secret and user geofences are owned by the requesting user, the filter is not a meaningful defense in this path.
 
 **Workaround (HACK):** `UserGeofenceService` delegates user-geofence area mutations to `IUserAreaDualWriter`, a tiny atomic-write abstraction that holds the Poracle `DbContext` and commits both `humans.area` and the active `profiles.area` in a single `SaveChangesAsync` call. The single-SaveChanges guarantees EF Core wraps both writes in one implicit transaction — `humans.area` and `profiles.area` cannot drift, even if the process crashes between reads. `AreaController.UpdateAreas` additionally calls `IUserGeofenceService.PreserveOwnedAreasInHumanAsync` after the proxy `SetAreasAsync` call to re-add any user-owned geofences that PoracleNG stripped; this hands off to the writer's bulk `AddAreasToActiveProfileAsync` so the merge costs one DB round-trip regardless of how many geofences the user owns. These are the only remaining direct-DB writes in the alarm / human / area code path and are tagged with `HACK: trusted-set-areas` comments.
 
@@ -168,7 +168,7 @@ Because the direct-DB writes skip PoracleNG's `HandleSetAreas` handler, they als
 
 **ID:** `monsters-go-coalesce`  
 **Priority:** High (bug in PoracleNG)  
-**Not a PoracleWeb code ref — this is a PoracleNG bug**
+**Not a PoracleWeb.NET code ref — this is a PoracleNG bug**
 
 **Issue:** In `/source/PoracleNG/processor/internal/db/monsters.go`, the SQL query selects `template` and `ping` as raw columns without `COALESCE`:
 ```sql

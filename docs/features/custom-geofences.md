@@ -4,17 +4,17 @@ Users can draw custom polygon geofences on the "My Geofences" page for precise n
 
 ## How it works
 
-PoracleWeb acts as the **single geofence source** for PoracleJS. Instead of PoracleJS connecting to Koji directly, PoracleWeb fetches admin geofences from Koji, resolves group names from the Koji parent chain, merges them with user-drawn geofences from its own database, and serves everything via one endpoint. No custom code is needed in PoracleJS or Koji — standard upstream versions work.
+PoracleWeb.NET acts as the **single geofence source** for PoracleJS. Instead of PoracleJS connecting to Koji directly, PoracleWeb.NET fetches admin geofences from Koji, resolves group names from the Koji parent chain, merges them with user-drawn geofences from its own database, and serves everything via one endpoint. No custom code is needed in PoracleJS or Koji — standard upstream versions work.
 
-1. User draws a polygon on the map, saved to the PoracleWeb database
-2. PoracleWeb serves a **unified geofence feed** via `GET /api/geofence-feed` — admin geofences from Koji (cached 5 minutes) plus user geofences from the local DB
-3. PoracleJS loads **all** geofences from a single PoracleWeb URL (no direct Koji connection needed)
+1. User draws a polygon on the map, saved to the PoracleWeb.NET database
+2. PoracleWeb.NET serves a **unified geofence feed** via `GET /api/geofence-feed` — admin geofences from Koji (cached 5 minutes) plus user geofences from the local DB
+3. PoracleJS loads **all** geofences from a single PoracleWeb.NET URL (no direct Koji connection needed)
 4. User geofences have `displayInMatches: false` — names are hidden from all DMs for privacy
 5. Admin geofences have `displayInMatches: true` and `group` populated from Koji parent hierarchy
 6. Users can submit geofences for admin review, which creates a Discord forum post with a static map
 7. Admins approve, and the geofence is promoted to Koji as a public area visible to all users
 8. If Koji is unreachable, user geofences are still served (graceful degradation)
-9. If PoracleWeb itself is down, PoracleJS falls back to its built-in `.cache/` directory
+9. If PoracleWeb.NET itself is down, PoracleJS falls back to its built-in `.cache/` directory
 
 ## Component diagram
 
@@ -162,7 +162,7 @@ The exported file is compatible with any GIS tool that supports GeoJSON, includi
 ![GeoJSON import dialog](../screenshots/geofences-import-dialog.png)
 
 !!! tip "Use cases"
-    - **Migrating from other systems** — Export geofences from another Pokemon GO tool or mapping platform and import them into PoracleWeb
+    - **Migrating from other systems** — Export geofences from another Pokemon GO tool or mapping platform and import them into PoracleWeb.NET
     - **Drawing in desktop GIS tools** — Use QGIS or geojson.io for precise polygon editing, then import the result
     - **Sharing boundaries between users** — One user exports their geofences and another imports them
 
@@ -177,11 +177,11 @@ The exported file is compatible with any GIS tool that supports GeoJSON, includi
 | Failure | Behavior |
 |---|---|
 | Koji unreachable | Feed endpoint logs the error, still serves user geofences from DB |
-| PoracleWeb down | PoracleJS falls back to its built-in `.cache/` directory |
+| PoracleWeb.NET down | PoracleJS falls back to its built-in `.cache/` directory |
 
 ## Setup
 
-### 1. Create the PoracleWeb database
+### 1. Create the PoracleWeb.NET database
 
 A separate MySQL/MariaDB database for app-owned data:
 
@@ -200,9 +200,9 @@ Set the following in your environment or `appsettings.json`:
 - `Koji:ProjectId` — Koji project ID for promoted geofences
 - `Koji:ProjectName` — Koji project name, used to fetch from `/geofence/poracle/{name}`
 
-### 3. Point PoracleJS to PoracleWeb
+### 3. Point PoracleJS to PoracleWeb.NET
 
-Set `geofence.path` in PoracleJS config to a single PoracleWeb URL:
+Set `geofence.path` in PoracleJS config to a single PoracleWeb.NET URL:
 
 ```json
 "geofence": {
@@ -231,4 +231,4 @@ For geofence submission discussions:
 3. Forum tags (Pending/Approved/Rejected) are auto-created if the bot has **Manage Channels** permission, or create them manually
 
 !!! tip "PoracleJS failover"
-    PoracleJS's built-in `.cache/` directory automatically caches geofence data. If PoracleWeb is temporarily unavailable, PoracleJS falls back to its last cached copy.
+    PoracleJS's built-in `.cache/` directory automatically caches geofence data. If PoracleWeb.NET is temporarily unavailable, PoracleJS falls back to its last cached copy.
