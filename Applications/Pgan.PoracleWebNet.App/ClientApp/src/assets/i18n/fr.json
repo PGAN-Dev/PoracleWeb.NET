@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Toutes les distances mises à jour",
     "SNACK_DELETED_ALL": "Toutes les alarmes Quête supprimées",
     "SNACK_FAILED_DELETE_ALL": "Échec de la suppression des alarmes",
-    "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances"
+    "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances",
+    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes Invasion",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Toutes les distances mises à jour",
     "SNACK_DELETED_ALL": "Toutes les alarmes Invasion supprimées",
     "SNACK_FAILED_DELETE_ALL": "Échec de la suppression des alarmes",
-    "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances"
+    "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances",
+    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection"
   },
   "LURES": {
     "PAGE_TITLE": "Alarmes Leurre",

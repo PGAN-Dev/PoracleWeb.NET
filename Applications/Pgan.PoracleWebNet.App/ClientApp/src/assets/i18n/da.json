@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Alle afstande opdateret",
     "SNACK_DELETED_ALL": "Alle quest-alarmer slettet",
     "SNACK_FAILED_DELETE_ALL": "Kunne ikke slette alarmer",
-    "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande"
+    "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande",
+    "CONFIRM_DELETE_SELECTED": "Slet valgte"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionsalarmer",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Alle afstande opdateret",
     "SNACK_DELETED_ALL": "Alle invasionsalarmer slettet",
     "SNACK_FAILED_DELETE_ALL": "Kunne ikke slette alarmer",
-    "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande"
+    "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande",
+    "CONFIRM_DELETE_SELECTED": "Slet valgte"
   },
   "LURES": {
     "PAGE_TITLE": "Lokkemodul-alarmer",

@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Alle afstanden bijgewerkt",
     "SNACK_DELETED_ALL": "Alle quest alarmen verwijderd",
     "SNACK_FAILED_DELETE_ALL": "Alarmen verwijderen mislukt",
-    "SNACK_FAILED_DISTANCE": "Afstanden bijwerken mislukt"
+    "SNACK_FAILED_DISTANCE": "Afstanden bijwerken mislukt",
+    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasie Alarmen",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Alle afstanden bijgewerkt",
     "SNACK_DELETED_ALL": "Alle invasie alarmen verwijderd",
     "SNACK_FAILED_DELETE_ALL": "Alarmen verwijderen mislukt",
-    "SNACK_FAILED_DISTANCE": "Afstanden bijwerken mislukt"
+    "SNACK_FAILED_DISTANCE": "Afstanden bijwerken mislukt",
+    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen"
   },
   "LURES": {
     "PAGE_TITLE": "Lokmiddel Alarmen",

@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Wszystkie odległości zaktualizowane",
     "SNACK_DELETED_ALL": "Wszystkie alarmy zadań usunięte",
     "SNACK_FAILED_DELETE_ALL": "Nie udało się usunąć alarmów",
-    "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości"
+    "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości",
+    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmy inwazji",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Wszystkie odległości zaktualizowane",
     "SNACK_DELETED_ALL": "Wszystkie alarmy inwazji usunięte",
     "SNACK_FAILED_DELETE_ALL": "Nie udało się usunąć alarmów",
-    "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości"
+    "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości",
+    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone"
   },
   "LURES": {
     "PAGE_TITLE": "Alarmy przynęt",

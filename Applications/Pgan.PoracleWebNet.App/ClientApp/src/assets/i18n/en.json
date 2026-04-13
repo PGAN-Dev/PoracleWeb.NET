@@ -452,7 +452,8 @@
     "SNACK_ALL_DISTANCE": "All distances updated",
     "SNACK_DELETED_ALL": "All quest alarms deleted",
     "SNACK_FAILED_DELETE_ALL": "Failed to delete alarms",
-    "SNACK_FAILED_DISTANCE": "Failed to update distances"
+    "SNACK_FAILED_DISTANCE": "Failed to update distances",
+    "CONFIRM_DELETE_SELECTED": "Delete Selected"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasion Alarms",
@@ -498,7 +499,8 @@
     "SNACK_ALL_DISTANCE": "All distances updated",
     "SNACK_DELETED_ALL": "All invasion alarms deleted",
     "SNACK_FAILED_DELETE_ALL": "Failed to delete alarms",
-    "SNACK_FAILED_DISTANCE": "Failed to update distances"
+    "SNACK_FAILED_DISTANCE": "Failed to update distances",
+    "CONFIRM_DELETE_SELECTED": "Delete Selected"
   },
   "LURES": {
     "PAGE_TITLE": "Lure Alarms",

@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Todas as distâncias atualizadas",
     "SNACK_DELETED_ALL": "Todos os alarmes de missões eliminados",
     "SNACK_FAILED_DELETE_ALL": "Falha ao eliminar alarmes",
-    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias"
+    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias",
+    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes de Invasões",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Todas as distâncias atualizadas",
     "SNACK_DELETED_ALL": "Todos os alarmes de invasões eliminados",
     "SNACK_FAILED_DELETE_ALL": "Falha ao eliminar alarmes",
-    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias"
+    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias",
+    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados"
   },
   "LURES": {
     "PAGE_TITLE": "Alarmes de Iscos",

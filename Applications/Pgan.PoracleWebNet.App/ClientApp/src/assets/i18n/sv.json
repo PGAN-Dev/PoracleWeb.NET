@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Alla avstånd uppdaterade",
     "SNACK_DELETED_ALL": "Alla quest-larm raderade",
     "SNACK_FAILED_DELETE_ALL": "Kunde inte radera larm",
-    "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd"
+    "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd",
+    "CONFIRM_DELETE_SELECTED": "Radera valda"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionslarm",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Alla avstånd uppdaterade",
     "SNACK_DELETED_ALL": "Alla invasionslarm raderade",
     "SNACK_FAILED_DELETE_ALL": "Kunde inte radera larm",
-    "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd"
+    "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd",
+    "CONFIRM_DELETE_SELECTED": "Radera valda"
   },
   "LURES": {
     "PAGE_TITLE": "Lockmodullarm",

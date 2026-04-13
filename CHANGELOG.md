@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependabot configuration**: weekly (Monday) updates for NuGet, npm (ClientApp), GitHub Actions, and Docker base images. Grouped bumps for Angular, ESLint, Jest, and Microsoft stacks to avoid PR floods. Angular/Material major versions intentionally pinned — coordinated upgrades are done manually.
 
 ### Fixed
+- **i18n**: bulk-delete confirm button on Quests and Invasions pages rendered the raw translation key (`QUESTS.CONFIRM_DELETE_SELECTED` / `INVASIONS.CONFIRM_DELETE_SELECTED`) instead of the translated text. Added the missing keys to all 11 locale files, reusing the existing `RAIDS.CONFIRM_DELETE_SELECTED` translations. ([#209](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/209))
 - Documentation branding: replaced 88 remaining bare `PoracleWeb` references with `PoracleWeb.NET` across 16 files under `docs/`, completing the branding cleanup from PR #180. URLs, path identifiers, `.csproj` names, and Mermaid diagram node IDs were preserved.
 
 ### Changed

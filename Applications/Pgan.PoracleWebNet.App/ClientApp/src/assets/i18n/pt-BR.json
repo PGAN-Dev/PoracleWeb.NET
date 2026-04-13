@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Todas as distâncias atualizadas",
     "SNACK_DELETED_ALL": "Todos os alarmes de quest excluídos",
     "SNACK_FAILED_DELETE_ALL": "Falha ao excluir alarmes",
-    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias"
+    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias",
+    "CONFIRM_DELETE_SELECTED": "Excluir Selecionados"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes de Invasão",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Todas as distâncias atualizadas",
     "SNACK_DELETED_ALL": "Todos os alarmes de invasão excluídos",
     "SNACK_FAILED_DELETE_ALL": "Falha ao excluir alarmes",
-    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias"
+    "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias",
+    "CONFIRM_DELETE_SELECTED": "Excluir Selecionados"
   },
   "LURES": {
     "PAGE_TITLE": "Alarmes de Isca",

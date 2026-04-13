@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Alle Entfernungen aktualisiert",
     "SNACK_DELETED_ALL": "Alle Quest-Alarme gelöscht",
     "SNACK_FAILED_DELETE_ALL": "Alarme konnten nicht gelöscht werden",
-    "SNACK_FAILED_DISTANCE": "Entfernungen konnten nicht aktualisiert werden"
+    "SNACK_FAILED_DISTANCE": "Entfernungen konnten nicht aktualisiert werden",
+    "CONFIRM_DELETE_SELECTED": "Ausgewählte löschen"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasions-Alarme",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Alle Entfernungen aktualisiert",
     "SNACK_DELETED_ALL": "Alle Invasions-Alarme gelöscht",
     "SNACK_FAILED_DELETE_ALL": "Alarme konnten nicht gelöscht werden",
-    "SNACK_FAILED_DISTANCE": "Entfernungen konnten nicht aktualisiert werden"
+    "SNACK_FAILED_DISTANCE": "Entfernungen konnten nicht aktualisiert werden",
+    "CONFIRM_DELETE_SELECTED": "Ausgewählte löschen"
   },
   "LURES": {
     "PAGE_TITLE": "Lockmodul-Alarme",

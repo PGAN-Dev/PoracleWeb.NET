@@ -441,7 +441,8 @@
     "SNACK_ALL_DISTANCE": "Tutte le distanze aggiornate",
     "SNACK_DELETED_ALL": "Tutti gli allarmi missione eliminati",
     "SNACK_FAILED_DELETE_ALL": "Eliminazione allarmi fallita",
-    "SNACK_FAILED_DISTANCE": "Aggiornamento distanze fallito"
+    "SNACK_FAILED_DISTANCE": "Aggiornamento distanze fallito",
+    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Allarmi Invasioni",
@@ -487,7 +488,8 @@
     "SNACK_ALL_DISTANCE": "Tutte le distanze aggiornate",
     "SNACK_DELETED_ALL": "Tutti gli allarmi invasione eliminati",
     "SNACK_FAILED_DELETE_ALL": "Eliminazione allarmi fallita",
-    "SNACK_FAILED_DISTANCE": "Aggiornamento distanze fallito"
+    "SNACK_FAILED_DISTANCE": "Aggiornamento distanze fallito",
+    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati"
   },
   "LURES": {
     "PAGE_TITLE": "Allarmi Esche",
