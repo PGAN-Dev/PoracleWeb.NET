@@ -1,6 +1,6 @@
 # Standalone Setup (no Docker)
 
-This guide is for running PoracleWeb directly on a machine without Docker. If you're coming from a Node.js or Go background, think of this as the equivalent of `node server.js` or `go run main.go` — but for .NET.
+This guide is for running PoracleWeb.NET directly on a machine without Docker. If you're coming from a Node.js or Go background, think of this as the equivalent of `node server.js` or `go run main.go` — but for .NET.
 
 You'll configure everything in a single `.env` file at the project root and run a single command. No need to dig into subdirectories.
 
@@ -70,7 +70,7 @@ cp .env.example .env
 Or create `.env` from scratch:
 
 ```env
-# Port — the port PoracleWeb listens on (like PORT in Express/Gin)
+# Port — the port PoracleWeb.NET listens on (like PORT in Express/Gin)
 PORT=8082
 
 # Database — your existing Poracle MySQL/MariaDB instance
@@ -80,7 +80,7 @@ DB_NAME=poracle
 DB_USER=root
 DB_PASSWORD=your_db_password
 
-# PoracleWeb database — a separate DB for PoracleWeb's own data
+# PoracleWeb.NET database — a separate DB for PoracleWeb.NET's own data
 WEB_DB_HOST=localhost
 WEB_DB_PORT=3306
 WEB_DB_NAME=poracle_web
@@ -107,16 +107,16 @@ PORACLE_ADMIN_IDS=your_discord_user_id
 !!! tip "Same `.env` works everywhere"
     The app automatically translates short env var names (`DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.) into the format .NET expects. The same `.env` file works for both Docker and standalone mode — no need to write full connection strings manually.
 
-### Create the PoracleWeb database
+### Create the PoracleWeb.NET database
 
-PoracleWeb needs its own database (separate from the Poracle bot database). Tables are created automatically on first start.
+PoracleWeb.NET needs its own database (separate from the Poracle bot database). Tables are created automatically on first start.
 
 ```sql
 CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
 !!! note
-    This database is separate from your Poracle database. PoracleWeb never modifies the Poracle DB schema.
+    This database is separate from your Poracle database. PoracleWeb.NET never modifies the Poracle DB schema.
 
 ## 3. Run
 
@@ -154,7 +154,7 @@ Create `/etc/systemd/system/poracleweb.service`:
 
 ```ini
 [Unit]
-Description=PoracleWeb
+Description=PoracleWeb.NET
 After=network.target mysql.service
 
 [Service]
@@ -194,9 +194,9 @@ pm2 save
 Use [NSSM](https://nssm.cc/):
 
 ```powershell
-nssm install PoracleWeb "C:\Program Files\dotnet\dotnet.exe" "C:\poracleweb\Pgan.PoracleWebNet.Api.dll"
-nssm set PoracleWeb AppDirectory "C:\poracleweb"
-nssm start PoracleWeb
+nssm install PoracleWeb.NET "C:\Program Files\dotnet\dotnet.exe" "C:\poracleweb\Pgan.PoracleWebNet.Api.dll"
+nssm set PoracleWeb.NET AppDirectory "C:\poracleweb"
+nssm start PoracleWeb.NET
 ```
 
 Place your `.env` file in `C:\poracleweb\` (the `AppDirectory`) and the app will pick it up automatically.
@@ -215,7 +215,7 @@ Open `http://your-host:8082` in a browser. You should see the login page.
 
 ## Reverse proxy (optional)
 
-If you want to put PoracleWeb behind nginx or Caddy (just like you might with a Node.js app):
+If you want to put PoracleWeb.NET behind nginx or Caddy (just like you might with a Node.js app):
 
 === "nginx"
 
@@ -249,7 +249,7 @@ When using a reverse proxy, add `Cors__AllowedOrigins__0=https://poracle.example
 **"Configuration 'ConnectionStrings:PoracleDb' is required"**
 : The app can't find your database connection string. Make sure `.env` has the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables set. The app auto-composes them into a full connection string.
 
-**"Could not ensure PoracleWeb database tables exist"**
+**"Could not ensure PoracleWeb.NET database tables exist"**
 : The `poracle_web` database doesn't exist or the connection string is wrong. Create it with the SQL command above.
 
 **Alarm operations fail / "PoracleNG unreachable"**

@@ -1,6 +1,6 @@
 # Alarm Management
 
-PoracleWeb provides a browser-based UI for managing Poracle notification filters. Users create alarms that tell Poracle which Pokemon, Raids, Quests, and other events to send as DM notifications.
+PoracleWeb.NET provides a browser-based UI for managing Poracle notification filters. Users create alarms that tell Poracle which Pokemon, Raids, Quests, and other events to send as DM notifications.
 
 All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG handles field defaults, deduplication, and immediate state reload. See [PoracleNG API Proxy](../architecture/poracleng-proxy.md) for technical details.
 
@@ -258,7 +258,7 @@ Invasion alarms filter by grunt type. The `grunt_type` value is **automatically 
 
 ## Default values
 
-Comprehensive table of all monster (Pokemon) alarm defaults, matching the PHP PoracleWeb defaults:
+Comprehensive table of all monster (Pokemon) alarm defaults, matching the PHP PoracleWeb.NET defaults:
 
 | Field | Default | Description |
 |---|---|---|
@@ -321,7 +321,7 @@ Every alarm card includes a **test button** (send/paper plane icon) that trigger
 ### How it works
 
 1. Click the send icon in the alarm card's action area
-2. PoracleWeb builds a **mock webhook payload** using the alarm's actual filter values (e.g., pokemon_id, raid_level, quest_reward) and the user's saved location as the event coordinates
+2. PoracleWeb.NET builds a **mock webhook payload** using the alarm's actual filter values (e.g., pokemon_id, raid_level, quest_reward) and the user's saved location as the event coordinates
 3. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification to the user via their configured webhook
 4. A **snackbar** displays the result: success, error, or cooldown warning
 

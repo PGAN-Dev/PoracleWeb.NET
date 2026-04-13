@@ -49,7 +49,7 @@ The **copy icon** on any profile creates an exact duplicate with all alarm filte
 
 ### Export
 
-The **download icon** saves a JSON backup file containing all alarms from that profile. Internal IDs are stripped from the export to ensure portability across different PoracleWeb installations.
+The **download icon** saves a JSON backup file containing all alarms from that profile. Internal IDs are stripped from the export to ensure portability across different PoracleWeb.NET installations.
 
 ### Import
 
