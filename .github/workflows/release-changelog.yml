@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout
@@ -20,7 +21,6 @@ jobs:
       - name: Update CHANGELOG.md for release
         run: |
           VERSION="${{ github.event.release.tag_name }}"
-          # Strip 'v' prefix if present
           VERSION="${VERSION#v}"
           DATE=$(date +%Y-%m-%d)
 
@@ -30,15 +30,21 @@ jobs:
           # Update comparison links
           PREV_VERSION=$(grep -oP '^\[[\d.]+\]' CHANGELOG.md | head -2 | tail -1 | tr -d '[]')
           if [ -n "$PREV_VERSION" ]; then
-            # Add new version link before the previous latest
             sed -i "s|\[Unreleased\]: .*|[Unreleased]: https://github.com/${{ github.repository }}/compare/v$VERSION...HEAD\n[$VERSION]: https://github.com/${{ github.repository }}/compare/v$PREV_VERSION...v$VERSION|" CHANGELOG.md
           fi
 
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          VERSION="${{ github.event.release.tag_name }}"
-          VERSION="${VERSION#v}"
-          git diff --cached --quiet || (git commit -m "docs: cut changelog for v${VERSION}" && git push)
+      - name: Open PR with changelog update
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "docs: cut changelog for ${{ github.event.release.tag_name }}"
+          title: "docs: cut changelog for ${{ github.event.release.tag_name }}"
+          body: |
+            Automated CHANGELOG update for release ${{ github.event.release.tag_name }}.
+
+            Promotes the `[Unreleased]` section to `[${{ github.event.release.tag_name }}]` and opens a fresh `[Unreleased]` section.
+
+            Triggered by release [${{ github.event.release.tag_name }}](${{ github.event.release.html_url }}).
+          branch: changelog/${{ github.event.release.tag_name }}
+          base: main
+          labels: docs,automated
+          delete-branch: true

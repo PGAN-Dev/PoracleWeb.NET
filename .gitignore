@@ -34,3 +34,6 @@ avatar-cache.json
 screenshot-*.png
 Applications/Pgan.PoracleWebNet.Api/cookies.txt
 beta-discord-messages.txt
+
+# ASP.NET DataProtection runtime keys — never commit
+Data/dataprotection-keys/
