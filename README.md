@@ -12,6 +12,14 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **Testing**: Jest (frontend), xUnit (backend)
 - **CI/CD**: GitHub Actions, Docker (ghcr.io)
 
+## Community & Support
+
+There is **no Discord server** for PoracleWeb.NET at this time. All support, bug reports, feature requests, and community discussion happen directly on GitHub:
+
+- **[Issues](https://github.com/PGAN-Dev/PoracleWeb.NET/issues)** — bug reports and feature requests
+- **[Discussions](https://github.com/PGAN-Dev/PoracleWeb.NET/discussions)** — questions, ideas, and general conversation
+- **[Pull Requests](https://github.com/PGAN-Dev/PoracleWeb.NET/pulls)** — contributions welcome
+
 ## Quick Start (Docker)
 
 ```bash
