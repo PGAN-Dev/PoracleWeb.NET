@@ -39,8 +39,24 @@ cmd_install() {
   cd "$APP_DIR" && npm install
 }
 
+load_env() {
+  # Export .env from repo root so Program.cs (which reads its CWD) sees the values
+  # regardless of which directory dotnet run is launched from. Parses line-by-line
+  # to preserve values with spaces (unlike `source`, which executes them).
+  [ -f "$ROOT/.env" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    local key="${line%%=*}"
+    local value="${line#*=}"
+    key="${key## }"; key="${key%% }"
+    [ -z "$key" ] && continue
+    export "$key=$value"
+  done < "$ROOT/.env"
+}
+
 cmd_api() {
   echo -e "${CYAN}Starting .NET API (http://localhost:5048)...${RESET}"
+  load_env
   cd "$API_DIR" && dotnet run
 }
 
@@ -56,6 +72,7 @@ cmd_start() {
   echo -e "${DIM}  Press Ctrl+C to stop both.${RESET}"
   echo ""
 
+  load_env
   # Start both processes, prefix output with labels
   (cd "$API_DIR" && dotnet run 2>&1 | sed "s/^/[api] /") &
   API_PID=$!
@@ -117,13 +134,7 @@ cmd_build() {
 }
 
 cmd_db_create() {
-  # Load DB vars from .env if present
-  if [ -f "$ROOT/.env" ]; then
-    set -a
-    # shellcheck disable=SC1091
-    source <(grep -v '^\s*#' "$ROOT/.env" | grep -v '^\s*$')
-    set +a
-  fi
+  load_env
 
   local host="${WEB_DB_HOST:-${DB_HOST:-localhost}}"
   local port="${WEB_DB_PORT:-${DB_PORT:-3306}}"

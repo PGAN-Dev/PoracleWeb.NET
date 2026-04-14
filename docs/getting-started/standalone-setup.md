@@ -99,6 +99,10 @@ DISCORD_BOT_TOKEN=your_discord_bot_token
 PORACLE_API_ADDRESS=http://localhost:3030
 PORACLE_API_SECRET=your_poracle_api_secret
 PORACLE_ADMIN_IDS=your_discord_user_id
+
+# CORS origin — required when ASPNETCORE_ENVIRONMENT=Production (e.g., the systemd unit below).
+# Omit or comment out when running in Development mode.
+CORS_ORIGIN=http://localhost:8082
 ```
 
 !!! info "How `.env` works here"
@@ -228,7 +232,7 @@ If you want to put PoracleWeb.NET behind nginx or Caddy (just like you might wit
             proxy_pass http://127.0.0.1:8082;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_for_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
@@ -242,7 +246,7 @@ If you want to put PoracleWeb.NET behind nginx or Caddy (just like you might wit
     }
     ```
 
-When using a reverse proxy, add `Cors__AllowedOrigins__0=https://poracle.example.com` to your `.env` and update your Discord OAuth2 redirect URI to match the public URL.
+When using a reverse proxy, set `CORS_ORIGIN=https://poracle.example.com` in your `.env` (replacing any `http://localhost:...` value you already have) and update your Discord OAuth2 redirect URI to match the public URL.
 
 ## Troubleshooting
 

@@ -24,9 +24,9 @@ services:
     env_file:
       - .env
     environment:
-      # Container-side constants only; everything else is loaded from .env.
-      - Jwt__Issuer=Pgan.PoracleWebNet
-      - Jwt__Audience=Pgan.PoracleWebNet.App
+      # Container-side paths only; everything else is loaded from .env.
+      # JWT issuer/audience default to "PoracleWeb" / "PoracleWeb.App" via Program.cs —
+      # override by setting JWT_ISSUER / JWT_AUDIENCE in .env if needed.
       - DTS_SOURCE_DIR=/poracle-config
       - DATA_DIR=/app/data
     volumes:

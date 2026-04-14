@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE="$ROOT/.env"
 ENV_EXAMPLE="$ROOT/.env.example"
+COMPOSE_FILE="$ROOT/docker-compose.yml"
+COMPOSE_EXAMPLE="$ROOT/docker-compose.yml.example"
 
 # Colors (disabled if not a terminal)
 if [ -t 1 ]; then
@@ -62,6 +64,16 @@ else
   else
     touch "$ENV_FILE"
     warn "  .env.example not found — creating empty .env"
+  fi
+fi
+
+# Step 1b: docker-compose.yml (local copy)
+if [ -f "$COMPOSE_EXAMPLE" ]; then
+  if [ -f "$COMPOSE_FILE" ]; then
+    info "  docker-compose.yml already exists — leaving as-is."
+  else
+    cp "$COMPOSE_EXAMPLE" "$COMPOSE_FILE"
+    ok "  Copied docker-compose.yml.example -> docker-compose.yml"
   fi
 fi
 
@@ -123,6 +135,13 @@ DISCORD_BOT_TOKEN=$(ask DISCORD_BOT_TOKEN "Bot Token" "")
 set_env "DISCORD_CLIENT_ID" "$DISCORD_CLIENT_ID"
 set_env "DISCORD_CLIENT_SECRET" "$DISCORD_CLIENT_SECRET"
 set_env "DISCORD_BOT_TOKEN" "$DISCORD_BOT_TOKEN"
+
+# Step 6b: CORS origin (required in non-Development)
+header "6b. CORS origin"
+info "  The URL you'll access PoracleWeb.NET from (required in production)."
+info "  For local Docker: http://localhost:${PORT}"
+CORS_ORIGIN=$(ask CORS_ORIGIN "Origin URL" "http://localhost:${PORT}")
+set_env "CORS_ORIGIN" "$CORS_ORIGIN"
 
 # Step 7: Poracle API
 header "7. Poracle API"

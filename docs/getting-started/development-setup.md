@@ -20,9 +20,12 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
 
     ```bash
     ./scripts/setup.sh
+
+    # Or copy the template manually and edit
+    cp .env.example .env
     ```
 
-    The same `.env` format works for development, Docker, and standalone mode. The app auto-translates short variable names (`DB_HOST`, `JWT_SECRET`, etc.) into .NET's configuration format.
+    The same `.env` format works for development, Docker, and standalone mode. `Program.cs` loads `.env` from the current working directory and auto-translates short variable names (`DB_HOST`, `JWT_SECRET`, `DISCORD_CLIENT_ID`, etc.) into .NET's configuration format — no need to write full connection strings or edit `appsettings` manually. `./scripts/dev.sh api` (and `start`) export the root `.env` before launching `dotnet run`, so values are picked up regardless of which directory `dotnet run` resolves to.
 
 === "appsettings.Development.json"
 

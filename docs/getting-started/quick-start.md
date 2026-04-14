@@ -65,6 +65,10 @@ DISCORD_BOT_TOKEN=your_discord_bot_token
 PORACLE_API_ADDRESS=http://host.docker.internal:3030
 PORACLE_API_SECRET=your_poracle_api_secret    # Must match PoracleNG's server.apiSecret
 PORACLE_ADMIN_IDS=your_discord_user_id        # Comma-separated Discord user IDs for admin access
+
+# CORS origin — the URL you'll access PoracleWeb.NET from.
+# Required in production (the container exits on startup if missing).
+CORS_ORIGIN=http://localhost:8082
 ```
 
 ### Optional settings

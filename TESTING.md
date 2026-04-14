@@ -18,7 +18,7 @@ Edit your local `docker-compose.yml` (copied from `docker-compose.yml.example` d
 
 ```yaml
 services:
-  poracleweb:
+  poracleweb.net:
     image: ghcr.io/pgan-dev/poracleweb.net:beta   # or :latest, or :pr-123
 ```
 
