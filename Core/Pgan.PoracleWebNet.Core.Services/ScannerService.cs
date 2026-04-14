@@ -5,9 +5,9 @@ using Pgan.PoracleWebNet.Data.Scanner;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class RdmScannerService(RdmScannerContext context) : IScannerService
+public class ScannerService(ScannerDbContext context) : IScannerService
 {
-    private readonly RdmScannerContext _context = context;
+    private readonly ScannerDbContext _context = context;
 
     public async Task<IEnumerable<QuestData>> GetActiveQuestsAsync() => await this._context.Pokestops
             .AsNoTracking()

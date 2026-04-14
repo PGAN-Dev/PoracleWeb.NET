@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Pgan.PoracleWebNet.Data.Scanner.Entities;
 
 [Table("weather")]
-public class RdmWeatherEntity
+public class ScannerWeatherEntity
 {
     [Key]
     [Column("id")]

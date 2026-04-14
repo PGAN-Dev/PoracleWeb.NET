@@ -97,9 +97,9 @@ public static class ServiceCollectionExtensions
         var scannerConnectionString = configuration.GetConnectionString("ScannerDb");
         if (!string.IsNullOrEmpty(scannerConnectionString))
         {
-            services.AddDbContext<RdmScannerContext>(options =>
+            services.AddDbContext<ScannerDbContext>(options =>
                 options.UseMySQL(scannerConnectionString));
-            services.AddScoped<IScannerService, RdmScannerService>();
+            services.AddScoped<IScannerService, ScannerService>();
         }
 
         // Register Golbat API proxy (optional — only if API address is configured)

@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Pgan.PoracleWebNet.Data.Scanner.Entities;
 
-[Table("gym")]
-public class RdmGymEntity
+[Table("pokestop")]
+public class ScannerPokestopEntity
 {
     [Key]
     [Column("id")]
@@ -12,12 +12,6 @@ public class RdmGymEntity
 
     [Column("name")]
     public string? Name
-    {
-        get; set;
-    }
-
-    [Column("url")]
-    public string? Url
     {
         get; set;
     }
@@ -34,32 +28,32 @@ public class RdmGymEntity
         get; set;
     }
 
-    [Column("raid_level")]
-    public int? RaidLevel
+    [Column("quest_type")]
+    public int? QuestType
     {
         get; set;
     }
 
-    [Column("raid_pokemon_id")]
-    public int? RaidPokemonId
+    [Column("quest_target")]
+    public int? QuestTarget
     {
         get; set;
     }
 
-    [Column("raid_pokemon_form")]
-    public int? RaidPokemonForm
+    [Column("quest_reward_type")]
+    public int? QuestRewardType
     {
         get; set;
     }
 
-    [Column("raid_end_timestamp")]
-    public long? RaidEndTimestamp
+    [Column("quest_item_id")]
+    public int? QuestItemId
     {
         get; set;
     }
 
-    [Column("team_id")]
-    public int? TeamId
+    [Column("quest_pokemon_id")]
+    public int? QuestPokemonId
     {
         get; set;
     }
