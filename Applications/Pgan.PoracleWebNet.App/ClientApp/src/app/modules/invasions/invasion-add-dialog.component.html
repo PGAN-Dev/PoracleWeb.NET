@@ -42,17 +42,6 @@
             <p class="selection-count">{{ 'INVASIONS.TYPES_SELECTED' | translate: { count: selectedCount() } }}</p>
           }
         }
-        @if (showGender()) {
-          <h4>{{ 'INVASIONS.GENDER_LABEL' | translate }}</h4>
-          <mat-form-field appearance="outline" class="full-width"
-            ><mat-label>{{ 'INVASIONS.GENDER_LABEL' | translate }}</mat-label>
-            <mat-select [formControl]="form.controls.gender"
-              ><mat-option [value]="0">{{ 'INVASIONS.GENDER_ANY' | translate }}</mat-option
-              ><mat-option [value]="1">{{ 'INVASIONS.GENDER_MALE' | translate }}</mat-option
-              ><mat-option [value]="2">{{ 'INVASIONS.GENDER_FEMALE' | translate }}</mat-option></mat-select
-            >
-          </mat-form-field>
-        }
       </div>
     </mat-tab>
 

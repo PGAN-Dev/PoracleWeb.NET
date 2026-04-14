@@ -7,14 +7,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
-import { UICONS_BASE, hasNoGenderVariants } from './invasion.constants';
+import { UICONS_BASE } from './invasion.constants';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
@@ -48,7 +47,6 @@ interface GruntOption {
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MatSlideToggleModule,
     MatIconModule,
     MatCheckboxModule,
@@ -121,7 +119,6 @@ export class InvasionAddDialogComponent implements OnInit {
     clean: [false],
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
-    gender: [0],
     ping: [''],
     template: [''],
   });
@@ -132,15 +129,6 @@ export class InvasionAddDialogComponent implements OnInit {
   saving = signal(false);
   selectedCount = signal(0);
   readonly trackAll = signal(false);
-
-  readonly showGender = computed(() => {
-    if (this.trackAll()) return true;
-    const selected = this.gruntOptions().filter(g => g.selected);
-    if (selected.length === 0) return true;
-    // Hide if every selected option either has no gender at all (leaders/events) or
-    // already carries a fixed gender (split mixed/decoy variants).
-    return selected.some(g => !hasNoGenderVariants(g.gruntType) && g.gender === undefined);
-  });
 
   canSave(): boolean {
     return this.trackAll() || this.selectedCount() > 0;
@@ -186,7 +174,7 @@ export class InvasionAddDialogComponent implements OnInit {
         .create({
           clean: v.clean ? 1 : 0,
           distance: dist,
-          gender: v.gender ?? 0,
+          gender: 0,
           gruntType: null,
           ping: v.ping || null,
           template: v.template || null,
@@ -213,7 +201,7 @@ export class InvasionAddDialogComponent implements OnInit {
       this.invasionService.create({
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gender: hasNoGenderVariants(g.gruntType) ? 0 : (g.gender ?? v.gender ?? 0),
+        gender: g.gender ?? 0,
         gruntType: g.gruntType,
         ping: v.ping || null,
         template: v.template || null,
