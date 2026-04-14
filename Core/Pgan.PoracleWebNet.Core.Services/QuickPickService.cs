@@ -500,6 +500,8 @@ public partial class QuickPickService(
     // The "invasion-leader" pick tracks Sierra/Cliff/Arlo — three distinct grunt_type
     // values in PoracleNG. A single filter dict can only set one gruntType, so fan out
     // to one alarm per leader here rather than complicating the QuickPick schema.
+    // Giovanni is deliberately excluded (separate `invasion-giovanni` pick).
+    // Keep in sync with the `LEADER_GRUNT_TYPES` set in ClientApp's invasion.constants.ts.
     private static readonly string[] LeaderGruntTypes = ["cliff", "arlo", "sierra"];
 
     private async Task<List<int>> ApplyInvasionAsync(
