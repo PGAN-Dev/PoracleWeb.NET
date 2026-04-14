@@ -64,11 +64,16 @@ export function isEventType(gruntType: string | null): boolean {
   return (gruntType ?? '') in EVENT_TYPE_INFO;
 }
 
+// Niantic's CHARACTER_UNSET — a generic grunt silhouette. Used when an unknown
+// grunt_type arrives (e.g. a new Niantic addition this UI hasn't mapped yet) so
+// cards render a valid icon instead of a broken image.
+export const UNKNOWN_GRUNT_ICON_URL = `${UICONS_BASE}/invasion/0.png`;
+
 export function getGruntIconUrl(gruntType: string | null): string {
   const type = gruntType ?? '';
   const typeId = GRUNT_TYPE_ID[type];
   if (typeId) return `${UICONS_BASE}/type/${typeId}.png`;
   const invasionId = GRUNT_INVASION_ID[type];
   if (invasionId) return `${UICONS_BASE}/invasion/${invasionId}.png`;
-  return '';
+  return UNKNOWN_GRUNT_ICON_URL;
 }

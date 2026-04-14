@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Invasion grunt icons and labels** ([#216](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/216)): `mixed` grunts rendered as "Rocket Leader" with the Cliff icon (invasion ID 41 = `EXECUTIVE_CLIFF`), and `decoy` grunts rendered with the Electric icon (invasion ID 50 = `ELECTRIC_GRUNT_MALE`). Corrected both to their real Niantic `InvasionCharacter` IDs — `mixed` → 4 (untyped grunt), `decoy` → 45 (decoy grunt). Added missing grunt types surfaced by PoracleNG: `darkness` (Shadow), `gruntb`, and the Rocket Leaders `cliff`/`arlo`/`sierra`. Updated both `invasion.constants.ts` and the add-invasion dialog.
+- **Invasion grunt icons and labels** ([#216](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/216)): `mixed` grunts rendered as "Rocket Leader" with the Cliff icon (invasion ID 41 = `EXECUTIVE_CLIFF`), and `decoy` grunts rendered with the Electric icon (invasion ID 50 = `ELECTRIC_GRUNT_MALE`). Corrected both to their real Niantic `InvasionCharacter` IDs — `mixed` → 4 (untyped grunt), `decoy` → 45 (decoy grunt). Added missing grunt types surfaced by PoracleNG: `darkness` (Shadow), `gruntb`, and the Rocket Leaders `cliff`/`arlo`/`sierra`. Also replaced the empty-string fallback in `getGruntIconUrl()` with a generic unknown-grunt icon so an unmapped `grunt_type` renders a valid placeholder instead of a broken image. Updated both `invasion.constants.ts` and the add-invasion dialog.
 
 ## [2.7.0] - 2026-04-13
 
