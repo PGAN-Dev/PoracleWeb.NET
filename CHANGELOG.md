@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Scanner types renamed from `Rdm*` to generic `Scanner*`** ([#232](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/232)): the scanner DB context and entities were named `RdmScannerContext` / `Rdm{Gym,Pokestop,Station,Weather}Entity` / `RdmScannerService`, but the schema is backend-agnostic. Renamed to `ScannerDbContext` / `Scanner*Entity` / `ScannerService` and updated example connection strings and prose to reference **Golbat** (the currently supported scanner backend). No behavior change; `IScannerService` interface unchanged; no migrations or `[Table]` mappings affected. Impacts only consumers that reference the implementation types directly — standard DI registration uses the `IScannerService` interface and is unaffected.
+
 ## [2.8.0] - 2026-04-14
 
 ### Changed
