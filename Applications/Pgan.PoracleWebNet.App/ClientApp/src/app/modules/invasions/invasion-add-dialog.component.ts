@@ -85,7 +85,6 @@ export class InvasionAddDialogComponent implements OnInit {
     { name: 'Water', invasionId: 18, key: 'water', typeId: 11 },
     { name: 'Mixed Grunt', invasionId: 4, key: 'mixed', typeId: 0 },
     { name: 'Shadow', invasionId: 9, key: 'darkness', typeId: 0 },
-    { name: 'Grunt B', invasionId: 54, key: 'gruntb', typeId: 0 },
     { name: 'Decoy Grunt', invasionId: 45, key: 'decoy', typeId: 0 },
     { name: 'Cliff', invasionId: 41, key: 'cliff', typeId: 0 },
     { name: 'Arlo', invasionId: 42, key: 'arlo', typeId: 0 },

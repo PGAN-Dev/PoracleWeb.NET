@@ -27,7 +27,6 @@ export const GRUNT_INVASION_ID: Record<string, number> = {
   darkness: 9,
   decoy: 45,
   giovanni: 44,
-  gruntb: 54,
   mixed: 4,
   sierra: 43,
 };
@@ -45,7 +44,6 @@ export const DISPLAY_NAMES: Record<string, string> = {
   decoy: 'Decoy Grunt',
   everything: 'All Invasions',
   giovanni: 'Giovanni',
-  gruntb: 'Grunt B',
   metal: 'Steel',
   mixed: 'Mixed Grunt',
   sierra: 'Sierra',
