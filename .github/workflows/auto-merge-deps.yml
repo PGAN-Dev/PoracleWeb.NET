@@ -3,6 +3,9 @@ name: Dependabot auto-merge
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
+  # Claim push events so GitHub doesn't create phantom 0-job failed runs.
+  # The job early-exits for non-pull_request_target events.
+  push:
 
 permissions:
   contents: write
@@ -12,9 +15,9 @@ jobs:
   auto-merge:
     runs-on: ubuntu-latest
     steps:
-      - name: Skip if not Dependabot
-        if: github.actor != 'dependabot[bot]'
-        run: echo "Not a Dependabot PR, skipping."
+      - name: Skip non-PR events
+        if: github.event_name != 'pull_request_target' || github.actor != 'dependabot[bot]'
+        run: echo "Not a Dependabot PR event, skipping."
 
       - name: Fetch Dependabot metadata
         id: meta
