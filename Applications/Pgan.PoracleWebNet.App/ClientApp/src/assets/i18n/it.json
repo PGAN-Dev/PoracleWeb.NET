@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Tutti gli allarmi invasione eliminati",
     "SNACK_FAILED_DELETE_ALL": "Eliminazione allarmi fallita",
     "SNACK_FAILED_DISTANCE": "Aggiornamento distanze fallito",
-    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati"
+    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati",
+    "GENDER_SUFFIX_MALE": "(Maschio)",
+    "GENDER_SUFFIX_FEMALE": "(Femmina)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Coleottero",
+      "CLIFF": "Cliff",
+      "DARK": "Buio",
+      "DARKNESS": "Ombra",
+      "DECOY": "Recluta esca",
+      "DRAGON": "Drago",
+      "ELECTRIC": "Elettro",
+      "EVERYTHING": "Tutte le invasioni",
+      "FAIRY": "Folletto",
+      "FIGHTING": "Lotta",
+      "FIRE": "Fuoco",
+      "FLYING": "Volante",
+      "GHOST": "Spettro",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Erba",
+      "GROUND": "Terra",
+      "ICE": "Ghiaccio",
+      "METAL": "Acciaio",
+      "MIXED": "Recluta misto",
+      "NORMAL": "Normale",
+      "POISON": "Veleno",
+      "PSYCHIC": "Psico",
+      "ROCK": "Roccia",
+      "SIERRA": "Sierra",
+      "WATER": "Acqua"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "Pokéstop d'oro",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Esibizione"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Allarmi Esche",

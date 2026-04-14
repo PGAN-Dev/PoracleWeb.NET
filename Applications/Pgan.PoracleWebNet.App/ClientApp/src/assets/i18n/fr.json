@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Toutes les alarmes Invasion supprimées",
     "SNACK_FAILED_DELETE_ALL": "Échec de la suppression des alarmes",
     "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances",
-    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection"
+    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection",
+    "GENDER_SUFFIX_MALE": "(Mâle)",
+    "GENDER_SUFFIX_FEMALE": "(Femelle)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Insecte",
+      "CLIFF": "Cliff",
+      "DARK": "Ténèbres",
+      "DARKNESS": "Ombre",
+      "DECOY": "Sbire leurre",
+      "DRAGON": "Dragon",
+      "ELECTRIC": "Électrik",
+      "EVERYTHING": "Toutes les invasions",
+      "FAIRY": "Fée",
+      "FIGHTING": "Combat",
+      "FIRE": "Feu",
+      "FLYING": "Vol",
+      "GHOST": "Spectre",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Plante",
+      "GROUND": "Sol",
+      "ICE": "Glace",
+      "METAL": "Acier",
+      "MIXED": "Sbire mixte",
+      "NORMAL": "Normal",
+      "POISON": "Poison",
+      "PSYCHIC": "Psy",
+      "ROCK": "Roche",
+      "SIERRA": "Sierra",
+      "WATER": "Eau"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "PokéStop doré",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Présentation"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Alarmes Leurre",

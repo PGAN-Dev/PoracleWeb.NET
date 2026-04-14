@@ -66,37 +66,69 @@ export const GENDERED_INVASION_ID: Record<string, { male: number; female: number
 };
 
 // Grunts whose grunt_type already implies a gender-specific NPC; the gender dropdown
-// is hidden for them in the edit dialog.
+// is hidden for them in the edit dialog, and getGruntDisplayName appends a translated
+// `(Male)/(Female)` suffix to disambiguate them in lists.
 export const GENDER_FIXED_GRUNT_TYPES: ReadonlySet<string> = new Set(['mixed', 'decoy']);
 
-export const EVENT_TYPE_INFO: Record<string, { color: string; displayName: string; icon: string; imgUrl?: string }> = {
-  'gold-stop': { color: '#F9E418', displayName: 'Gold Stop', icon: 'paid' },
-  kecleon: { color: '#B3CA78', displayName: 'Kecleon', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png` },
-  showcase: { color: '#03AEB6', displayName: 'Showcase', icon: 'emoji_events' },
+export const EVENT_TYPE_INFO: Record<string, { color: string; displayKey: string; icon: string; imgUrl?: string }> = {
+  'gold-stop': { color: '#F9E418', displayKey: 'INVASIONS.EVENT_TYPES.GOLD_STOP', icon: 'paid' },
+  kecleon: {
+    color: '#B3CA78',
+    displayKey: 'INVASIONS.EVENT_TYPES.KECLEON',
+    icon: 'visibility_off',
+    imgUrl: `${UICONS_BASE}/pokemon/352.png`,
+  },
+  showcase: { color: '#03AEB6', displayKey: 'INVASIONS.EVENT_TYPES.SHOWCASE', icon: 'emoji_events' },
 };
 
-export const DISPLAY_NAMES: Record<string, string> = {
-  arlo: 'Arlo',
-  cliff: 'Cliff',
-  darkness: 'Shadow',
-  decoy: 'Decoy Grunt',
-  everything: 'All Invasions',
-  giovanni: 'Giovanni',
-  metal: 'Steel',
-  mixed: 'Mixed Grunt',
-  sierra: 'Sierra',
+export const GRUNT_DISPLAY_KEYS: Record<string, string> = {
+  arlo: 'INVASIONS.GRUNT_TYPES.ARLO',
+  bug: 'INVASIONS.GRUNT_TYPES.BUG',
+  cliff: 'INVASIONS.GRUNT_TYPES.CLIFF',
+  dark: 'INVASIONS.GRUNT_TYPES.DARK',
+  darkness: 'INVASIONS.GRUNT_TYPES.DARKNESS',
+  decoy: 'INVASIONS.GRUNT_TYPES.DECOY',
+  dragon: 'INVASIONS.GRUNT_TYPES.DRAGON',
+  electric: 'INVASIONS.GRUNT_TYPES.ELECTRIC',
+  everything: 'INVASIONS.GRUNT_TYPES.EVERYTHING',
+  fairy: 'INVASIONS.GRUNT_TYPES.FAIRY',
+  fighting: 'INVASIONS.GRUNT_TYPES.FIGHTING',
+  fire: 'INVASIONS.GRUNT_TYPES.FIRE',
+  flying: 'INVASIONS.GRUNT_TYPES.FLYING',
+  ghost: 'INVASIONS.GRUNT_TYPES.GHOST',
+  giovanni: 'INVASIONS.GRUNT_TYPES.GIOVANNI',
+  grass: 'INVASIONS.GRUNT_TYPES.GRASS',
+  ground: 'INVASIONS.GRUNT_TYPES.GROUND',
+  ice: 'INVASIONS.GRUNT_TYPES.ICE',
+  metal: 'INVASIONS.GRUNT_TYPES.METAL',
+  mixed: 'INVASIONS.GRUNT_TYPES.MIXED',
+  normal: 'INVASIONS.GRUNT_TYPES.NORMAL',
+  poison: 'INVASIONS.GRUNT_TYPES.POISON',
+  psychic: 'INVASIONS.GRUNT_TYPES.PSYCHIC',
+  rock: 'INVASIONS.GRUNT_TYPES.ROCK',
+  sierra: 'INVASIONS.GRUNT_TYPES.SIERRA',
+  water: 'INVASIONS.GRUNT_TYPES.WATER',
 };
 
-export function getDisplayName(gruntType: string | null, gender?: number): string {
-  if (!gruntType) return 'All Invasions';
+export function getGruntDisplayKey(gruntType: string | null): string {
+  if (!gruntType) return GRUNT_DISPLAY_KEYS['everything'];
   const eventInfo = EVENT_TYPE_INFO[gruntType];
-  if (eventInfo) return eventInfo.displayName;
-  const mapped = DISPLAY_NAMES[gruntType] ?? gruntType.charAt(0).toUpperCase() + gruntType.slice(1);
-  if (GENDER_FIXED_GRUNT_TYPES.has(gruntType)) {
-    if (gender === 1) return `${mapped} (Male)`;
-    if (gender === 2) return `${mapped} (Female)`;
+  if (eventInfo) return eventInfo.displayKey;
+  return GRUNT_DISPLAY_KEYS[gruntType] ?? 'INVASIONS.UNKNOWN_GRUNT';
+}
+
+// Composes the full localized grunt label, appending a translated gender suffix
+// for grunts whose grunt_type already implies a gender (mixed/decoy). Callers pass
+// a translate lambda (usually `key => this.i18n.instant(key)`) so this helper stays
+// free of Angular DI. Gender is NOT appended for typed grunts (bug/fire/…) — those
+// keep the separate gender dropdown.
+export function getGruntDisplayName(gruntType: string | null, gender: number | undefined, translate: (key: string) => string): string {
+  const base = translate(getGruntDisplayKey(gruntType));
+  if (gruntType && GENDER_FIXED_GRUNT_TYPES.has(gruntType)) {
+    if (gender === 1) return `${base} ${translate('INVASIONS.GENDER_SUFFIX_MALE')}`;
+    if (gender === 2) return `${base} ${translate('INVASIONS.GENDER_SUFFIX_FEMALE')}`;
   }
-  return mapped;
+  return base;
 }
 
 export function isEventType(gruntType: string | null): boolean {

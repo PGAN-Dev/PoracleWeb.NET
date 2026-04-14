@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Alle invasie alarmen verwijderd",
     "SNACK_FAILED_DELETE_ALL": "Alarmen verwijderen mislukt",
     "SNACK_FAILED_DISTANCE": "Afstanden bijwerken mislukt",
-    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen"
+    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen",
+    "GENDER_SUFFIX_MALE": "(Man)",
+    "GENDER_SUFFIX_FEMALE": "(Vrouw)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Insect",
+      "CLIFF": "Cliff",
+      "DARK": "Duister",
+      "DARKNESS": "Schaduw",
+      "DECOY": "Lok-Grunt",
+      "DRAGON": "Draak",
+      "ELECTRIC": "Elektrisch",
+      "EVERYTHING": "Alle invasies",
+      "FAIRY": "Fee",
+      "FIGHTING": "Gevecht",
+      "FIRE": "Vuur",
+      "FLYING": "Vliegend",
+      "GHOST": "Spook",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Gras",
+      "GROUND": "Grond",
+      "ICE": "IJs",
+      "METAL": "Staal",
+      "MIXED": "Gemengde Grunt",
+      "NORMAL": "Normaal",
+      "POISON": "Gif",
+      "PSYCHIC": "Psychisch",
+      "ROCK": "Rots",
+      "SIERRA": "Sierra",
+      "WATER": "Water"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "Gouden PokéStop",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Showcase"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Lokmiddel Alarmen",

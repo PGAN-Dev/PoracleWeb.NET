@@ -19,7 +19,7 @@
             @for (grunt of rocketGrunts(); track grunt.key) {
               <mat-checkbox [checked]="grunt.selected" (change)="toggleGrunt(grunt.key)">
                 <img [src]="getGruntIcon(grunt)" class="grunt-type-icon" />
-                {{ grunt.name }}
+                {{ getGruntLabel(grunt) }}
               </mat-checkbox>
             }
           </div>
@@ -33,7 +33,7 @@
                 } @else {
                   <mat-icon class="event-type-icon" [style.color]="evt.color">{{ evt.icon }}</mat-icon>
                 }
-                {{ evt.name }}
+                {{ getGruntLabel(evt) }}
               </mat-checkbox>
             }
           </div>

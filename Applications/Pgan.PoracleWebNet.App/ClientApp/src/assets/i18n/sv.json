@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Alla invasionslarm raderade",
     "SNACK_FAILED_DELETE_ALL": "Kunde inte radera larm",
     "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd",
-    "CONFIRM_DELETE_SELECTED": "Radera valda"
+    "CONFIRM_DELETE_SELECTED": "Radera valda",
+    "GENDER_SUFFIX_MALE": "(Han)",
+    "GENDER_SUFFIX_FEMALE": "(Hon)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Insekt",
+      "CLIFF": "Cliff",
+      "DARK": "Mörk",
+      "DARKNESS": "Skugga",
+      "DECOY": "Lock-Grunt",
+      "DRAGON": "Drake",
+      "ELECTRIC": "Elektrisk",
+      "EVERYTHING": "Alla invasioner",
+      "FAIRY": "Fe",
+      "FIGHTING": "Kamp",
+      "FIRE": "Eld",
+      "FLYING": "Flyg",
+      "GHOST": "Spöke",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Gräs",
+      "GROUND": "Mark",
+      "ICE": "Is",
+      "METAL": "Stål",
+      "MIXED": "Blandad Grunt",
+      "NORMAL": "Normal",
+      "POISON": "Gift",
+      "PSYCHIC": "Psykisk",
+      "ROCK": "Sten",
+      "SIERRA": "Sierra",
+      "WATER": "Vatten"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "Gyllene PokéStop",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Uppvisning"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Lockmodullarm",

@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Alle Invasions-Alarme gelöscht",
     "SNACK_FAILED_DELETE_ALL": "Alarme konnten nicht gelöscht werden",
     "SNACK_FAILED_DISTANCE": "Entfernungen konnten nicht aktualisiert werden",
-    "CONFIRM_DELETE_SELECTED": "Ausgewählte löschen"
+    "CONFIRM_DELETE_SELECTED": "Ausgewählte löschen",
+    "GENDER_SUFFIX_MALE": "(Männlich)",
+    "GENDER_SUFFIX_FEMALE": "(Weiblich)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Käfer",
+      "CLIFF": "Cliff",
+      "DARK": "Unlicht",
+      "DARKNESS": "Schatten",
+      "DECOY": "Köder-Rüpel",
+      "DRAGON": "Drache",
+      "ELECTRIC": "Elektro",
+      "EVERYTHING": "Alle Invasionen",
+      "FAIRY": "Fee",
+      "FIGHTING": "Kampf",
+      "FIRE": "Feuer",
+      "FLYING": "Flug",
+      "GHOST": "Geist",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Pflanze",
+      "GROUND": "Boden",
+      "ICE": "Eis",
+      "METAL": "Stahl",
+      "MIXED": "Gemischter Rüpel",
+      "NORMAL": "Normal",
+      "POISON": "Gift",
+      "PSYCHIC": "Psycho",
+      "ROCK": "Gestein",
+      "SIERRA": "Sierra",
+      "WATER": "Wasser"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "Gold-PokéStop",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Showcase"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Lockmodul-Alarme",

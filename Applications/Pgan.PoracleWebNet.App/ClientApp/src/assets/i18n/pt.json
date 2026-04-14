@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Todos os alarmes de invasões eliminados",
     "SNACK_FAILED_DELETE_ALL": "Falha ao eliminar alarmes",
     "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias",
-    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados"
+    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados",
+    "GENDER_SUFFIX_MALE": "(Macho)",
+    "GENDER_SUFFIX_FEMALE": "(Fêmea)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Inseto",
+      "CLIFF": "Cliff",
+      "DARK": "Sombrio",
+      "DARKNESS": "Sombra",
+      "DECOY": "Recruta isca",
+      "DRAGON": "Dragão",
+      "ELECTRIC": "Elétrico",
+      "EVERYTHING": "Todas as invasões",
+      "FAIRY": "Fada",
+      "FIGHTING": "Lutador",
+      "FIRE": "Fogo",
+      "FLYING": "Voador",
+      "GHOST": "Fantasma",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Planta",
+      "GROUND": "Terra",
+      "ICE": "Gelo",
+      "METAL": "Aço",
+      "MIXED": "Recruta misto",
+      "NORMAL": "Normal",
+      "POISON": "Veneno",
+      "PSYCHIC": "Psíquico",
+      "ROCK": "Pedra",
+      "SIERRA": "Sierra",
+      "WATER": "Água"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "PokéStop dourada",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Exibição"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Alarmes de Iscos",

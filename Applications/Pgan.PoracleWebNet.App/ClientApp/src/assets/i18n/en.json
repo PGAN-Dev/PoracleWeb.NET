@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "All invasion alarms deleted",
     "SNACK_FAILED_DELETE_ALL": "Failed to delete alarms",
     "SNACK_FAILED_DISTANCE": "Failed to update distances",
-    "CONFIRM_DELETE_SELECTED": "Delete Selected"
+    "CONFIRM_DELETE_SELECTED": "Delete Selected",
+    "GENDER_SUFFIX_MALE": "(Male)",
+    "GENDER_SUFFIX_FEMALE": "(Female)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Bug",
+      "CLIFF": "Cliff",
+      "DARK": "Dark",
+      "DARKNESS": "Shadow",
+      "DECOY": "Decoy Grunt",
+      "DRAGON": "Dragon",
+      "ELECTRIC": "Electric",
+      "EVERYTHING": "All Invasions",
+      "FAIRY": "Fairy",
+      "FIGHTING": "Fighting",
+      "FIRE": "Fire",
+      "FLYING": "Flying",
+      "GHOST": "Ghost",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Grass",
+      "GROUND": "Ground",
+      "ICE": "Ice",
+      "METAL": "Steel",
+      "MIXED": "Mixed Grunt",
+      "NORMAL": "Normal",
+      "POISON": "Poison",
+      "PSYCHIC": "Psychic",
+      "ROCK": "Rock",
+      "SIERRA": "Sierra",
+      "WATER": "Water"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "Gold Stop",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Showcase"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Lure Alarms",

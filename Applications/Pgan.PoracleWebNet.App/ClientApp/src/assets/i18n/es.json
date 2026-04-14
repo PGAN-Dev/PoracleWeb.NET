@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Todas las alarmas de invasión eliminadas",
     "SNACK_FAILED_DELETE_ALL": "Error al eliminar las alarmas",
     "SNACK_FAILED_DISTANCE": "Error al actualizar las distancias",
-    "CONFIRM_DELETE_SELECTED": "Eliminar seleccionadas"
+    "CONFIRM_DELETE_SELECTED": "Eliminar seleccionadas",
+    "GENDER_SUFFIX_MALE": "(Masculino)",
+    "GENDER_SUFFIX_FEMALE": "(Femenino)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Bicho",
+      "CLIFF": "Cliff",
+      "DARK": "Siniestro",
+      "DARKNESS": "Sombra",
+      "DECOY": "Recluta señuelo",
+      "DRAGON": "Dragón",
+      "ELECTRIC": "Eléctrico",
+      "EVERYTHING": "Todas las invasiones",
+      "FAIRY": "Hada",
+      "FIGHTING": "Lucha",
+      "FIRE": "Fuego",
+      "FLYING": "Volador",
+      "GHOST": "Fantasma",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Planta",
+      "GROUND": "Tierra",
+      "ICE": "Hielo",
+      "METAL": "Acero",
+      "MIXED": "Recluta mixto",
+      "NORMAL": "Normal",
+      "POISON": "Veneno",
+      "PSYCHIC": "Psíquico",
+      "ROCK": "Roca",
+      "SIERRA": "Sierra",
+      "WATER": "Agua"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "PokéParada dorada",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Exhibición"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Alarmas de Señuelo",

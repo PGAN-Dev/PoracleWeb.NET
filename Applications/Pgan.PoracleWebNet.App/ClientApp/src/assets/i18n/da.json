@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Alle invasionsalarmer slettet",
     "SNACK_FAILED_DELETE_ALL": "Kunne ikke slette alarmer",
     "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande",
-    "CONFIRM_DELETE_SELECTED": "Slet valgte"
+    "CONFIRM_DELETE_SELECTED": "Slet valgte",
+    "GENDER_SUFFIX_MALE": "(Han)",
+    "GENDER_SUFFIX_FEMALE": "(Hun)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Bille",
+      "CLIFF": "Cliff",
+      "DARK": "Mørk",
+      "DARKNESS": "Skygge",
+      "DECOY": "Lokke-Grunt",
+      "DRAGON": "Drage",
+      "ELECTRIC": "Elektrisk",
+      "EVERYTHING": "Alle invasioner",
+      "FAIRY": "Fe",
+      "FIGHTING": "Kamp",
+      "FIRE": "Ild",
+      "FLYING": "Flyve",
+      "GHOST": "Spøgelse",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Græs",
+      "GROUND": "Jord",
+      "ICE": "Is",
+      "METAL": "Stål",
+      "MIXED": "Blandet Grunt",
+      "NORMAL": "Normal",
+      "POISON": "Gift",
+      "PSYCHIC": "Psykisk",
+      "ROCK": "Sten",
+      "SIERRA": "Sierra",
+      "WATER": "Vand"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "Gylden PokéStop",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Fremvisning"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Lokkemodul-alarmer",

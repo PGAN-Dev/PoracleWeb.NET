@@ -500,7 +500,42 @@
     "SNACK_DELETED_ALL": "Wszystkie alarmy inwazji usunięte",
     "SNACK_FAILED_DELETE_ALL": "Nie udało się usunąć alarmów",
     "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości",
-    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone"
+    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone",
+    "GENDER_SUFFIX_MALE": "(Mężczyzna)",
+    "GENDER_SUFFIX_FEMALE": "(Kobieta)",
+    "GRUNT_TYPES": {
+      "ARLO": "Arlo",
+      "BUG": "Insekt",
+      "CLIFF": "Cliff",
+      "DARK": "Mrok",
+      "DARKNESS": "Cień",
+      "DECOY": "Grunt-wabik",
+      "DRAGON": "Smok",
+      "ELECTRIC": "Elektryczny",
+      "EVERYTHING": "Wszystkie inwazje",
+      "FAIRY": "Wróżka",
+      "FIGHTING": "Walka",
+      "FIRE": "Ogień",
+      "FLYING": "Lot",
+      "GHOST": "Duch",
+      "GIOVANNI": "Giovanni",
+      "GRASS": "Trawa",
+      "GROUND": "Ziemia",
+      "ICE": "Lód",
+      "METAL": "Stal",
+      "MIXED": "Mieszany Grunt",
+      "NORMAL": "Normalny",
+      "POISON": "Trucizna",
+      "PSYCHIC": "Psychika",
+      "ROCK": "Skała",
+      "SIERRA": "Sierra",
+      "WATER": "Woda"
+    },
+    "EVENT_TYPES": {
+      "GOLD_STOP": "Złoty PokéStop",
+      "KECLEON": "Kecleon",
+      "SHOWCASE": "Pokaz"
+    }
   },
   "LURES": {
     "PAGE_TITLE": "Alarmy przynęt",

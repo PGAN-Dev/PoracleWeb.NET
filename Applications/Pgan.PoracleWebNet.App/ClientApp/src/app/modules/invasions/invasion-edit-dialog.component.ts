@@ -13,7 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 
-import { EVENT_TYPE_INFO, getDisplayName, getGruntIconUrl, isEventType, isGenderFixed } from './invasion.constants';
+import { EVENT_TYPE_INFO, getGruntDisplayName, getGruntIconUrl, isEventType, isGenderFixed } from './invasion.constants';
 import { Invasion, InvasionUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -68,7 +68,7 @@ export class InvasionEditDialogComponent {
   readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });
 
   getDisplayName(): string {
-    return getDisplayName(this.data.gruntType, this.data.gender) || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT');
+    return getGruntDisplayName(this.data.gruntType, this.data.gender, key => this.i18n.instant(key));
   }
 
   getEventColor(): string {

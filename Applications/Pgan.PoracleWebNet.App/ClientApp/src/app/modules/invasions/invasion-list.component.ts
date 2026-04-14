@@ -16,7 +16,7 @@ import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
 import {
   EVENT_TYPE_INFO,
-  getDisplayName as displayName,
+  getGruntDisplayName,
   getGruntIconUrl,
   isEventType as checkEventType,
   isGenderFixed as checkGenderFixed,
@@ -128,7 +128,7 @@ export class InvasionListComponent implements OnInit {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
           message: this.i18n.instant('INVASIONS.CONFIRM_DELETE_MSG', {
-            name: displayName(invasion.gruntType, invasion.gender) || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT'),
+            name: getGruntDisplayName(invasion.gruntType, invasion.gender, key => this.i18n.instant(key)),
           }),
           title: this.i18n.instant('INVASIONS.CONFIRM_DELETE_TITLE'),
           warn: true,
@@ -171,7 +171,7 @@ export class InvasionListComponent implements OnInit {
   }
 
   getDisplayName(gruntType: string | null, gender?: number): string {
-    return displayName(gruntType, gender);
+    return getGruntDisplayName(gruntType, gender, key => this.i18n.instant(key));
   }
 
   getEventColor(gruntType: string | null): string {

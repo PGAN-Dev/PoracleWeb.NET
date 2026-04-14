@@ -37,7 +37,7 @@ import {
 } from '../../shared/components/active-hours-editor-dialog/active-hours-editor-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LocationWarningComponent } from '../../shared/components/location-warning/location-warning.component';
-import { getDisplayName as getGruntDisplayName } from '../invasions/invasion.constants';
+import { getGruntDisplayName } from '../invasions/invasion.constants';
 import { ProfileAddDialogComponent } from '../profiles/profile-add-dialog.component';
 import { ProfileEditDialogComponent } from '../profiles/profile-edit-dialog.component';
 
@@ -460,7 +460,7 @@ export class ProfileOverviewComponent implements OnInit {
         return this.i18n.instant('PROFILES.QUEST_REWARD');
       }
       case 'invasion':
-        return getGruntDisplayName(alarm.grunt_type ?? null);
+        return getGruntDisplayName(alarm.grunt_type ?? null, alarm.gender, key => this.i18n.instant(key));
       case 'lure':
         return this.getLureName(alarm.lure_id ?? 0);
       case 'nest': {

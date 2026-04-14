@@ -14,7 +14,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
-import { UICONS_BASE, isGenderFixed } from './invasion.constants';
+import { getGruntDisplayName, isGenderFixed, UICONS_BASE } from './invasion.constants';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
@@ -36,7 +36,6 @@ interface GruntOption {
   invasionId: number;
   isEvent?: boolean;
   key: string;
-  name: string;
   selected: boolean;
   typeId: number;
 }
@@ -65,10 +64,10 @@ interface GruntOption {
   templateUrl: './invasion-add-dialog.component.html',
 })
 export class InvasionAddDialogComponent implements OnInit {
-  private static readonly EVENT_TYPES: { color: string; icon: string; imgUrl?: string; key: string; name: string }[] = [
-    { name: 'Kecleon', color: '#B3CA78', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png`, key: 'kecleon' },
-    { name: 'Gold Stop', color: '#F9E418', icon: 'paid', key: 'gold-stop' },
-    { name: 'Showcase', color: '#03AEB6', icon: 'emoji_events', key: 'showcase' },
+  private static readonly EVENT_TYPES: { color: string; icon: string; imgUrl?: string; key: string }[] = [
+    { color: '#B3CA78', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png`, key: 'kecleon' },
+    { color: '#F9E418', icon: 'paid', key: 'gold-stop' },
+    { color: '#03AEB6', icon: 'emoji_events', key: 'showcase' },
   ];
 
   private static readonly GRUNT_TYPES: {
@@ -76,35 +75,34 @@ export class InvasionAddDialogComponent implements OnInit {
     gruntType: string;
     invasionId: number;
     key: string;
-    name: string;
     typeId: number;
   }[] = [
-    { name: 'Bug', gruntType: 'bug', invasionId: 1, key: 'bug', typeId: 7 },
-    { name: 'Dark', gruntType: 'dark', invasionId: 2, key: 'dark', typeId: 17 },
-    { name: 'Dragon', gruntType: 'dragon', invasionId: 3, key: 'dragon', typeId: 16 },
-    { name: 'Electric', gruntType: 'electric', invasionId: 4, key: 'electric', typeId: 13 },
-    { name: 'Fairy', gruntType: 'fairy', invasionId: 5, key: 'fairy', typeId: 18 },
-    { name: 'Fighting', gruntType: 'fighting', invasionId: 6, key: 'fighting', typeId: 2 },
-    { name: 'Fire', gruntType: 'fire', invasionId: 7, key: 'fire', typeId: 10 },
-    { name: 'Flying', gruntType: 'flying', invasionId: 8, key: 'flying', typeId: 3 },
-    { name: 'Ghost', gruntType: 'ghost', invasionId: 9, key: 'ghost', typeId: 8 },
-    { name: 'Grass', gruntType: 'grass', invasionId: 10, key: 'grass', typeId: 12 },
-    { name: 'Ground', gruntType: 'ground', invasionId: 11, key: 'ground', typeId: 5 },
-    { name: 'Ice', gruntType: 'ice', invasionId: 12, key: 'ice', typeId: 15 },
-    { name: 'Steel', gruntType: 'metal', invasionId: 13, key: 'metal', typeId: 9 },
-    { name: 'Normal', gruntType: 'normal', invasionId: 14, key: 'normal', typeId: 1 },
-    { name: 'Poison', gruntType: 'poison', invasionId: 15, key: 'poison', typeId: 4 },
-    { name: 'Psychic', gruntType: 'psychic', invasionId: 16, key: 'psychic', typeId: 14 },
-    { name: 'Rock', gruntType: 'rock', invasionId: 17, key: 'rock', typeId: 6 },
-    { name: 'Water', gruntType: 'water', invasionId: 18, key: 'water', typeId: 11 },
-    { name: 'Mixed Grunt (Male)', gender: 1, gruntType: 'mixed', invasionId: 4, key: 'mixed-male', typeId: 0 },
-    { name: 'Mixed Grunt (Female)', gender: 2, gruntType: 'mixed', invasionId: 5, key: 'mixed-female', typeId: 0 },
-    { name: 'Shadow', gruntType: 'darkness', invasionId: 9, key: 'darkness', typeId: 0 },
-    { name: 'Decoy Grunt', gruntType: 'decoy', invasionId: 46, key: 'decoy', typeId: 0 },
-    { name: 'Cliff', gruntType: 'cliff', invasionId: 41, key: 'cliff', typeId: 0 },
-    { name: 'Arlo', gruntType: 'arlo', invasionId: 42, key: 'arlo', typeId: 0 },
-    { name: 'Sierra', gruntType: 'sierra', invasionId: 43, key: 'sierra', typeId: 0 },
-    { name: 'Giovanni', gruntType: 'giovanni', invasionId: 44, key: 'giovanni', typeId: 0 },
+    { gruntType: 'bug', invasionId: 1, key: 'bug', typeId: 7 },
+    { gruntType: 'dark', invasionId: 2, key: 'dark', typeId: 17 },
+    { gruntType: 'dragon', invasionId: 3, key: 'dragon', typeId: 16 },
+    { gruntType: 'electric', invasionId: 4, key: 'electric', typeId: 13 },
+    { gruntType: 'fairy', invasionId: 5, key: 'fairy', typeId: 18 },
+    { gruntType: 'fighting', invasionId: 6, key: 'fighting', typeId: 2 },
+    { gruntType: 'fire', invasionId: 7, key: 'fire', typeId: 10 },
+    { gruntType: 'flying', invasionId: 8, key: 'flying', typeId: 3 },
+    { gruntType: 'ghost', invasionId: 9, key: 'ghost', typeId: 8 },
+    { gruntType: 'grass', invasionId: 10, key: 'grass', typeId: 12 },
+    { gruntType: 'ground', invasionId: 11, key: 'ground', typeId: 5 },
+    { gruntType: 'ice', invasionId: 12, key: 'ice', typeId: 15 },
+    { gruntType: 'metal', invasionId: 13, key: 'metal', typeId: 9 },
+    { gruntType: 'normal', invasionId: 14, key: 'normal', typeId: 1 },
+    { gruntType: 'poison', invasionId: 15, key: 'poison', typeId: 4 },
+    { gruntType: 'psychic', invasionId: 16, key: 'psychic', typeId: 14 },
+    { gruntType: 'rock', invasionId: 17, key: 'rock', typeId: 6 },
+    { gruntType: 'water', invasionId: 18, key: 'water', typeId: 11 },
+    { gender: 1, gruntType: 'mixed', invasionId: 4, key: 'mixed-male', typeId: 0 },
+    { gender: 2, gruntType: 'mixed', invasionId: 5, key: 'mixed-female', typeId: 0 },
+    { gruntType: 'darkness', invasionId: 9, key: 'darkness', typeId: 0 },
+    { gruntType: 'decoy', invasionId: 46, key: 'decoy', typeId: 0 },
+    { gruntType: 'cliff', invasionId: 41, key: 'cliff', typeId: 0 },
+    { gruntType: 'arlo', invasionId: 42, key: 'arlo', typeId: 0 },
+    { gruntType: 'sierra', invasionId: 43, key: 'sierra', typeId: 0 },
+    { gruntType: 'giovanni', invasionId: 44, key: 'giovanni', typeId: 0 },
   ];
 
   private readonly fb = inject(FormBuilder);
@@ -151,6 +149,10 @@ export class InvasionAddDialogComponent implements OnInit {
       return `${UICONS_BASE}/type/${grunt.typeId}.png`;
     }
     return `${UICONS_BASE}/invasion/${grunt.invasionId}.png`;
+  }
+
+  getGruntLabel(grunt: GruntOption): string {
+    return getGruntDisplayName(grunt.gruntType, grunt.gender, key => this.i18n.instant(key));
   }
 
   ngOnInit(): void {
