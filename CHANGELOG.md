@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-04-14
+
 ### Changed
 - **Docker compose is now shipped as `docker-compose.yml.example`** ([#228](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/228)): following the `.env` / `.env.example` pattern, `docker-compose.yml` is now gitignored and users copy the example on first install. Upstream tweaks to the example no longer clobber local customizations. The compose file also switched to `env_file: .env` instead of enumerating every variable under `environment:`, shrinking it by ~35 lines and making `.env` the single source of configuration truth. The default image is now `ghcr.io/pgan-dev/poracleweb.net:latest` (pull) to match the README Quick Start; the local-build and `build:` alternatives remain as commented options.
 
@@ -506,7 +508,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.6.0...v2.8.0
 [2.7.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.4.1...v2.6.0
 [2.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.4.0...v2.5.0
