@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Mobile**: Pokemon list search/filter bar no longer leaves a 56px gap above itself when sticky. `top` changed from `56px` to `0` since `mat-sidenav-content` is the scroll container and already sits below the app toolbar. Tightened the mobile (`max-width: 599px`) layout so the search field, quick-filter pills, and meta row stack cleanly at 390px viewports. ([#213](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/213))
+
 ## [2.7.0] - 2026-04-13
 
 ### Changed
