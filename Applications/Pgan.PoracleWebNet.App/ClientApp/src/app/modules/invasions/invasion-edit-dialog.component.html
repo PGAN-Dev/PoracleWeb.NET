@@ -16,7 +16,7 @@
       <h3>{{ getDisplayName() }}</h3>
       @if (isEvent) {
         <span class="item-subtitle">{{ 'INVASIONS.POKESTOP_EVENT' | translate }}</span>
-      } @else {
+      } @else if (!hideGender) {
         <span class="item-subtitle">{{ getGenderLabel() }}</span>
       }
     </div>
@@ -30,7 +30,7 @@
         <span class="tab-label">{{ 'INVASIONS.TAB_SETTINGS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        @if (!isEvent) {
+        @if (!hideGender) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{ 'INVASIONS.GENDER_LABEL' | translate }}</mat-label>
             <mat-select [formControl]="form.controls.gender">

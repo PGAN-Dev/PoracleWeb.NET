@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Giovanni quick pick** ([#221](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/221)): new `invasion-giovanni` default quick pick tracks Giovanni encounters (`gruntType=giovanni`) separately from the Rocket Leaders trio.
+
 ### Fixed
+- **"Rocket Leaders" quick pick subscribed users to the wrong grunts** ([#221](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/221)): the `invasion-leader` pick sent `gruntType=mixed`, which in PoracleNG is the untyped `CHARACTER_GRUNT_MALE/FEMALE` grunt, not Sierra/Cliff/Arlo. Applying the pick now fans out to three invasion alarms with the real leader grunt types (`cliff`, `arlo`, `sierra`) via a single bulk-create. Users who previously applied the broken pick should unapply and re-apply it to replace their stale `mixed` alarms. Added `QuickPickDefaultsTests` to assert default invasion picks use valid PoracleNG `grunt_type` values and to regression-guard against `mixed` being used for leaders.
 - **Invasion grunt icons and labels** ([#216](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/216)): `mixed` grunts rendered as "Rocket Leader" with the Cliff icon (invasion ID 41 = `EXECUTIVE_CLIFF`), and `decoy` grunts rendered with the Electric icon (invasion ID 50 = `ELECTRIC_GRUNT_MALE`). Corrected both to their real Niantic `InvasionCharacter` IDs — `mixed` → 4 (untyped grunt), `decoy` → 45 (decoy grunt). Added missing grunt types surfaced by PoracleNG: `darkness` (Shadow) and the Rocket Leaders `cliff`/`arlo`/`sierra`. Also replaced the empty-string fallback in `getGruntIconUrl()` with a generic unknown-grunt icon so an unmapped `grunt_type` renders a valid placeholder instead of a broken image. Updated both `invasion.constants.ts` and the add-invasion dialog.
 
 ## [2.7.0] - 2026-04-13

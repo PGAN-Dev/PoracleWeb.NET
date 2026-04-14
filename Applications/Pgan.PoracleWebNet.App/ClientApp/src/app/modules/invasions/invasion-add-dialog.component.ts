@@ -14,7 +14,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
-import { UICONS_BASE } from './invasion.constants';
+import { UICONS_BASE, hasNoGenderVariants } from './invasion.constants';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
@@ -116,14 +116,14 @@ export class InvasionAddDialogComponent implements OnInit {
 
   saving = signal(false);
   selectedCount = signal(0);
+  readonly trackAll = signal(false);
+
   readonly showGender = computed(() => {
     if (this.trackAll()) return true;
     const selected = this.gruntOptions().filter(g => g.selected);
     if (selected.length === 0) return true;
-    return selected.some(g => !g.isEvent);
+    return selected.some(g => !hasNoGenderVariants(g.key));
   });
-
-  readonly trackAll = signal(false);
 
   canSave(): boolean {
     return this.trackAll() || this.selectedCount() > 0;
@@ -195,7 +195,7 @@ export class InvasionAddDialogComponent implements OnInit {
       this.invasionService.create({
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gender: g.isEvent ? 0 : (v.gender ?? 0),
+        gender: hasNoGenderVariants(g.key) ? 0 : (v.gender ?? 0),
         gruntType: g.key,
         ping: v.ping || null,
         template: v.template || null,

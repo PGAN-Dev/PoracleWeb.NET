@@ -14,7 +14,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { InvasionAddDialogComponent } from './invasion-add-dialog.component';
 import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
-import { EVENT_TYPE_INFO, getDisplayName as displayName, getGruntIconUrl, isEventType as checkEventType } from './invasion.constants';
+import {
+  EVENT_TYPE_INFO,
+  getDisplayName as displayName,
+  getGruntIconUrl,
+  hasNoGenderVariants as checkHasNoGender,
+  isEventType as checkEventType,
+} from './invasion.constants';
 import { Invasion } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
@@ -182,6 +188,10 @@ export class InvasionListComponent implements OnInit {
 
   getGruntIcon(gruntType: string | null): string {
     return getGruntIconUrl(gruntType);
+  }
+
+  hasNoGender(gruntType: string | null): boolean {
+    return checkHasNoGender(gruntType);
   }
 
   isEventType(gruntType: string | null): boolean {

@@ -40,10 +40,12 @@ export class PokemonSelectorComponent implements OnInit {
 
   availableTypes = computed(() => this.masterData.getAllTypes());
   filterSpawning = signal(false);
+  multi = input(false);
   searchText = signal('');
   selectedPokemon = signal<PokemonEntry[]>([]);
   selectedIds = computed(() => new Set(this.selectedPokemon().map(p => p.id)));
-  multi = input(false);
+  showAvailability = computed(() => this.availability.enabled());
+
   showTileGrid = computed(() => this.multi() && (this.activeGen() != null || this.activeType() != null || this.filterSpawning()));
 
   filteredPokemon = computed(() => {
@@ -116,8 +118,6 @@ export class PokemonSelectorComponent implements OnInit {
   searchControl = new FormControl('');
 
   selectionChange = output<number[]>();
-
-  showAvailability = computed(() => this.availability.enabled());
 
   formatPokemonName(pokemon: PokemonEntry): string {
     if (pokemon.id === 0) return this.i18n.instant('POKEMON_SELECTOR.ALL_POKEMON');
