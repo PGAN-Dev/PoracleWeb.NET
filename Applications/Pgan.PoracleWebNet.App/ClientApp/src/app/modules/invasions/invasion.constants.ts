@@ -22,9 +22,14 @@ export const GRUNT_TYPE_ID: Record<string, number> = {
 };
 
 export const GRUNT_INVASION_ID: Record<string, number> = {
-  decoy: 50,
+  arlo: 42,
+  cliff: 41,
+  darkness: 9,
+  decoy: 45,
   giovanni: 44,
-  mixed: 41,
+  gruntb: 54,
+  mixed: 4,
+  sierra: 43,
 };
 
 export const EVENT_TYPE_INFO: Record<string, { color: string; displayName: string; icon: string; imgUrl?: string }> = {
@@ -34,11 +39,16 @@ export const EVENT_TYPE_INFO: Record<string, { color: string; displayName: strin
 };
 
 export const DISPLAY_NAMES: Record<string, string> = {
+  arlo: 'Arlo',
+  cliff: 'Cliff',
+  darkness: 'Shadow',
   decoy: 'Decoy Grunt',
   everything: 'All Invasions',
   giovanni: 'Giovanni',
+  gruntb: 'Grunt B',
   metal: 'Steel',
-  mixed: 'Rocket Leader',
+  mixed: 'Mixed Grunt',
+  sierra: 'Sierra',
 };
 
 export function getDisplayName(gruntType: string | null): string {
