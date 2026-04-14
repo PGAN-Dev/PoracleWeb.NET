@@ -1,9 +1,9 @@
-import { LEADER_GRUNT_TYPES, hasNoGenderVariants, isEventType } from './invasion.constants';
+import { NO_GENDER_GRUNT_TYPES, hasNoGenderVariants, isEventType } from './invasion.constants';
 
 describe('invasion.constants', () => {
-  describe('LEADER_GRUNT_TYPES', () => {
+  describe('NO_GENDER_GRUNT_TYPES', () => {
     it('contains the four Rocket bosses', () => {
-      expect(LEADER_GRUNT_TYPES).toEqual(new Set(['cliff', 'arlo', 'sierra', 'giovanni']));
+      expect(NO_GENDER_GRUNT_TYPES).toEqual(new Set(['cliff', 'arlo', 'sierra', 'giovanni']));
     });
   });
 
@@ -28,7 +28,7 @@ describe('invasion.constants', () => {
 
   describe('isEventType', () => {
     it('does not misclassify leaders as events', () => {
-      for (const leader of LEADER_GRUNT_TYPES) {
+      for (const leader of NO_GENDER_GRUNT_TYPES) {
         expect(isEventType(leader)).toBe(false);
       }
     });

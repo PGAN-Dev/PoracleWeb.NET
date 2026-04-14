@@ -497,19 +497,19 @@ public partial class QuickPickService(
 
     // --- Invasion ---
 
-    // The "invasion-leader" pick tracks Sierra/Cliff/Arlo — three distinct grunt_type
-    // values in PoracleNG. A single filter dict can only set one gruntType, so fan out
-    // to one alarm per leader here rather than complicating the QuickPick schema.
-    // Giovanni is deliberately excluded (separate `invasion-giovanni` pick).
-    // Keep in sync with the `LEADER_GRUNT_TYPES` set in ClientApp's invasion.constants.ts.
-    private static readonly string[] LeaderGruntTypes = ["cliff", "arlo", "sierra"];
+    // Fan-out targets for the "invasion-leader" quick pick — three distinct grunt_type
+    // values in PoracleNG. A single filter dict can only set one gruntType, so we create
+    // one alarm per leader rather than complicating the QuickPick schema. Giovanni is
+    // deliberately excluded (separate `invasion-giovanni` pick, since he spawns from the
+    // Super Rocket Radar only).
+    private static readonly string[] LeaderFanOutGruntTypes = ["cliff", "arlo", "sierra"];
 
     private async Task<List<int>> ApplyInvasionAsync(
         string userId, int profileNo, QuickPickDefinition definition, QuickPickApplyRequest request)
     {
         if (definition.Id == "invasion-leader")
         {
-            var invasions = LeaderGruntTypes.Select(gt => BuildInvasion(definition.Filters, profileNo, request, gt)).ToList();
+            var invasions = LeaderFanOutGruntTypes.Select(gt => BuildInvasion(definition.Filters, profileNo, request, gt)).ToList();
             var created = await this._invasionService.BulkCreateAsync(userId, invasions);
             return [.. created.Select(i => i.Uid)];
         }

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Giovanni quick pick** ([#221](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/221)): new `invasion-giovanni` default quick pick tracks Giovanni encounters (`gruntType=giovanni`). Kept separate from "Rocket Leaders" because Giovanni spawns from the Super Rocket Radar only, while Sierra/Cliff/Arlo come from standard Rocket Radars — users typically want them on distinct alert profiles.
+- **Giovanni quick pick** ([#221](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/221)): split out while fixing the Rocket Leaders pick. New `invasion-giovanni` default quick pick tracks Giovanni encounters (`gruntType=giovanni`). Kept separate from "Rocket Leaders" because Giovanni spawns from the Super Rocket Radar only, while Sierra/Cliff/Arlo come from standard Rocket Radars — users typically want them on distinct alert profiles.
 
 ### Fixed
 - **"Rocket Leaders" quick pick subscribed users to the wrong grunts** ([#221](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/221)): the `invasion-leader` pick sent `gruntType=mixed`, which in PoracleNG is the untyped `CHARACTER_GRUNT_MALE/FEMALE` grunt, not Sierra/Cliff/Arlo. Applying the pick now fans out to three invasion alarms with the real leader grunt types (`cliff`, `arlo`, `sierra`) via a single bulk-create. Users who previously applied the broken pick should unapply and re-apply it to replace their stale `mixed` alarms. Added `QuickPickDefaultsTests` to assert default invasion picks use valid PoracleNG `grunt_type` values and to regression-guard against `mixed` being used for leaders.

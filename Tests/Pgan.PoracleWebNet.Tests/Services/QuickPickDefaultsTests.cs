@@ -18,22 +18,25 @@ public class QuickPickDefaultsTests
         "ghost", "grass", "ground", "ice", "metal", "normal", "poison", "psychic", "rock", "water",
     ];
 
-    private readonly QuickPickService _sut;
+    private readonly QuickPickService _sut = BuildSut();
 
-    public QuickPickDefaultsTests() => this._sut = new QuickPickService(
-        new Mock<IQuickPickDefinitionRepository>().Object,
-        new Mock<IQuickPickAppliedStateRepository>().Object,
-        new Mock<IMonsterService>().Object,
-        new Mock<IRaidService>().Object,
-        new Mock<IEggService>().Object,
-        new Mock<IQuestService>().Object,
-        new Mock<IInvasionService>().Object,
-        new Mock<ILureService>().Object,
-        new Mock<INestService>().Object,
-        new Mock<IGymService>().Object,
-        new Mock<IMaxBattleService>().Object,
-        new Mock<IMasterDataService>().Object,
-        new Mock<ILogger<QuickPickService>>().Object);
+    private static QuickPickService BuildSut(
+        Mock<IQuickPickDefinitionRepository>? definitionRepo = null,
+        Mock<IQuickPickAppliedStateRepository>? appliedRepo = null,
+        Mock<IInvasionService>? invasionService = null) => new(
+            (definitionRepo ?? new Mock<IQuickPickDefinitionRepository>()).Object,
+            (appliedRepo ?? new Mock<IQuickPickAppliedStateRepository>()).Object,
+            new Mock<IMonsterService>().Object,
+            new Mock<IRaidService>().Object,
+            new Mock<IEggService>().Object,
+            new Mock<IQuestService>().Object,
+            (invasionService ?? new Mock<IInvasionService>()).Object,
+            new Mock<ILureService>().Object,
+            new Mock<INestService>().Object,
+            new Mock<IGymService>().Object,
+            new Mock<IMaxBattleService>().Object,
+            new Mock<IMasterDataService>().Object,
+            new Mock<ILogger<QuickPickService>>().Object);
 
     [Fact]
     public async Task DefaultInvasionPicksUseValidGruntTypes()
@@ -86,7 +89,6 @@ public class QuickPickDefaultsTests
     public async Task ApplyRocketLeadersCreatesThreeInvasionsWithLeaderGruntTypes()
     {
         var definitionRepo = new Mock<IQuickPickDefinitionRepository>();
-        var appliedRepo = new Mock<IQuickPickAppliedStateRepository>();
         var invasionService = new Mock<IInvasionService>();
 
         var defaults = await this._sut.GetDefaultPicksAsync();
@@ -106,21 +108,14 @@ public class QuickPickDefaultsTests
                 return models;
             });
 
-        var sut = new QuickPickService(
-            definitionRepo.Object, appliedRepo.Object,
-            new Mock<IMonsterService>().Object, new Mock<IRaidService>().Object,
-            new Mock<IEggService>().Object, new Mock<IQuestService>().Object,
-            invasionService.Object, new Mock<ILureService>().Object,
-            new Mock<INestService>().Object, new Mock<IGymService>().Object,
-            new Mock<IMaxBattleService>().Object, new Mock<IMasterDataService>().Object,
-            new Mock<ILogger<QuickPickService>>().Object);
+        var sut = BuildSut(definitionRepo: definitionRepo, invasionService: invasionService);
 
         await sut.ApplyAsync("user1", 1, "invasion-leader", new QuickPickApplyRequest());
 
         Assert.Equal(3, captured.Count);
         Assert.Equal(
-            new[] { "arlo", "cliff", "sierra" },
-            captured.Select(i => i.GruntType).OrderBy(x => x, StringComparer.Ordinal).ToArray());
+            new HashSet<string> { "arlo", "cliff", "sierra" },
+            captured.Select(i => i.GruntType ?? "").ToHashSet());
         Assert.All(captured, i => Assert.Equal(1, i.ProfileNo));
     }
 }

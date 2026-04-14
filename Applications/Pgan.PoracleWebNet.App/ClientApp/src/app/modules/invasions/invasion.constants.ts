@@ -64,11 +64,13 @@ export function isEventType(gruntType: string | null): boolean {
 
 // Rocket Leaders and Giovanni are fixed NPCs with a single invasion character ID each —
 // they have no male/female variants, so the gender filter is meaningless for them.
-export const LEADER_GRUNT_TYPES: ReadonlySet<string> = new Set(['cliff', 'arlo', 'sierra', 'giovanni']);
+// Event grunts (kecleon, gold-stop, showcase) also have no gender, so `hasNoGenderVariants`
+// combines both sets.
+export const NO_GENDER_GRUNT_TYPES: ReadonlySet<string> = new Set(['cliff', 'arlo', 'sierra', 'giovanni']);
 
 export function hasNoGenderVariants(gruntType: string | null): boolean {
   const type = gruntType ?? '';
-  return isEventType(type) || LEADER_GRUNT_TYPES.has(type);
+  return isEventType(type) || NO_GENDER_GRUNT_TYPES.has(type);
 }
 
 // Niantic's CHARACTER_UNSET — a generic grunt silhouette. Used when an unknown
