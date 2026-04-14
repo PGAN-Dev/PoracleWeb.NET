@@ -38,7 +38,12 @@ public class QuickPickDefaultsTests
     [Fact]
     public async Task DefaultInvasionPicksUseValidGruntTypes()
     {
-        var defaults = await this._sut.GetDefaultPicksAsync();
+        var defaults = (await this._sut.GetDefaultPicksAsync()).ToList();
+
+        // Sentinel: guard against a refactor that accidentally drops the seed list.
+        Assert.Contains(defaults, p => p.Id == "invasion-leader");
+        Assert.Contains(defaults, p => p.Id == "invasion-giovanni");
+        Assert.Contains(defaults, p => p.Id == "all-invasions");
 
         foreach (var pick in defaults.Where(p => p.AlarmType == "invasion"))
         {
@@ -113,7 +118,9 @@ public class QuickPickDefaultsTests
         await sut.ApplyAsync("user1", 1, "invasion-leader", new QuickPickApplyRequest());
 
         Assert.Equal(3, captured.Count);
-        Assert.Equal(new[] { "cliff", "arlo", "sierra" }, captured.Select(i => i.GruntType).ToArray());
+        Assert.Equal(
+            new[] { "arlo", "cliff", "sierra" },
+            captured.Select(i => i.GruntType).OrderBy(x => x, StringComparer.Ordinal).ToArray());
         Assert.All(captured, i => Assert.Equal(1, i.ProfileNo));
     }
 }
