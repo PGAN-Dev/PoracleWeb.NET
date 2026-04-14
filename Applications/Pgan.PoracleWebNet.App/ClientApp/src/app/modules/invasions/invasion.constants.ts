@@ -25,7 +25,7 @@ export const GRUNT_INVASION_ID: Record<string, number> = {
   arlo: 42,
   cliff: 41,
   darkness: 9,
-  decoy: 45,
+  decoy: 46,
   giovanni: 44,
   mixed: 4,
   sierra: 43,

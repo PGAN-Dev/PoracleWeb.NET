@@ -45,9 +45,9 @@ describe('invasion.constants', () => {
       expect(getGruntIconUrl('decoy', 2)).toContain('/invasion/46.png');
     });
 
-    it('falls back to the generic id when gender is omitted', () => {
+    it('falls back to the generic id when gender is omitted (decoy defaults to female — male does not spawn in-game)', () => {
       expect(getGruntIconUrl('mixed')).toContain('/invasion/4.png');
-      expect(getGruntIconUrl('decoy')).toContain('/invasion/45.png');
+      expect(getGruntIconUrl('decoy')).toContain('/invasion/46.png');
     });
 
     it('ignores gender for grunts without gender-specific icons', () => {
