@@ -13,12 +13,13 @@ permissions:
 
 jobs:
   auto-merge:
+    # Skip the job entirely on push events so GitHub records the run as "skipped"
+    # (neutral, green in status UI) instead of "failure" with 0 jobs. The prior
+    # approach of claiming push with in-step gates still produced failed runs
+    # because the job itself never spawned for non-dependabot pushes.
+    if: github.event_name == 'pull_request_target' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Skip non-PR events
-        if: github.event_name != 'pull_request_target' || github.actor != 'dependabot[bot]'
-        run: echo "Not a Dependabot PR event, skipping."
-
       - name: Fetch Dependabot metadata
         id: meta
         if: github.actor == 'dependabot[bot]'
