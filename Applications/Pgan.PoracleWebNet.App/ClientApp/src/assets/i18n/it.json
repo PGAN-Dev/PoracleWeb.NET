@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL dell'icona della scheda del browser. Si consiglia un'immagine quadrata (minimo 32×32). Supporta .ico, .png, .svg. Lascia vuoto per usare il valore predefinito.",
     "FAVICON_URL_PREVIEW": "Anteprima favicon (32×32)",
     "FAVICON_URL_CACHE_WARNING": "I browser memorizzano i favicon nella cache in modo aggressivo. Dopo il salvataggio, gli utenti devono svuotare la cache del browser o effettuare un aggiornamento forzato (Ctrl+F5 / Cmd+Shift+R) per vedere la nuova icona.",
+    "FAVICON_URL_CSP_NOTE": "Se il tuo sito utilizza una Content Security Policy, l'origine dell'URL del favicon deve essere consentita dalla direttiva img-src; altrimenti il browser blocca il recupero e torna all'icona predefinita.",
     "CUSTOM_PAGE_NAME_LABEL": "Etichetta del link di navigazione",
     "CUSTOM_PAGE_NAME_DESC": "Etichetta per il link di navigazione personalizzato (es. \"Torna alla mappa\").",
     "CUSTOM_PAGE_URL_LABEL": "URL del link di navigazione",

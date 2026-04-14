@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL voor het pictogram van het browsertabblad. Een vierkante afbeelding wordt aanbevolen (min. 32×32). Ondersteunt .ico, .png, .svg. Laat leeg voor standaard.",
     "FAVICON_URL_PREVIEW": "Favicon-voorbeeld (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Browsers cachen favicons agressief. Na het opslaan moeten gebruikers hun browsercache wissen of een hard refresh uitvoeren (Ctrl+F5 / Cmd+Shift+R) om het nieuwe pictogram te zien.",
+    "FAVICON_URL_CSP_NOTE": "Als uw site een Content Security Policy gebruikt, moet de oorsprong van de favicon-URL toegestaan zijn door uw img-src-richtlijn; anders blokkeert de browser het ophalen en valt terug op het standaardpictogram.",
     "CUSTOM_PAGE_NAME_LABEL": "Label van navigatielink",
     "CUSTOM_PAGE_NAME_DESC": "Label voor de aangepaste navigatielink (bijv. \"Terug naar kaart\").",
     "CUSTOM_PAGE_URL_LABEL": "URL van navigatielink",

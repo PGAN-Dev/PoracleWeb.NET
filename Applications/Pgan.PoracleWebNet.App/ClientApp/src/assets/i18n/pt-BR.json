@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL do ícone da aba do navegador. Recomenda-se uma imagem quadrada (mínimo 32×32). Suporta .ico, .png, .svg. Deixe vazio para usar o padrão.",
     "FAVICON_URL_PREVIEW": "Prévia do favicon (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Os navegadores armazenam favicons em cache de forma agressiva. Após salvar, os usuários precisam limpar o cache do navegador ou fazer uma atualização forçada (Ctrl+F5 / Cmd+Shift+R) para ver o novo ícone.",
+    "FAVICON_URL_CSP_NOTE": "Se o seu site usa uma Content Security Policy, a origem da URL do favicon precisa estar permitida pela diretiva img-src; caso contrário, o navegador bloqueia a busca e volta ao ícone padrão.",
     "CUSTOM_PAGE_NAME_LABEL": "Rótulo do link de navegação",
     "CUSTOM_PAGE_NAME_DESC": "Rótulo para o link de navegação personalizado (ex.: \"Voltar ao mapa\").",
     "CUSTOM_PAGE_URL_LABEL": "URL do link de navegação",

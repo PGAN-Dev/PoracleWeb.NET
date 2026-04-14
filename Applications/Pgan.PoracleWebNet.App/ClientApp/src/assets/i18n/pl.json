@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "Adres URL ikony karty przeglądarki. Zalecany kwadratowy obraz (min. 32×32). Obsługuje .ico, .png, .svg. Pozostaw puste, aby użyć domyślnej.",
     "FAVICON_URL_PREVIEW": "Podgląd favikony (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Przeglądarki agresywnie buforują favikony. Po zapisaniu użytkownicy muszą wyczyścić pamięć podręczną przeglądarki lub wykonać twarde odświeżenie (Ctrl+F5 / Cmd+Shift+R), aby zobaczyć nową ikonę.",
+    "FAVICON_URL_CSP_NOTE": "Jeśli Twoja witryna używa Content Security Policy, źródło adresu URL favikony musi być dozwolone w dyrektywie img-src; w przeciwnym razie przeglądarka zablokuje pobieranie i wróci do domyślnej ikony.",
     "CUSTOM_PAGE_NAME_LABEL": "Etykieta linku nawigacyjnego",
     "CUSTOM_PAGE_NAME_DESC": "Etykieta niestandardowego linku nawigacyjnego (np. „Powrót do mapy”).",
     "CUSTOM_PAGE_URL_LABEL": "URL linku nawigacyjnego",

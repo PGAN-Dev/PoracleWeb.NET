@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL del icono de la pestaña del navegador. Se recomienda una imagen cuadrada (mínimo 32×32). Admite .ico, .png, .svg. Déjalo vacío para usar el predeterminado.",
     "FAVICON_URL_PREVIEW": "Vista previa del favicon (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Los navegadores almacenan los favicons en caché de forma agresiva. Tras guardar, los usuarios deben borrar la caché del navegador o realizar una actualización completa (Ctrl+F5 / Cmd+Mayús+R) para ver el nuevo icono.",
+    "FAVICON_URL_CSP_NOTE": "Si tu sitio usa una Content Security Policy, el origen de la URL del favicon debe estar permitido por la directiva img-src; de lo contrario, el navegador bloqueará la descarga y mostrará el icono predeterminado.",
     "CUSTOM_PAGE_NAME_LABEL": "Etiqueta del enlace de navegación",
     "CUSTOM_PAGE_NAME_DESC": "Etiqueta del enlace de navegación personalizado (ej. «Volver al mapa»).",
     "CUSTOM_PAGE_URL_LABEL": "URL del enlace de navegación",

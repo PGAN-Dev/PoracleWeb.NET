@@ -1368,6 +1368,7 @@
     "FAVICON_URL_DESC": "URL for the browser tab icon. Square image recommended (32×32 min). Supports .ico, .png, .svg. Leave empty for default.",
     "FAVICON_URL_PREVIEW": "Favicon preview (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Browsers aggressively cache favicons. After saving, users must clear their browser cache or hard-refresh (Ctrl+F5 / Cmd+Shift+R) to see the new icon.",
+    "FAVICON_URL_CSP_NOTE": "If your site uses a Content Security Policy, the favicon URL's origin must be allowed by your img-src directive; otherwise the browser blocks the fetch and falls back to the default icon.",
     "CUSTOM_PAGE_NAME_LABEL": "Nav Link Label",
     "CUSTOM_PAGE_NAME_DESC": "Label for the custom navigation link (e.g. \"Back To Map\").",
     "CUSTOM_PAGE_URL_LABEL": "Nav Link URL",

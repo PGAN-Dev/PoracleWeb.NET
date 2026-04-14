@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL till ikonen i webbläsarfliken. Kvadratisk bild rekommenderas (minst 32×32). Stöder .ico, .png, .svg. Lämna tomt för standard.",
     "FAVICON_URL_PREVIEW": "Favicon-förhandsvisning (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Webbläsare cachar favicons aggressivt. Efter att du sparat måste användare rensa webbläsarens cache eller göra en hård omladdning (Ctrl+F5 / Cmd+Shift+R) för att se den nya ikonen.",
+    "FAVICON_URL_CSP_NOTE": "Om din webbplats använder en Content Security Policy måste favicon-URL:ens ursprung tillåtas av ditt img-src-direktiv; annars blockerar webbläsaren hämtningen och återgår till standardikonen.",
     "CUSTOM_PAGE_NAME_LABEL": "Etikett för navigeringslänk",
     "CUSTOM_PAGE_NAME_DESC": "Etikett för den anpassade navigeringslänken (t.ex. \"Tillbaka till kartan\").",
     "CUSTOM_PAGE_URL_LABEL": "URL för navigeringslänk",

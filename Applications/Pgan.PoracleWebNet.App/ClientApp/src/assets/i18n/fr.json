@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL de l'icône de l'onglet du navigateur. Image carrée recommandée (32×32 min.). Formats pris en charge : .ico, .png, .svg. Laisser vide pour la valeur par défaut.",
     "FAVICON_URL_PREVIEW": "Aperçu du favicon (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Les navigateurs mettent les favicons en cache de manière agressive. Après l'enregistrement, les utilisateurs doivent vider le cache de leur navigateur ou effectuer une actualisation forcée (Ctrl+F5 / Cmd+Maj+R) pour voir la nouvelle icône.",
+    "FAVICON_URL_CSP_NOTE": "Si votre site utilise une Content Security Policy, l'origine de l'URL du favicon doit être autorisée par votre directive img-src ; sinon, le navigateur bloque la récupération et revient à l'icône par défaut.",
     "CUSTOM_PAGE_NAME_LABEL": "Étiquette du lien de navigation",
     "CUSTOM_PAGE_NAME_DESC": "Étiquette du lien de navigation personnalisé (ex. « Retour à la carte »).",
     "CUSTOM_PAGE_URL_LABEL": "URL du lien de navigation",

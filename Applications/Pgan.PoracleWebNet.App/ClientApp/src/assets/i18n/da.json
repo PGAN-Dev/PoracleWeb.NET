@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL til ikonet i browserfanen. Kvadratisk billede anbefales (min. 32×32). Understøtter .ico, .png, .svg. Lad feltet være tomt for at bruge standard.",
     "FAVICON_URL_PREVIEW": "Favicon-forhåndsvisning (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Browsere cacher favicons aggressivt. Efter du gemmer, skal brugerne rydde browserens cache eller foretage en hård genindlæsning (Ctrl+F5 / Cmd+Shift+R) for at se det nye ikon.",
+    "FAVICON_URL_CSP_NOTE": "Hvis dit websted bruger en Content Security Policy, skal favicon-URL'ens oprindelse være tilladt af dit img-src-direktiv; ellers blokerer browseren hentningen og falder tilbage til standardikonet.",
     "CUSTOM_PAGE_NAME_LABEL": "Navigationslink-etiket",
     "CUSTOM_PAGE_NAME_DESC": "Etiket til det brugerdefinerede navigationslink (f.eks. \"Tilbage til kort\").",
     "CUSTOM_PAGE_URL_LABEL": "Navigationslink-URL",

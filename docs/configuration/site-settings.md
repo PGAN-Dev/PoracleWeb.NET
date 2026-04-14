@@ -24,9 +24,17 @@ Customize the appearance and navigation of your PoracleWeb.NET instance.
 | `custom_title` | Site Title | string | Name shown in the browser tab and page header. This is the only setting visible publicly (on the login page without authentication). |
 | `header_logo_url` | Header Logo URL | url | URL for a custom logo image in the header (replaces the default Pokeball). Leave empty for the default logo. |
 | `hide_header_logo` | Hide Header Logo | boolean | Hide the logo from the header entirely. |
+| `favicon_url` | Favicon URL | url | URL for the browser-tab icon. Square image recommended (32×32 minimum). Supports `.ico`, `.png`, and `.svg`. Leave empty to use the bundled default. Also loads on the public login page. See [Favicon caveats](#favicon-caveats) below. |
 | `custom_page_name` | Nav Link Label | string | Label for a custom navigation link in the sidebar (e.g., "Back To Map"). Leave empty to hide. |
 | `custom_page_url` | Nav Link URL | url | URL the custom nav link points to. |
 | `custom_page_icon` | Nav Link Icon | string | FontAwesome class for the nav link icon (e.g., `fas fa-map`). |
+
+### Favicon caveats
+
+- **Browser cache.** Browsers cache favicons aggressively and often ignore normal reloads. After changing `favicon_url`, users must clear their browser cache or hard-refresh (<kbd>Ctrl</kbd>+<kbd>F5</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>) to see the new icon. Mobile browsers may require removing and re-adding any home-screen bookmark.
+- **Content Security Policy.** If the instance is served behind a reverse proxy or CDN that adds a CSP header, the favicon URL's origin must be allowed by the `img-src` directive. When the fetch is blocked, the browser silently falls back to the bundled default — the preview in the admin UI will show the error state to help diagnose this.
+- **Supported formats.** `.ico`, `.png`, and `.svg` are reliably supported by current browsers. Avoid animated GIFs — support is inconsistent.
+- **Hosting.** Any HTTPS URL works. If you want to serve the favicon alongside PoracleWeb itself, drop the file into the container's `wwwroot/` and reference it by relative path (e.g. `my-favicon.png`).
 
 ---
 

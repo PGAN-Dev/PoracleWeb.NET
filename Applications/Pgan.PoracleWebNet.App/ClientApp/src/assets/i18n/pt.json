@@ -1374,6 +1374,7 @@
     "FAVICON_URL_DESC": "URL do ícone do separador do navegador. Recomenda-se uma imagem quadrada (mínimo 32×32). Suporta .ico, .png, .svg. Deixe vazio para usar o predefinido.",
     "FAVICON_URL_PREVIEW": "Pré-visualização do favicon (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Os navegadores armazenam os favicons em cache de forma agressiva. Após guardar, os utilizadores têm de limpar a cache do navegador ou fazer uma atualização forçada (Ctrl+F5 / Cmd+Shift+R) para verem o novo ícone.",
+    "FAVICON_URL_CSP_NOTE": "Se o seu site utilizar uma Content Security Policy, a origem do URL do favicon tem de ser permitida pela diretiva img-src; caso contrário, o navegador bloqueia a obtenção e recorre ao ícone predefinido.",
     "CUSTOM_PAGE_NAME_LABEL": "Etiqueta do link de navegação",
     "CUSTOM_PAGE_NAME_DESC": "Etiqueta para o link de navegação personalizado (ex.: \"Voltar ao mapa\").",
     "CUSTOM_PAGE_URL_LABEL": "URL do link de navegação",
