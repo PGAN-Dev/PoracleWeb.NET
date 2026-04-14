@@ -406,7 +406,10 @@
     "RSVP_OFF": "Nur Treffer",
     "RSVP_INCLUDE": "Treffer + RSVP-Updates",
     "RSVP_ONLY": "Nur RSVP-Updates",
-    "RSVP_HINT": "Steuert Benachrichtigungen, wenn andere Trainer zusagen. Erfordert einen Scanner, der RSVP-Webhooks sendet.",
+    "RSVP_OFF_DESC": "Nur normale Raid-/Ei-Benachrichtigungen.",
+    "RSVP_INCLUDE_DESC": "Zusätzlich erneut benachrichtigen, wenn sich RSVP-Zahlen ändern.",
+    "RSVP_ONLY_DESC": "Erste Treffer überspringen; nur bei RSVP-Änderungen benachrichtigen.",
+    "RSVP_HINT": "Erfordert, dass dein Scanner RSVP-Webhooks sendet.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "Nur RSVP"
   },

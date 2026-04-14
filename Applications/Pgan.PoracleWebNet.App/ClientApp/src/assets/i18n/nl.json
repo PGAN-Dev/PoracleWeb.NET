@@ -406,7 +406,10 @@
     "RSVP_OFF": "Alleen overeenkomsten",
     "RSVP_INCLUDE": "Overeenkomsten + RSVP-updates",
     "RSVP_ONLY": "Alleen RSVP-updates",
-    "RSVP_HINT": "Regelt meldingen wanneer andere trainers RSVP'en. Vereist dat je scanner RSVP-webhooks verstuurt.",
+    "RSVP_OFF_DESC": "Alleen standaard raid-/ei-meldingen.",
+    "RSVP_INCLUDE_DESC": "Ook opnieuw melden wanneer RSVP-aantallen wijzigen.",
+    "RSVP_ONLY_DESC": "Sla initiële matches over; meld alleen RSVP-wijzigingen.",
+    "RSVP_HINT": "Vereist dat je scanner RSVP-webhooks verzendt.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "Alleen RSVP"
   },

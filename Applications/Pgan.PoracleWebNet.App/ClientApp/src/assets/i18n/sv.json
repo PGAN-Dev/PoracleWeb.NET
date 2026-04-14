@@ -406,7 +406,10 @@
     "RSVP_OFF": "Matches only",
     "RSVP_INCLUDE": "Matches + RSVP updates",
     "RSVP_ONLY": "RSVP updates only",
-    "RSVP_HINT": "Controls notifications when other trainers RSVP. Requires your scanner to emit RSVP webhooks.",
+    "RSVP_OFF_DESC": "Standard raid/egg alerts only.",
+    "RSVP_INCLUDE_DESC": "Also re-notify when RSVP counts change.",
+    "RSVP_ONLY_DESC": "Skip initial matches; only notify on RSVP changes.",
+    "RSVP_HINT": "Requires your scanner to emit RSVP webhooks.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "RSVP only"
   },

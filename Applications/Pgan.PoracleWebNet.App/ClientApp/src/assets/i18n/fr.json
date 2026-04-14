@@ -406,7 +406,10 @@
     "RSVP_OFF": "Correspondances uniquement",
     "RSVP_INCLUDE": "Correspondances + mises à jour RSVP",
     "RSVP_ONLY": "Mises à jour RSVP uniquement",
-    "RSVP_HINT": "Contrôle les notifications lorsque d'autres dresseurs confirment leur participation. Nécessite que votre scanner émette des webhooks RSVP.",
+    "RSVP_OFF_DESC": "Alertes raid/œuf standard uniquement.",
+    "RSVP_INCLUDE_DESC": "Notifier également lorsque les RSVP changent.",
+    "RSVP_ONLY_DESC": "Ignorer les correspondances initiales ; notifier uniquement les changements de RSVP.",
+    "RSVP_HINT": "Nécessite que votre scanner émette des webhooks RSVP.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "RSVP uniquement"
   },
