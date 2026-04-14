@@ -31,14 +31,43 @@ export const GRUNT_INVASION_ID: Record<string, number> = {
   sierra: 43,
 };
 
-// Some grunt_types have distinct male/female invasion character IDs in PogoAssets.
-// Mixed: id 4 (male, starter line) / id 5 (female, Snorlax line).
-// Decoy: id 45 (male) / id 46 (female).
-// Used by getGruntIconUrl to pick the right icon when an alarm specifies a gender.
+// Niantic InvasionCharacter enum IDs for grunts that have male/female variants.
+// Source: WatWowMap Masterfile-Generator. Used by getGruntIconUrl to pick the right
+// PogoAssets `invasion/<id>.png`. Two behavioural groups live together here:
+//   1. Gender-fixed grunts (mixed, decoy) — the grunt_type string already encodes a
+//      gender-specific NPC (Mixed Male = starter line, Female = Snorlax line;
+//      Decoy Male doesn't spawn in-game). The gender dropdown is hidden for these.
+//   2. Typed grunts (bug, fire, water, …) — the user picks gender separately via the
+//      dropdown. Icon flips live based on the selection.
+// The `GENDER_FIXED_GRUNT_TYPES` set below distinguishes the two groups for
+// `isGenderFixed` without needing a second map.
 export const GENDERED_INVASION_ID: Record<string, { male: number; female: number }> = {
+  bug: { female: 6, male: 7 },
+  dark: { female: 10, male: 11 },
+  darkness: { female: 8, male: 9 },
   decoy: { female: 46, male: 45 },
+  dragon: { female: 12, male: 13 },
+  electric: { female: 49, male: 50 },
+  fairy: { female: 14, male: 15 },
+  fighting: { female: 16, male: 17 },
+  fire: { female: 18, male: 19 },
+  flying: { female: 20, male: 21 },
+  ghost: { female: 47, male: 48 },
+  grass: { female: 22, male: 23 },
+  ground: { female: 24, male: 25 },
+  ice: { female: 26, male: 27 },
+  metal: { female: 28, male: 29 },
   mixed: { female: 5, male: 4 },
+  normal: { female: 30, male: 31 },
+  poison: { female: 32, male: 33 },
+  psychic: { female: 34, male: 35 },
+  rock: { female: 36, male: 37 },
+  water: { female: 38, male: 39 },
 };
+
+// Grunts whose grunt_type already implies a gender-specific NPC; the gender dropdown
+// is hidden for them in the edit dialog.
+export const GENDER_FIXED_GRUNT_TYPES: ReadonlySet<string> = new Set(['mixed', 'decoy']);
 
 export const EVENT_TYPE_INFO: Record<string, { color: string; displayName: string; icon: string; imgUrl?: string }> = {
   'gold-stop': { color: '#F9E418', displayName: 'Gold Stop', icon: 'paid' },
@@ -63,7 +92,7 @@ export function getDisplayName(gruntType: string | null, gender?: number): strin
   const eventInfo = EVENT_TYPE_INFO[gruntType];
   if (eventInfo) return eventInfo.displayName;
   const mapped = DISPLAY_NAMES[gruntType] ?? gruntType.charAt(0).toUpperCase() + gruntType.slice(1);
-  if (gruntType in GENDERED_INVASION_ID) {
+  if (GENDER_FIXED_GRUNT_TYPES.has(gruntType)) {
     if (gender === 1) return `${mapped} (Male)`;
     if (gender === 2) return `${mapped} (Female)`;
   }
@@ -91,7 +120,7 @@ export function hasNoGenderVariants(gruntType: string | null): boolean {
 // different NPC (Mixed Male = starter line, Female = Snorlax line).
 export function isGenderFixed(gruntType: string | null): boolean {
   const type = gruntType ?? '';
-  return hasNoGenderVariants(type) || type in GENDERED_INVASION_ID;
+  return hasNoGenderVariants(type) || GENDER_FIXED_GRUNT_TYPES.has(type);
 }
 
 // Niantic's CHARACTER_UNSET — a generic grunt silhouette. Used when an unknown
@@ -99,13 +128,23 @@ export function isGenderFixed(gruntType: string | null): boolean {
 // cards render a valid icon instead of a broken image.
 export const UNKNOWN_GRUNT_ICON_URL = `${UICONS_BASE}/invasion/0.png`;
 
-export function getGruntIconUrl(gruntType: string | null, gender?: number): string {
+export const GENDER_ANY = 0;
+export const GENDER_MALE = 1;
+export const GENDER_FEMALE = 2;
+
+export function getGruntIconUrl(gruntType: string | null, gender?: number | null): string {
   const type = gruntType ?? '';
+  const gendered = GENDERED_INVASION_ID[type];
+  if (gendered && (gender === GENDER_MALE || gender === GENDER_FEMALE)) {
+    return `${UICONS_BASE}/invasion/${gender === GENDER_MALE ? gendered.male : gendered.female}.png`;
+  }
   const typeId = GRUNT_TYPE_ID[type];
   if (typeId) return `${UICONS_BASE}/type/${typeId}.png`;
-  const gendered = GENDERED_INVASION_ID[type];
-  if (gendered && gender === 1) return `${UICONS_BASE}/invasion/${gendered.male}.png`;
-  if (gendered && gender === 2) return `${UICONS_BASE}/invasion/${gendered.female}.png`;
+  if (gendered) {
+    // Gender-fixed grunt (mixed/decoy) with gender=Any — default to the female variant
+    // for decoy (male never spawns) and male for mixed (starter line is the canonical display).
+    return `${UICONS_BASE}/invasion/${type === 'decoy' ? gendered.female : gendered.male}.png`;
+  }
   const invasionId = GRUNT_INVASION_ID[type];
   if (invasionId) return `${UICONS_BASE}/invasion/${invasionId}.png`;
   return UNKNOWN_GRUNT_ICON_URL;

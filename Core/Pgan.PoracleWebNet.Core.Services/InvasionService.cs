@@ -1,13 +1,15 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
+public partial class InvasionService(IPoracleTrackingProxy proxy, ILogger<InvasionService> logger) : IInvasionService
 {
     private const string TrackingType = "invasion";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly ILogger<InvasionService> _logger = logger;
 
     public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo)
     {
@@ -40,10 +42,39 @@ public class InvasionService(IPoracleTrackingProxy proxy) : IInvasionService
     public async Task<Invasion> UpdateAsync(string userId, Invasion model)
     {
         model.GruntType ??= "";
+        var oldUid = model.Uid;
         var body = SerializeToElement(model);
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+
+        // PoracleNG dedups invasion tracking by the natural key (grunt_type, gender).
+        // When an edit changes either field, PoracleNG inserts a new row instead of
+        // updating the one referenced by uid — leaving the original row as a stale duplicate.
+        // Detect that case via the insert/newUids response and delete the old row.
+        if (oldUid > 0 && result.Inserts > 0 && result.NewUids.Count > 0)
+        {
+            var newUid = (int)result.NewUids[0];
+            if (newUid != oldUid)
+            {
+                try
+                {
+                    await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+                {
+                    // Stale duplicate left behind — surface for triage but don't fail the update;
+                    // the new row already carries the user's intended settings.
+                    LogStaleDeleteFailed(this._logger, ex, oldUid, newUid);
+                }
+
+                model.Uid = newUid;
+            }
+        }
+
         return model;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to delete stale invasion uid {OldUid} after gender/grunt_type change created new uid {NewUid}; duplicate row may remain.")]
+    private static partial void LogStaleDeleteFailed(ILogger logger, Exception exception, int oldUid, int newUid);
 
     public async Task<bool> DeleteAsync(string userId, int uid)
     {

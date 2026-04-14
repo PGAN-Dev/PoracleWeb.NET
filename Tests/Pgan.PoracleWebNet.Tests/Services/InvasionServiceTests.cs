@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -16,7 +18,7 @@ public class InvasionServiceTests
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly InvasionService _sut;
 
-    public InvasionServiceTests() => this._sut = new InvasionService(this._proxy.Object);
+    public InvasionServiceTests() => this._sut = new InvasionService(this._proxy.Object, NullLogger<InvasionService>.Instance);
 
     [Fact]
     public async Task GetByUserAsyncReturnsInvasions()
@@ -204,6 +206,63 @@ public class InvasionServiceTests
         Assert.Equal(10, results[0].Uid);
         Assert.Equal(11, results[1].Uid);
         Assert.Equal(12, results[2].Uid);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncDeletesStaleUidWhenNaturalKeyChanges()
+    {
+        // PoracleNG dedups invasions by (grunt_type, gender); changing either triggers an insert
+        // with a new uid. The service must delete the old uid to avoid a stale duplicate row.
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([999], 0, 0, 1));
+
+        var model = new Invasion { Uid = 497, GruntType = "water", Gender = 2 };
+        var result = await this._sut.UpdateAsync("u1", model);
+
+        this._proxy.Verify(p => p.DeleteByUidAsync("invasion", "u1", 497), Times.Once);
+        Assert.Equal(999, result.Uid);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncDoesNotDeleteWhenProxyReportsInPlaceUpdate()
+    {
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        var model = new Invasion { Uid = 497, GruntType = "water", Gender = 1 };
+        await this._sut.UpdateAsync("u1", model);
+
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task UpdateAsyncSwallowsStaleDeleteFailureAndLogsWarning(Type exceptionType)
+    {
+        // Network failure or timeout during the cleanup delete must not fail the update —
+        // the new row is already correct; log at Warning so the stale dup is discoverable.
+        var logger = new Mock<ILogger<InvasionService>>();
+        logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+        var sut = new InvasionService(this._proxy.Object, logger.Object);
+        var ex = (Exception)Activator.CreateInstance(exceptionType, "proxy unavailable")!;
+
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([999], 0, 0, 1));
+        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "u1", 497)).ThrowsAsync(ex);
+
+        var model = new Invasion { Uid = 497, GruntType = "water", Gender = 2 };
+        var result = await sut.UpdateAsync("u1", model);
+
+        Assert.Equal(999, result.Uid);
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                ex,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)

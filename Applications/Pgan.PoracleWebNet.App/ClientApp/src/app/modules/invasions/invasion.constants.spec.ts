@@ -99,4 +99,23 @@ describe('invasion.constants', () => {
       expect(getDisplayName('cliff', 2)).toBe('Cliff');
     });
   });
+
+  describe('getGruntIconUrl typed grunt gender variants (#224)', () => {
+    it('picks the male InvasionCharacter id when gender is Male for typed grunts', () => {
+      expect(getGruntIconUrl('water', 1)).toContain('/invasion/39.png');
+      expect(getGruntIconUrl('bug', 1)).toContain('/invasion/7.png');
+      expect(getGruntIconUrl('fire', 1)).toContain('/invasion/19.png');
+    });
+
+    it('picks the female InvasionCharacter id when gender is Female for typed grunts', () => {
+      expect(getGruntIconUrl('water', 2)).toContain('/invasion/38.png');
+      expect(getGruntIconUrl('bug', 2)).toContain('/invasion/6.png');
+      expect(getGruntIconUrl('fire', 2)).toContain('/invasion/18.png');
+    });
+
+    it('falls back to the Pokémon type badge when gender is Any for typed grunts', () => {
+      expect(getGruntIconUrl('water', 0)).toContain('/type/11.png');
+      expect(getGruntIconUrl('bug')).toContain('/type/7.png');
+    });
+  });
 });

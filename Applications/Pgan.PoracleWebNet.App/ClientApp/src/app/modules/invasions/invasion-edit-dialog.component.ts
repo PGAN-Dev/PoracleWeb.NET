@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -63,8 +64,8 @@ export class InvasionEditDialogComponent {
   readonly hideGender = isGenderFixed(this.data.gruntType);
   readonly isEvent = isEventType(this.data.gruntType);
   readonly isWebhook = inject(AuthService).isImpersonating();
-
   saving = signal(false);
+  readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });
 
   getDisplayName(): string {
     return getDisplayName(this.data.gruntType, this.data.gender) || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT');
@@ -94,7 +95,7 @@ export class InvasionEditDialogComponent {
   }
 
   getGruntIcon(): string {
-    return getGruntIconUrl(this.data.gruntType, this.data.gender);
+    return getGruntIconUrl(this.data.gruntType, this.selectedGender());
   }
 
   onDistanceModeChange(): void {
