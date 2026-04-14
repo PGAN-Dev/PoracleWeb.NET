@@ -1,8 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="48" fill="#fff" stroke="#333" stroke-width="4"/>
-  <path d="M2 50 A48 48 0 0 1 98 50" fill="#f44336"/>
-  <path d="M2 50 H38" stroke="#333" stroke-width="4"/>
-  <path d="M62 50 H98" stroke="#333" stroke-width="4"/>
-  <circle cx="50" cy="50" r="16" fill="#fff" stroke="#333" stroke-width="4"/>
-  <circle cx="50" cy="50" r="8" fill="#333"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1976d2"/>
+      <stop offset="1" stop-color="#0d47a1"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#bg)"/>
+  <path fill="#fff" d="M32 12a3 3 0 0 0-3 3v1.6c-6 1.4-10 6.6-10 12.9v6l-3 4v3h32v-3l-3-4v-6c0-6.3-4-11.5-10-12.9V15a3 3 0 0 0-3-3zm-4 36a4 4 0 1 0 8 0z"/>
 </svg>
