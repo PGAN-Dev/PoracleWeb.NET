@@ -87,6 +87,9 @@ mat-slide-toggle {
   width: 100%;
   margin-bottom: 8px;
 }
+:host ::ng-deep .rsvp-toggle-group .mat-button-toggle {
+  height: auto;
+}
 :host ::ng-deep .rsvp-toggle-group .mat-button-toggle-label-content {
   display: flex;
   align-items: center;
@@ -94,6 +97,7 @@ mat-slide-toggle {
   padding: 10px 16px !important;
   line-height: 1.3 !important;
   text-align: left;
+  white-space: normal !important;
 }
 :host ::ng-deep .rsvp-toggle-group mat-icon {
   flex-shrink: 0;
@@ -103,6 +107,7 @@ mat-slide-toggle {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 .rsvp-toggle-label {
   font-size: 14px;
