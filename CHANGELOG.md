@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Docker compose is now shipped as `docker-compose.yml.example`** ([#228](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/228)): following the `.env` / `.env.example` pattern, `docker-compose.yml` is now gitignored and users copy the example on first install. Upstream tweaks to the example no longer clobber local customizations. The compose file also switched to `env_file: .env` instead of enumerating every variable under `environment:`, shrinking it by ~35 lines and making `.env` the single source of configuration truth. The default image is now `ghcr.io/pgan-dev/poracleweb.net:latest` (pull) to match the README Quick Start; the local-build and `build:` alternatives remain as commented options.
+
+  **Upgrade (existing self-hosted users):**
+  ```bash
+  cp docker-compose.yml docker-compose.yml.bak   # back up any local edits first
+  git pull
+  cp docker-compose.yml.example docker-compose.yml
+  # re-apply any customizations from docker-compose.yml.bak (prefer docker-compose.override.yml for future edits)
+  docker compose up -d --force-recreate
+  ```
+  No `.env` changes are required — existing `.env` files remain compatible.
+
 ### Added
 - **Admin-configurable favicon** ([#218](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/218)): new `favicon_url` site setting under the Branding group in Admin → Settings. Admins can point to any hosted image (`.ico`, `.png`, `.svg`; 32×32 square recommended); leaving it empty falls back to the bundled default. Includes a live 32×32 preview next to the input and an inline warning that **browsers aggressively cache favicons — users must clear their browser cache or hard-refresh (Ctrl+F5 / Cmd+Shift+R) to see the new icon**. Applied at runtime by mutating the `<link rel="icon">` href via an Angular effect, mirroring the existing custom-title pattern. Exposed on the public settings endpoint so it loads pre-auth.
 - **Giovanni quick pick** ([#221](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/221)): split out while fixing the Rocket Leaders pick. New `invasion-giovanni` default quick pick tracks Giovanni encounters (`gruntType=giovanni`). Kept separate from "Rocket Leaders" because Giovanni spawns from the Super Rocket Radar only, while Sierra/Cliff/Arlo come from standard Rocket Radars — users typically want them on distinct alert profiles.

@@ -18,6 +18,11 @@ usage() {
   echo ""
   echo "Usage: ./scripts/docker.sh <command>"
   echo ""
+  echo "First-time setup:"
+  echo "  cp docker-compose.yml.example docker-compose.yml"
+  echo "  cp .env.example .env"
+  echo "  # then edit .env with your settings"
+  echo ""
   echo "Commands:"
   echo "  build    Build the Docker image from source"
   echo "  start    Start the container (docker compose up -d)"
@@ -28,7 +33,16 @@ usage() {
   echo ""
 }
 
+require_compose_file() {
+  if [ ! -f "$ROOT/docker-compose.yml" ]; then
+    echo "error: $ROOT/docker-compose.yml not found." >&2
+    echo "hint:  cp docker-compose.yml.example docker-compose.yml" >&2
+    exit 1
+  fi
+}
+
 dc() {
+  require_compose_file
   docker compose -f "$ROOT/docker-compose.yml" --env-file "$ROOT/.env" "$@"
 }
 
