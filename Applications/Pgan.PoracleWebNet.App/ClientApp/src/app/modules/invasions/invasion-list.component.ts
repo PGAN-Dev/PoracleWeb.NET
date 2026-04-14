@@ -128,7 +128,7 @@ export class InvasionListComponent implements OnInit {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
           message: this.i18n.instant('INVASIONS.CONFIRM_DELETE_MSG', {
-            name: invasion.gruntType || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT'),
+            name: displayName(invasion.gruntType, invasion.gender) || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT'),
           }),
           title: this.i18n.instant('INVASIONS.CONFIRM_DELETE_TITLE'),
           warn: true,
