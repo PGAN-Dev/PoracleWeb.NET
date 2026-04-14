@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -32,6 +33,7 @@ export interface RaidEditDialogData {
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -64,6 +66,7 @@ export class RaidEditDialogComponent {
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.item.ping ?? ''],
+    rsvpChanges: [this.data.item.rsvpChanges ?? 0],
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
   });
@@ -127,7 +130,7 @@ export class RaidEditDialogComponent {
         move: raid.move,
         ping: values.ping || null,
         pokemonId: raid.pokemonId,
-        rsvpChanges: raid.rsvpChanges,
+        rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
         template: values.template || null,
       };
@@ -150,7 +153,7 @@ export class RaidEditDialogComponent {
         gymId: this.selectedGymId() || null,
         level: egg.level,
         ping: values.ping || null,
-        rsvpChanges: egg.rsvpChanges,
+        rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
         template: values.template || null,
       };

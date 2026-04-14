@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -30,6 +31,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -66,6 +68,7 @@ export class RaidAddDialogComponent {
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     ping: [''],
+    rsvpChanges: [0],
     team: [4],
     template: [''],
   });
@@ -126,7 +129,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId: 9000,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -140,7 +143,7 @@ export class RaidAddDialogComponent {
           gymId: this.selectedGymId() || null,
           level,
           ping: common.ping || null,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -161,7 +164,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };

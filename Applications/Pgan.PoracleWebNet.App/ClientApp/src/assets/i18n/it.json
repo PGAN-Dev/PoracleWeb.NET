@@ -401,7 +401,14 @@
     "CONFIRM_DELETE_ALL_MSG": "Sei sicuro di voler eliminare TUTTI gli allarmi raid e uova? Questa azione non può essere annullata.",
     "CONFIRM_BULK_DELETE_TITLE": "Elimina Allarmi Selezionati",
     "CONFIRM_BULK_DELETE_MSG": "Sei sicuro di voler eliminare {{count}} allarmi?",
-    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati"
+    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati",
+    "RSVP_LABEL": "Notifiche RSVP",
+    "RSVP_OFF": "Solo corrispondenze",
+    "RSVP_INCLUDE": "Corrispondenze + aggiornamenti RSVP",
+    "RSVP_ONLY": "Solo aggiornamenti RSVP",
+    "RSVP_HINT": "Controlla le notifiche quando altri allenatori confermano la partecipazione. Richiede che il tuo scanner invii webhook RSVP.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Solo RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Allarmi Missioni",

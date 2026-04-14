@@ -401,7 +401,14 @@
     "CONFIRM_DELETE_ALL_MSG": "¿Seguro que quieres eliminar TODAS las alarmas de raid y huevo? Esta acción no se puede deshacer.",
     "CONFIRM_BULK_DELETE_TITLE": "Eliminar alarmas seleccionadas",
     "CONFIRM_BULK_DELETE_MSG": "¿Seguro que quieres eliminar {{count}} alarmas?",
-    "CONFIRM_DELETE_SELECTED": "Eliminar seleccionadas"
+    "CONFIRM_DELETE_SELECTED": "Eliminar seleccionadas",
+    "RSVP_LABEL": "Notificaciones RSVP",
+    "RSVP_OFF": "Solo coincidencias",
+    "RSVP_INCLUDE": "Coincidencias + actualizaciones RSVP",
+    "RSVP_ONLY": "Solo actualizaciones RSVP",
+    "RSVP_HINT": "Controla las notificaciones cuando otros entrenadores confirman asistencia. Requiere que tu escáner emita webhooks de RSVP.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Solo RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmas de Misión",

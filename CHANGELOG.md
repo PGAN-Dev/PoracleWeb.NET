@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **RSVP notification mode for raid and egg alarms** ([#233](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/233)): new mode selector lets users choose between "Matches only" (default), "Matches + RSVP updates", or "RSVP updates only". Surfaced in the raid/egg add and edit dialogs and as a filter pill on alarm cards.
+
 ### Changed
 - **Scanner types renamed from `Rdm*` to generic `Scanner*`** ([#232](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/232)): the scanner DB context and entities were named `RdmScannerContext` / `Rdm{Gym,Pokestop,Station,Weather}Entity` / `RdmScannerService`, but the schema is backend-agnostic. Renamed to `ScannerDbContext` / `Scanner*Entity` / `ScannerService` and updated example connection strings and prose to reference **Golbat** (the currently supported scanner backend). No behavior change; `IScannerService` interface unchanged; no migrations or `[Table]` mappings affected. Impacts only consumers that reference the implementation types directly — standard DI registration uses the `IScannerService` interface and is unaffected.
 - `IScannerService.PointInPolygon` (static) and `ScannerService.EscapeLikePattern` (static) were moved to dedicated `GeometryHelpers` and `LikeEscape` utility classes in `Core.Services`. The interface no longer carries unrelated geometry helpers; the LIKE-escape helper is reusable by any future repository that needs dialect-safe wildcard escaping.

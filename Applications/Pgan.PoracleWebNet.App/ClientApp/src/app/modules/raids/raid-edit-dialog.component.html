@@ -37,6 +37,24 @@
             </mat-option>
           </mat-select>
         </mat-form-field>
+
+        <label class="rsvp-label">{{ 'RAIDS.RSVP_LABEL' | translate }}</label>
+        <mat-button-toggle-group formControlName="rsvpChanges" aria-label="RSVP notifications" class="rsvp-toggle-group">
+          <mat-button-toggle [value]="0">
+            <mat-icon>notifications</mat-icon>
+            {{ 'RAIDS.RSVP_OFF' | translate }}
+          </mat-button-toggle>
+          <mat-button-toggle [value]="1">
+            <mat-icon>how_to_reg</mat-icon>
+            {{ 'RAIDS.RSVP_INCLUDE' | translate }}
+          </mat-button-toggle>
+          <mat-button-toggle [value]="2">
+            <mat-icon>groups</mat-icon>
+            {{ 'RAIDS.RSVP_ONLY' | translate }}
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+        <p class="rsvp-hint">{{ 'RAIDS.RSVP_HINT' | translate }}</p>
+
         <h4>{{ 'RAIDS.SPECIFIC_GYM' | translate }}</h4>
         <app-gym-picker [(gymId)]="selectedGymId" />
         <p class="gym-picker-hint">{{ 'RAIDS.GYM_PICKER_HINT' | translate }}</p>

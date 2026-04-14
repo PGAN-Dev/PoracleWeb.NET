@@ -70,7 +70,7 @@ public class RaidUpdate
         get; set;
     }
 
-    [Range(0, 1)]
+    [Range(0, 2)]
     public int? RsvpChanges
     {
         get; set;
