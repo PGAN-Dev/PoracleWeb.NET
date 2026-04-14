@@ -45,11 +45,19 @@ load_env() {
   # to preserve values with spaces (unlike `source`, which executes them).
   [ -f "$ROOT/.env" ] || return 0
   while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"  # strip CRLF
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" != *=* ]] && continue
     local key="${line%%=*}"
     local value="${line#*=}"
-    key="${key## }"; key="${key%% }"
+    # trim leading/trailing whitespace from key
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
     [ -z "$key" ] && continue
+    # strip matching surrounding single or double quotes from value
+    if [[ "$value" =~ ^\"(.*)\"$ ]]; then value="${BASH_REMATCH[1]}"
+    elif [[ "$value" =~ ^\'(.*)\'$ ]]; then value="${BASH_REMATCH[1]}"
+    fi
     export "$key=$value"
   done < "$ROOT/.env"
 }

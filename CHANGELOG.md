@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
   No `.env` changes are required — existing `.env` files remain compatible.
 
+  **Two things to know after upgrade:**
+  - **Existing users will be logged out once.** JWT issuer/audience defaults changed from `Pgan.PoracleWebNet` / `Pgan.PoracleWebNet.App` to `PoracleWeb` / `PoracleWeb.App`. Previously issued tokens fail validation and users re-login via Discord/Telegram — no data loss, just a single sign-in prompt. To keep the old values, set `JWT_ISSUER=Pgan.PoracleWebNet` and `JWT_AUDIENCE=Pgan.PoracleWebNet.App` in `.env` before restarting.
+  - **Default image source changed.** The example compose now pulls `ghcr.io/pgan-dev/poracleweb.net:latest`. If you previously relied on a locally built `poracleweb.net:latest`, uncomment the local-build alternative in your `docker-compose.yml` before running `docker compose up -d` or you'll pull the published image instead.
+
 ### Added
 - **Admin-configurable favicon** ([#218](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/218)): new `favicon_url` site setting under the Branding group in Admin → Settings. Admins can point to any hosted image (`.ico`, `.png`, `.svg`; 32×32 square recommended); leaving it empty falls back to the bundled default. Includes a live 32×32 preview next to the input and an inline warning that **browsers aggressively cache favicons — users must clear their browser cache or hard-refresh (Ctrl+F5 / Cmd+Shift+R) to see the new icon**. Applied at runtime by mutating the `<link rel="icon">` href via an Angular effect, mirroring the existing custom-title pattern. Exposed on the public settings endpoint so it loads pre-auth.
 - **Optional `JWT_ISSUER` / `JWT_AUDIENCE` env vars** ([#228](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/228)): documented in `.env.example` with sensible defaults (`PoracleWeb` and `PoracleWeb.App`) applied by `Program.cs` when unset, so existing users don't need to add them. Override only if you need distinct token identities across deployments.

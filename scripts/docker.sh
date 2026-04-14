@@ -39,6 +39,11 @@ require_compose_file() {
     echo "hint:  cp docker-compose.yml.example docker-compose.yml" >&2
     exit 1
   fi
+  if [ ! -f "$ROOT/.env" ]; then
+    echo "error: $ROOT/.env not found." >&2
+    echo "hint:  cp .env.example .env  (or run ./scripts/setup.sh)" >&2
+    exit 1
+  fi
 }
 
 dc() {
