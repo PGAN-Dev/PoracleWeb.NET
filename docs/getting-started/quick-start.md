@@ -87,7 +87,7 @@ KOJI_PROJECT_NAME=your_koji_project_name
 DISCORD_GEOFENCE_FORUM_CHANNEL_ID=
 
 # Scanner DB for gym picker in raid/egg dialogs (optional)
-# SCANNER_DB_CONNECTION=Server=host.docker.internal;Port=3306;Database=rdmdb;User=root;Password=your_password
+# SCANNER_DB_CONNECTION=Server=host.docker.internal;Port=3306;Database=golbat;User=root;Password=your_password
 
 # Telegram authentication (optional)
 TELEGRAM_ENABLED=false

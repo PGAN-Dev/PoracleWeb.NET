@@ -58,9 +58,9 @@ A separate EF Core context for **application-owned data**.
 !!! info "MariaDB compatibility"
     `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK(-1)` which returns NULL on MariaDB. The `MariaDbHistoryRepository` class overrides the lock to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
 
-### RdmScannerContext (optional)
+### ScannerDbContext (optional)
 
-Connects to a Golbat/RDM scanner database for nest, Pokemon, and gym data.
+Connects to a Golbat scanner database for nest, Pokemon, and gym data.
 
 - Connection string: `ConnectionStrings:ScannerDb`
 - If not configured, `IScannerService` is not registered and scanner endpoints return appropriate responses
@@ -90,9 +90,9 @@ On startup, `Program.cs` calls `webDb.Database.MigrateAsync()` which applies any
 
 ## Scanner entities
 
-### RdmGymEntity
+### ScannerGymEntity
 
-Maps to the `gym` table in the Golbat/RDM scanner database.
+Maps to the `gym` table in the Golbat scanner database.
 
 | Property | Column | Type | Description |
 |---|---|---|---|
@@ -105,7 +105,7 @@ Maps to the `gym` table in the Golbat/RDM scanner database.
 
 ### GymSearchResult
 
-DTO model in `Core.Models` used by scanner gym search endpoints. Projected from `RdmGymEntity` with an additional computed `Area` field.
+DTO model in `Core.Models` used by scanner gym search endpoints. Projected from `ScannerGymEntity` with an additional computed `Area` field.
 
 | Property | Type | Description |
 |---|---|---|

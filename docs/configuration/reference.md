@@ -45,7 +45,7 @@ All configuration can be provided via environment variables or `appsettings.json
 | Setting | `.env` name | `.NET` env variable | Description |
 |---|---|---|---|
 | PoracleWeb.NET DB | `WEB_DB_HOST`, `WEB_DB_PORT`, `WEB_DB_NAME`, `WEB_DB_USER`, `WEB_DB_PASSWORD` | `ConnectionStrings__PoracleWebDb` | MySQL connection to PoracleWeb.NET database (site settings, webhook delegates, quick picks, user geofences). Short vars are auto-composed into a connection string. |
-| Scanner DB | `SCANNER_DB_CONNECTION` | `ConnectionStrings__ScannerDb` | Scanner database connection (RDM). Optional. Used by the gym picker search in raid/gym/egg add dialogs. Provide a full connection string. |
+| Scanner DB | `SCANNER_DB_CONNECTION` | `ConnectionStrings__ScannerDb` | Scanner database connection (Golbat). Optional. Used by the gym picker search in raid/gym/egg add dialogs. Provide a full connection string. |
 
 ### Golbat API
 

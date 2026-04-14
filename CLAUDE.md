@@ -45,7 +45,7 @@ Pgan.PoracleWebNet.slnx
 |   |                            WebhookDelegateEntity, QuickPickDefinitionEntity,
 |   |                            QuickPickAppliedStateEntity),
 |   |                            Configurations/ (EF Core entity type configurations)
-|   +-- Data.Scanner/            RdmScannerContext for optional scanner DB
+|   +-- Data.Scanner/            ScannerDbContext for optional scanner DB
 |
 +-- Applications/
 |   +-- Web.Api/                 ASP.NET Core host
@@ -216,12 +216,12 @@ Pgan.PoracleWebNet.slnx
 
 ### Gym Picker
 - `GymPickerComponent` is a shared autocomplete component (`shared/components/gym-picker/`) for selecting a gym by name. Used in gym, raid, and egg add/edit dialogs to populate `gym_id`.
-- Displays gym photo thumbnails (from `RdmGymEntity.Url`), name, and resolved area name in the dropdown options.
+- Displays gym photo thumbnails (from `ScannerGymEntity.Url`), name, and resolved area name in the dropdown options.
 - Backed by `ScannerService` (frontend, `core/services/scanner.service.ts`) which calls two scanner API endpoints:
   - `GET /api/scanner/gyms?search=term&limit=20` -- Searches gyms by name prefix in the scanner DB. Returns `GymSearchResult[]` with `id`, `name`, `url`, `lat`, `lon`, `teamId`, `area`.
   - `GET /api/scanner/gyms/{id}` -- Looks up a single gym by ID. Used to resolve the display name for an existing `gym_id` value when opening an edit dialog.
 - Area names are resolved server-side via point-in-polygon against cached Koji admin geofences. The `IScannerService.PointInPolygon()` static method uses ray-casting for hit testing.
-- `RdmGymEntity` maps the `url` column for gym photo thumbnails from the scanner DB.
+- `ScannerGymEntity` maps the `url` column for gym photo thumbnails from the scanner DB.
 - The scanner DB is optional -- if not configured, the gym picker is hidden and `gym_id` can still be entered manually.
 
 ### Service Lifetimes
@@ -525,7 +525,7 @@ dotnet ef migrations script \
 | KojiService | `Core/Pgan.PoracleWebNet.Core.Services/KojiService.cs` |
 | DiscordNotificationService | `Core/Pgan.PoracleWebNet.Core.Services/DiscordNotificationService.cs` |
 | IPwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPwebSettingService.cs` |
-| RdmScannerService | `Core/Pgan.PoracleWebNet.Core.Services/RdmScannerService.cs` |
+| ScannerService | `Core/Pgan.PoracleWebNet.Core.Services/ScannerService.cs` |
 | IScannerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IScannerService.cs` |
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
 | Test Alert Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/TestAlertController.cs` |

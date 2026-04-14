@@ -154,7 +154,7 @@ The scanner DB (`ScannerDb` connection string) is optional. When not configured,
 
 ### Gym search endpoints
 
-`ScannerController` exposes two gym endpoints backed by `RdmScannerService`:
+`ScannerController` exposes two gym endpoints backed by `ScannerService`:
 
 | Endpoint | Purpose |
 |---|---|
@@ -179,9 +179,9 @@ Graceful fallback: if the scanner DB is unreachable or the query fails, the sear
 | `TeamId` | `int?` | Controlling team (0 = neutral) |
 | `Area` | `string?` | Resolved at request time via point-in-polygon, not stored |
 
-### RdmGymEntity.Url
+### ScannerGymEntity.Url
 
-The `RdmGymEntity` in the scanner context maps the `url` column from the `gym` table, providing gym photo thumbnail URLs to `GymSearchResult`.
+The `ScannerGymEntity` in the scanner context maps the `url` column from the `gym` table, providing gym photo thumbnail URLs to `GymSearchResult`.
 
 ### PointInPolygon
 
@@ -207,7 +207,7 @@ Caches Golbat availability data in `IMemoryCache` with a 5-minute absolute expir
 
 ## Weather data
 
-Weather data is served via `IScannerService` from the scanner DB (`RdmWeatherEntity`). `RdmScannerService` fetches weather cells using S2 cell geometry (`S2CellHelper`) and returns `WeatherData` models with cell polygons and gameplay weather conditions. The `LocationController` exposes weather data alongside the user's location. Weather is optional -- when the scanner DB is not configured, weather endpoints return empty results.
+Weather data is served via `IScannerService` from the scanner DB (`ScannerWeatherEntity`). `ScannerService` fetches weather cells using S2 cell geometry (`S2CellHelper`) and returns `WeatherData` models with cell polygons and gameplay weather conditions. The `LocationController` exposes weather data alongside the user's location. Weather is optional -- when the scanner DB is not configured, weather endpoints return empty results.
 
 ## Rate limiting
 

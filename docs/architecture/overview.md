@@ -24,7 +24,7 @@ Pgan.PoracleWebNet.slnx
 │   └── Core.Services/              Business logic + PoracleNG API proxies
 ├── Data/
 │   ├── Data/                       EF Core DbContexts, Entities, Configurations
-│   └── Data.Scanner/               Optional scanner DB context (RDM)
+│   └── Data.Scanner/               Optional scanner DB context (Golbat)
 └── Tests/
     └── Pgan.PoracleWebNet.Tests/     xUnit backend tests
 ```
@@ -49,7 +49,7 @@ graph TB
     subgraph Data
         PoracleDB[(Poracle DB<br/>MySQL)]
         WebDB[(PoracleWeb DB<br/>MySQL)]
-        ScannerDB[(Scanner DB<br/>RDM · Optional)]
+        ScannerDB[(Scanner DB<br/>Golbat · Optional)]
     end
 
     subgraph External
