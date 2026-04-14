@@ -1,4 +1,4 @@
-import { NO_GENDER_GRUNT_TYPES, hasNoGenderVariants, isEventType } from './invasion.constants';
+import { NO_GENDER_GRUNT_TYPES, getDisplayName, getGruntIconUrl, hasNoGenderVariants, isEventType } from './invasion.constants';
 
 describe('invasion.constants', () => {
   describe('NO_GENDER_GRUNT_TYPES', () => {
@@ -31,6 +31,47 @@ describe('invasion.constants', () => {
       for (const leader of NO_GENDER_GRUNT_TYPES) {
         expect(isEventType(leader)).toBe(false);
       }
+    });
+  });
+
+  describe('getGruntIconUrl gender-aware variants', () => {
+    it('picks invasion/4 for male mixed and invasion/5 for female mixed', () => {
+      expect(getGruntIconUrl('mixed', 1)).toContain('/invasion/4.png');
+      expect(getGruntIconUrl('mixed', 2)).toContain('/invasion/5.png');
+    });
+
+    it('picks invasion/45 for male decoy and invasion/46 for female decoy', () => {
+      expect(getGruntIconUrl('decoy', 1)).toContain('/invasion/45.png');
+      expect(getGruntIconUrl('decoy', 2)).toContain('/invasion/46.png');
+    });
+
+    it('falls back to the generic id when gender is omitted', () => {
+      expect(getGruntIconUrl('mixed')).toContain('/invasion/4.png');
+      expect(getGruntIconUrl('decoy')).toContain('/invasion/45.png');
+    });
+
+    it('ignores gender for grunts without gender-specific icons', () => {
+      expect(getGruntIconUrl('cliff', 1)).toContain('/invasion/41.png');
+      expect(getGruntIconUrl('cliff', 2)).toContain('/invasion/41.png');
+    });
+  });
+
+  describe('getDisplayName gender suffix', () => {
+    it('appends (Male)/(Female) for mixed and decoy', () => {
+      expect(getDisplayName('mixed', 1)).toBe('Mixed Grunt (Male)');
+      expect(getDisplayName('mixed', 2)).toBe('Mixed Grunt (Female)');
+      expect(getDisplayName('decoy', 1)).toBe('Decoy Grunt (Male)');
+      expect(getDisplayName('decoy', 2)).toBe('Decoy Grunt (Female)');
+    });
+
+    it('omits the suffix when gender is 0 or undefined', () => {
+      expect(getDisplayName('mixed', 0)).toBe('Mixed Grunt');
+      expect(getDisplayName('mixed')).toBe('Mixed Grunt');
+    });
+
+    it('does not append a suffix for non-split grunt types', () => {
+      expect(getDisplayName('fire', 1)).toBe('Fire');
+      expect(getDisplayName('cliff', 2)).toBe('Cliff');
     });
   });
 });

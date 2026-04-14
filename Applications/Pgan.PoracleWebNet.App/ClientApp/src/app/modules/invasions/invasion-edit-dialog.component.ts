@@ -67,7 +67,7 @@ export class InvasionEditDialogComponent {
   saving = signal(false);
 
   getDisplayName(): string {
-    return getDisplayName(this.data.gruntType) || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT');
+    return getDisplayName(this.data.gruntType, this.data.gender) || this.i18n.instant('INVASIONS.UNKNOWN_GRUNT');
   }
 
   getEventColor(): string {
@@ -94,7 +94,7 @@ export class InvasionEditDialogComponent {
   }
 
   getGruntIcon(): string {
-    return getGruntIconUrl(this.data.gruntType);
+    return getGruntIconUrl(this.data.gruntType, this.data.gender);
   }
 
   onDistanceModeChange(): void {

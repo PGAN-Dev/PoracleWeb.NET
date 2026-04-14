@@ -67,13 +67,13 @@
             <div class="event-icon-circle" [style.background]="getEventColor(invasion.gruntType)">
               <mat-icon>{{ getEventIcon(invasion.gruntType) }}</mat-icon>
             </div>
-          } @else if (getGruntIcon(invasion.gruntType)) {
-            <img [src]="getGruntIcon(invasion.gruntType)" class="grunt-img" alt="" />
+          } @else if (getGruntIcon(invasion.gruntType, invasion.gender)) {
+            <img [src]="getGruntIcon(invasion.gruntType, invasion.gender)" class="grunt-img" alt="" />
           } @else {
             <mat-icon class="rocket-icon">security</mat-icon>
           }
           <div class="item-info">
-            <h3>{{ getDisplayName(invasion.gruntType) }}</h3>
+            <h3>{{ getDisplayName(invasion.gruntType, invasion.gender) }}</h3>
             @if (isEventType(invasion.gruntType)) {
               <span class="event-label">{{ 'INVASIONS.POKESTOP_EVENT' | translate }}</span>
             } @else if (!hasNoGender(invasion.gruntType)) {

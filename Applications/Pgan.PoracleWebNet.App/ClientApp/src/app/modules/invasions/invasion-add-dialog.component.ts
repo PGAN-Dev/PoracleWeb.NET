@@ -24,6 +24,13 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 
 interface GruntOption {
   color?: string;
+  // When set, this option submits a fixed gender (1=male, 2=female) and the gender
+  // dropdown is suppressed for this selection. Used for mixed/decoy which users want
+  // to differentiate visually (mixed male = starter line, female = Snorlax line).
+  gender?: number;
+  // PoracleNG grunt_type string — unique `key` differs for split male/female variants
+  // but `gruntType` points to the shared PoracleNG value.
+  gruntType: string;
   icon?: string;
   imgUrl?: string;
   invasionId: number;
@@ -64,32 +71,41 @@ export class InvasionAddDialogComponent implements OnInit {
     { name: 'Showcase', color: '#03AEB6', icon: 'emoji_events', key: 'showcase' },
   ];
 
-  private static readonly GRUNT_TYPES: { key: string; name: string; typeId: number; invasionId: number }[] = [
-    { name: 'Bug', invasionId: 1, key: 'bug', typeId: 7 },
-    { name: 'Dark', invasionId: 2, key: 'dark', typeId: 17 },
-    { name: 'Dragon', invasionId: 3, key: 'dragon', typeId: 16 },
-    { name: 'Electric', invasionId: 4, key: 'electric', typeId: 13 },
-    { name: 'Fairy', invasionId: 5, key: 'fairy', typeId: 18 },
-    { name: 'Fighting', invasionId: 6, key: 'fighting', typeId: 2 },
-    { name: 'Fire', invasionId: 7, key: 'fire', typeId: 10 },
-    { name: 'Flying', invasionId: 8, key: 'flying', typeId: 3 },
-    { name: 'Ghost', invasionId: 9, key: 'ghost', typeId: 8 },
-    { name: 'Grass', invasionId: 10, key: 'grass', typeId: 12 },
-    { name: 'Ground', invasionId: 11, key: 'ground', typeId: 5 },
-    { name: 'Ice', invasionId: 12, key: 'ice', typeId: 15 },
-    { name: 'Steel', invasionId: 13, key: 'metal', typeId: 9 },
-    { name: 'Normal', invasionId: 14, key: 'normal', typeId: 1 },
-    { name: 'Poison', invasionId: 15, key: 'poison', typeId: 4 },
-    { name: 'Psychic', invasionId: 16, key: 'psychic', typeId: 14 },
-    { name: 'Rock', invasionId: 17, key: 'rock', typeId: 6 },
-    { name: 'Water', invasionId: 18, key: 'water', typeId: 11 },
-    { name: 'Mixed Grunt', invasionId: 4, key: 'mixed', typeId: 0 },
-    { name: 'Shadow', invasionId: 9, key: 'darkness', typeId: 0 },
-    { name: 'Decoy Grunt', invasionId: 45, key: 'decoy', typeId: 0 },
-    { name: 'Cliff', invasionId: 41, key: 'cliff', typeId: 0 },
-    { name: 'Arlo', invasionId: 42, key: 'arlo', typeId: 0 },
-    { name: 'Sierra', invasionId: 43, key: 'sierra', typeId: 0 },
-    { name: 'Giovanni', invasionId: 44, key: 'giovanni', typeId: 0 },
+  private static readonly GRUNT_TYPES: {
+    gender?: number;
+    gruntType: string;
+    invasionId: number;
+    key: string;
+    name: string;
+    typeId: number;
+  }[] = [
+    { name: 'Bug', gruntType: 'bug', invasionId: 1, key: 'bug', typeId: 7 },
+    { name: 'Dark', gruntType: 'dark', invasionId: 2, key: 'dark', typeId: 17 },
+    { name: 'Dragon', gruntType: 'dragon', invasionId: 3, key: 'dragon', typeId: 16 },
+    { name: 'Electric', gruntType: 'electric', invasionId: 4, key: 'electric', typeId: 13 },
+    { name: 'Fairy', gruntType: 'fairy', invasionId: 5, key: 'fairy', typeId: 18 },
+    { name: 'Fighting', gruntType: 'fighting', invasionId: 6, key: 'fighting', typeId: 2 },
+    { name: 'Fire', gruntType: 'fire', invasionId: 7, key: 'fire', typeId: 10 },
+    { name: 'Flying', gruntType: 'flying', invasionId: 8, key: 'flying', typeId: 3 },
+    { name: 'Ghost', gruntType: 'ghost', invasionId: 9, key: 'ghost', typeId: 8 },
+    { name: 'Grass', gruntType: 'grass', invasionId: 10, key: 'grass', typeId: 12 },
+    { name: 'Ground', gruntType: 'ground', invasionId: 11, key: 'ground', typeId: 5 },
+    { name: 'Ice', gruntType: 'ice', invasionId: 12, key: 'ice', typeId: 15 },
+    { name: 'Steel', gruntType: 'metal', invasionId: 13, key: 'metal', typeId: 9 },
+    { name: 'Normal', gruntType: 'normal', invasionId: 14, key: 'normal', typeId: 1 },
+    { name: 'Poison', gruntType: 'poison', invasionId: 15, key: 'poison', typeId: 4 },
+    { name: 'Psychic', gruntType: 'psychic', invasionId: 16, key: 'psychic', typeId: 14 },
+    { name: 'Rock', gruntType: 'rock', invasionId: 17, key: 'rock', typeId: 6 },
+    { name: 'Water', gruntType: 'water', invasionId: 18, key: 'water', typeId: 11 },
+    { name: 'Mixed Grunt (Male)', gender: 1, gruntType: 'mixed', invasionId: 4, key: 'mixed-male', typeId: 0 },
+    { name: 'Mixed Grunt (Female)', gender: 2, gruntType: 'mixed', invasionId: 5, key: 'mixed-female', typeId: 0 },
+    { name: 'Shadow', gruntType: 'darkness', invasionId: 9, key: 'darkness', typeId: 0 },
+    { name: 'Decoy Grunt (Male)', gender: 1, gruntType: 'decoy', invasionId: 45, key: 'decoy-male', typeId: 0 },
+    { name: 'Decoy Grunt (Female)', gender: 2, gruntType: 'decoy', invasionId: 46, key: 'decoy-female', typeId: 0 },
+    { name: 'Cliff', gruntType: 'cliff', invasionId: 41, key: 'cliff', typeId: 0 },
+    { name: 'Arlo', gruntType: 'arlo', invasionId: 42, key: 'arlo', typeId: 0 },
+    { name: 'Sierra', gruntType: 'sierra', invasionId: 43, key: 'sierra', typeId: 0 },
+    { name: 'Giovanni', gruntType: 'giovanni', invasionId: 44, key: 'giovanni', typeId: 0 },
   ];
 
   private readonly fb = inject(FormBuilder);
@@ -122,7 +138,9 @@ export class InvasionAddDialogComponent implements OnInit {
     if (this.trackAll()) return true;
     const selected = this.gruntOptions().filter(g => g.selected);
     if (selected.length === 0) return true;
-    return selected.some(g => !hasNoGenderVariants(g.key));
+    // Hide if every selected option either has no gender at all (leaders/events) or
+    // already carries a fixed gender (split mixed/decoy variants).
+    return selected.some(g => !hasNoGenderVariants(g.gruntType) && g.gender === undefined);
   });
 
   canSave(): boolean {
@@ -144,6 +162,7 @@ export class InvasionAddDialogComponent implements OnInit {
     }));
     const events: GruntOption[] = InvasionAddDialogComponent.EVENT_TYPES.map(e => ({
       ...e,
+      gruntType: e.key,
       invasionId: 0,
       isEvent: true,
       selected: false,
@@ -195,8 +214,8 @@ export class InvasionAddDialogComponent implements OnInit {
       this.invasionService.create({
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gender: hasNoGenderVariants(g.key) ? 0 : (v.gender ?? 0),
-        gruntType: g.key,
+        gender: hasNoGenderVariants(g.gruntType) ? 0 : (g.gender ?? v.gender ?? 0),
+        gruntType: g.gruntType,
         ping: v.ping || null,
         template: v.template || null,
       }),

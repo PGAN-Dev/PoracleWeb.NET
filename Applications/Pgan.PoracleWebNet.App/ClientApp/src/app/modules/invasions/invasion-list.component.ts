@@ -170,8 +170,8 @@ export class InvasionListComponent implements OnInit {
     return info ? info.color : null;
   }
 
-  getDisplayName(gruntType: string | null): string {
-    return displayName(gruntType);
+  getDisplayName(gruntType: string | null, gender?: number): string {
+    return displayName(gruntType, gender);
   }
 
   getEventColor(gruntType: string | null): string {
@@ -186,8 +186,8 @@ export class InvasionListComponent implements OnInit {
     return EVENT_TYPE_INFO[gruntType ?? '']?.imgUrl ?? '';
   }
 
-  getGruntIcon(gruntType: string | null): string {
-    return getGruntIconUrl(gruntType);
+  getGruntIcon(gruntType: string | null, gender?: number): string {
+    return getGruntIconUrl(gruntType, gender);
   }
 
   hasNoGender(gruntType: string | null): boolean {
