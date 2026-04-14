@@ -65,12 +65,6 @@ export class App implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly settingsService = inject(SettingsService);
 
-  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
-
-  private readonly titleEffect = effect(() => {
-    document.title = this.siteTitle();
-  });
-
   protected readonly faviconUrl = computed(() => this.settingsService.siteSettings()['favicon_url'] || 'favicon.ico');
 
   private readonly faviconEffect = effect(() => {
@@ -84,6 +78,12 @@ export class App implements OnInit {
     if (link.getAttribute('href') !== href) {
       link.setAttribute('href', href);
     }
+  });
+
+  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
+
+  private readonly titleEffect = effect(() => {
+    document.title = this.siteTitle();
   });
 
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
