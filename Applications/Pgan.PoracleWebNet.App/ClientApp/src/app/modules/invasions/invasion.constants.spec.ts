@@ -1,4 +1,11 @@
-import { NO_GENDER_GRUNT_TYPES, getDisplayName, getGruntIconUrl, hasNoGenderVariants, isEventType } from './invasion.constants';
+import {
+  NO_GENDER_GRUNT_TYPES,
+  getDisplayName,
+  getGruntIconUrl,
+  hasNoGenderVariants,
+  isEventType,
+  isGenderFixed,
+} from './invasion.constants';
 
 describe('invasion.constants', () => {
   describe('NO_GENDER_GRUNT_TYPES', () => {
@@ -23,6 +30,24 @@ describe('invasion.constants', () => {
     it('returns false for null and empty string', () => {
       expect(hasNoGenderVariants(null)).toBe(false);
       expect(hasNoGenderVariants('')).toBe(false);
+    });
+  });
+
+  describe('isGenderFixed', () => {
+    it.each(['cliff', 'arlo', 'sierra', 'giovanni'])('returns true for leader %s', leader => {
+      expect(isGenderFixed(leader)).toBe(true);
+    });
+
+    it.each(['mixed', 'decoy'])('returns true for gender-split grunt %s', type => {
+      expect(isGenderFixed(type)).toBe(true);
+    });
+
+    it.each(['kecleon', 'gold-stop'])('returns true for event type %s', type => {
+      expect(isGenderFixed(type)).toBe(true);
+    });
+
+    it.each(['bug', 'fire', 'water', 'darkness'])('returns false for typed grunt %s', type => {
+      expect(isGenderFixed(type)).toBe(false);
     });
   });
 

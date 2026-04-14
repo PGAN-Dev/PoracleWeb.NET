@@ -85,6 +85,15 @@ export function hasNoGenderVariants(gruntType: string | null): boolean {
   return isEventType(type) || NO_GENDER_GRUNT_TYPES.has(type);
 }
 
+// Mixed and Decoy have gender variants but the gender is implicit in the user's row
+// choice (Mixed Male vs Mixed Female), so the gender dropdown should stay hidden for
+// them in the edit dialog too — flipping gender would effectively swap the alarm to a
+// different NPC (Mixed Male = starter line, Female = Snorlax line).
+export function isGenderFixed(gruntType: string | null): boolean {
+  const type = gruntType ?? '';
+  return hasNoGenderVariants(type) || type in GENDERED_INVASION_ID;
+}
+
 // Niantic's CHARACTER_UNSET — a generic grunt silhouette. Used when an unknown
 // grunt_type arrives (e.g. a new Niantic addition this UI hasn't mapped yet) so
 // cards render a valid icon instead of a broken image.

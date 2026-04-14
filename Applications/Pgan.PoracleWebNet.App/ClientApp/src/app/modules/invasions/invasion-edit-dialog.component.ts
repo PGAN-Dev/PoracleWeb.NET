@@ -12,7 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 
-import { EVENT_TYPE_INFO, getDisplayName, getGruntIconUrl, hasNoGenderVariants, isEventType } from './invasion.constants';
+import { EVENT_TYPE_INFO, getDisplayName, getGruntIconUrl, isEventType, isGenderFixed } from './invasion.constants';
 import { Invasion, InvasionUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -60,7 +60,7 @@ export class InvasionEditDialogComponent {
     template: [this.data.template ?? ''],
   });
 
-  readonly hideGender = hasNoGenderVariants(this.data.gruntType);
+  readonly hideGender = isGenderFixed(this.data.gruntType);
   readonly isEvent = isEventType(this.data.gruntType);
   readonly isWebhook = inject(AuthService).isImpersonating();
 

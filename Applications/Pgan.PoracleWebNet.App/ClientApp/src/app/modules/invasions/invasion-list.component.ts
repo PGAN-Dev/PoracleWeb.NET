@@ -18,8 +18,8 @@ import {
   EVENT_TYPE_INFO,
   getDisplayName as displayName,
   getGruntIconUrl,
-  hasNoGenderVariants as checkHasNoGender,
   isEventType as checkEventType,
+  isGenderFixed as checkGenderFixed,
 } from './invasion.constants';
 import { Invasion } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
@@ -191,7 +191,7 @@ export class InvasionListComponent implements OnInit {
   }
 
   hasNoGender(gruntType: string | null): boolean {
-    return checkHasNoGender(gruntType);
+    return checkGenderFixed(gruntType);
   }
 
   isEventType(gruntType: string | null): boolean {
