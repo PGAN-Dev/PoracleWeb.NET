@@ -14,11 +14,11 @@ Image registry: [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/
 
 ## Switching channels
 
-Edit your `docker-compose.yml`:
+Edit your local `docker-compose.yml` (copied from `docker-compose.yml.example` during setup):
 
 ```yaml
 services:
-  poracleweb:
+  poracleweb.net:
     image: ghcr.io/pgan-dev/poracleweb.net:beta   # or :latest, or :pr-123
 ```
 

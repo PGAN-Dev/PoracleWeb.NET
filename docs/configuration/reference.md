@@ -31,6 +31,8 @@ All configuration can be provided via environment variables or `appsettings.json
 | Setting | `.env` name | `.NET` env variable | Default | Description |
 |---|---|---|---|---|
 | JWT Expiration | — | `Jwt__ExpirationMinutes` | `1440` | Token expiry (24 hours) |
+| JWT Issuer | `JWT_ISSUER` | `Jwt__Issuer` | `PoracleWeb` | Issuer claim (`iss`) baked into signed tokens. Override only if validating tokens externally. |
+| JWT Audience | `JWT_AUDIENCE` | `Jwt__Audience` | `PoracleWeb.App` | Audience claim (`aud`) baked into signed tokens. Override only if validating tokens externally. |
 | Discord Bot Token | `DISCORD_BOT_TOKEN` | `Discord__BotToken` | — | Enables Discord avatar display |
 | Discord Guild ID | `DISCORD_GUILD_ID` | `Discord__GuildId` | — | Discord server ID |
 | Discord Geofence Forum | `DISCORD_GEOFENCE_FORUM_CHANNEL_ID` | `Discord__GeofenceForumChannelId` | — | Forum channel for geofence submission threads |
@@ -78,7 +80,7 @@ Required for the custom geofences feature.
 | `.env` file (project root) | Both Docker and standalone — the primary config file. Docker Compose reads it natively; standalone mode loads it on startup. Short env var names are auto-translated to .NET format. |
 | `appsettings.json` | Default values. You rarely need to edit this. |
 | `appsettings.Development.json` | Local development overrides (gitignored) |
-| `docker-compose.yml` | Docker-specific config. Also translates `.env` variables — but the app now does this itself too, so standalone mode works identically. |
+| `docker-compose.yml` | Local copy of `docker-compose.yml.example` (gitignored). Uses `env_file: .env` to load all configuration — no per-key `environment:` entries are needed. Edit only to change ports, volumes, or image tags. |
 | `poracle_web.site_settings` table | Runtime admin-configurable settings (migrated from deprecated `pweb_settings`) |
 
 !!! warning "PoracleNG must be reachable"

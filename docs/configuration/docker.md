@@ -1,6 +1,6 @@
 # Docker Compose
 
-The `docker-compose.yml` provides a production-ready container configuration. The `.env` file it reads is the same format used by standalone mode — see the [Configuration Reference](reference.md) for the full list of settings.
+PoracleWeb.NET ships `docker-compose.yml.example` as a template — copy it to `docker-compose.yml` on first install (`cp docker-compose.yml.example docker-compose.yml`). The compose file loads all user-configurable values from `.env` via `env_file`, so it rarely needs local edits. The `.env` file itself is the same format used by standalone mode — see the [Configuration Reference](reference.md) for the full list of settings.
 
 ## Container settings
 
@@ -21,9 +21,14 @@ services:
     image: ghcr.io/pgan-dev/poracleweb.net:latest
     ports:
       - "${PORT:-8082}:8080"
+    env_file:
+      - .env
     environment:
-      # All settings are loaded from .env — see docker-compose.yml for the full list
-      - ConnectionStrings__PoracleDb=Server=${DB_HOST:-host.docker.internal};Port=${DB_PORT:-3306};...
+      # Container-side paths only; everything else is loaded from .env.
+      # JWT issuer/audience default to "PoracleWeb" / "PoracleWeb.App" via Program.cs —
+      # override by setting JWT_ISSUER / JWT_AUDIENCE in .env if needed.
+      - DTS_SOURCE_DIR=/poracle-config
+      - DATA_DIR=/app/data
     volumes:
       - ./data:/app/data
       - ${PORACLE_CONFIG_DIR:-./data}:/poracle-config:ro

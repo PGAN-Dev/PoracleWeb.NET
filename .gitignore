@@ -14,6 +14,7 @@ npm-debug.log*
 
 ## Environment
 .env
+docker-compose.yml
 docker-compose.override.yml
 appsettings.*.local.json
 

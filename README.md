@@ -23,12 +23,14 @@ There is **no Discord server** for PoracleWeb.NET at this time. All support, bug
 ## Quick Start (Docker)
 
 ```bash
-# 1. Configure
+# 1. Copy the templates
 cp .env.example .env
-# Edit .env with your database, Discord, and Poracle settings
+cp docker-compose.yml.example docker-compose.yml
+# Edit .env with your database, Discord, and Poracle settings.
+# docker-compose.yml rarely needs changes — all config flows through .env.
 
 # 2. Pull and run
-docker pull ghcr.io/pgan-dev/poracleweb.net:latest
+docker compose pull
 docker compose up -d
 ```
 

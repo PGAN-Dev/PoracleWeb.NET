@@ -14,16 +14,17 @@ cd PoracleWeb.NET
 
 Or download and extract a release. Everything below runs from this root directory.
 
-## 2. Create your `.env` file
+## 2. Create your `.env` and `docker-compose.yml`
 
-All configuration lives in a single `.env` file at the project root.
+Both files ship as `.example` templates so your local copies aren't clobbered by upstream updates. All user configuration lives in `.env`; `docker-compose.yml` rarely needs changes because it loads settings from `.env` via `env_file`.
 
 ```bash
 # Interactive setup (recommended — generates JWT secret, prompts for values)
 ./scripts/setup.sh
 
-# Or copy manually and edit
+# Or copy the templates manually and edit
 cp .env.example .env
+cp docker-compose.yml.example docker-compose.yml
 ```
 
 Open `.env` in any editor and fill in the values below. Lines starting with `#` are comments.
@@ -64,6 +65,10 @@ DISCORD_BOT_TOKEN=your_discord_bot_token
 PORACLE_API_ADDRESS=http://host.docker.internal:3030
 PORACLE_API_SECRET=your_poracle_api_secret    # Must match PoracleNG's server.apiSecret
 PORACLE_ADMIN_IDS=your_discord_user_id        # Comma-separated Discord user IDs for admin access
+
+# CORS origin — the URL you'll access PoracleWeb.NET from.
+# Required in production (the container exits on startup if missing).
+CORS_ORIGIN=http://localhost:8082
 ```
 
 ### Optional settings

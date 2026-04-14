@@ -1,0 +1,45 @@
+services:
+  poracleweb.net:
+    container_name: poracleweb.net
+    # Default: pull the published image from GitHub Container Registry.
+    image: ghcr.io/pgan-dev/poracleweb.net:latest
+    # Alternatives (uncomment one, comment out the line above):
+    # image: poracleweb.net:latest             # Use a locally built image
+    # build:                                   # Build from source directly
+    #   context: .
+    #   dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8082}:8080"
+    # All user configuration lives in .env — copy .env.example to .env first.
+    # Program.cs bridges short names (JWT_SECRET, DB_HOST, CORS_ORIGIN, ...)
+    # into the .NET config keys the app expects (Jwt__Secret, ConnectionStrings__PoracleDb, ...).
+    env_file:
+      - .env
+    environment:
+      # Container-side paths (not user-configurable).
+      - DTS_SOURCE_DIR=/poracle-config
+      - DATA_DIR=/app/data
+    volumes:
+      # Persist avatar cache across restarts
+      - ./data:/app/data
+      # Mount Poracle config for DTS templates (read-only)
+      - ${PORACLE_CONFIG_DIR:-./data}:/poracle-config:ro
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

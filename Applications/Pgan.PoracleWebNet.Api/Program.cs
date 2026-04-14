@@ -47,6 +47,8 @@ if (File.Exists(envFile))
 // Bridge short env var names (from .env) to .NET's __ convention.
 // Docker Compose does this translation in docker-compose.yml; this makes the same .env work standalone.
 MapEnvVar("JWT_SECRET", "Jwt__Secret");
+MapEnvVar("JWT_ISSUER", "Jwt__Issuer", "PoracleWeb");
+MapEnvVar("JWT_AUDIENCE", "Jwt__Audience", "PoracleWeb.App");
 MapEnvVar("DISCORD_CLIENT_ID", "Discord__ClientId");
 MapEnvVar("DISCORD_CLIENT_SECRET", "Discord__ClientSecret");
 MapEnvVar("DISCORD_BOT_TOKEN", "Discord__BotToken");
@@ -356,10 +358,18 @@ if (!app.Environment.IsDevelopment())
 app.Run();
 
 // Maps a short env var name to .NET's __ convention if the target is not already set.
-static void MapEnvVar(string shortName, string configName)
+static void MapEnvVar(string shortName, string configName, string? defaultValue = null)
 {
+    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(configName)))
+    {
+        return;
+    }
     var value = Environment.GetEnvironmentVariable(shortName);
-    if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable(configName)))
+    if (string.IsNullOrEmpty(value))
+    {
+        value = defaultValue;
+    }
+    if (!string.IsNullOrEmpty(value))
     {
         Environment.SetEnvironmentVariable(configName, value);
     }

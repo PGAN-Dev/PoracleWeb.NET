@@ -552,7 +552,7 @@ dotnet ef migrations script \
 | Backend Tests | `Tests/Pgan.PoracleWebNet.Tests/` |
 | CI Workflows | `.github/workflows/` (ci.yml, docker-publish.yml) |
 | Scripts | `scripts/` (`setup.sh`, `dev.sh`, `docker.sh`) |
-| Docker Config | `Dockerfile`, `docker-compose.yml`, `.env.example` |
+| Docker Config | `Dockerfile`, `docker-compose.yml.example` (copy to `docker-compose.yml`), `.env.example` |
 
 ## Testing
 

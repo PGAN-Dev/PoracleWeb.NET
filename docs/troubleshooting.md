@@ -1,5 +1,19 @@
 # Troubleshooting
 
+## Container exits on startup: `Configuration 'Cors:AllowedOrigins' is required`
+
+**Problem**: The container crash-loops on start. Logs show `System.InvalidOperationException: Configuration 'Cors:AllowedOrigins' is required in non-development environments.`
+
+**Solution**: `CORS_ORIGIN` must be set to the URL you access PoracleWeb.NET from whenever `ASPNETCORE_ENVIRONMENT` is anything other than `Development` (Docker and systemd default to `Production`). Add it to `.env`:
+
+```env
+CORS_ORIGIN=http://your-server:8082
+```
+
+Then recreate the container: `docker compose up -d --force-recreate`. For reverse-proxied setups, use the public URL (e.g., `https://poracle.example.com`).
+
+---
+
 ## PoracleNG unreachable (alarm operations fail)
 
 **Problem**: All alarm operations (create, edit, delete, list) fail with HTTP 500 errors. The dashboard shows zero alarms. Logs show `HttpRequestException` or `TaskCanceledException` when calling the PoracleNG API.
@@ -262,12 +276,7 @@ SELECT * FROM monsters WHERE size = 0;
 
 1. **Golbat not configured**: Set `GOLBAT_API_ADDRESS` and `GOLBAT_API_SECRET` in `.env` and restart the container. The feature is only enabled when both are set.
 
-2. **docker-compose.yml missing Golbat vars**: Ensure your `docker-compose.yml` passes the Golbat env vars to the container:
-   ```yaml
-   environment:
-     - Golbat__ApiAddress=${GOLBAT_API_ADDRESS:-}
-     - Golbat__ApiSecret=${GOLBAT_API_SECRET:-}
-   ```
+2. **Env vars not reaching the container**: The compose file loads configuration via `env_file: .env`, so any var defined in `.env` is automatically passed in — no per-key entries in `docker-compose.yml` are needed. If you've customized your `docker-compose.yml` (a local copy of `docker-compose.yml.example`), confirm the `env_file: .env` line is still present under the app service.
 
 3. **Golbat API unreachable from container**: Verify connectivity from inside the container. Check the app logs for `Failed to fetch available Pokemon from Golbat API` warnings.
 
