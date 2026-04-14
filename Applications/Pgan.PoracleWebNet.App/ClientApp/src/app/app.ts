@@ -77,6 +77,7 @@ export class App implements OnInit {
     }
     if (link.getAttribute('href') !== href) {
       link.setAttribute('href', href);
+      link.removeAttribute('type');
     }
   });
 
