@@ -7,13 +7,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
-import { UICONS_BASE } from './invasion.constants';
+import { UICONS_BASE, isGenderFixed } from './invasion.constants';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
@@ -51,6 +52,7 @@ interface GruntOption {
     MatIconModule,
     MatCheckboxModule,
     MatRadioModule,
+    MatSelectModule,
     MatTabsModule,
     MatSnackBarModule,
     TranslateModule,
@@ -119,6 +121,7 @@ export class InvasionAddDialogComponent implements OnInit {
     clean: [false],
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
+    gender: [0],
     ping: [''],
     template: [''],
   });
@@ -129,6 +132,15 @@ export class InvasionAddDialogComponent implements OnInit {
   saving = signal(false);
   selectedCount = signal(0);
   readonly trackAll = signal(false);
+
+  // Typed grunts (fire/water/bug/etc.) keep the gender dropdown so power users can
+  // narrow to one NPC gender. Mixed/Decoy/leaders/events don't — their gender is
+  // either implicit in the chosen row or meaningless.
+  readonly showGender = computed(() => {
+    if (this.trackAll()) return true;
+    const selected = this.gruntOptions().filter(g => g.selected);
+    return selected.some(g => !isGenderFixed(g.gruntType));
+  });
 
   canSave(): boolean {
     return this.trackAll() || this.selectedCount() > 0;
@@ -174,7 +186,7 @@ export class InvasionAddDialogComponent implements OnInit {
         .create({
           clean: v.clean ? 1 : 0,
           distance: dist,
-          gender: 0,
+          gender: v.gender ?? 0,
           gruntType: null,
           ping: v.ping || null,
           template: v.template || null,
@@ -201,7 +213,9 @@ export class InvasionAddDialogComponent implements OnInit {
       this.invasionService.create({
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gender: g.gender ?? 0,
+        // Split variants (Mixed Male/Female) carry an implicit gender; typed grunts
+        // fall back to the user's dropdown choice; fixed-gender rows force 0.
+        gender: g.gender ?? (isGenderFixed(g.gruntType) ? 0 : (v.gender ?? 0)),
         gruntType: g.gruntType,
         ping: v.ping || null,
         template: v.template || null,
