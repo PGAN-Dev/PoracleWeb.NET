@@ -67,12 +67,6 @@ export class QuickPickApplyDialogComponent {
   readonly excludedPokemonIds = signal<number[]>(this.data.appliedState?.excludePokemonIds ?? []);
   readonly excludeEnabled = signal((this.data.appliedState?.excludePokemonIds?.length ?? 0) > 0);
 
-  readonly showExclusions =
-    this.data.definition.alarmType === 'monster' &&
-    (this.data.definition.filters['pokemonId'] === 0 ||
-      this.data.definition.filters['pokemonId'] === undefined ||
-      this.data.definition.filters['pokemonId'] === null);
-
   /** How many individual alarms will be created if exclusions are used */
   readonly individualAlarmCount = computed(() => {
     if (!this.showExclusions || this.excludedPokemonIds().length === 0) return 0;
@@ -80,6 +74,12 @@ export class QuickPickApplyDialogComponent {
   });
 
   readonly isReapply = !!this.data.appliedState;
+
+  readonly showExclusions =
+    this.data.definition.alarmType === 'monster' &&
+    (this.data.definition.filters['pokemonId'] === 0 ||
+      this.data.definition.filters['pokemonId'] === undefined ||
+      this.data.definition.filters['pokemonId'] === null);
 
   /** Whether this apply will create individual rows */
   readonly willTrackIndividually = computed(() => this.individualAlarmCount() > 0);

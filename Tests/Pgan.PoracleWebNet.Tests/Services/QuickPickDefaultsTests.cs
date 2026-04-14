@@ -55,17 +55,16 @@ public class QuickPickDefaultsTests
     }
 
     [Fact]
-    public async Task RocketLeadersPickDoesNotUseMixedGruntType()
+    public async Task RocketLeadersPickDoesNotCarryGruntTypeFilter()
     {
-        // Regression for #221: the Rocket Leaders pick must NOT use "mixed" (untyped grunts).
-        // Leaders are fanned out into separate cliff/arlo/sierra alarms in ApplyInvasionAsync.
+        // Regression for #221: the Rocket Leaders pick must not set gruntType itself — the
+        // fan-out in ApplyInvasionAsync is what assigns cliff/arlo/sierra per alarm.
         var defaults = await this._sut.GetDefaultPicksAsync();
         var leader = defaults.Single(p => p.Id == "invasion-leader");
 
-        if (leader.Filters.TryGetValue("gruntType", out var raw) && raw != null)
-        {
-            Assert.NotEqual("mixed", raw.ToString());
-        }
+        Assert.False(
+            leader.Filters.TryGetValue("gruntType", out var raw) && raw != null,
+            $"invasion-leader.Filters must not set gruntType (found '{raw}').");
     }
 
     [Fact]

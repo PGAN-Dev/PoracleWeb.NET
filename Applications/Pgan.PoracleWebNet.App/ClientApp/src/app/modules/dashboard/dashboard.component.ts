@@ -211,12 +211,6 @@ export class DashboardComponent implements OnInit {
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
 
   readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  readonly userLocation = computed(() => {
-    const loc = this.location();
-    if (!loc) return false;
-    return loc.latitude !== 0 || loc.longitude !== 0;
-  });
-
   readonly tips = computed(() => {
     const tips: Tip[] = [];
 
@@ -272,6 +266,12 @@ export class DashboardComponent implements OnInit {
       (c.fortChanges ?? 0) +
       (c.maxBattles ?? 0)
     );
+  });
+
+  readonly userLocation = computed(() => {
+    const loc = this.location();
+    if (!loc) return false;
+    return loc.latitude !== 0 || loc.longitude !== 0;
   });
 
   readonly username = computed(() => this.authService.user()?.username ?? 'Trainer');
