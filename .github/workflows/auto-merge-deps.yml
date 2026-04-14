@@ -10,11 +10,15 @@ permissions:
 
 jobs:
   auto-merge:
-    if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
+      - name: Skip if not Dependabot
+        if: github.actor != 'dependabot[bot]'
+        run: echo "Not a Dependabot PR, skipping."
+
       - name: Fetch Dependabot metadata
         id: meta
+        if: github.actor == 'dependabot[bot]'
         uses: dependabot/fetch-metadata@v2
 
       - name: Enable auto-merge for low-risk bumps
@@ -24,10 +28,12 @@ jobs:
         #  - GitHub Actions minor bumps
         # Majors and runtime-dep minors wait for human review.
         if: |
-          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
-          steps.meta.outputs.dependency-group != '' ||
-          (steps.meta.outputs.package-ecosystem == 'github_actions' &&
-           steps.meta.outputs.update-type == 'version-update:semver-minor')
+          github.actor == 'dependabot[bot]' && (
+            steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+            steps.meta.outputs.dependency-group != '' ||
+            (steps.meta.outputs.package-ecosystem == 'github_actions' &&
+             steps.meta.outputs.update-type == 'version-update:semver-minor')
+          )
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
@@ -35,8 +41,10 @@ jobs:
 
       - name: Approve on behalf of repo
         if: |
-          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
-          steps.meta.outputs.dependency-group != ''
+          github.actor == 'dependabot[bot]' && (
+            steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+            steps.meta.outputs.dependency-group != ''
+          )
         run: gh pr review --approve "$PR_URL" --body "Auto-approved: low-risk bump, gated on CI."
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}

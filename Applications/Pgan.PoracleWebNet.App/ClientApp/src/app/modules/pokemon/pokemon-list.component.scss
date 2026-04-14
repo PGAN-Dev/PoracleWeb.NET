@@ -70,7 +70,7 @@
 
   &.sticky {
     position: sticky;
-    top: 56px;
+    top: 0;
     z-index: 10;
   }
 }
@@ -542,15 +542,32 @@
 // ─── Responsive ─────────────────────────────────────────────────────────────────
 @media (max-width: 599px) {
   .filter-bar {
-    padding: 8px 16px;
+    padding: 8px 12px;
+    gap: 8px;
   }
   .search-field {
-    flex-basis: 100%;
+    flex: 1 1 100%;
+    min-width: 0;
     max-width: none;
+    order: 1;
+  }
+  .quick-filters {
+    order: 3;
+    flex-basis: 100%;
+    gap: 6px;
+  }
+  .quick-filters button {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    padding: 0 8px;
+    height: 32px;
   }
   .filter-meta {
-    flex-basis: 100%;
+    order: 2;
+    flex: 1 1 100%;
     justify-content: space-between;
+    margin-left: 0;
   }
   .bulk-toolbar {
     padding: 8px 16px;
