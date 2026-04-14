@@ -71,6 +71,21 @@ export class App implements OnInit {
     document.title = this.siteTitle();
   });
 
+  protected readonly faviconUrl = computed(() => this.settingsService.siteSettings()['favicon_url'] || 'favicon.ico');
+
+  private readonly faviconEffect = effect(() => {
+    const href = this.faviconUrl();
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    if (link.getAttribute('href') !== href) {
+      link.setAttribute('href', href);
+    }
+  });
+
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
 
   protected readonly auth = inject(AuthService);

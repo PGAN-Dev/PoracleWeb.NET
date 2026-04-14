@@ -46,6 +46,7 @@ public partial class SettingsMigrationService(
         ["custom_page_name"] = "branding",
         ["custom_page_url"] = "branding",
         ["custom_page_icon"] = "branding",
+        ["favicon_url"] = "branding",
 
         // alarms
         ["disable_mons"] = "alarms",

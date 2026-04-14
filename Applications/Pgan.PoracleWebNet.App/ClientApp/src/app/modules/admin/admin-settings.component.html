@@ -50,9 +50,26 @@
                         [ngModel]="getSettingValue(meta.key) ?? ''"
                         (ngModelChange)="onTextChange(meta.key, $event)" />
                     </mat-form-field>
+                    @if (meta.key === 'favicon_url') {
+                      <div class="favicon-preview" [matTooltip]="'ADMIN_SETTINGS.FAVICON_URL_PREVIEW' | translate">
+                        <img
+                          [src]="getSettingValue('favicon_url') || 'favicon.ico'"
+                          alt="favicon preview"
+                          width="32"
+                          height="32"
+                          (error)="onPreviewError($event)"
+                          (load)="onPreviewLoad($event)" />
+                      </div>
+                    }
                   }
                 </div>
               </div>
+              @if (meta.key === 'favicon_url') {
+                <div class="config-hint warning favicon-cache-warning">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>{{ 'ADMIN_SETTINGS.FAVICON_URL_CACHE_WARNING' | translate }}</span>
+                </div>
+              }
               @if (!rowLast) {
                 <mat-divider></mat-divider>
               }

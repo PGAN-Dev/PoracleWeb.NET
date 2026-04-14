@@ -21,6 +21,7 @@ public partial class SiteSettingService(
         "custom_title",
         "enable_discord",
         "enable_telegram",
+        "favicon_url",
         "signup_url",
     };
 

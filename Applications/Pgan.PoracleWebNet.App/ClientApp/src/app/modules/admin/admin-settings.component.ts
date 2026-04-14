@@ -82,6 +82,12 @@ const SETTING_GROUPS: SettingGroup[] = [
         labelKey: 'ADMIN_SETTINGS.CUSTOM_PAGE_ICON_LABEL',
         type: 'text',
       },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.FAVICON_URL_DESC',
+        key: 'favicon_url',
+        labelKey: 'ADMIN_SETTINGS.FAVICON_URL_LABEL',
+        type: 'url',
+      },
     ],
   },
   {
