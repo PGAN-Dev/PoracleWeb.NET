@@ -190,7 +190,7 @@ export class InvasionListComponent implements OnInit {
     return getGruntIconUrl(gruntType, gender);
   }
 
-  hasNoGender(gruntType: string | null): boolean {
+  hideGenderLabel(gruntType: string | null): boolean {
     return checkGenderFixed(gruntType);
   }
 

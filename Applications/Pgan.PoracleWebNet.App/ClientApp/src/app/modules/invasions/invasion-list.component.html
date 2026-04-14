@@ -76,7 +76,7 @@
             <h3>{{ getDisplayName(invasion.gruntType, invasion.gender) }}</h3>
             @if (isEventType(invasion.gruntType)) {
               <span class="event-label">{{ 'INVASIONS.POKESTOP_EVENT' | translate }}</span>
-            } @else if (!hasNoGender(invasion.gruntType)) {
+            } @else if (!hideGenderLabel(invasion.gruntType)) {
               <span class="gender-label">
                 @if (invasion.gender === 1) {
                   <mat-icon class="gender-icon male">male</mat-icon> {{ 'INVASIONS.GENDER_MALE' | translate }}

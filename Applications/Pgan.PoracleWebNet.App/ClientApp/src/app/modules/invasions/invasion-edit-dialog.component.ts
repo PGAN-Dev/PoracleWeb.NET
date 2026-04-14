@@ -110,7 +110,10 @@ export class InvasionEditDialogComponent {
       .update(this.data.uid, {
         clean: v.clean ? 1 : 0,
         distance: dist,
-        gender: this.hideGender ? 0 : (v.gender ?? 0),
+        // Preserve the stored gender when the dropdown is hidden — a Mixed Male alarm
+        // (gender=1) must stay at 1 across edits; zeroing it would widen the filter to
+        // also match female Mixed grunts.
+        gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
         gruntType: this.data.gruntType ?? '',
         ping: v.ping || null,
         template: v.template || null,
