@@ -1,5 +1,5 @@
-<label class="rsvp-label">{{ 'RAIDS.RSVP_LABEL' | translate }}</label>
-<mat-button-toggle-group [formControl]="control()" aria-label="RSVP notifications" vertical class="rsvp-toggle-group">
+<label class="rsvp-label" [id]="labelId">{{ 'RAIDS.RSVP_LABEL' | translate }}</label>
+<mat-button-toggle-group [formControl]="control()" [attr.aria-labelledby]="labelId" vertical class="rsvp-toggle-group">
   <mat-button-toggle [value]="0">
     <mat-icon>notifications</mat-icon>
     <span class="rsvp-toggle-text">

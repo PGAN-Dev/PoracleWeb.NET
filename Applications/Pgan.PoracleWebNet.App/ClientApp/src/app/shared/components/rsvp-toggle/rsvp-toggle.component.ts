@@ -4,6 +4,8 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
 
+let nextLabelId = 0;
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, MatButtonToggleModule, MatIconModule, TranslateModule],
@@ -14,4 +16,5 @@ import { TranslateModule } from '@ngx-translate/core';
 })
 export class RsvpToggleComponent {
   readonly control = input.required<FormControl<number | null>>();
+  readonly labelId = `rsvp-toggle-label-${++nextLabelId}`;
 }

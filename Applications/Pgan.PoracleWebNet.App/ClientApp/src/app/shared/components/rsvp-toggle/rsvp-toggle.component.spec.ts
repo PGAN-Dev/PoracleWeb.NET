@@ -62,4 +62,15 @@ describe('RsvpToggleComponent', () => {
 
     expect(control.value).toBe(1);
   });
+
+  it('should associate the toggle group with the visible label via aria-labelledby', () => {
+    fixture.componentRef.setInput('control', new FormControl<number | null>(0));
+    fixture.detectChanges();
+
+    const label = fixture.nativeElement.querySelector('.rsvp-label');
+    const group = fixture.nativeElement.querySelector('mat-button-toggle-group');
+    expect(label?.id).toMatch(/^rsvp-toggle-label-\d+$/);
+    expect(group?.getAttribute('aria-labelledby')).toBe(label?.id);
+    expect(group?.getAttribute('aria-label')).toBeNull();
+  });
 });
