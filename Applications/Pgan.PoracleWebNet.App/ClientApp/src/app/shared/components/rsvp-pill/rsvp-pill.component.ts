@@ -12,6 +12,14 @@ import { TranslateModule } from '@ngx-translate/core';
 export class RsvpPillComponent {
   readonly value = input<number | null | undefined>(0);
 
-  readonly labelKey = computed(() => (this.value() === 1 ? 'RAIDS.RSVP_PILL_INCLUDE' : 'RAIDS.RSVP_PILL_ONLY'));
-  readonly show = computed(() => (this.value() ?? 0) > 0);
+  readonly labelKey = computed(() => {
+    switch (this.value()) {
+      case 1:
+        return 'RAIDS.RSVP_PILL_INCLUDE';
+      case 2:
+        return 'RAIDS.RSVP_PILL_ONLY';
+      default:
+        return null;
+    }
+  });
 }

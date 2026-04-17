@@ -3,13 +3,13 @@ import { FormControl } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
 
-import { RaidDeliveryDistanceMode, RaidDeliverySectionComponent } from './raid-delivery-section.component';
+import { RaidDeliverySectionComponent } from './raid-delivery-section.component';
 
 describe('RaidDeliverySectionComponent', () => {
   let fixture: ComponentFixture<RaidDeliverySectionComponent>;
   let component: RaidDeliverySectionComponent;
 
-  let distanceMode: FormControl<RaidDeliveryDistanceMode | null>;
+  let distanceMode: FormControl<'areas' | 'distance' | null>;
   let distanceKm: FormControl<number | null>;
   let ping: FormControl<string | null>;
   let template: FormControl<string | null>;
@@ -24,7 +24,7 @@ describe('RaidDeliverySectionComponent', () => {
     fixture = TestBed.createComponent(RaidDeliverySectionComponent);
     component = fixture.componentInstance;
 
-    distanceMode = new FormControl<RaidDeliveryDistanceMode | null>('areas');
+    distanceMode = new FormControl<'areas' | 'distance' | null>('areas');
     distanceKm = new FormControl<number | null>(0);
     ping = new FormControl<string | null>('');
     template = new FormControl<string | null>('');

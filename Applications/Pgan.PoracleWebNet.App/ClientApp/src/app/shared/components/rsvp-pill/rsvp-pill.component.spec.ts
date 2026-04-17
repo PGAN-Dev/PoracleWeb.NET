@@ -52,4 +52,16 @@ describe('RsvpPillComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rsvp-stat .stat-label')?.textContent).toBe('RSVP');
   });
+
+  it('should render nothing for out-of-range values', () => {
+    fixture.componentRef.setInput('value', 3);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.labelKey()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rsvp-stat')).toBeNull();
+
+    fixture.componentRef.setInput('value', -1);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.labelKey()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rsvp-stat')).toBeNull();
+  });
 });

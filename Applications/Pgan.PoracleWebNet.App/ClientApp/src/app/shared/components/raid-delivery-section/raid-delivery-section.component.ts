@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,10 +10,8 @@ import { TranslateModule } from '@ngx-translate/core';
 import { DeliveryPreviewComponent } from '../delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../template-selector/template-selector.component';
 
-export type RaidDeliveryAlarmType = 'raid' | 'egg';
-export type RaidDeliveryDistanceMode = 'areas' | 'distance';
-
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     MatFormFieldModule,
@@ -31,10 +29,10 @@ export type RaidDeliveryDistanceMode = 'areas' | 'distance';
   templateUrl: './raid-delivery-section.component.html',
 })
 export class RaidDeliverySectionComponent {
-  readonly alarmType = input<RaidDeliveryAlarmType>('raid');
+  readonly alarmType = input<'raid' | 'egg'>('raid');
   readonly clean = input.required<FormControl<boolean | null>>();
   readonly distanceKm = input.required<FormControl<number | null>>();
-  readonly distanceMode = input.required<FormControl<RaidDeliveryDistanceMode | null>>();
+  readonly distanceMode = input.required<FormControl<'areas' | 'distance' | null>>();
   readonly ping = input.required<FormControl<string | null>>();
   readonly showPing = input(false);
   readonly template = input.required<FormControl<string | null>>();
