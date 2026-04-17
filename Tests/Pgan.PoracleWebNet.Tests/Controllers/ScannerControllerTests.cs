@@ -301,7 +301,55 @@ public class ScannerControllerTests : ControllerTestBase
     [InlineData("%_\\", "\\%\\_\\\\")]
     public void EscapeLikePatternEscapesWildcardsAndBackslash(string input, string expected)
     {
-        var actual = Core.Services.ScannerService.EscapeLikePattern(input);
+        var actual = Core.Services.LikeEscape.Escape(input);
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public async Task GetMaxBattlePokemonReturnsOkWithIdsWhenServiceConfigured()
+    {
+        var service = new Mock<IScannerService>();
+        service.Setup(s => s.GetMaxBattlePokemonIdsAsync()).ReturnsAsync(new[] { 150, 250, 384 });
+        var sut = new ScannerController(this._logger.Object, service.Object);
+        SetupUser(sut);
+
+        var result = await sut.GetMaxBattlePokemon();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var ids = Assert.IsType<IEnumerable<int>>(ok.Value, exactMatch: false).ToList();
+        Assert.Equal(new[] { 150, 250, 384 }, ids);
+    }
+
+    [Fact]
+    public async Task SearchGymsAcceptsUnicodeSearchAndForwardsTrimmedValue()
+    {
+        var service = new Mock<IScannerService>();
+        service.Setup(s => s.SearchGymsAsync(It.IsAny<string>(), It.IsAny<int>()))
+            .ReturnsAsync(Array.Empty<GymSearchResult>());
+        var sut = new ScannerController(this._logger.Object, service.Object);
+        SetupUser(sut);
+
+        // Mix of multi-byte, astral (surrogate pair), and ASCII with surrounding whitespace.
+        var unicode = "  \u00e9 Caf\u00e9 \ud83d\ude00  ";
+
+        await sut.SearchGyms(unicode);
+
+        service.Verify(s => s.SearchGymsAsync(unicode.Trim(), It.IsAny<int>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchGymsRejectsSearchExceedingMaxLengthAfterTrim()
+    {
+        var service = new Mock<IScannerService>();
+        var sut = new ScannerController(this._logger.Object, service.Object);
+        SetupUser(sut);
+
+        var longPadded = "  " + new string('a', 150) + "  ";
+
+        var result = await sut.SearchGyms(longPadded);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Empty(Assert.IsType<IEnumerable<object>>(ok.Value, exactMatch: false));
+        service.Verify(s => s.SearchGymsAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 }

@@ -2,6 +2,7 @@ using System.Data.Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -90,7 +91,7 @@ public class ScannerController(
     [EnableRateLimiting("scanner-search")]
     public async Task<IActionResult> GetGymById(string id)
     {
-        if (this._scannerService == null || string.IsNullOrEmpty(id) || id.Length > MaxIdLength)
+        if (this._scannerService == null || string.IsNullOrWhiteSpace(id) || id.Length > MaxIdLength)
         {
             return this.NotFound();
         }
@@ -153,7 +154,7 @@ public class ScannerController(
         var fences = await this._kojiService.GetAdminGeofencesAsync();
         foreach (var fence in fences)
         {
-            if (IScannerService.PointInPolygon(gym.Lat, gym.Lon, fence.Path))
+            if (FenceContains(fence, gym.Lat, gym.Lon))
             {
                 gym.Area = fence.Name;
                 return;
@@ -173,12 +174,22 @@ public class ScannerController(
         {
             foreach (var fence in fences)
             {
-                if (IScannerService.PointInPolygon(gym.Lat, gym.Lon, fence.Path))
+                if (FenceContains(fence, gym.Lat, gym.Lon))
                 {
                     gym.Area = fence.Name;
                     break;
                 }
             }
         }
+    }
+
+    private static bool FenceContains(Core.Models.AdminGeofence fence, double lat, double lon)
+    {
+        if (lat < fence.MinLat || lat > fence.MaxLat || lon < fence.MinLon || lon > fence.MaxLon)
+        {
+            return false;
+        }
+
+        return GeometryHelpers.PointInPolygon(lat, lon, fence.Path);
     }
 }

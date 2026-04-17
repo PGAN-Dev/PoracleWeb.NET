@@ -528,6 +528,7 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
             var description = item.TryGetProperty("description", out var descEl) ? descEl.GetString() ?? string.Empty : string.Empty;
             var color = item.TryGetProperty("color", out var colorEl) ? colorEl.GetString() ?? "#3399ff" : "#3399ff";
 
+            var bbox = GeometryHelpers.BoundingBox.FromPolygon(path);
             adminGeofences.Add(new AdminGeofence
             {
                 Id = ++geofenceId,
@@ -538,6 +539,10 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                 DisplayInMatches = true,
                 Description = description,
                 Color = color,
+                MinLat = bbox.MinLat,
+                MaxLat = bbox.MaxLat,
+                MinLon = bbox.MinLon,
+                MaxLon = bbox.MaxLon,
             });
         }
 
