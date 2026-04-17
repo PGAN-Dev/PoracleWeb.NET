@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class QuestService(IPoracleTrackingProxy proxy) : IQuestService
+public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IQuestService
 {
     private const string TrackingType = "quest";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<Quest>> GetByUserAsync(string userId, int profileNo)
     {
@@ -24,6 +25,7 @@ public class QuestService(IPoracleTrackingProxy proxy) : IQuestService
 
     public async Task<Quest> CreateAsync(string userId, Quest model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -38,6 +40,7 @@ public class QuestService(IPoracleTrackingProxy proxy) : IQuestService
 
     public async Task<Quest> UpdateAsync(string userId, Quest model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -115,6 +118,7 @@ public class QuestService(IPoracleTrackingProxy proxy) : IQuestService
 
     public async Task<IEnumerable<Quest>> BulkCreateAsync(string userId, IEnumerable<Quest> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

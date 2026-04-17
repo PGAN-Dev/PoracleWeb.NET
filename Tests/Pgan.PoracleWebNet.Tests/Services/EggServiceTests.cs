@@ -16,7 +16,13 @@ public class EggServiceTests
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly EggService _sut;
 
-    public EggServiceTests() => this._sut = new EggService(this._proxy.Object);
+    private readonly Mock<IFeatureGate> _featureGate = new();
+
+    public EggServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new EggService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsEggs()

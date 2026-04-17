@@ -1,15 +1,17 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
 /// Manages the "clean" flag on tracking alarms via the PoracleNG REST API proxy.
 /// </summary>
-public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningService
+public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate featureGate) : ICleaningService
 {
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<Dictionary<string, bool>> GetCleanStatusAsync(string userId, int profileNo)
     {
@@ -72,6 +74,14 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy) : ICleaningSer
     /// </summary>
     private async Task<int> ToggleCleanAsync(string type, string userId, int clean)
     {
+        // Cleaning is implemented as a fetch-modify-POST that ultimately calls
+        // _trackingProxy.CreateAsync, bypassing the per-type alarm services and their feature gates.
+        // Without this guard a user could toggle the clean flag on an alarm type the admin disabled. (#236)
+        if (DisableFeatureKeys.ByTrackingType.TryGetValue(type, out var disableKey))
+        {
+            await this._featureGate.EnsureEnabledAsync(disableKey);
+        }
+
         var trackingJson = await this._trackingProxy.GetByUserAsync(type, userId);
 
         if (trackingJson.ValueKind != JsonValueKind.Array || trackingJson.GetArrayLength() == 0)

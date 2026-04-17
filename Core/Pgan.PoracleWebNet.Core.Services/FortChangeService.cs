@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class FortChangeService(IPoracleTrackingProxy proxy) : IFortChangeService
+public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IFortChangeService
 {
     private const string TrackingType = "fort";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<FortChange>> GetByUserAsync(string userId, int profileNo)
     {
@@ -24,6 +25,7 @@ public class FortChangeService(IPoracleTrackingProxy proxy) : IFortChangeService
 
     public async Task<FortChange> CreateAsync(string userId, FortChange model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.FortChanges);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -38,6 +40,7 @@ public class FortChangeService(IPoracleTrackingProxy proxy) : IFortChangeService
 
     public async Task<FortChange> UpdateAsync(string userId, FortChange model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.FortChanges);
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -115,6 +118,7 @@ public class FortChangeService(IPoracleTrackingProxy proxy) : IFortChangeService
 
     public async Task<IEnumerable<FortChange>> BulkCreateAsync(string userId, IEnumerable<FortChange> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.FortChanges);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

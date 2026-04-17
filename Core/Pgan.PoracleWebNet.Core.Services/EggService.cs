@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class EggService(IPoracleTrackingProxy proxy) : IEggService
+public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IEggService
 {
     private const string TrackingType = "egg";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<Egg>> GetByUserAsync(string userId, int profileNo)
     {
@@ -24,6 +25,9 @@ public class EggService(IPoracleTrackingProxy proxy) : IEggService
 
     public async Task<Egg> CreateAsync(string userId, Egg model)
     {
+        // Eggs intentionally share the disable_raids toggle — no separate disable_eggs key exists
+        // (eggs and raids share UI in the SPA). See DisableFeatureKeys.Raids comment.
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -38,6 +42,7 @@ public class EggService(IPoracleTrackingProxy proxy) : IEggService
 
     public async Task<Egg> UpdateAsync(string userId, Egg model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -115,6 +120,8 @@ public class EggService(IPoracleTrackingProxy proxy) : IEggService
 
     public async Task<IEnumerable<Egg>> BulkCreateAsync(string userId, IEnumerable<Egg> models)
     {
+        // Eggs intentionally share the disable_raids toggle (see CreateAsync comment).
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

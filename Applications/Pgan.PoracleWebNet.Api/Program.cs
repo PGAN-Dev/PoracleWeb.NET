@@ -134,8 +134,10 @@ if (string.IsNullOrWhiteSpace(discordClientSecret))
     throw new InvalidOperationException("Configuration 'Discord:ClientSecret' is required but was not provided.");
 }
 
-// Add controllers
-builder.Services.AddControllers();
+// Add controllers. The global FeatureDisabledExceptionFilter maps any FeatureDisabledException
+// thrown from a service into HTTP 403 — covers callers that bypass [RequireFeatureEnabled]
+// (e.g. QuickPickService → MonsterService.CreateAsync). See #236.
+builder.Services.AddControllers(options => options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.FeatureDisabledExceptionFilter>());
 
 // Add Poracle services (DbContext, repositories, services, settings)
 builder.Services.AddPoracleServices(builder.Configuration);

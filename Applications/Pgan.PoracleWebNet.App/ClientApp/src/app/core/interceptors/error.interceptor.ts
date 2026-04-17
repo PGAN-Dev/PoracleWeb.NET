@@ -51,7 +51,15 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             toast.error(translate.instant('ERROR.SESSION_EXPIRED'));
             break;
           case 403:
-            toast.error(translate.instant('ERROR.PERMISSION_DENIED'));
+            // The backend tags "feature disabled" 403s by including a `disableKey` in the body
+            // (RequireFeatureEnabledAttribute, FeatureDisabledExceptionFilter, TestAlertController).
+            // Toast a clearer message and redirect off the now-broken page so the user lands somewhere usable. (#236)
+            if (error.error?.disableKey) {
+              toast.error(translate.instant('ERROR.FEATURE_DISABLED'));
+              router.navigate(['/dashboard']);
+            } else {
+              toast.error(translate.instant('ERROR.PERMISSION_DENIED'));
+            }
             break;
           case 404:
             toast.error(translate.instant('ERROR.NOT_FOUND'));

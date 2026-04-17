@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class GymService(IPoracleTrackingProxy proxy) : IGymService
+public class GymService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IGymService
 {
     private const string TrackingType = "gym";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<Gym>> GetByUserAsync(string userId, int profileNo)
     {
@@ -24,6 +25,7 @@ public class GymService(IPoracleTrackingProxy proxy) : IGymService
 
     public async Task<Gym> CreateAsync(string userId, Gym model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Gyms);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -38,6 +40,7 @@ public class GymService(IPoracleTrackingProxy proxy) : IGymService
 
     public async Task<Gym> UpdateAsync(string userId, Gym model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Gyms);
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -115,6 +118,7 @@ public class GymService(IPoracleTrackingProxy proxy) : IGymService
 
     public async Task<IEnumerable<Gym>> BulkCreateAsync(string userId, IEnumerable<Gym> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Gyms);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class LureService(IPoracleTrackingProxy proxy) : ILureService
+public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : ILureService
 {
     private const string TrackingType = "lure";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<Lure>> GetByUserAsync(string userId, int profileNo)
     {
@@ -24,6 +25,7 @@ public class LureService(IPoracleTrackingProxy proxy) : ILureService
 
     public async Task<Lure> CreateAsync(string userId, Lure model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Lures);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -38,6 +40,7 @@ public class LureService(IPoracleTrackingProxy proxy) : ILureService
 
     public async Task<Lure> UpdateAsync(string userId, Lure model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Lures);
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -115,6 +118,7 @@ public class LureService(IPoracleTrackingProxy proxy) : ILureService
 
     public async Task<IEnumerable<Lure>> BulkCreateAsync(string userId, IEnumerable<Lure> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Lures);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

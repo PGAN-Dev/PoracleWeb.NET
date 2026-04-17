@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class RaidService(IPoracleTrackingProxy proxy) : IRaidService
+public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IRaidService
 {
     private const string TrackingType = "raid";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<Raid>> GetByUserAsync(string userId, int profileNo)
     {
@@ -24,6 +25,7 @@ public class RaidService(IPoracleTrackingProxy proxy) : IRaidService
 
     public async Task<Raid> CreateAsync(string userId, Raid model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -38,6 +40,7 @@ public class RaidService(IPoracleTrackingProxy proxy) : IRaidService
 
     public async Task<Raid> UpdateAsync(string userId, Raid model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -115,6 +118,7 @@ public class RaidService(IPoracleTrackingProxy proxy) : IRaidService
 
     public async Task<IEnumerable<Raid>> BulkCreateAsync(string userId, IEnumerable<Raid> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

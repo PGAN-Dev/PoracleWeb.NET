@@ -14,9 +14,14 @@ public class LureServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly LureService _sut;
 
-    public LureServiceTests() => this._sut = new LureService(this._proxy.Object);
+    public LureServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new LureService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsLures()

@@ -49,7 +49,7 @@ describe('errorInterceptor', () => {
     expect(toast.error).toHaveBeenCalledWith('ERROR.SESSION_EXPIRED');
   });
 
-  it('should show permission toast for 403', () => {
+  it('should show permission toast for 403 without disableKey', () => {
     http.get('/api/admin/users').subscribe({ error: () => {} });
 
     httpMock.expectOne('/api/admin/users').flush(null, {
@@ -58,6 +58,24 @@ describe('errorInterceptor', () => {
     });
 
     expect(toast.error).toHaveBeenCalledWith('ERROR.PERMISSION_DENIED');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('should show feature-disabled toast and redirect to /dashboard for 403 with disableKey', () => {
+    // Backend tags "feature disabled" 403s by including disableKey in the body so the
+    // SPA can distinguish them from generic permission denials and bounce the user off
+    // the now-broken page. (#236)
+    http.get('/api/monsters').subscribe({ error: () => {} });
+
+    httpMock
+      .expectOne('/api/monsters')
+      .flush(
+        { disableKey: 'disable_mons', error: 'This feature is disabled by the administrator.' },
+        { status: 403, statusText: 'Forbidden' },
+      );
+
+    expect(toast.error).toHaveBeenCalledWith('ERROR.FEATURE_DISABLED');
+    expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 
   it('should show not found toast for 404', () => {

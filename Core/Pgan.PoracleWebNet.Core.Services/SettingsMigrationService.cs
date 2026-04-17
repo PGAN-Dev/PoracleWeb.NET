@@ -57,6 +57,7 @@ public partial class SettingsMigrationService(
         ["disable_nests"] = "alarms",
         ["disable_gyms"] = "alarms",
         ["disable_maxbattles"] = "alarms",
+        ["disable_fort_changes"] = "alarms",
 
         // features
         ["disable_areas"] = "features",
@@ -113,7 +114,8 @@ public partial class SettingsMigrationService(
     private static readonly HashSet<string> BooleanKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "disable_mons", "disable_raids", "disable_quests", "disable_invasions",
-        "disable_lures", "disable_nests", "disable_gyms", "disable_maxbattles", "disable_areas",
+        "disable_lures", "disable_nests", "disable_gyms", "disable_maxbattles",
+        "disable_fort_changes", "disable_areas",
         "disable_profiles", "disable_location", "disable_nominatim",
         "disable_geomap", "disable_geomap_select",
         "enable_templates", "enable_roles", "enable_telegram", "enable_discord",

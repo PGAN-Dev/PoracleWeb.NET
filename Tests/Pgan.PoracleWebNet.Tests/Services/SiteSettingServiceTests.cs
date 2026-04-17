@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
@@ -6,12 +7,22 @@ using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
-public class SiteSettingServiceTests
+public class SiteSettingServiceTests : IDisposable
 {
     private readonly Mock<ISiteSettingRepository> _repository = new();
+    // Real MemoryCache per test instance — xUnit constructs a fresh test class instance per fact,
+    // so cache state never leaks between tests. Disposed via IDisposable to satisfy CA1001.
+    private readonly MemoryCache _cache = new(new MemoryCacheOptions());
     private readonly SiteSettingService _sut;
 
-    public SiteSettingServiceTests() => this._sut = new SiteSettingService(this._repository.Object, Mock.Of<ILogger<SiteSettingService>>());
+    public SiteSettingServiceTests() =>
+        this._sut = new SiteSettingService(this._repository.Object, this._cache, Mock.Of<ILogger<SiteSettingService>>());
+
+    public void Dispose()
+    {
+        this._cache.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public async Task GetAllAsyncReturnsAllSettings()
@@ -210,5 +221,70 @@ public class SiteSettingServiceTests
 
         Assert.True(result);
         this._repository.Verify(r => r.DeleteAsync("key1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetByKeyAsyncCachesRepositoryHits()
+    {
+        // The dashboard hits ~10 alarm endpoints in parallel; each calls GetBoolAsync which goes
+        // through GetByKeyAsync. Without caching that's 10 MySQL roundtrips per page load.
+        this._repository.Setup(r => r.GetByKeyAsync("disable_mons"))
+            .ReturnsAsync(new SiteSetting { Key = "disable_mons", Value = "false" });
+
+        await this._sut.GetByKeyAsync("disable_mons");
+        await this._sut.GetByKeyAsync("disable_mons");
+        await this._sut.GetByKeyAsync("disable_mons");
+
+        this._repository.Verify(r => r.GetByKeyAsync("disable_mons"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetByKeyAsyncCachesNullsToo()
+    {
+        // "Key doesn't exist" is a stable answer until something writes it; otherwise every
+        // disable_* check on a fresh deployment would re-query the DB forever.
+        this._repository.Setup(r => r.GetByKeyAsync("never_set")).ReturnsAsync((SiteSetting?)null);
+
+        await this._sut.GetByKeyAsync("never_set");
+        await this._sut.GetByKeyAsync("never_set");
+
+        this._repository.Verify(r => r.GetByKeyAsync("never_set"), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsyncInvalidatesCacheForThatKey()
+    {
+        this._repository.Setup(r => r.GetByKeyAsync("disable_mons"))
+            .ReturnsAsync(new SiteSetting { Key = "disable_mons", Value = "false" });
+        await this._sut.GetByKeyAsync("disable_mons"); // populate cache
+
+        var updated = new SiteSetting { Key = "disable_mons", Value = "true" };
+        this._repository.Setup(r => r.CreateOrUpdateAsync(updated)).ReturnsAsync(updated);
+        await this._sut.CreateOrUpdateAsync(updated);
+
+        // After invalidation, the next read must hit the repo again — otherwise admin toggle
+        // changes wouldn't take effect until the TTL expires.
+        this._repository.Setup(r => r.GetByKeyAsync("disable_mons")).ReturnsAsync(updated);
+        var result = await this._sut.GetByKeyAsync("disable_mons");
+
+        Assert.Equal("true", result?.Value);
+        this._repository.Verify(r => r.GetByKeyAsync("disable_mons"), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task DeleteAsyncInvalidatesCacheForThatKey()
+    {
+        this._repository.Setup(r => r.GetByKeyAsync("disable_mons"))
+            .ReturnsAsync(new SiteSetting { Key = "disable_mons", Value = "true" });
+        await this._sut.GetByKeyAsync("disable_mons");
+
+        this._repository.Setup(r => r.DeleteAsync("disable_mons")).ReturnsAsync(true);
+        await this._sut.DeleteAsync("disable_mons");
+
+        this._repository.Setup(r => r.GetByKeyAsync("disable_mons")).ReturnsAsync((SiteSetting?)null);
+        var result = await this._sut.GetByKeyAsync("disable_mons");
+
+        Assert.Null(result);
+        this._repository.Verify(r => r.GetByKeyAsync("disable_mons"), Times.Exactly(2));
     }
 }

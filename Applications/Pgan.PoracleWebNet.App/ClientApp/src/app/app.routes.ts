@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
+import { disabledFeatureGuard } from './core/guards/disabled-feature.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
@@ -33,47 +34,47 @@ export const routes: Routes = [
     path: 'quick-picks',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_mons')],
     loadComponent: () => import('./modules/pokemon/pokemon-list.component').then(m => m.PokemonListComponent),
     path: 'pokemon',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_raids')],
     loadComponent: () => import('./modules/raids/raid-list.component').then(m => m.RaidListComponent),
     path: 'raids',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_quests')],
     loadComponent: () => import('./modules/quests/quest-list.component').then(m => m.QuestListComponent),
     path: 'quests',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_invasions')],
     loadComponent: () => import('./modules/invasions/invasion-list.component').then(m => m.InvasionListComponent),
     path: 'invasions',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_lures')],
     loadComponent: () => import('./modules/lures/lure-list.component').then(m => m.LureListComponent),
     path: 'lures',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_nests')],
     loadComponent: () => import('./modules/nests/nest-list.component').then(m => m.NestListComponent),
     path: 'nests',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_gyms')],
     loadComponent: () => import('./modules/gyms/gym-list.component').then(m => m.GymListComponent),
     path: 'gyms',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_fort_changes')],
     loadComponent: () => import('./modules/fort-changes/fort-change-list.component').then(m => m.FortChangeListComponent),
     path: 'fort-changes',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_maxbattles')],
     loadComponent: () => import('./modules/max-battles/max-battle-list.component').then(m => m.MaxBattleListComponent),
     path: 'max-battles',
   },

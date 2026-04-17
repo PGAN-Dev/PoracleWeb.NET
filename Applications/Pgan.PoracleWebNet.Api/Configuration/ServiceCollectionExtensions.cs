@@ -81,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuickPickService, QuickPickService>();
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
+        services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
         services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
         services.AddScoped<IProfileOverviewService, ProfileOverviewService>();

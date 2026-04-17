@@ -205,6 +205,19 @@ Pgan.PoracleWebNet.slnx
 - Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
 - **Important**: Never use global (non-partitioned) `AddFixedWindowLimiter` for auth -- multiple users sharing one bucket causes cascading login failures.
 
+### Feature Gating (`disable_*` Site Settings)
+The `disable_mons` / `disable_raids` / `disable_quests` / `disable_invasions` / `disable_lures` / `disable_nests` / `disable_gyms` / `disable_maxbattles` / `disable_fort_changes` site settings disable entire alarm types for everyone, including admins. Eggs share `disable_raids` (no separate `disable_eggs` exists; eggs share the raid UI in the SPA). See #236 for the original bug.
+
+**Adding a new alarm type? Wire it through all four layers:**
+
+1. **Constant** — add to `Core/Pgan.PoracleWebNet.Core.Models/DisableFeatureKeys.cs` (both the `const string` field and the `ByTrackingType` dictionary entry).
+2. **Service-layer guard** — inject `IFeatureGate` and `await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.X)` at the top of `CreateAsync`, `BulkCreateAsync`, and `UpdateAsync`. Throws `FeatureDisabledException` when disabled. Closes service-to-service bypasses (quick-pick apply, profile duplicate/import, cleaning toggle).
+3. **Controller filter** — `[RequireFeatureEnabled(DisableFeatureKeys.X)]` on the controller class. Resource filter that 403s before model binding via `IFeatureGate.IsEnabledAsync`. The global `FeatureDisabledExceptionFilter` (registered in `Program.cs`) also catches `FeatureDisabledException` from any service path and returns the same 403 — both paths share `FeatureDisabledResponse.Create(disableKey)` so the wire format can't drift.
+4. **Frontend** — add a `disabledFeatureGuard('disable_X')` to the route in `app.routes.ts`, and add the matching `disableKey` to the nav-item definition in `app.ts`. The 403 interceptor automatically redirects to `/dashboard` with an `ERROR.FEATURE_DISABLED` toast when the response body has a `disableKey` field.
+5. **Settings migration** — add the key to `SettingsMigrationService.BooleanKeys` and `CategoryMap` (so legacy `pweb_settings` migrations carry it over) and to the admin-settings UI in `admin-settings.component.ts`.
+
+**Caching:** `SiteSettingService.GetByKeyAsync` is wrapped in `IMemoryCache` with a 5-min TTL and explicit invalidation on writes. Without this, gate checks would add ~10 MySQL roundtrips per dashboard load. There's a documented TOCTOU window (slow read overlapping a write can leak a stale value for up to the TTL) — acceptable for admin-rare toggles.
+
 ### Test Alerts
 - `POST /api/test-alert/{type}/{uid}` triggers a test notification for a specific alarm. Supported types: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`.
 - **Parallel data fetch**: `TestAlertService` uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) concurrently.

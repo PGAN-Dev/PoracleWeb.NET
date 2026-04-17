@@ -14,9 +14,14 @@ public class NestServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly NestService _sut;
 
-    public NestServiceTests() => this._sut = new NestService(this._proxy.Object);
+    public NestServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new NestService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsNests()

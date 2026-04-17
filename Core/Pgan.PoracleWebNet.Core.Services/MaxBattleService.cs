@@ -5,11 +5,12 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBattleService> logger) : IMaxBattleService
+public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<MaxBattleService> logger) : IMaxBattleService
 {
     private const string TrackingType = "maxbattle";
     private readonly ILogger<MaxBattleService> _logger = logger;
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<MaxBattle>> GetByUserAsync(string userId, int profileNo)
     {
@@ -26,6 +27,7 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBa
 
     public async Task<MaxBattle> CreateAsync(string userId, MaxBattle model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -40,6 +42,7 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBa
 
     public async Task<MaxBattle> UpdateAsync(string userId, MaxBattle model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
         // MaxBattle is insert-only in PoracleNG (no dedup/upsert).
         // Delete the old alarm first, then create a replacement.
         await this._proxy.DeleteByUidAsync(TrackingType, userId, model.Uid);
@@ -156,6 +159,7 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, ILogger<MaxBa
 
     public async Task<IEnumerable<MaxBattle>> BulkCreateAsync(string userId, IEnumerable<MaxBattle> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

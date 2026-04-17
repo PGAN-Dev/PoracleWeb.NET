@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
@@ -6,6 +7,7 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/monsters")]
+[RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
 public class MonsterController(IMonsterService monsterService) : BaseApiController
 {
     private readonly IMonsterService _monsterService = monsterService;

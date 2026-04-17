@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
@@ -9,9 +10,14 @@ public class ProfileOverviewServiceTests
 {
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly ProfileOverviewService _sut;
 
-    public ProfileOverviewServiceTests() => this._sut = new ProfileOverviewService(this._proxy.Object, this._humanProxy.Object);
+    public ProfileOverviewServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new ProfileOverviewService(this._proxy.Object, this._humanProxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetAllProfilesOverviewAsyncReturnsProxyResult()
@@ -132,6 +138,97 @@ public class ProfileOverviewServiceTests
         this._proxy.Verify(
             p => p.CreateAsync(It.IsAny<string>(), "u1", It.IsAny<JsonElement>()),
             Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task DuplicateProfileAsyncThrowsBeforeMutatingStateWhenSourceContainsDisabledType()
+    {
+        // The pre-validation pass must run BEFORE SwitchProfileAsync — otherwise a partial
+        // duplicate could fail mid-loop and leave the new profile half-populated. (#236)
+        var humanJson = CreateJsonObject(new
+        {
+            current_profile_no = 1
+        });
+        this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
+        this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", It.IsAny<int>())).Returns(Task.CompletedTask);
+
+        var allTracking = CreateJsonObject(new
+        {
+            pokemon = new[] { new { uid = 10, profile_no = 2, pokemon_id = 25 } }
+        });
+        this._proxy.Setup(p => p.GetAllTrackingAllProfilesAsync("u1")).ReturnsAsync(allTracking);
+
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Pokemon))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Pokemon));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.DuplicateProfileAsync("u1", 2, 5));
+
+        Assert.Equal(DisableFeatureKeys.Pokemon, ex.DisableKey);
+        this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DuplicateProfileAsyncIgnoresDisabledTypesWithNoMatchingAlarmsInSource()
+    {
+        // The pokemon entries are all on a different profile, so disable_mons=true shouldn't
+        // block the duplicate — there are no monster alarms actually being copied.
+        var humanJson = CreateJsonObject(new
+        {
+            current_profile_no = 1
+        });
+        this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
+        this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", It.IsAny<int>())).Returns(Task.CompletedTask);
+
+        var allTracking = CreateJsonObject(new
+        {
+            pokemon = new[] { new { uid = 10, profile_no = 99, pokemon_id = 25 } },
+            raid = new[] { new { uid = 30, profile_no = 2, pokemon_id = 386 } }
+        });
+        this._proxy.Setup(p => p.GetAllTrackingAllProfilesAsync("u1")).ReturnsAsync(allTracking);
+        this._proxy
+            .Setup(p => p.CreateAsync(It.IsAny<string>(), "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([100], 0, 0, 1));
+
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Pokemon))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Pokemon));
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Raids))
+            .Returns(Task.CompletedTask);
+
+        var result = await this._sut.DuplicateProfileAsync("u1", 2, 5);
+
+        Assert.Equal(1, result); // only the raid alarm in profile 2 was copied
+    }
+
+    [Fact]
+    public async Task ImportAlarmsAsyncThrowsBeforeMutatingStateWhenPayloadContainsDisabledType()
+    {
+        var humanJson = CreateJsonObject(new
+        {
+            current_profile_no = 1
+        });
+        this._humanProxy.Setup(h => h.GetHumanAsync("u1")).ReturnsAsync(humanJson);
+        this._humanProxy.Setup(h => h.SwitchProfileAsync("u1", It.IsAny<int>())).Returns(Task.CompletedTask);
+
+        var alarms = CreateJsonObject(new
+        {
+            invasion = new[] { new { grunt_type = "fire" } }
+        });
+
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Invasions))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Invasions));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.ImportAlarmsAsync("u1", 5, alarms));
+
+        Assert.Equal(DisableFeatureKeys.Invasions, ex.DisableKey);
+        this._humanProxy.Verify(h => h.SwitchProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     private static JsonElement CreateJsonObject(object obj)

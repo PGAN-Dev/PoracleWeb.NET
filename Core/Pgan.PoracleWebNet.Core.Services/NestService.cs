@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class NestService(IPoracleTrackingProxy proxy) : INestService
+public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : INestService
 {
     private const string TrackingType = "nest";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     public async Task<IEnumerable<Nest>> GetByUserAsync(string userId, int profileNo)
     {
@@ -24,6 +25,7 @@ public class NestService(IPoracleTrackingProxy proxy) : INestService
 
     public async Task<Nest> CreateAsync(string userId, Nest model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Nests);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -38,6 +40,7 @@ public class NestService(IPoracleTrackingProxy proxy) : INestService
 
     public async Task<Nest> UpdateAsync(string userId, Nest model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Nests);
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
@@ -115,6 +118,7 @@ public class NestService(IPoracleTrackingProxy proxy) : INestService
 
     public async Task<IEnumerable<Nest>> BulkCreateAsync(string userId, IEnumerable<Nest> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Nests);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

@@ -176,7 +176,7 @@
       <nav [attr.aria-label]="'TOOLBAR.MAIN_NAV' | translate">
         <mat-nav-list>
           <!-- Alarms Section -->
-          @if (!sidenavCollapsed() || isMobile()) {
+          @if ((!sidenavCollapsed() || isMobile()) && alarmNavItems().length > 0) {
             <div class="nav-group-label">{{ 'NAV.GROUP_ALARMS' | translate }}</div>
           }
           @for (item of alarmNavItems(); track item.route) {
@@ -196,10 +196,12 @@
             </a>
           }
 
-          <mat-divider class="nav-divider"></mat-divider>
+          @if (alarmNavItems().length > 0 && settingsNavItems().length > 0) {
+            <mat-divider class="nav-divider"></mat-divider>
+          }
 
           <!-- Settings Section -->
-          @if (!sidenavCollapsed() || isMobile()) {
+          @if ((!sidenavCollapsed() || isMobile()) && settingsNavItems().length > 0) {
             <div class="nav-group-label">{{ 'NAV.GROUP_SETTINGS' | translate }}</div>
           }
           @for (item of settingsNavItems(); track item.route) {

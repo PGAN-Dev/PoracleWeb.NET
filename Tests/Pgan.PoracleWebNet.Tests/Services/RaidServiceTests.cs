@@ -14,9 +14,14 @@ public class RaidServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly RaidService _sut;
 
-    public RaidServiceTests() => this._sut = new RaidService(this._proxy.Object);
+    public RaidServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new RaidService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsRaids()

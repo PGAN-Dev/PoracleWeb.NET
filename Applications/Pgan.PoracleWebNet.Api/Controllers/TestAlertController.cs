@@ -1,16 +1,37 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/test-alert")]
 [EnableRateLimiting("test-alert")]
-public partial class TestAlertController(ITestAlertService testAlertService, ILogger<TestAlertController> logger) : BaseApiController
+public partial class TestAlertController(
+    ITestAlertService testAlertService,
+    ISiteSettingService siteSettings,
+    ILogger<TestAlertController> logger) : BaseApiController
 {
     private static readonly HashSet<string> ValidTypes = ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym"];
 
+    /// <summary>
+    /// Maps alarm type → site-setting disable key. Eggs share the raid disable toggle
+    /// since they share the raid UI. See #236.
+    /// </summary>
+    private static readonly Dictionary<string, string> DisableKeys = new(StringComparer.Ordinal)
+    {
+        ["pokemon"] = DisableFeatureKeys.Pokemon,
+        ["raid"] = DisableFeatureKeys.Raids,
+        ["egg"] = DisableFeatureKeys.Raids,
+        ["quest"] = DisableFeatureKeys.Quests,
+        ["invasion"] = DisableFeatureKeys.Invasions,
+        ["lure"] = DisableFeatureKeys.Lures,
+        ["nest"] = DisableFeatureKeys.Nests,
+        ["gym"] = DisableFeatureKeys.Gyms,
+    };
+
     private readonly ILogger<TestAlertController> _logger = logger;
+    private readonly ISiteSettingService _siteSettings = siteSettings;
     private readonly ITestAlertService _testAlertService = testAlertService;
 
     [HttpPost("{type}/{uid:int}")]
@@ -21,6 +42,15 @@ public partial class TestAlertController(ITestAlertService testAlertService, ILo
             return this.BadRequest(new
             {
                 error = $"Invalid alarm type: {type}"
+            });
+        }
+
+        if (DisableKeys.TryGetValue(type, out var disableKey) && await this._siteSettings.GetBoolAsync(disableKey))
+        {
+            return this.StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                error = "This feature is disabled by the administrator.",
+                disableKey
             });
         }
 

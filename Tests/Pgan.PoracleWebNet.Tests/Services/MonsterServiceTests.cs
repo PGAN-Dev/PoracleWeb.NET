@@ -14,9 +14,14 @@ public class MonsterServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly MonsterService _sut;
 
-    public MonsterServiceTests() => this._sut = new MonsterService(this._proxy.Object);
+    public MonsterServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new MonsterService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsMonsters()
@@ -250,6 +255,37 @@ public class MonsterServiceTests
         var result = await this._sut.UpdateDistanceByUidsAsync([1, 3], "user1", 500);
 
         Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        // Service-layer guard — closes the bypass class found in the iteration-1 review where
+        // QuickPickService.Apply, ProfileController.Duplicate, and ProfileOverviewController.ImportProfile
+        // call MonsterService.CreateAsync directly without going through the controller filter. (#236)
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Pokemon))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Pokemon));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("user1", new Monster { PokemonId = 25 }));
+
+        Assert.Equal(DisableFeatureKeys.Pokemon, ex.DisableKey);
+        // Must short-circuit before the proxy call — otherwise we leak a row to PoracleNG.
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Pokemon))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Pokemon));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("user1", new List<Monster> { new() { PokemonId = 25 } }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)

@@ -16,9 +16,14 @@ public class InvasionServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly InvasionService _sut;
 
-    public InvasionServiceTests() => this._sut = new InvasionService(this._proxy.Object, NullLogger<InvasionService>.Instance);
+    public InvasionServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsInvasions()
@@ -244,7 +249,7 @@ public class InvasionServiceTests
         // the new row is already correct; log at Warning so the stale dup is discoverable.
         var logger = new Mock<ILogger<InvasionService>>();
         logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
-        var sut = new InvasionService(this._proxy.Object, logger.Object);
+        var sut = new InvasionService(this._proxy.Object, this._featureGate.Object, logger.Object);
         var ex = (Exception)Activator.CreateInstance(exceptionType, "proxy unavailable")!;
 
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))

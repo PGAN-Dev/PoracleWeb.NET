@@ -5,10 +5,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class InvasionService(IPoracleTrackingProxy proxy, ILogger<InvasionService> logger) : IInvasionService
+public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger) : IInvasionService
 {
     private const string TrackingType = "invasion";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<InvasionService> _logger = logger;
 
     public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo)
@@ -26,6 +27,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, ILogger<Invasi
 
     public async Task<Invasion> CreateAsync(string userId, Invasion model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         model.Id = userId;
         model.GruntType ??= "";
         var body = SerializeToElement(model);
@@ -41,6 +43,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, ILogger<Invasi
 
     public async Task<Invasion> UpdateAsync(string userId, Invasion model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         model.GruntType ??= "";
         var oldUid = model.Uid;
         var body = SerializeToElement(model);
@@ -148,6 +151,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, ILogger<Invasi
 
     public async Task<IEnumerable<Invasion>> BulkCreateAsync(string userId, IEnumerable<Invasion> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

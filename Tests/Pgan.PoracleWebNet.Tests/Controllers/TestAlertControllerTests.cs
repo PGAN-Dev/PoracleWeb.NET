@@ -9,12 +9,15 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class TestAlertControllerTests : ControllerTestBase
 {
     private readonly Mock<ITestAlertService> _service = new();
+    private readonly Mock<ISiteSettingService> _siteSettings = new();
     private readonly Mock<ILogger<TestAlertController>> _logger = new();
     private readonly TestAlertController _sut;
 
     public TestAlertControllerTests()
     {
-        this._sut = new TestAlertController(this._service.Object, this._logger.Object);
+        // Default: no feature is disabled. Individual tests can override.
+        this._siteSettings.Setup(s => s.GetBoolAsync(It.IsAny<string>())).ReturnsAsync(false);
+        this._sut = new TestAlertController(this._service.Object, this._siteSettings.Object, this._logger.Object);
         SetupUser(this._sut);
     }
 
@@ -85,5 +88,40 @@ public class TestAlertControllerTests : ControllerTestBase
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(500, statusResult.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("pokemon", "disable_mons")]
+    [InlineData("raid", "disable_raids")]
+    [InlineData("egg", "disable_raids")]
+    [InlineData("quest", "disable_quests")]
+    [InlineData("invasion", "disable_invasions")]
+    [InlineData("lure", "disable_lures")]
+    [InlineData("nest", "disable_nests")]
+    [InlineData("gym", "disable_gyms")]
+    public async Task SendTestAlertReturns403WhenFeatureDisabled(string type, string disableKey)
+    {
+        // #236: when an admin has disabled a type, non-admin users must not be able to fire test alerts for it.
+        this._siteSettings.Setup(s => s.GetBoolAsync(disableKey)).ReturnsAsync(true);
+
+        var result = await this._sut.SendTestAlert(type, 1);
+
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, status.StatusCode);
+        this._service.Verify(s => s.SendTestAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SendTestAlertAdminAlsoBlockedByDisabledFeature()
+    {
+        // Admins are not exempt — the toggle means "nobody fires this alarm type." See #236.
+        this._siteSettings.Setup(s => s.GetBoolAsync("disable_mons")).ReturnsAsync(true);
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.SendTestAlert("pokemon", 1);
+
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, status.StatusCode);
+        this._service.Verify(s => s.SendTestAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 }

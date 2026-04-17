@@ -4,10 +4,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
+public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IMonsterService
 {
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     // Note: profileNo is kept for interface compatibility but PoracleNG scopes to the user's
     // active profile (humans.current_profile_no) automatically. The JWT profileNo and the
@@ -28,6 +29,7 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
 
     public async Task<Monster> CreateAsync(string userId, Monster model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         model.Id = userId;
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -42,6 +44,7 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
 
     public async Task<Monster> UpdateAsync(string userId, Monster model)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         // PoracleNG's POST endpoint handles updates when the body includes a uid field.
         var body = SerializeToElement(model);
         await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -123,6 +126,7 @@ public class MonsterService(IPoracleTrackingProxy proxy) : IMonsterService
 
     public async Task<IEnumerable<Monster>> BulkCreateAsync(string userId, IEnumerable<Monster> models)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         var modelList = models.ToList();
 
         foreach (var model in modelList)

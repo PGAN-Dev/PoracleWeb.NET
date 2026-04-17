@@ -4,6 +4,7 @@ using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
@@ -61,7 +62,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     {
         this._profileService
             .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 99))
-            .ReturnsAsync((Core.Models.Profile?)null);
+            .ReturnsAsync((Profile?)null);
 
         var result = await this._sut.DuplicateProfile(99, new ProfileOverviewDuplicateRequest("Copy"));
 
@@ -71,7 +72,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     [Fact]
     public async Task DuplicateProfileReturnsOkWithAlarmCount()
     {
-        var source = new Core.Models.Profile { ProfileNo = 1, Name = "Main", Area = "[]" };
+        var source = new Profile { ProfileNo = 1, Name = "Main", Area = "[]" };
         this._profileService
             .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1))
             .ReturnsAsync(source);
@@ -99,7 +100,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     {
         this._profileService
             .Setup(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Core.Models.Profile { ProfileNo = 1, Name = "Main" }]);
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Returns(Task.CompletedTask);
@@ -125,8 +126,8 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     {
         var existing = new[]
         {
-            new Core.Models.Profile { ProfileNo = 1, Name = "Work" },
-            new Core.Models.Profile { ProfileNo = 2, Name = "Play" },
+            new Profile { ProfileNo = 1, Name = "Work" },
+            new Profile { ProfileNo = 2, Name = "Play" },
         };
         this._profileService
             .Setup(s => s.GetByUserAsync("123456789"))
@@ -150,6 +151,48 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             h => h.AddProfileAsync("123456789",
                 It.Is<JsonElement>(j => j.GetProperty("name").GetString() == "Work (2)")),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task DuplicateProfilePropagatesFeatureDisabledException()
+    {
+        // The controller doesn't catch FeatureDisabledException — the global
+        // FeatureDisabledExceptionFilter does. We verify here that the exception is allowed to
+        // propagate (no try/catch swallowing it) so the global filter can map it to 403. (#236)
+        var source = new Profile { ProfileNo = 1, Name = "Main", Area = "[]" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(source);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([source]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).Returns(Task.CompletedTask);
+        this._humanProxy.Setup(h => h.DeleteProfileAsync("123456789", It.IsAny<int>())).Returns(Task.CompletedTask);
+        this._service
+            .Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Pokemon));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.DuplicateProfile(1, new ProfileOverviewDuplicateRequest("Copy")));
+
+        Assert.Equal(DisableFeatureKeys.Pokemon, ex.DisableKey);
+    }
+
+    [Fact]
+    public async Task ImportProfilePropagatesFeatureDisabledException()
+    {
+        this._profileService
+            .Setup(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).Returns(Task.CompletedTask);
+        var alarms = CreateJsonObject(new
+        {
+            invasion = new[] { new { grunt_type = "fire" } }
+        });
+        this._service
+            .Setup(s => s.ImportAlarmsAsync("123456789", 2, It.IsAny<JsonElement>()))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Invasions));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.ImportProfile(new ProfileOverviewImportRequest("Imported", 1, alarms)));
+
+        Assert.Equal(DisableFeatureKeys.Invasions, ex.DisableKey);
     }
 
     private static JsonElement CreateJsonObject(object obj)

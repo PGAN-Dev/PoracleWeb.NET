@@ -207,10 +207,7 @@ export class App implements OnInit {
 
   protected readonly alarmNavItems = computed(() =>
     this.navItems.filter(
-      item =>
-        item.group === 'alarms' &&
-        (!item.adminOnly || this.auth.isAdmin()) &&
-        (this.auth.isAdmin() || !this.isFeatureDisabled(item.disableKey)),
+      item => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
     ),
   );
 
@@ -239,10 +236,7 @@ export class App implements OnInit {
 
   protected readonly settingsNavItems = computed(() =>
     this.navItems.filter(
-      item =>
-        item.group === 'settings' &&
-        (!item.adminOnly || this.auth.isAdmin()) &&
-        (this.auth.isAdmin() || !this.isFeatureDisabled(item.disableKey)),
+      item => item.group === 'settings' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
     ),
   );
 

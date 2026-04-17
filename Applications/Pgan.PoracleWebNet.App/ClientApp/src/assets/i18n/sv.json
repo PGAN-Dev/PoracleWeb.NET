@@ -1101,6 +1101,7 @@
   "ERROR": {
     "SESSION_EXPIRED": "Session expired. Please log in again.",
     "PERMISSION_DENIED": "You don't have permission for this action.",
+    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
     "NOT_FOUND": "The requested resource was not found.",
     "NETWORK": "Network error. Check your connection.",
     "GENERIC": "Something went wrong. Please try again.",
