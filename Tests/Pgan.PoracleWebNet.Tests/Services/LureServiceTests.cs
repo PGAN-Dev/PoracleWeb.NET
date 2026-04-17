@@ -149,6 +149,33 @@ public class LureServiceTests
         Assert.Equal(4, await this._sut.CountByUserAsync("u", 1));
     }
 
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Lures))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Lures));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new Lure()));
+
+        Assert.Equal(DisableFeatureKeys.Lures, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Lures))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Lures));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<Lure> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
     private static JsonElement CreateJsonArray(params object[] items)
     {
         var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);

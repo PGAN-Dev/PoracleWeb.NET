@@ -190,6 +190,33 @@ public class NestServiceTests
         Assert.Equal(9, await this._sut.CountByUserAsync("u", 1));
     }
 
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Nests))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Nests));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new Nest()));
+
+        Assert.Equal(DisableFeatureKeys.Nests, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Nests))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Nests));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<Nest> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
     private static JsonElement CreateJsonArray(params object[] items)
     {
         var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);

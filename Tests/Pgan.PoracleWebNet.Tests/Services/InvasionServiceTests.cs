@@ -270,6 +270,33 @@ public class InvasionServiceTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Invasions))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Invasions));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new Invasion()));
+
+        Assert.Equal(DisableFeatureKeys.Invasions, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Invasions))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Invasions));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<Invasion> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
     private static JsonElement CreateJsonArray(params object[] items)
     {
         var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);

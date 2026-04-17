@@ -289,6 +289,33 @@ public class MaxBattleServiceTests
         Assert.Equal("station123", result.StationId);
     }
 
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.MaxBattles));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new MaxBattle()));
+
+        Assert.Equal(DisableFeatureKeys.MaxBattles, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.MaxBattles));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<MaxBattle> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
     private static JsonElement CreateJsonArray(params object[] items)
     {
         var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);

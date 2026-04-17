@@ -9,29 +9,13 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [EnableRateLimiting("test-alert")]
 public partial class TestAlertController(
     ITestAlertService testAlertService,
-    ISiteSettingService siteSettings,
+    IFeatureGate featureGate,
     ILogger<TestAlertController> logger) : BaseApiController
 {
     private static readonly HashSet<string> ValidTypes = ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym"];
 
-    /// <summary>
-    /// Maps alarm type → site-setting disable key. Eggs share the raid disable toggle
-    /// since they share the raid UI. See #236.
-    /// </summary>
-    private static readonly Dictionary<string, string> DisableKeys = new(StringComparer.Ordinal)
-    {
-        ["pokemon"] = DisableFeatureKeys.Pokemon,
-        ["raid"] = DisableFeatureKeys.Raids,
-        ["egg"] = DisableFeatureKeys.Raids,
-        ["quest"] = DisableFeatureKeys.Quests,
-        ["invasion"] = DisableFeatureKeys.Invasions,
-        ["lure"] = DisableFeatureKeys.Lures,
-        ["nest"] = DisableFeatureKeys.Nests,
-        ["gym"] = DisableFeatureKeys.Gyms,
-    };
-
     private readonly ILogger<TestAlertController> _logger = logger;
-    private readonly ISiteSettingService _siteSettings = siteSettings;
+    private readonly IFeatureGate _featureGate = featureGate;
     private readonly ITestAlertService _testAlertService = testAlertService;
 
     [HttpPost("{type}/{uid:int}")]
@@ -45,13 +29,13 @@ public partial class TestAlertController(
             });
         }
 
-        if (DisableKeys.TryGetValue(type, out var disableKey) && await this._siteSettings.GetBoolAsync(disableKey))
+        // Reuses the centralized type→disable-key map and the same FeatureGate the alarm services
+        // and resource filter use — so a future tweak (new alarm type, key rename) only touches
+        // DisableFeatureKeys, not this controller. Throws FeatureDisabledException → global
+        // FeatureDisabledExceptionFilter returns 403 with disableKey body. (#236)
+        if (DisableFeatureKeys.ByTrackingType.TryGetValue(type, out var disableKey))
         {
-            return this.StatusCode(StatusCodes.Status403Forbidden, new
-            {
-                error = "This feature is disabled by the administrator.",
-                disableKey
-            });
+            await this._featureGate.EnsureEnabledAsync(disableKey);
         }
 
         try

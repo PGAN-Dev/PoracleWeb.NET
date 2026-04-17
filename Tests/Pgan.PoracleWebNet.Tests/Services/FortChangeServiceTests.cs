@@ -171,6 +171,33 @@ public class FortChangeServiceTests
         Assert.Equal(expected, isValid);
     }
 
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.FortChanges))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.FortChanges));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new FortChange()));
+
+        Assert.Equal(DisableFeatureKeys.FortChanges, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.FortChanges))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.FortChanges));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<FortChange> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
     private static JsonElement CreateJsonArray(params object[] items)
     {
         var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);
