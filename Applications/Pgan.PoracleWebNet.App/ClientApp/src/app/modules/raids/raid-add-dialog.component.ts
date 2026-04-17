@@ -5,11 +5,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
@@ -20,11 +17,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { RaidService } from '../../core/services/raid.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
-import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
-import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
-import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { RaidDeliverySectionComponent } from '../../shared/components/raid-delivery-section/raid-delivery-section.component';
+import { RaidSettingsSectionComponent } from '../../shared/components/raid-settings-section/raid-settings-section.component';
 
 @Component({
   imports: [
@@ -32,21 +27,16 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
-    MatInputModule,
     MatSelectModule,
-    MatSlideToggleModule,
     MatIconModule,
     MatTabsModule,
     MatCheckboxModule,
-    MatRadioModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslateModule,
     PokemonSelectorComponent,
-    TemplateSelectorComponent,
-    DeliveryPreviewComponent,
-    GymPickerComponent,
-    RsvpToggleComponent,
+    RaidSettingsSectionComponent,
+    RaidDeliverySectionComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -91,16 +81,6 @@ export class RaidAddDialogComponent {
       return this.selectedRaidLevels().length > 0 || this.selectedEggLevels().length > 0;
     }
     return this.selectedPokemonIds().length > 0;
-  }
-
-  onDistanceModeChange(): void {
-    if (this.commonForm.controls.distanceMode.value === 'areas') {
-      this.commonForm.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.commonForm.controls.distanceKm.value) {
-        this.commonForm.controls.distanceKm.setValue(1);
-      }
-    }
   }
 
   onPokemonSelected(ids: number[]): void {

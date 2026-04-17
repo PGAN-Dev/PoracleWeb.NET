@@ -33,52 +33,6 @@ mat-dialog-content {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-size: 13px;
 }
-.full-width {
-  width: 100%;
-}
-h4 {
-  margin: 16px 0 8px;
-  color: var(--text-muted, rgba(0, 0, 0, 0.64));
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-mat-slide-toggle {
-  margin: 16px 0;
-}
-.distance-radio-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.radio-label {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.radio-label mat-icon {
-  margin-top: 2px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-}
-.radio-hint {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  font-weight: normal;
-}
-.team-option-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  vertical-align: middle;
-  margin-right: 6px;
-}
-.gym-picker-hint {
-  margin: 4px 0 12px;
-  font-size: 12px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-}
 @media (max-width: 599px) {
   mat-dialog-content {
     min-width: 0;

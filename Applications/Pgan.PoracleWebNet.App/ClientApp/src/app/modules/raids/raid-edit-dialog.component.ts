@@ -2,12 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
@@ -18,10 +13,8 @@ import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { RaidService } from '../../core/services/raid.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
-import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
-import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
-import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { RaidDeliverySectionComponent } from '../../shared/components/raid-delivery-section/raid-delivery-section.component';
+import { RaidSettingsSectionComponent } from '../../shared/components/raid-settings-section/raid-settings-section.component';
 
 export interface RaidEditDialogData {
   item: Raid | Egg;
@@ -33,19 +26,12 @@ export interface RaidEditDialogData {
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatSlideToggleModule,
     MatIconModule,
-    MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
     TranslateModule,
-    TemplateSelectorComponent,
-    DeliveryPreviewComponent,
-    GymPickerComponent,
-    RsvpToggleComponent,
+    RaidSettingsSectionComponent,
+    RaidDeliverySectionComponent,
   ],
   selector: 'app-raid-edit-dialog',
   standalone: true,
@@ -96,16 +82,6 @@ export class RaidEditDialogComponent {
       return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
     }
     return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + raid.level + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
-  }
-
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') {
-      this.form.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.form.controls.distanceKm.value) {
-        this.form.controls.distanceKm.setValue(1);
-      }
-    }
   }
 
   onImageError(event: Event): void {
