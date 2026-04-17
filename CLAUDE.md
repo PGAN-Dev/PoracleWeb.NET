@@ -525,8 +525,8 @@ dotnet ef migrations script \
 | KojiService | `Core/Pgan.PoracleWebNet.Core.Services/KojiService.cs` |
 | DiscordNotificationService | `Core/Pgan.PoracleWebNet.Core.Services/DiscordNotificationService.cs` |
 | IPwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPwebSettingService.cs` |
-| ScannerService | `Core/Pgan.PoracleWebNet.Core.Services/ScannerService.cs` |
 | IScannerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IScannerService.cs` |
+| ScannerService | `Core/Pgan.PoracleWebNet.Core.Services/ScannerService.cs` |
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
 | Test Alert Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/TestAlertController.cs` |
 | ITestAlertService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/ITestAlertService.cs` |

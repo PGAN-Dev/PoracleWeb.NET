@@ -158,8 +158,10 @@ The scanner DB (`ScannerDb` connection string) is optional. When not configured,
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/scanner/gyms?search=term&limit=20` | Search gyms by name (LIKE `%term%`). Minimum 2-character query, limit capped at 50. |
-| `GET /api/scanner/gyms/{id}` | Return a single gym by its ID. |
+| `GET /api/scanner/gyms?search=term&limit=20` | Search gyms by name prefix (`term%`, index-sargable). User input is escaped for LIKE wildcards (`%`, `_`, `\`). Search length 2--100 chars; `limit` clamped to `[1, 50]`. |
+| `GET /api/scanner/gyms/{id}` | Return a single gym by its ID (max 128 chars). |
+
+Both endpoints are rate-limited under the `scanner-search` policy (60 requests/min per IP).
 
 Both endpoints resolve the gym's area name by running point-in-polygon checks against cached Koji admin geofences (via `IKojiService.GetAdminGeofencesAsync()`). The first matching fence name is set on the result's `Area` property.
 
@@ -211,13 +213,15 @@ Weather data is served via `IScannerService` from the scanner DB (`ScannerWeathe
 
 ## Rate limiting
 
-Auth endpoints use **per-IP** partitioned rate limiting:
+Sensitive endpoints use **per-IP** partitioned rate limiting:
 
-| Policy | Limit | Window |
-|---|---|---|
-| `auth` | 30 requests | 60 seconds |
-| `auth-read` | 120 requests | 60 seconds |
-| `test-alert` | 5 requests | 60 seconds |
+| Policy | Limit | Window | Applied to |
+|---|---|---|---|
+| `auth` | 30 requests | 60 seconds | Login / callback / token exchange |
+| `auth-read` | 120 requests | 60 seconds | Current user, profile switch |
+| `test-alert` | 5 requests | 60 seconds | Test-alert sends |
+| `geojson-import` | 5 requests | 60 seconds | Admin GeoJSON import |
+| `scanner-search` | 60 requests | 60 seconds | Scanner gym search / lookup |
 
 Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
 

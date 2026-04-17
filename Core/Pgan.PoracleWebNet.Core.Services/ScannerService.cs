@@ -9,6 +9,8 @@ public class ScannerService(ScannerDbContext context) : IScannerService
 {
     private readonly ScannerDbContext _context = context;
 
+    private const int MaxResultRows = 5000;
+
     public async Task<IEnumerable<QuestData>> GetActiveQuestsAsync() => await this._context.Pokestops
             .AsNoTracking()
             .Where(p => p.QuestType != null)
@@ -24,6 +26,7 @@ public class ScannerService(ScannerDbContext context) : IScannerService
                     ? (p.QuestItemId ?? 0)
                     : (p.QuestPokemonId ?? 0)
             })
+            .Take(MaxResultRows)
             .ToListAsync();
 
     public async Task<IEnumerable<RaidData>> GetActiveRaidsAsync()
@@ -44,6 +47,7 @@ public class ScannerService(ScannerDbContext context) : IScannerService
                 Form = g.RaidPokemonForm ?? 0,
                 EndTime = DateTimeOffset.FromUnixTimeSeconds(g.RaidEndTimestamp ?? 0)
             })
+            .Take(MaxResultRows)
             .ToListAsync();
     }
 
@@ -102,29 +106,27 @@ public class ScannerService(ScannerDbContext context) : IScannerService
             return [];
         }
 
-        var rows = await this._context.Weather
+        return await this._context.Weather
             .AsNoTracking()
             .Where(w => uniqueIds.Contains(w.Id))
-            .ToListAsync();
-
-        return rows.ToDictionary(
-            w => w.Id,
-            w => WeatherData.FromCondition(
-                w.GameplayCondition ?? 0,
-                w.Severity ?? 0,
-                (w.WarnWeather ?? 0) > 0,
-                w.Updated));
+            .ToDictionaryAsync(
+                w => w.Id,
+                w => WeatherData.FromCondition(
+                    w.GameplayCondition ?? 0,
+                    w.Severity ?? 0,
+                    (w.WarnWeather ?? 0) > 0,
+                    w.Updated));
     }
 
     public async Task<IEnumerable<GymSearchResult>> SearchGymsAsync(string search, int limit = 20)
     {
-        var query = this._context.Gyms
-            .AsNoTracking()
-            .Where(g => g.Name != null && EF.Functions.Like(g.Name, $"%{search}%"))
-            .OrderBy(g => g.Name)
-            .Take(limit);
+        var pattern = EscapeLikePattern(search) + "%";
 
-        return await query
+        return await this._context.Gyms
+            .AsNoTracking()
+            .Where(g => g.Name != null && EF.Functions.Like(g.Name, pattern, "\\"))
+            .OrderBy(g => g.Name)
+            .Take(limit)
             .Select(g => new GymSearchResult
             {
                 Id = g.Id,
@@ -136,4 +138,9 @@ public class ScannerService(ScannerDbContext context) : IScannerService
             })
             .ToListAsync();
     }
+
+    public static string EscapeLikePattern(string input) => input
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal);
 }

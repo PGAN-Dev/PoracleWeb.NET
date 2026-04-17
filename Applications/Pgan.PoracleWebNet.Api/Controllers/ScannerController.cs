@@ -1,11 +1,22 @@
+using System.Data.Common;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/scanner")]
-public class ScannerController(IScannerService? scannerService = null, IKojiService? kojiService = null) : BaseApiController
+public class ScannerController(
+    ILogger<ScannerController> logger,
+    IScannerService? scannerService = null,
+    IKojiService? kojiService = null) : BaseApiController
 {
+    private const int MinSearchLength = 2;
+    private const int MaxSearchLength = 100;
+    private const int MaxLimit = 50;
+    private const int MaxIdLength = 128;
+
+    private readonly ILogger<ScannerController> _logger = logger;
     private readonly IScannerService? _scannerService = scannerService;
     private readonly IKojiService? _kojiService = kojiService;
 
@@ -20,8 +31,16 @@ public class ScannerController(IScannerService? scannerService = null, IKojiServ
             });
         }
 
-        var quests = await this._scannerService.GetActiveQuestsAsync();
-        return this.Ok(quests);
+        try
+        {
+            var quests = await this._scannerService.GetActiveQuestsAsync();
+            return this.Ok(quests);
+        }
+        catch (Exception ex) when (ex is DbException or InvalidOperationException)
+        {
+            this._logger.LogError(ex, "Scanner DB query failed for GetActiveQuests");
+            return this.Ok(Array.Empty<object>());
+        }
     }
 
     [HttpGet("raids")]
@@ -35,8 +54,16 @@ public class ScannerController(IScannerService? scannerService = null, IKojiServ
             });
         }
 
-        var raids = await this._scannerService.GetActiveRaidsAsync();
-        return this.Ok(raids);
+        try
+        {
+            var raids = await this._scannerService.GetActiveRaidsAsync();
+            return this.Ok(raids);
+        }
+        catch (Exception ex) when (ex is DbException or InvalidOperationException)
+        {
+            this._logger.LogError(ex, "Scanner DB query failed for GetActiveRaids");
+            return this.Ok(Array.Empty<object>());
+        }
     }
 
     [HttpGet("max-battle-pokemon")]
@@ -52,16 +79,18 @@ public class ScannerController(IScannerService? scannerService = null, IKojiServ
             var pokemonIds = await this._scannerService.GetMaxBattlePokemonIdsAsync();
             return this.Ok(pokemonIds);
         }
-        catch
+        catch (Exception ex) when (ex is DbException or InvalidOperationException)
         {
+            this._logger.LogError(ex, "Scanner DB query failed for GetMaxBattlePokemon");
             return this.Ok(Array.Empty<int>());
         }
     }
 
     [HttpGet("gyms/{id}")]
+    [EnableRateLimiting("scanner-search")]
     public async Task<IActionResult> GetGymById(string id)
     {
-        if (this._scannerService == null)
+        if (this._scannerService == null || string.IsNullOrEmpty(id) || id.Length > MaxIdLength)
         {
             return this.NotFound();
         }
@@ -74,60 +103,82 @@ public class ScannerController(IScannerService? scannerService = null, IKojiServ
                 return this.NotFound();
             }
 
-            if (this._kojiService != null)
-            {
-                var fences = await this._kojiService.GetAdminGeofencesAsync();
-                foreach (var fence in fences)
-                {
-                    if (IScannerService.PointInPolygon(gym.Lat, gym.Lon, fence.Path))
-                    {
-                        gym.Area = fence.Name;
-                        break;
-                    }
-                }
-            }
-
+            await this.ResolveGymAreaAsync(gym);
             return this.Ok(gym);
         }
-        catch
+        catch (Exception ex) when (ex is DbException or InvalidOperationException)
         {
+            this._logger.LogError(ex, "Scanner DB query failed for GetGymById {GymId}", id);
             return this.NotFound();
         }
     }
 
     [HttpGet("gyms")]
+    [EnableRateLimiting("scanner-search")]
     public async Task<IActionResult> SearchGyms([FromQuery] string search = "", [FromQuery] int limit = 20)
     {
-        if (this._scannerService == null || search.Length < 2)
+        var trimmed = (search ?? string.Empty).Trim();
+        if (this._scannerService == null || trimmed.Length < MinSearchLength || trimmed.Length > MaxSearchLength)
         {
             return this.Ok(Array.Empty<object>());
         }
 
+        var safeLimit = Math.Clamp(limit, 1, MaxLimit);
+
         try
         {
-            var gyms = (await this._scannerService.SearchGymsAsync(search, Math.Min(limit, 50))).ToList();
+            var gyms = (await this._scannerService.SearchGymsAsync(trimmed, safeLimit)).ToList();
 
-            if (this._kojiService != null && gyms.Count > 0)
+            if (gyms.Count > 0)
             {
-                var fences = await this._kojiService.GetAdminGeofencesAsync();
-                foreach (var gym in gyms)
-                {
-                    foreach (var fence in fences)
-                    {
-                        if (IScannerService.PointInPolygon(gym.Lat, gym.Lon, fence.Path))
-                        {
-                            gym.Area = fence.Name;
-                            break;
-                        }
-                    }
-                }
+                await this.ResolveGymAreasAsync(gyms);
             }
 
             return this.Ok(gyms);
         }
-        catch
+        catch (Exception ex) when (ex is DbException or InvalidOperationException)
         {
+            this._logger.LogError(ex, "Scanner DB query failed for SearchGyms");
             return this.Ok(Array.Empty<object>());
+        }
+    }
+
+    private async Task ResolveGymAreaAsync(Core.Models.GymSearchResult gym)
+    {
+        if (this._kojiService == null)
+        {
+            return;
+        }
+
+        var fences = await this._kojiService.GetAdminGeofencesAsync();
+        foreach (var fence in fences)
+        {
+            if (IScannerService.PointInPolygon(gym.Lat, gym.Lon, fence.Path))
+            {
+                gym.Area = fence.Name;
+                return;
+            }
+        }
+    }
+
+    private async Task ResolveGymAreasAsync(IReadOnlyList<Core.Models.GymSearchResult> gyms)
+    {
+        if (this._kojiService == null)
+        {
+            return;
+        }
+
+        var fences = await this._kojiService.GetAdminGeofencesAsync();
+        foreach (var gym in gyms)
+        {
+            foreach (var fence in fences)
+            {
+                if (IScannerService.PointInPolygon(gym.Lat, gym.Lon, fence.Path))
+                {
+                    gym.Area = fence.Name;
+                    break;
+                }
+            }
         }
     }
 }

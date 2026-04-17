@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Scanner types renamed from `Rdm*` to generic `Scanner*`** ([#232](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/232)): the scanner DB context and entities were named `RdmScannerContext` / `Rdm{Gym,Pokestop,Station,Weather}Entity` / `RdmScannerService`, but the schema is backend-agnostic. Renamed to `ScannerDbContext` / `Scanner*Entity` / `ScannerService` and updated example connection strings and prose to reference **Golbat** (the currently supported scanner backend). No behavior change; `IScannerService` interface unchanged; no migrations or `[Table]` mappings affected. Impacts only consumers that reference the implementation types directly — standard DI registration uses the `IScannerService` interface and is unaffected.
 
+### Security
+- **Hardened the scanner path** ([#232](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/232)): the gym search endpoint (`GET /api/scanner/gyms?search=…`) now escapes user-supplied `%`, `_`, and `\` before building the LIKE pattern and uses a prefix match so the `gym.name` index can be used. Added a per-IP rate-limit policy (`scanner-search`, 60 req/min) on `/api/scanner/gyms` and `/api/scanner/gyms/{id}`. The `id` path segment and `search` query param are length-bounded (≤128 and 2–100 chars respectively), and `limit` is clamped to `[1, 50]`. `ScannerController`'s previously unlogged `catch {}` blocks now narrow to `DbException`/`InvalidOperationException` and emit `ILogger` errors so scanner-DB failures are visible in ops. `GetActiveQuests` and `GetActiveRaids` get the same protection so a down scanner DB no longer surfaces a 500 with a stack trace.
+
+### Performance
+- **Capped unbounded scanner queries** ([#232](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/232)): `GetActiveQuestsAsync` and `GetActiveRaidsAsync` now `Take(5000)` so a large Golbat deployment can't stream 50k+ rows in a single response. `GetWeatherForCellsAsync` now projects directly to a dictionary via `ToDictionaryAsync` instead of materializing an intermediate list. Gym search switched from leading-wildcard `%term%` to prefix `term%`, making the query index-usable.
+
 ## [2.8.0] - 2026-04-14
 
 ### Changed
