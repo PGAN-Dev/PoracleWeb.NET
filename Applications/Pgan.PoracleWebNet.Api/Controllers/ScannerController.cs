@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -152,13 +153,10 @@ public class ScannerController(
         }
 
         var fences = await this._kojiService.GetAdminGeofencesAsync();
-        foreach (var fence in fences)
+        var matchingFence = fences.FirstOrDefault(fence => FenceContains(fence, gym.Lat, gym.Lon));
+        if (matchingFence != null)
         {
-            if (FenceContains(fence, gym.Lat, gym.Lon))
-            {
-                gym.Area = fence.Name;
-                return;
-            }
+            gym.Area = matchingFence.Name;
         }
     }
 
