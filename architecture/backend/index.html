@@ -1,0 +1,2596 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web application for managing Poracle Pokemon GO notification alarms">
+      
+      
+      
+        <link rel="canonical" href="https://pgan-dev.github.io/PoracleWeb.NET/architecture/backend/">
+      
+      
+        <link rel="prev" href="../poracleng-proxy/">
+      
+      
+        <link rel="next" href="../frontend/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Backend Patterns - PoracleWeb.NET</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#backend-patterns" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="PoracleWeb.NET" class="md-header__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PoracleWeb.NET
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Backend Patterns
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quick-start/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../configuration/reference/" class="md-tabs__link">
+          
+  
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/alarms/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../development/testing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../poracleng-enhancement-requests/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  PoracleNG Enhancement Requests
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="PoracleWeb.NET" class="md-nav__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PoracleWeb.NET
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start (Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/standalone-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standalone Setup (no Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/discord-oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discord OAuth2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/site-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Site Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../poracleng-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG API Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alarm-services-poracleng-api-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alarm services (PoracleNG API proxy)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alarm services (PoracleNG API proxy)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#json-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repository-layer-non-alarm-entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository layer (non-alarm entities)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automapper-non-alarm-entities-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AutoMapper (non-alarm entities only)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alarm-field-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alarm field defaults
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-alert-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test alert service
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fort-change-and-max-battle-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fort change and Max Battle services
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#invasion-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Invasion service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Invasion service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#grunttype-case-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GruntType case normalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bulk-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk operations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracle-api-proxies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poracle API proxies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Poracle API proxies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iporacletrackingproxy-alarm-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPoracleTrackingProxy (alarm tracking)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iporaclehumanproxy-humanprofile-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPoracleHumanProxy (human/profile management)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iporacleapiproxy-config-areas-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPoracleApiProxy (config, areas, templates)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-parsing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config parsing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Areas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#location" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Location
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-lifetimes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service lifetimes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Profiles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#active-hours" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active hours
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scanner-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanner service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scanner service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gym-search-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gym search endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gymsearchresult-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GymSearchResult model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scannergymentityurl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ScannerGymEntity.Url
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pointinpolygon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PointInPolygon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#golbat-api-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Golbat API proxy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Golbat API proxy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#igolbatapiproxy-pokemon-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IGolbatApiProxy (Pokemon availability)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ipokemonavailabilityservice-caching-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPokemonAvailabilityService (caching layer)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#weather-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Weather data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rate limiting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/alarms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alarm Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/profiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/custom-geofences/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/internationalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../poracleng-enhancement-requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Enhancement Requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alarm-services-poracleng-api-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alarm services (PoracleNG API proxy)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alarm services (PoracleNG API proxy)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#json-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repository-layer-non-alarm-entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository layer (non-alarm entities)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automapper-non-alarm-entities-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AutoMapper (non-alarm entities only)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alarm-field-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alarm field defaults
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-alert-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test alert service
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fort-change-and-max-battle-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fort change and Max Battle services
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#invasion-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Invasion service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Invasion service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#grunttype-case-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GruntType case normalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bulk-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk operations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracle-api-proxies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poracle API proxies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Poracle API proxies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iporacletrackingproxy-alarm-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPoracleTrackingProxy (alarm tracking)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iporaclehumanproxy-humanprofile-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPoracleHumanProxy (human/profile management)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iporacleapiproxy-config-areas-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPoracleApiProxy (config, areas, templates)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-parsing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config parsing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Areas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#location" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Location
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-lifetimes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service lifetimes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Profiles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#active-hours" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active hours
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scanner-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanner service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scanner service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gym-search-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gym search endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gymsearchresult-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GymSearchResult model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scannergymentityurl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ScannerGymEntity.Url
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pointinpolygon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PointInPolygon
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#golbat-api-proxy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Golbat API proxy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Golbat API proxy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#igolbatapiproxy-pokemon-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IGolbatApiProxy (Pokemon availability)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ipokemonavailabilityservice-caching-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPokemonAvailabilityService (caching layer)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#weather-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Weather data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rate limiting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="backend-patterns">Backend Patterns<a class="headerlink" href="#backend-patterns" title="Permanent link">&para;</a></h1>
+<h2 id="alarm-services-poracleng-api-proxy">Alarm services (PoracleNG API proxy)<a class="headerlink" href="#alarm-services-poracleng-api-proxy" title="Permanent link">&para;</a></h2>
+<p>All alarm tracking services (<code>MonsterService</code>, <code>RaidService</code>, <code>EggService</code>, <code>QuestService</code>, <code>InvasionService</code>, <code>LureService</code>, <code>NestService</code>, <code>GymService</code>, <code>FortChangeService</code>, <code>MaxBattleService</code>) use <code>IPoracleTrackingProxy</code> to proxy CRUD operations through the PoracleNG REST API. They do <strong>not</strong> use repositories or direct database access.</p>
+<p>See <a href="../poracleng-proxy/">PoracleNG API Proxy</a> for the full architecture, request flow, and how to add new alarm types.</p>
+<h3 id="json-serialization">JSON serialization<a class="headerlink" href="#json-serialization" title="Permanent link">&para;</a></h3>
+<p>Alarm data is serialized/deserialized with <code>JsonNamingPolicy.SnakeCaseLower</code> to match PoracleNG's snake_case field names:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">private</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="k">readonly</span><span class="w"> </span><span class="n">JsonSerializerOptions</span><span class="w"> </span><span class="n">SnakeCaseOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="p">()</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">{</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="n">PropertyNamingPolicy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JsonNamingPolicy</span><span class="p">.</span><span class="n">SnakeCaseLower</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="n">PropertyNameCaseInsensitive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">};</span>
+</span></code></pre></div>
+<h3 id="update-pattern">Update pattern<a class="headerlink" href="#update-pattern" title="Permanent link">&para;</a></h3>
+<p>PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a <code>uid</code> field, it updates the existing alarm. Services use the same <code>CreateAsync</code> proxy method for both operations.</p>
+<h2 id="repository-layer-non-alarm-entities">Repository layer (non-alarm entities)<a class="headerlink" href="#repository-layer-non-alarm-entities" title="Permanent link">&para;</a></h2>
+<p><code>HumanRepository</code> is used only for <strong>admin bulk operations</strong> (<code>GetAllAsync</code>, <code>DeleteUserAsync</code>, <code>UpdateAsync</code>) that lack PoracleNG API equivalents. Single-user human reads and writes go through <code>IPoracleHumanProxy</code>. <code>poracle_web</code>-owned entities (<code>SiteSettingRepository</code>, <code>WebhookDelegateRepository</code>, <code>QuickPickDefinitionRepository</code>, <code>QuickPickAppliedStateRepository</code>) use their own dedicated repository classes.</p>
+<div class="admonition note">
+<p class="admonition-title"><code>BaseRepository</code> removed</p>
+<p>The generic <code>BaseRepository&lt;TEntity, TModel&gt;</code> and all alarm repository classes have been removed. <code>EnsureNotNullDefaults()</code> is no longer needed -- PoracleNG handles NULL defaults for alarm writes, and the remaining repositories handle null normalization as needed.</p>
+</div>
+<h2 id="automapper-non-alarm-entities-only">AutoMapper (non-alarm entities only)<a class="headerlink" href="#automapper-non-alarm-entities-only" title="Permanent link">&para;</a></h2>
+<p>AutoMapper is used for <code>humans</code> and <code>profiles</code> entities. Alarm tracking data flows as raw JSON through the PoracleNG API proxy and does not use AutoMapper.</p>
+<p>All <code>*Update</code> models for non-alarm entities use <strong>nullable <code>int?</code></strong> properties so partial updates don't zero out unset fields.</p>
+<div class="highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">// The mapping profile skips null properties</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="p">.</span><span class="n">ForAllMembers</span><span class="p">(</span><span class="n">opts</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">opts</span><span class="p">.</span><span class="n">Condition</span><span class="p">((</span><span class="n">_</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="p">,</span><span class="w"> </span><span class="n">srcMember</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">srcMember</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="k">null</span><span class="p">))</span>
+</span></code></pre></div>
+<h2 id="alarm-field-defaults">Alarm field defaults<a class="headerlink" href="#alarm-field-defaults" title="Permanent link">&para;</a></h2>
+<p>PoracleNG's <code>cleanRow()</code> function applies field defaults on every create/update. PoracleWeb.NET no longer needs to manage alarm defaults directly. However, the frontend still sends sensible initial values to avoid confusing the user when the add dialog opens:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Frontend default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>max_iv</code></td>
+<td>100</td>
+<td></td>
+</tr>
+<tr>
+<td><code>max_cp</code></td>
+<td>9000</td>
+<td></td>
+</tr>
+<tr>
+<td><code>max_level</code></td>
+<td>55</td>
+<td></td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td>-1</td>
+<td>Means "any size"</td>
+</tr>
+<tr>
+<td><code>team</code> (Raid/Egg/Gym)</td>
+<td>4</td>
+<td>Means "any team"</td>
+</tr>
+<tr>
+<td><code>move</code> (Raid)</td>
+<td>9000</td>
+<td>Means "any move"</td>
+</tr>
+<tr>
+<td><code>evolution</code> (Raid)</td>
+<td>9000</td>
+<td>Means "any evolution"</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition info">
+<p class="admonition-title">Defaults are now enforced server-side</p>
+<p>Even if the frontend sends incomplete data, PoracleNG's <code>cleanRow()</code> fills in proper defaults. This eliminates the class of bugs where missing C# model defaults caused silent filter breakage.</p>
+</div>
+<h2 id="test-alert-service">Test alert service<a class="headerlink" href="#test-alert-service" title="Permanent link">&para;</a></h2>
+<p><code>TestAlertService</code> lets users trigger a sample notification for any configured alarm. It uses <code>Task.WhenAll</code> to fetch the alarm (via <code>IPoracleTrackingProxy</code>) and the human record (via <code>IPoracleHumanProxy</code>) in parallel. It then constructs a realistic mock webhook payload based on the alarm's filter fields (e.g., <code>pokemon_id</code>, <code>raid_level</code>, <code>quest_reward</code>) using the user's location as the event coordinates. The payload is sent to PoracleNG's <code>POST /api/test</code> endpoint, which formats and delivers the notification. Rate-limited at 5 requests per 60s per IP via the <code>test-alert</code> policy.</p>
+<h2 id="fort-change-and-max-battle-services">Fort change and Max Battle services<a class="headerlink" href="#fort-change-and-max-battle-services" title="Permanent link">&para;</a></h2>
+<p><code>FortChangeService</code> and <code>MaxBattleService</code> follow the same <code>IPoracleTrackingProxy</code> pattern as all other alarm services. They proxy CRUD operations through PoracleNG's tracking endpoints with no direct database access. Each has the standard three distance endpoints (<code>PUT /{uid}</code>, <code>PUT /distance</code>, <code>PUT /distance/bulk</code>).</p>
+<h2 id="invasion-service">Invasion service<a class="headerlink" href="#invasion-service" title="Permanent link">&para;</a></h2>
+<h3 id="grunttype-case-normalization">GruntType case normalization<a class="headerlink" href="#grunttype-case-normalization" title="Permanent link">&para;</a></h3>
+<p><code>InvasionService.CreateAsync()</code> and <code>BulkCreateAsync()</code> call <code>ToLowerInvariant()</code> on the <code>GruntType</code> field before saving. This matches Poracle's case-sensitive matching behavior — grunt types must be lowercase for notifications to fire correctly.</p>
+<h2 id="bulk-operations">Bulk operations<a class="headerlink" href="#bulk-operations" title="Permanent link">&para;</a></h2>
+<p>Each alarm controller has three distance endpoints:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PUT /{uid}</code></td>
+<td>Update a single alarm (full object)</td>
+</tr>
+<tr>
+<td><code>PUT /distance</code></td>
+<td>Update ALL alarms' distance for the current user/profile</td>
+</tr>
+<tr>
+<td><code>PUT /distance/bulk</code></td>
+<td>Update distance for specific UIDs: <code>{ uids: number[], distance: number }</code></td>
+</tr>
+</tbody>
+</table>
+<p>All three endpoints go through the PoracleNG API proxy. Bulk distance updates fetch all alarms via <code>GET</code>, modify the distance field in memory, then POST the updated alarms back. This is a workaround until PoracleNG adds dedicated bulk distance endpoints (see <a href="../../poracleng-enhancement-requests/">enhancement requests</a>).</p>
+<h2 id="poracle-api-proxies">Poracle API proxies<a class="headerlink" href="#poracle-api-proxies" title="Permanent link">&para;</a></h2>
+<h3 id="iporacletrackingproxy-alarm-tracking">IPoracleTrackingProxy (alarm tracking)<a class="headerlink" href="#iporacletrackingproxy-alarm-tracking" title="Permanent link">&para;</a></h3>
+<p>Proxies all alarm CRUD operations to PoracleNG's <code>/api/tracking/*</code> endpoints. Authenticated via <code>X-Poracle-Secret</code> header. See <a href="../poracleng-proxy/">PoracleNG API Proxy</a> for full details.</p>
+<ul>
+<li>Registered via <code>AddHttpClient&lt;IPoracleTrackingProxy, PoracleTrackingProxy&gt;()</code></li>
+<li>Used by: all alarm services, <code>DashboardService</code>, <code>CleaningService</code></li>
+</ul>
+<h3 id="iporaclehumanproxy-humanprofile-management">IPoracleHumanProxy (human/profile management)<a class="headerlink" href="#iporaclehumanproxy-humanprofile-management" title="Permanent link">&para;</a></h3>
+<p>Proxies single-user human and profile operations to PoracleNG's <code>/api/humans/*</code> and <code>/api/profiles/*</code> endpoints. Handles user reads, creation, location setting, area updates, profile switching, and profile CRUD.</p>
+<ul>
+<li>Registered via <code>AddHttpClient&lt;IPoracleHumanProxy, PoracleHumanProxy&gt;()</code></li>
+<li>Used by: <code>HumanService</code>, <code>LocationController</code>, <code>AreaController</code>, <code>ProfileController</code>, <code>UserGeofenceService</code></li>
+<li>URL-encodes user IDs with <code>Uri.EscapeDataString()</code> -- critical for webhook IDs that contain slashes</li>
+</ul>
+<h3 id="iporacleapiproxy-config-areas-templates">IPoracleApiProxy (config, areas, templates)<a class="headerlink" href="#iporacleapiproxy-config-areas-templates" title="Permanent link">&para;</a></h3>
+<p>Wraps HttpClient calls for non-tracking Poracle API operations.</p>
+<ul>
+<li>Used for: fetching config, areas/geofences, templates, sending commands</li>
+<li>Registered via <code>AddHttpClient&lt;IPoracleApiProxy, PoracleApiProxy&gt;()</code></li>
+</ul>
+<h3 id="config-parsing">Config parsing<a class="headerlink" href="#config-parsing" title="Permanent link">&para;</a></h3>
+<p><code>PoracleConfig</code> is parsed from Poracle's JSON configuration. The <code>defaultTemplateName</code> field can be a number or string — deserialization handles both via <code>JsonElement</code>.</p>
+<h2 id="areas">Areas<a class="headerlink" href="#areas" title="Permanent link">&para;</a></h2>
+<p>User areas are managed through <code>IPoracleHumanProxy.SetAreasAsync()</code>. PoracleNG handles the dual-write to both <code>humans.area</code> and <code>profiles.area</code> internally.</p>
+<p>Geofence polygons come from the Poracle API (via the unified feed), not the database.</p>
+<h2 id="location">Location<a class="headerlink" href="#location" title="Permanent link">&para;</a></h2>
+<p><code>LocationController</code> uses <code>IPoracleHumanProxy.SetLocationAsync()</code> to set the user's location. No direct DB access or transactions are needed -- PoracleNG handles the write and state reload atomically.</p>
+<h2 id="service-lifetimes">Service lifetimes<a class="headerlink" href="#service-lifetimes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Lifetime</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Most services</td>
+<td><strong>Scoped</strong></td>
+<td>Per-request</td>
+</tr>
+<tr>
+<td><code>MasterDataService</code></td>
+<td><strong>Singleton</strong></td>
+<td>Cached game data</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition info">
+<p class="admonition-title">DashboardService uses the proxy</p>
+<p><code>DashboardService</code> calls <code>IPoracleTrackingProxy.GetAllTrackingAsync()</code> to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.</p>
+</div>
+<h2 id="profiles">Profiles<a class="headerlink" href="#profiles" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>humans.current_profile_no</code> (not <code>profile_no</code>) tracks the active profile</li>
+<li>All alarm tables reference <code>profile_no</code> to filter by active profile</li>
+</ul>
+<h3 id="active-hours">Active hours<a class="headerlink" href="#active-hours" title="Permanent link">&para;</a></h3>
+<p>The <code>Profile</code> model includes an <code>ActiveHours</code> (<code>string?</code>) property representing a JSON array of time-window rules stored in the <code>active_hours</code> column of the <code>profiles</code> table. <code>ProfileService.DeserializeProfiles()</code> extracts <code>active_hours</code> from the PoracleNG proxy's <code>JsonElement</code> response and maps it onto the model.</p>
+<p><code>ProfileController</code> includes <code>active_hours</code> in the proxy payload for Create, Update, and Duplicate endpoints. A <code>ValidateActiveHours</code> internal static method validates the JSON structure before forwarding:</p>
+<ul>
+<li>Each entry must specify <code>day</code> (1--7), <code>hours</code> (0--23), <code>mins</code> (0--59)</li>
+<li>Maximum 28 entries per profile (one per 30-minute slot per day)</li>
+<li>Returns a <code>400 Bad Request</code> with details on validation failure</li>
+</ul>
+<p><code>InternalsVisibleTo</code> is added to the API <code>.csproj</code> so <code>ValidateActiveHours</code> can be tested directly from the xUnit project.</p>
+<h2 id="scanner-service">Scanner service<a class="headerlink" href="#scanner-service" title="Permanent link">&para;</a></h2>
+<p>The scanner DB (<code>ScannerDb</code> connection string) is optional. When not configured, <code>IScannerService</code> is not registered and scanner endpoints return appropriate fallback responses.</p>
+<h3 id="gym-search-endpoints">Gym search endpoints<a class="headerlink" href="#gym-search-endpoints" title="Permanent link">&para;</a></h3>
+<p><code>ScannerController</code> exposes two gym endpoints backed by <code>ScannerService</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/scanner/gyms?search=term&amp;limit=20</code></td>
+<td>Search gyms by name prefix (<code>term%</code>, index-sargable). User input is escaped for LIKE wildcards (<code>%</code>, <code>_</code>, <code>\</code>). Search length 2--100 chars; <code>limit</code> clamped to <code>[1, 50]</code>.</td>
+</tr>
+<tr>
+<td><code>GET /api/scanner/gyms/{id}</code></td>
+<td>Return a single gym by its ID (max 128 chars).</td>
+</tr>
+</tbody>
+</table>
+<p>Both endpoints are rate-limited under the <code>scanner-search</code> policy (60 requests/min per IP).</p>
+<p>Both endpoints resolve the gym's area name by running point-in-polygon checks against cached Koji admin geofences (via <code>IKojiService.GetAdminGeofencesAsync()</code>). The first matching fence name is set on the result's <code>Area</code> property.</p>
+<p>Graceful fallback: if the scanner DB is unreachable or the query fails, the search endpoint returns an empty array and the single-gym endpoint returns 404. If <code>IKojiService</code> is unavailable, area resolution is skipped (gym is returned without an area name).</p>
+<h3 id="gymsearchresult-model">GymSearchResult model<a class="headerlink" href="#gymsearchresult-model" title="Permanent link">&para;</a></h3>
+<p><code>GymSearchResult</code> in <code>Core.Models</code> carries the gym data returned by both endpoints:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td><code>string</code></td>
+<td>Scanner gym ID</td>
+</tr>
+<tr>
+<td><code>Name</code></td>
+<td><code>string?</code></td>
+<td>Gym name from scanner DB</td>
+</tr>
+<tr>
+<td><code>Url</code></td>
+<td><code>string?</code></td>
+<td>Photo thumbnail URL from scanner DB</td>
+</tr>
+<tr>
+<td><code>Lat</code></td>
+<td><code>double</code></td>
+<td>Latitude</td>
+</tr>
+<tr>
+<td><code>Lon</code></td>
+<td><code>double</code></td>
+<td>Longitude</td>
+</tr>
+<tr>
+<td><code>TeamId</code></td>
+<td><code>int?</code></td>
+<td>Controlling team (0 = neutral)</td>
+</tr>
+<tr>
+<td><code>Area</code></td>
+<td><code>string?</code></td>
+<td>Resolved at request time via point-in-polygon, not stored</td>
+</tr>
+</tbody>
+</table>
+<h3 id="scannergymentityurl">ScannerGymEntity.Url<a class="headerlink" href="#scannergymentityurl" title="Permanent link">&para;</a></h3>
+<p>The <code>ScannerGymEntity</code> in the scanner context maps the <code>url</code> column from the <code>gym</code> table, providing gym photo thumbnail URLs to <code>GymSearchResult</code>.</p>
+<h3 id="pointinpolygon">PointInPolygon<a class="headerlink" href="#pointinpolygon" title="Permanent link">&para;</a></h3>
+<p><code>IScannerService</code> declares a static <code>PointInPolygon(double lat, double lon, double[][] polygon)</code> method using the ray-casting algorithm. The method tests if a point lies inside a polygon (where each entry is <code>[lat, lon]</code>) and returns <code>false</code> for degenerate polygons with fewer than 3 vertices. Used by <code>ScannerController</code> to determine which Koji geofence area a gym belongs to.</p>
+<h2 id="golbat-api-proxy">Golbat API proxy<a class="headerlink" href="#golbat-api-proxy" title="Permanent link">&para;</a></h2>
+<h3 id="igolbatapiproxy-pokemon-availability">IGolbatApiProxy (Pokemon availability)<a class="headerlink" href="#igolbatapiproxy-pokemon-availability" title="Permanent link">&para;</a></h3>
+<p>Proxies requests to Golbat's <code>GET /api/pokemon/available</code> endpoint, which returns currently spawning species with per-species/form counts. Authentication uses the <code>X-Golbat-Secret</code> header (per-request, not on DefaultRequestHeaders).</p>
+<ul>
+<li>Registered conditionally via <code>AddHttpClient&lt;IGolbatApiProxy, GolbatApiProxy&gt;()</code> — only when <code>Golbat:ApiAddress</code> is configured</li>
+<li>Response parsing handles both flat arrays <code>[1,2,3]</code> and object arrays <code>[{"id":1,"form":0,"count":100}]</code>, deduplicating by Pokemon ID</li>
+<li>On error: returns empty list (never throws), logs warning</li>
+</ul>
+<h3 id="ipokemonavailabilityservice-caching-layer">IPokemonAvailabilityService (caching layer)<a class="headerlink" href="#ipokemonavailabilityservice-caching-layer" title="Permanent link">&para;</a></h3>
+<p>Caches Golbat availability data in <code>IMemoryCache</code> with a 5-minute absolute expiration. Maintains a <code>_lastKnownGood</code> fallback — if Golbat goes down after a successful fetch, the stale data is served rather than returning empty.</p>
+<ul>
+<li>Registered as <strong>singleton</strong> (only when Golbat is configured)</li>
+<li>Cache key: <code>golbat_available_pokemon</code></li>
+<li><code>PokemonAvailabilityController</code> uses nullable DI injection (<code>IPokemonAvailabilityService? = null</code>) — when Golbat is not configured, the endpoint returns <code>{ available: [], enabled: false }</code></li>
+</ul>
+<h2 id="weather-data">Weather data<a class="headerlink" href="#weather-data" title="Permanent link">&para;</a></h2>
+<p>Weather data is served via <code>IScannerService</code> from the scanner DB (<code>ScannerWeatherEntity</code>). <code>ScannerService</code> fetches weather cells using S2 cell geometry (<code>S2CellHelper</code>) and returns <code>WeatherData</code> models with cell polygons and gameplay weather conditions. The <code>LocationController</code> exposes weather data alongside the user's location. Weather is optional -- when the scanner DB is not configured, weather endpoints return empty results.</p>
+<h2 id="rate-limiting">Rate limiting<a class="headerlink" href="#rate-limiting" title="Permanent link">&para;</a></h2>
+<p>Sensitive endpoints use <strong>per-IP</strong> partitioned rate limiting:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Limit</th>
+<th>Window</th>
+<th>Applied to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auth</code></td>
+<td>30 requests</td>
+<td>60 seconds</td>
+<td>Login / callback / token exchange</td>
+</tr>
+<tr>
+<td><code>auth-read</code></td>
+<td>120 requests</td>
+<td>60 seconds</td>
+<td>Current user, profile switch</td>
+</tr>
+<tr>
+<td><code>test-alert</code></td>
+<td>5 requests</td>
+<td>60 seconds</td>
+<td>Test-alert sends</td>
+</tr>
+<tr>
+<td><code>geojson-import</code></td>
+<td>5 requests</td>
+<td>60 seconds</td>
+<td>Admin GeoJSON import</td>
+</tr>
+<tr>
+<td><code>scanner-search</code></td>
+<td>60 requests</td>
+<td>60 seconds</td>
+<td>Scanner gym search / lookup</td>
+</tr>
+</tbody>
+</table>
+<p>Configured in <code>Program.cs</code> using <code>RateLimitPartition.GetFixedWindowLimiter</code> keyed by <code>RemoteIpAddress</code>.</p>
+<div class="admonition danger">
+<p class="admonition-title">Never use global rate limiting for auth</p>
+<p>Global (non-partitioned) <code>AddFixedWindowLimiter</code> for auth causes cascading login failures — multiple users share one bucket.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

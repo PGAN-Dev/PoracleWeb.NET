@@ -1,0 +1,1363 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Web application for managing Poracle Pokemon GO notification alarms" name="description"/>
+<link href="https://pgan-dev.github.io/PoracleWeb.NET/features/custom-geofences/" rel="canonical"/>
+<link href="../profiles/" rel="prev"/>
+<link href="../internationalization/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>Custom Geofences - PoracleWeb.NET</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="cyan" data-md-color-primary="blue" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#custom-geofences">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="PoracleWeb.NET" class="md-header__button md-logo" data-md-component="logo" href="../.." title="PoracleWeb.NET">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            PoracleWeb.NET
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Custom Geofences
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="cyan" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="blue" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="cyan" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="blue" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../getting-started/quick-start/">
+          
+  
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../configuration/reference/">
+          
+  
+  
+  Configuration
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../architecture/overview/">
+          
+  
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../alarms/">
+          
+  
+  
+  Features
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../development/testing/">
+          
+  
+  
+  Development
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../troubleshooting/">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../poracleng-enhancement-requests/">
+        
+  
+  
+    
+  
+  PoracleNG Enhancement Requests
+
+      </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="PoracleWeb.NET" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="PoracleWeb.NET">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    PoracleWeb.NET
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/quick-start/">
+<span class="md-ellipsis">
+    
+  
+    Quick Start (Docker)
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/standalone-setup/">
+<span class="md-ellipsis">
+    
+  
+    Standalone Setup (no Docker)
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/development-setup/">
+<span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/discord-oauth/">
+<span class="md-ellipsis">
+    
+  
+    Discord OAuth2
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../configuration/reference/">
+<span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../configuration/site-settings/">
+<span class="md-ellipsis">
+    
+  
+    Site Settings
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../configuration/docker/">
+<span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/overview/">
+<span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/poracleng-proxy/">
+<span class="md-ellipsis">
+    
+  
+    PoracleNG API Proxy
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/backend/">
+<span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/frontend/">
+<span class="md-ellipsis">
+    
+  
+    Frontend Patterns
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/database/">
+<span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../alarms/">
+<span class="md-ellipsis">
+    
+  
+    Alarm Management
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../profiles/">
+<span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#how-it-works">
+<span class="md-ellipsis">
+      
+        How it works
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#component-diagram">
+<span class="md-ellipsis">
+      
+        Component diagram
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#detailed-internal-flow">
+<span class="md-ellipsis">
+      
+        Detailed internal flow
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geofence-lifecycle">
+<span class="md-ellipsis">
+      
+        Geofence lifecycle
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#admin-geofence-management">
+<span class="md-ellipsis">
+      
+        Admin geofence management
+      
+    </span>
+</a>
+<nav aria-label="Admin geofence management" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#view-modes">
+<span class="md-ellipsis">
+      
+        View modes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#features">
+<span class="md-ellipsis">
+      
+        Features
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#owner-and-reviewer-resolution">
+<span class="md-ellipsis">
+      
+        Owner and reviewer resolution
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geofence-statuses">
+<span class="md-ellipsis">
+      
+        Geofence statuses
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#limits">
+<span class="md-ellipsis">
+      
+        Limits
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#naming-rules">
+<span class="md-ellipsis">
+      
+        Naming rules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geojson-import-export">
+<span class="md-ellipsis">
+      
+        GeoJSON Import &amp; Export
+      
+    </span>
+</a>
+<nav aria-label="GeoJSON Import &amp; Export" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#export">
+<span class="md-ellipsis">
+      
+        Export
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#import">
+<span class="md-ellipsis">
+      
+        Import
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#caching">
+<span class="md-ellipsis">
+      
+        Caching
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#failover">
+<span class="md-ellipsis">
+      
+        Failover
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setup">
+<span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+</a>
+<nav aria-label="Setup" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-create-the-poraclewebnet-database">
+<span class="md-ellipsis">
+      
+        1. Create the PoracleWeb.NET database
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-configure-the-koji-connection">
+<span class="md-ellipsis">
+      
+        2. Configure the Koji connection
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3-point-poraclejs-to-poraclewebnet">
+<span class="md-ellipsis">
+      
+        3. Point PoracleJS to PoracleWeb.NET
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#4-remove-group_mapjson">
+<span class="md-ellipsis">
+      
+        4. Remove group_map.json
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#5-restart-poraclejs">
+<span class="md-ellipsis">
+      
+        5. Restart PoracleJS
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#6-discord-forum-channel-optional">
+<span class="md-ellipsis">
+      
+        6. Discord forum channel (optional)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../internationalization/">
+<span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/testing/">
+<span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/ci-cd/">
+<span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/code-style/">
+<span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../poracleng-enhancement-requests/">
+<span class="md-ellipsis">
+    
+  
+    PoracleNG Enhancement Requests
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#how-it-works">
+<span class="md-ellipsis">
+      
+        How it works
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#component-diagram">
+<span class="md-ellipsis">
+      
+        Component diagram
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#detailed-internal-flow">
+<span class="md-ellipsis">
+      
+        Detailed internal flow
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geofence-lifecycle">
+<span class="md-ellipsis">
+      
+        Geofence lifecycle
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#admin-geofence-management">
+<span class="md-ellipsis">
+      
+        Admin geofence management
+      
+    </span>
+</a>
+<nav aria-label="Admin geofence management" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#view-modes">
+<span class="md-ellipsis">
+      
+        View modes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#features">
+<span class="md-ellipsis">
+      
+        Features
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#owner-and-reviewer-resolution">
+<span class="md-ellipsis">
+      
+        Owner and reviewer resolution
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geofence-statuses">
+<span class="md-ellipsis">
+      
+        Geofence statuses
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#limits">
+<span class="md-ellipsis">
+      
+        Limits
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#naming-rules">
+<span class="md-ellipsis">
+      
+        Naming rules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#geojson-import-export">
+<span class="md-ellipsis">
+      
+        GeoJSON Import &amp; Export
+      
+    </span>
+</a>
+<nav aria-label="GeoJSON Import &amp; Export" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#export">
+<span class="md-ellipsis">
+      
+        Export
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#import">
+<span class="md-ellipsis">
+      
+        Import
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#caching">
+<span class="md-ellipsis">
+      
+        Caching
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#failover">
+<span class="md-ellipsis">
+      
+        Failover
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setup">
+<span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+</a>
+<nav aria-label="Setup" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#1-create-the-poraclewebnet-database">
+<span class="md-ellipsis">
+      
+        1. Create the PoracleWeb.NET database
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#2-configure-the-koji-connection">
+<span class="md-ellipsis">
+      
+        2. Configure the Koji connection
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#3-point-poraclejs-to-poraclewebnet">
+<span class="md-ellipsis">
+      
+        3. Point PoracleJS to PoracleWeb.NET
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#4-remove-group_mapjson">
+<span class="md-ellipsis">
+      
+        4. Remove group_map.json
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#5-restart-poraclejs">
+<span class="md-ellipsis">
+      
+        5. Restart PoracleJS
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#6-discord-forum-channel-optional">
+<span class="md-ellipsis">
+      
+        6. Discord forum channel (optional)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="custom-geofences">Custom Geofences<a class="headerlink" href="#custom-geofences" title="Permanent link">¶</a></h1>
+<p>Users can draw custom polygon geofences on the "My Geofences" page for precise notification zones (e.g., park boundaries) instead of distance-from-center circles.</p>
+<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">¶</a></h2>
+<p>PoracleWeb.NET acts as the <strong>single geofence source</strong> for PoracleJS. Instead of PoracleJS connecting to Koji directly, PoracleWeb.NET fetches admin geofences from Koji, resolves group names from the Koji parent chain, merges them with user-drawn geofences from its own database, and serves everything via one endpoint. No custom code is needed in PoracleJS or Koji — standard upstream versions work.</p>
+<ol>
+<li>User draws a polygon on the map, saved to the PoracleWeb.NET database</li>
+<li>PoracleWeb.NET serves a <strong>unified geofence feed</strong> via <code>GET /api/geofence-feed</code> — admin geofences from Koji (cached 5 minutes) plus user geofences from the local DB</li>
+<li>PoracleJS loads <strong>all</strong> geofences from a single PoracleWeb.NET URL (no direct Koji connection needed)</li>
+<li>User geofences have <code>displayInMatches: false</code> — names are hidden from all DMs for privacy</li>
+<li>Admin geofences have <code>displayInMatches: true</code> and <code>group</code> populated from Koji parent hierarchy</li>
+<li>Users can submit geofences for admin review, which creates a Discord forum post with a static map</li>
+<li>Admins approve, and the geofence is promoted to Koji as a public area visible to all users</li>
+<li>If Koji is unreachable, user geofences are still served (graceful degradation)</li>
+<li>If PoracleWeb.NET itself is down, PoracleJS falls back to its built-in <code>.cache/</code> directory</li>
+</ol>
+<h2 id="component-diagram">Component diagram<a class="headerlink" href="#component-diagram" title="Permanent link">¶</a></h2>
+<pre class="mermaid"><code>graph LR
+    KojiServer[(Koji Server<br/>Public areas)] --&gt;|admin geofences<br/>cached 5 min| PoracleWeb
+    subgraph PoracleWeb
+        Feed[GeofenceFeedController<br/>GET /api/geofence-feed<br/>Unified proxy]
+        DB[(poracle_web DB<br/>user geofences)]
+    end
+    PoracleWeb --&gt;|single URL<br/>admin + user geofences| Poracle[PoracleJS<br/>geofence.path]
+    Poracle -.-&gt;|failover| Cache[PoracleJS .cache/]
+</code></pre>
+<h2 id="detailed-internal-flow">Detailed internal flow<a class="headerlink" href="#detailed-internal-flow" title="Permanent link">¶</a></h2>
+<pre class="mermaid"><code>graph TB
+    subgraph PoracleWeb
+        UI1[My Geofences Page<br/>Draw / Name / Submit]
+        UI2[Geofence Mgmt<br/>Approve / Reject / Delete]
+        Feed[GeofenceFeedController<br/>GET /api/geofence-feed<br/>Unified proxy]
+        Svc[UserGeofenceService<br/>Create / Delete / Submit / Approve]
+        Koji[KojiService<br/>Fetch admin geofences + approve]
+        Discord[DiscordNotificationService<br/>Forum posts + maps]
+    end
+
+    DB[(poracle_web DB<br/>user_geofences)]
+    KojiServer[(Koji Server<br/>Public areas)]
+    DiscordForum[(Discord Forum<br/>Threads + Tags)]
+    Poracle[PoracleJS<br/>Single URL to PoracleWeb]
+
+    UI1 --&gt; Svc
+    UI2 --&gt; Svc
+    Svc --&gt; DB
+    Svc --&gt; Koji
+    Svc --&gt; Discord
+    Feed --&gt; DB
+    Feed --&gt; Koji
+    Koji --&gt; KojiServer
+    Discord --&gt; DiscordForum
+    Feed -.-&gt;|admin + user geofences| Poracle
+</code></pre>
+<h2 id="geofence-lifecycle">Geofence lifecycle<a class="headerlink" href="#geofence-lifecycle" title="Permanent link">¶</a></h2>
+<pre class="mermaid"><code>stateDiagram-v2
+    [*] --&gt; Create : User draws polygon
+    Create --&gt; Active : Save to DB + add to area + reload Poracle
+
+    Active --&gt; Active : Alerts work via feed endpoint
+    Active --&gt; Submitted : User clicks Submit for Review
+
+    Submitted --&gt; PendingReview : Discord forum post created with map
+    PendingReview --&gt; PendingReview : Still works privately
+
+    PendingReview --&gt; Approved : Admin approves
+    PendingReview --&gt; Rejected : Admin rejects
+
+    Approved --&gt; [*] : Push to Koji as public area\nLock Discord thread
+    Rejected --&gt; Active : Stays private with review notes\nLock Discord thread
+
+    note right of Active : Private — only owner\ngets alerts.\nName hidden from\nall DMs.
+    note right of Approved : Public — all users\ncan select it on\nthe Areas page.
+</code></pre>
+<h2 id="admin-geofence-management">Admin geofence management<a class="headerlink" href="#admin-geofence-management" title="Permanent link">¶</a></h2>
+<p>Admins can view and manage all user-created geofences from the <strong>User Geofences</strong> page in the Admin sidebar (<code>/admin/geofence-submissions</code>).</p>
+<h3 id="view-modes">View modes<a class="headerlink" href="#view-modes" title="Permanent link">¶</a></h3>
+<p>The page supports three view modes, toggled via the toolbar:</p>
+<ul>
+<li><strong>Card view</strong> (default) — Map thumbnail cards grouped by region in collapsible expansion panels. Each card shows the geofence polygon, owner with avatar, status chip, metadata, and action buttons. Map thumbnails are lazy-loaded via <code>IntersectionObserver</code> and preserved across view switches.</li>
+<li><strong>List view</strong> — Compact table grouped by region in collapsible expansion panels. Columns: Name, Status, Owner (with avatar), Region, Points, Created, Actions.</li>
+<li><strong>Table view</strong> — Flat ungrouped table showing all geofences with sortable columns. Columns: Name, Status, Owner, Region, Points, Created, Submitted, Reviewed By, Actions. Click column headers to sort ascending/descending.</li>
+</ul>
+<h3 id="features">Features<a class="headerlink" href="#features" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Region grouping</strong> — Card and list views group geofences by their <code>groupName</code> (region). Each group has a collapsible <code>mat-expansion-panel</code> with the region name and a geofence count badge. Regions are sorted alphabetically, with "No Region" last.</li>
+<li><strong>Sortable columns</strong> — Table view supports sorting by name, status, owner, region, points, created, and submitted date. Click a column header to sort; click again to reverse direction. Sorting also applies to the card and list views.</li>
+<li><strong>Owner display names and avatars</strong> — Resolves Discord/Telegram usernames from the Poracle <code>humans</code> table instead of showing raw user IDs. Circular avatars (24px) are displayed next to owner names. Fallback: generic person icon when no avatar is available.</li>
+<li><strong>Reviewer display names and avatars</strong> — The <code>reviewedBy</code> field is resolved to the reviewer's Discord username and avatar via the same batch human lookup. Reviewer avatars (16px) appear in card metadata and the table's Reviewed By column.</li>
+<li><strong>Map thumbnails</strong> — Each geofence card shows a non-interactive Leaflet map preview with the polygon rendered in its status color. Thumbnails are lazy-loaded via <code>IntersectionObserver</code> for performance.</li>
+<li><strong>Detail dialog</strong> — Click a card's map thumbnail or View button to open an interactive Leaflet map dialog with:<ul>
+<li>Full summary panel (name, owner, group, status, point count, area in km²/m², dates, review notes)</li>
+<li>Interactive pan/zoom map with the polygon auto-fitted to bounds</li>
+<li>Reference geofences from Poracle areas shown as dashed colored outlines (same palette as the Areas page) with name tooltips on hover</li>
+</ul>
+</li>
+<li><strong>Point count and area</strong> — Each geofence shows its vertex count and computed area (m² for areas under 1 km², km² otherwise) using the spherical excess formula</li>
+<li><strong>Status filtering</strong> — Filter tabs for All, Pending, Active, Approved, and Rejected with counts. Filters apply across all view modes.</li>
+<li><strong>Skeleton loading</strong> — Animated skeleton cards with map placeholders during data fetch</li>
+</ul>
+<h3 id="owner-and-reviewer-resolution">Owner and reviewer resolution<a class="headerlink" href="#owner-and-reviewer-resolution" title="Permanent link">¶</a></h3>
+<p>Owner and reviewer names are resolved via a single batch lookup against the Poracle <code>humans</code> table. Distinct owner IDs and reviewer IDs are merged and fetched in one pass for efficiency. Avatars are served from <code>AvatarCacheService</code> with Discord CDN default fallback. The <code>UserGeofence</code> model exposes <code>ownerName</code>, <code>ownerAvatarUrl</code>, <code>reviewedByName</code>, and <code>reviewedByAvatarUrl</code> as enriched (non-mapped) properties set by <code>UserGeofenceService.GetAllWithDetailsAsync()</code> and <code>AdminGeofenceController.GetAll</code>.</p>
+<h2 id="geofence-statuses">Geofence statuses<a class="headerlink" href="#geofence-statuses" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>active</code></td>
+<td>Private, user-only. Alerts work via the feed endpoint.</td>
+</tr>
+<tr>
+<td><code>pending_review</code></td>
+<td>Submitted for admin review. Discord forum post created. Still works privately.</td>
+</tr>
+<tr>
+<td><code>approved</code></td>
+<td>Promoted to Koji as a public area. Visible to all users.</td>
+</tr>
+<tr>
+<td><code>rejected</code></td>
+<td>Remains private with review notes. User can continue using it.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">¶</a></h2>
+<ul>
+<li>Maximum <strong>10</strong> custom geofences per user</li>
+<li>Polygons limited to <strong>500</strong> points</li>
+</ul>
+<h2 id="naming-rules">Naming rules<a class="headerlink" href="#naming-rules" title="Permanent link">¶</a></h2>
+<ul>
+<li>Geofence names (<code>kojiName</code> field) are always <strong>lowercase</strong> because Poracle does case-sensitive area matching</li>
+<li>Names are auto-generated from the user-provided display name (lowercased)</li>
+<li>Collisions are resolved by appending a numeric suffix</li>
+</ul>
+<h2 id="geojson-import-export">GeoJSON Import &amp; Export<a class="headerlink" href="#geojson-import-export" title="Permanent link">¶</a></h2>
+<p>Custom geofences can be exported and imported using the standard <a href="https://geojson.org/">GeoJSON</a> format, making it easy to work with external GIS tools or migrate geofences between systems.</p>
+<h3 id="export">Export<a class="headerlink" href="#export" title="Permanent link">¶</a></h3>
+<ol>
+<li>Click the <strong>download/export</strong> button on the My Geofences page</li>
+<li>Select which geofences to include in the export</li>
+<li>The file is exported as a standard GeoJSON <code>FeatureCollection</code></li>
+<li>Each geofence becomes a <code>Feature</code> with <code>Polygon</code> geometry</li>
+<li>Feature properties include <code>name</code>, <code>region</code>, and <code>status</code></li>
+</ol>
+<p><img alt="GeoJSON export dialog" src="../../screenshots/geofences-export-dialog.png"/></p>
+<p>The exported file is compatible with any GIS tool that supports GeoJSON, including <a href="https://geojson.io">geojson.io</a>, QGIS, Google Earth, and others.</p>
+<h3 id="import">Import<a class="headerlink" href="#import" title="Permanent link">¶</a></h3>
+<ol>
+<li>Click the <strong>upload/import</strong> button on the My Geofences page</li>
+<li>Paste GeoJSON text directly or upload a <code>.geojson</code> file</li>
+<li>Each <code>Polygon</code> in the <code>FeatureCollection</code> creates a new geofence</li>
+<li>Review and rename each geofence before saving</li>
+<li>Region auto-detection applies to imported polygons (same as hand-drawn geofences)</li>
+<li>Names are auto-generated from Feature <code>properties</code> (e.g., <code>name</code> or <code>title</code>) or fall back to the polygon index</li>
+<li>Imported geofences count toward the <strong>10-geofence-per-user limit</strong></li>
+</ol>
+<p><img alt="GeoJSON import dialog" src="../../screenshots/geofences-import-dialog.png"/></p>
+<div class="admonition tip">
+<p class="admonition-title">Use cases</p>
+<ul>
+<li><strong>Migrating from other systems</strong> — Export geofences from another Pokemon GO tool or mapping platform and import them into PoracleWeb.NET</li>
+<li><strong>Drawing in desktop GIS tools</strong> — Use QGIS or geojson.io for precise polygon editing, then import the result</li>
+<li><strong>Sharing boundaries between users</strong> — One user exports their geofences and another imports them</li>
+</ul>
+</div>
+<h2 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">¶</a></h2>
+<ul>
+<li>Admin geofences from Koji are cached in memory for <strong>5 minutes</strong> (<code>IMemoryCache</code>)</li>
+<li>Cache is invalidated when a geofence is approved/promoted to Koji</li>
+<li>User geofences are served directly from the database (no caching)</li>
+</ul>
+<h2 id="failover">Failover<a class="headerlink" href="#failover" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Failure</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Koji unreachable</td>
+<td>Feed endpoint logs the error, still serves user geofences from DB</td>
+</tr>
+<tr>
+<td>PoracleWeb.NET down</td>
+<td>PoracleJS falls back to its built-in <code>.cache/</code> directory</td>
+</tr>
+</tbody>
+</table>
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">¶</a></h2>
+<h3 id="1-create-the-poraclewebnet-database">1. Create the PoracleWeb.NET database<a class="headerlink" href="#1-create-the-poraclewebnet-database" title="Permanent link">¶</a></h3>
+<p>A separate MySQL/MariaDB database for app-owned data:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">DATABASE</span><span class="w"> </span><span class="n">poracle_web</span><span class="p">;</span>
+</span></code></pre></div>
+<p>The <code>user_geofences</code> table is created automatically on first run.</p>
+<h3 id="2-configure-the-koji-connection">2. Configure the Koji connection<a class="headerlink" href="#2-configure-the-koji-connection" title="Permanent link">¶</a></h3>
+<p>Set the following in your environment or <code>appsettings.json</code>:</p>
+<ul>
+<li><code>Koji:ApiAddress</code> — Koji server URL (e.g., <code>http://localhost:8080</code>)</li>
+<li><code>Koji:BearerToken</code> — Koji API bearer token</li>
+<li><code>Koji:ProjectId</code> — Koji project ID for promoted geofences</li>
+<li><code>Koji:ProjectName</code> — Koji project name, used to fetch from <code>/geofence/poracle/{name}</code></li>
+</ul>
+<h3 id="3-point-poraclejs-to-poraclewebnet">3. Point PoracleJS to PoracleWeb.NET<a class="headerlink" href="#3-point-poraclejs-to-poraclewebnet" title="Permanent link">¶</a></h3>
+<p>Set <code>geofence.path</code> in PoracleJS config to a single PoracleWeb.NET URL:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="nt">"geofence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://poracleweb-host:8082/api/geofence-feed"</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Remove <code>kojiOptions.bearerToken</code> from the PoracleJS geofence config if present (it is harmless if left, but no longer needed).</p>
+<h3 id="4-remove-group_mapjson">4. Remove group_map.json<a class="headerlink" href="#4-remove-group_mapjson" title="Permanent link">¶</a></h3>
+<p>Remove <code>group_map.json</code> from PoracleJS if it exists — group names are now resolved automatically from the Koji parent chain by PoracleWeb.</p>
+<h3 id="5-restart-poraclejs">5. Restart PoracleJS<a class="headerlink" href="#5-restart-poraclejs" title="Permanent link">¶</a></h3>
+<div class="highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a>pm2<span class="w"> </span>restart<span class="w"> </span>all
+</span></code></pre></div>
+<h3 id="6-discord-forum-channel-optional">6. Discord forum channel (optional)<a class="headerlink" href="#6-discord-forum-channel-optional" title="Permanent link">¶</a></h3>
+<p>For geofence submission discussions:</p>
+<ol>
+<li>Set <code>Discord:GeofenceForumChannelId</code> to your forum channel ID</li>
+<li>Give the bot <strong>View Channel</strong>, <strong>Send Messages in Threads</strong>, and <strong>Manage Threads</strong> permissions</li>
+<li>Forum tags (Pending/Approved/Rejected) are auto-created if the bot has <strong>Manage Channels</strong> permission, or create them manually</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">PoracleJS failover</p>
+<p>PoracleJS's built-in <code>.cache/</code> directory automatically caches geofence data. If PoracleWeb.NET is temporarily unavailable, PoracleJS falls back to its last cached copy.</p>
+</div>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/PGAN-Dev/PoracleWeb.NET" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<div class="md-progress" data-md-component="progress" role="progressbar"></div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+window.mermaidConfig = {default: {
+    startOnLoad: false
+}};</script></body>
+</html>

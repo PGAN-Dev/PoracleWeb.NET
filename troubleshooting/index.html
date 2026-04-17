@@ -1,0 +1,2244 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web application for managing Poracle Pokemon GO notification alarms">
+      
+      
+      
+        <link rel="canonical" href="https://pgan-dev.github.io/PoracleWeb.NET/troubleshooting/">
+      
+      
+        <link rel="prev" href="../development/code-style/">
+      
+      
+        <link rel="next" href="../poracleng-enhancement-requests/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Troubleshooting - PoracleWeb.NET</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#troubleshooting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="PoracleWeb.NET" class="md-header__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PoracleWeb.NET
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Troubleshooting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/quick-start/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../configuration/reference/" class="md-tabs__link">
+          
+  
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../features/alarms/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../development/testing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../poracleng-enhancement-requests/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  PoracleNG Enhancement Requests
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="PoracleWeb.NET" class="md-nav__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PoracleWeb.NET
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start (Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/standalone-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standalone Setup (no Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/development-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/discord-oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discord OAuth2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/site-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Site Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/poracleng-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG API Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/alarms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alarm Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/profiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-geofences/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/internationalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#container-exits-on-startup-configuration-corsallowedorigins-is-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container exits on startup: Configuration 'Cors:AllowedOrigins' is required
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracleng-unreachable-alarm-operations-fail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PoracleNG unreachable (alarm operations fail)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stale-alarm-state-after-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stale alarm state after changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webhook-user-operations-fail-with-404" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webhook user operations fail with 404
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uid0-causes-updates-instead-of-creates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        uid:0 causes updates instead of creates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracleng-response-wrapper-not-unwrapped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PoracleNG response wrapper not unwrapped
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#snake_case-deserialization-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        snake_case deserialization issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mysql-provider-incompatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MySQL provider incompatibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#null-string-constraint-violations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NULL string constraint violations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discord-api-calls-failing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discord API calls failing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracle-config-defaulttemplatename-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poracle config defaultTemplateName errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scanner-db-connection-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanner DB connection errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bulk-update-zeroing-out-alarm-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk update zeroing out alarm fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#geofence-names-not-matching-in-poracle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Geofence names not matching in Poracle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#koji-displayinmatches-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Koji displayInMatches not working
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limiting-locking-out-all-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rate limiting locking out all users
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gym_id-null-vs-empty-string-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gym_id NULL vs empty-string mismatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gymcreateteam-defaults-to-0-neutral-only-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GymCreate.Team defaults to 0 (Neutral only) — legacy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gym-alerts-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gym alerts not working
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monster-filter-defaults-size-max_level-etc-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monster filter defaults (size, max_level, etc.) — legacy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profile-switches-at-wrong-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profile switches at wrong time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#active-hours-not-showing-on-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active hours not showing on profiles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schedule-changes-dont-take-effect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule changes don't take effect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pokemon-availability-not-showing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pokemon availability not showing
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../poracleng-enhancement-requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Enhancement Requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#container-exits-on-startup-configuration-corsallowedorigins-is-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container exits on startup: Configuration 'Cors:AllowedOrigins' is required
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracleng-unreachable-alarm-operations-fail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PoracleNG unreachable (alarm operations fail)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stale-alarm-state-after-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stale alarm state after changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webhook-user-operations-fail-with-404" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webhook user operations fail with 404
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uid0-causes-updates-instead-of-creates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        uid:0 causes updates instead of creates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracleng-response-wrapper-not-unwrapped" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PoracleNG response wrapper not unwrapped
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#snake_case-deserialization-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        snake_case deserialization issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mysql-provider-incompatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MySQL provider incompatibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#null-string-constraint-violations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NULL string constraint violations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discord-api-calls-failing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discord API calls failing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#poracle-config-defaulttemplatename-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Poracle config defaultTemplateName errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scanner-db-connection-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scanner DB connection errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bulk-update-zeroing-out-alarm-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk update zeroing out alarm fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#geofence-names-not-matching-in-poracle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Geofence names not matching in Poracle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#koji-displayinmatches-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Koji displayInMatches not working
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rate-limiting-locking-out-all-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rate limiting locking out all users
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gym_id-null-vs-empty-string-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gym_id NULL vs empty-string mismatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gymcreateteam-defaults-to-0-neutral-only-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GymCreate.Team defaults to 0 (Neutral only) — legacy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gym-alerts-not-working" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gym alerts not working
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monster-filter-defaults-size-max_level-etc-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monster filter defaults (size, max_level, etc.) — legacy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#profile-switches-at-wrong-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profile switches at wrong time
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#active-hours-not-showing-on-profiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Active hours not showing on profiles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schedule-changes-dont-take-effect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule changes don't take effect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pokemon-availability-not-showing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pokemon availability not showing
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h1>
+<h2 id="container-exits-on-startup-configuration-corsallowedorigins-is-required">Container exits on startup: <code>Configuration 'Cors:AllowedOrigins' is required</code><a class="headerlink" href="#container-exits-on-startup-configuration-corsallowedorigins-is-required" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: The container crash-loops on start. Logs show <code>System.InvalidOperationException: Configuration 'Cors:AllowedOrigins' is required in non-development environments.</code></p>
+<p><strong>Solution</strong>: <code>CORS_ORIGIN</code> must be set to the URL you access PoracleWeb.NET from whenever <code>ASPNETCORE_ENVIRONMENT</code> is anything other than <code>Development</code> (Docker and systemd default to <code>Production</code>). Add it to <code>.env</code>:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>CORS_ORIGIN=http://your-server:8082
+</span></code></pre></div>
+<p>Then recreate the container: <code>docker compose up -d --force-recreate</code>. For reverse-proxied setups, use the public URL (e.g., <code>https://poracle.example.com</code>).</p>
+<hr />
+<h2 id="poracleng-unreachable-alarm-operations-fail">PoracleNG unreachable (alarm operations fail)<a class="headerlink" href="#poracleng-unreachable-alarm-operations-fail" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: All alarm operations (create, edit, delete, list) fail with HTTP 500 errors. The dashboard shows zero alarms. Logs show <code>HttpRequestException</code> or <code>TaskCanceledException</code> when calling the PoracleNG API.</p>
+<p><strong>Solution</strong>: Check that PoracleNG is running and reachable from the PoracleWeb.NET container:</p>
+<ol>
+<li>Verify <code>Poracle:ApiAddress</code> points to the correct PoracleNG host and port</li>
+<li>If using Docker, ensure both containers are on the same network or the PoracleNG port is exposed</li>
+<li>Test connectivity: <code>curl http://&lt;poracle-api-address&gt;/api/config/poracleWeb</code> from inside the PoracleWeb.NET container</li>
+<li>Verify <code>Poracle:ApiSecret</code> matches PoracleNG's <code>server.apiSecret</code> config value</li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">All operations go through PoracleNG</p>
+<p>Unlike previous versions where PoracleWeb.NET wrote directly to MySQL, all alarm tracking, user registration, location setting, area management, and profile switching now require a running PoracleNG instance. If PoracleNG is down, users cannot create/edit/delete/view alarms, register, set their location, update areas, or switch profiles. Only admin bulk operations (list all users, delete user) use direct DB access.</p>
+</div>
+<hr />
+<h2 id="stale-alarm-state-after-changes">Stale alarm state after changes<a class="headerlink" href="#stale-alarm-state-after-changes" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Users report that alarm changes (create/delete) are not reflected in notifications. Alarms appear correct in the web UI but PoracleNG seems to use old data.</p>
+<p><strong>Solution</strong>: Check PoracleNG logs for state reload errors. PoracleNG reloads its in-memory state after every tracking mutation. If the reload fails (e.g., due to a NULL column in the database), PoracleNG continues running with stale data.</p>
+<p>Common causes:</p>
+<ul>
+<li>NULL values in <code>template</code> or <code>ping</code> columns from historical direct-write bugs. Fix with: <code>UPDATE monsters SET template = '1' WHERE template IS NULL</code></li>
+<li>PoracleNG's <code>monsters.go</code> query lacks <code>COALESCE</code> for <code>template</code> and <code>ping</code> (known bug). The fix is to add <code>COALESCE(template, '1') AS template</code> to the query.</li>
+</ul>
+<hr />
+<h2 id="webhook-user-operations-fail-with-404">Webhook user operations fail with 404<a class="headerlink" href="#webhook-user-operations-fail-with-404" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Alarm or human operations fail with HTTP 404 for webhook users. Logs may show mangled URL paths like <code>/api/tracking/pokemon/https://discord.com/api/webhooks/123/abc</code>.</p>
+<p><strong>Solution</strong>: Webhook user IDs are full URLs containing slashes. Both <code>PoracleTrackingProxy</code> and <code>PoracleHumanProxy</code> must URL-encode user IDs with <code>Uri.EscapeDataString()</code> before inserting them into URL paths. If you add a new proxy method, always use the <code>Encode()</code> helper.</p>
+<hr />
+<h2 id="uid0-causes-updates-instead-of-creates">uid:0 causes updates instead of creates<a class="headerlink" href="#uid0-causes-updates-instead-of-creates" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Creating a new alarm silently updates an existing alarm instead of creating a new one, or PoracleNG returns an error about invalid UID.</p>
+<p><strong>Solution</strong>: PoracleNG treats <code>uid=0</code> in a create request body as an update target. C# model <code>int</code> properties default to <code>0</code>, so freshly constructed models include <code>"uid":0</code> when serialized. <code>PoracleJsonHelper.SerializeToElement()</code> automatically strips <code>"uid":0</code> from request bodies. If you serialize alarm data manually (bypassing the helper), ensure you remove the <code>uid</code> property when its value is <code>0</code>.</p>
+<hr />
+<h2 id="poracleng-response-wrapper-not-unwrapped">PoracleNG response wrapper not unwrapped<a class="headerlink" href="#poracleng-response-wrapper-not-unwrapped" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Human data appears as <code>null</code> or deserialization fails even though the PoracleNG API returns a 200 response.</p>
+<p><strong>Solution</strong>: PoracleNG wraps certain responses in container objects. For example, <code>GET /api/humans/one/{id}</code> returns <code>{ "human": { ... }, "status": "ok" }</code>, not the human object directly. <code>PoracleHumanProxy.GetHumanAsync()</code> unwraps the <code>"human"</code> property. If you add new proxy endpoints, inspect the actual PoracleNG response shape and unwrap accordingly.</p>
+<hr />
+<h2 id="snake_case-deserialization-issues">snake_case deserialization issues<a class="headerlink" href="#snake_case-deserialization-issues" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Alarm data appears empty or fields are null/zero even though alarms exist in the database.</p>
+<p><strong>Solution</strong>: PoracleNG returns alarm data in snake_case JSON (<code>pokemon_id</code>, <code>min_iv</code>, <code>max_cp</code>). PoracleWeb.NET deserializes this with <code>JsonNamingPolicy.SnakeCaseLower</code>. If a field is not deserializing correctly:</p>
+<ol>
+<li>Check that the C# model property name matches the snake_case convention (e.g., <code>PokemonId</code> maps to <code>pokemon_id</code>)</li>
+<li>Verify <code>PropertyNameCaseInsensitive = true</code> is set on the <code>JsonSerializerOptions</code></li>
+<li>Compare the actual JSON response from PoracleNG (<code>GET /api/tracking/{type}/{userId}</code>) against the expected field names</li>
+</ol>
+<hr />
+<h2 id="mysql-provider-incompatibility">MySQL provider incompatibility<a class="headerlink" href="#mysql-provider-incompatibility" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Build errors or runtime exceptions related to <code>Pomelo.EntityFrameworkCore.MySql</code>.</p>
+<p><strong>Solution</strong>: This project uses <code>MySql.EntityFrameworkCore</code> (Oracle's official provider), <strong>not</strong> Pomelo. Pomelo is incompatible with EF Core 10. Connection setup uses <code>options.UseMySQL(connectionString)</code> (capital SQL).</p>
+<hr />
+<h2 id="null-string-constraint-violations">NULL string constraint violations<a class="headerlink" href="#null-string-constraint-violations" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: MySQL errors like <code>Column 'X' cannot be null</code> when saving entities.</p>
+<p><strong>Solution</strong>: For alarm entities, this should no longer occur since writes go through the PoracleNG API (which handles NULL defaults). For non-alarm entities (<code>humans</code>, <code>profiles</code>), repositories handle null normalization as needed. Many Poracle DB columns are <code>NOT NULL</code> with empty-string defaults, but EF Core maps them as <code>string?</code>.</p>
+<hr />
+<h2 id="discord-api-calls-failing">Discord API calls failing<a class="headerlink" href="#discord-api-calls-failing" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Discord API calls return errors or time out.</p>
+<p><strong>Solution</strong>: Use <code>discordapp.com</code> (not <code>discord.com</code>) for API calls. The <code>discord.com</code> domain is blocked by Cloudflare in some server environments. PoracleWeb.NET is already configured to use <code>discordapp.com</code>.</p>
+<p>Also note: Use API <strong>v9</strong> (not v10) — v10 is not supported on the <code>discordapp.com</code> domain.</p>
+<hr />
+<h2 id="poracle-config-defaulttemplatename-errors">Poracle config defaultTemplateName errors<a class="headerlink" href="#poracle-config-defaulttemplatename-errors" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Deserialization errors when parsing Poracle config.</p>
+<p><strong>Solution</strong>: <code>defaultTemplateName</code> can be a number (e.g., <code>1</code>) or a string (e.g., <code>"default"</code>). Use <code>JsonElement</code> or handle both types during deserialization.</p>
+<hr />
+<h2 id="scanner-db-connection-errors">Scanner DB connection errors<a class="headerlink" href="#scanner-db-connection-errors" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Errors about missing scanner service or database connection.</p>
+<p><strong>Solution</strong>: The <code>ScannerDb</code> connection string is optional. If not configured, <code>IScannerService</code> is not registered and scanner endpoints return appropriate responses. This is expected behavior.</p>
+<hr />
+<h2 id="bulk-update-zeroing-out-alarm-fields">Bulk update zeroing out alarm fields<a class="headerlink" href="#bulk-update-zeroing-out-alarm-fields" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: After bulk updating alarms, fields like <code>clean</code>, <code>template</code>, and filter settings are reset to 0.</p>
+<p><strong>Solution</strong>: Alarm updates are now proxied through PoracleNG, which applies <code>cleanRow()</code> defaults. However, it is still important to send the full alarm object when updating. The frontend should spread the full alarm: <code>{ ...alarm, distance }</code>. The dedicated <code>PUT /distance/bulk</code> endpoint handles this correctly by fetching all alarms, modifying only the distance, and POSTing back.</p>
+<hr />
+<h2 id="geofence-names-not-matching-in-poracle">Geofence names not matching in Poracle<a class="headerlink" href="#geofence-names-not-matching-in-poracle" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Custom geofences don't trigger alerts even though they're in the user's area list.</p>
+<p><strong>Solution</strong>: Poracle does <strong>case-sensitive</strong> area matching. Geofence names must always be lowercase. The <code>kojiName</code> field in <code>user_geofences</code> and entries in <code>humans.area</code> must match exactly. <code>UserGeofenceService.CreateAsync()</code> enforces this with <code>ToLowerInvariant()</code>.</p>
+<hr />
+<h2 id="koji-displayinmatches-not-working">Koji displayInMatches not working<a class="headerlink" href="#koji-displayinmatches-not-working" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: User geofence names appear in DMs even though <code>displayInMatches</code> is set to <code>false</code>.</p>
+<p><strong>Solution</strong>: Koji's <code>displayInMatches</code> custom property is not reliably honored by all Poracle format serializers. Serve user geofences from the PoracleWeb.NET feed endpoint (<code>/api/geofence-feed</code>) instead of pushing them to Koji. Only promote to Koji when an admin approves a geofence for public use.</p>
+<hr />
+<h2 id="rate-limiting-locking-out-all-users">Rate limiting locking out all users<a class="headerlink" href="#rate-limiting-locking-out-all-users" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Multiple users report being unable to log in simultaneously.</p>
+<p><strong>Solution</strong>: Auth rate limiting must be <strong>per-IP</strong> (partitioned), not global. Check that <code>Program.cs</code> uses <code>RateLimitPartition.GetFixedWindowLimiter</code> keyed by <code>RemoteIpAddress</code>, not <code>AddFixedWindowLimiter</code>.</p>
+<hr />
+<h2 id="gym_id-null-vs-empty-string-mismatch">gym_id NULL vs empty-string mismatch<a class="headerlink" href="#gym_id-null-vs-empty-string-mismatch" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Gym alarms don't match any gyms even though no specific gym is selected. The <code>gym_id</code> column contains <code>''</code> (empty string) instead of <code>NULL</code>.</p>
+<p><strong>Solution</strong>: This was caused by direct database writes. New alarms created through the PoracleNG API proxy have correct <code>gym_id</code> NULL handling. The SQL fix below is only needed for alarms created before the migration. Poracle treats <code>gym_id = ''</code> as "track a specific gym with an empty ID," which matches nothing.</p>
+<p>To fix existing data:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">UPDATE</span><span class="w"> </span><span class="n">gym</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">UPDATE</span><span class="w"> </span><span class="n">egg</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">UPDATE</span><span class="w"> </span><span class="n">raid</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="gymcreateteam-defaults-to-0-neutral-only-legacy">GymCreate.Team defaults to 0 (Neutral only) — legacy<a class="headerlink" href="#gymcreateteam-defaults-to-0-neutral-only-legacy" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Legacy issue</p>
+<p>This was caused by direct database writes. New alarms created through the PoracleNG API proxy have correct defaults applied by <code>cleanRow()</code>. The SQL fixes below are only needed for alarms created before the migration.</p>
+</div>
+<p><strong>Problem</strong>: New gym alarms created via the web UI only match Neutral (team 0) gyms instead of all teams.</p>
+<p><strong>Solution</strong>: C# <code>int</code> defaults to <code>0</code>, which in Poracle means "Neutral only." <code>GymCreate.Team</code> must default to <code>4</code> (any team), matching <code>RaidCreate</code> and <code>EggCreate</code>. This was fixed in v1.1.2. If users created gym alarms before the fix, update them:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- Fix gym alarms that are stuck on Neutral-only due to missing default</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">UPDATE</span><span class="w"> </span><span class="n">gym</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">team</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">team</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="gym-alerts-not-working">Gym alerts not working<a class="headerlink" href="#gym-alerts-not-working" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Users report that gym alarms are not triggering any notifications.</p>
+<p><strong>Solution</strong>: This is typically caused by the <code>gym_id</code> column containing an empty string instead of <code>NULL</code>. When <code>gym_id = ''</code>, Poracle interprets it as tracking a specific gym with an empty ID, which matches nothing. Additionally, check that <code>team</code> is not <code>0</code> (Neutral only) when the user intended to track all teams.</p>
+<p>Diagnostic queries:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- Check for empty-string gym_id (should be NULL for &quot;any gym&quot;)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">uid</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">gym_id</span><span class="p">,</span><span class="w"> </span><span class="n">team</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">gym</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1">-- Check for team=0 (Neutral only) when it should be 4 (any team)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">uid</span><span class="p">,</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">gym_id</span><span class="p">,</span><span class="w"> </span><span class="n">team</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">gym</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">team</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span></code></pre></div>
+<p>Fix:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">UPDATE</span><span class="w"> </span><span class="n">gym</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">gym_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">UPDATE</span><span class="w"> </span><span class="n">gym</span><span class="w"> </span><span class="k">SET</span><span class="w"> </span><span class="n">team</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">team</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="monster-filter-defaults-size-max_level-etc-legacy">Monster filter defaults (size, max_level, etc.) — legacy<a class="headerlink" href="#monster-filter-defaults-size-max_level-etc-legacy" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Legacy issue</p>
+<p>This was caused by direct database writes with incorrect C# model defaults. New alarms created through the PoracleNG API proxy have correct defaults. The SQL queries below help diagnose alarms created before the migration.</p>
+</div>
+<p><strong>Problem</strong>: New monster alarms created via the web UI may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, <code>max_size=0</code> causes all pokemon with size data to be rejected, and <code>size=0</code> instead of <code>size=-1</code> shows incorrectly in the old PHP UI as "-XXL".</p>
+<p><strong>Solution</strong>: All Create model defaults are aligned with the PHP PoracleWeb.NET <code>include/defaults.php</code>. Key values:</p>
+<ul>
+<li><code>size=-1</code> means "no size filter" (not <code>0</code>)</li>
+<li><code>max_size=5</code> means "up to XXL"</li>
+<li><code>max_level=55</code> (not 40 or 50)</li>
+<li>Raid/Egg <code>team=4</code> means "all teams"</li>
+<li>Raid <code>move=9000</code> and <code>evolution=9000</code> mean "no filter"</li>
+</ul>
+<p>If users report missing alerts, check the <code>monsters</code> table for rows where max fields are <code>0</code> when they should have defaults:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">-- Find alarms with broken size filter (rejects all pokemon with size data)</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">monsters</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">max_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1">-- Find alarms with incorrect &quot;no size filter&quot; value (shows as &quot;-XXL&quot; in PHP UI)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">monsters</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="profile-switches-at-wrong-time">Profile switches at wrong time<a class="headerlink" href="#profile-switches-at-wrong-time" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: Auto-profile switches happen hours earlier or later than the configured active hours schedule.</p>
+<p><strong>Solution</strong>: The profile has <code>0,0</code> coordinates, so PoracleNG's scheduler falls back to UTC instead of the user's local timezone. Set a location on the affected profile via the Dashboard or Areas page. The Profiles page shows a red location warning banner on profiles that have no coordinates set.</p>
+<hr />
+<h2 id="active-hours-not-showing-on-profiles">Active hours not showing on profiles<a class="headerlink" href="#active-hours-not-showing-on-profiles" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: All profiles display "Manual only" even though active hours were configured via the Discord bot.</p>
+<p><strong>Solution</strong>: PoracleWeb.NET reads active hours from PoracleNG's profile API responses — they should appear automatically. If they don't:</p>
+<ol>
+<li>Verify PoracleNG is reachable (<code>Poracle:ApiAddress</code>)</li>
+<li>Check that PoracleNG is returning <code>active_hours</code> in profile responses (<code>GET /api/humans/one/{id}</code> should include profile data with <code>active_hours</code>)</li>
+<li>If active hours were set via <code>$!profile</code> bot commands, they are stored in the same place PoracleWeb.NET reads from — no separate sync is needed</li>
+</ol>
+<hr />
+<h2 id="schedule-changes-dont-take-effect">Schedule changes don't take effect<a class="headerlink" href="#schedule-changes-dont-take-effect" title="Permanent link">&para;</a></h2>
+<p><strong>Problem</strong>: After saving active hours in PoracleWeb.NET, the profile doesn't auto-switch at the expected time.</p>
+<p><strong>Solution</strong>: PoracleNG's profile scheduler checks on a periodic cycle (every few minutes) with a 10-minute matching window. Changes saved in PoracleWeb.NET are written to PoracleNG immediately, but the scheduler picks them up on its next cycle. Wait up to 10 minutes for changes to take effect.</p>
+<div class="admonition note">
+<p class="admonition-title">PoracleNG owns the scheduler</p>
+<p>PoracleWeb.NET only manages the active hours data. The actual profile switching logic runs in PoracleNG's processor. If auto-switching isn't working at all, check PoracleNG's logs for scheduler errors.</p>
+</div>
+<hr />
+<h2 id="pokemon-availability-not-showing">Pokemon availability not showing<a class="headerlink" href="#pokemon-availability-not-showing" title="Permanent link">&para;</a></h2>
+<p><strong>Symptom</strong>: The "Live &gt; Spawning" filter doesn't appear in the Pokemon selector.</p>
+<p><strong>Causes and fixes</strong>:</p>
+<ol>
+<li>
+<p><strong>Golbat not configured</strong>: Set <code>GOLBAT_API_ADDRESS</code> and <code>GOLBAT_API_SECRET</code> in <code>.env</code> and restart the container. The feature is only enabled when both are set.</p>
+</li>
+<li>
+<p><strong>Env vars not reaching the container</strong>: The compose file loads configuration via <code>env_file: .env</code>, so any var defined in <code>.env</code> is automatically passed in — no per-key entries in <code>docker-compose.yml</code> are needed. If you've customized your <code>docker-compose.yml</code> (a local copy of <code>docker-compose.yml.example</code>), confirm the <code>env_file: .env</code> line is still present under the app service.</p>
+</li>
+<li>
+<p><strong>Golbat API unreachable from container</strong>: Verify connectivity from inside the container. Check the app logs for <code>Failed to fetch available Pokemon from Golbat API</code> warnings.</p>
+</li>
+<li>
+<p><strong>Wrong API secret</strong>: The <code>GOLBAT_API_SECRET</code> must match Golbat's <code>api_secret</code> value in its <code>config.toml</code>. An incorrect secret results in <code>401 Unauthorised</code> responses.</p>
+</li>
+<li>
+<p><strong>Browser cache</strong>: Hard refresh (Ctrl+Shift+R) after deploying a new build. The old JavaScript bundle won't have the availability code.</p>
+</li>
+</ol>
+<p><strong>Diagnostic</strong>:
+<div class="highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Test Golbat API from host</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-Golbat-Secret: YOUR_SECRET&quot;</span><span class="w"> </span>http://GOLBAT_HOST:9001/api/pokemon/available
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Check if env vars reached the container</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>poracleweb.net<span class="w"> </span>printenv<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>golbat
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># Check app logs for Golbat activity</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>docker<span class="w"> </span>logs<span class="w"> </span>poracleweb.net<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>golbat
+</span></code></pre></div></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
