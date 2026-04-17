@@ -408,7 +408,7 @@
     "RSVP_ONLY": "RSVP updates only",
     "RSVP_OFF_DESC": "Standard raid/egg alerts only.",
     "RSVP_INCLUDE_DESC": "Also re-notify when RSVP counts change.",
-    "RSVP_ONLY_DESC": "Skip initial matches; only notify on RSVP changes.",
+    "RSVP_ONLY_DESC": "Skip initial matches; only notify on RSVP changes. Without an RSVP-emitting scanner this silences the alarm.",
     "RSVP_HINT": "Requires your scanner to emit RSVP webhooks.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "RSVP only"

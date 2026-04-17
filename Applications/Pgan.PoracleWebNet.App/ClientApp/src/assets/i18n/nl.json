@@ -408,7 +408,7 @@
     "RSVP_ONLY": "Alleen RSVP-updates",
     "RSVP_OFF_DESC": "Alleen standaard raid-/ei-meldingen.",
     "RSVP_INCLUDE_DESC": "Ook opnieuw melden wanneer RSVP-aantallen wijzigen.",
-    "RSVP_ONLY_DESC": "Sla initiële matches over; meld alleen RSVP-wijzigingen.",
+    "RSVP_ONLY_DESC": "Sla initiële matches over; meld alleen RSVP-wijzigingen. Zonder een scanner die RSVP verstuurt blijft dit alarm stil.",
     "RSVP_HINT": "Vereist dat je scanner RSVP-webhooks verzendt.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "Alleen RSVP"

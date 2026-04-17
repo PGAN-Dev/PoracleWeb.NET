@@ -115,14 +115,7 @@
                     ><img [src]="getGymIcon(raid.team)" class="team-icon-inline" /> {{ getTeamName(raid.team) }}</span
                   >
                 </div>
-                @if (raid.rsvpChanges > 0) {
-                  <div class="stat rsvp-stat">
-                    <span class="stat-label">RSVP</span>
-                    <span class="stat-value">{{
-                      (raid.rsvpChanges === 1 ? 'RAIDS.RSVP_PILL_INCLUDE' : 'RAIDS.RSVP_PILL_ONLY') | translate
-                    }}</span>
-                  </div>
-                }
+                <app-rsvp-pill [value]="raid.rsvpChanges" />
               </div>
               <app-alarm-info [distance]="raid.distance" [clean]="raid.clean" [template]="raid.template" [ping]="raid.ping" />
             </mat-card-content>
@@ -226,14 +219,7 @@
                   <span class="stat-label">{{ 'RAIDS.TEAM_LABEL' | translate }}</span>
                   <span class="stat-value"><img [src]="getGymIcon(egg.team)" class="team-icon-inline" /> {{ getTeamName(egg.team) }}</span>
                 </div>
-                @if (egg.rsvpChanges > 0) {
-                  <div class="stat rsvp-stat">
-                    <span class="stat-label">RSVP</span>
-                    <span class="stat-value">{{
-                      (egg.rsvpChanges === 1 ? 'RAIDS.RSVP_PILL_INCLUDE' : 'RAIDS.RSVP_PILL_ONLY') | translate
-                    }}</span>
-                  </div>
-                }
+                <app-rsvp-pill [value]="egg.rsvpChanges" />
               </div>
               <app-alarm-info [distance]="egg.distance" [clean]="egg.clean" [template]="egg.template" [ping]="egg.ping" />
             </mat-card-content>

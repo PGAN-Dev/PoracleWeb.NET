@@ -159,26 +159,6 @@
   font-size: 14px;
   font-weight: 500;
 }
-.rsvp-stat {
-  .stat-label {
-    display: inline-block;
-    align-self: flex-start;
-    background: var(--mat-sys-secondary-container, #e8eaf6);
-    color: #3f51b5;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .stat-value {
-    font-size: 13px;
-    font-weight: 700;
-    color: #3f51b5;
-    margin-top: 2px;
-  }
-}
 .distance-chip-row {
   margin-top: 12px;
 }

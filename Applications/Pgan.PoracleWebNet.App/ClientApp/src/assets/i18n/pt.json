@@ -408,7 +408,7 @@
     "RSVP_ONLY": "Apenas atualizações RSVP",
     "RSVP_OFF_DESC": "Apenas alertas padrão de raid/ovo.",
     "RSVP_INCLUDE_DESC": "Também notificar novamente quando as contagens de RSVP mudarem.",
-    "RSVP_ONLY_DESC": "Ignorar correspondências iniciais; notificar apenas alterações de RSVP.",
+    "RSVP_ONLY_DESC": "Ignorar correspondências iniciais; notificar apenas alterações de RSVP. Sem um scanner que emita RSVP este alarme fica silenciado.",
     "RSVP_HINT": "Requer que o seu scanner envie webhooks RSVP.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "Apenas RSVP"

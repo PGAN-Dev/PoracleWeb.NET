@@ -408,7 +408,7 @@
     "RSVP_ONLY": "Nur RSVP-Updates",
     "RSVP_OFF_DESC": "Nur normale Raid-/Ei-Benachrichtigungen.",
     "RSVP_INCLUDE_DESC": "Zusätzlich erneut benachrichtigen, wenn sich RSVP-Zahlen ändern.",
-    "RSVP_ONLY_DESC": "Erste Treffer überspringen; nur bei RSVP-Änderungen benachrichtigen.",
+    "RSVP_ONLY_DESC": "Erste Treffer überspringen; nur bei RSVP-Änderungen benachrichtigen. Ohne einen RSVP-fähigen Scanner bleibt dieser Alarm stumm.",
     "RSVP_HINT": "Erfordert, dass dein Scanner RSVP-Webhooks sendet.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "Nur RSVP"
