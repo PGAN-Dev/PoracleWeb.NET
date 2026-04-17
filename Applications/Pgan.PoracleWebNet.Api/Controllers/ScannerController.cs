@@ -170,13 +170,10 @@ public class ScannerController(
         var fences = await this._kojiService.GetAdminGeofencesAsync();
         foreach (var gym in gyms)
         {
-            foreach (var fence in fences)
+            foreach (var fence in fences.Where(fence => FenceContains(fence, gym.Lat, gym.Lon)))
             {
-                if (FenceContains(fence, gym.Lat, gym.Lon))
-                {
-                    gym.Area = fence.Name;
-                    break;
-                }
+                gym.Area = fence.Name;
+                break;
             }
         }
     }
