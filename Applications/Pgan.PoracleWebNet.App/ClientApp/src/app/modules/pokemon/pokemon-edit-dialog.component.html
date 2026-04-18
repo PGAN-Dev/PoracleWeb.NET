@@ -193,6 +193,17 @@
         </mat-form-field>
 
         @if (form.controls.pvpRankingLeague.value !== 0) {
+          @if (showCapPicker()) {
+            <fieldset class="pvp-cap-fieldset">
+              <legend class="pvp-cap-legend">{{ 'POKEMON.PVP_CAP' | translate }}</legend>
+              <mat-button-toggle-group [formControl]="form.controls.pvpRankingCap" class="pvp-cap-toggle" aria-label="PvP level cap">
+                <mat-button-toggle [value]="0">{{ 'POKEMON.PVP_CAP_ALL' | translate }}</mat-button-toggle>
+                @for (cap of pvpCaps(); track cap) {
+                  <mat-button-toggle [value]="cap">{{ 'POKEMON.PVP_CAP_LEVEL' | translate: { level: cap } }}</mat-button-toggle>
+                }
+              </mat-button-toggle-group>
+            </fieldset>
+          }
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.PVP_BEST_RANK' | translate }}</mat-label>

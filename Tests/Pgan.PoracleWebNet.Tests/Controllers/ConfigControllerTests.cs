@@ -69,6 +69,25 @@ public class ConfigControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task GetConfigSurfacesPvpCapsAndDefaultPvpCap()
+    {
+        var config = new PoracleConfig
+        {
+            Locale = "en",
+            PvpCaps = [50, 51],
+            DefaultPvpCap = 50,
+        };
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(config);
+
+        var result = await this._sut.GetConfig();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<PoracleConfig>(ok.Value);
+        Assert.Equal(new[] { 50, 51 }, returned.PvpCaps);
+        Assert.Equal(50, returned.DefaultPvpCap);
+    }
+
+    [Fact]
     public async Task GetConfigReturnsFallbackConfigWhenNull()
     {
         this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);

@@ -34,6 +34,22 @@ public class PoracleConfig
     {
         get; set;
     }
+
+    /// <summary>
+    /// PvP level caps offered by Poracle (e.g. [50] or [50, 51]).
+    /// Sourced from Poracle's <c>pvp.levelCaps</c> config and exposed via <c>/api/config/poracleWeb</c>.
+    /// </summary>
+    public List<int> PvpCaps { get; set; } = [];
+
+    /// <summary>
+    /// Default cap pre-selected when a user creates a new PvP-tracked monster alarm.
+    /// <c>0</c> = match all caps. Sourced from Poracle's <c>tracking.defaultUserTrackingLevelCap</c>.
+    /// </summary>
+    public int DefaultPvpCap
+    {
+        get; set;
+    }
+
     public string DefaultTemplateName { get; set; } = string.Empty;
     public string EverythingFlagPermissions { get; set; } = string.Empty;
     public int MaxDistance

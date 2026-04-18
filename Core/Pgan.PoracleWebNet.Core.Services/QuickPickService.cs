@@ -48,7 +48,7 @@ public partial class QuickPickService(
     {
         "minIv", "maxIv", "minCp", "maxCp", "minLevel", "maxLevel",
         "minWeight", "maxWeight", "atk", "def", "sta", "maxAtk", "maxDef", "maxSta",
-        "pvpRankingWorst", "pvpRankingBest", "pvpRankingMinCp", "pvpRankingLeague",
+        "pvpRankingWorst", "pvpRankingBest", "pvpRankingMinCp", "pvpRankingLeague", "pvpRankingCap",
         "size", "maxSize",
         "form", "gender", "clean", "template", "distance", "ping",
     };

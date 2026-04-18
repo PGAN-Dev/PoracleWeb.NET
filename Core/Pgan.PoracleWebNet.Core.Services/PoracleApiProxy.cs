@@ -83,6 +83,33 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             config.PvpLittleLeagueAllowed = pvpLittle.GetBoolean();
         }
 
+        if (root.TryGetProperty("pvpCaps", out var pvpCaps) && pvpCaps.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var cap in pvpCaps.EnumerateArray())
+            {
+                if (cap.ValueKind == JsonValueKind.Number && cap.TryGetInt32(out var capInt))
+                {
+                    config.PvpCaps.Add(capInt);
+                }
+                else if (cap.ValueKind == JsonValueKind.String && int.TryParse(cap.GetString(), out var capStr))
+                {
+                    config.PvpCaps.Add(capStr);
+                }
+            }
+        }
+
+        if (root.TryGetProperty("defaultPvpCap", out var defaultPvpCap))
+        {
+            if (defaultPvpCap.ValueKind == JsonValueKind.Number && defaultPvpCap.TryGetInt32(out var defInt))
+            {
+                config.DefaultPvpCap = defInt;
+            }
+            else if (defaultPvpCap.ValueKind == JsonValueKind.String && int.TryParse(defaultPvpCap.GetString(), out var defStr))
+            {
+                config.DefaultPvpCap = defStr;
+            }
+        }
+
         if (root.TryGetProperty("defaultTemplateName", out var templateName))
         {
             config.DefaultTemplateName = templateName.ValueKind == JsonValueKind.String

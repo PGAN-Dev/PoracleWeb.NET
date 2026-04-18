@@ -35,6 +35,7 @@ public class MappingExtensionTests
             PvpRankingBest = 1,
             PvpRankingMinCp = 2500,
             PvpRankingLeague = 2500,
+            PvpRankingCap = 50,
             Form = 42,
             Size = 3,
             MaxSize = 5,
@@ -66,6 +67,7 @@ public class MappingExtensionTests
         Assert.Equal(1, model.PvpRankingBest);
         Assert.Equal(2500, model.PvpRankingMinCp);
         Assert.Equal(2500, model.PvpRankingLeague);
+        Assert.Equal(50, model.PvpRankingCap);
         Assert.Equal(42, model.Form);
         Assert.Equal(3, model.Size);
         Assert.Equal(5, model.MaxSize);
@@ -552,6 +554,7 @@ public class MappingExtensionTests
             PvpRankingBest = 1,
             PvpRankingMinCp = 2500,
             PvpRankingLeague = 2500,
+            PvpRankingCap = 50,
             Form = 42,
             Size = 3,
             MaxSize = 5,
@@ -586,6 +589,7 @@ public class MappingExtensionTests
         Assert.Equal(1, existing.PvpRankingBest);
         Assert.Equal(2500, existing.PvpRankingMinCp);
         Assert.Equal(2500, existing.PvpRankingLeague);
+        Assert.Equal(50, existing.PvpRankingCap);
         Assert.Equal(42, existing.Form);
         Assert.Equal(3, existing.Size);
         Assert.Equal(5, existing.MaxSize);
@@ -637,6 +641,28 @@ public class MappingExtensionTests
         Assert.Equal(50, existing.MaxLevel);
         Assert.Equal(42, existing.Form);
         Assert.Equal(1, existing.Clean);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_OverwritesPvpRankingCap()
+    {
+        var existing = new Monster { PvpRankingCap = 0 };
+        var update = new MonsterUpdate { PvpRankingCap = 51 };
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(51, existing.PvpRankingCap);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_NullPvpRankingCapPreservesExisting()
+    {
+        var existing = new Monster { PvpRankingCap = 50 };
+        var update = new MonsterUpdate();
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(50, existing.PvpRankingCap);
     }
 
     // ── RaidUpdate.ApplyUpdate — null-skip behavior ─────────
