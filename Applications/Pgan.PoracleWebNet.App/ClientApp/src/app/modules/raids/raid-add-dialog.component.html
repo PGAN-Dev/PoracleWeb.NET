@@ -8,31 +8,10 @@
         <span class="tab-label">{{ 'RAIDS.TAB_SELECTION' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ 'RAIDS.TEAM_LABEL' | translate }}</mat-label>
-          <mat-select [formControl]="commonForm.controls.team">
-            <mat-option [value]="4">
-              <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/0.png" class="team-option-icon" />
-              {{ 'RAIDS.TEAM_ANY' | translate }}
-            </mat-option>
-            <mat-option [value]="1">
-              <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/1.png" class="team-option-icon" />
-              {{ 'RAIDS.TEAM_MYSTIC' | translate }}
-            </mat-option>
-            <mat-option [value]="2">
-              <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/2.png" class="team-option-icon" />
-              {{ 'RAIDS.TEAM_VALOR' | translate }}
-            </mat-option>
-            <mat-option [value]="3">
-              <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/3.png" class="team-option-icon" />
-              {{ 'RAIDS.TEAM_INSTINCT' | translate }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <h4>{{ 'RAIDS.SPECIFIC_GYM' | translate }}</h4>
-        <app-gym-picker [(gymId)]="selectedGymId" />
-        <p class="gym-picker-hint">{{ 'RAIDS.GYM_PICKER_HINT' | translate }}</p>
+        <app-raid-settings-section
+          [teamControl]="commonForm.controls.team"
+          [rsvpControl]="commonForm.controls.rsvpChanges"
+          [(gymId)]="selectedGymId" />
 
         <mat-tab-group [(selectedIndex)]="tabIndex">
           <!-- By Level -->
@@ -88,57 +67,14 @@
         <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
-        <mat-radio-group [formControl]="commonForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
-          <mat-radio-button value="areas">
-            <div class="radio-label">
-              <mat-icon>map</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-          <mat-radio-button value="distance">
-            <div class="radio-label">
-              <mat-icon>straighten</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-        </mat-radio-group>
-
-        @if (commonForm.controls.distanceMode.value === 'distance') {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
-            <input matInput type="number" [formControl]="commonForm.controls.distanceKm" min="0" step="0.1" />
-            <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
-          </mat-form-field>
-        }
-
-        <app-delivery-preview
-          [mode]="commonForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
-          [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
-        </app-delivery-preview>
-
-        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
-        @if (isWebhook) {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'ALARM.PING_ROLE' | translate }}</mat-label>
-            <input matInput [formControl]="commonForm.controls.ping" [placeholder]="'ALARM.PING_PLACEHOLDER' | translate" />
-          </mat-form-field>
-        }
-
-        <app-template-selector
-          [alarmType]="'raid'"
-          [value]="commonForm.controls.template.value ?? ''"
-          (valueChange)="commonForm.controls.template.setValue($event)">
-        </app-template-selector>
-
-        <mat-slide-toggle [formControl]="commonForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
-        <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_RAID' | translate }}</p>
+        <app-raid-delivery-section
+          [distanceMode]="commonForm.controls.distanceMode"
+          [distanceKm]="commonForm.controls.distanceKm"
+          [ping]="commonForm.controls.ping"
+          [template]="commonForm.controls.template"
+          [clean]="commonForm.controls.clean"
+          [showPing]="isWebhook"
+          [alarmType]="'raid'" />
       </div>
     </mat-tab>
   </mat-tab-group>

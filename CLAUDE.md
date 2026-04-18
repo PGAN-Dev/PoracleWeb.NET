@@ -69,7 +69,8 @@ Pgan.PoracleWebNet.slnx
 |                                region-selector, geofence-name-dialog,
 |                                geofence-approval-dialog, gym-picker,
 |                                active-hours-chip, active-hours-editor-dialog,
-|                                location-warning
+|                                location-warning, rsvp-toggle, rsvp-pill,
+|                                raid-settings-section, raid-delivery-section
 |                                utils/: geo.utils (point-in-polygon, centroid)
 |                                models/: active-hours.models (interfaces, utilities)
 |
@@ -559,6 +560,10 @@ dotnet ef migrations script \
 | Active Hours Chip Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/active-hours-chip/` |
 | Active Hours Editor Dialog | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/active-hours-editor-dialog/` |
 | Location Warning Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/location-warning/` |
+| RSVP Toggle Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/rsvp-toggle/` |
+| RSVP Pill Component | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/rsvp-pill/` |
+| Raid Settings Section | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/raid-settings-section/` |
+| Raid Delivery Section | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/raid-delivery-section/` |
 | Active Hours Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/active-hours.utils.spec.ts` |
 | Abstractions | `Core/Pgan.PoracleWebNet.Core.Abstractions/` |
 | DataProtection Configuration Tests | `Tests/Pgan.PoracleWebNet.Tests/Configuration/DataProtectionConfigurationTests.cs` |

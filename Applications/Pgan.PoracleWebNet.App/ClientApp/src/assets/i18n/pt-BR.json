@@ -401,7 +401,17 @@
     "CONFIRM_DELETE_ALL_MSG": "Tem certeza que deseja excluir TODOS os alarmes de raid e ovo? Esta ação não pode ser desfeita.",
     "CONFIRM_BULK_DELETE_TITLE": "Excluir Alarmes Selecionados",
     "CONFIRM_BULK_DELETE_MSG": "Tem certeza que deseja excluir {{count}} alarmes?",
-    "CONFIRM_DELETE_SELECTED": "Excluir Selecionados"
+    "CONFIRM_DELETE_SELECTED": "Excluir Selecionados",
+    "RSVP_LABEL": "Notificações RSVP",
+    "RSVP_OFF": "Apenas correspondências",
+    "RSVP_INCLUDE": "Correspondências + atualizações RSVP",
+    "RSVP_ONLY": "Apenas atualizações RSVP",
+    "RSVP_OFF_DESC": "Apenas alertas padrão de raid/ovo.",
+    "RSVP_INCLUDE_DESC": "Também notificar novamente quando as contagens de RSVP mudarem.",
+    "RSVP_ONLY_DESC": "Pular correspondências iniciais; notificar apenas alterações de RSVP. Sem um scanner que emita RSVP, esse alarme fica em silêncio.",
+    "RSVP_HINT": "Requer que seu scanner envie webhooks de RSVP.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Apenas RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmes de Quest",

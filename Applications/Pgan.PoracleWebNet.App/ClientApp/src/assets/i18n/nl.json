@@ -401,7 +401,17 @@
     "CONFIRM_DELETE_ALL_MSG": "Weet je zeker dat je ALLE raid en ei alarmen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
     "CONFIRM_BULK_DELETE_TITLE": "Geselecteerde Alarmen Verwijderen",
     "CONFIRM_BULK_DELETE_MSG": "Weet je zeker dat je {{count}} alarmen wilt verwijderen?",
-    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen"
+    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen",
+    "RSVP_LABEL": "RSVP-meldingen",
+    "RSVP_OFF": "Alleen overeenkomsten",
+    "RSVP_INCLUDE": "Overeenkomsten + RSVP-updates",
+    "RSVP_ONLY": "Alleen RSVP-updates",
+    "RSVP_OFF_DESC": "Alleen standaard raid-/ei-meldingen.",
+    "RSVP_INCLUDE_DESC": "Ook opnieuw melden wanneer RSVP-aantallen wijzigen.",
+    "RSVP_ONLY_DESC": "Sla initiële matches over; meld alleen RSVP-wijzigingen. Zonder een scanner die RSVP verstuurt blijft dit alarm stil.",
+    "RSVP_HINT": "Vereist dat je scanner RSVP-webhooks verzendt.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Alleen RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest Alarmen",

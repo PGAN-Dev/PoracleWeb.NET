@@ -24,6 +24,7 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +39,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTabsModule,
     TranslateModule,
     AlarmInfoComponent,
+    RsvpPillComponent,
   ],
   selector: 'app-raid-list',
   standalone: true,

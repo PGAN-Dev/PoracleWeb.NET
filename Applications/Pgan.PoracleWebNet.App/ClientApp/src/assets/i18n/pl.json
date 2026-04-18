@@ -401,7 +401,17 @@
     "CONFIRM_DELETE_ALL_MSG": "Czy na pewno chcesz usunąć WSZYSTKIE alarmy rajdów i jajek? Tej akcji nie można cofnąć.",
     "CONFIRM_BULK_DELETE_TITLE": "Usuń zaznaczone alarmy",
     "CONFIRM_BULK_DELETE_MSG": "Czy na pewno chcesz usunąć {{count}} alarmów?",
-    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone"
+    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone",
+    "RSVP_LABEL": "Powiadomienia RSVP",
+    "RSVP_OFF": "Tylko dopasowania",
+    "RSVP_INCLUDE": "Dopasowania + aktualizacje RSVP",
+    "RSVP_ONLY": "Tylko aktualizacje RSVP",
+    "RSVP_OFF_DESC": "Tylko standardowe alerty rajdów/jaj.",
+    "RSVP_INCLUDE_DESC": "Powiadamiaj także, gdy zmienią się liczby RSVP.",
+    "RSVP_ONLY_DESC": "Pomiń początkowe dopasowania; powiadamiaj tylko o zmianach RSVP. Bez skanera emitującego RSVP alarm zostanie wyciszony.",
+    "RSVP_HINT": "Wymaga, aby Twój skaner wysyłał webhooki RSVP.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Tylko RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmy zadań",

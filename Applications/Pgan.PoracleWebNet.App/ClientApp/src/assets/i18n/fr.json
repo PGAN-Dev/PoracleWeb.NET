@@ -401,7 +401,17 @@
     "CONFIRM_DELETE_ALL_MSG": "Es-tu sûr de vouloir supprimer TOUTES les alarmes Raid et Œuf ? Cette action est irréversible.",
     "CONFIRM_BULK_DELETE_TITLE": "Supprimer les alarmes sélectionnées",
     "CONFIRM_BULK_DELETE_MSG": "Es-tu sûr de vouloir supprimer {{count}} alarmes ?",
-    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection"
+    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection",
+    "RSVP_LABEL": "Notifications RSVP",
+    "RSVP_OFF": "Correspondances uniquement",
+    "RSVP_INCLUDE": "Correspondances + mises à jour RSVP",
+    "RSVP_ONLY": "Mises à jour RSVP uniquement",
+    "RSVP_OFF_DESC": "Alertes raid/œuf standard uniquement.",
+    "RSVP_INCLUDE_DESC": "Notifier également lorsque les RSVP changent.",
+    "RSVP_ONLY_DESC": "Ignorer les correspondances initiales ; notifier uniquement les changements de RSVP. Sans un scanner émettant des RSVP, cette alerte est silencieuse.",
+    "RSVP_HINT": "Nécessite que votre scanner émette des webhooks RSVP.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "RSVP uniquement"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmes Quête",

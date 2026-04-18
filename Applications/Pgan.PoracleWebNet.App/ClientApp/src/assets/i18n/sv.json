@@ -401,7 +401,17 @@
     "CONFIRM_DELETE_ALL_MSG": "Är du säker på att du vill radera ALLA raid- och ägglarm? Denna åtgärd kan inte ångras.",
     "CONFIRM_BULK_DELETE_TITLE": "Radera valda larm",
     "CONFIRM_BULK_DELETE_MSG": "Är du säker på att du vill radera {{count}} larm?",
-    "CONFIRM_DELETE_SELECTED": "Radera valda"
+    "CONFIRM_DELETE_SELECTED": "Radera valda",
+    "RSVP_LABEL": "RSVP-aviseringar",
+    "RSVP_OFF": "Endast träffar",
+    "RSVP_INCLUDE": "Träffar + RSVP-uppdateringar",
+    "RSVP_ONLY": "Endast RSVP-uppdateringar",
+    "RSVP_OFF_DESC": "Endast vanliga raid-/äggaviseringar.",
+    "RSVP_INCLUDE_DESC": "Meddela även när RSVP-antalet ändras.",
+    "RSVP_ONLY_DESC": "Hoppa över inledande träffar; meddela endast vid RSVP-ändringar. Utan en skanner som skickar RSVP blir larmet tyst.",
+    "RSVP_HINT": "Kräver att din skanner skickar RSVP-webhooks.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Endast RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest-larm",

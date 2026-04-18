@@ -401,7 +401,17 @@
     "CONFIRM_DELETE_ALL_MSG": "Er du sikker på, at du vil slette ALLE raid- og æg-alarmer? Denne handling kan ikke fortrydes.",
     "CONFIRM_BULK_DELETE_TITLE": "Slet valgte alarmer",
     "CONFIRM_BULK_DELETE_MSG": "Er du sikker på, at du vil slette {{count}} alarmer?",
-    "CONFIRM_DELETE_SELECTED": "Slet valgte"
+    "CONFIRM_DELETE_SELECTED": "Slet valgte",
+    "RSVP_LABEL": "RSVP-notifikationer",
+    "RSVP_OFF": "Kun matches",
+    "RSVP_INCLUDE": "Matches + RSVP-opdateringer",
+    "RSVP_ONLY": "Kun RSVP-opdateringer",
+    "RSVP_OFF_DESC": "Kun standard raid-/æg-notifikationer.",
+    "RSVP_INCLUDE_DESC": "Giv også besked, når RSVP-antal ændres.",
+    "RSVP_ONLY_DESC": "Spring indledende matches over; giv kun besked om RSVP-ændringer. Uden en scanner der sender RSVP er alarmen stille.",
+    "RSVP_HINT": "Kræver at din scanner sender RSVP-webhooks.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Kun RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest-alarmer",

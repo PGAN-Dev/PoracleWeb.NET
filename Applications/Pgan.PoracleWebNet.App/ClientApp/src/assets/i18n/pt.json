@@ -401,7 +401,17 @@
     "CONFIRM_DELETE_ALL_MSG": "Tens a certeza de que queres eliminar TODOS os alarmes de raid e ovos? Esta ação não pode ser revertida.",
     "CONFIRM_BULK_DELETE_TITLE": "Eliminar Alarmes Selecionados",
     "CONFIRM_BULK_DELETE_MSG": "Tens a certeza de que queres eliminar {{count}} alarmes?",
-    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados"
+    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados",
+    "RSVP_LABEL": "Notificações RSVP",
+    "RSVP_OFF": "Apenas correspondências",
+    "RSVP_INCLUDE": "Correspondências + atualizações RSVP",
+    "RSVP_ONLY": "Apenas atualizações RSVP",
+    "RSVP_OFF_DESC": "Apenas alertas padrão de raid/ovo.",
+    "RSVP_INCLUDE_DESC": "Também notificar novamente quando as contagens de RSVP mudarem.",
+    "RSVP_ONLY_DESC": "Ignorar correspondências iniciais; notificar apenas alterações de RSVP. Sem um scanner que emita RSVP este alarme fica silenciado.",
+    "RSVP_HINT": "Requer que o seu scanner envie webhooks RSVP.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Apenas RSVP"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmes de Missões",

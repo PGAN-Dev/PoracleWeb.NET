@@ -1,0 +1,27 @@
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label>{{ 'RAIDS.TEAM_LABEL' | translate }}</mat-label>
+  <mat-select [formControl]="teamControl()">
+    <mat-option [value]="4">
+      <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/0.png" class="team-option-icon" />
+      {{ 'RAIDS.TEAM_ANY' | translate }}
+    </mat-option>
+    <mat-option [value]="1">
+      <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/1.png" class="team-option-icon" />
+      {{ 'RAIDS.TEAM_MYSTIC' | translate }}
+    </mat-option>
+    <mat-option [value]="2">
+      <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/2.png" class="team-option-icon" />
+      {{ 'RAIDS.TEAM_VALOR' | translate }}
+    </mat-option>
+    <mat-option [value]="3">
+      <img src="https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/3.png" class="team-option-icon" />
+      {{ 'RAIDS.TEAM_INSTINCT' | translate }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
+<app-rsvp-toggle [control]="rsvpControl()" />
+
+<h4 class="gym-heading">{{ 'RAIDS.SPECIFIC_GYM' | translate }}</h4>
+<app-gym-picker [(gymId)]="gymId" />
+<p class="gym-picker-hint">{{ 'RAIDS.GYM_PICKER_HINT' | translate }}</p>
