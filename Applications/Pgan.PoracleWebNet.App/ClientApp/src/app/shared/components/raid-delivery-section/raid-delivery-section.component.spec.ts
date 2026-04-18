@@ -87,4 +87,15 @@ describe('RaidDeliverySectionComponent', () => {
     component.onDistanceModeChange();
     expect(distanceKm.value).toBe(3);
   });
+
+  it('should wrap the conditional distance input in a polite live region', () => {
+    fixture.detectChanges();
+    const liveRegion: HTMLElement | null = fixture.nativeElement.querySelector('[aria-live="polite"]');
+    expect(liveRegion).toBeTruthy();
+    expect(liveRegion?.getAttribute('aria-atomic')).toBe('true');
+
+    distanceMode.setValue('distance');
+    fixture.detectChanges();
+    expect(liveRegion?.querySelector('input[type="number"]')).toBeTruthy();
+  });
 });
