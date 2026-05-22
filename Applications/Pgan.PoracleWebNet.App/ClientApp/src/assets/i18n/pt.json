@@ -401,7 +401,27 @@
     "CONFIRM_DELETE_ALL_MSG": "Tens a certeza de que queres eliminar TODOS os alarmes de raid e ovos? Esta ação não pode ser revertida.",
     "CONFIRM_BULK_DELETE_TITLE": "Eliminar Alarmes Selecionados",
     "CONFIRM_BULK_DELETE_MSG": "Tens a certeza de que queres eliminar {{count}} alarmes?",
-    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados"
+    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados",
+    "LEVEL": {
+      "T1": "T1",
+      "T2": "T2",
+      "T3": "T3",
+      "T4": "T4",
+      "T5": "T5",
+      "MEGA": "Mega",
+      "ELITE": "Elite",
+      "ANY": "Any",
+      "CUSTOM": "Level",
+      "SECTION_STANDARD": "Standard",
+      "SECTION_SPECIAL": "Special",
+      "SECTION_CUSTOM": "Custom",
+      "ADD": "Add level",
+      "ADD_PLACEHOLDER": "e.g. 42",
+      "ADD_HELP": "Any positive integer your server uses. 9000 means \"any level\".",
+      "INVALID": "Level must be 1 or higher.",
+      "DUPLICATE": "Level {{value}} is already in the list.",
+      "SR_REMOVE": "Remove custom level {{value}}"
+    }
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmes de Missões",

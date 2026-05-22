@@ -401,7 +401,27 @@
     "CONFIRM_DELETE_ALL_MSG": "Weet je zeker dat je ALLE raid en ei alarmen wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
     "CONFIRM_BULK_DELETE_TITLE": "Geselecteerde Alarmen Verwijderen",
     "CONFIRM_BULK_DELETE_MSG": "Weet je zeker dat je {{count}} alarmen wilt verwijderen?",
-    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen"
+    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen",
+    "LEVEL": {
+      "T1": "T1",
+      "T2": "T2",
+      "T3": "T3",
+      "T4": "T4",
+      "T5": "T5",
+      "MEGA": "Mega",
+      "ELITE": "Elite",
+      "ANY": "Any",
+      "CUSTOM": "Level",
+      "SECTION_STANDARD": "Standard",
+      "SECTION_SPECIAL": "Special",
+      "SECTION_CUSTOM": "Custom",
+      "ADD": "Add level",
+      "ADD_PLACEHOLDER": "e.g. 42",
+      "ADD_HELP": "Any positive integer your server uses. 9000 means \"any level\".",
+      "INVALID": "Level must be 1 or higher.",
+      "DUPLICATE": "Level {{value}} is already in the list.",
+      "SR_REMOVE": "Remove custom level {{value}}"
+    }
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest Alarmen",

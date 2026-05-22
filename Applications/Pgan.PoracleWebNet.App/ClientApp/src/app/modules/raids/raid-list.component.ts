@@ -14,6 +14,7 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg } from '../../core/models';
+import { resolveLevel } from '../../core/models/raid-level.models';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -258,14 +259,11 @@ export class RaidListComponent implements OnInit {
   }
 
   getRaidLevelName(level: number): string {
-    switch (level) {
-      case 6:
-        return this.i18n.instant('RAIDS.LEVEL_MEGA');
-      case 9000:
-        return this.i18n.instant('ALARM.ANY_LEVEL');
-      default:
-        return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + level;
+    const opt = resolveLevel(level);
+    if (opt.category === 'custom') {
+      return this.i18n.instant(opt.labelKey) + ' ' + opt.badge;
     }
+    return this.i18n.instant(opt.labelKey);
   }
 
   getRaidTitle(raid: Raid): string {

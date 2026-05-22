@@ -1,0 +1,106 @@
+.level-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 8px 0 4px;
+}
+
+.level-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.85;
+}
+
+.chip-row {
+  display: block;
+
+  ::ng-deep .mdc-evolution-chip-set__chips {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+.chip-label {
+  font-weight: 500;
+}
+
+.chip-badge {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.chip-badge-only {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.chip-remove {
+  width: 22px !important;
+  height: 22px !important;
+  line-height: 22px !important;
+  margin-left: 2px;
+  margin-right: -4px;
+
+  ::ng-deep .mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+  }
+}
+
+.custom-section .custom-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-chip {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+
+  ::ng-deep .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+  }
+}
+
+.add-input {
+  width: 180px;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    margin-top: 2px;
+  }
+}
+
+mat-chip-option {
+  transition: box-shadow 200ms ease;
+
+  &.flash {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mat-sys-primary) 35%, transparent);
+  }
+}
+
+.level-selector.single mat-chip-option {
+  // Single-select mode shows the active chip more emphatically since there's
+  // only one in flight.
+  &[aria-selected='true'] {
+    font-weight: 600;
+  }
+}

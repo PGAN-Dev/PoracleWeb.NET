@@ -401,7 +401,27 @@
     "CONFIRM_DELETE_ALL_MSG": "Es-tu sûr de vouloir supprimer TOUTES les alarmes Raid et Œuf ? Cette action est irréversible.",
     "CONFIRM_BULK_DELETE_TITLE": "Supprimer les alarmes sélectionnées",
     "CONFIRM_BULK_DELETE_MSG": "Es-tu sûr de vouloir supprimer {{count}} alarmes ?",
-    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection"
+    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection",
+    "LEVEL": {
+      "T1": "T1",
+      "T2": "T2",
+      "T3": "T3",
+      "T4": "T4",
+      "T5": "T5",
+      "MEGA": "Mega",
+      "ELITE": "Elite",
+      "ANY": "Any",
+      "CUSTOM": "Level",
+      "SECTION_STANDARD": "Standard",
+      "SECTION_SPECIAL": "Special",
+      "SECTION_CUSTOM": "Custom",
+      "ADD": "Add level",
+      "ADD_PLACEHOLDER": "e.g. 42",
+      "ADD_HELP": "Any positive integer your server uses. 9000 means \"any level\".",
+      "INVALID": "Level must be 1 or higher.",
+      "DUPLICATE": "Level {{value}} is already in the list.",
+      "SR_REMOVE": "Remove custom level {{value}}"
+    }
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmes Quête",

@@ -1,0 +1,111 @@
+<div class="level-selector" [class.single]="!multiple">
+  <section class="level-section">
+    <h5 class="section-label">{{ 'RAIDS.LEVEL.SECTION_STANDARD' | translate }}</h5>
+    <mat-chip-listbox
+      [multiple]="multiple"
+      hideSingleSelectionIndicator
+      class="chip-row"
+      [attr.aria-label]="'RAIDS.LEVEL.SECTION_STANDARD' | translate">
+      @for (opt of standardLevels; track opt.value) {
+        <mat-chip-option
+          [selected]="isSelected(opt.value)"
+          (selectionChange)="$event.isUserInput && toggle(opt.value)"
+          [class.flash]="flashValue() === opt.value"
+          [attr.aria-label]="opt.labelKey | translate">
+          {{ opt.labelKey | translate }}
+        </mat-chip-option>
+      }
+    </mat-chip-listbox>
+  </section>
+
+  <section class="level-section">
+    <h5 class="section-label">{{ 'RAIDS.LEVEL.SECTION_SPECIAL' | translate }}</h5>
+    <mat-chip-listbox
+      [multiple]="multiple"
+      hideSingleSelectionIndicator
+      class="chip-row"
+      [attr.aria-label]="'RAIDS.LEVEL.SECTION_SPECIAL' | translate">
+      @for (opt of specialLevels; track opt.value) {
+        <mat-chip-option
+          [selected]="isSelected(opt.value)"
+          (selectionChange)="$event.isUserInput && toggle(opt.value)"
+          [class.flash]="flashValue() === opt.value">
+          <span class="chip-label">{{ opt.labelKey | translate }}</span>
+          @if (opt.badge !== undefined) {
+            <span class="chip-badge" aria-hidden="true">·&nbsp;{{ opt.badge }}</span>
+          }
+        </mat-chip-option>
+      }
+      @if (showAny) {
+        <mat-chip-option
+          [selected]="isSelected(anyLevel.value)"
+          (selectionChange)="$event.isUserInput && toggle(anyLevel.value)"
+          [class.flash]="flashValue() === anyLevel.value"
+          [attr.aria-label]="anyLevel.labelKey | translate">
+          <span class="chip-label">{{ anyLevel.labelKey | translate }}</span>
+        </mat-chip-option>
+      }
+    </mat-chip-listbox>
+  </section>
+
+  <section class="level-section custom-section">
+    <h5 class="section-label">{{ 'RAIDS.LEVEL.SECTION_CUSTOM' | translate }}</h5>
+    <div class="custom-row">
+      <mat-chip-listbox
+        [multiple]="multiple"
+        hideSingleSelectionIndicator
+        class="chip-row"
+        [attr.aria-label]="'RAIDS.LEVEL.SECTION_CUSTOM' | translate">
+        @for (opt of palette(); track opt.value) {
+          <mat-chip-option
+            [selected]="isSelected(opt.value)"
+            (selectionChange)="$event.isUserInput && toggle(opt.value)"
+            [class.flash]="flashValue() === opt.value"
+            [attr.aria-label]="(opt.labelKey | translate) + ' ' + opt.badge">
+            <span class="chip-badge-only">{{ opt.badge }}</span>
+            <button
+              mat-icon-button
+              class="chip-remove"
+              type="button"
+              (click)="removeCustom(opt.value, $event)"
+              [attr.aria-label]="'RAIDS.LEVEL.SR_REMOVE' | translate: { value: opt.badge }">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-chip-option>
+        }
+      </mat-chip-listbox>
+
+      @if (!addInputOpen()) {
+        <button mat-stroked-button type="button" class="add-chip" (click)="openAddInput()">
+          <mat-icon>add</mat-icon>
+          <span>{{ 'RAIDS.LEVEL.ADD' | translate }}</span>
+        </button>
+      } @else {
+        <mat-form-field appearance="outline" class="add-input">
+          <input
+            #customInput
+            matInput
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            [placeholder]="'RAIDS.LEVEL.ADD_PLACEHOLDER' | translate"
+            [ngModel]="addInputValue()"
+            (ngModelChange)="addInputValue.set($event); addInputError.set(null)"
+            (keydown)="onAddKeydown($event)" />
+          @if (addInputError()) {
+            <mat-error>{{ addInputError()! | translate }}</mat-error>
+          } @else {
+            <mat-hint>{{ 'RAIDS.LEVEL.ADD_HELP' | translate }}</mat-hint>
+          }
+          <button mat-icon-button matSuffix type="button" (click)="commitAddInput()" [attr.aria-label]="'RAIDS.LEVEL.ADD' | translate">
+            <mat-icon>check</mat-icon>
+          </button>
+          <button mat-icon-button matSuffix type="button" (click)="cancelAddInput()" [attr.aria-label]="'ALARM.CANCEL' | translate">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+      }
+    </div>
+  </section>
+</div>

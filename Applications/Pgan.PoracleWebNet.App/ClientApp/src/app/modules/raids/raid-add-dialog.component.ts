@@ -1,7 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,12 +15,14 @@ import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { RaidCreate, EggCreate } from '../../core/models';
+import { ANY_LEVEL_VALUE } from '../../core/models/raid-level.models';
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
+import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
@@ -36,7 +37,6 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSlideToggleModule,
     MatIconModule,
     MatTabsModule,
-    MatCheckboxModule,
     MatRadioModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
@@ -45,6 +45,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    LevelSelectorComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -57,9 +58,9 @@ export class RaidAddDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
-  bossForm = this.fb.group({
-    level: [0],
-  });
+
+  /** Single-select Boss-tab level; defaults to PoracleNG's "any" sentinel (9000). */
+  bossLevel = signal<number>(ANY_LEVEL_VALUE);
 
   commonForm = this.fb.group({
     clean: [false],
@@ -71,14 +72,12 @@ export class RaidAddDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<RaidAddDialogComponent>);
-
   readonly isWebhook = inject(AuthService).isImpersonating();
-  levels = [1, 2, 3, 4, 5, 6];
   saving = signal(false);
   selectedEggLevels = signal<number[]>([]);
   selectedGymId = signal<string | null>(null);
-  selectedPokemonIds = signal<number[]>([]);
 
+  selectedPokemonIds = signal<number[]>([]);
   selectedRaidLevels = signal<number[]>([]);
 
   tabIndex = 0;
@@ -88,6 +87,11 @@ export class RaidAddDialogComponent {
       return this.selectedRaidLevels().length > 0 || this.selectedEggLevels().length > 0;
     }
     return this.selectedPokemonIds().length > 0;
+  }
+
+  /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
+  onBossLevelChange(values: number[]): void {
+    this.bossLevel.set(values[0] ?? ANY_LEVEL_VALUE);
   }
 
   onDistanceModeChange(): void {
@@ -148,7 +152,7 @@ export class RaidAddDialogComponent {
       }
     } else {
       // By Boss
-      const bossLevel = this.bossForm.controls.level.value ?? 0;
+      const bossLevel = this.bossLevel();
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
           clean: common.clean ? 1 : 0,
@@ -181,13 +185,5 @@ export class RaidAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  toggleEggLevel(level: number): void {
-    this.selectedEggLevels.update(levels => (levels.includes(level) ? levels.filter(l => l !== level) : [...levels, level]));
-  }
-
-  toggleRaidLevel(level: number): void {
-    this.selectedRaidLevels.update(levels => (levels.includes(level) ? levels.filter(l => l !== level) : [...levels, level]));
   }
 }
