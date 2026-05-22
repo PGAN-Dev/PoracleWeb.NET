@@ -33,6 +33,10 @@ avatar-cache.json
 *.http
 *.mjs
 screenshot-*.png
+# Playwright MCP server output + loose screenshots at the repo root
+# (tracked PNGs all live under ClientApp/public/assets, so this is root-only)
+.playwright-mcp/
+/*.png
 Applications/Pgan.PoracleWebNet.Api/cookies.txt
 beta-discord-messages.txt
 
