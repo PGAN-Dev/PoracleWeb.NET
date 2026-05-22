@@ -16,10 +16,12 @@ export type LevelCategory = 'star' | 'mega' | 'special' | 'shadow' | 'superMega'
 export interface LevelOption {
   /** Coarse grouping for the selector overflow menu and category badges. */
   category: LevelCategory;
-  /** ngx-translate key for the singular human label. */
+  /**
+   * ngx-translate key for the human label. Intentionally short and excludes
+   * the "Raid" noun ("Mega Legendary", not "Mega Legendary Raid") so it
+   * composes cleanly into card titles like "All Mega Legendary Raids".
+   */
   labelKey: string;
-  /** ngx-translate key for the plural form (used in card titles). */
-  pluralKey?: string;
   /** Backend integer. PoracleNG accepts any positive integer. */
   value: number;
 }
@@ -33,25 +35,25 @@ export const ANY_LEVEL_VALUE = 9000 as const;
  * 16-17 super mega, 18-19 coordinated).
  */
 export const KNOWN_LEVELS: readonly LevelOption[] = [
-  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_1', pluralKey: 'RAIDS.LEVEL.RAID_1_PLURAL', value: 1 },
-  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_2', pluralKey: 'RAIDS.LEVEL.RAID_2_PLURAL', value: 2 },
-  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_3', pluralKey: 'RAIDS.LEVEL.RAID_3_PLURAL', value: 3 },
-  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_4', pluralKey: 'RAIDS.LEVEL.RAID_4_PLURAL', value: 4 },
-  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_5', pluralKey: 'RAIDS.LEVEL.RAID_5_PLURAL', value: 5 },
-  { category: 'mega', labelKey: 'RAIDS.LEVEL.RAID_6', pluralKey: 'RAIDS.LEVEL.RAID_6_PLURAL', value: 6 },
-  { category: 'mega', labelKey: 'RAIDS.LEVEL.RAID_7', pluralKey: 'RAIDS.LEVEL.RAID_7_PLURAL', value: 7 },
-  { category: 'special', labelKey: 'RAIDS.LEVEL.RAID_8', pluralKey: 'RAIDS.LEVEL.RAID_8_PLURAL', value: 8 },
-  { category: 'special', labelKey: 'RAIDS.LEVEL.RAID_9', pluralKey: 'RAIDS.LEVEL.RAID_9_PLURAL', value: 9 },
-  { category: 'special', labelKey: 'RAIDS.LEVEL.RAID_10', pluralKey: 'RAIDS.LEVEL.RAID_10_PLURAL', value: 10 },
-  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_11', pluralKey: 'RAIDS.LEVEL.RAID_11_PLURAL', value: 11 },
-  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_12', pluralKey: 'RAIDS.LEVEL.RAID_12_PLURAL', value: 12 },
-  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_13', pluralKey: 'RAIDS.LEVEL.RAID_13_PLURAL', value: 13 },
-  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_14', pluralKey: 'RAIDS.LEVEL.RAID_14_PLURAL', value: 14 },
-  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_15', pluralKey: 'RAIDS.LEVEL.RAID_15_PLURAL', value: 15 },
-  { category: 'superMega', labelKey: 'RAIDS.LEVEL.RAID_16', pluralKey: 'RAIDS.LEVEL.RAID_16_PLURAL', value: 16 },
-  { category: 'superMega', labelKey: 'RAIDS.LEVEL.RAID_17', pluralKey: 'RAIDS.LEVEL.RAID_17_PLURAL', value: 17 },
-  { category: 'coordinated', labelKey: 'RAIDS.LEVEL.RAID_18', pluralKey: 'RAIDS.LEVEL.RAID_18_PLURAL', value: 18 },
-  { category: 'coordinated', labelKey: 'RAIDS.LEVEL.RAID_19', pluralKey: 'RAIDS.LEVEL.RAID_19_PLURAL', value: 19 },
+  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_1', value: 1 },
+  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_2', value: 2 },
+  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_3', value: 3 },
+  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_4', value: 4 },
+  { category: 'star', labelKey: 'RAIDS.LEVEL.RAID_5', value: 5 },
+  { category: 'mega', labelKey: 'RAIDS.LEVEL.RAID_6', value: 6 },
+  { category: 'mega', labelKey: 'RAIDS.LEVEL.RAID_7', value: 7 },
+  { category: 'special', labelKey: 'RAIDS.LEVEL.RAID_8', value: 8 },
+  { category: 'special', labelKey: 'RAIDS.LEVEL.RAID_9', value: 9 },
+  { category: 'special', labelKey: 'RAIDS.LEVEL.RAID_10', value: 10 },
+  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_11', value: 11 },
+  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_12', value: 12 },
+  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_13', value: 13 },
+  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_14', value: 14 },
+  { category: 'shadow', labelKey: 'RAIDS.LEVEL.RAID_15', value: 15 },
+  { category: 'superMega', labelKey: 'RAIDS.LEVEL.RAID_16', value: 16 },
+  { category: 'superMega', labelKey: 'RAIDS.LEVEL.RAID_17', value: 17 },
+  { category: 'coordinated', labelKey: 'RAIDS.LEVEL.RAID_18', value: 18 },
+  { category: 'coordinated', labelKey: 'RAIDS.LEVEL.RAID_19', value: 19 },
 ];
 
 /** Values 1-5: the visually star-rendered "N Star Raid" tier. */
@@ -72,13 +74,12 @@ export const OVERFLOW_RAID_LEVELS: readonly LevelOption[] = KNOWN_LEVELS.filter(
 export const ANY_LEVEL: LevelOption = {
   category: 'any',
   labelKey: 'RAIDS.LEVEL.ANY',
-  pluralKey: 'RAIDS.LEVEL.ANY',
   value: ANY_LEVEL_VALUE,
 };
 
 /** Build a display option for an arbitrary integer level (unknown to the masterfile). */
 export function makeCustomLevel(value: number): LevelOption {
-  return { category: 'custom', labelKey: 'RAIDS.LEVEL.CUSTOM', pluralKey: 'RAIDS.LEVEL.CUSTOM_PLURAL', value };
+  return { category: 'custom', labelKey: 'RAIDS.LEVEL.CUSTOM', value };
 }
 
 /**

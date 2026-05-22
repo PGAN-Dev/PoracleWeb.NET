@@ -77,7 +77,6 @@ function toLevelOption(dto: RaidLevelInfoDto): LevelOption {
   return {
     category: normalizeCategory(dto.category),
     labelKey: `RAIDS.LEVEL.RAID_${dto.value}`,
-    pluralKey: `RAIDS.LEVEL.RAID_${dto.value}_PLURAL`,
     value: dto.value,
   };
 }

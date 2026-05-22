@@ -36,7 +36,6 @@ describe('RaidLevelService', () => {
     expect(service.levels().length).toBe(2);
     expect(service.levels()[1].value).toBe(20);
     expect(service.levels()[1].labelKey).toBe('RAIDS.LEVEL.RAID_20');
-    expect(service.levels()[1].pluralKey).toBe('RAIDS.LEVEL.RAID_20_PLURAL');
   });
 
   it('keeps the baked-in fallback when the API fails', () => {

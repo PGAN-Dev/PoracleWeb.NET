@@ -15,31 +15,37 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 public class RaidLevelService : IRaidLevelService
 {
-    // Mirror of the masterfile's raid_{N} / raid_{N}_plural keys as of writing.
+    // Mirror of the masterfile's raid_{N} keys as of writing, with the "Raid"
+    // noun stripped so callers can compose phrases like "All Mega Legendary
+    // Raids" without doubling the word. The masterfile keeps the long form
+    // (e.g. "Mega Legendary Raid") — see Name vs NamePlural fields for the
+    // intended use:
+    //   - Name        → modifier form, used inline ("Mega Legendary")
+    //   - NamePlural  → full phrase, used standalone ("Mega Legendary Raids")
     // Source: https://github.com/WatWowMap/Masterfile-Generator (master-latest-poracle-v2.json)
     // When upstream adds raid_20+, append entries here and bump the i18n keys in
     // RAIDS.LEVEL.* — or wire up the live fetch documented below.
     private static readonly IReadOnlyList<RaidLevelInfo> BakedIn = new RaidLevelInfo[]
     {
-        new() { Value = 1, Category = "star", Name = "1 Star Raid", NamePlural = "1 Star Raids" },
-        new() { Value = 2, Category = "star", Name = "2 Star Raid", NamePlural = "2 Star Raids" },
-        new() { Value = 3, Category = "star", Name = "3 Star Raid", NamePlural = "3 Star Raids" },
-        new() { Value = 4, Category = "star", Name = "4 Star Raid", NamePlural = "4 Star Raids" },
-        new() { Value = 5, Category = "star", Name = "Legendary Raid", NamePlural = "Legendary Raids" },
-        new() { Value = 6, Category = "mega", Name = "Mega Raid", NamePlural = "Mega Raids" },
-        new() { Value = 7, Category = "mega", Name = "Mega Legendary Raid", NamePlural = "Mega Legendary Raids" },
-        new() { Value = 8, Category = "special", Name = "Ultra Beast Raid", NamePlural = "Ultra Beast Raids" },
-        new() { Value = 9, Category = "special", Name = "Elite Raid", NamePlural = "Elite Raids" },
-        new() { Value = 10, Category = "special", Name = "Primal Raid", NamePlural = "Primal Raids" },
-        new() { Value = 11, Category = "shadow", Name = "1 Shadow Raid", NamePlural = "1 Shadow Raids" },
-        new() { Value = 12, Category = "shadow", Name = "2 Shadow Raid", NamePlural = "2 Shadow Raids" },
-        new() { Value = 13, Category = "shadow", Name = "3 Shadow Raid", NamePlural = "3 Shadow Raids" },
-        new() { Value = 14, Category = "shadow", Name = "4 Shadow Raid", NamePlural = "4 Shadow Raids" },
-        new() { Value = 15, Category = "shadow", Name = "5 Shadow Raid", NamePlural = "5 Shadow Raids" },
-        new() { Value = 16, Category = "superMega", Name = "4 Super Mega Raid", NamePlural = "4 Super Mega Raids" },
-        new() { Value = 17, Category = "superMega", Name = "5 Super Mega Raid", NamePlural = "5 Super Mega Raids" },
-        new() { Value = 18, Category = "coordinated", Name = "Coordinated 1 Raid", NamePlural = "Coordinated 1 Raids" },
-        new() { Value = 19, Category = "coordinated", Name = "Coordinated 2 Raid", NamePlural = "Coordinated 2 Raids" },
+        new() { Value = 1, Category = "star", Name = "1 Star", NamePlural = "1 Star Raids" },
+        new() { Value = 2, Category = "star", Name = "2 Star", NamePlural = "2 Star Raids" },
+        new() { Value = 3, Category = "star", Name = "3 Star", NamePlural = "3 Star Raids" },
+        new() { Value = 4, Category = "star", Name = "4 Star", NamePlural = "4 Star Raids" },
+        new() { Value = 5, Category = "star", Name = "Legendary", NamePlural = "Legendary Raids" },
+        new() { Value = 6, Category = "mega", Name = "Mega", NamePlural = "Mega Raids" },
+        new() { Value = 7, Category = "mega", Name = "Mega Legendary", NamePlural = "Mega Legendary Raids" },
+        new() { Value = 8, Category = "special", Name = "Ultra Beast", NamePlural = "Ultra Beast Raids" },
+        new() { Value = 9, Category = "special", Name = "Elite", NamePlural = "Elite Raids" },
+        new() { Value = 10, Category = "special", Name = "Primal", NamePlural = "Primal Raids" },
+        new() { Value = 11, Category = "shadow", Name = "1 Shadow", NamePlural = "1 Shadow Raids" },
+        new() { Value = 12, Category = "shadow", Name = "2 Shadow", NamePlural = "2 Shadow Raids" },
+        new() { Value = 13, Category = "shadow", Name = "3 Shadow", NamePlural = "3 Shadow Raids" },
+        new() { Value = 14, Category = "shadow", Name = "4 Shadow", NamePlural = "4 Shadow Raids" },
+        new() { Value = 15, Category = "shadow", Name = "5 Shadow", NamePlural = "5 Shadow Raids" },
+        new() { Value = 16, Category = "superMega", Name = "4 Super Mega", NamePlural = "4 Super Mega Raids" },
+        new() { Value = 17, Category = "superMega", Name = "5 Super Mega", NamePlural = "5 Super Mega Raids" },
+        new() { Value = 18, Category = "coordinated", Name = "Coordinated 1", NamePlural = "Coordinated 1 Raids" },
+        new() { Value = 19, Category = "coordinated", Name = "Coordinated 2", NamePlural = "Coordinated 2 Raids" },
     };
 
     /// <inheritdoc />

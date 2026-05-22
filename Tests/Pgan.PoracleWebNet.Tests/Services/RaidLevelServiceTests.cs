@@ -5,7 +5,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class RaidLevelServiceTests
 {
     [Fact]
-    public async Task GetAllAsync_returns_19_levels_in_order()
+    public async Task GetAllAsyncReturnsNineteenLevelsInOrder()
     {
         var sut = new RaidLevelService();
 
@@ -19,7 +19,7 @@ public class RaidLevelServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_assigns_categories_per_masterfile()
+    public async Task GetAllAsyncAssignsCategoriesPerMasterfile()
     {
         var sut = new RaidLevelService();
 
@@ -45,30 +45,32 @@ public class RaidLevelServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_uses_canonical_masterfile_names()
+    public async Task GetAllAsyncUsesMasterfileNamesWithRaidSuffixStripped()
     {
         var sut = new RaidLevelService();
 
         var levels = (await sut.GetAllAsync()).ToDictionary(l => l.Value);
 
         // Fixes the prior Elite mislabel: level 7 is Mega Legendary, NOT Elite
-        Assert.Equal("Mega Legendary Raid", levels[7].Name);
+        Assert.Equal("Mega Legendary", levels[7].Name);
         // Elite is at level 9
-        Assert.Equal("Elite Raid", levels[9].Name);
-        // Level 5 is Legendary, not "T5"
-        Assert.Equal("Legendary Raid", levels[5].Name);
-        // Star tiers carry the literal star nomenclature
-        Assert.Equal("1 Star Raid", levels[1].Name);
-        Assert.Equal("4 Star Raid", levels[4].Name);
+        Assert.Equal("Elite", levels[9].Name);
+        // Level 5 is Legendary
+        Assert.Equal("Legendary", levels[5].Name);
+        // Star tiers carry the literal star nomenclature minus the redundant suffix
+        Assert.Equal("1 Star", levels[1].Name);
+        Assert.Equal("4 Star", levels[4].Name);
     }
 
     [Fact]
-    public async Task GetAllAsync_includes_plural_names()
+    public async Task GetAllAsyncPluralNamesKeepTheFullPhrase()
     {
         var sut = new RaidLevelService();
 
         var levels = (await sut.GetAllAsync()).ToDictionary(l => l.Value);
 
+        // Plural form is used in standalone phrases like card titles where the
+        // "Raids" suffix completes the sentence.
         Assert.Equal("Mega Raids", levels[6].NamePlural);
         Assert.Equal("Elite Raids", levels[9].NamePlural);
         Assert.Equal("Legendary Raids", levels[5].NamePlural);

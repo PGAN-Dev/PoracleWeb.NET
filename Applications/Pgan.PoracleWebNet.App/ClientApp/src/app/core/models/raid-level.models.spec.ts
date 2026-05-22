@@ -41,10 +41,9 @@ describe('raid-level.models (canonical 19 levels)', () => {
       expect(nine.category).toBe('special');
     });
 
-    it('every entry has both singular and plural keys', () => {
+    it('every entry uses the RAID_N label key', () => {
       KNOWN_LEVELS.forEach(opt => {
         expect(opt.labelKey).toBe(`RAIDS.LEVEL.RAID_${opt.value}`);
-        expect(opt.pluralKey).toBe(`RAIDS.LEVEL.RAID_${opt.value}_PLURAL`);
       });
     });
   });

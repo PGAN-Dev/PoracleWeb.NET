@@ -19,6 +19,7 @@ import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { RaidLevelService } from '../../core/services/raid-level.service';
 import { RaidService } from '../../core/services/raid.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
@@ -54,6 +55,7 @@ export class RaidListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
+  private readonly raidLevelService = inject(RaidLevelService);
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
@@ -266,7 +268,12 @@ export class RaidListComponent implements OnInit {
   }
 
   getRaidLevelName(level: number): string {
-    const opt = resolveLevel(level);
+    // Prefer the live raid-level list — when the API extends the canonical
+    // set (e.g. raid_20 ships in the masterfile), cards stay in sync with the
+    // selector dialog. Falls back to the baked-in resolveLevel + custom shape
+    // when the API hasn't loaded yet or the level is genuinely unknown.
+    const liveOpt = this.raidLevelService.byValue().get(level);
+    const opt = liveOpt ?? resolveLevel(level);
     if (opt.category === 'custom') {
       return this.i18n.instant(opt.labelKey) + ' ' + opt.value;
     }
@@ -327,6 +334,7 @@ export class RaidListComponent implements OnInit {
 
   ngOnInit(): void {
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    this.raidLevelService.load();
     this.loadData();
   }
 

@@ -6,19 +6,12 @@ import { provideTranslateService } from '@ngx-translate/core';
 
 import { LevelSelectorComponent } from './level-selector.component';
 import { ANY_LEVEL_VALUE } from '../../../core/models/raid-level.models';
-import { CustomLevelStore } from '../../../core/services/custom-level-store.service';
-
-const STORAGE_PREFIX = 'poracle.custom-levels';
 
 describe('LevelSelectorComponent', () => {
   let fixture: ComponentFixture<LevelSelectorComponent>;
   let component: LevelSelectorComponent;
-  let store: CustomLevelStore;
 
   beforeEach(() => {
-    for (const k of Object.keys(localStorage)) {
-      if (k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
-    }
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting(), provideTranslateService()],
@@ -27,8 +20,24 @@ describe('LevelSelectorComponent', () => {
     fixture = TestBed.createComponent(LevelSelectorComponent);
     component = fixture.componentInstance;
     component.pickerType = 'raid';
-    store = TestBed.inject(CustomLevelStore);
   });
+
+  // Type-narrowing helper for protected members exercised in tests.
+  function withInternals(c: LevelSelectorComponent) {
+    return c as unknown as {
+      toggle(v: number): void;
+      removeCustom(v: number, e: MouseEvent): void;
+      openAddInput(): void;
+      onAddKeydown(e: KeyboardEvent): void;
+      commitAddInput(): void;
+      addInputValue: { set(v: string): void; (): string };
+      addInputError(): string | null;
+      isAddClosed(): boolean;
+      palette(): { value: number }[];
+      primaryLevels(): { value: number }[];
+      overflowLevels(): { value: number }[];
+    };
+  }
 
   it('renders without error', () => {
     component.value = [1, 7];
@@ -36,10 +45,21 @@ describe('LevelSelectorComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('seeds custom levels from incoming value into the keyed palette', () => {
-    component.pickerType = 'raid';
+  it('seeds the local palette from a custom value on incoming `value`', () => {
     component.value = [42, 1];
-    expect(store.values('raid')).toEqual([42]);
+    expect(
+      withInternals(component)
+        .palette()
+        .map(o => o.value),
+    ).toEqual([42]);
+  });
+
+  it('does NOT persist the palette between component instances', () => {
+    component.value = [42];
+    // Fresh component instance simulates dialog close+reopen
+    const fresh = TestBed.createComponent(LevelSelectorComponent).componentInstance;
+    fresh.pickerType = 'raid';
+    expect(withInternals(fresh).palette()).toEqual([]);
   });
 
   it('toggle adds/removes in raid (multi-select) mode', () => {
@@ -47,11 +67,11 @@ describe('LevelSelectorComponent', () => {
     component.value = [];
     component.valueChange.subscribe(v => emitted.push(v));
 
-    (component as unknown as { toggle: (v: number) => void }).toggle(3);
-    (component as unknown as { toggle: (v: number) => void }).toggle(5);
+    withInternals(component).toggle(3);
+    withInternals(component).toggle(5);
     expect(emitted).toEqual([[3], [3, 5]]);
 
-    (component as unknown as { toggle: (v: number) => void }).toggle(3);
+    withInternals(component).toggle(3);
     expect(emitted[emitted.length - 1]).toEqual([5]);
   });
 
@@ -61,7 +81,7 @@ describe('LevelSelectorComponent', () => {
     const emitted: number[][] = [];
     component.valueChange.subscribe(v => emitted.push(v));
 
-    (component as unknown as { toggle: (v: number) => void }).toggle(5);
+    withInternals(component).toggle(5);
     expect(emitted[0]).toEqual([5]);
   });
 
@@ -71,16 +91,12 @@ describe('LevelSelectorComponent', () => {
     const emitted: number[][] = [];
     component.valueChange.subscribe(v => emitted.push(v));
 
-    (component as unknown as { toggle: (v: number) => void }).toggle(3);
+    withInternals(component).toggle(3);
     expect(emitted[0]).toEqual([]);
   });
 
   it('commitAddInput rejects 0 and negatives via inline error', () => {
-    const c = component as unknown as {
-      addInputValue: { set: (v: string) => void };
-      addInputError: () => string | null;
-      commitAddInput: () => void;
-    };
+    const c = withInternals(component);
     c.addInputValue.set('0');
     c.commitAddInput();
     expect(c.addInputError()).toBe('RAIDS.LEVEL.INVALID');
@@ -91,27 +107,23 @@ describe('LevelSelectorComponent', () => {
   });
 
   it('commitAddInput rejects non-integer input', () => {
-    const c = component as unknown as {
-      addInputValue: { set: (v: string) => void };
-      addInputError: () => string | null;
-      commitAddInput: () => void;
-    };
+    const c = withInternals(component);
     c.addInputValue.set('7.5');
     c.commitAddInput();
     expect(c.addInputError()).toBe('RAIDS.LEVEL.INVALID');
   });
 
-  it('commitAddInput snaps 9000 to ANY chip on raid picker', () => {
+  it('commitAddInput snaps 9000 to the ANY chip on raid picker', () => {
     component.value = [];
     const emitted: number[][] = [];
     component.valueChange.subscribe(v => emitted.push(v));
 
-    const c = component as unknown as { addInputValue: { set: (v: string) => void }; commitAddInput: () => void };
+    const c = withInternals(component);
     c.addInputValue.set('9000');
     c.commitAddInput();
 
     expect(emitted[emitted.length - 1]).toEqual([ANY_LEVEL_VALUE]);
-    expect(store.values('raid')).not.toContain(ANY_LEVEL_VALUE);
+    expect(c.palette().map(o => o.value)).not.toContain(ANY_LEVEL_VALUE);
   });
 
   it('commitAddInput selects an existing known level instead of adding a duplicate', () => {
@@ -119,60 +131,43 @@ describe('LevelSelectorComponent', () => {
     const emitted: number[][] = [];
     component.valueChange.subscribe(v => emitted.push(v));
 
-    const c = component as unknown as { addInputValue: { set: (v: string) => void }; commitAddInput: () => void };
+    const c = withInternals(component);
     c.addInputValue.set('5');
     c.commitAddInput();
 
     expect(emitted[emitted.length - 1]).toEqual([5]);
-    expect(store.values('raid')).not.toContain(5);
+    expect(c.palette().map(o => o.value)).not.toContain(5);
   });
 
-  it('commitAddInput adds a new custom into the keyed palette and selects it', () => {
+  it('commitAddInput adds a new custom into the local palette and selects it', () => {
     component.value = [];
     const emitted: number[][] = [];
     component.valueChange.subscribe(v => emitted.push(v));
 
-    const c = component as unknown as { addInputValue: { set: (v: string) => void }; commitAddInput: () => void };
+    const c = withInternals(component);
     c.addInputValue.set('42');
     c.commitAddInput();
 
-    expect(store.values('raid')).toContain(42);
+    expect(c.palette().map(o => o.value)).toContain(42);
     expect(emitted[emitted.length - 1]).toEqual([42]);
   });
 
-  it('palette is scoped per pickerType — raid does not leak to egg/boss', () => {
-    component.pickerType = 'raid';
-    component.value = [];
-    const c = component as unknown as { addInputValue: { set: (v: string) => void }; commitAddInput: () => void };
-    c.addInputValue.set('42');
-    c.commitAddInput();
-
-    expect(store.values('raid')).toContain(42);
-    expect(store.values('egg')).not.toContain(42);
-    expect(store.values('boss')).not.toContain(42);
-  });
-
-  it('removeCustom evicts the value from the keyed palette and the selection', () => {
+  it('removeCustom removes from the local palette and the selection', () => {
     component.value = [42];
-    expect(store.values('raid')).toContain(42);
+    const c = withInternals(component);
+    expect(c.palette().map(o => o.value)).toContain(42);
 
     const emitted: number[][] = [];
     component.valueChange.subscribe(v => emitted.push(v));
 
-    const c = component as unknown as { removeCustom: (v: number, e: MouseEvent) => void };
     c.removeCustom(42, new MouseEvent('click'));
 
-    expect(store.values('raid')).not.toContain(42);
+    expect(c.palette().map(o => o.value)).not.toContain(42);
     expect(emitted[emitted.length - 1]).toEqual([]);
   });
 
   it('Escape cancels the add input', () => {
-    const c = component as unknown as {
-      openAddInput: () => void;
-      addInputValue: { set: (v: string) => void; (): string };
-      isAddClosed: () => boolean;
-      onAddKeydown: (e: KeyboardEvent) => void;
-    };
+    const c = withInternals(component);
     c.openAddInput();
     c.addInputValue.set('99');
     c.onAddKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
@@ -182,24 +177,22 @@ describe('LevelSelectorComponent', () => {
   describe('pickerType-driven primary/overflow split', () => {
     it('raid picker shows star + mega in primary, special/shadow/etc. in overflow', () => {
       component.pickerType = 'raid';
-      const primary = (component as unknown as { primaryLevels: () => { value: number }[] }).primaryLevels();
-      const overflow = (component as unknown as { overflowLevels: () => { value: number }[] }).overflowLevels();
-      expect(primary.map(l => l.value)).toEqual([1, 2, 3, 4, 5, 6, 7]);
-      expect(overflow.map(l => l.value)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+      const c = withInternals(component);
+      expect(c.primaryLevels().map(l => l.value)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      expect(c.overflowLevels().map(l => l.value)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     });
 
     it('egg picker shows star-only in primary and empty overflow', () => {
       component.pickerType = 'egg';
-      const primary = (component as unknown as { primaryLevels: () => { value: number }[] }).primaryLevels();
-      const overflow = (component as unknown as { overflowLevels: () => { value: number }[] }).overflowLevels();
-      expect(primary.map(l => l.value)).toEqual([1, 2, 3, 4, 5]);
-      expect(overflow).toEqual([]);
+      const c = withInternals(component);
+      expect(c.primaryLevels().map(l => l.value)).toEqual([1, 2, 3, 4, 5]);
+      expect(c.overflowLevels()).toEqual([]);
     });
 
     it('boss picker mirrors raid for chip composition', () => {
       component.pickerType = 'boss';
-      const primary = (component as unknown as { primaryLevels: () => { value: number }[] }).primaryLevels();
-      expect(primary.map(l => l.value)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+      const c = withInternals(component);
+      expect(c.primaryLevels().map(l => l.value)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     });
   });
 });

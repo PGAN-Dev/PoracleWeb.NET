@@ -23,7 +23,7 @@ public class MasterDataControllerRaidLevelsTests
         raidLevelService);
 
     [Fact]
-    public async Task GetRaidLevels_returns_Ok_with_service_payload()
+    public async Task GetRaidLevelsReturnsOkWithServicePayload()
     {
         var svc = new Mock<IRaidLevelService>();
         svc.Setup(s => s.GetAllAsync()).ReturnsAsync(SampleLevels);
@@ -32,14 +32,14 @@ public class MasterDataControllerRaidLevelsTests
         var result = await sut.GetRaidLevels();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var payload = Assert.IsAssignableFrom<IReadOnlyList<RaidLevelInfo>>(ok.Value);
+        var payload = Assert.IsType<IReadOnlyList<RaidLevelInfo>>(ok.Value, exactMatch: false);
         Assert.Equal(2, payload.Count);
         Assert.Equal(9, payload[1].Value);
         Assert.Equal("Elite Raid", payload[1].Name);
     }
 
     [Fact]
-    public async Task GetRaidLevels_returns_Ok_even_when_list_is_empty()
+    public async Task GetRaidLevelsReturnsOkEvenWhenListIsEmpty()
     {
         var svc = new Mock<IRaidLevelService>();
         svc.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
@@ -48,7 +48,7 @@ public class MasterDataControllerRaidLevelsTests
         var result = await sut.GetRaidLevels();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var payload = Assert.IsAssignableFrom<IReadOnlyList<RaidLevelInfo>>(ok.Value);
+        var payload = Assert.IsType<IReadOnlyList<RaidLevelInfo>>(ok.Value, exactMatch: false);
         Assert.Empty(payload);
     }
 }

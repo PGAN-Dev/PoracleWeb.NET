@@ -13,7 +13,6 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
-import { resolveLevel } from '../../core/models/raid-level.models';
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -30,6 +29,7 @@ export interface RaidEditDialogData {
 }
 
 @Component({
+  providers: [LevelLabelPipe],
   imports: [
     ReactiveFormsModule,
     MatDialogModule,
@@ -58,6 +58,7 @@ export class RaidEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
+  private readonly levelLabelPipe = inject(LevelLabelPipe);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
@@ -89,13 +90,13 @@ export class RaidEditDialogComponent {
 
   getTitle(): string {
     if (this.data.type === 'egg') {
-      return this.formatLevel(this.data.item.level) + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
+      return this.levelLabelPipe.transform(this.data.item.level) + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
       return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
     }
-    return this.formatLevel(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
+    return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
 
   onDistanceModeChange(): void {
@@ -168,13 +169,5 @@ export class RaidEditDialogComponent {
         },
       });
     }
-  }
-
-  private formatLevel(level: number): string {
-    const opt = resolveLevel(level);
-    if (opt.category === 'custom') {
-      return this.i18n.instant(opt.labelKey) + ' ' + opt.value;
-    }
-    return this.i18n.instant(opt.labelKey);
   }
 }
