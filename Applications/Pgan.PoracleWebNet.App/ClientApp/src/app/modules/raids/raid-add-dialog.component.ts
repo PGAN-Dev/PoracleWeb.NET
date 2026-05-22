@@ -73,7 +73,9 @@ export class RaidAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<RaidAddDialogComponent>);
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-  levels = [1, 2, 3, 4, 5, 6];
+  // PoracleNG accepts arbitrary integer levels; raids 1-5 + Mega(6) cover stock
+  // Pokémon GO, Elite Raids (~7) and any custom server schemes occupy the rest.
+  levels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   saving = signal(false);
   selectedEggLevels = signal<number[]>([]);
   selectedGymId = signal<string | null>(null);
