@@ -173,7 +173,7 @@ export class RaidEditDialogComponent {
   private formatLevel(level: number): string {
     const opt = resolveLevel(level);
     if (opt.category === 'custom') {
-      return this.i18n.instant(opt.labelKey) + ' ' + opt.badge;
+      return this.i18n.instant(opt.labelKey) + ' ' + opt.value;
     }
     return this.i18n.instant(opt.labelKey);
   }

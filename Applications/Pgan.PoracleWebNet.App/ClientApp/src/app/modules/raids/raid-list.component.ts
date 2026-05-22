@@ -249,11 +249,12 @@ export class RaidListComponent implements OnInit {
   }
 
   getLevelStars(level: number): number[] {
-    // Stars are only meaningful for the standard Pokémon GO raid tiers (1-5)
-    // plus Mega (6) and Elite (7). For anything else (custom integers,
-    // the 9000 "Any" sentinel), the label already conveys the level and a
-    // stars row would either be wrong (e.g. 23 stars) or empty.
-    if (level < 1 || level > 7) return [];
+    // Stars are only meaningful for the literal "N Star Raid" tier (levels 1-5
+    // per the WatWowMap masterfile). Levels 6+ (Mega, Mega Legendary, Ultra
+    // Beast, Elite, Primal, Shadow, Super Mega, Coordinated, customs) carry a
+    // semantic name that the title already conveys — a stars row would be
+    // misleading (e.g. "Elite Raid" is not a 9-star tier).
+    if (level < 1 || level > 5) return [];
     return Array.from({ length: level }, (_, i) => i);
   }
 
@@ -267,7 +268,7 @@ export class RaidListComponent implements OnInit {
   getRaidLevelName(level: number): string {
     const opt = resolveLevel(level);
     if (opt.category === 'custom') {
-      return this.i18n.instant(opt.labelKey) + ' ' + opt.badge;
+      return this.i18n.instant(opt.labelKey) + ' ' + opt.value;
     }
     return this.i18n.instant(opt.labelKey);
   }

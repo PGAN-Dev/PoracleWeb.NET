@@ -40,11 +40,12 @@ describe('CustomLevelStore', () => {
     expect(JSON.parse(localStorage.getItem(`${STORAGE_PREFIX}.egg`)!)).toEqual([99]);
   });
 
-  it('rejects built-in levels (1-7 and 9000)', () => {
+  it('rejects all known levels (1-19 and 9000)', () => {
     const store = makeStore();
-    for (const level of [1, 2, 3, 4, 5, 6, 7, 9000]) {
+    for (let level = 1; level <= 19; level++) {
       expect(store.add('raid', level)).toBe(false);
     }
+    expect(store.add('raid', 9000)).toBe(false);
     expect(store.values('raid')).toEqual([]);
   });
 
@@ -80,15 +81,17 @@ describe('CustomLevelStore', () => {
   });
 
   it('loads persisted values on first access', () => {
-    localStorage.setItem(`${STORAGE_PREFIX}.raid`, JSON.stringify([8, 42, 99]));
+    // 22/42/99 are above the canonical 1-19 known range, so they survive the load filter
+    localStorage.setItem(`${STORAGE_PREFIX}.raid`, JSON.stringify([22, 42, 99]));
     const store = makeStore();
-    expect(store.values('raid')).toEqual([8, 42, 99]);
+    expect(store.values('raid')).toEqual([22, 42, 99]);
   });
 
   it('drops invalid entries from persisted state on load', () => {
-    localStorage.setItem(`${STORAGE_PREFIX}.raid`, JSON.stringify([8, 'oops', -1, 9000, 42]));
+    // 1-19 and 9000 are known levels — filtered out. Strings and negatives also dropped.
+    localStorage.setItem(`${STORAGE_PREFIX}.raid`, JSON.stringify([22, 'oops', -1, 9000, 42, 5]));
     const store = makeStore();
-    expect(store.values('raid')).toEqual([8, 42]);
+    expect(store.values('raid')).toEqual([22, 42]);
   });
 
   it('caps persisted entries at the LRU max per key', () => {

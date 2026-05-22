@@ -81,6 +81,43 @@ mat-chip-option {
   }
 }
 
+.lv-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline) 70%, transparent);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-primary);
+  }
+
+  &.has-active {
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-primary);
+    background: color-mix(in srgb, var(--mat-sys-primary) 6%, transparent);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .lv-add-open {
   width: 88px;
   padding: 0;

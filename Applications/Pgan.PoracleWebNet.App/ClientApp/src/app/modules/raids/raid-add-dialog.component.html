@@ -39,19 +39,10 @@
           <mat-tab [label]="'RAIDS.BY_LEVEL' | translate">
             <div class="tab-content">
               <h4>{{ 'RAIDS.RAID_LEVELS' | translate }}</h4>
-              <app-level-selector
-                paletteKey="raid"
-                [multiple]="true"
-                [showAny]="true"
-                [value]="selectedRaidLevels()"
-                (valueChange)="selectedRaidLevels.set($event)" />
+              <app-level-selector pickerType="raid" [value]="selectedRaidLevels()" (valueChange)="selectedRaidLevels.set($event)" />
 
               <h4>{{ 'RAIDS.EGG_LEVELS' | translate }}</h4>
-              <app-level-selector
-                paletteKey="egg"
-                [multiple]="true"
-                [value]="selectedEggLevels()"
-                (valueChange)="selectedEggLevels.set($event)" />
+              <app-level-selector pickerType="egg" [value]="selectedEggLevels()" (valueChange)="selectedEggLevels.set($event)" />
             </div>
           </mat-tab>
 
@@ -64,12 +55,7 @@
               }
 
               <h4>{{ 'RAIDS.RAID_LEVEL_LABEL' | translate }}</h4>
-              <app-level-selector
-                paletteKey="boss"
-                [multiple]="false"
-                [showAny]="true"
-                [value]="bossLevelArray()"
-                (valueChange)="onBossLevelChange($event)" />
+              <app-level-selector pickerType="boss" [value]="bossLevelArray()" (valueChange)="onBossLevelChange($event)" />
             </div>
           </mat-tab>
         </mat-tab-group>

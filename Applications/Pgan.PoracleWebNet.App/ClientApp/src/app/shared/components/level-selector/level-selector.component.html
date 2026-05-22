@@ -4,22 +4,12 @@
     [hideSingleSelectionIndicator]="!multiple"
     class="lv-chips"
     [attr.aria-label]="'RAIDS.RAID_LEVELS' | translate">
-    @for (opt of standardLevels; track opt.value) {
+    @for (opt of primaryLevels(); track opt.value) {
       <mat-chip-option
         [selected]="isSelected(opt.value)"
         (selectionChange)="$event.isUserInput && toggle(opt.value)"
         [class.flash]="flashValue() === opt.value">
         {{ opt.labelKey | translate }}
-      </mat-chip-option>
-    }
-    @for (opt of specialLevels; track opt.value) {
-      <mat-chip-option
-        [selected]="isSelected(opt.value)"
-        (selectionChange)="$event.isUserInput && toggle(opt.value)"
-        [class.flash]="flashValue() === opt.value">
-        <span>{{ opt.labelKey | translate }}</span>
-        <span class="lv-sep" aria-hidden="true">·</span>
-        <span class="lv-num" aria-hidden="true">{{ opt.badge }}</span>
       </mat-chip-option>
     }
     @if (showAny) {
@@ -30,24 +20,52 @@
         {{ anyLevel.labelKey | translate }}
       </mat-chip-option>
     }
+    @for (opt of selectedOverflowChips(); track opt.value) {
+      <mat-chip-option
+        [selected]="true"
+        (selectionChange)="$event.isUserInput && toggle(opt.value)"
+        [class.flash]="flashValue() === opt.value">
+        {{ opt.labelKey | translate }}
+      </mat-chip-option>
+    }
     @for (opt of palette(); track opt.value) {
       <mat-chip-option
         [selected]="isSelected(opt.value)"
         (selectionChange)="$event.isUserInput && toggle(opt.value)"
         [class.flash]="flashValue() === opt.value"
         class="lv-custom"
-        [attr.aria-label]="(opt.labelKey | translate) + ' ' + opt.badge">
-        <span class="lv-num">{{ opt.badge }}</span>
+        [attr.aria-label]="(opt.labelKey | translate) + ' ' + opt.value">
+        <span class="lv-num">{{ opt.value }}</span>
         <button
           matChipRemove
           type="button"
           (click)="removeCustom(opt.value, $event)"
-          [attr.aria-label]="'RAIDS.LEVEL.SR_REMOVE' | translate: { value: opt.badge }">
+          [attr.aria-label]="'RAIDS.LEVEL.SR_REMOVE' | translate: { value: opt.value }">
           <mat-icon>cancel</mat-icon>
         </button>
       </mat-chip-option>
     }
   </mat-chip-listbox>
+
+  @if (overflowLevels().length > 0) {
+    <button
+      type="button"
+      class="lv-more"
+      [class.has-active]="hasOverflowSelected()"
+      [matMenuTriggerFor]="moreMenu"
+      [attr.aria-label]="'RAIDS.LEVEL.MORE_RAID_TYPES' | translate">
+      <mat-icon>more_horiz</mat-icon>
+      <span>{{ 'RAIDS.LEVEL.MORE_RAID_TYPES' | translate }}</span>
+    </button>
+    <mat-menu #moreMenu="matMenu" class="lv-more-menu">
+      @for (opt of overflowLevels(); track opt.value) {
+        <button mat-menu-item type="button" (click)="toggleFromOverflow(opt.value)">
+          <mat-icon>{{ isSelected(opt.value) ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+          <span>{{ opt.labelKey | translate }}</span>
+        </button>
+      }
+    </mat-menu>
+  }
 
   @if (isAddClosed()) {
     <button type="button" class="lv-add" (click)="openAddInput()" [attr.aria-label]="'RAIDS.LEVEL.ADD' | translate">
