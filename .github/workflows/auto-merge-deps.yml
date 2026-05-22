@@ -53,7 +53,7 @@ jobs:
             steps.meta.outputs.update-type == 'version-update:semver-patch' ||
             steps.meta.outputs.dependency-group != ''
           )
-        run: gh pr review --approve "$PR_URL" --body "Auto-approved: low-risk bump, gated on CI."
+        run: gh pr review --approve "$PR_URL" --body 'Auto-approved low-risk bump, gated on CI.'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
