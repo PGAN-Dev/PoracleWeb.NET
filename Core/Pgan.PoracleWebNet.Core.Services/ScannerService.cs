@@ -141,7 +141,7 @@ public partial class ScannerService(ScannerDbContext context, ILogger<ScannerSer
 
         return await this._context.Gyms
             .AsNoTracking()
-            .Where(g => g.Name != null && EF.Functions.Like(g.Name, pattern, "\\"))
+            .Where(g => g.Name != null && EF.Functions.Like(g.Name, pattern, LikeEscape.EscapeChar))
             .OrderBy(g => g.Name)
             .Take(safeLimit)
             .Select(g => new GymSearchResult
