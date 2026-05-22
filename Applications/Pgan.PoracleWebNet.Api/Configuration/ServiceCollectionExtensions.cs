@@ -77,6 +77,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICleaningService, CleaningService>();
         services.AddScoped<IPwebSettingService, PwebSettingService>();
         services.AddSingleton<IMasterDataService, MasterDataService>();
+        services.AddSingleton<IRaidLevelService, RaidLevelService>();
         services.AddSingleton<IPvpRankService, PvpRankService>();
         services.AddScoped<IQuickPickService, QuickPickService>();
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();

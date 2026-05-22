@@ -21,6 +21,7 @@ import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 
 export interface RaidEditDialogData {
   item: Raid | Egg;
@@ -28,6 +29,7 @@ export interface RaidEditDialogData {
 }
 
 @Component({
+  providers: [LevelLabelPipe],
   imports: [
     ReactiveFormsModule,
     MatDialogModule,
@@ -44,6 +46,7 @@ export interface RaidEditDialogData {
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    LevelLabelPipe,
   ],
   selector: 'app-raid-edit-dialog',
   standalone: true,
@@ -55,6 +58,7 @@ export class RaidEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
+  private readonly levelLabelPipe = inject(LevelLabelPipe);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
@@ -86,13 +90,13 @@ export class RaidEditDialogComponent {
 
   getTitle(): string {
     if (this.data.type === 'egg') {
-      return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + this.data.item.level + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
+      return this.levelLabelPipe.transform(this.data.item.level) + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
       return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
     }
-    return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + raid.level + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
+    return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
 
   onDistanceModeChange(): void {

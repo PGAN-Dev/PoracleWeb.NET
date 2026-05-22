@@ -9,11 +9,15 @@ public class MasterDataControllerTests : ControllerTestBase
 {
     private readonly Mock<IMasterDataService> _masterDataService = new();
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
+    private readonly Mock<IRaidLevelService> _raidLevelService = new();
     private readonly MasterDataController _sut;
 
     public MasterDataControllerTests()
     {
-        this._sut = new MasterDataController(this._masterDataService.Object, this._poracleApiProxy.Object);
+        this._sut = new MasterDataController(
+            this._masterDataService.Object,
+            this._poracleApiProxy.Object,
+            this._raidLevelService.Object);
         SetupUser(this._sut);
     }
 
