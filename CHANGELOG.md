@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Frontend CI `npm ci` failures on Dependabot PRs**: CI used Node 22's bundled npm 10.9.7, which strictly requires nested `chokidar@4.0.3` / `readdirp@4.1.2` lockfile entries that `@angular-devkit/*` packages declare as optional peers. Dependabot regenerates `package-lock.json` with a newer npm that prunes those entries, producing lockfiles npm 10.9.7's `npm ci` rejected with `EUSAGE`. Pinned npm 11 in the `frontend` CI job so the install resolution matches what Dependabot produces. Affects PRs #248, #250, #256, #261, #262.
+
 ### Changed
 - **Scanner types renamed from `Rdm*` to generic `Scanner*`** ([#232](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/232)): the scanner DB context and entities were named `RdmScannerContext` / `Rdm{Gym,Pokestop,Station,Weather}Entity` / `RdmScannerService`, but the schema is backend-agnostic. Renamed to `ScannerDbContext` / `Scanner*Entity` / `ScannerService` and updated example connection strings and prose to reference **Golbat** (the currently supported scanner backend). No behavior change; `IScannerService` interface unchanged; no migrations or `[Table]` mappings affected. Impacts only consumers that reference the implementation types directly — standard DI registration uses the `IScannerService` interface and is unaffected.
 - `IScannerService.PointInPolygon` (static) and `ScannerService.EscapeLikePattern` (static) were moved to dedicated `GeometryHelpers` and `LikeEscape` utility classes in `Core.Services`. The interface no longer carries unrelated geometry helpers; the LIKE-escape helper is reusable by any future repository that needs dialect-safe wildcard escaping.

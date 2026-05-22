@@ -63,6 +63,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: Applications/Pgan.PoracleWebNet.App/ClientApp/package-lock.json
 
+      # Node 22 ships npm 10.9.7, whose `npm ci` rejects lockfiles that omit nested
+      # optional-peer entries (chokidar@4 / readdirp@4 under @angular-devkit/*) that
+      # newer npm versions prune. Pinning npm 11 here matches what Dependabot uses
+      # to regenerate lockfiles, so `npm ci` stays in sync with that resolution.
+      - name: Pin npm 11
+        run: npm install -g npm@11
+
       - name: Install dependencies
         run: npm ci
 
