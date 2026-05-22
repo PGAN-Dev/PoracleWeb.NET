@@ -99,7 +99,17 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
     # or: cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm start
     ```
 
-    Starts on **http://localhost:4200**. The Angular dev server proxies API requests to the .NET backend.
+    Starts on **http://localhost:4200**. The dev server proxies `/api/*` and `/auth/*` to the API on `http://localhost:5048` via `Applications/Pgan.PoracleWebNet.App/ClientApp/proxy.conf.json` (`changeOrigin: false` so the original `Host` header is preserved — this matters for OAuth callback URIs, which Discord matches by literal string against your registered redirect URI).
+
+    The Angular environment uses an empty `apiUrl` in dev (`environment.development.ts`), so all HTTP calls are same-origin from the browser's view. This makes the dev server behave identically to the production single-port deployment that serves the Angular build out of the API's `wwwroot`.
+
+    To use a different dev port (e.g. to match an existing Discord OAuth registration on `http://localhost:8082`):
+
+    ```bash
+    npx ng serve --proxy-config proxy.conf.json --port 8082
+    ```
+
+    The dev server port must be present in your Discord application's **Redirects** list for OAuth login to work. The default `4200` matches `Discord:FrontendUrl` in `appsettings.json`.
 
 Open **http://localhost:4200** in your browser.
 

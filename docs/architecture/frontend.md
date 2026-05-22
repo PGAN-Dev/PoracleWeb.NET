@@ -115,6 +115,14 @@ Shows on the dashboard for new users until explicitly dismissed. Detects existin
 !!! note "`ProfileListComponent` removed"
     The unused `ProfileListComponent` has been removed. Profile management is handled entirely by `ProfileOverviewComponent`.
 
+### Level selector
+
+`LevelSelectorComponent` (`shared/components/level-selector/`) is the chip-based picker for raid, egg, and raid-boss levels. A single `pickerType: 'raid' | 'egg' | 'boss'` input drives layout and behavior — multi-select vs single-select, whether the `Any` (9000) chip is offered, and which canonical levels go in the primary chip row vs the "More raid types…" overflow menu. See [Raid level selector](../features/alarms.md#raid-level-selector) for the user-facing behavior.
+
+`RaidLevelService` (`core/services/raid-level.service.ts`) fetches the canonical raid-level list from `GET /api/masterdata/raid-levels` on first dialog/list usage and caches the result in a signal. A baked-in `KNOWN_LEVELS` constant in `core/models/raid-level.models.ts` is the fallback when the network call fails or hasn't resolved. The same constant powers the synchronous `resolveLevel(value)` helper used by `LevelLabelPipe` so alarm cards have a usable label even before the API response lands. The pipe detects ngx-translate's key-not-found pass-through and falls back to a generic "Level {n}" string so future masterfile additions don't leak raw translation keys into the UI.
+
+Custom integers typed via the `+ Add` chip live in the component's local signal — they are **not** persisted to localStorage. Closing the dialog (or refreshing the page) discards typed-but-not-saved chips. Existing alarms at custom levels re-seed the chip when the edit dialog opens via the `[value]` input setter.
+
 ### Gym picker
 
 `GymPickerComponent` (`shared/components/gym-picker/`) is a standalone autocomplete for selecting a gym from the scanner database. It wraps a Material autocomplete input with debounced search (300ms, minimum 2 characters). Each option row displays the gym photo thumbnail, name, and area name. The component exposes a two-way `gymId` model binding so parent dialogs can read/write the selected gym ID directly.

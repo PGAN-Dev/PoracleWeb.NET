@@ -57,6 +57,12 @@ PoracleNG's `cleanRow()` function applies field defaults on every create/update.
 !!! info "Defaults are now enforced server-side"
     Even if the frontend sends incomplete data, PoracleNG's `cleanRow()` fills in proper defaults. This eliminates the class of bugs where missing C# model defaults caused silent filter breakage.
 
+## Raid level service
+
+`IRaidLevelService` / `RaidLevelService` is a singleton that serves the canonical Pokémon GO raid-type vocabulary to the frontend, mirroring the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) without the locale-blind English strings leaking into the UI. The implementation returns a baked-in snapshot of 19 levels (1-Star through Coordinated 2) via `GET /api/masterdata/raid-levels`, with each entry exposing `{ value, category, name, namePlural }`. A `TODO` in `GetAllAsync` documents the upgrade path to a live masterfile fetch with on-disk caching under `DATA_DIR`; the wire contract will not change. The frontend `RaidLevelService` caches the response in a signal and falls back to a baked-in `KNOWN_LEVELS` constant on fetch error so the level picker always works, even offline.
+
+PoracleNG accepts any positive integer as a raid/egg level, so the picker's `+ Add` affordance lets users alarm on levels that haven't been added to the canonical list yet. The `[Range(0, int.MaxValue)]` attribute on the alarm `Create`/`Update` DTOs ensures custom integers and the `9000` "any" sentinel pass server-side validation.
+
 ## Test alert service
 
 `TestAlertService` lets users trigger a sample notification for any configured alarm. It uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) in parallel. It then constructs a realistic mock webhook payload based on the alarm's filter fields (e.g., `pokemon_id`, `raid_level`, `quest_reward`) using the user's location as the event coordinates. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification. Rate-limited at 5 requests per 60s per IP via the `test-alert` policy.
@@ -127,6 +133,7 @@ Geofence polygons come from the Poracle API (via the unified feed), not the data
 |---|---|---|
 | Most services | **Scoped** | Per-request |
 | `MasterDataService` | **Singleton** | Cached game data |
+| `RaidLevelService` | **Singleton** | Stateless canonical-list provider; future live masterfile fetch will cache here |
 
 !!! info "DashboardService uses the proxy"
     `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.
