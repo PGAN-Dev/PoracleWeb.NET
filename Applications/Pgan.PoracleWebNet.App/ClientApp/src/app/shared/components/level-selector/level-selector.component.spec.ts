@@ -7,7 +7,7 @@ import { LevelSelectorComponent } from './level-selector.component';
 import { ANY_LEVEL_VALUE } from '../../../core/models/raid-level.models';
 import { CustomLevelStore } from '../../../core/services/custom-level-store.service';
 
-const STORAGE_KEY = 'poracle.custom-raid-levels';
+const STORAGE_PREFIX = 'poracle.custom-levels';
 
 describe('LevelSelectorComponent', () => {
   let fixture: ComponentFixture<LevelSelectorComponent>;
@@ -15,14 +15,17 @@ describe('LevelSelectorComponent', () => {
   let store: CustomLevelStore;
 
   beforeEach(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    for (const k of Object.keys(localStorage)) {
+      if (k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
+    }
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [LevelSelectorComponent, NoopAnimationsModule],
       providers: [provideHttpClient(), provideTranslateService()],
+      imports: [LevelSelectorComponent, NoopAnimationsModule],
     });
     fixture = TestBed.createComponent(LevelSelectorComponent);
     component = fixture.componentInstance;
+    component.paletteKey = 'test';
     store = TestBed.inject(CustomLevelStore);
   });
 
@@ -33,9 +36,9 @@ describe('LevelSelectorComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('seeds custom levels from incoming value', () => {
+  it('seeds custom levels from incoming value into the keyed palette', () => {
     component.value = [42, 1];
-    expect(store.values()).toEqual([42]);
+    expect(store.values('test')).toEqual([42]);
   });
 
   it('toggle adds/removes in multi-select', () => {
@@ -109,8 +112,7 @@ describe('LevelSelectorComponent', () => {
     c.commitAddInput();
 
     expect(emitted[emitted.length - 1]).toEqual([ANY_LEVEL_VALUE]);
-    // Should NOT have been added to the custom palette
-    expect(store.values()).not.toContain(ANY_LEVEL_VALUE);
+    expect(store.values('test')).not.toContain(ANY_LEVEL_VALUE);
   });
 
   it('commitAddInput selects an existing built-in instead of adding a duplicate', () => {
@@ -120,14 +122,14 @@ describe('LevelSelectorComponent', () => {
     component.valueChange.subscribe(v => emitted.push(v));
 
     const c = component as unknown as { addInputValue: { set: (v: string) => void }; commitAddInput: () => void };
-    c.addInputValue.set('5'); // already in STANDARD
+    c.addInputValue.set('5');
     c.commitAddInput();
 
     expect(emitted[emitted.length - 1]).toEqual([5]);
-    expect(store.values()).not.toContain(5);
+    expect(store.values('test')).not.toContain(5);
   });
 
-  it('commitAddInput adds a new custom and selects it', () => {
+  it('commitAddInput adds a new custom into the keyed palette and selects it', () => {
     component.multiple = true;
     component.value = [];
     const emitted: number[][] = [];
@@ -137,14 +139,25 @@ describe('LevelSelectorComponent', () => {
     c.addInputValue.set('42');
     c.commitAddInput();
 
-    expect(store.values()).toContain(42);
+    expect(store.values('test')).toContain(42);
     expect(emitted[emitted.length - 1]).toEqual([42]);
   });
 
-  it('removeCustom evicts the value from the palette and the selection', () => {
+  it('palette is scoped by paletteKey — additions on one key do not leak into another', () => {
+    component.multiple = true;
+    component.value = [];
+    const c = component as unknown as { addInputValue: { set: (v: string) => void }; commitAddInput: () => void };
+    c.addInputValue.set('42');
+    c.commitAddInput();
+
+    expect(store.values('test')).toContain(42);
+    expect(store.values('other')).not.toContain(42);
+  });
+
+  it('removeCustom evicts the value from the keyed palette and the selection', () => {
     component.multiple = true;
     component.value = [42];
-    expect(store.values()).toContain(42);
+    expect(store.values('test')).toContain(42);
 
     const emitted: number[][] = [];
     component.valueChange.subscribe(v => emitted.push(v));
@@ -152,20 +165,21 @@ describe('LevelSelectorComponent', () => {
     const c = component as unknown as { removeCustom: (v: number, e: MouseEvent) => void };
     c.removeCustom(42, new MouseEvent('click'));
 
-    expect(store.values()).not.toContain(42);
+    expect(store.values('test')).not.toContain(42);
     expect(emitted[emitted.length - 1]).toEqual([]);
   });
 
-  it('Escape cancels the add input and clears state', () => {
+  it('Escape cancels the add input', () => {
     const c = component as unknown as {
       openAddInput: () => void;
       addInputValue: { set: (v: string) => void; (): string };
-      addInputOpen: () => boolean;
+      isAddOpen: () => boolean;
+      isAddClosed: () => boolean;
       onAddKeydown: (e: KeyboardEvent) => void;
     };
     c.openAddInput();
     c.addInputValue.set('99');
     c.onAddKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
-    expect(c.addInputOpen()).toBe(false);
+    expect(c.isAddClosed()).toBe(true);
   });
 });

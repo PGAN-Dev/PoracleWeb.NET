@@ -4,7 +4,7 @@
     <img [src]="getImage()" [alt]="getTitle()" class="item-img" (error)="onImageError($event)" />
     <div>
       <h3>{{ getTitle() }}</h3>
-      <span class="item-subtitle">{{ 'RAIDS.LEVEL_PREFIX' | translate }} {{ data.item.level }}</span>
+      <span class="item-subtitle">{{ data.item.level | levelLabel }}</span>
     </div>
   </div>
 

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -61,6 +61,8 @@ export class RaidAddDialogComponent {
 
   /** Single-select Boss-tab level; defaults to PoracleNG's "any" sentinel (9000). */
   bossLevel = signal<number>(ANY_LEVEL_VALUE);
+  /** Stable array reference for the level selector input — prevents per-tick re-binding. */
+  bossLevelArray = computed(() => [this.bossLevel()]);
 
   commonForm = this.fb.group({
     clean: [false],

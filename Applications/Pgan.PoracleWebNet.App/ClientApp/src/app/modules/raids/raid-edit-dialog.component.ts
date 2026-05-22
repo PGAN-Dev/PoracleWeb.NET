@@ -13,6 +13,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
+import { resolveLevel } from '../../core/models/raid-level.models';
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -21,6 +22,7 @@ import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 
 export interface RaidEditDialogData {
   item: Raid | Egg;
@@ -44,6 +46,7 @@ export interface RaidEditDialogData {
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    LevelLabelPipe,
   ],
   selector: 'app-raid-edit-dialog',
   standalone: true,
@@ -86,13 +89,13 @@ export class RaidEditDialogComponent {
 
   getTitle(): string {
     if (this.data.type === 'egg') {
-      return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + this.data.item.level + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
+      return this.formatLevel(this.data.item.level) + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
       return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
     }
-    return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + raid.level + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
+    return this.formatLevel(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
 
   onDistanceModeChange(): void {
@@ -165,5 +168,13 @@ export class RaidEditDialogComponent {
         },
       });
     }
+  }
+
+  private formatLevel(level: number): string {
+    const opt = resolveLevel(level);
+    if (opt.category === 'custom') {
+      return this.i18n.instant(opt.labelKey) + ' ' + opt.badge;
+    }
+    return this.i18n.instant(opt.labelKey);
   }
 }

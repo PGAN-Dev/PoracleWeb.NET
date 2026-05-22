@@ -25,6 +25,7 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,6 +40,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTabsModule,
     TranslateModule,
     AlarmInfoComponent,
+    LevelLabelPipe,
   ],
   selector: 'app-raid-list',
   standalone: true,
@@ -247,7 +249,11 @@ export class RaidListComponent implements OnInit {
   }
 
   getLevelStars(level: number): number[] {
-    if (level === 9000 || level > 100) return [];
+    // Stars are only meaningful for the standard Pokémon GO raid tiers (1-5)
+    // plus Mega (6) and Elite (7). For anything else (custom integers,
+    // the 9000 "Any" sentinel), the label already conveys the level and a
+    // stars row would either be wrong (e.g. 23 stars) or empty.
+    if (level < 1 || level > 7) return [];
     return Array.from({ length: level }, (_, i) => i);
   }
 

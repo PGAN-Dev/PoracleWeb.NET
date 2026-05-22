@@ -1,106 +1,152 @@
-.level-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin: 8px 0 4px;
-}
-
-.level-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.section-label {
-  margin: 0;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--mat-sys-on-surface-variant);
-  opacity: 0.85;
-}
-
-.chip-row {
+:host {
   display: block;
-
-  ::ng-deep .mdc-evolution-chip-set__chips {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 5%, transparent);
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
-.chip-label {
-  font-weight: 500;
-}
-
-.chip-badge {
-  margin-left: 4px;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.7;
-}
-
-.chip-badge-only {
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-}
-
-.chip-remove {
-  width: 22px !important;
-  height: 22px !important;
-  line-height: 22px !important;
-  margin-left: 2px;
-  margin-right: -4px;
-
-  ::ng-deep .mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    line-height: 16px;
-  }
-}
-
-.custom-section .custom-row {
+.lv {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  row-gap: 8px;
 }
 
-.add-chip {
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;
-  font-size: 0.875rem;
+.lv-chips {
+  display: contents;
 
-  ::ng-deep .mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    margin-right: 4px;
+  ::ng-deep .mdc-evolution-chip-set__chips {
+    display: contents;
   }
 }
 
-.add-input {
-  width: 180px;
+.lv-sep {
+  margin: 0 4px;
+  opacity: 0.55;
+}
 
-  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-    margin-top: 2px;
-  }
+.lv-num {
+  font-variant-numeric: tabular-nums;
 }
 
 mat-chip-option {
-  transition: box-shadow 200ms ease;
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease;
 
   &.flash {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mat-sys-primary) 35%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mat-sys-primary) 38%, transparent);
+  }
+
+  // Bump the Material 3 selected-chip emphasis — defaults are too quiet
+  ::ng-deep &.mdc-evolution-chip--selected .mdc-evolution-chip__cell--primary {
+    font-weight: 600;
   }
 }
 
-.level-selector.single mat-chip-option {
-  // Single-select mode shows the active chip more emphatically since there's
-  // only one in flight.
-  &[aria-selected='true'] {
-    font-weight: 600;
+.lv-custom .mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.lv-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px dashed color-mix(in srgb, var(--mat-sys-outline) 80%, transparent);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+    border-color: var(--mat-sys-primary);
+    color: var(--mat-sys-primary);
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.lv-add-open {
+  width: 88px;
+  padding: 0;
+  border-style: solid;
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-surface);
+
+  input {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0 10px;
+    font: inherit;
+    color: var(--mat-sys-on-surface);
+    outline: none;
+
+    &::placeholder {
+      color: var(--mat-sys-on-surface-variant);
+      opacity: 0.7;
+    }
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    &[type='number'] {
+      -moz-appearance: textfield;
+    }
+  }
+}
+
+.lv-add-invalid {
+  border-color: var(--mat-sys-error);
+  animation: lv-shake 200ms ease;
+}
+
+@keyframes lv-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+.lv-help {
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--mat-sys-on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+
+  .lv-help-icon {
+    color: var(--mat-sys-error);
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }

@@ -1,45 +1,43 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, WritableSignal } from '@angular/core';
 
 import { ANY_LEVEL_VALUE, isBuiltInLevel } from '../models/raid-level.models';
 
-const STORAGE_KEY = 'poracle.custom-raid-levels';
+const STORAGE_PREFIX = 'poracle.custom-levels';
 
-/** Maximum number of custom levels to persist. Excess values are dropped LRU-style. */
+/** Maximum number of custom levels to persist per palette. Excess values are dropped LRU-style. */
 const MAX_ENTRIES = 20;
 
 /**
- * Per-user palette of custom raid/egg levels — anything outside the standard
+ * Per-key palette of custom raid/egg/boss levels — anything outside the standard
  * tiers (1-5), the special tiers (6/Mega, 7/Elite), and the 9000 "Any" sentinel.
  *
- * Backed by localStorage so a user's "always alarm on level 8" preference
- * survives across dialog opens. Reactive via a signal so the selector component
- * can re-render on add/remove without an event subscription.
- *
- * The store is permissive about ingest (it'll accept anything `isBuiltInLevel`
- * rejects) and strict about output (only positive non-built-in integers).
+ * Keyed by `paletteKey` (`raid` / `egg` / `boss`) so a custom level added on the
+ * raid picker doesn't leak into the egg or boss palettes. Each key persists to
+ * its own localStorage slot: `poracle.custom-levels.{key}`.
  */
 @Injectable({ providedIn: 'root' })
 export class CustomLevelStore {
-  private readonly _values = signal<number[]>(this.load());
-  readonly values = this._values.asReadonly();
+  private readonly palettes = new Map<string, WritableSignal<number[]>>();
 
   /** Add a value to the palette. Returns false if rejected (built-in or invalid). */
-  add(value: number): boolean {
+  add(key: string, value: number): boolean {
     if (!Number.isInteger(value) || value < 1) return false;
     if (isBuiltInLevel(value)) return false;
-    this._values.update(current => {
+    const sig = this.signalFor(key);
+    sig.update(current => {
       if (current.includes(value)) return current;
       const next = [...current, value];
       return next.length > MAX_ENTRIES ? next.slice(next.length - MAX_ENTRIES) : next;
     });
-    this.persist();
+    this.persist(key);
     return true;
   }
 
   /** Remove a value from the palette. */
-  remove(value: number): void {
-    this._values.update(current => current.filter(v => v !== value));
-    this.persist();
+  remove(key: string, value: number): void {
+    const sig = this.signalFor(key);
+    sig.update(current => current.filter(v => v !== value));
+    this.persist(key);
   }
 
   /**
@@ -47,9 +45,10 @@ export class CustomLevelStore {
    * Silently filters out built-ins and invalid values; deduplicates with the
    * existing palette.
    */
-  seedFrom(values: Iterable<number>): void {
+  seedFrom(key: string, values: Iterable<number>): void {
     let changed = false;
-    this._values.update(current => {
+    const sig = this.signalFor(key);
+    sig.update(current => {
       const seen = new Set(current);
       const next = [...current];
       for (const v of values) {
@@ -60,12 +59,17 @@ export class CustomLevelStore {
       }
       return next.length > MAX_ENTRIES ? next.slice(next.length - MAX_ENTRIES) : next;
     });
-    if (changed) this.persist();
+    if (changed) this.persist(key);
   }
 
-  private load(): number[] {
+  /** Current values for a palette, reactively. Reads inside a computed track the underlying signal. */
+  values(key: string): readonly number[] {
+    return this.signalFor(key)();
+  }
+
+  private load(key: string): number[] {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(`${STORAGE_PREFIX}.${key}`);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
@@ -75,12 +79,20 @@ export class CustomLevelStore {
     }
   }
 
-  private persist(): void {
+  private persist(key: string): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this._values()));
+      localStorage.setItem(`${STORAGE_PREFIX}.${key}`, JSON.stringify(this.signalFor(key)()));
     } catch {
-      // Quota exceeded or storage disabled — the in-memory signal still works
-      // for the current session; we just lose persistence.
+      // Quota exceeded or storage disabled — in-memory signal still works.
     }
+  }
+
+  private signalFor(key: string): WritableSignal<number[]> {
+    let sig = this.palettes.get(key);
+    if (!sig) {
+      sig = signal<number[]>(this.load(key));
+      this.palettes.set(key, sig);
+    }
+    return sig;
   }
 }

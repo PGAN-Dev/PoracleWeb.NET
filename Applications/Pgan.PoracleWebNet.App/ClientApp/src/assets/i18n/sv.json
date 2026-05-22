@@ -420,7 +420,8 @@
       "ADD_HELP": "Any positive integer your server uses. 9000 means \"any level\".",
       "INVALID": "Level must be 1 or higher.",
       "DUPLICATE": "Level {{value}} is already in the list.",
-      "SR_REMOVE": "Remove custom level {{value}}"
+      "SR_REMOVE": "Remove custom level {{value}}",
+      "REMOVED": "Removed level {{value}}"
     }
   },
   "QUESTS": {
@@ -1316,6 +1317,7 @@
     "EDIT": "Redigera",
     "ADD": "Lägg till",
     "OK": "OK",
+    "UNDO": "Undo",
     "CONFIRM": "Bekräfta",
     "DELETE_ALL": "Radera alla",
     "CLOSE": "Stäng",
