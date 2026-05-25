@@ -18,7 +18,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Delete pr-* tags for closed PRs
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           ORG: ${{ env.ORG }}
           PACKAGE: ${{ env.PACKAGE }}
