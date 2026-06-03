@@ -160,6 +160,49 @@
   }
 }
 
+.notification-language {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  background: var(--surface-2, transparent);
+
+  .notification-language-text {
+    flex: 1 1 240px;
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 500;
+
+      mat-icon {
+        color: #ff9800;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-secondary, rgba(0, 0, 0, 0.64));
+    }
+  }
+
+  app-language-selector {
+    flex: 0 1 280px;
+  }
+}
+
 .section-title {
   display: flex;
   align-items: center;

@@ -31,6 +31,12 @@ export class LocationService {
       .pipe(catchError(() => of(null)));
   }
 
+  getLanguage(): Observable<{ language: string | null }> {
+    return this.http
+      .get<{ language: string | null }>(`${this.config.apiHost}/api/location/language`)
+      .pipe(catchError(() => of({ language: null })));
+  }
+
   getLocation(): Observable<Location> {
     return this.http.get<Location>(`${this.config.apiHost}/api/location`);
   }

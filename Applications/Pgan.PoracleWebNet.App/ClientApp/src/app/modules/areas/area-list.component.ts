@@ -18,6 +18,7 @@ import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
+import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { RegionOption, RegionSelectorComponent } from '../../shared/components/region-selector/region-selector.component';
 
@@ -49,6 +50,7 @@ interface GroupInfo {
     MatSnackBarModule,
     TranslateModule,
     AreaMapComponent,
+    LanguageSelectorComponent,
     RegionSelectorComponent,
   ],
   selector: 'app-area-list',
