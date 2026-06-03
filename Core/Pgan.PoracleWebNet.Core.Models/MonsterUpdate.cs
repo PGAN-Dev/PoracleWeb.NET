@@ -124,6 +124,12 @@ public class MonsterUpdate
         get; set;
     }
 
+    [Range(0, 55)]
+    public int? PvpRankingCap
+    {
+        get; set;
+    }
+
     [Range(0, int.MaxValue)]
     public int? Form
     {

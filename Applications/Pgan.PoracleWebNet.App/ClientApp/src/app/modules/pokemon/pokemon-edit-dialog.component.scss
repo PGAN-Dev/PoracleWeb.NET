@@ -88,6 +88,22 @@ mat-expansion-panel {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-weight: normal;
 }
+.pvp-cap-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.pvp-cap-legend {
+  margin: 0 0 6px;
+  padding: 0;
+  color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pvp-cap-toggle {
+  display: inline-flex;
+}
 @media (max-width: 599px) {
   mat-dialog-content {
     min-width: 0;

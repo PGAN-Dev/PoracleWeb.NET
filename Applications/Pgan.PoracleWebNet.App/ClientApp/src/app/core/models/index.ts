@@ -28,6 +28,7 @@ export interface Monster {
   pokemonId: number;
   profileNo: number;
   pvpRankingBest: number;
+  pvpRankingCap: number;
   pvpRankingLeague: number;
   pvpRankingMinCp: number;
   pvpRankingWorst: number;
@@ -329,6 +330,27 @@ export interface PoracleConfig {
   items: Record<string, string>;
   moves: Record<string, string>;
   pokemon: Record<string, string>;
+}
+
+/**
+ * Server-side Poracle config surfaced via GET /api/config.
+ * Mirrors the .NET PoracleConfig model.
+ */
+export interface PoracleServerConfig {
+  defaultPvpCap: number;
+  defaultTemplateName: string;
+  everythingFlagPermissions: string;
+  locale: string;
+  maxDistance: number;
+  poracleVersion: string;
+  providerURL: string;
+  pvpCaps: number[];
+  pvpFilterGreatMinCp: number;
+  pvpFilterLittleMinCp: number;
+  pvpFilterMaxRank: number;
+  pvpFilterUltraMinCp: number;
+  pvpLittleLeagueAllowed: boolean;
+  staticKey: string;
 }
 
 export interface AreaDefinition {

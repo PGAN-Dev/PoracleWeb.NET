@@ -67,6 +67,10 @@ public class Monster
     {
         get; set;
     }
+    public int PvpRankingCap
+    {
+        get; set;
+    }
     public int Form
     {
         get; set;

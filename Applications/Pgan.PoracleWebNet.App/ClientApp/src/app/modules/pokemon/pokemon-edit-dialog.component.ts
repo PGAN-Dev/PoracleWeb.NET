@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -19,6 +20,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
@@ -27,6 +29,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -45,12 +48,13 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
   styleUrl: './pokemon-edit-dialog.component.scss',
   templateUrl: './pokemon-edit-dialog.component.html',
 })
-export class PokemonEditDialogComponent {
+export class PokemonEditDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
+  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Monster>(MAT_DIALOG_DATA);
   readonly availableForms = computed(() => {
@@ -81,6 +85,7 @@ export class PokemonEditDialogComponent {
     minWeight: [this.data.minWeight],
     ping: [this.data.ping ?? ''],
     pvpRankingBest: [this.data.pvpRankingBest],
+    pvpRankingCap: [this.data.pvpRankingCap ?? 0],
     pvpRankingLeague: [this.data.pvpRankingLeague],
     pvpRankingMinCp: [this.data.pvpRankingMinCp],
     pvpRankingWorst: [this.data.pvpRankingWorst],
@@ -93,10 +98,18 @@ export class PokemonEditDialogComponent {
 
   pokemonName = this.data.pokemonId === 0 ? this.i18n.instant('POKEMON.ALL_POKEMON') : this.masterData.getPokemonName(this.data.pokemonId);
 
+  readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
+
   saving = signal(false);
+
+  readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
   getPokemonImage(): string {
     return this.iconService.getPokemonUrl(this.data.pokemonId, this.data.form);
+  }
+
+  ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
   }
 
   onDistanceModeChange(): void {
@@ -146,6 +159,7 @@ export class PokemonEditDialogComponent {
       minWeight: values.minWeight ?? 0,
       ping: values.ping || null,
       pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 0,
+      pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,
       pvpRankingLeague: values.pvpRankingLeague ?? 0,
       pvpRankingMinCp: values.pvpRankingLeague ? (values.pvpRankingMinCp ?? 0) : 0,
       pvpRankingWorst: values.pvpRankingLeague ? (values.pvpRankingWorst ?? 100) : 4096,

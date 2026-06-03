@@ -116,6 +116,12 @@ public class MonsterEntity
         get; set;
     }
 
+    [Column("pvp_ranking_cap")]
+    public int PvpRankingCap
+    {
+        get; set;
+    }
+
     [Column("form")]
     public int Form
     {

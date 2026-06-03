@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -20,6 +21,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -29,6 +31,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -49,11 +52,12 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
   styleUrl: './pokemon-add-dialog.component.scss',
   templateUrl: './pokemon-add-dialog.component.html',
 })
-export class PokemonAddDialogComponent {
+export class PokemonAddDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
+  private readonly poracleConfig = inject(PoracleConfigService);
   private readonly snackBar = inject(MatSnackBar);
   selectedPokemonIds = signal<number[]>([]);
   readonly availableForms = computed(() => {
@@ -61,6 +65,9 @@ export class PokemonAddDialogComponent {
     if (ids.length !== 1 || ids[0] === 0) return [];
     return this.masterData.getFormsForPokemon(ids[0]);
   });
+
+  /** Tracks whether the user has manually changed the cap since the default was applied. */
+  readonly capTouched = signal(false);
 
   readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
 
@@ -95,8 +102,12 @@ export class PokemonAddDialogComponent {
     template: [''],
   });
 
+  /** Caps offered by Poracle (e.g. [50] or [50, 51]). Empty = hide the cap picker entirely. */
+  readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
+
   pvpForm = this.fb.group({
     pvpRankingBest: [1],
+    pvpRankingCap: [0],
     pvpRankingLeague: [0],
     pvpRankingMinCp: [0],
     pvpRankingWorst: [100],
@@ -104,8 +115,22 @@ export class PokemonAddDialogComponent {
 
   saving = signal(false);
 
+  /** Whether to render the cap picker at all — only when Poracle offers more than one cap. */
+  readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
+
   isFormValid(): boolean {
     return this.selectedPokemonIds().length > 0 && this.filtersForm.valid && this.notifForm.valid;
+  }
+
+  ngOnInit(): void {
+    // Pre-fill the cap from Poracle's admin-configured default. Users can still override.
+    this.poracleConfig.load().subscribe(cfg => {
+      this.pvpForm.controls.pvpRankingCap.setValue(cfg.defaultPvpCap);
+    });
+
+    this.pvpForm.controls.pvpRankingCap.valueChanges.subscribe(() => {
+      this.capTouched.set(true);
+    });
   }
 
   onDistanceModeChange(): void {
@@ -152,6 +177,7 @@ export class PokemonAddDialogComponent {
         ping: notif.ping || null,
         pokemonId,
         pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
+        pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
         pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
         pvpRankingMinCp: pvp.pvpRankingLeague ? (pvp.pvpRankingMinCp ?? 0) : 0,
         pvpRankingWorst: pvp.pvpRankingLeague ? (pvp.pvpRankingWorst ?? 100) : 4096,
