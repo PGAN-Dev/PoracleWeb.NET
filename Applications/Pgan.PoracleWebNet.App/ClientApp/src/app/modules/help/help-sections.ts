@@ -73,6 +73,14 @@ export const HELP_SECTIONS: HelpSection[] = [
     titleKey: 'HELP.SECTION_DELIVERY',
   },
   {
+    id: 'quest-summary',
+    contentKey: 'HELP.CONTENT_QUEST_SUMMARY',
+    icon: 'schedule_send',
+    iconColor: '#d97706',
+    subtitleKey: 'HELP.SECTION_QUEST_SUMMARY_SUB',
+    titleKey: 'HELP.SECTION_QUEST_SUMMARY',
+  },
+  {
     id: 'test-alerts',
     contentKey: 'HELP.CONTENT_TEST_ALERTS',
     icon: 'send',
