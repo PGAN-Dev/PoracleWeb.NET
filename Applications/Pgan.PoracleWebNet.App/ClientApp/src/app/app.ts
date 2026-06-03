@@ -2,6 +2,7 @@
 import { Component, inject, signal, computed, effect, HostListener, OnInit } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
@@ -17,6 +18,7 @@ import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { SettingsService } from './core/services/settings.service';
+import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
 import { LanguageSelectorComponent } from './shared/components/language-selector/language-selector.component';
 
 interface NavItem {
@@ -63,6 +65,7 @@ export class App implements OnInit {
   };
 
   private readonly dashboardService = inject(DashboardService);
+  private readonly dialog = inject(MatDialog);
   private readonly settingsService = inject(SettingsService);
 
   protected readonly faviconUrl = computed(() => this.settingsService.siteSettings()['favicon_url'] || 'favicon.ico');
@@ -353,6 +356,10 @@ export class App implements OnInit {
     if (mobile) {
       this.sidenavOpened.set(false);
     }
+  }
+
+  openAlertDefaults(): void {
+    this.dialog.open(AlertDefaultsDialogComponent, { width: '480px', autoFocus: false });
   }
 
   setAccentTheme(theme: string): void {

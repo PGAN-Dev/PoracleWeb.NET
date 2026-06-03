@@ -22,6 +22,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **Gym Picker** — Search and target specific gyms for team, raid, and egg alarms with photo thumbnails and area names
 - **Pokemon Availability** — See which species are currently spawning when creating alarms (requires Golbat scanner)
 - **Bulk Operations** — Multi-select alarms with bulk delete and bulk distance update
+- **Alert Defaults** — Choose whether new alerts default to Areas or a Distance radius, with a configurable default distance
 - **Quick Picks** — Admin-defined alarm templates users can apply with one click
 - **Area Management** — Interactive Leaflet map for selecting geofence areas
 - **Custom Geofences** — Draw custom polygon geofences on a map, served to PoracleJS via a built-in feed endpoint. Submit for admin review to promote to public areas.

@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Rajdy",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Domyślne ustawienia alertów"
   },
   "SHORTCUTS": {
     "TITLE": "Skróty klawiszowe",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "Twoja lokalizacja",
     "SELECTED_COUNT": "Zaznaczono {{count}}:",
     "AREAS_SELECTED": "Wybrano {{count}} obszar(ów)"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Domyślne ustawienia alertów",
+    "DESC": "Wybierz, jak domyślnie dostarczane są nowe alerty. Nadal możesz to zmienić dla każdego alertu podczas jego tworzenia.",
+    "DEFAULT_DISTANCE": "Domyślna odległość",
+    "DEFAULT_DISTANCE_HINT": "Używana do wstępnego wypełnienia promienia dla nowych alertów opartych na odległości.",
+    "FOOTNOTE": "Dotyczy tylko nowo utworzonych alertów — istniejące pozostają bez zmian."
   }
 }

@@ -110,6 +110,10 @@
         <span>{{ 'MENU.CLEANING' | translate }}</span>
       </button>
       <mat-divider></mat-divider>
+      <button mat-menu-item (click)="openAlertDefaults()">
+        <mat-icon>tune</mat-icon>
+        <span>{{ 'MENU.ALERT_DEFAULTS' | translate }}</span>
+      </button>
       <button mat-menu-item [matMenuTriggerFor]="accentMenu">
         <mat-icon>palette</mat-icon>
         <span>{{ 'MENU.ACCENT_THEME' | translate }}</span>

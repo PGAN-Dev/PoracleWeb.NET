@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Raid",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Impostazioni predefinite avvisi"
   },
   "SHORTCUTS": {
     "TITLE": "Scorciatoie da Tastiera",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "La tua posizione",
     "SELECTED_COUNT": "{{count}} selezionati:",
     "AREAS_SELECTED": "{{count}} area/e selezionate"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Impostazioni predefinite avvisi",
+    "DESC": "Scegli come vengono recapitati i nuovi avvisi per impostazione predefinita. Potrai comunque modificarlo per ogni avviso al momento della creazione.",
+    "DEFAULT_DISTANCE": "Distanza predefinita",
+    "DEFAULT_DISTANCE_HINT": "Usata per precompilare il raggio dei nuovi avvisi basati sulla distanza.",
+    "FOOTNOTE": "Si applica solo agli avvisi appena creati: quelli esistenti restano invariati."
   }
 }

@@ -1,0 +1,83 @@
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-icon {
+  color: var(--accent-primary, var(--mat-sys-primary, #1976d2));
+}
+
+mat-dialog-content {
+  min-width: 340px;
+  max-width: 460px;
+}
+
+.dialog-desc {
+  margin: 0 0 16px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 14px;
+}
+
+.mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* Render each radio as a selectable card so the active default reads at a glance. */
+.mode-option {
+  padding: 10px 12px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.mode-option.selected {
+  border-color: var(--accent-primary, var(--mat-sys-primary, #1976d2));
+  background: var(--accent-light, rgba(25, 118, 210, 0.08));
+}
+
+.radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.radio-label mat-icon {
+  margin-top: 2px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+}
+
+.mode-option.selected .radio-label mat-icon {
+  color: var(--accent-primary, var(--mat-sys-primary, #1976d2));
+}
+
+.radio-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+}
+
+.full-width {
+  width: 100%;
+}
+
+.dialog-footnote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 12px;
+}
+
+.dialog-footnote mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}

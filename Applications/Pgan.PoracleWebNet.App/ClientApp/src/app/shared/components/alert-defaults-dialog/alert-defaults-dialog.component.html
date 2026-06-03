@@ -1,0 +1,49 @@
+<h2 mat-dialog-title>
+  <mat-icon class="title-icon">tune</mat-icon>
+  {{ 'ALERT_DEFAULTS.TITLE' | translate }}
+</h2>
+<mat-dialog-content>
+  <p class="dialog-desc">{{ 'ALERT_DEFAULTS.DESC' | translate }}</p>
+
+  <mat-radio-group [(ngModel)]="mode" class="mode-group" [attr.aria-label]="'ALERT_DEFAULTS.TITLE' | translate">
+    <mat-radio-button value="areas" class="mode-option" [class.selected]="mode() === 'areas'">
+      <div class="radio-label">
+        <mat-icon>map</mat-icon>
+        <div>
+          <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
+          <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
+        </div>
+      </div>
+    </mat-radio-button>
+    <mat-radio-button value="distance" class="mode-option" [class.selected]="mode() === 'distance'">
+      <div class="radio-label">
+        <mat-icon>straighten</mat-icon>
+        <div>
+          <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
+          <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
+        </div>
+      </div>
+    </mat-radio-button>
+  </mat-radio-group>
+
+  @if (mode() === 'distance') {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'ALERT_DEFAULTS.DEFAULT_DISTANCE' | translate }}</mat-label>
+      <input matInput type="number" [(ngModel)]="distanceKm" [min]="minKm" [max]="maxKm" step="0.1" />
+      <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
+      <mat-hint>{{ 'ALERT_DEFAULTS.DEFAULT_DISTANCE_HINT' | translate }}</mat-hint>
+    </mat-form-field>
+  }
+
+  <app-delivery-preview [mode]="mode()" [distanceKm]="mode() === 'distance' ? distanceKm : 0"></app-delivery-preview>
+
+  <p class="dialog-footnote">
+    <mat-icon>info</mat-icon>
+    <span>{{ 'ALERT_DEFAULTS.FOOTNOTE' | translate }}</span>
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-raised-button color="primary" (click)="save()">{{ 'COMMON.SAVE' | translate }}</button>
+</mat-dialog-actions>

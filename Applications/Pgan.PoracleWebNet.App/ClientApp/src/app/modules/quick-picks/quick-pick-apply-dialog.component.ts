@@ -14,6 +14,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
+import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
@@ -47,6 +48,7 @@ import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
   templateUrl: './quick-pick-apply-dialog.component.html',
 })
 export class QuickPickApplyDialogComponent {
+  private readonly alertDefaults = inject(AlertDefaultsService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
@@ -59,8 +61,8 @@ export class QuickPickApplyDialogComponent {
   readonly data = inject<QuickPickSummary>(MAT_DIALOG_DATA);
   deliveryForm = this.fb.group({
     clean: [false],
-    distanceKm: [0],
-    distanceMode: ['areas' as 'areas' | 'distance'],
+    distanceKm: [this.alertDefaults.defaultDistanceKm()],
+    distanceMode: [this.alertDefaults.defaultMode()],
     template: [''],
   });
 

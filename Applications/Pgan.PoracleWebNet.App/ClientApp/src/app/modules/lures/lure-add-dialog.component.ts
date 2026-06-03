@@ -13,6 +13,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
@@ -49,6 +50,7 @@ interface LureOption {
   templateUrl: './lure-add-dialog.component.html',
 })
 export class LureAddDialogComponent {
+  private readonly alertDefaults = inject(AlertDefaultsService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly lureService = inject(LureService);
@@ -56,8 +58,8 @@ export class LureAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
   form = this.fb.group({
     clean: [false],
-    distanceKm: [1],
-    distanceMode: ['areas' as 'areas' | 'distance'],
+    distanceKm: [this.alertDefaults.defaultDistanceKm()],
+    distanceMode: [this.alertDefaults.defaultMode()],
     editInPlace: [false],
     ping: [''],
     template: [''],

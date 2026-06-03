@@ -253,6 +253,7 @@ The `disable_mons` / `disable_raids` / `disable_quests` / `disable_invasions` / 
 - `ActiveHoursEditorDialogComponent` is a shared dialog for editing profile schedule rules with day/time pickers and a weekly preview grid.
 - `ActiveHoursChipComponent` renders compact amber schedule pills summarizing active hours on profile cards.
 - `LocationWarningComponent` displays an inline warning when a profile has active hours but missing coordinates.
+- `AlertDefaultsService` (`core/services/alert-defaults.service.ts`) persists the user's preferred default delivery scope for **new** alarms -- mode (`areas`/`distance`) and default radius (km, clamped 0.1-100) -- to `localStorage` (`poracle-default-alert-mode` / `poracle-default-alert-distance-km`), mirroring the theme/accent/language pattern. All nine add-alarm dialogs and the quick-pick apply dialog seed their `distanceMode`/`distanceKm` form controls from it; the `AlertDefaultsDialogComponent` (user menu -> Alert Defaults) edits it. Client-side only -- no backend/API change; existing alarms are unaffected.
 
 ### UI Patterns
 - **Alarm lists**: Card grid with filter pills showing IV/CP/Level/PVP/Gender at a glance. Test button in card actions sends a sample notification via PoracleNG.

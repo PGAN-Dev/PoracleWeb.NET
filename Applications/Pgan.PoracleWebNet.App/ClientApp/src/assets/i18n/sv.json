@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Raids",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Standardinställningar för aviseringar"
   },
   "SHORTCUTS": {
     "TITLE": "Kortkommandon",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "Din plats",
     "SELECTED_COUNT": "{{count}} valda:",
     "AREAS_SELECTED": "{{count}} område(n) valda"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Standardinställningar för aviseringar",
+    "DESC": "Välj hur nya aviseringar levereras som standard. Du kan fortfarande ändra detta för varje avisering när du skapar den.",
+    "DEFAULT_DISTANCE": "Standardavstånd",
+    "DEFAULT_DISTANCE_HINT": "Används för att förifylla radien för nya avståndsbaserade aviseringar.",
+    "FOOTNOTE": "Gäller endast nyskapade aviseringar — befintliga ändras inte."
   }
 }

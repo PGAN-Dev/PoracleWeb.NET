@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Raids",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Benachrichtigungs-Standards"
   },
   "SHORTCUTS": {
     "TITLE": "Tastenkürzel",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "Ihr Standort",
     "SELECTED_COUNT": "{{count}} ausgewählt:",
     "AREAS_SELECTED": "{{count}} Gebiet(e) ausgewählt"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Benachrichtigungs-Standards",
+    "DESC": "Lege fest, wie neue Benachrichtigungen standardmäßig zugestellt werden. Beim Erstellen jeder Benachrichtigung kannst du dies weiterhin ändern.",
+    "DEFAULT_DISTANCE": "Standard-Entfernung",
+    "DEFAULT_DISTANCE_HINT": "Wird verwendet, um den Radius für neue entfernungsbasierte Benachrichtigungen vorzubelegen.",
+    "FOOTNOTE": "Gilt nur für neu erstellte Benachrichtigungen – bestehende bleiben unverändert."
   }
 }

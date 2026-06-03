@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Raids",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Standaardinstellingen meldingen"
   },
   "SHORTCUTS": {
     "TITLE": "Sneltoetsen",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "Jouw locatie",
     "SELECTED_COUNT": "{{count}} geselecteerd:",
     "AREAS_SELECTED": "{{count}} gebied(en) geselecteerd"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Standaardinstellingen meldingen",
+    "DESC": "Kies hoe nieuwe meldingen standaard worden bezorgd. Je kunt dit nog steeds per melding aanpassen bij het aanmaken.",
+    "DEFAULT_DISTANCE": "Standaardafstand",
+    "DEFAULT_DISTANCE_HINT": "Wordt gebruikt om de straal voor nieuwe afstandsmeldingen vooraf in te vullen.",
+    "FOOTNOTE": "Geldt alleen voor nieuw aangemaakte meldingen — bestaande meldingen blijven ongewijzigd."
   }
 }
