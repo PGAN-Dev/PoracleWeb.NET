@@ -42,3 +42,8 @@ beta-discord-messages.txt
 
 # ASP.NET DataProtection runtime keys — never commit
 Data/dataprotection-keys/
+# DATA_DIR fallback for standalone `dotnet run` (Program.cs uses ./data when DATA_DIR is unset)
+Applications/Pgan.PoracleWebNet.Api/data/
+
+# Built Angular bundle copied into the API host on publish — regenerated, never committed
+Applications/Pgan.PoracleWebNet.Api/wwwroot/
