@@ -65,4 +65,37 @@ public class RsvpRangeValidationTests
     [InlineData(3)]
     [InlineData(int.MaxValue)]
     public void EggUpdateRsvpChangesRejectsOutOfRange(int value) => Assert.False(ValidateProperty(new EggUpdate(), nameof(EggUpdate.RsvpChanges), value));
+
+    // clean is a PoracleNG bitmask (bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary),
+    // so the model must accept 0..7 — RSVP modes set the edit bit (clean = 2 or 3).
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(7)]
+    public void RaidCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateProperty(new RaidCreate(), nameof(RaidCreate.Clean), value));
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(8)]
+    public void RaidCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateProperty(new RaidCreate(), nameof(RaidCreate.Clean), value));
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(7)]
+    public void EggCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateProperty(new EggCreate(), nameof(EggCreate.Clean), value));
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void RaidUpdateCleanAcceptsEditBit(int? value) => Assert.True(ValidateProperty(new RaidUpdate(), nameof(RaidUpdate.Clean), value));
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void EggUpdateCleanAcceptsEditBit(int? value) => Assert.True(ValidateProperty(new EggUpdate(), nameof(EggUpdate.Clean), value));
 }
