@@ -199,6 +199,7 @@ export class App implements OnInit {
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'NAV.SETTINGS', route: '/admin/settings' },
     {
       adminOnly: true,
+      disableKey: 'disable_user_geofences',
       group: 'admin',
       icon: 'rate_review',
       iconColor: '#ff9800',
@@ -209,7 +210,9 @@ export class App implements OnInit {
   ];
 
   protected readonly adminNavItems = computed(() =>
-    this.navItems.filter(item => item.group === 'admin' && (!item.adminOnly || this.auth.isAdmin())),
+    this.navItems.filter(
+      item => item.group === 'admin' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
+    ),
   );
 
   protected readonly alarmNavItems = computed(() =>
