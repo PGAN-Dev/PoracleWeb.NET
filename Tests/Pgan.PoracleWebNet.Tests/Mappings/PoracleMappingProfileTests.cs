@@ -95,6 +95,7 @@ public class MappingExtensionTests
             AdminDisable = 0,
             CurrentProfileNo = 2,
             CommunityMembership = "groupA",
+            Notes = "My Server / Alerts",
         };
 
         var model = entity.ToModel();
@@ -111,6 +112,7 @@ public class MappingExtensionTests
         Assert.Equal(0, model.AdminDisable);
         Assert.Equal(2, model.CurrentProfileNo);
         Assert.Equal("groupA", model.CommunityMembership);
+        Assert.Equal("My Server / Alerts", model.Notes);
     }
 
     // ── ProfileEntity.ToModel ───────────────────────────────

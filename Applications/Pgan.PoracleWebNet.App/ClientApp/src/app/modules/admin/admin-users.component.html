@@ -58,7 +58,13 @@
                 [defaultUrl]="user.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png'"
                 [userType]="user.type || ''">
               </app-discord-avatar>
-              <span>{{ user.name || ('ADMIN.UNNAMED' | translate) }}</span>
+              <div class="user-name-text">
+                <span>{{ user.name || ('ADMIN.UNNAMED' | translate) }}</span>
+                @let notes = notesLabel(user.notes);
+                @if (notes) {
+                  <span class="user-notes" [matTooltip]="notes">{{ notes }}</span>
+                }
+              </div>
             </div>
           </td>
         </ng-container>

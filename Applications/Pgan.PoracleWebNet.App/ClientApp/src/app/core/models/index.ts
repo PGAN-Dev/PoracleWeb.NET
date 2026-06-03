@@ -248,6 +248,8 @@ export interface AdminUser {
   language: string | null;
   lastChecked: string | null;
   name: string | null;
+  /** Free-text notes from Poracle; PoracleJS/NG can auto-fill this with the Discord guild + category for channels. */
+  notes: string | null;
   type: string | null;
 }
 

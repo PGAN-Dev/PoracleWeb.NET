@@ -33,6 +33,7 @@ describe('AdminService', () => {
     enabled: 1,
     language: 'en',
     lastChecked: null,
+    notes: null,
     type: 'discord:user',
   };
 
