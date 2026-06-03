@@ -79,7 +79,10 @@ describe('QuickPickApplyDialogComponent', () => {
     it('should have a delivery form with default values', () => {
       const form = component.deliveryForm.getRawValue();
       expect(form.clean).toBe(false);
-      expect(form.distanceKm).toBe(0);
+      // Since #301, distanceKm is pre-seeded from AlertDefaultsService.defaultDistanceKm() (default 1 km),
+      // matching every add-dialog, so the radius is ready if the user switches to Distance mode. In Areas
+      // mode it is irrelevant — apply() sends 0 m for 'areas' regardless of this value.
+      expect(form.distanceKm).toBe(1);
       expect(form.distanceMode).toBe('areas');
       expect(form.template).toBe('');
     });
