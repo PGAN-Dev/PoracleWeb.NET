@@ -899,6 +899,44 @@ public class MappingExtensionTests
         Assert.Equal(7, existing.Form);
     }
 
+    // ── clean bitmask round-trip (#292) ─────────────────────
+
+    [Fact]
+    public void QuestCreate_ToQuest_PreservesMultiBitClean()
+    {
+        // clean is a PoracleNG bitmask (bit 1 = auto-delete, bit 2 = edit, bit 4 = summary).
+        // A bot-set clean=5 (auto-delete + summary) must survive the DTO->model mapping. (#292)
+        var create = new QuestCreate { Clean = 5 };
+
+        var model = create.ToQuest();
+
+        Assert.Equal(5, model.Clean);
+    }
+
+    [Fact]
+    public void QuestUpdate_ApplyUpdate_PreservesMultiBitClean()
+    {
+        // A non-null multi-bit clean must overwrite verbatim — no bit gets dropped. (#292)
+        var existing = new Quest { Clean = 0 };
+        var update = new QuestUpdate { Clean = 5 };
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(5, existing.Clean);
+    }
+
+    [Fact]
+    public void QuestUpdate_ApplyUpdate_NullCleanPreservesMultiBitExisting()
+    {
+        // Null clean keeps the existing multi-bit value untouched (null-skip merge). (#292)
+        var existing = new Quest { Clean = 5 };
+        var update = new QuestUpdate();
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(5, existing.Clean);
+    }
+
     // ── InvasionUpdate.ApplyUpdate — null-skip behavior ─────
 
     [Fact]

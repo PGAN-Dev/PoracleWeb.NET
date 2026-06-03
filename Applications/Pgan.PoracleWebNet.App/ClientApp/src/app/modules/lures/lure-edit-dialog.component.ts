@@ -17,6 +17,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -47,7 +48,7 @@ export class LureEditDialogComponent {
   readonly data = inject<Lure>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<LureEditDialogComponent>);
   form = this.fb.group({
-    clean: [this.data.clean === 1],
+    clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.ping ?? ''],
@@ -91,7 +92,7 @@ export class LureEditDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     this.lureService
       .update(this.data.uid, {
-        clean: v.clean ? 1 : 0,
+        clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
         lureId: this.data.lureId,
         ping: v.ping || null,

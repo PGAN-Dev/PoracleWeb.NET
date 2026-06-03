@@ -23,6 +23,7 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -65,7 +66,7 @@ export class PokemonEditDialogComponent implements OnInit {
 
   form = this.fb.group({
     atk: [this.data.atk],
-    clean: [this.data.clean === 1],
+    clean: [isAutoDelete(this.data.clean)],
     def: [this.data.def],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
@@ -140,7 +141,7 @@ export class PokemonEditDialogComponent implements OnInit {
 
     const update: MonsterUpdate = {
       atk: values.atk ?? 0,
-      clean: values.clean ? 1 : 0,
+      clean: preserve(this.data.clean, AUTO_DELETE, values.clean ? 1 : 0),
       def: values.def ?? 0,
       distance: distanceMeters,
       form: values.form ?? 0,

@@ -245,6 +245,11 @@ export class QuestListComponent implements OnInit {
     }
   }
 
+  /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  isAutoDelete(clean: number): boolean {
+    return (clean & 1) !== 0;
+  }
+
   loadQuests(): void {
     this.loading.set(true);
     this.questService

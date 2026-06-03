@@ -67,7 +67,7 @@
             <span class="pokemon-id">#{{ nest.pokemonId }}</span>
           </div>
           <div class="card-top-actions">
-            @if (nest.clean === 1) {
+            @if (isAutoDelete(nest.clean)) {
               <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_NEST' | translate }}">clean</span>
             }
           </div>

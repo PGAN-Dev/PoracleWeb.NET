@@ -22,6 +22,7 @@ import { NestService } from '../../core/services/nest.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -164,6 +165,11 @@ export class NestListComponent implements OnInit {
 
   getPokemonName(id: number): string {
     return this.masterData.getPokemonName(id);
+  }
+
+  /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  isAutoDelete(clean: number): boolean {
+    return cleanIsAutoDelete(clean);
   }
 
   loadNests(): void {

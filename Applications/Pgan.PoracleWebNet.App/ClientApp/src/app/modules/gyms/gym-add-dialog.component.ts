@@ -19,6 +19,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { compose } from '../../shared/utils/clean-flags';
 
 interface TeamOption {
   color: string;
@@ -94,7 +95,7 @@ export class GymAddDialogComponent {
     const creates = this.selectedTeamIds().map(team =>
       this.gymService.create({
         battleChanges: v.battleChanges ? 1 : 0,
-        clean: v.clean ? 1 : 0,
+        clean: compose(!!v.clean, false, false),
         distance: dist,
         gymId: this.selectedGymId() || null,
         ping: v.ping || null,

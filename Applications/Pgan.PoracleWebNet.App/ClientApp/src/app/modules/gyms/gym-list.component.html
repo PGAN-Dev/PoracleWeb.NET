@@ -72,7 +72,7 @@
             </div>
           </div>
           <div class="card-top-actions">
-            @if (gym.clean === 1) {
+            @if (isAutoDelete(gym.clean)) {
               <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_GYM' | translate }}">clean</span>
             }
           </div>
