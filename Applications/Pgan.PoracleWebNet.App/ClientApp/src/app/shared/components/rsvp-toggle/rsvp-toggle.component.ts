@@ -1,14 +1,11 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule } from '@ngx-translate/core';
-
-let nextLabelId = 0;
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, MatButtonToggleModule, MatIconModule, TranslateModule],
+  imports: [ReactiveFormsModule, MatButtonToggleModule, TranslateModule],
   selector: 'app-rsvp-toggle',
   standalone: true,
   styleUrl: './rsvp-toggle.component.scss',
@@ -16,5 +13,16 @@ let nextLabelId = 0;
 })
 export class RsvpToggleComponent {
   readonly control = input.required<FormControl<number | null>>();
-  readonly labelId = `rsvp-toggle-label-${++nextLabelId}`;
+
+  /** i18n key describing the currently selected mode, shown as a hint below the toggle. */
+  descriptionKey(): string {
+    switch (this.control().value) {
+      case 1:
+        return 'RAIDS.RSVP_INCLUDE_DESC';
+      case 2:
+        return 'RAIDS.RSVP_ONLY_DESC';
+      default:
+        return 'RAIDS.RSVP_OFF_DESC';
+    }
+  }
 }

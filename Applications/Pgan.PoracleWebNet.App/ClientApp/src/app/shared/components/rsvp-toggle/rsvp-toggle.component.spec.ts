@@ -17,14 +17,24 @@ describe('RsvpToggleComponent', () => {
     fixture = TestBed.createComponent(RsvpToggleComponent);
   });
 
-  it('should render three toggle options', () => {
+  it('should render three toggle options under a labelled legend', () => {
     fixture.componentRef.setInput('control', new FormControl<number | null>(0));
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelectorAll('mat-button-toggle').length).toBe(3);
-    expect(el.querySelector('.rsvp-label')?.textContent).toContain('RAIDS.RSVP_LABEL');
-    expect(el.querySelector('.rsvp-hint')?.textContent).toContain('RAIDS.RSVP_HINT');
+    expect(el.querySelector('.rsvp-legend')?.textContent).toContain('RAIDS.RSVP_LABEL');
+  });
+
+  it('should show the description of the selected mode as a hint', () => {
+    const control = new FormControl<number | null>(0);
+    fixture.componentRef.setInput('control', control);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rsvp-hint')?.textContent).toContain('RAIDS.RSVP_OFF_DESC');
+
+    control.setValue(2);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rsvp-hint')?.textContent).toContain('RAIDS.RSVP_ONLY_DESC');
   });
 
   it('should reflect the bound control value on the toggle group', () => {
@@ -63,14 +73,11 @@ describe('RsvpToggleComponent', () => {
     expect(control.value).toBe(1);
   });
 
-  it('should associate the toggle group with the visible label via aria-labelledby', () => {
+  it('should name the toggle group for assistive tech', () => {
     fixture.componentRef.setInput('control', new FormControl<number | null>(0));
     fixture.detectChanges();
 
-    const label = fixture.nativeElement.querySelector('.rsvp-label');
     const group = fixture.nativeElement.querySelector('mat-button-toggle-group');
-    expect(label?.id).toMatch(/^rsvp-toggle-label-\d+$/);
-    expect(group?.getAttribute('aria-labelledby')).toBe(label?.id);
-    expect(group?.getAttribute('aria-label')).toBeNull();
+    expect(group?.getAttribute('aria-label')).toContain('RAIDS.RSVP_LABEL');
   });
 });

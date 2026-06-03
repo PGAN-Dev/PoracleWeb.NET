@@ -1,25 +1,19 @@
 :host {
   display: contents;
 }
-.stat {
-  display: flex;
-  flex-direction: column;
-}
-.stat-label {
+
+// Status badge — mirrors the .clean-tag micro-badge, themed with the M3 primary
+// so it reads as a sibling status indicator next to the auto-delete tag.
+.rsvp-tag {
   display: inline-block;
-  align-self: flex-start;
-  background: var(--mat-sys-secondary-container, #e8eaf6);
-  color: #3f51b5;
-  padding: 2px 8px;
-  border-radius: 12px;
+  padding: 1px 8px;
+  border-radius: 10px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.stat-value {
-  font-size: 13px;
-  font-weight: 700;
-  color: #3f51b5;
-  margin-top: 2px;
+  letter-spacing: 0.3px;
+  line-height: 16px;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  flex-shrink: 0;
 }

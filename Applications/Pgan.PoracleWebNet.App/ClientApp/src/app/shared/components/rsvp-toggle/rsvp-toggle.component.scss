@@ -1,48 +1,41 @@
 :host {
   display: block;
 }
-.rsvp-label {
-  display: block;
-  font-weight: 500;
-  margin: 8px 0 4px;
+
+// Mirrors the PvP-cap selector pattern: fieldset + uppercase legend section header.
+.rsvp-fieldset {
+  border: none;
+  padding: 0;
+  margin: 16px 0 0;
 }
-.rsvp-toggle-group {
+
+.rsvp-legend {
+  margin: 0 0 6px;
+  padding: 0;
+  color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// Full-width segmented control with equal-width options.
+.rsvp-toggle {
+  display: flex;
   width: 100%;
-  margin-bottom: 8px;
+
+  ::ng-deep .mat-button-toggle {
+    flex: 1 1 0;
+  }
+
+  ::ng-deep .mat-button-toggle-label-content {
+    white-space: normal;
+    line-height: 1.25;
+  }
 }
-:host ::ng-deep .rsvp-toggle-group .mat-button-toggle {
-  height: auto;
-}
-:host ::ng-deep .rsvp-toggle-group .mat-button-toggle-label-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px !important;
-  line-height: 1.3 !important;
-  text-align: left;
-  white-space: normal !important;
-}
-:host ::ng-deep .rsvp-toggle-group mat-icon {
-  flex-shrink: 0;
-}
-.rsvp-toggle-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-.rsvp-toggle-label {
-  font-size: 14px;
-  font-weight: 500;
-}
-.rsvp-toggle-desc {
-  font-size: 12px;
-  opacity: 0.75;
-  white-space: normal;
-}
+
 .rsvp-hint {
+  margin: 6px 0 0;
   font-size: 12px;
-  opacity: 0.75;
-  margin: 4px 0 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  line-height: 1.4;
 }

@@ -18,50 +18,44 @@ describe('RsvpPillComponent', () => {
   it('should render nothing when value is 0', () => {
     fixture.componentRef.setInput('value', 0);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.rsvp-stat')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rsvp-tag')).toBeNull();
   });
 
   it('should render nothing when value is null', () => {
     fixture.componentRef.setInput('value', null);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.rsvp-stat')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rsvp-tag')).toBeNull();
   });
 
   it('should render nothing when value is undefined', () => {
     fixture.componentRef.setInput('value', undefined);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.rsvp-stat')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rsvp-tag')).toBeNull();
   });
 
-  it('should render include label when value is 1', () => {
+  it('should render the include badge when value is 1', () => {
     fixture.componentRef.setInput('value', 1);
     fixture.detectChanges();
-    const value = fixture.nativeElement.querySelector('.rsvp-stat .stat-value');
-    expect(value?.textContent).toContain('RAIDS.RSVP_PILL_INCLUDE');
+    const tag = fixture.nativeElement.querySelector('.rsvp-tag');
+    expect(tag?.textContent).toContain('RAIDS.RSVP_PILL_INCLUDE');
   });
 
-  it('should render only label when value is 2', () => {
+  it('should render the only badge when value is 2', () => {
     fixture.componentRef.setInput('value', 2);
     fixture.detectChanges();
-    const value = fixture.nativeElement.querySelector('.rsvp-stat .stat-value');
-    expect(value?.textContent).toContain('RAIDS.RSVP_PILL_ONLY');
-  });
-
-  it('should render static RSVP label', () => {
-    fixture.componentRef.setInput('value', 1);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.rsvp-stat .stat-label')?.textContent).toBe('RSVP');
+    const tag = fixture.nativeElement.querySelector('.rsvp-tag');
+    expect(tag?.textContent).toContain('RAIDS.RSVP_PILL_ONLY');
   });
 
   it('should render nothing for out-of-range values', () => {
     fixture.componentRef.setInput('value', 3);
     fixture.detectChanges();
     expect(fixture.componentInstance.labelKey()).toBeNull();
-    expect(fixture.nativeElement.querySelector('.rsvp-stat')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rsvp-tag')).toBeNull();
 
     fixture.componentRef.setInput('value', -1);
     fixture.detectChanges();
     expect(fixture.componentInstance.labelKey()).toBeNull();
-    expect(fixture.nativeElement.querySelector('.rsvp-stat')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rsvp-tag')).toBeNull();
   });
 });
