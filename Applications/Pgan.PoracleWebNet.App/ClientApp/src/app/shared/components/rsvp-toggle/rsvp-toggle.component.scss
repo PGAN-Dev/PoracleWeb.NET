@@ -7,6 +7,11 @@
   border: none;
   padding: 0;
   margin: 16px 0 0;
+  // A <fieldset> defaults to min-inline-size: auto and won't shrink to its
+  // container, so it overflows. Force it to honour the available width.
+  min-inline-size: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .rsvp-legend {
@@ -29,9 +34,20 @@
     flex: 1 1 0;
   }
 
+  // Stretch the clickable button to the tallest segment so wrapped and
+  // single-line options share a height...
+  ::ng-deep .mat-button-toggle-button {
+    height: 100%;
+  }
+
+  // ...and center the (possibly wrapping) label vertically + horizontally.
   ::ng-deep .mat-button-toggle-label-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     white-space: normal;
     line-height: 1.25;
+    padding: 8px 12px;
   }
 }
 
