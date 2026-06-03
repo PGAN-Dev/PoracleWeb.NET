@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Schema bewerken",
     "SUMMARY_SCHEDULE_CLEAR": "Schema verwijderen",
     "SUMMARY_SCHEDULE_SEND_NOW": "Samenvatting nu verzenden",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Levert de questmatches die sinds je laatste samenvatting zijn verzameld. Staat er nog niets in de buffer, dan wordt er niets verzonden.",
     "SUMMARY_SCHEDULE_SAVED": "Samenvattingsschema opgeslagen",
     "SUMMARY_SCHEDULE_CLEARED": "Samenvattingsschema verwijderd",
     "SUMMARY_SCHEDULE_SENT": "Samenvatting verzonden",

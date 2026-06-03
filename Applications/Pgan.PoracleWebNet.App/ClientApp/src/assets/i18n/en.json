@@ -517,6 +517,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Edit schedule",
     "SUMMARY_SCHEDULE_CLEAR": "Remove schedule",
     "SUMMARY_SCHEDULE_SEND_NOW": "Send summary now",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Delivers quest matches collected since your last summary. If none are buffered yet, nothing is sent.",
     "SUMMARY_SCHEDULE_SAVED": "Summary schedule saved",
     "SUMMARY_SCHEDULE_CLEARED": "Summary schedule removed",
     "SUMMARY_SCHEDULE_SENT": "Summary sent",

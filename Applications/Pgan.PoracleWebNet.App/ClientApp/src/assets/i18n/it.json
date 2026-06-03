@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Modifica pianificazione",
     "SUMMARY_SCHEDULE_CLEAR": "Rimuovi pianificazione",
     "SUMMARY_SCHEDULE_SEND_NOW": "Invia riepilogo ora",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Invia le corrispondenze delle missioni raccolte dall'ultimo riepilogo. Se non c'è ancora nulla in buffer, non viene inviato nulla.",
     "SUMMARY_SCHEDULE_SAVED": "Pianificazione del riepilogo salvata",
     "SUMMARY_SCHEDULE_CLEARED": "Pianificazione del riepilogo rimossa",
     "SUMMARY_SCHEDULE_SENT": "Riepilogo inviato",

@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Edytuj harmonogram",
     "SUMMARY_SCHEDULE_CLEAR": "Usuń harmonogram",
     "SUMMARY_SCHEDULE_SEND_NOW": "Wyślij podsumowanie teraz",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Wysyła dopasowania questów zebrane od ostatniego podsumowania. Jeśli nic nie jest jeszcze w buforze, nic nie zostanie wysłane.",
     "SUMMARY_SCHEDULE_SAVED": "Harmonogram podsumowania zapisany",
     "SUMMARY_SCHEDULE_CLEARED": "Harmonogram podsumowania usunięty",
     "SUMMARY_SCHEDULE_SENT": "Podsumowanie wysłane",

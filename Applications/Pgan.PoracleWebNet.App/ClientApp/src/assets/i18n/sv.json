@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Redigera schema",
     "SUMMARY_SCHEDULE_CLEAR": "Ta bort schema",
     "SUMMARY_SCHEDULE_SEND_NOW": "Skicka sammanfattning nu",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Levererar questträffar som samlats sedan din senaste sammanfattning. Om inget har buffrats än skickas ingenting.",
     "SUMMARY_SCHEDULE_SAVED": "Sammanfattningsschema sparat",
     "SUMMARY_SCHEDULE_CLEARED": "Sammanfattningsschema borttaget",
     "SUMMARY_SCHEDULE_SENT": "Sammanfattning skickad",

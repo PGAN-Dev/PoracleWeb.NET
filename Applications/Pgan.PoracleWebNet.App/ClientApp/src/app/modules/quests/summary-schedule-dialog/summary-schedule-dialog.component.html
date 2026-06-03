@@ -26,6 +26,7 @@
           }
         </div>
       </section>
+      <p class="send-hint">{{ 'QUESTS.SUMMARY_SCHEDULE_SEND_NOW_HINT' | translate }}</p>
     } @else {
       <section class="state-block empty-block" aria-live="polite">
         <mat-icon class="empty-icon">event_available</mat-icon>
@@ -43,7 +44,7 @@
     [class.is-cooling]="coolingDown()"
     (click)="sendNow()"
     [disabled]="!hasSchedule() || triggering() || coolingDown() || saving()"
-    [matTooltip]="'QUESTS.SUMMARY_SCHEDULE_SEND_NOW' | translate">
+    [matTooltip]="'QUESTS.SUMMARY_SCHEDULE_SEND_NOW_HINT' | translate">
     @if (triggering()) {
       <mat-spinner [diameter]="18" />
     } @else {

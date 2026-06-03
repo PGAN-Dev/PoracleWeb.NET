@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Rediger plan",
     "SUMMARY_SCHEDULE_CLEAR": "Fjern plan",
     "SUMMARY_SCHEDULE_SEND_NOW": "Send oversigt nu",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Leverer questmatch indsamlet siden din seneste oversigt. Hvis intet er bufret endnu, sendes der ingenting.",
     "SUMMARY_SCHEDULE_SAVED": "Oversigtsplan gemt",
     "SUMMARY_SCHEDULE_CLEARED": "Oversigtsplan fjernet",
     "SUMMARY_SCHEDULE_SENT": "Oversigt sendt",

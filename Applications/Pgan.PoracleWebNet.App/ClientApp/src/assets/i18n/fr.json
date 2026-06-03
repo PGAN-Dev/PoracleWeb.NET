@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Modifier la planification",
     "SUMMARY_SCHEDULE_CLEAR": "Supprimer la planification",
     "SUMMARY_SCHEDULE_SEND_NOW": "Envoyer le résumé maintenant",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Envoie les quêtes correspondantes accumulées depuis votre dernier résumé. Si rien n'est encore en mémoire tampon, rien n'est envoyé.",
     "SUMMARY_SCHEDULE_SAVED": "Planification du résumé enregistrée",
     "SUMMARY_SCHEDULE_CLEARED": "Planification du résumé supprimée",
     "SUMMARY_SCHEDULE_SENT": "Résumé envoyé",

@@ -36,6 +36,14 @@ mat-dialog-content {
   margin-bottom: 10px;
 }
 
+// Sets expectations for "Send summary now": it flushes only what PoracleNG has buffered.
+.send-hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}
+
 // ── Shared state blocks (loading / empty) ──────────────────────────────────
 .state-block {
   display: flex;

@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Editar programación",
     "SUMMARY_SCHEDULE_CLEAR": "Quitar programación",
     "SUMMARY_SCHEDULE_SEND_NOW": "Enviar resumen ahora",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Envía las coincidencias de misiones acumuladas desde tu último resumen. Si aún no hay nada en búfer, no se envía nada.",
     "SUMMARY_SCHEDULE_SAVED": "Programación de resumen guardada",
     "SUMMARY_SCHEDULE_CLEARED": "Programación de resumen eliminada",
     "SUMMARY_SCHEDULE_SENT": "Resumen enviado",

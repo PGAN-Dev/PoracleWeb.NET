@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Editar agendamento",
     "SUMMARY_SCHEDULE_CLEAR": "Remover agendamento",
     "SUMMARY_SCHEDULE_SEND_NOW": "Enviar resumo agora",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Envia as correspondências de missões recolhidas desde o teu último resumo. Se ainda não houver nada em buffer, nada é enviado.",
     "SUMMARY_SCHEDULE_SAVED": "Agendamento de resumo guardado",
     "SUMMARY_SCHEDULE_CLEARED": "Agendamento de resumo removido",
     "SUMMARY_SCHEDULE_SENT": "Resumo enviado",

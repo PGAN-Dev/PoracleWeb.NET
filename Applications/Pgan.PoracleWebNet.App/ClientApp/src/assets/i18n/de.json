@@ -513,6 +513,7 @@
     "SUMMARY_SCHEDULE_EDIT": "Plan bearbeiten",
     "SUMMARY_SCHEDULE_CLEAR": "Plan entfernen",
     "SUMMARY_SCHEDULE_SEND_NOW": "Zusammenfassung jetzt senden",
+    "SUMMARY_SCHEDULE_SEND_NOW_HINT": "Liefert die seit deiner letzten Zusammenfassung gesammelten Quest-Treffer. Ist noch nichts gepuffert, wird nichts gesendet.",
     "SUMMARY_SCHEDULE_SAVED": "Zusammenfassungsplan gespeichert",
     "SUMMARY_SCHEDULE_CLEARED": "Zusammenfassungsplan entfernt",
     "SUMMARY_SCHEDULE_SENT": "Zusammenfassung gesendet",

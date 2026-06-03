@@ -8,8 +8,9 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
 /// Capability resolution for quest summary delivery. The flag is read from the config proxy
-/// (<c>tracking.quest_summary_enabled</c>), defaults to <c>true</c> when the field is absent from
-/// a successful config, degrades to <c>false</c> on any fault, and is cached for 5 minutes.
+/// (<c>tracking.quest_summary_enabled</c>), defaults to <c>false</c> when the field is absent from
+/// a successful config (so the UI stays hidden unless the bot enables it), degrades to <c>false</c>
+/// on any fault, and is cached for 5 minutes.
 /// </summary>
 public class SummaryCapabilityServiceTests : IDisposable
 {
@@ -45,12 +46,14 @@ public class SummaryCapabilityServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task DefaultsToTrueWhenFieldAbsentFromSuccessfulConfig()
+    public async Task DefaultsToFalseWhenFieldAbsentFromSuccessfulConfig()
     {
-        // A successful config with no tracking.quest_summary_enabled leaves PoracleConfig's default (true).
+        // A successful config with no tracking.quest_summary_enabled leaves PoracleConfig's default (false).
+        // The UI must stay hidden unless PoracleNG explicitly enables the feature, otherwise the user
+        // hits a dead-end (schedule + per-alarm bit set, but PoracleNG never buffers/delivers).
         this._apiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig());
 
-        Assert.True(await this._sut.IsQuestSummaryEnabledAsync());
+        Assert.False(await this._sut.IsQuestSummaryEnabledAsync());
     }
 
     [Fact]
