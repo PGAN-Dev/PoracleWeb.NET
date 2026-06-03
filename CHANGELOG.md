@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Duplicate `allowed_languages` admin setting** ([#308](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/308)): the admin settings page rendered two separate rows that both wrote to the same `allowed_languages` key — "Allowed UI Languages" in the Features group and "Allowed Languages" in the Administration group. Because `admin-settings.component.ts` keys its value map by the setting `key`, the two rows collapsed onto a single entry: editing one visibly changed the other, and on save one could silently clobber the other with an empty value. Removed the redundant Administration-group row (and its now-unused `ADMIN_SETTINGS.ADMIN_ALLOWED_LANGUAGES_LABEL` / `ADMIN_ALLOWED_LANGUAGES_DESC` keys across all 11 locales), keeping the single Features-group "Allowed UI Languages" control whose description matches the actual behavior (filtering the UI language selector).
+
 ## [2.9.0] - 2026-06-03
 
 ### Added

@@ -1530,8 +1530,6 @@
     "ENABLE_ROLES_DESC": "Tillad kun brugere med specifikke Discord-roller at logge ind. Kræver Bot-token og Guild-ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Tilladte rolle-ID'er",
     "ALLOWED_ROLE_IDS_DESC": "Kommaseparerede Discord-rolle-ID'er, der giver adgang (f.eks. \"123456789,987654321\"). Lad stå tomt for at tillade alle.",
-    "ADMIN_ALLOWED_LANGUAGES_LABEL": "Tilladte sprog",
-    "ADMIN_ALLOWED_LANGUAGES_DESC": "Kommasepareret liste over sprogkoder, som brugere kan vælge (f.eks. \"en,de,fr\").",
     "REGISTER_COMMAND_LABEL": "Registreringskommando",
     "REGISTER_COMMAND_DESC": "Poracle-bot-kommando, som brugere kører for at registrere sig (f.eks. \"$!register\").",
     "LOCATION_COMMAND_LABEL": "Placeringskommando",

@@ -1530,8 +1530,6 @@
     "ENABLE_ROLES_DESC": "Zezwalaj na logowanie tylko użytkownikom z określonymi rolami Discord. Wymaga Bot Token i Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Dozwolone ID ról",
     "ALLOWED_ROLE_IDS_DESC": "ID ról Discord oddzielone przecinkami przyznające dostęp (np. „123456789,987654321”). Pozostaw puste, aby zezwolić wszystkim.",
-    "ADMIN_ALLOWED_LANGUAGES_LABEL": "Dozwolone języki",
-    "ADMIN_ALLOWED_LANGUAGES_DESC": "Lista oddzielonych przecinkami kodów języków, które użytkownicy mogą wybierać (np. „en,de,fr”).",
     "REGISTER_COMMAND_LABEL": "Komenda rejestracji",
     "REGISTER_COMMAND_DESC": "Komenda bota Poracle uruchamiana przez użytkowników w celu rejestracji (np. „$!register”).",
     "LOCATION_COMMAND_LABEL": "Komenda lokalizacji",

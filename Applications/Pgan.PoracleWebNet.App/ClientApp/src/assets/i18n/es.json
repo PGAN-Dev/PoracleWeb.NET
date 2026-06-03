@@ -1530,8 +1530,6 @@
     "ENABLE_ROLES_DESC": "Permitir iniciar sesión solo a usuarios con roles de Discord específicos. Requiere Bot Token y Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de roles permitidos",
     "ALLOWED_ROLE_IDS_DESC": "IDs de roles de Discord separados por comas que conceden acceso (ej. «123456789,987654321»). Deja en blanco para permitir todos.",
-    "ADMIN_ALLOWED_LANGUAGES_LABEL": "Idiomas permitidos",
-    "ADMIN_ALLOWED_LANGUAGES_DESC": "Lista de códigos de idioma separados por comas que los usuarios pueden seleccionar (ej. «en,de,fr»).",
     "REGISTER_COMMAND_LABEL": "Comando de registro",
     "REGISTER_COMMAND_DESC": "Comando del bot Poracle que los usuarios ejecutan para registrarse (ej. «$!register»).",
     "LOCATION_COMMAND_LABEL": "Comando de ubicación",

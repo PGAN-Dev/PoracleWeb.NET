@@ -1530,8 +1530,6 @@
     "ENABLE_ROLES_DESC": "Nur Benutzer mit bestimmten Discord-Rollen dürfen sich anmelden. Erfordert Bot-Token und Guild-ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Zulässige Rollen-IDs",
     "ALLOWED_ROLE_IDS_DESC": "Kommagetrennte Discord-Rollen-IDs, die Zugriff gewähren (z. B. „123456789,987654321“). Leer lassen, um alle zuzulassen.",
-    "ADMIN_ALLOWED_LANGUAGES_LABEL": "Erlaubte Sprachen",
-    "ADMIN_ALLOWED_LANGUAGES_DESC": "Kommagetrennte Liste der Sprachcodes, die Benutzer auswählen können (z. B. „en,de,fr“).",
     "REGISTER_COMMAND_LABEL": "Registrierungsbefehl",
     "REGISTER_COMMAND_DESC": "Poracle-Bot-Befehl, den Benutzer zur Registrierung ausführen (z. B. „$!register“).",
     "LOCATION_COMMAND_LABEL": "Standortbefehl",
