@@ -16,6 +16,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { MaxBattleCreate } from '../../core/models';
+import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
@@ -58,6 +59,7 @@ interface MaxBattleLevel {
   templateUrl: './max-battle-add-dialog.component.html',
 })
 export class MaxBattleAddDialogComponent {
+  private readonly alertDefaults = inject(AlertDefaultsService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly maxBattleService = inject(MaxBattleService);
@@ -66,8 +68,8 @@ export class MaxBattleAddDialogComponent {
 
   commonForm = this.fb.group({
     clean: [false],
-    distanceKm: [1],
-    distanceMode: ['areas' as 'areas' | 'distance'],
+    distanceKm: [this.alertDefaults.defaultDistanceKm()],
+    distanceMode: [this.alertDefaults.defaultMode()],
     form: [0],
     gmaxOnly: [false],
     ping: [''],

@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Raids",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Réglages par défaut des alertes"
   },
   "SHORTCUTS": {
     "TITLE": "Raccourcis clavier",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "Votre position",
     "SELECTED_COUNT": "{{count}} sélectionné(s) :",
     "AREAS_SELECTED": "{{count}} zone(s) sélectionnée(s)"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Réglages par défaut des alertes",
+    "DESC": "Choisissez le mode de diffusion par défaut des nouvelles alertes. Vous pourrez toujours le modifier pour chaque alerte lors de sa création.",
+    "DEFAULT_DISTANCE": "Distance par défaut",
+    "DEFAULT_DISTANCE_HINT": "Utilisée pour préremplir le rayon des nouvelles alertes basées sur la distance.",
+    "FOOTNOTE": "S'applique uniquement aux nouvelles alertes — les alertes existantes ne sont pas modifiées."
   }
 }

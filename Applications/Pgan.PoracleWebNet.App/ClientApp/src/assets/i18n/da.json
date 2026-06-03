@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Raids",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Standardindstillinger for advarsler"
   },
   "SHORTCUTS": {
     "TITLE": "Tastaturgenveje",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "Din placering",
     "SELECTED_COUNT": "{{count}} valgt:",
     "AREAS_SELECTED": "{{count}} område(r) valgt"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Standardindstillinger for advarsler",
+    "DESC": "Vælg, hvordan nye advarsler leveres som standard. Du kan stadig ændre dette for hver advarsel, når du opretter den.",
+    "DEFAULT_DISTANCE": "Standardafstand",
+    "DEFAULT_DISTANCE_HINT": "Bruges til at udfylde radius for nye afstandsbaserede advarsler på forhånd.",
+    "FOOTNOTE": "Gælder kun for nyoprettede advarsler — eksisterende ændres ikke."
   }
 }

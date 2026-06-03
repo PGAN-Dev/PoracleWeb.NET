@@ -13,6 +13,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
+import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -51,6 +52,7 @@ interface TeamOption {
   templateUrl: './gym-add-dialog.component.html',
 })
 export class GymAddDialogComponent {
+  private readonly alertDefaults = inject(AlertDefaultsService);
   private readonly fb = inject(FormBuilder);
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
@@ -59,8 +61,8 @@ export class GymAddDialogComponent {
   form = this.fb.group({
     battleChanges: [false],
     clean: [false],
-    distanceKm: [1],
-    distanceMode: ['areas' as 'areas' | 'distance'],
+    distanceKm: [this.alertDefaults.defaultDistanceKm()],
+    distanceMode: [this.alertDefaults.defaultMode()],
     ping: [''],
     slotChanges: [false],
     template: [''],

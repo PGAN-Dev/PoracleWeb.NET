@@ -15,6 +15,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { getGruntDisplayName, isGenderFixed, UICONS_BASE } from './invasion.constants';
+import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
@@ -105,6 +106,7 @@ export class InvasionAddDialogComponent implements OnInit {
     { gruntType: 'giovanni', invasionId: 44, key: 'giovanni', typeId: 0 },
   ];
 
+  private readonly alertDefaults = inject(AlertDefaultsService);
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly invasionService = inject(InvasionService);
@@ -117,8 +119,8 @@ export class InvasionAddDialogComponent implements OnInit {
   readonly eventGrunts = computed(() => this.gruntOptions().filter(g => g.isEvent));
   form = this.fb.group({
     clean: [false],
-    distanceKm: [1],
-    distanceMode: ['areas' as 'areas' | 'distance'],
+    distanceKm: [this.alertDefaults.defaultDistanceKm()],
+    distanceMode: [this.alertDefaults.defaultMode()],
     gender: [0],
     ping: [''],
     template: [''],

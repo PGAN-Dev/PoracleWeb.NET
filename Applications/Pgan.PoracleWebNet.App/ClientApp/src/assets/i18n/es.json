@@ -60,7 +60,8 @@
     "ACCENT_RAIDS": "Raids",
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
-    "ACCENT_INSTINCT": "Instinct"
+    "ACCENT_INSTINCT": "Instinct",
+    "ALERT_DEFAULTS": "Valores predeterminados de alertas"
   },
   "SHORTCUTS": {
     "TITLE": "Atajos de teclado",
@@ -1619,5 +1620,12 @@
     "YOUR_LOCATION": "Tu ubicación",
     "SELECTED_COUNT": "{{count}} seleccionado(s):",
     "AREAS_SELECTED": "{{count}} área(s) seleccionada(s)"
+  },
+  "ALERT_DEFAULTS": {
+    "TITLE": "Valores predeterminados de alertas",
+    "DESC": "Elige cómo se entregan las nuevas alertas de forma predeterminada. Podrás cambiarlo para cada alerta al crearla.",
+    "DEFAULT_DISTANCE": "Distancia predeterminada",
+    "DEFAULT_DISTANCE_HINT": "Se usa para rellenar el radio de las nuevas alertas basadas en distancia.",
+    "FOOTNOTE": "Solo se aplica a las alertas nuevas; las existentes no se modifican."
   }
 }

@@ -30,6 +30,20 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 5. Optionally select a **template** for notification formatting
 6. Save the alarm
 
+## Default delivery scope (Alert Defaults)
+
+By default, every new alarm opens pre-set to **Areas** (geofence-based — the alarm sends `distance = 0`). If you usually track by radius, you can change that default so new alarms open on **Distance** with a radius you choose, instead of switching the location mode and re-typing a distance on every add.
+
+Open the **user menu** (your avatar, top-right) and select **Alert Defaults**:
+
+- **Default mode** — choose **Areas** or **Distance** for new alarms.
+- **Default distance** — when Distance is the default, the radius (0.1–100 km) used to pre-fill new alarms. A live delivery preview shows what the choice covers.
+
+The preference is **per-browser** (stored in `localStorage` under `poracle-default-alert-mode` / `poracle-default-alert-distance-km`, the same pattern as the theme and language settings) and is read by the `AlertDefaultsService`. It seeds the location-mode controls in **every add-alarm dialog** and in the **[Quick Pick](#quick-picks) apply dialog**.
+
+!!! note "Applies to new alarms only"
+    Alert Defaults only changes what the add/apply dialogs open with. Existing alarms are untouched, and you can still override the mode and distance for any individual alarm before saving it. Because the preference lives in the browser, it does not sync across devices.
+
 ## Pokemon Availability
 
 When a [Golbat scanner](../configuration/reference.md#golbat-api) is configured, the Pokemon selector shows which species are currently spawning in the wild. This helps users create alarms for Pokemon that are actually available to encounter.
@@ -405,3 +419,5 @@ The dashboard shows the current in-game weather conditions at the user's saved l
 ## Quick Picks
 
 Admins can define **Quick Pick** templates — pre-configured alarm sets that users can apply with one click. Useful for onboarding new users or sharing recommended configurations.
+
+When applying a Quick Pick, the apply dialog's **Delivery** tab (location mode and distance) is seeded from your [Alert Defaults](#default-delivery-scope-alert-defaults), so applied picks follow the same default as manually added alarms. You can still adjust the mode and distance for each apply before confirming.
