@@ -78,7 +78,7 @@ public class SummaryScheduleControllerTests : ControllerTestBase
     }
 
     // ──────────────────────────────────────────────────────────────
-    // GetSchedule — validates alertType, NotFound on null proxy
+    // GetSchedule — validates alertType, 200 empty schedule on null proxy
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
@@ -95,13 +95,18 @@ public class SummaryScheduleControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetScheduleProxyNullReturnsNotFound()
+    public async Task GetScheduleProxyNullReturnsEmptyScheduleNot404()
     {
+        // "No schedule yet" is a normal empty state — return 200 with an empty schedule so the
+        // SPA's global 404 toast does not fire when a user first opens the dialog.
         this._proxy.Setup(p => p.GetScheduleAsync(UserId, "quest")).ReturnsAsync((JsonElement?)null);
 
         var result = await this._sut.GetSchedule("quest");
 
-        Assert.IsType<NotFoundResult>(result);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var schedule = Assert.IsType<SummarySchedule>(ok.Value);
+        Assert.Equal("quest", schedule.AlertType);
+        Assert.Equal("[]", schedule.ActiveHours);
     }
 
     [Theory]

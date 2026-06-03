@@ -62,7 +62,12 @@ public class SummaryScheduleController(
         return this.Ok(schedules);
     }
 
-    /// <summary>Gets the schedule for one alert type. Returns 404 when no schedule exists.</summary>
+    /// <summary>
+    /// Gets the schedule for one alert type. When no schedule exists yet this returns 200 with an
+    /// empty schedule (<c>active_hours = []</c>) rather than 404 — "no schedule yet" is a normal
+    /// empty state, not an error, and a 404 would trip the SPA's global not-found toast. Consistent
+    /// with <see cref="GetSchedules"/> returning an empty array.
+    /// </summary>
     [HttpGet("{alertType}")]
     public async Task<IActionResult> GetSchedule(string alertType)
     {
@@ -77,7 +82,7 @@ public class SummaryScheduleController(
         var scheduleJson = await this._summaryProxy.GetScheduleAsync(this.UserId, alertType);
         if (scheduleJson is not { ValueKind: JsonValueKind.Object } element)
         {
-            return this.NotFound();
+            return this.Ok(new SummarySchedule { AlertType = alertType, ActiveHours = "[]" });
         }
 
         return this.Ok(MapSchedule(element));
