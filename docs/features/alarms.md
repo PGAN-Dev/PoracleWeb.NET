@@ -9,8 +9,8 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 | Type | Description |
 |---|---|
 | **Pokemon** | Filter by species, IV, CP, level, PVP rank, gender, size |
-| **Raids** | Filter by raid boss, tier, move, evolution, EX eligibility, specific gym, RSVP changes |
-| **Eggs** | Filter by egg tier, EX eligibility, specific gym, RSVP changes |
+| **Raids** | Filter by raid boss, level, move, evolution, EX eligibility, specific gym, RSVP changes. See [Raid level selector](#raid-level-selector). |
+| **Eggs** | Filter by egg level, EX eligibility, specific gym, RSVP changes. See [Raid level selector](#raid-level-selector). |
 | **Quests** | Filter by reward type and Pokemon |
 | **Invasions** | Filter by grunt type and shadow Pokemon |
 | **Lures** | Filter by lure type |
@@ -136,9 +136,23 @@ When a user selects a specific size, both `size` and `max_size` are set to the s
 
 The default maximum level is **55** (not 40 or 50), matching Poracle's support for shadow/purified/best-buddy boosted levels.
 
+## Raid level selector
+
+Raid, egg, and raid-boss-level pickers share the `<app-level-selector>` chip component. The vocabulary follows the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator/blob/main/master-latest-poracle-v2.json) — the same source PoracleNG uses for in-DM notification text — so the names you see in the picker match what users receive in their alerts.
+
+**Raid picker.** Multi-select. Primary chip row shows the seven most common types: `1 Star`, `2 Star`, `3 Star`, `4 Star`, `Legendary` (level 5), `Mega` (level 6), `Mega Legendary` (level 7). A `Any` chip selects the wildcard sentinel (level 9000) that matches every raid level. A **More raid types…** overflow menu surfaces the other 12 canonical types: `Ultra Beast` (8), `Elite` (9), `Primal` (10), `1–5 Shadow` (11–15), `4–5 Super Mega` (16–17), `Coordinated 1–2` (18–19).
+
+**Egg picker.** Multi-select. Only the five Star tiers (1–5) are surfaced — Pokémon GO has no Mega/Shadow/Primal eggs.
+
+**Boss-level picker.** Single-select. Same primary/overflow layout as the raid picker, used in the "By Boss" tab when a specific Pokémon is selected but the user still wants to scope to certain raid levels.
+
+**`+ Add`.** All three pickers expose an inline numeric input for any positive integer not in the canonical list. Useful for forward compatibility — if Niantic introduces a new raid type (`raid_20`) before PoracleWeb.NET ships an update, you can already alarm on it. Typed values are **ephemeral** to the dialog session: close the dialog (or refresh the page) and the chip is gone. Saved alarms at custom levels re-seed the chip when you open the edit dialog.
+
+The canonical list is served by the API at `GET /api/masterdata/raid-levels` (cached server-side; baked-in fallback if the masterfile fetch fails). Card titles like "All Mega Legendary Raids" compose by combining the modifier ("Mega Legendary") with the localized "Raids" suffix from `RAIDS.ALL_LEVEL_RAIDS`, so card text reads naturally without the doubled word that an unaltered masterfile string would produce.
+
 ## Raid alarm filters
 
-Raid alarms support these fields beyond the basic tier/boss selection:
+Raid alarms support these fields beyond the basic level/boss selection:
 
 | Field | Default | Description |
 |---|---|---|

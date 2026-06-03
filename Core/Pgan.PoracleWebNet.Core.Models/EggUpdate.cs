@@ -22,7 +22,8 @@ public class EggUpdate
         get; set;
     }
 
-    [Range(0, 10)]
+    // See EggCreate.Level — PoracleNG accepts arbitrary positive integers.
+    [Range(0, int.MaxValue)]
     public int? Level
     {
         get; set;

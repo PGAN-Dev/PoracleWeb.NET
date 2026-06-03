@@ -39,22 +39,10 @@
           <mat-tab [label]="'RAIDS.BY_LEVEL' | translate">
             <div class="tab-content">
               <h4>{{ 'RAIDS.RAID_LEVELS' | translate }}</h4>
-              <div class="level-grid">
-                @for (level of levels; track level) {
-                  <mat-checkbox [checked]="selectedRaidLevels().includes(level)" (change)="toggleRaidLevel(level)">
-                    {{ 'RAIDS.LEVEL_PREFIX' | translate }} {{ level }}
-                  </mat-checkbox>
-                }
-              </div>
+              <app-level-selector pickerType="raid" [value]="selectedRaidLevels()" (valueChange)="selectedRaidLevels.set($event)" />
 
               <h4>{{ 'RAIDS.EGG_LEVELS' | translate }}</h4>
-              <div class="level-grid">
-                @for (level of levels; track level) {
-                  <mat-checkbox [checked]="selectedEggLevels().includes(level)" (change)="toggleEggLevel(level)">
-                    {{ 'RAIDS.LEVEL_PREFIX' | translate }} {{ level }}
-                  </mat-checkbox>
-                }
-              </div>
+              <app-level-selector pickerType="egg" [value]="selectedEggLevels()" (valueChange)="selectedEggLevels.set($event)" />
             </div>
           </mat-tab>
 
@@ -66,15 +54,8 @@
                 <p class="selection-count">{{ 'RAIDS.POKEMON_SELECTED' | translate: { count: selectedPokemonIds().length } }}</p>
               }
 
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'RAIDS.RAID_LEVEL_LABEL' | translate }}</mat-label>
-                <mat-select [formControl]="bossForm.controls.level">
-                  <mat-option [value]="0">{{ 'ALARM.ANY_LEVEL' | translate }}</mat-option>
-                  @for (level of levels; track level) {
-                    <mat-option [value]="level">{{ 'RAIDS.LEVEL_PREFIX' | translate }} {{ level }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <h4>{{ 'RAIDS.RAID_LEVEL_LABEL' | translate }}</h4>
+              <app-level-selector pickerType="boss" [value]="bossLevelArray()" (valueChange)="onBossLevelChange($event)" />
             </div>
           </mat-tab>
         </mat-tab-group>
