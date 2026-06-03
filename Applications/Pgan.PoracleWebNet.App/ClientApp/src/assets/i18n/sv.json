@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Dölj den interaktiva geofence-kartan helt.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Inaktivera områdesval på karta",
     "DISABLE_GEOMAP_SELECT_DESC": "Hindra användare från att välja områden genom att klicka på kartan.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Inaktivera egna geofences",
+    "DISABLE_USER_GEOFENCES_DESC": "Hindrar användare från att rita, importera eller skicka in egna geofences. Befintliga geofences fortsätter att fungera.",
     "ENABLE_TEMPLATES_LABEL": "Aktivera mallar",
     "ENABLE_TEMPLATES_DESC": "Låt användare välja mallar för notifieringsmeddelanden.",
     "ALLOWED_LANGUAGES_LABEL": "Tillåtna UI-språk",

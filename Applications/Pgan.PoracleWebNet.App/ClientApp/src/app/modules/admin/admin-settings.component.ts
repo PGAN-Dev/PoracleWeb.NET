@@ -193,6 +193,12 @@ const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_DESC',
+        key: 'disable_user_geofences',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_LABEL',
+        type: 'boolean',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.ENABLE_TEMPLATES_DESC',
         key: 'enable_templates',
         labelKey: 'ADMIN_SETTINGS.ENABLE_TEMPLATES_LABEL',

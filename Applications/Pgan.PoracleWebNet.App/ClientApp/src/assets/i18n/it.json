@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Nascondi completamente la mappa interattiva dei geofence.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Disabilita selezione aree dalla mappa",
     "DISABLE_GEOMAP_SELECT_DESC": "Impedisce agli utenti di selezionare aree cliccando sulla mappa.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Disabilita le geofence personalizzate",
+    "DISABLE_USER_GEOFENCES_DESC": "Impedisce agli utenti di disegnare, importare o inviare le proprie geofence. Le geofence esistenti continuano a funzionare.",
     "ENABLE_TEMPLATES_LABEL": "Abilita modelli",
     "ENABLE_TEMPLATES_DESC": "Consenti agli utenti di scegliere modelli di messaggio di notifica.",
     "ALLOWED_LANGUAGES_LABEL": "Lingue UI consentite",

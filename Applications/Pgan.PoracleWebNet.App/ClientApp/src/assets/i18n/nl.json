@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Verberg de interactieve geofence-kaart volledig.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Gebiedsselectie op kaart uitschakelen",
     "DISABLE_GEOMAP_SELECT_DESC": "Voorkom dat gebruikers gebieden selecteren door op de kaart te klikken.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Eigen geofences uitschakelen",
+    "DISABLE_USER_GEOFENCES_DESC": "Voorkomt dat gebruikers eigen geofences tekenen, importeren of indienen. Bestaande geofences blijven werken.",
     "ENABLE_TEMPLATES_LABEL": "Templates inschakelen",
     "ENABLE_TEMPLATES_DESC": "Laat gebruikers meldingsberichttemplates kiezen.",
     "ALLOWED_LANGUAGES_LABEL": "Toegestane UI-talen",

@@ -84,7 +84,7 @@ export const routes: Routes = [
     path: 'areas',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_user_geofences')],
     loadComponent: () => import('./modules/geofences/geofence-list.component').then(m => m.GeofenceListComponent),
     path: 'geofences',
   },

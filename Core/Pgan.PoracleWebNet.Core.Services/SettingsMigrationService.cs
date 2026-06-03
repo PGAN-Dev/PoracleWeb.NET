@@ -66,6 +66,7 @@ public partial class SettingsMigrationService(
         ["disable_nominatim"] = "features",
         ["disable_geomap"] = "features",
         ["disable_geomap_select"] = "features",
+        ["disable_user_geofences"] = "features",
         ["enable_templates"] = "features",
 
         // admin
@@ -117,7 +118,7 @@ public partial class SettingsMigrationService(
         "disable_lures", "disable_nests", "disable_gyms", "disable_maxbattles",
         "disable_fort_changes", "disable_areas",
         "disable_profiles", "disable_location", "disable_nominatim",
-        "disable_geomap", "disable_geomap_select",
+        "disable_geomap", "disable_geomap_select", "disable_user_geofences",
         "enable_templates", "enable_roles", "enable_telegram", "enable_discord",
         "hide_header_logo", "site_is_https", "debug",
     };

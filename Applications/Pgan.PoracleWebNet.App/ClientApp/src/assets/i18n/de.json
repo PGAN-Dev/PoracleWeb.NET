@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Interaktive Geofence-Karte vollständig ausblenden.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Gebietsauswahl auf Karte deaktivieren",
     "DISABLE_GEOMAP_SELECT_DESC": "Benutzer daran hindern, Gebiete durch Klicken auf die Karte auszuwählen.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Eigene Geofences deaktivieren",
+    "DISABLE_USER_GEOFENCES_DESC": "Hindert Benutzer daran, eigene Geofences zu zeichnen, zu importieren oder einzureichen. Bestehende Geofences bleiben aktiv.",
     "ENABLE_TEMPLATES_LABEL": "Vorlagen aktivieren",
     "ENABLE_TEMPLATES_DESC": "Benutzern erlauben, Benachrichtigungsvorlagen auszuwählen.",
     "ALLOWED_LANGUAGES_LABEL": "Erlaubte UI-Sprachen",

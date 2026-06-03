@@ -17,6 +17,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IHumanRepository> _humanRepo = new();
     private readonly Mock<IUserAreaDualWriter> _areaWriter = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
 
@@ -28,6 +29,7 @@ public class UserGeofenceServiceTests
             this._humanRepo.Object,
             this._areaWriter.Object,
             this._discordNotificationService.Object,
+            this._featureGate.Object,
             this._logger.Object);
 
     /// <summary>
@@ -63,6 +65,38 @@ public class UserGeofenceServiceTests
         Assert.Equal(polygon.Length, result[0].Polygon!.Length);
         Assert.Equal(polygon[0][0], result[0].Polygon![0][0]);
         Assert.Equal(polygon[0][1], result[0].Polygon![0][1]);
+    }
+
+    // --- Feature gate (#214 disable_user_geofences) ---
+
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledWhenGateDisabled()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.UserGeofences));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u1", 1, new UserGeofenceCreate { DisplayName = "Test" }));
+
+        Assert.Equal(DisableFeatureKeys.UserGeofences, ex.DisableKey);
+
+        // Gate runs first — no repository work should happen.
+        this._repository.Verify(r => r.GetCountByHumanIdAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitForReviewAsyncThrowsFeatureDisabledWhenGateDisabled()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.UserGeofences));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.SubmitForReviewAsync("u1", "downtown"));
+
+        Assert.Equal(DisableFeatureKeys.UserGeofences, ex.DisableKey);
+        this._repository.Verify(r => r.GetByKojiNameAsync(It.IsAny<string>()), Times.Never);
     }
 
     // --- CreateAsync ---

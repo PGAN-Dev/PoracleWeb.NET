@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Całkowicie ukryj interaktywną mapę geofence.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Wyłącz wybór obszarów na mapie",
     "DISABLE_GEOMAP_SELECT_DESC": "Uniemożliw użytkownikom wybór obszarów kliknięciem na mapie.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Wyłącz własne geofence",
+    "DISABLE_USER_GEOFENCES_DESC": "Uniemożliwia użytkownikom rysowanie, importowanie i zgłaszanie własnych geofence. Istniejące geofence nadal działają.",
     "ENABLE_TEMPLATES_LABEL": "Włącz szablony",
     "ENABLE_TEMPLATES_DESC": "Pozwól użytkownikom wybierać szablony wiadomości powiadomień.",
     "ALLOWED_LANGUAGES_LABEL": "Dozwolone języki UI",

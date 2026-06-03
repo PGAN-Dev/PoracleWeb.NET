@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Masquer entièrement la carte interactive des geofences.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Désactiver la sélection de zones sur la carte",
     "DISABLE_GEOMAP_SELECT_DESC": "Empêcher les utilisateurs de sélectionner des zones en cliquant sur la carte.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Désactiver les Geofences personnalisées",
+    "DISABLE_USER_GEOFENCES_DESC": "Empêche les utilisateurs de dessiner, importer ou soumettre leurs propres Geofences. Les Geofences existantes continuent de fonctionner.",
     "ENABLE_TEMPLATES_LABEL": "Activer les modèles",
     "ENABLE_TEMPLATES_DESC": "Autoriser les utilisateurs à choisir des modèles de messages de notification.",
     "ALLOWED_LANGUAGES_LABEL": "Langues d'interface autorisées",

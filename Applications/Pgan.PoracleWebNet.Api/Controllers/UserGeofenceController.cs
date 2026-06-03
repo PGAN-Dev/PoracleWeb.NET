@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -30,6 +31,7 @@ public partial class UserGeofenceController(
     }
 
     [HttpPost("custom")]
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     public async Task<IActionResult> CreateGeofence([FromBody] UserGeofenceCreate model)
     {
         try
@@ -70,6 +72,7 @@ public partial class UserGeofenceController(
     }
 
     [HttpPost("custom/{kojiName}/submit")]
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     public async Task<IActionResult> SubmitForReview(string kojiName)
     {
         try
@@ -171,6 +174,7 @@ public partial class UserGeofenceController(
     }
 
     [HttpPost("import/geojson")]
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     [EnableRateLimiting("geojson-import")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<IActionResult> ImportGeoJson(IFormFile file)
