@@ -34,7 +34,7 @@ jobs:
           fi
 
       - name: Open PR with changelog update
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "docs: cut changelog for ${{ github.event.release.tag_name }}"
           title: "docs: cut changelog for ${{ github.event.release.tag_name }}"
