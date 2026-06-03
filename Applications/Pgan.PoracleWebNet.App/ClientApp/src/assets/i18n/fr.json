@@ -1530,8 +1530,6 @@
     "ENABLE_ROLES_DESC": "Autoriser uniquement les utilisateurs avec des rôles Discord spécifiques à se connecter. Nécessite un Bot Token et un Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de rôles autorisés",
     "ALLOWED_ROLE_IDS_DESC": "IDs de rôles Discord séparés par des virgules qui accordent l'accès (ex. « 123456789,987654321 »). Laissez vide pour autoriser tous.",
-    "ADMIN_ALLOWED_LANGUAGES_LABEL": "Langues autorisées",
-    "ADMIN_ALLOWED_LANGUAGES_DESC": "Liste de codes de langue séparés par des virgules que les utilisateurs peuvent sélectionner (ex. « en,de,fr »).",
     "REGISTER_COMMAND_LABEL": "Commande d'enregistrement",
     "REGISTER_COMMAND_DESC": "Commande du bot Poracle que les utilisateurs exécutent pour s'enregistrer (ex. « $!register »).",
     "LOCATION_COMMAND_LABEL": "Commande de localisation",

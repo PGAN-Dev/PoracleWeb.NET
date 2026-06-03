@@ -230,12 +230,6 @@ const SETTING_GROUPS: SettingGroup[] = [
         showWhen: 'enable_roles',
         type: 'text',
       },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.ADMIN_ALLOWED_LANGUAGES_DESC',
-        key: 'allowed_languages',
-        labelKey: 'ADMIN_SETTINGS.ADMIN_ALLOWED_LANGUAGES_LABEL',
-        type: 'text',
-      },
     ],
   },
   {

@@ -1530,8 +1530,6 @@
     "ENABLE_ROLES_DESC": "Permitir apenas o login de usuários com funções Discord específicas. Requer Bot Token e Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de funções permitidas",
     "ALLOWED_ROLE_IDS_DESC": "IDs de funções Discord separados por vírgulas que concedem acesso (ex.: \"123456789,987654321\"). Deixe em branco para permitir todos.",
-    "ADMIN_ALLOWED_LANGUAGES_LABEL": "Idiomas permitidos",
-    "ADMIN_ALLOWED_LANGUAGES_DESC": "Lista separada por vírgulas de códigos de idioma que os usuários podem selecionar (ex.: \"en,de,fr\").",
     "REGISTER_COMMAND_LABEL": "Comando de registro",
     "REGISTER_COMMAND_DESC": "Comando do bot Poracle que os usuários executam para se registrarem (ex.: \"$!register\").",
     "LOCATION_COMMAND_LABEL": "Comando de localização",

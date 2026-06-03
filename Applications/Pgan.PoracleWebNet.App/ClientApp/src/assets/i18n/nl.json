@@ -1530,8 +1530,6 @@
     "ENABLE_ROLES_DESC": "Laat alleen gebruikers met specifieke Discord-rollen inloggen. Vereist Bot Token en Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Toegestane rol-ID's",
     "ALLOWED_ROLE_IDS_DESC": "Door komma's gescheiden Discord-rol-ID's die toegang verlenen (bijv. \"123456789,987654321\"). Laat leeg om alle toe te staan.",
-    "ADMIN_ALLOWED_LANGUAGES_LABEL": "Toegestane talen",
-    "ADMIN_ALLOWED_LANGUAGES_DESC": "Door komma's gescheiden lijst met taalcodes die gebruikers kunnen selecteren (bijv. \"en,de,fr\").",
     "REGISTER_COMMAND_LABEL": "Registratiecommando",
     "REGISTER_COMMAND_DESC": "Poracle-bot-commando dat gebruikers uitvoeren om zich te registreren (bijv. \"$!register\").",
     "LOCATION_COMMAND_LABEL": "Locatiecommando",
