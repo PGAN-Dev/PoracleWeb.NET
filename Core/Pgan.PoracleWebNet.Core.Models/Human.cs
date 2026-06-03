@@ -55,4 +55,14 @@ public class Human
     {
         get; set;
     }
+
+    /// <summary>
+    /// Free-text notes on the human record. PoracleJS/PoracleNG can be configured to auto-fill this
+    /// with the Discord guild (server) name and channel category for channel-type users, which the
+    /// admin user list surfaces to disambiguate channels that share the same name.
+    /// </summary>
+    public string? Notes
+    {
+        get; set;
+    }
 }

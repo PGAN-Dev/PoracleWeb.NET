@@ -99,6 +99,7 @@ public class HumanService(
         AdminDisable = json.GetIntProp("admin_disable"),
         CurrentProfileNo = json.GetIntProp("current_profile_no"),
         CommunityMembership = json.GetStringPropOrNull("community_membership"),
+        Notes = json.GetStringPropOrNull("notes"),
     };
 
     private static JsonElement SerializeHumanForCreate(Human human)

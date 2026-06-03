@@ -46,6 +46,7 @@ public partial class AdminController(
             h.DisabledDate,
             h.CurrentProfileNo,
             h.Language,
+            h.Notes,
             AvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(h.Id, h.Type)
         });
 
@@ -79,6 +80,7 @@ public partial class AdminController(
             human.Area,
             human.Latitude,
             human.Longitude,
+            human.Notes,
             AvatarUrl = avatarUrl
         });
     }

@@ -72,7 +72,12 @@ export class AdminUsersComponent implements OnInit {
     let users = this.discordUsers();
 
     if (term) {
-      users = users.filter(u => u.id.toLowerCase().includes(term) || (u.name || '').toLowerCase().includes(term));
+      users = users.filter(
+        u =>
+          u.id.toLowerCase().includes(term) ||
+          (u.name || '').toLowerCase().includes(term) ||
+          (this.notesLabel(u.notes) || '').toLowerCase().includes(term),
+      );
     }
 
     if (status !== 'all') {
@@ -214,6 +219,20 @@ export class AdminUsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
+  }
+
+  /**
+   * Normalizes the Poracle `notes` value for display. PoracleJS/NG can leave a quoted-empty
+   * sentinel (`""`) or whitespace in the column for users that aren't channels — those should
+   * render nothing. Strips a single layer of surrounding quotes so a JSON-quoted note shows clean.
+   */
+  notesLabel(notes: string | null): string | null {
+    if (!notes) return null;
+    let s = notes.trim();
+    if (s.length >= 2 && ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))) {
+      s = s.slice(1, -1).trim();
+    }
+    return s.length > 0 ? s : null;
   }
 
   onPageChange(event: PageEvent): void {

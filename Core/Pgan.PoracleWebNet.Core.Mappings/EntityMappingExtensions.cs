@@ -29,6 +29,7 @@ public static class EntityMappingExtensions
         DisabledDate = e.DisabledDate,
         CurrentProfileNo = e.CurrentProfileNo,
         CommunityMembership = e.CommunityMembership,
+        Notes = e.Notes,
     };
 
     public static HumanEntity ToEntity(this Human m) => new()
@@ -47,6 +48,7 @@ public static class EntityMappingExtensions
         DisabledDate = m.DisabledDate,
         CurrentProfileNo = m.CurrentProfileNo,
         CommunityMembership = m.CommunityMembership ?? string.Empty,
+        Notes = m.Notes ?? string.Empty,
     };
 
     public static void ApplyTo(this Human src, HumanEntity dest)
@@ -64,6 +66,7 @@ public static class EntityMappingExtensions
         dest.DisabledDate = src.DisabledDate;
         dest.CurrentProfileNo = src.CurrentProfileNo;
         dest.CommunityMembership = src.CommunityMembership ?? string.Empty;
+        dest.Notes = src.Notes ?? string.Empty;
     }
 
     // ── Profile ──────────────────────────────────────────────
