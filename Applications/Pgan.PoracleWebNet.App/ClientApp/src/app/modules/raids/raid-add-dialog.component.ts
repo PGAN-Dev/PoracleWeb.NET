@@ -24,6 +24,7 @@ import { DeliveryPreviewComponent } from '../../shared/components/delivery-previ
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 @Component({
@@ -46,6 +47,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     DeliveryPreviewComponent,
     GymPickerComponent,
     LevelSelectorComponent,
+    RsvpToggleComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -69,6 +71,7 @@ export class RaidAddDialogComponent {
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     ping: [''],
+    rsvpChanges: [0],
     team: [4],
     template: [''],
   });
@@ -115,6 +118,9 @@ export class RaidAddDialogComponent {
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
     const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place.
+    // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
+    const clean = (common.clean ? 1 : 0) | ((common.rsvpChanges ?? 0) >= 1 ? 2 : 0);
 
     const creates: ReturnType<typeof this.raidService.create | typeof this.eggService.create>[] = [];
 
@@ -122,7 +128,7 @@ export class RaidAddDialogComponent {
       // By Level
       for (const level of this.selectedRaidLevels()) {
         const raid: RaidCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           evolution: 9000,
           exclusive: 0,
@@ -132,7 +138,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId: 9000,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -140,13 +146,13 @@ export class RaidAddDialogComponent {
       }
       for (const level of this.selectedEggLevels()) {
         const egg: EggCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           exclusive: 0,
           gymId: this.selectedGymId() || null,
           level,
           ping: common.ping || null,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -157,7 +163,7 @@ export class RaidAddDialogComponent {
       const bossLevel = this.bossLevel();
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           evolution: 9000,
           exclusive: 0,
@@ -167,7 +173,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };

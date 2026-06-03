@@ -339,6 +339,15 @@
     "COMMON_SETTINGS": "Wspólne ustawienia"
   },
   "RAIDS": {
+    "RSVP_LABEL": "Powiadomienia RSVP",
+    "RSVP_OFF": "Tylko dopasowania",
+    "RSVP_INCLUDE": "Dopasowania + aktualizacje RSVP",
+    "RSVP_ONLY": "Tylko aktualizacje RSVP",
+    "RSVP_OFF_DESC": "Tylko standardowe alerty rajdów/jaj.",
+    "RSVP_INCLUDE_DESC": "Powiadamiaj także, gdy zmienią się liczby RSVP.",
+    "RSVP_ONLY_DESC": "Pomiń początkowe dopasowania; powiadamiaj tylko o zmianach RSVP. Bez skanera emitującego RSVP alarm zostanie wyciszony.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Tylko RSVP",
     "PAGE_TITLE": "Alarmy rajdów i jajek",
     "PAGE_DESC": "Otrzymuj powiadomienia o bossach rajdowych i wylęgach jajek w pobliskich arenach.",
     "TAB_RAIDS": "Rajdy ({{count}})",

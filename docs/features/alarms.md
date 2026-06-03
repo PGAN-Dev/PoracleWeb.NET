@@ -9,8 +9,8 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 | Type | Description |
 |---|---|
 | **Pokemon** | Filter by species, IV, CP, level, PVP rank, gender, size |
-| **Raids** | Filter by raid boss, level, move, evolution, EX eligibility, specific gym, RSVP changes. See [Raid level selector](#raid-level-selector). |
-| **Eggs** | Filter by egg level, EX eligibility, specific gym, RSVP changes. See [Raid level selector](#raid-level-selector). |
+| **Raids** | Filter by raid boss, level, move, evolution, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
+| **Eggs** | Filter by egg level, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
 | **Quests** | Filter by reward type and Pokemon |
 | **Invasions** | Filter by grunt type and shadow Pokemon |
 | **Lures** | Filter by lure type |
@@ -161,7 +161,7 @@ Raid alarms support these fields beyond the basic level/boss selection:
 | `evolution` | `9000` (any) | Filter by evolution type (e.g., Mega, Primal) |
 | `exclusive` | `false` | EX/exclusive raid flag |
 | `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
-| `rsvpChanges` | `false` | Receive RSVP change notifications |
+| `rsvpChanges` | `0` (matches only) | RSVP notification mode: `0` matches only, `1` matches + RSVP updates, `2` RSVP updates only. Selectable as a three-option toggle group in the raid add/edit dialog; shown as an "RSVP" / "RSVP only" status badge on raid cards (beside the auto-delete tag) when non-default. Selecting mode `1` or `2` also sets PoracleNG's edit-in-place bit (`clean` bit 2) so RSVP count changes edit the existing alert rather than sending a new message. Mode `2` requires the upstream scanner to emit RSVP webhooks — selecting it in deployments without one will silence the alarm. |
 
 ## Egg alarm filters
 
@@ -172,7 +172,7 @@ Egg alarms support:
 | `team` | `4` (any team) | Gym team controlling the egg |
 | `exclusive` | `false` | EX/exclusive egg flag |
 | `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
-| `rsvpChanges` | `false` | Receive RSVP change notifications |
+| `rsvpChanges` | `0` (matches only) | RSVP notification mode: `0` matches only, `1` matches + RSVP updates, `2` RSVP updates only. Selectable as a three-option toggle group in the egg add/edit dialog; shown as an "RSVP" / "RSVP only" status badge on egg cards (beside the auto-delete tag) when non-default. Selecting mode `1` or `2` also sets PoracleNG's edit-in-place bit (`clean` bit 2) so RSVP count changes edit the existing alert rather than sending a new message. Mode `2` requires the upstream scanner to emit RSVP webhooks — selecting it in deployments without one will silence the alarm. |
 
 ## Gym alarm filters
 

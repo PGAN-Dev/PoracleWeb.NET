@@ -1,0 +1,13 @@
+<div class="rsvp-field">
+  <div class="rsvp-legend">{{ 'RAIDS.RSVP_LABEL' | translate }}</div>
+  <mat-button-toggle-group
+    [formControl]="control()"
+    class="rsvp-toggle"
+    hideSingleSelectionIndicator
+    [attr.aria-label]="'RAIDS.RSVP_LABEL' | translate">
+    <mat-button-toggle [value]="0">{{ 'RAIDS.RSVP_OFF' | translate }}</mat-button-toggle>
+    <mat-button-toggle [value]="1">{{ 'RAIDS.RSVP_INCLUDE' | translate }}</mat-button-toggle>
+    <mat-button-toggle [value]="2">{{ 'RAIDS.RSVP_ONLY' | translate }}</mat-button-toggle>
+  </mat-button-toggle-group>
+  <p class="rsvp-hint">{{ descriptionKey() | translate }}</p>
+</div>

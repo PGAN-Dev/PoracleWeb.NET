@@ -339,6 +339,15 @@
     "COMMON_SETTINGS": "Gemeenschappelijke Instellingen"
   },
   "RAIDS": {
+    "RSVP_LABEL": "RSVP-meldingen",
+    "RSVP_OFF": "Alleen overeenkomsten",
+    "RSVP_INCLUDE": "Overeenkomsten + RSVP-updates",
+    "RSVP_ONLY": "Alleen RSVP-updates",
+    "RSVP_OFF_DESC": "Alleen standaard raid-/ei-meldingen.",
+    "RSVP_INCLUDE_DESC": "Ook opnieuw melden wanneer RSVP-aantallen wijzigen.",
+    "RSVP_ONLY_DESC": "Sla initiële matches over; meld alleen RSVP-wijzigingen. Zonder een scanner die RSVP verstuurt blijft dit alarm stil.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Alleen RSVP",
     "PAGE_TITLE": "Raid & Ei Alarmen",
     "PAGE_DESC": "Ontvang meldingen over raidbazen en uitkomende eieren bij nabije gyms.",
     "TAB_RAIDS": "Raids ({{count}})",

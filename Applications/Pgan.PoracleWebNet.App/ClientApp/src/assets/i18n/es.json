@@ -339,6 +339,15 @@
     "COMMON_SETTINGS": "Ajustes comunes"
   },
   "RAIDS": {
+    "RSVP_LABEL": "Notificaciones RSVP",
+    "RSVP_OFF": "Solo coincidencias",
+    "RSVP_INCLUDE": "Coincidencias + actualizaciones RSVP",
+    "RSVP_ONLY": "Solo actualizaciones RSVP",
+    "RSVP_OFF_DESC": "Solo alertas estándar de raids/huevos.",
+    "RSVP_INCLUDE_DESC": "También volver a notificar cuando cambien los recuentos de RSVP.",
+    "RSVP_ONLY_DESC": "Omitir coincidencias iniciales; solo notificar cambios de RSVP. Sin un escáner que emita RSVP esta alarma queda silenciada.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Solo RSVP",
     "PAGE_TITLE": "Alarmas de Raid y Huevo",
     "PAGE_DESC": "Recibe notificaciones sobre jefes de raid y eclosiones de huevos en gimnasios cercanos.",
     "TAB_RAIDS": "Raids ({{count}})",

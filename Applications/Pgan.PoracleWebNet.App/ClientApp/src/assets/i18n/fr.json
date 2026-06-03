@@ -339,6 +339,15 @@
     "COMMON_SETTINGS": "Paramètres communs"
   },
   "RAIDS": {
+    "RSVP_LABEL": "Notifications RSVP",
+    "RSVP_OFF": "Correspondances uniquement",
+    "RSVP_INCLUDE": "Correspondances + mises à jour RSVP",
+    "RSVP_ONLY": "Mises à jour RSVP uniquement",
+    "RSVP_OFF_DESC": "Alertes raid/œuf standard uniquement.",
+    "RSVP_INCLUDE_DESC": "Notifier également lorsque les RSVP changent.",
+    "RSVP_ONLY_DESC": "Ignorer les correspondances initiales ; notifier uniquement les changements de RSVP. Sans un scanner émettant des RSVP, cette alerte est silencieuse.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "RSVP uniquement",
     "PAGE_TITLE": "Alarmes Raid et Œuf",
     "PAGE_DESC": "Sois notifié des boss de raid et des éclosions d'œufs dans les arènes proches.",
     "TAB_RAIDS": "Raids ({{count}})",

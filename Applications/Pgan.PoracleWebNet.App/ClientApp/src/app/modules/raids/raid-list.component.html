@@ -102,9 +102,10 @@
                 }
               </div>
               <div class="card-top-actions">
-                @if (raid.clean === 1) {
+                @if (isAutoDelete(raid.clean)) {
                   <span class="clean-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate">{{ 'RAIDS.CLEAN_TAG' | translate }}</span>
                 }
+                <app-rsvp-pill [value]="raid.rsvpChanges" />
               </div>
             </div>
             <mat-card-content>
@@ -207,9 +208,10 @@
                 }
               </div>
               <div class="card-top-actions">
-                @if (egg.clean === 1) {
+                @if (isAutoDelete(egg.clean)) {
                   <span class="clean-tag" [matTooltip]="'RAIDS.CLEAN_TOOLTIP' | translate">{{ 'RAIDS.CLEAN_TAG' | translate }}</span>
                 }
+                <app-rsvp-pill [value]="egg.rsvpChanges" />
               </div>
             </div>
             <mat-card-content>

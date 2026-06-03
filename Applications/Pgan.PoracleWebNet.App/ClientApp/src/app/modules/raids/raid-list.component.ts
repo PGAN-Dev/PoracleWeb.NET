@@ -26,6 +26,7 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 
 @Component({
@@ -41,6 +42,7 @@ import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
     MatTabsModule,
     TranslateModule,
     AlarmInfoComponent,
+    RsvpPillComponent,
     LevelLabelPipe,
   ],
   selector: 'app-raid-list',
@@ -313,6 +315,11 @@ export class RaidListComponent implements OnInit {
       default:
         return this.i18n.instant('RAIDS.TEAM_ANY');
     }
+  }
+
+  /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  isAutoDelete(clean: number): boolean {
+    return (clean & 1) !== 0;
   }
 
   loadData(): void {
