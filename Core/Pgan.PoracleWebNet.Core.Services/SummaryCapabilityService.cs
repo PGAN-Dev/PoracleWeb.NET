@@ -34,8 +34,10 @@ public class SummaryCapabilityService(IPoracleApiProxy poracleApiProxy, IMemoryC
     {
         try
         {
-            var config = await this._poracleApiProxy.GetConfigAsync();
-            return config?.QuestSummaryEnabled ?? false;
+            // Read the effective tracking.quest_summary_enabled from PoracleNG's config-values
+            // endpoint. null (can't determine) and any fault degrade to false so the UI stays hidden
+            // rather than showing a dead-end where nothing is ever delivered.
+            return await this._poracleApiProxy.GetQuestSummaryEnabledAsync() ?? false;
         }
         catch
         {

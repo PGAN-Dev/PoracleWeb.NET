@@ -61,15 +61,6 @@ public class PoracleConfig
         get; set;
     }
     public List<PoracleDelegateEntry> DelegateAdministration { get; set; } = [];
-
-    /// <summary>
-    /// Whether the upstream PoracleNG deployment has quest summary delivery enabled.
-    /// Sourced from Poracle's <c>tracking.quest_summary_enabled</c>. Defaults to <c>false</c> so the
-    /// web UI is only shown when PoracleNG will actually buffer and deliver summaries — an absent
-    /// flag means PoracleNG's matcher does not buffer (the feature is effectively off), and showing
-    /// the UI in that case is a dead-end (schedule + per-alarm bit set, but nothing is ever delivered).
-    /// </summary>
-    public bool QuestSummaryEnabled { get; set; }
 }
 
 public class PoracleAdmins

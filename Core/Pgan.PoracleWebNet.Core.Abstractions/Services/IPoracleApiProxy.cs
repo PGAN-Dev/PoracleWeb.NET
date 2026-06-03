@@ -5,6 +5,7 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
 public interface IPoracleApiProxy
 {
     public Task<PoracleConfig?> GetConfigAsync();
+    public Task<bool?> GetQuestSummaryEnabledAsync();
     public Task<string?> GetAreasAsync(string userId);
     public Task<string?> GetTemplatesAsync();
     public Task<string?> GetAdminRolesAsync(string userId);

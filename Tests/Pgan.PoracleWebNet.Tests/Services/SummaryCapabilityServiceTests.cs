@@ -1,16 +1,15 @@
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
-using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// Capability resolution for quest summary delivery. The flag is read from the config proxy
-/// (<c>tracking.quest_summary_enabled</c>), defaults to <c>false</c> when the field is absent from
-/// a successful config (so the UI stays hidden unless the bot enables it), degrades to <c>false</c>
-/// on any fault, and is cached for 5 minutes.
+/// Capability resolution for quest summary delivery. The flag is read from PoracleNG's effective
+/// config values (<c>tracking.quest_summary_enabled</c> via <c>/api/config/values</c>). It resolves
+/// to <c>false</c> when the flag can't be determined (endpoint shape changed) or on any fault, so the
+/// UI stays hidden unless the bot has the feature enabled. The result is cached for 5 minutes.
 /// </summary>
 public class SummaryCapabilityServiceTests : IDisposable
 {
@@ -32,7 +31,7 @@ public class SummaryCapabilityServiceTests : IDisposable
     [Fact]
     public async Task ReturnsTrueWhenFlagEnabled()
     {
-        this._apiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { QuestSummaryEnabled = true });
+        this._apiProxy.Setup(p => p.GetQuestSummaryEnabledAsync()).ReturnsAsync(true);
 
         Assert.True(await this._sut.IsQuestSummaryEnabledAsync());
     }
@@ -40,26 +39,17 @@ public class SummaryCapabilityServiceTests : IDisposable
     [Fact]
     public async Task ReturnsFalseWhenFlagDisabled()
     {
-        this._apiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { QuestSummaryEnabled = false });
+        this._apiProxy.Setup(p => p.GetQuestSummaryEnabledAsync()).ReturnsAsync(false);
 
         Assert.False(await this._sut.IsQuestSummaryEnabledAsync());
     }
 
     [Fact]
-    public async Task DefaultsToFalseWhenFieldAbsentFromSuccessfulConfig()
+    public async Task DefaultsToFalseWhenFlagCannotBeDetermined()
     {
-        // A successful config with no tracking.quest_summary_enabled leaves PoracleConfig's default (false).
-        // The UI must stay hidden unless PoracleNG explicitly enables the feature, otherwise the user
-        // hits a dead-end (schedule + per-alarm bit set, but PoracleNG never buffers/delivers).
-        this._apiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig());
-
-        Assert.False(await this._sut.IsQuestSummaryEnabledAsync());
-    }
-
-    [Fact]
-    public async Task DegradesToFalseWhenConfigIsNull()
-    {
-        this._apiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
+        // Endpoint reachable but the flag isn't present in the expected shape -> null -> hidden,
+        // rather than a dead-end where nothing is ever delivered.
+        this._apiProxy.Setup(p => p.GetQuestSummaryEnabledAsync()).ReturnsAsync((bool?)null);
 
         Assert.False(await this._sut.IsQuestSummaryEnabledAsync());
     }
@@ -67,7 +57,7 @@ public class SummaryCapabilityServiceTests : IDisposable
     [Fact]
     public async Task DegradesToFalseWhenProxyThrows()
     {
-        this._apiProxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("upstream down"));
+        this._apiProxy.Setup(p => p.GetQuestSummaryEnabledAsync()).ThrowsAsync(new HttpRequestException("upstream down"));
 
         Assert.False(await this._sut.IsQuestSummaryEnabledAsync());
     }
@@ -75,13 +65,13 @@ public class SummaryCapabilityServiceTests : IDisposable
     [Fact]
     public async Task CachesResultAndDoesNotReprobe()
     {
-        this._apiProxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { QuestSummaryEnabled = true });
+        this._apiProxy.Setup(p => p.GetQuestSummaryEnabledAsync()).ReturnsAsync(true);
 
         var first = await this._sut.IsQuestSummaryEnabledAsync();
         var second = await this._sut.IsQuestSummaryEnabledAsync();
 
         Assert.True(first);
         Assert.True(second);
-        this._apiProxy.Verify(p => p.GetConfigAsync(), Times.Once);
+        this._apiProxy.Verify(p => p.GetQuestSummaryEnabledAsync(), Times.Once);
     }
 }

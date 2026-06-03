@@ -191,14 +191,35 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             }
         }
 
-        if (root.TryGetProperty("tracking", out var tracking)
+        return config;
+    }
+
+    /// <summary>
+    /// Reads the effective <c>tracking.quest_summary_enabled</c> flag from PoracleNG's config-values
+    /// endpoint (<c>/api/config/values</c>, which exposes the merged-with-defaults config — the
+    /// <c>poracleWeb</c> config view does not include the tracking section). Returns <c>null</c> when
+    /// the value cannot be determined (endpoint shape changed, feature unknown), so the caller can
+    /// degrade safely.
+    /// </summary>
+    public async Task<bool?> GetQuestSummaryEnabledAsync()
+    {
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/values");
+        var response = await this._httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+
+        // { "values": { "tracking": { "quest_summary_enabled": true, ... }, ... } }
+        if (doc.RootElement.TryGetProperty("values", out var values)
+            && values.TryGetProperty("tracking", out var tracking)
             && tracking.TryGetProperty("quest_summary_enabled", out var qse)
             && qse.ValueKind is JsonValueKind.True or JsonValueKind.False)
         {
-            config.QuestSummaryEnabled = qse.GetBoolean();
+            return qse.GetBoolean();
         }
 
-        return config;
+        return null;
     }
 
     public async Task<string?> GetAreasAsync(string userId)
