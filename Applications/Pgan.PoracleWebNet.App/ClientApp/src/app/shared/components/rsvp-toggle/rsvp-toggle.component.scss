@@ -22,6 +22,8 @@
 .rsvp-toggle {
   display: flex;
   width: 100%;
+  // M3 defaults the segmented group to a pill radius; square it off for a crisper Material feel.
+  --mat-button-toggle-shape: 4px;
 
   ::ng-deep .mat-button-toggle {
     flex: 1 1 0;
