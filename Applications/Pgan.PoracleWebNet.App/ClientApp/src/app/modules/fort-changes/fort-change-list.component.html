@@ -67,7 +67,7 @@
             <span class="fort-subtitle">Fort Change Tracking</span>
           </div>
           <div class="card-top-actions">
-            @if (item.clean === 1) {
+            @if (isAutoDelete(item.clean)) {
               <span class="clean-tag" [matTooltip]="'ALARM.CLEAN_HINT_FORT' | translate">clean</span>
             }
             @if (item.includeEmpty === 1) {

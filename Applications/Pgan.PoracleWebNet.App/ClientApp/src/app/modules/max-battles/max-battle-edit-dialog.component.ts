@@ -20,6 +20,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 export interface MaxBattleEditDialogData {
   item: MaxBattle;
@@ -77,7 +78,7 @@ export class MaxBattleEditDialogComponent {
   readonly dialogRef = inject(MatDialogRef<MaxBattleEditDialogComponent>);
 
   form = this.fb.group({
-    clean: [this.data.item.clean === 1],
+    clean: [isAutoDelete(this.data.item.clean)],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gmax: [this.data.item.gmax === 1],
@@ -150,7 +151,7 @@ export class MaxBattleEditDialogComponent {
     const gmaxVal = this.isLevelBased ? (levelDef?.gmax ? 1 : 0) : values.gmax ? 1 : 0;
 
     const update: MaxBattleUpdate = {
-      clean: values.clean ? 1 : 0,
+      clean: preserve(item.clean, AUTO_DELETE, values.clean ? 1 : 0),
       distance: distanceMeters,
       evolution: 9000,
       form: item.form,

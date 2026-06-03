@@ -644,6 +644,11 @@ export class ProfileOverviewComponent implements OnInit {
     return this.activeProfileNo() === profileNo;
   }
 
+  /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  isAutoDelete(clean: number): boolean {
+    return (clean & 1) !== 0;
+  }
+
   isDuplicate(alarm: ProfileOverviewAlarm): boolean {
     return this.duplicateUids().has(alarm.uid);
   }

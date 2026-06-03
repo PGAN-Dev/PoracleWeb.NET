@@ -20,6 +20,7 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -97,8 +98,13 @@ export class QuickPickApplyDialogComponent {
     const delivery = this.deliveryForm.getRawValue();
     const distanceMeters = delivery.distanceMode === 'areas' ? 0 : Math.round((delivery.distanceKm ?? 1) * 1000);
 
+    // clean is a PoracleNG bitmask (bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary).
+    // The Delivery tab only toggles bit 1, so preserve any other bits the preset definition carries
+    // instead of clobbering them to 0 on (re-)apply.
+    const baseClean = typeof this.data.definition.filters['clean'] === 'number' ? (this.data.definition.filters['clean'] as number) : 0;
+
     const request: QuickPickApplyRequest = {
-      clean: delivery.clean ? 1 : 0,
+      clean: preserve(baseClean, AUTO_DELETE, delivery.clean ? 1 : 0),
       distance: distanceMeters,
       excludePokemonIds: this.showExclusions && this.excludeEnabled() ? this.excludedPokemonIds() : [],
       template: delivery.template || undefined,

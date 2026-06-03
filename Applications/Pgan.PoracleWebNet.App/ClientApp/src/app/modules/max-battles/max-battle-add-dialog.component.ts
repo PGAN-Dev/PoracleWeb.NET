@@ -23,6 +23,7 @@ import { ScannerService } from '../../core/services/scanner.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { compose } from '../../shared/utils/clean-flags';
 
 /** Max Battle levels as defined in PoracleNG util.json */
 interface MaxBattleLevel {
@@ -135,7 +136,7 @@ export class MaxBattleAddDialogComponent {
       for (const levelVal of this.selectedLevels()) {
         const levelDef = this.levels.find(l => l.value === levelVal);
         const maxBattle: MaxBattleCreate = {
-          clean: common.clean ? 1 : 0,
+          clean: compose(!!common.clean, false, false),
           distance: distanceMeters,
           evolution: 9000,
           form: common.form ?? 0,
@@ -153,7 +154,7 @@ export class MaxBattleAddDialogComponent {
       // By Pokemon — one alarm per selected Pokemon, level = 9000 (any)
       for (const pokemonId of this.selectedPokemonIds()) {
         const maxBattle: MaxBattleCreate = {
-          clean: common.clean ? 1 : 0,
+          clean: compose(!!common.clean, false, false),
           distance: distanceMeters,
           evolution: 9000,
           form: common.form ?? 0,

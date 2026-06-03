@@ -89,7 +89,7 @@
             }
           </div>
           <div class="card-top-actions">
-            @if (invasion.clean === 1) {
+            @if (isAutoDelete(invasion.clean)) {
               <span class="clean-tag" [matTooltip]="'INVASIONS.CLEAN_TOOLTIP' | translate">{{ 'INVASIONS.CLEAN_TAG' | translate }}</span>
             }
           </div>

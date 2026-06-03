@@ -102,7 +102,7 @@
             @if (isGmax(mb.level) || mb.gmax === 1) {
               <span class="gmax-tag">{{ 'MAX_BATTLES.GMAX_TAG' | translate }}</span>
             }
-            @if (mb.clean === 1) {
+            @if (isAutoDelete(mb.clean)) {
               <span class="clean-tag" [matTooltip]="'ALARM.CLEAN_HINT_MAX_BATTLE' | translate">clean</span>
             }
           </div>

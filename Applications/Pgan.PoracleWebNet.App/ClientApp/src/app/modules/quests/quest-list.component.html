@@ -84,7 +84,7 @@
             </span>
           </div>
           <div class="card-top-actions">
-            @if (quest.clean === 1) {
+            @if (isAutoDelete(quest.clean)) {
               <span class="clean-tag" [matTooltip]="'QUESTS.CLEAN_TOOLTIP' | translate">{{ 'QUESTS.CLEAN_TAG' | translate }}</span>
             }
           </div>

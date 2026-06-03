@@ -249,7 +249,7 @@
                           }
                         </div>
                         <div class="card-top-actions">
-                          @if (alarm.clean === 1) {
+                          @if (isAutoDelete(alarm.clean ?? 0)) {
                             <span class="clean-tag" [matTooltip]="'POKEMON.CLEAN_TAG_TOOLTIP' | translate">{{
                               'POKEMON.CLEAN_TAG' | translate
                             }}</span>

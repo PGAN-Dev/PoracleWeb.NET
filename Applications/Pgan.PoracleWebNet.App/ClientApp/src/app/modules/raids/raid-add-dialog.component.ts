@@ -26,6 +26,7 @@ import { LevelSelectorComponent } from '../../shared/components/level-selector/l
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -118,9 +119,10 @@ export class RaidAddDialogComponent {
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
     const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
-    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place.
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
-    const clean = (common.clean ? 1 : 0) | ((common.rsvpChanges ?? 0) >= 1 ? 2 : 0);
+    // New alarms have no prior bits, so there is nothing to preserve here.
+    const clean = (common.clean ? AUTO_DELETE : 0) | ((common.rsvpChanges ?? 0) >= 1 ? EDIT : 0);
 
     const creates: ReturnType<typeof this.raidService.create | typeof this.eggService.create>[] = [];
 

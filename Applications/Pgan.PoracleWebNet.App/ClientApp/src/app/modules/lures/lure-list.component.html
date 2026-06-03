@@ -62,7 +62,7 @@
             <h3>{{ getLureName(lure.lureId) }} {{ 'LURES.LURE_SUFFIX' | translate }}</h3>
           </div>
           <div class="card-top-actions">
-            @if (lure.clean === 1) {
+            @if (isAutoDelete(lure.clean)) {
               <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">clean</span>
             }
           </div>

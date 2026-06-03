@@ -20,6 +20,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -53,7 +54,7 @@ export class InvasionEditDialogComponent {
 
   readonly dialogRef = inject(MatDialogRef<InvasionEditDialogComponent>);
   form = this.fb.group({
-    clean: [this.data.clean === 1],
+    clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gender: [this.data.gender],
@@ -109,7 +110,7 @@ export class InvasionEditDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     this.invasionService
       .update(this.data.uid, {
-        clean: v.clean ? 1 : 0,
+        clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
         // Preserve the stored gender when the dropdown is hidden — a Mixed Male alarm
         // (gender=1) must stay at 1 across edits; zeroing it would widen the filter to

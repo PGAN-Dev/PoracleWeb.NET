@@ -18,6 +18,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -50,7 +51,7 @@ export class GymEditDialogComponent {
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
   form = this.fb.group({
     battleChanges: [this.data.battleChanges === 1],
-    clean: [this.data.clean === 1],
+    clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.ping ?? ''],
@@ -93,7 +94,7 @@ export class GymEditDialogComponent {
     this.gymService
       .update(this.data.uid, {
         battleChanges: v.battleChanges ? 1 : 0,
-        clean: v.clean ? 1 : 0,
+        clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
         gymId: this.selectedGymId() || null,
         ping: v.ping || null,

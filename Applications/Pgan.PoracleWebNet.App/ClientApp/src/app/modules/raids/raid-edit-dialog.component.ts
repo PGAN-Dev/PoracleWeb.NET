@@ -23,6 +23,7 @@ import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picke
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
+import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 
 export interface RaidEditDialogData {
   item: Raid | Egg;
@@ -66,7 +67,7 @@ export class RaidEditDialogComponent {
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
   form = this.fb.group({
-    clean: [(this.data.item.clean & 1) !== 0],
+    clean: [isAutoDelete(this.data.item.clean)],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.item.ping ?? ''],
@@ -120,9 +121,11 @@ export class RaidEditDialogComponent {
     this.saving.set(true);
     const values = this.form.getRawValue();
     const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
-    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place.
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
-    const clean = (values.clean ? 1 : 0) | ((values.rsvpChanges ?? 0) >= 1 ? 2 : 0);
+    // Preserve any other bits (e.g. bot-set summary) the web UI does not surface.
+    const clean =
+      (values.clean ? AUTO_DELETE : 0) | ((values.rsvpChanges ?? 0) >= 1 ? EDIT : 0) | (this.data.item.clean & ~(AUTO_DELETE | EDIT));
 
     if (this.data.type === 'raid') {
       const raid = this.data.item as Raid;

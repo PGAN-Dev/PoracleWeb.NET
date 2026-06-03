@@ -226,6 +226,11 @@ export class MaxBattleListComponent implements OnInit {
     return this.i18n.instant('MAX_BATTLES.ANY_POKEMON');
   }
 
+  /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  isAutoDelete(clean: number): boolean {
+    return (clean & 1) !== 0;
+  }
+
   isGmax(level: number): boolean {
     return level === 7 || level === 8;
   }

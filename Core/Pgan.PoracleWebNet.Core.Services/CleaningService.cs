@@ -95,7 +95,11 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate f
         foreach (var alarm in trackingJson.EnumerateArray())
         {
             var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(alarm.GetRawText())!;
-            dict["clean"] = JsonSerializer.SerializeToElement(clean);
+
+            // The clean toggle only owns the auto-delete bit (bit 1). Read-modify-write so any
+            // bot-set edit-in-place (bit 2) / summary (bit 4) bits survive the bulk toggle. (#292)
+            var existing = dict.TryGetValue("clean", out var c) && c.ValueKind == JsonValueKind.Number ? c.GetInt32() : 0;
+            dict["clean"] = JsonSerializer.SerializeToElement(CleanFlags.Preserve(existing, CleanFlags.AutoDelete, clean));
             updatedAlarms.Add(JsonSerializer.SerializeToNode(dict));
         }
 
@@ -126,7 +130,7 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate f
             var isClean = cleanVal.ValueKind switch
             {
                 JsonValueKind.True => true,
-                JsonValueKind.Number => cleanVal.GetInt32() == 1,
+                JsonValueKind.Number => CleanFlags.IsAutoDelete(cleanVal.GetInt32()),
                 JsonValueKind.Undefined => throw new NotImplementedException(),
                 JsonValueKind.Object => throw new NotImplementedException(),
                 JsonValueKind.Array => throw new NotImplementedException(),

@@ -235,6 +235,120 @@ public class CleaningServiceTests
     }
 
     [Fact]
+    public async Task ToggleCleanOnPreservesEditAndSummaryBits()
+    {
+        // clean=5 = auto-delete (bit 1) + summary (bit 4); clean=2 = edit-in-place only (bit 2).
+        // Toggling the clean flag ON must set bit 1 while leaving bot-set bits 2/4 intact. (#292)
+        var json = CreateJsonArray(
+            new
+            {
+                uid = 1,
+                clean = 5
+            },
+            new
+            {
+                uid = 2,
+                clean = 2
+            });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
+
+        JsonElement captured = default;
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, body) => captured = body.Clone())
+            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+
+        Assert.Equal(2, await this._sut.ToggleCleanMonstersAsync("u1", 1, 1));
+
+        var cleans = ExtractCleans(captured);
+        Assert.Equal(5, cleans[0]); // bit 1 already set, summary (4) preserved -> 5
+        Assert.Equal(3, cleans[1]); // edit (2) preserved, bit 1 added -> 3
+    }
+
+    [Fact]
+    public async Task ToggleCleanOffPreservesEditAndSummaryBits()
+    {
+        // Toggling OFF clears only bit 1; edit (2) / summary (4) bits must survive. (#292)
+        var json = CreateJsonArray(
+            new
+            {
+                uid = 1,
+                clean = 5
+            },
+            new
+            {
+                uid = 2,
+                clean = 2
+            });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
+
+        JsonElement captured = default;
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, body) => captured = body.Clone())
+            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+
+        Assert.Equal(2, await this._sut.ToggleCleanMonstersAsync("u1", 1, 0));
+
+        var cleans = ExtractCleans(captured);
+        Assert.Equal(4, cleans[0]); // bit 1 cleared, summary (4) preserved -> 4
+        Assert.Equal(2, cleans[1]); // bit 1 already clear, edit (2) preserved -> 2
+    }
+
+    [Fact]
+    public async Task GetCleanStatusAsyncTreatsMultiBitValuesAsClean()
+    {
+        // clean=3 (auto-delete+edit) and clean=5 (auto-delete+summary) both have bit 1 set,
+        // so AllClean must report them as clean even though they are not exactly == 1. (#292)
+        var obj = new Dictionary<string, object[]>
+        {
+            ["pokemon"] = [new { uid = 1, clean = 3 }, new { uid = 2, clean = 5 }],
+            ["raid"] = [new { uid = 1, clean = 5 }],
+            ["egg"] = [],
+            ["quest"] = [],
+            ["invasion"] = [],
+            ["lure"] = [],
+            ["nest"] = [],
+            ["gym"] = [],
+            ["maxbattle"] = [new { uid = 1, clean = 3 }],
+        };
+        var jsonStr = JsonSerializer.Serialize(obj);
+        using var doc = JsonDocument.Parse(jsonStr);
+        var json = doc.RootElement.Clone();
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        var result = await this._sut.GetCleanStatusAsync("u1", 1);
+
+        Assert.True(result["monsters"]);   // clean=3 and clean=5 both have bit 1
+        Assert.True(result["raids"]);      // clean=5 has bit 1
+        Assert.True(result["maxbattles"]); // clean=3 has bit 1
+    }
+
+    [Fact]
+    public async Task GetCleanStatusAsyncTreatsBitlessValueAsNotClean()
+    {
+        // clean=4 = summary only (bit 1 not set) -> not auto-delete -> not clean. (#292)
+        var obj = new Dictionary<string, object[]>
+        {
+            ["pokemon"] = [new { uid = 1, clean = 4 }],
+            ["raid"] = [],
+            ["egg"] = [],
+            ["quest"] = [],
+            ["invasion"] = [],
+            ["lure"] = [],
+            ["nest"] = [],
+            ["gym"] = [],
+            ["maxbattle"] = [],
+        };
+        var jsonStr = JsonSerializer.Serialize(obj);
+        using var doc = JsonDocument.Parse(jsonStr);
+        var json = doc.RootElement.Clone();
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        var result = await this._sut.GetCleanStatusAsync("u1", 1);
+
+        Assert.False(result["monsters"]); // clean=4 lacks the auto-delete bit
+    }
+
+    [Fact]
     public async Task ToggleCleanReturnsZeroWhenNoAlarms()
     {
         var json = CreateJsonArray();
@@ -284,6 +398,18 @@ public class CleaningServiceTests
         Assert.True(result["raids"]);     // single item is clean
         Assert.False(result["eggs"]);     // empty array
         Assert.True(result["maxbattles"]); // both are clean
+    }
+
+    private static List<int> ExtractCleans(JsonElement postedBody)
+    {
+        Assert.Equal(JsonValueKind.Array, postedBody.ValueKind);
+        var cleans = new List<int>();
+        foreach (var alarm in postedBody.EnumerateArray())
+        {
+            cleans.Add(alarm.GetProperty("clean").GetInt32());
+        }
+
+        return cleans;
     }
 
     private static JsonElement CreateJsonArray(params object[] items)
