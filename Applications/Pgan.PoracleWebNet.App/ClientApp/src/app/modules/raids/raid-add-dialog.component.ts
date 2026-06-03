@@ -118,6 +118,9 @@ export class RaidAddDialogComponent {
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
     const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place.
+    // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
+    const clean = (common.clean ? 1 : 0) | ((common.rsvpChanges ?? 0) >= 1 ? 2 : 0);
 
     const creates: ReturnType<typeof this.raidService.create | typeof this.eggService.create>[] = [];
 
@@ -125,7 +128,7 @@ export class RaidAddDialogComponent {
       // By Level
       for (const level of this.selectedRaidLevels()) {
         const raid: RaidCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           evolution: 9000,
           exclusive: 0,
@@ -143,7 +146,7 @@ export class RaidAddDialogComponent {
       }
       for (const level of this.selectedEggLevels()) {
         const egg: EggCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           exclusive: 0,
           gymId: this.selectedGymId() || null,
@@ -160,7 +163,7 @@ export class RaidAddDialogComponent {
       const bossLevel = this.bossLevel();
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           evolution: 9000,
           exclusive: 0,

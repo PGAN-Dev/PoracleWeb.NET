@@ -66,7 +66,7 @@ export class RaidEditDialogComponent {
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
   form = this.fb.group({
-    clean: [this.data.item.clean === 1],
+    clean: [(this.data.item.clean & 1) !== 0],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.item.ping ?? ''],
@@ -120,11 +120,14 @@ export class RaidEditDialogComponent {
     this.saving.set(true);
     const values = this.form.getRawValue();
     const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place.
+    // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
+    const clean = (values.clean ? 1 : 0) | ((values.rsvpChanges ?? 0) >= 1 ? 2 : 0);
 
     if (this.data.type === 'raid') {
       const raid = this.data.item as Raid;
       const update: RaidUpdate = {
-        clean: values.clean ? 1 : 0,
+        clean,
         distance: distanceMeters,
         evolution: raid.evolution,
         exclusive: raid.exclusive,
@@ -151,7 +154,7 @@ export class RaidEditDialogComponent {
     } else {
       const egg = this.data.item as Egg;
       const update: EggUpdate = {
-        clean: values.clean ? 1 : 0,
+        clean,
         distance: distanceMeters,
         exclusive: egg.exclusive,
         gymId: this.selectedGymId() || null,
