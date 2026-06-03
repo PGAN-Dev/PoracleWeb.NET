@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-06-03
+
 ### Added
 - **Notification-language selector on the Areas & Location page** ([#310](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/310)): the `LanguageSelectorComponent` — the only path from the web app to a user's Poracle DM language (`human.Language`, which controls the language of alert text and Pokémon names) — was imported into `app.ts` and styled in `app.scss` but **never placed in any template**, so it was dead code with no way to reach it. Users who wanted German alerts had only the toolbar language menu, which calls `i18n.use()` and changes the **Angular UI translations**, not the bot's DM language. The selector is now rendered in a labelled "Notification language" section on the **Areas & Location** page (where the reporter looked), clearly distinguished from the toolbar display-language menu. Its language list — previously a stale hardcode of 18 languages (incl. ja/ko/zh/ru/no/fi/th/tr) that didn't match the app's supported set — now reuses `I18nService.allLanguages` (the 11 supported locales), so it can't drift again. The component seeds its value from the persisted `human.Language` via a new `GET /api/location/language` endpoint (and reconciles against the bot, which can change the language out-of-band) instead of trusting only `localStorage`, and shows success/failure feedback on save. The dead import and the now-orphaned `app-language-selector` responsive style were removed from the app shell. New `AREAS.NOTIFICATION_LANGUAGE` / `NOTIFICATION_LANGUAGE_DESC` / `SNACK_LANGUAGE_UPDATED` / `SNACK_LANGUAGE_FAILED` i18n keys added and translated across all 11 locales. Whether German **Pokémon names** actually render still depends on the Poracle server having German name/master data loaded for that language — PoracleWeb's responsibility ends at writing `human.Language` correctly. Service and component tests cover the new GET endpoint and the load/save/revert behavior.
 
@@ -567,7 +569,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.9.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.10.0...HEAD
+[2.10.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.6.0...v2.7.0
