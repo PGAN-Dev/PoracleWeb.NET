@@ -330,6 +330,9 @@ On first startup after upgrade, the `SettingsMigrationStartupService` automatica
 ### Gym ID NULL vs Empty String
 The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` string that defaults to `""` (empty string) meaning "any gym". PoracleNG handles the null-to-empty normalization on its side. The `GymPickerComponent` emits `null` when cleared and the gym's `id` string when selected.
 
+### Clean Field Bitmask
+The alarm `clean` field is a **3-bit bitmask** in PoracleNG, not a boolean: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary (`db.IsClean/IsEdit/IsSummary` in PoracleNG; quest summary is gated by `summary_schedules`). Use `CleanFlags` (`Core.Models/CleanFlags.cs`) and the frontend twin `shared/utils/clean-flags.ts` (`AUTO_DELETE`/`EDIT`/`SUMMARY`, `isAutoDelete/isEdit/isSummary`, `compose`, `preserve(existing, mask, changes)`) for all reads/writes so bits set elsewhere (e.g. via the bot) survive a web edit. Models cap `Clean` at `[Range(0, 7)]`. UI controls exist only where PoracleNG acts on the bit: auto-delete (all types), edit-in-place (lures + raids/eggs via RSVP `rsvpChanges`), and daily summary (quests). **Angular templates can't parse bitwise `&`** — gate card badges via a component method (e.g. `isAutoDelete(clean)`), not inline `clean & 1`. See #292.
+
 ### Monster Filter Defaults
 PoracleNG applies `cleanRow` defaults (template, PVP ranking, size, max values, etc.) on every create/update, so PoracleWeb no longer needs to maintain its own set of `*Create` model defaults for alarm filter fields. The `*Create` models still exist for DTO mapping (via `AlarmMappingExtensions.To*()` methods) but their field defaults are no longer critical -- PoracleNG is the authoritative source for filter defaults.
 

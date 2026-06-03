@@ -270,6 +270,18 @@ The **gym picker** is a shared component (`app-gym-picker`) that allows users to
 
 Invasion alarms filter by grunt type. The `grunt_type` value is **automatically lowercased** on create because Poracle uses case-sensitive matching for grunt types.
 
+## Delivery & message modes
+
+Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** controlling how the notification is delivered. PoracleWeb surfaces the bits the bot actually acts on as per-alarm toggles in the add/edit dialogs (and shows them as status badges on the alarm cards):
+
+| Mode (`clean` bit) | Applies to | What it does |
+|---|---|---|
+| **Auto-delete** (bit 1) | all alarm types | Deletes the Discord notification after the event expires (e.g. a Pokemon despawns or a raid ends). Toggle per-alarm in the dialog, or in bulk from the **Cleaning** page. |
+| **Edit message in place** (bit 2) | Lures; Raids/Eggs (via RSVP mode) | Updates the existing Discord message when the event changes instead of sending a new one. For lures, enable the **"Edit message in place"** toggle in the lure dialog; for raids/eggs it is set automatically when you choose an RSVP mode (see the `rsvpChanges` rows above). |
+| **Daily summary** (bit 4) | Quests | Collects matching quests into a single summary message instead of one notification each. Enable the **"Daily summary"** toggle in the quest dialog. Requires a configured summary schedule on the bot. |
+
+The modes combine (a quest can be both auto-delete and daily-summary, for example). PoracleWeb **preserves any bits set elsewhere** — if you configured a delivery mode via the bot's `!command` interface that isn't surfaced in the web UI, editing the alarm in the browser will not wipe it.
+
 ## Default values
 
 Comprehensive table of all monster (Pokemon) alarm defaults, matching the PHP PoracleWeb.NET defaults:
