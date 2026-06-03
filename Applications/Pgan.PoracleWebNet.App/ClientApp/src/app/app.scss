@@ -430,11 +430,4 @@ kbd {
       font-size: 16px;
     }
   }
-
-  // Hide language selector on very small screens
-  @media (max-width: 480px) {
-    app-language-selector {
-      display: none;
-    }
-  }
 }

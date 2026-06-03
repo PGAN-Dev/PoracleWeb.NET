@@ -66,6 +66,21 @@ public class LocationController(
         });
     }
 
+    [HttpGet("language")]
+    public async Task<IActionResult> GetLanguage()
+    {
+        var human = await this._humanService.GetByIdAndProfileAsync(this.UserId, this.ProfileNo);
+        if (human == null)
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(new
+        {
+            language = human.Language
+        });
+    }
+
     [HttpPut("language")]
     public async Task<IActionResult> UpdateLanguage([FromBody] LanguageUpdateRequest request)
     {

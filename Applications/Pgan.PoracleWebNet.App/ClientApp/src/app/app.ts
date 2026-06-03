@@ -19,7 +19,6 @@ import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
-import { LanguageSelectorComponent } from './shared/components/language-selector/language-selector.component';
 
 interface NavItem {
   adminOnly?: boolean;
@@ -49,7 +48,6 @@ interface NavItem {
     MatBadgeModule,
     MatTooltipModule,
     TranslateModule,
-    LanguageSelectorComponent,
   ],
   selector: 'app-root',
   styleUrl: './app.scss',

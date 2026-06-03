@@ -84,6 +84,26 @@ describe('LocationService', () => {
     });
   });
 
+  describe('getLanguage', () => {
+    it('should fetch the current notification language', () => {
+      service.getLanguage().subscribe(result => {
+        expect(result.language).toBe('de');
+      });
+
+      const req = httpMock.expectOne(`${API}/api/location/language`);
+      expect(req.request.method).toBe('GET');
+      req.flush({ language: 'de' });
+    });
+
+    it('should return null language on error', () => {
+      service.getLanguage().subscribe(result => {
+        expect(result.language).toBeNull();
+      });
+
+      httpMock.expectOne(`${API}/api/location/language`).flush(null, { status: 500, statusText: 'Error' });
+    });
+  });
+
   describe('setLanguage', () => {
     it('should PUT the language', () => {
       service.setLanguage('de').subscribe();
