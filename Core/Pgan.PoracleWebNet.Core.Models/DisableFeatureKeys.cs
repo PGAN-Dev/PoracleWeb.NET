@@ -30,6 +30,13 @@ public static class DisableFeatureKeys
     public const string FortChanges = "disable_fort_changes";
 
     /// <summary>
+    /// Disables the user-submitted custom-geofence feature (drawing/creating, submitting for review,
+    /// and GeoJSON import). Not an alarm type — gates <c>UserGeofenceController</c> directly. Existing
+    /// user geofences keep being served by the geofence feed so in-flight alerts don't break.
+    /// </summary>
+    public const string UserGeofences = "disable_user_geofences";
+
+    /// <summary>
     /// Tracking-type string (as used in PoracleNG's <c>/api/tracking/{type}</c> URLs and
     /// <c>ProfileOverviewService</c>'s alarm-type loop) → matching <c>disable_*</c> key.
     /// Lets <c>ProfileOverviewService</c>, <c>TestAlertController</c>, and any future

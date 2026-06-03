@@ -16,6 +16,7 @@ public partial class UserGeofenceService(
     IHumanRepository humanRepository,
     IUserAreaDualWriter areaWriter,
     IDiscordNotificationService discordNotificationService,
+    IFeatureGate featureGate,
     ILogger<UserGeofenceService> logger) : IUserGeofenceService
 {
     private const int MaxGeofencesPerUser = 10;
@@ -27,6 +28,7 @@ public partial class UserGeofenceService(
     private readonly IHumanRepository _humanRepository = humanRepository;
     private readonly IUserAreaDualWriter _areaWriter = areaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
+    private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<UserGeofenceService> _logger = logger;
 
     public async Task<List<UserGeofence>> GetByUserAsync(string humanId)
@@ -53,6 +55,10 @@ public partial class UserGeofenceService(
 
     public async Task<UserGeofence> CreateAsync(string humanId, int profileNo, UserGeofenceCreate model)
     {
+        // Gate the "provide a geofence" path (#214). Also covers GeoJSON import, which funnels
+        // through here. Throws FeatureDisabledException → 403 via the global exception filter.
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
+
         // Check count limit via local DB
         var count = await this._repository.GetCountByHumanIdAsync(humanId);
         if (count >= MaxGeofencesPerUser)
@@ -260,6 +266,8 @@ public partial class UserGeofenceService(
 
     public async Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName)
     {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
+
         var geofence = await this._repository.GetByKojiNameAsync(kojiName)
             ?? throw new InvalidOperationException($"Geofence '{kojiName}' not found.");
 

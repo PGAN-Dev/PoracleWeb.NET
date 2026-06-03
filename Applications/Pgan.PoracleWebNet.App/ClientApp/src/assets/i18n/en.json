@@ -1501,6 +1501,8 @@
     "DISABLE_GEOMAP_DESC": "Hide the interactive geofence map entirely.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Disable Map Area Selection",
     "DISABLE_GEOMAP_SELECT_DESC": "Prevent users from selecting areas by clicking the map.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Disable Custom Geofences",
+    "DISABLE_USER_GEOFENCES_DESC": "Stop users from drawing, importing, or submitting their own geofences. Existing geofences keep working.",
     "ENABLE_TEMPLATES_LABEL": "Enable Templates",
     "ENABLE_TEMPLATES_DESC": "Allow users to choose notification message templates.",
     "ALLOWED_LANGUAGES_LABEL": "Allowed UI Languages",

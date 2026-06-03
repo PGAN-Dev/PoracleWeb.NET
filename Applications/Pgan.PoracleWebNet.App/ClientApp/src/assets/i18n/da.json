@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Skjul det interaktive geofence-kort helt.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Deaktiver områdevalg på kort",
     "DISABLE_GEOMAP_SELECT_DESC": "Forhindr brugere i at vælge områder ved at klikke på kortet.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Deaktivér brugerdefinerede geofences",
+    "DISABLE_USER_GEOFENCES_DESC": "Forhindrer brugere i at tegne, importere eller indsende deres egne geofences. Eksisterende geofences fungerer fortsat.",
     "ENABLE_TEMPLATES_LABEL": "Aktiver skabeloner",
     "ENABLE_TEMPLATES_DESC": "Tillad brugere at vælge skabeloner for notifikationsbeskeder.",
     "ALLOWED_LANGUAGES_LABEL": "Tilladte UI-sprog",

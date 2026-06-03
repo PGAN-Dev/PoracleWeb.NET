@@ -184,7 +184,14 @@ export class App implements OnInit {
       route: '/profiles',
     },
     { disableKey: 'disable_areas', group: 'settings', icon: 'map', iconColor: '#ff9800', label: 'NAV.AREAS', route: '/areas' },
-    { group: 'settings', icon: 'draw', iconColor: '#2196f3', label: 'NAV.MY_GEOFENCES', route: '/geofences' },
+    {
+      disableKey: 'disable_user_geofences',
+      group: 'settings',
+      icon: 'draw',
+      iconColor: '#2196f3',
+      label: 'NAV.MY_GEOFENCES',
+      route: '/geofences',
+    },
     { group: 'settings', icon: 'cleaning_services', iconColor: '#795548', label: 'NAV.CLEANING', route: '/cleaning' },
     { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
@@ -192,6 +199,7 @@ export class App implements OnInit {
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'NAV.SETTINGS', route: '/admin/settings' },
     {
       adminOnly: true,
+      disableKey: 'disable_user_geofences',
       group: 'admin',
       icon: 'rate_review',
       iconColor: '#ff9800',
@@ -202,7 +210,9 @@ export class App implements OnInit {
   ];
 
   protected readonly adminNavItems = computed(() =>
-    this.navItems.filter(item => item.group === 'admin' && (!item.adminOnly || this.auth.isAdmin())),
+    this.navItems.filter(
+      item => item.group === 'admin' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
+    ),
   );
 
   protected readonly alarmNavItems = computed(() =>

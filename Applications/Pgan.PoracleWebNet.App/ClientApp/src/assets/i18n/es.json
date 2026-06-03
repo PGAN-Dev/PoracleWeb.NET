@@ -1503,6 +1503,8 @@
     "DISABLE_GEOMAP_DESC": "Oculta completamente el mapa interactivo de geocercas.",
     "DISABLE_GEOMAP_SELECT_LABEL": "Desactivar selección de áreas en el mapa",
     "DISABLE_GEOMAP_SELECT_DESC": "Impide que los usuarios seleccionen áreas haciendo clic en el mapa.",
+    "DISABLE_USER_GEOFENCES_LABEL": "Desactivar geofences personalizadas",
+    "DISABLE_USER_GEOFENCES_DESC": "Impide que los usuarios dibujen, importen o envíen sus propias geofences. Las geofences existentes siguen funcionando.",
     "ENABLE_TEMPLATES_LABEL": "Activar plantillas",
     "ENABLE_TEMPLATES_DESC": "Permite a los usuarios elegir plantillas de mensaje de notificación.",
     "ALLOWED_LANGUAGES_LABEL": "Idiomas de interfaz permitidos",
