@@ -86,6 +86,19 @@
   flex-shrink: 0;
   line-height: 16px;
 }
+.summary-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: var(--mat-sys-tertiary);
+  color: var(--mat-sys-on-tertiary);
+  flex-shrink: 0;
+  line-height: 16px;
+}
 .template-chip {
   display: inline-block;
   background: #e8eaf6;

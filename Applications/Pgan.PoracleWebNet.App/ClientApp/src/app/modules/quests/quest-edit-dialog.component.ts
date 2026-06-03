@@ -19,7 +19,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -60,6 +60,7 @@ export class QuestEditDialogComponent {
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.ping ?? ''],
+    summary: [isSummary(this.data.clean)],
     template: [this.data.template ?? ''],
   });
 
@@ -151,7 +152,7 @@ export class QuestEditDialogComponent {
     const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
 
     const update: QuestUpdate = {
-      clean: preserve(this.data.clean, AUTO_DELETE, values.clean ? 1 : 0),
+      clean: preserve(this.data.clean, AUTO_DELETE | SUMMARY, compose(!!values.clean, false, !!values.summary)),
       distance: distanceMeters,
       ping: values.ping || null,
       pokemonId: this.data.pokemonId,

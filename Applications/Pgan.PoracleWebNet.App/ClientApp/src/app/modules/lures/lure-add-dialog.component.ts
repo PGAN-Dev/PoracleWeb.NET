@@ -18,6 +18,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { compose } from '../../shared/utils/clean-flags';
 
 interface LureOption {
   color: string;
@@ -53,7 +54,15 @@ export class LureAddDialogComponent {
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
-  form = this.fb.group({ clean: [false], distanceKm: [1], distanceMode: ['areas' as 'areas' | 'distance'], ping: [''], template: [''] });
+  form = this.fb.group({
+    clean: [false],
+    distanceKm: [1],
+    distanceMode: ['areas' as 'areas' | 'distance'],
+    editInPlace: [false],
+    ping: [''],
+    template: [''],
+  });
+
   readonly isWebhook = inject(AuthService).isImpersonating();
   lureTypes: LureOption[] = [
     { id: 501, name: 'Normal', color: '#FF9800' },
@@ -83,7 +92,8 @@ export class LureAddDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     const creates = this.selectedLureIds().map(lureId =>
       this.lureService.create({
-        clean: v.clean ? 1 : 0,
+        // New lures have no prior bits, so compose bits 1 (auto-delete) and 2 (edit-in-place) directly.
+        clean: compose(!!v.clean, !!v.editInPlace, false),
         distance: dist,
         lureId,
         ping: v.ping || null,

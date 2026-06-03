@@ -201,6 +201,11 @@ export class LureListComponent implements OnInit {
     return (clean & 1) !== 0;
   }
 
+  /** True when the edit-in-place bit (clean bit 2) is set, ignoring the auto-delete / summary bits. */
+  isEdit(clean: number): boolean {
+    return (clean & 2) !== 0;
+  }
+
   loadLures(): void {
     this.loading.set(true);
     this.lureService
