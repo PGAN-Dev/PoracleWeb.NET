@@ -19,7 +19,8 @@ public class EggCreate
     [Range(0, 4)]
     public int Team { get; set; } = 4;
 
-    [Range(0, 10)]
+    // PoracleNG accepts any positive integer as an egg level. See #259.
+    [Range(0, int.MaxValue)]
     public int Level
     {
         get; set;

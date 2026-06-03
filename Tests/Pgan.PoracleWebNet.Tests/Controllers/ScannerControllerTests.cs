@@ -295,11 +295,12 @@ public class ScannerControllerTests : ControllerTestBase
 
     [Theory]
     [InlineData("abc", "abc")]
-    [InlineData("100%", "100\\%")]
-    [InlineData("a_b", "a\\_b")]
-    [InlineData("back\\slash", "back\\\\slash")]
-    [InlineData("%_\\", "\\%\\_\\\\")]
-    public void EscapeLikePatternEscapesWildcardsAndBackslash(string input, string expected)
+    [InlineData("100%", "100|%")]
+    [InlineData("a_b", "a|_b")]
+    [InlineData("pipe|sep", "pipe||sep")]
+    [InlineData("%_|", "|%|_||")]
+    [InlineData("back\\slash", "back\\slash")] // backslash is no longer special
+    public void EscapeLikePatternEscapesWildcardsAndEscapeChar(string input, string expected)
     {
         var actual = Core.Services.LikeEscape.Escape(input);
         Assert.Equal(expected, actual);

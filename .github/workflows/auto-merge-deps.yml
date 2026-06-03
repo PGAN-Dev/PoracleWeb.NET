@@ -1,11 +1,13 @@
 name: Dependabot auto-merge
 
+# Only triggers on pull_request_target. Listing `push:` here previously caused
+# the workflow to fire on push events instead of pull_request_target ones,
+# so Dependabot PRs never got auto-approved and every push recorded a failure
+# run. pr-labeler.yml uses pull_request_target alone and triggers correctly,
+# which was the side-by-side that confirmed the issue.
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
-  # Claim push events so GitHub doesn't create phantom 0-job failed runs.
-  # The job early-exits for non-pull_request_target events.
-  push:
 
 permissions:
   contents: write
@@ -13,13 +15,15 @@ permissions:
 
 jobs:
   auto-merge:
-    # Skip the job entirely on push events so GitHub records the run as "skipped"
-    # (neutral, green in status UI) instead of "failure" with 0 jobs. The prior
-    # approach of claiming push with in-step gates still produced failed runs
-    # because the job itself never spawned for non-dependabot pushes.
-    if: github.event_name == 'pull_request_target' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
+      # Sentinel step so the run records as "success" for non-Dependabot PRs.
+      # Without it, every step below is gated by `github.actor == 'dependabot[bot]'`
+      # and a non-Dependabot PR would produce a job with zero successful steps,
+      # which GitHub records as failure.
+      - name: Workflow ran
+        run: echo "Auto-merge workflow evaluated for actor=${{ github.actor }}"
+
       - name: Fetch Dependabot metadata
         id: meta
         if: github.actor == 'dependabot[bot]'
@@ -49,7 +53,7 @@ jobs:
             steps.meta.outputs.update-type == 'version-update:semver-patch' ||
             steps.meta.outputs.dependency-group != ''
           )
-        run: gh pr review --approve "$PR_URL" --body "Auto-approved: low-risk bump, gated on CI."
+        run: gh pr review --approve "$PR_URL" --body 'Auto-approved low-risk bump, gated on CI.'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
