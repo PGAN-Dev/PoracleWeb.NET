@@ -282,6 +282,18 @@ Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** contro
 
 The modes combine (a quest can be both auto-delete and daily-summary, for example). PoracleWeb **preserves any bits set elsewhere** — if you configured a delivery mode via the bot's `!command` interface that isn't surfaced in the web UI, editing the alarm in the browser will not wipe it.
 
+### RSVP updates (raids & eggs)
+
+Raid and egg alarms add a third delivery setting on top of auto-delete and edit-in-place: an **RSVP notification mode**, stored in the `rsvpChanges` field (see the `rsvpChanges` rows under the raid and egg filter tables above). Choose it from the three-option toggle group in the raid/egg add/edit dialog:
+
+- **Matches only** (`0`, the default) — standard raid/egg alerts only. You get one notification when a raid or egg matches, and nothing further.
+- **Matches + RSVP updates** (`1`) — the same initial match alert, plus a re-notification whenever the RSVP count changes (trainers signing up to attend).
+- **RSVP updates only** (`2`) — skips the initial match alert entirely and notifies you only when RSVP counts change.
+
+Picking mode `1` or `2` also turns on PoracleNG's edit-in-place behavior (`clean` bit 2), so RSVP count changes **edit the existing Discord alert in place** rather than sending a fresh message each time — your DMs stay to a single, updating notification per raid. When a non-default mode is set, the alarm card shows an **"RSVP"** (mode `1`) or **"RSVP only"** (mode `2`) status pill beside the auto-delete tag.
+
+> **Scanner caveat:** RSVP updates only arrive if the upstream scanner emits RSVP webhooks. In a deployment without one, mode `2` ("RSVP updates only") suppresses the initial match but never receives RSVP events — the alarm goes completely silent. Use mode `2` only if you know your scanner reports RSVPs.
+
 ## Default values
 
 Comprehensive table of all monster (Pokemon) alarm defaults, matching the PHP PoracleWeb.NET defaults:
