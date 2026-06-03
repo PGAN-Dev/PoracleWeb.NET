@@ -14,16 +14,19 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg } from '../../core/models';
+import { resolveLevel } from '../../core/models/raid-level.models';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { RaidLevelService } from '../../core/services/raid-level.service';
 import { RaidService } from '../../core/services/raid.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +41,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatTabsModule,
     TranslateModule,
     AlarmInfoComponent,
+    LevelLabelPipe,
   ],
   selector: 'app-raid-list',
   standalone: true,
@@ -51,6 +55,7 @@ export class RaidListComponent implements OnInit {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
+  private readonly raidLevelService = inject(RaidLevelService);
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
@@ -246,7 +251,12 @@ export class RaidListComponent implements OnInit {
   }
 
   getLevelStars(level: number): number[] {
-    if (level === 9000 || level > 100) return [];
+    // Stars are only meaningful for the literal "N Star Raid" tier (levels 1-5
+    // per the WatWowMap masterfile). Levels 6+ (Mega, Mega Legendary, Ultra
+    // Beast, Elite, Primal, Shadow, Super Mega, Coordinated, customs) carry a
+    // semantic name that the title already conveys — a stars row would be
+    // misleading (e.g. "Elite Raid" is not a 9-star tier).
+    if (level < 1 || level > 5) return [];
     return Array.from({ length: level }, (_, i) => i);
   }
 
@@ -258,14 +268,16 @@ export class RaidListComponent implements OnInit {
   }
 
   getRaidLevelName(level: number): string {
-    switch (level) {
-      case 6:
-        return this.i18n.instant('RAIDS.LEVEL_MEGA');
-      case 9000:
-        return this.i18n.instant('ALARM.ANY_LEVEL');
-      default:
-        return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + level;
+    // Prefer the live raid-level list — when the API extends the canonical
+    // set (e.g. raid_20 ships in the masterfile), cards stay in sync with the
+    // selector dialog. Falls back to the baked-in resolveLevel + custom shape
+    // when the API hasn't loaded yet or the level is genuinely unknown.
+    const liveOpt = this.raidLevelService.byValue().get(level);
+    const opt = liveOpt ?? resolveLevel(level);
+    if (opt.category === 'custom') {
+      return this.i18n.instant(opt.labelKey) + ' ' + opt.value;
     }
+    return this.i18n.instant(opt.labelKey);
   }
 
   getRaidTitle(raid: Raid): string {
@@ -322,6 +334,7 @@ export class RaidListComponent implements OnInit {
 
   ngOnInit(): void {
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
+    this.raidLevelService.load();
     this.loadData();
   }
 

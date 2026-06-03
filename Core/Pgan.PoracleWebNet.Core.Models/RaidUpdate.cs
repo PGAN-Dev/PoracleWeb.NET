@@ -22,7 +22,9 @@ public class RaidUpdate
         get; set;
     }
 
-    [Range(0, 10)]
+    // See RaidCreate.Level — PoracleNG accepts arbitrary positive integers
+    // (plus 9000 as the wildcard).
+    [Range(0, int.MaxValue)]
     public int? Level
     {
         get; set;

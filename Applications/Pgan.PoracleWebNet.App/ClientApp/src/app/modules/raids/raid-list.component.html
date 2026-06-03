@@ -188,7 +188,7 @@
             <div class="card-top" [style.border-top-color]="getLevelColor(egg.level)">
               <img
                 [src]="getEggImage(egg.level)"
-                [alt]="('RAIDS.LEVEL_PREFIX' | translate) + ' ' + egg.level + ' ' + ('RAIDS.EGG_SUFFIX' | translate)"
+                [alt]="(egg.level | levelLabel) + ' ' + ('RAIDS.EGG_SUFFIX' | translate)"
                 class="item-img"
                 (error)="onImageError($event)" />
               <div class="item-info">
