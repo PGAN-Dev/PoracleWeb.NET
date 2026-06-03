@@ -18,13 +18,12 @@ public class AuthControllerProvidersTests : ControllerTestBase
     private readonly Mock<ISiteSettingService> _siteSettingService = new();
     private readonly IConfiguration _config = new ConfigurationBuilder().Build();
 
-    private AuthController CreateController(DiscordSettings? discord = null, TelegramSettings? telegram = null) => new AuthController(
+    private AuthController CreateController(DiscordSettings? discord = null, TelegramSettings? telegram = null) => new(
             new Mock<IHumanService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
             this._siteSettingService.Object,
             new Mock<IWebhookDelegateService>().Object,
-            new Mock<ISummaryCapabilityService>().Object,
             new Mock<IJwtService>().Object,
             Options.Create(discord ?? new DiscordSettings { ClientId = "test-id", ClientSecret = "test-secret" }),
             Options.Create(telegram ?? new TelegramSettings()),

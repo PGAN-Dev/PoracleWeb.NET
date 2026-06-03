@@ -31,7 +31,6 @@ public class AuthControllerMeTests : ControllerTestBase
             new Mock<IPoracleHumanProxy>().Object,
             new Mock<ISiteSettingService>().Object,
             new Mock<IWebhookDelegateService>().Object,
-            new Mock<ISummaryCapabilityService>().Object,
             this._jwtService.Object,
             Options.Create(new DiscordSettings()),
             Options.Create(new TelegramSettings()),
@@ -41,7 +40,7 @@ public class AuthControllerMeTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task Me_ReturnsRefreshedToken_WhenProfileNoMismatch()
+    public async Task MeReturnsRefreshedTokenWhenProfileNoMismatch()
     {
         SetupUser(this._sut, profileNo: 2);
         this._humanService.Setup(s => s.GetByIdAsync("123456789"))
@@ -57,7 +56,7 @@ public class AuthControllerMeTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task Me_DoesNotIncludeToken_WhenProfileNoMatches()
+    public async Task MeDoesNotIncludeTokenWhenProfileNoMatches()
     {
         SetupUser(this._sut, profileNo: 1);
         this._humanService.Setup(s => s.GetByIdAsync("123456789"))
@@ -73,7 +72,7 @@ public class AuthControllerMeTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task Me_UsesDbProfileNo_WhenHumanExists()
+    public async Task MeUsesDbProfileNoWhenHumanExists()
     {
         SetupUser(this._sut, profileNo: 3);
         this._humanService.Setup(s => s.GetByIdAsync("123456789"))
@@ -88,7 +87,7 @@ public class AuthControllerMeTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task Me_FallsBackToJwtProfileNo_WhenHumanNotFound()
+    public async Task MeFallsBackToJwtProfileNoWhenHumanNotFound()
     {
         SetupUser(this._sut, profileNo: 2);
         this._humanService.Setup(s => s.GetByIdAsync("123456789"))

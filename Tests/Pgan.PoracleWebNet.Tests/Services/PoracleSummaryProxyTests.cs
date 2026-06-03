@@ -166,7 +166,7 @@ public class PoracleSummaryProxyTests
 
         var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
         // Raw JSON array literal embedded directly — NOT snake_case re-serialized, NOT escaped as a string.
-        Assert.Equal("{\"active_hours\":[{\"day\":1,\"hours\":9,\"mins\":0}]}", sentBody);
+        Assert.Equal(/*lang=json,strict*/ "{\"active_hours\":[{\"day\":1,\"hours\":9,\"mins\":0}]}", sentBody);
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public class PoracleSummaryProxyTests
         await sut.SetScheduleAsync("user1", "quest", "   ");
 
         var sentBody = await handler.LastRequest!.Content!.ReadAsStringAsync();
-        Assert.Equal("{\"active_hours\":[]}", sentBody);
+        Assert.Equal(/*lang=json,strict*/ "{\"active_hours\":[]}", sentBody);
     }
 
     [Fact]

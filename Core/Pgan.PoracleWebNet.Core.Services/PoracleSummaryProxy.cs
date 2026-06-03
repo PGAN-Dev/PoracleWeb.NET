@@ -14,10 +14,11 @@ public class PoracleSummaryProxy(HttpClient httpClient, IConfiguration configura
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
 
     /// <summary>
-    /// URL-encodes a userId for safe path construction. Webhook IDs are full URLs
-    /// containing slashes that would break routing without encoding.
+    /// URL-encodes a path segment for safe path construction. User IDs can be full webhook URLs
+    /// containing slashes that would break routing; alert types are server-validated but encoded
+    /// too for defense-in-depth consistency.
     /// </summary>
-    private static string Encode(string userId) => Uri.EscapeDataString(userId);
+    private static string Encode(string segment) => Uri.EscapeDataString(segment);
 
     public async Task<JsonElement?> GetSchedulesAsync(string userId)
     {
@@ -41,7 +42,7 @@ public class PoracleSummaryProxy(HttpClient httpClient, IConfiguration configura
 
     public async Task<JsonElement?> GetScheduleAsync(string userId, string alertType)
     {
-        var response = await this.SendAsync(HttpMethod.Get, $"/api/summaries/{Encode(userId)}/{alertType}");
+        var response = await this.SendAsync(HttpMethod.Get, $"/api/summaries/{Encode(userId)}/{Encode(alertType)}");
         if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
             throw new SummaryBackendUnavailableException();
@@ -67,7 +68,7 @@ public class PoracleSummaryProxy(HttpClient httpClient, IConfiguration configura
     public async Task SetScheduleAsync(string userId, string alertType, string activeHoursJson)
     {
         var body = $"{{\"active_hours\":{(string.IsNullOrWhiteSpace(activeHoursJson) ? "[]" : activeHoursJson)}}}";
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/summaries/{Encode(userId)}/{alertType}", body);
+        var response = await this.SendAsync(HttpMethod.Post, $"/api/summaries/{Encode(userId)}/{Encode(alertType)}", body);
         if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
             throw new SummaryBackendUnavailableException();
@@ -78,7 +79,7 @@ public class PoracleSummaryProxy(HttpClient httpClient, IConfiguration configura
 
     public async Task DeleteScheduleAsync(string userId, string alertType)
     {
-        var response = await this.SendAsync(HttpMethod.Delete, $"/api/summaries/{Encode(userId)}/{alertType}");
+        var response = await this.SendAsync(HttpMethod.Delete, $"/api/summaries/{Encode(userId)}/{Encode(alertType)}");
         if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
             throw new SummaryBackendUnavailableException();
@@ -89,7 +90,7 @@ public class PoracleSummaryProxy(HttpClient httpClient, IConfiguration configura
 
     public async Task TriggerAsync(string userId, string alertType)
     {
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/summaries/{Encode(userId)}/{alertType}/trigger");
+        var response = await this.SendAsync(HttpMethod.Post, $"/api/summaries/{Encode(userId)}/{Encode(alertType)}/trigger");
         if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
         {
             throw new SummaryBackendUnavailableException();

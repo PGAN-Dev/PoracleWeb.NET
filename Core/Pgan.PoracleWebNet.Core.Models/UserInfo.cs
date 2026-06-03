@@ -28,16 +28,6 @@ public class UserInfo
     }
 
     /// <summary>
-    /// Whether the upstream PoracleNG deployment has quest summary delivery enabled. Surfaced by
-    /// <c>/api/auth/me</c> as a zero-round-trip fast-path; defaults to <c>false</c> on login paths.
-    /// Serializes as camelCase <c>questSummaryEnabled</c>.
-    /// </summary>
-    public bool QuestSummaryEnabled
-    {
-        get; set;
-    }
-
-    /// <summary>
     /// Optional refreshed JWT token. Returned by <c>/api/auth/me</c> when the JWT's
     /// <c>profileNo</c> claim is stale (e.g. PoracleNG changed the active profile via
     /// the active_hours scheduler or a bot command). Null when no resync is needed.

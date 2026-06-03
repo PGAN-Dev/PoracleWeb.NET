@@ -18,6 +18,7 @@ public class SummaryScheduleControllerTests : ControllerTestBase
     private readonly Mock<IPoracleSummaryProxy> _proxy = new();
     private readonly Mock<ISummaryCapabilityService> _capability = new();
     private readonly SummaryScheduleController _sut;
+    private static readonly string[] expected = ["ActiveHours"];
 
     public SummaryScheduleControllerTests()
     {
@@ -252,11 +253,9 @@ public class SummaryScheduleControllerTests : ControllerTestBase
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public void ControllerDerivesFromBaseApiControllerForJwtUserIdSource()
-    {
+    public void ControllerDerivesFromBaseApiControllerForJwtUserIdSource() =>
         // BaseApiController.UserId reads the JWT — guarantees there is no controller-level id parameter to spoof.
         Assert.True(typeof(BaseApiController).IsAssignableFrom(typeof(SummaryScheduleController)));
-    }
 
     [Fact]
     public void NoActionMethodHasAUserIdOrIdRouteParameter()
@@ -286,7 +285,7 @@ public class SummaryScheduleControllerTests : ControllerTestBase
             .Select(p => p.Name)
             .ToArray();
 
-        Assert.Equal(new[] { "ActiveHours" }, props);
+        Assert.Equal(expected, props);
     }
 
     // ──────────────────────────────────────────────────────────────

@@ -35,13 +35,10 @@ public class SummaryScheduleController(
     /// any fault — never returns 5xx — so a transient outage is never mistaken for "feature off".
     /// </summary>
     [HttpGet("capability")]
-    public async Task<IActionResult> GetCapability()
+    public async Task<IActionResult> GetCapability() => this.Ok(new
     {
-        return this.Ok(new
-        {
-            enabled = await this._capability.IsQuestSummaryEnabledAsync()
-        });
-    }
+        enabled = await this._capability.IsQuestSummaryEnabledAsync()
+    });
 
     /// <summary>Lists every summary schedule for the authenticated user, across alert types.</summary>
     [HttpGet]
