@@ -304,6 +304,7 @@ export class QuestListComponent implements OnInit {
 
   openSummaryDialog(): void {
     this.dialog.open(SummaryScheduleDialogComponent, {
+      maxWidth: '95vw',
       width: '560px',
       data: { alertType: 'quest' } as SummaryScheduleDialogData,
       maxHeight: '90vh',

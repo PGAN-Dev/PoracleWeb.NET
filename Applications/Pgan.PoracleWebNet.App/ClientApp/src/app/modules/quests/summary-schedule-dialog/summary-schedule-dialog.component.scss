@@ -218,8 +218,29 @@ mat-dialog-actions button:focus-visible {
   }
 }
 
+// ── Mobile / touch refinements ─────────────────────────────────────────────
 @media (max-width: 600px) {
   mat-dialog-content {
     min-width: unset;
+  }
+
+  // Comfortable thumb targets (Material default text buttons are 36px tall).
+  mat-dialog-actions button {
+    min-height: 44px;
+  }
+
+  // Stack a full-width primary "Send summary now" above the secondary row so the
+  // main action is unmissable and easy to tap; the flex spacer is redundant here.
+  mat-dialog-actions {
+    gap: 8px;
+  }
+
+  .send-now-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .spacer {
+    display: none;
   }
 }
