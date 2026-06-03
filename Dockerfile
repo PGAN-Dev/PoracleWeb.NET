@@ -1,6 +1,10 @@
 # Stage 1: Build Angular SPA
 FROM node:22-alpine AS angular-build
 WORKDIR /app/angular
+# node:22-alpine bundles npm 10.9.x, which rejects the npm-11-generated
+# package-lock.json with EUSAGE (pruned optional chokidar/readdirp peers).
+# CI pins npm 11 for the same reason; do the same here so `npm ci` succeeds.
+RUN npm install -g npm@11
 COPY Applications/Pgan.PoracleWebNet.App/ClientApp/package*.json ./
 RUN npm ci
 COPY Applications/Pgan.PoracleWebNet.App/ClientApp/ ./
