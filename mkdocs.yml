@@ -89,6 +89,7 @@ nav:
   - Features:
       - Alarm Management: features/alarms.md
       - Profiles: features/profiles.md
+      - Quest Summary Delivery: features/quest-summary-schedules.md
       - Custom Geofences: features/custom-geofences.md
       - Internationalization (i18n): features/internationalization.md
   - Development:

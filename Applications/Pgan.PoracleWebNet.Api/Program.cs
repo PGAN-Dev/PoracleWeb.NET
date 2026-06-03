@@ -137,7 +137,11 @@ if (string.IsNullOrWhiteSpace(discordClientSecret))
 // Add controllers. The global FeatureDisabledExceptionFilter maps any FeatureDisabledException
 // thrown from a service into HTTP 403 — covers callers that bypass [RequireFeatureEnabled]
 // (e.g. QuickPickService → MonsterService.CreateAsync). See #236.
-builder.Services.AddControllers(options => options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.FeatureDisabledExceptionFilter>());
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.FeatureDisabledExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.SummaryBackendUnavailableExceptionFilter>();
+});
 
 // Add Poracle services (DbContext, repositories, services, settings)
 builder.Services.AddPoracleServices(builder.Configuration);

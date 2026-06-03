@@ -18,7 +18,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
     private readonly Mock<ISiteSettingService> _siteSettingService = new();
     private readonly IConfiguration _config = new ConfigurationBuilder().Build();
 
-    private AuthController CreateController(DiscordSettings? discord = null, TelegramSettings? telegram = null) => new AuthController(
+    private AuthController CreateController(DiscordSettings? discord = null, TelegramSettings? telegram = null) => new(
             new Mock<IHumanService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,

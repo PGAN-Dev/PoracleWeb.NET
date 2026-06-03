@@ -295,3 +295,30 @@ docker exec poracleweb.net printenv | grep -i golbat
 # Check app logs for Golbat activity
 docker logs poracleweb.net 2>&1 | grep -i golbat
 ```
+
+---
+
+## Quest summary delivery menu is missing
+
+**Problem**: The **Quest summary delivery** item does not appear in the Quests page **⋮** menu.
+
+**Solution**: The menu is shown only when the connected PoracleNG instance reports quest summaries as enabled. PoracleWeb.NET reads the effective `tracking.quest_summary_enabled` flag from PoracleNG's `/api/config/values` endpoint (cached for five minutes). If the menu is missing:
+
+1. **Enable the feature on the bot**: set `quest_summary_enabled = true` under `[tracking]` in PoracleNG's `config.toml` and restart the processor.
+2. **Make sure the processor API is reachable**: PoracleWeb.NET must be able to reach PoracleNG over HTTP. If they run on different machines or in separate containers, set `host = "0.0.0.0"` (or the LAN IP) under `[processor]` in PoracleNG's config — the `127.0.0.1` default refuses off-box connections.
+3. **Wait out the cache / hard refresh**: the capability is cached for five minutes; reload the Quests page (Ctrl+Shift+R) after enabling.
+
+!!! note
+    A transient `503` from PoracleNG's summary endpoints is treated as a temporary backend fault, **not** as "feature off." The feature flag is read from the config endpoint, not inferred from a 503.
+
+---
+
+## Send summary now delivers nothing
+
+**Problem**: Pressing **Send summary now** succeeds but no summary DM arrives.
+
+**Solution**: Send summary now flushes only the quests PoracleNG has **buffered** since your last summary. An empty buffer delivers nothing — which is expected, not an error. To buffer quests:
+
+1. **Enable Daily summary on at least one quest alarm** (the per-alarm toggle in the quest add/edit dialog). Only alarms with this toggle are buffered; the rest deliver immediately.
+2. **Confirm the feature is enabled on the bot** (`tracking.quest_summary_enabled = true`) — when it is off, PoracleNG's matcher does not buffer at all, so the buffer stays empty.
+3. **Give it time**: quests are buffered as they match. Right after enabling the feature, or after a summary fires, the buffer starts empty and fills as matching quests come in. PoracleNG's status log shows the current count (`Summary: N buffered`).

@@ -17,6 +17,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
+import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
@@ -54,7 +55,6 @@ export class QuestEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Quest>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<QuestEditDialogComponent>);
-
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
@@ -67,6 +67,8 @@ export class QuestEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  readonly summaryService = inject(SummaryScheduleService);
 
   private get questPokemonId(): number {
     return this.data.pokemonId > 0 ? this.data.pokemonId : this.data.reward;
