@@ -24,6 +24,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
             new Mock<IPoracleHumanProxy>().Object,
             this._siteSettingService.Object,
             new Mock<IWebhookDelegateService>().Object,
+            new Mock<ISummaryCapabilityService>().Object,
             new Mock<IJwtService>().Object,
             Options.Create(discord ?? new DiscordSettings { ClientId = "test-id", ClientSecret = "test-secret" }),
             Options.Create(telegram ?? new TelegramSettings()),

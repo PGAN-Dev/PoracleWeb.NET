@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados",
     "SUMMARY_MODE": "Resumo diário",
     "SUMMARY_HINT": "Reúne as missões correspondentes numa única mensagem de resumo em vez de uma notificação por cada. Requer um agendamento de resumo configurado no bot.",
-    "SUMMARY_BADGE": "Resumo"
+    "SUMMARY_BADGE": "Resumo",
+    "SUMMARY_SCHEDULE": "Entrega do resumo de missões",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Resumo de missões",
+    "SUMMARY_SCHEDULE_EMPTY": "Nenhum agendamento de resumo definido. As missões são entregues individualmente.",
+    "SUMMARY_SCHEDULE_EDIT": "Editar agendamento",
+    "SUMMARY_SCHEDULE_CLEAR": "Remover agendamento",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Enviar resumo agora",
+    "SUMMARY_SCHEDULE_SAVED": "Agendamento de resumo guardado",
+    "SUMMARY_SCHEDULE_CLEARED": "Agendamento de resumo removido",
+    "SUMMARY_SCHEDULE_SENT": "Resumo enviado",
+    "SUMMARY_SCHEDULE_FAILED": "Não foi possível atualizar o agendamento do resumo",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "A entrega de resumos está temporariamente indisponível. Tente novamente mais tarde.",
+    "SUMMARY_DISABLED_HINT": "O agendamento de resumos não está disponível neste servidor."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes de Invasões",

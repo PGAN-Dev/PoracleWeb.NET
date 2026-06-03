@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen",
     "SUMMARY_MODE": "Dagelijkse samenvatting",
     "SUMMARY_HINT": "Bundel overeenkomende quests in één samenvattingsbericht in plaats van een melding per stuk. Vereist een geconfigureerd samenvattingsschema op de bot.",
-    "SUMMARY_BADGE": "Samenvatting"
+    "SUMMARY_BADGE": "Samenvatting",
+    "SUMMARY_SCHEDULE": "Bezorging van questsamenvatting",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Questsamenvatting",
+    "SUMMARY_SCHEDULE_EMPTY": "Geen samenvattingsschema ingesteld. Quests worden afzonderlijk bezorgd.",
+    "SUMMARY_SCHEDULE_EDIT": "Schema bewerken",
+    "SUMMARY_SCHEDULE_CLEAR": "Schema verwijderen",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Samenvatting nu verzenden",
+    "SUMMARY_SCHEDULE_SAVED": "Samenvattingsschema opgeslagen",
+    "SUMMARY_SCHEDULE_CLEARED": "Samenvattingsschema verwijderd",
+    "SUMMARY_SCHEDULE_SENT": "Samenvatting verzonden",
+    "SUMMARY_SCHEDULE_FAILED": "Kan het samenvattingsschema niet bijwerken",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "Bezorging van samenvattingen is tijdelijk niet beschikbaar. Probeer het later opnieuw.",
+    "SUMMARY_DISABLED_HINT": "Het plannen van samenvattingen is niet beschikbaar op deze server."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasie Alarmen",

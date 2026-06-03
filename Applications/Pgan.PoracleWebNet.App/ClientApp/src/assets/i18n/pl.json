@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone",
     "SUMMARY_MODE": "Codzienne podsumowanie",
     "SUMMARY_HINT": "Łączy pasujące zadania w jedną wiadomość podsumowującą zamiast osobnego powiadomienia dla każdego. Wymaga skonfigurowanego harmonogramu podsumowań w bocie.",
-    "SUMMARY_BADGE": "Podsumowanie"
+    "SUMMARY_BADGE": "Podsumowanie",
+    "SUMMARY_SCHEDULE": "Dostarczanie podsumowania zadań",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Podsumowanie zadań",
+    "SUMMARY_SCHEDULE_EMPTY": "Nie ustawiono harmonogramu podsumowania. Zadania są dostarczane pojedynczo.",
+    "SUMMARY_SCHEDULE_EDIT": "Edytuj harmonogram",
+    "SUMMARY_SCHEDULE_CLEAR": "Usuń harmonogram",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Wyślij podsumowanie teraz",
+    "SUMMARY_SCHEDULE_SAVED": "Harmonogram podsumowania zapisany",
+    "SUMMARY_SCHEDULE_CLEARED": "Harmonogram podsumowania usunięty",
+    "SUMMARY_SCHEDULE_SENT": "Podsumowanie wysłane",
+    "SUMMARY_SCHEDULE_FAILED": "Nie udało się zaktualizować harmonogramu podsumowania",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "Dostarczanie podsumowań jest chwilowo niedostępne. Spróbuj ponownie później.",
+    "SUMMARY_DISABLED_HINT": "Planowanie podsumowań nie jest dostępne na tym serwerze."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmy inwazji",

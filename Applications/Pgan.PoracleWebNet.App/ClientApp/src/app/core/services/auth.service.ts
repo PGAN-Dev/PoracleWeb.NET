@@ -28,6 +28,7 @@ export class AuthService {
   readonly isLoggedIn = computed(() => !!this.currentUser());
   readonly managedWebhooks = computed(() => this.currentUser()?.managedWebhooks ?? []);
   readonly profileResynced = this._profileResynced.asReadonly();
+  readonly questSummaryEnabled = computed(() => this.currentUser()?.questSummaryEnabled ?? false);
   readonly user = this.currentUser.asReadonly();
 
   constructor() {

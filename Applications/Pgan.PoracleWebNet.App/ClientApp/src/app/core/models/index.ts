@@ -294,6 +294,7 @@ export interface UserInfo {
   managedWebhooks?: string[] | null;
   profileName: string | null;
   profileNo: number;
+  questSummaryEnabled?: boolean;
   token?: string | null;
   type: string;
   username: string;

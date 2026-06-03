@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Ausgewählte löschen",
     "SUMMARY_MODE": "Tägliche Zusammenfassung",
     "SUMMARY_HINT": "Fasst passende Quests in einer einzigen Zusammenfassung zusammen, statt jede einzeln zu melden. Erfordert einen konfigurierten Zusammenfassungszeitplan im Bot.",
-    "SUMMARY_BADGE": "Zusammenfassung"
+    "SUMMARY_BADGE": "Zusammenfassung",
+    "SUMMARY_SCHEDULE": "Zustellung der Quest-Zusammenfassung",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Quest-Zusammenfassung",
+    "SUMMARY_SCHEDULE_EMPTY": "Kein Zusammenfassungsplan festgelegt. Quests werden einzeln zugestellt.",
+    "SUMMARY_SCHEDULE_EDIT": "Plan bearbeiten",
+    "SUMMARY_SCHEDULE_CLEAR": "Plan entfernen",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Zusammenfassung jetzt senden",
+    "SUMMARY_SCHEDULE_SAVED": "Zusammenfassungsplan gespeichert",
+    "SUMMARY_SCHEDULE_CLEARED": "Zusammenfassungsplan entfernt",
+    "SUMMARY_SCHEDULE_SENT": "Zusammenfassung gesendet",
+    "SUMMARY_SCHEDULE_FAILED": "Der Zusammenfassungsplan konnte nicht aktualisiert werden",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "Die Zusammenfassungszustellung ist vorübergehend nicht verfügbar. Bitte versuche es später erneut.",
+    "SUMMARY_DISABLED_HINT": "Die Planung von Zusammenfassungen ist auf diesem Server nicht verfügbar."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasions-Alarme",

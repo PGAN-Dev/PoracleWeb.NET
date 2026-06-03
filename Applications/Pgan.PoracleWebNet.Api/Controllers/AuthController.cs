@@ -20,6 +20,7 @@ public partial class AuthController(
     IPoracleHumanProxy humanProxy,
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
+    ISummaryCapabilityService summaryCapabilityService,
     IJwtService jwtService,
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
@@ -35,6 +36,7 @@ public partial class AuthController(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
+    private readonly ISummaryCapabilityService _summaryCapabilityService = summaryCapabilityService;
     private readonly IJwtService _jwtService = jwtService;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
@@ -412,7 +414,8 @@ public partial class AuthController(
             Enabled = enabled,
             ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null
+            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null,
+            QuestSummaryEnabled = await this._summaryCapabilityService.IsQuestSummaryEnabledAsync()
         };
 
         // Detect JWT/DB profile desync — PoracleNG can change current_profile_no

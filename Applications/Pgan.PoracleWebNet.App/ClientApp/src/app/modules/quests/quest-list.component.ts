@@ -13,11 +13,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { QuestAddDialogComponent } from './quest-add-dialog.component';
 import { QuestEditDialogComponent } from './quest-edit-dialog.component';
+import { SummaryScheduleDialogComponent, SummaryScheduleDialogData } from './summary-schedule-dialog/summary-schedule-dialog.component';
 import { Quest } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
+import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -60,6 +62,7 @@ export class QuestListComponent implements OnInit {
   readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
 
+  readonly summaryService = inject(SummaryScheduleService);
   readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
@@ -272,6 +275,7 @@ export class QuestListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.summaryService.loadCapability();
     this.masterData
       .loadData()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -295,6 +299,14 @@ export class QuestListComponent implements OnInit {
     });
     ref.afterClosed().subscribe(result => {
       if (result) this.loadQuests();
+    });
+  }
+
+  openSummaryDialog(): void {
+    this.dialog.open(SummaryScheduleDialogComponent, {
+      width: '560px',
+      data: { alertType: 'quest' } as SummaryScheduleDialogData,
+      maxHeight: '90vh',
     });
   }
 

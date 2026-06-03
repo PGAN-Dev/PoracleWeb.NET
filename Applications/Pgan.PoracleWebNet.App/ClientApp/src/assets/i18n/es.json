@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Eliminar seleccionadas",
     "SUMMARY_MODE": "Resumen diario",
     "SUMMARY_HINT": "Agrupa las misiones coincidentes en un único mensaje de resumen en lugar de una notificación por cada una. Requiere una programación de resumen configurada en el bot.",
-    "SUMMARY_BADGE": "Resumen"
+    "SUMMARY_BADGE": "Resumen",
+    "SUMMARY_SCHEDULE": "Entrega del resumen de misiones",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Resumen de misiones",
+    "SUMMARY_SCHEDULE_EMPTY": "No hay ninguna programación de resumen. Las misiones se entregan de forma individual.",
+    "SUMMARY_SCHEDULE_EDIT": "Editar programación",
+    "SUMMARY_SCHEDULE_CLEAR": "Quitar programación",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Enviar resumen ahora",
+    "SUMMARY_SCHEDULE_SAVED": "Programación de resumen guardada",
+    "SUMMARY_SCHEDULE_CLEARED": "Programación de resumen eliminada",
+    "SUMMARY_SCHEDULE_SENT": "Resumen enviado",
+    "SUMMARY_SCHEDULE_FAILED": "No se pudo actualizar la programación del resumen",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "La entrega del resumen no está disponible temporalmente. Inténtalo de nuevo más tarde.",
+    "SUMMARY_DISABLED_HINT": "La programación de resúmenes no está disponible en este servidor."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmas de Invasión",

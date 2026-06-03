@@ -1,0 +1,217 @@
+:host {
+  display: block;
+}
+
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 400;
+}
+
+.title-icon {
+  color: #d97706;
+}
+
+mat-dialog-content {
+  min-width: 360px;
+  max-width: 520px;
+}
+
+.dialog-caption {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+
+.section-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-bottom: 10px;
+}
+
+// ── Shared state blocks (loading / empty) ──────────────────────────────────
+.state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 28px 20px;
+  border-radius: 12px;
+}
+
+.loading-block {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+}
+
+// ── Refined empty state ────────────────────────────────────────────────────
+.empty-block {
+  border: 1px dashed var(--divider, rgba(0, 0, 0, 0.12));
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.02));
+
+  .empty-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  }
+
+  .empty-text {
+    margin: 0;
+    max-width: 280px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  }
+}
+
+// ── Populated state: amber active-hours pills with depth ───────────────────
+.schedule-panel {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  background: #fef3c7;
+  color: #92400e;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: pill-fade-in 0.26s ease forwards;
+
+  .pill-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #d97706;
+  }
+}
+
+@keyframes pill-fade-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// ── Action row ─────────────────────────────────────────────────────────────
+.spacer {
+  flex: 1;
+}
+
+mat-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.send-now-btn {
+  --mdc-filled-button-container-color: #f59e0b;
+  --mdc-filled-button-label-text-color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition:
+    transform 0.1s ease,
+    filter 0.15s ease;
+
+  mat-spinner {
+    margin-right: 2px;
+  }
+
+  &:not([disabled]):hover {
+    filter: brightness(1.05);
+  }
+
+  &:not([disabled]):active {
+    transform: scale(0.97);
+  }
+
+  &.is-cooling {
+    --mdc-filled-button-container-color: var(--skeleton-bg, rgba(0, 0, 0, 0.12));
+    --mdc-filled-button-label-text-color: var(--text-hint, rgba(0, 0, 0, 0.38));
+  }
+}
+
+// Visible keyboard focus across the action row.
+mat-dialog-actions button:focus-visible {
+  outline: 2px solid var(--accent-primary, #1976d2);
+  outline-offset: 2px;
+}
+
+// ── Dark theme overrides via the existing CSS-variable bridge ──────────────
+:host-context(.dark-theme) {
+  .schedule-panel {
+    background: var(--card-bg, rgba(255, 255, 255, 0.04));
+    border-color: var(--divider, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  .empty-block {
+    border-color: var(--divider, rgba(255, 255, 255, 0.12));
+    background: rgba(255, 255, 255, 0.02);
+
+    .empty-icon {
+      color: var(--text-hint, rgba(255, 255, 255, 0.38));
+    }
+  }
+
+  .pill {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+
+    .pill-icon {
+      color: #f59e0b;
+    }
+  }
+
+  .send-now-btn {
+    --mdc-filled-button-container-color: #d97706;
+
+    &.is-cooling {
+      --mdc-filled-button-container-color: rgba(255, 255, 255, 0.12);
+      --mdc-filled-button-label-text-color: var(--text-hint, rgba(255, 255, 255, 0.38));
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  mat-dialog-content {
+    min-width: unset;
+  }
+}

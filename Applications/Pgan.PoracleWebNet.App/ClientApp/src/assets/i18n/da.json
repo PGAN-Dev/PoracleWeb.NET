@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Slet valgte",
     "SUMMARY_MODE": "Daglig oversigt",
     "SUMMARY_HINT": "Samler matchende opgaver i én oversigtsbesked i stedet for én notifikation pr. opgave. Kræver en konfigureret oversigtsplan på botten.",
-    "SUMMARY_BADGE": "Oversigt"
+    "SUMMARY_BADGE": "Oversigt",
+    "SUMMARY_SCHEDULE": "Levering af opgaveoversigt",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Opgaveoversigt",
+    "SUMMARY_SCHEDULE_EMPTY": "Ingen oversigtsplan angivet. Opgaver leveres enkeltvis.",
+    "SUMMARY_SCHEDULE_EDIT": "Rediger plan",
+    "SUMMARY_SCHEDULE_CLEAR": "Fjern plan",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Send oversigt nu",
+    "SUMMARY_SCHEDULE_SAVED": "Oversigtsplan gemt",
+    "SUMMARY_SCHEDULE_CLEARED": "Oversigtsplan fjernet",
+    "SUMMARY_SCHEDULE_SENT": "Oversigt sendt",
+    "SUMMARY_SCHEDULE_FAILED": "Kunne ikke opdatere oversigtsplanen",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "Oversigtslevering er midlertidigt utilgængelig. Prøv igen senere.",
+    "SUMMARY_DISABLED_HINT": "Planlægning af oversigter er ikke tilgængelig på denne server."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionsalarmer",

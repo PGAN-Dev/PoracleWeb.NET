@@ -4,6 +4,17 @@
     <p class="page-description">{{ 'QUESTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
+    @if (summaryService.enabled()) {
+      <button mat-icon-button [matMenuTriggerFor]="questMenu" [attr.aria-label]="'QUESTS.SUMMARY_SCHEDULE' | translate">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #questMenu="matMenu">
+        <button mat-menu-item (click)="openSummaryDialog()">
+          <mat-icon>schedule_send</mat-icon>
+          <span>{{ 'QUESTS.SUMMARY_SCHEDULE' | translate }}</span>
+        </button>
+      </mat-menu>
+    }
     <button mat-fab class="fab-quest" (click)="openAddDialog()">
       <mat-icon>add</mat-icon>
     </button>

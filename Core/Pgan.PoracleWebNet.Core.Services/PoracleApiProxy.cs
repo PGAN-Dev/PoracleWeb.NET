@@ -191,6 +191,13 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             }
         }
 
+        if (root.TryGetProperty("tracking", out var tracking)
+            && tracking.TryGetProperty("quest_summary_enabled", out var qse)
+            && qse.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            config.QuestSummaryEnabled = qse.GetBoolean();
+        }
+
         return config;
     }
 

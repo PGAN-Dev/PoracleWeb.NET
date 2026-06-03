@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Elimina Selezionati",
     "SUMMARY_MODE": "Riepilogo giornaliero",
     "SUMMARY_HINT": "Raccoglie le ricerche corrispondenti in un unico messaggio di riepilogo invece di una notifica per ciascuna. Richiede una pianificazione del riepilogo configurata sul bot.",
-    "SUMMARY_BADGE": "Riepilogo"
+    "SUMMARY_BADGE": "Riepilogo",
+    "SUMMARY_SCHEDULE": "Consegna del riepilogo delle missioni",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Riepilogo missioni",
+    "SUMMARY_SCHEDULE_EMPTY": "Nessuna pianificazione del riepilogo impostata. Le missioni vengono consegnate singolarmente.",
+    "SUMMARY_SCHEDULE_EDIT": "Modifica pianificazione",
+    "SUMMARY_SCHEDULE_CLEAR": "Rimuovi pianificazione",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Invia riepilogo ora",
+    "SUMMARY_SCHEDULE_SAVED": "Pianificazione del riepilogo salvata",
+    "SUMMARY_SCHEDULE_CLEARED": "Pianificazione del riepilogo rimossa",
+    "SUMMARY_SCHEDULE_SENT": "Riepilogo inviato",
+    "SUMMARY_SCHEDULE_FAILED": "Impossibile aggiornare la pianificazione del riepilogo",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "La consegna del riepilogo è temporaneamente non disponibile. Riprova più tardi.",
+    "SUMMARY_DISABLED_HINT": "La pianificazione dei riepiloghi non è disponibile su questo server."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Allarmi Invasioni",

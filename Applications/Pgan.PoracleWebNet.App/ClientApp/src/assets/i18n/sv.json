@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Radera valda",
     "SUMMARY_MODE": "Daglig sammanfattning",
     "SUMMARY_HINT": "Samlar matchande uppdrag i ett enda sammanfattningsmeddelande i stället för en avisering per uppdrag. Kräver ett konfigurerat sammanfattningsschema i boten.",
-    "SUMMARY_BADGE": "Sammanfattning"
+    "SUMMARY_BADGE": "Sammanfattning",
+    "SUMMARY_SCHEDULE": "Leverans av uppdragssammanfattning",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Uppdragssammanfattning",
+    "SUMMARY_SCHEDULE_EMPTY": "Inget sammanfattningsschema angivet. Uppdrag levereras individuellt.",
+    "SUMMARY_SCHEDULE_EDIT": "Redigera schema",
+    "SUMMARY_SCHEDULE_CLEAR": "Ta bort schema",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Skicka sammanfattning nu",
+    "SUMMARY_SCHEDULE_SAVED": "Sammanfattningsschema sparat",
+    "SUMMARY_SCHEDULE_CLEARED": "Sammanfattningsschema borttaget",
+    "SUMMARY_SCHEDULE_SENT": "Sammanfattning skickad",
+    "SUMMARY_SCHEDULE_FAILED": "Det gick inte att uppdatera sammanfattningsschemat",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "Leverans av sammanfattningar är tillfälligt otillgänglig. Försök igen senare.",
+    "SUMMARY_DISABLED_HINT": "Schemaläggning av sammanfattningar är inte tillgänglig på den här servern."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionslarm",

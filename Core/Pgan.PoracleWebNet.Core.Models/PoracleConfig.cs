@@ -61,6 +61,13 @@ public class PoracleConfig
         get; set;
     }
     public List<PoracleDelegateEntry> DelegateAdministration { get; set; } = [];
+
+    /// <summary>
+    /// Whether the upstream PoracleNG deployment has quest summary delivery enabled.
+    /// Sourced from Poracle's <c>tracking.quest_summary_enabled</c>. Defaults to <c>true</c> so an
+    /// absent field in a successful config response does not hide a working feature on older builds.
+    /// </summary>
+    public bool QuestSummaryEnabled { get; set; } = true;
 }
 
 public class PoracleAdmins

@@ -506,7 +506,19 @@
     "CONFIRM_DELETE_SELECTED": "Supprimer la sélection",
     "SUMMARY_MODE": "Résumé quotidien",
     "SUMMARY_HINT": "Regroupe les quêtes correspondantes dans un seul message de résumé au lieu d’une notification par quête. Nécessite une planification de résumé configurée sur le bot.",
-    "SUMMARY_BADGE": "Résumé"
+    "SUMMARY_BADGE": "Résumé",
+    "SUMMARY_SCHEDULE": "Livraison du résumé des quêtes",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Résumé des quêtes",
+    "SUMMARY_SCHEDULE_EMPTY": "Aucune planification de résumé définie. Les quêtes sont livrées individuellement.",
+    "SUMMARY_SCHEDULE_EDIT": "Modifier la planification",
+    "SUMMARY_SCHEDULE_CLEAR": "Supprimer la planification",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Envoyer le résumé maintenant",
+    "SUMMARY_SCHEDULE_SAVED": "Planification du résumé enregistrée",
+    "SUMMARY_SCHEDULE_CLEARED": "Planification du résumé supprimée",
+    "SUMMARY_SCHEDULE_SENT": "Résumé envoyé",
+    "SUMMARY_SCHEDULE_FAILED": "Impossible de mettre à jour la planification du résumé",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "La livraison du résumé est temporairement indisponible. Veuillez réessayer plus tard.",
+    "SUMMARY_DISABLED_HINT": "La planification des résumés n'est pas disponible sur ce serveur."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes Invasion",

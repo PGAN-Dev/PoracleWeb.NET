@@ -19,6 +19,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
+import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -58,7 +59,6 @@ export class QuestAddDialogComponent {
   private readonly questService = inject(QuestService);
 
   private readonly snackBar = inject(MatSnackBar);
-
   commonForm = this.fb.group({
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
@@ -69,8 +69,8 @@ export class QuestAddDialogComponent {
   });
 
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
-  readonly iconService = inject(IconService);
 
+  readonly iconService = inject(IconService);
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   itemForm = this.fb.group({
@@ -79,12 +79,14 @@ export class QuestAddDialogComponent {
 
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
+
   saving = signal(false);
   selectedCandyPokemonIds = signal<number[]>([]);
-
   selectedMegaPokemonIds = signal<number[]>([]);
 
   selectedPokemonIds = signal<number[]>([]);
+
+  readonly summaryService = inject(SummaryScheduleService);
 
   tabIndex = 0;
 

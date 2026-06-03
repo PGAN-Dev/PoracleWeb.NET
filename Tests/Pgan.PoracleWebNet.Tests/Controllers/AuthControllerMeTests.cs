@@ -31,6 +31,7 @@ public class AuthControllerMeTests : ControllerTestBase
             new Mock<IPoracleHumanProxy>().Object,
             new Mock<ISiteSettingService>().Object,
             new Mock<IWebhookDelegateService>().Object,
+            new Mock<ISummaryCapabilityService>().Object,
             this._jwtService.Object,
             Options.Create(new DiscordSettings()),
             Options.Create(new TelegramSettings()),

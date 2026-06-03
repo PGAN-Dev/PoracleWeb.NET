@@ -510,7 +510,19 @@
     "CONFIRM_DELETE_SELECTED": "Delete Selected",
     "SUMMARY_MODE": "Daily summary",
     "SUMMARY_HINT": "Collect matching quests into a single summary message instead of one notification each. Requires a configured summary schedule on the bot.",
-    "SUMMARY_BADGE": "Summary"
+    "SUMMARY_BADGE": "Summary",
+    "SUMMARY_SCHEDULE": "Quest summary delivery",
+    "SUMMARY_SCHEDULE_ALERT_LABEL": "Quest summary",
+    "SUMMARY_SCHEDULE_EMPTY": "No summary schedule set. Quests are delivered individually.",
+    "SUMMARY_SCHEDULE_EDIT": "Edit schedule",
+    "SUMMARY_SCHEDULE_CLEAR": "Remove schedule",
+    "SUMMARY_SCHEDULE_SEND_NOW": "Send summary now",
+    "SUMMARY_SCHEDULE_SAVED": "Summary schedule saved",
+    "SUMMARY_SCHEDULE_CLEARED": "Summary schedule removed",
+    "SUMMARY_SCHEDULE_SENT": "Summary sent",
+    "SUMMARY_SCHEDULE_FAILED": "Couldn't update the summary schedule",
+    "SUMMARY_SCHEDULE_UNAVAILABLE": "Summary delivery is temporarily unavailable. Please try again later.",
+    "SUMMARY_DISABLED_HINT": "Summary scheduling isn't available on this server."
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasion Alarms",
