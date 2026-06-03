@@ -21,6 +21,7 @@ import { QuestService } from '../../core/services/quest.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { compose } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -61,6 +62,7 @@ export class QuestAddDialogComponent {
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     ping: [''],
+    summary: [false],
     template: [''],
   });
 
@@ -143,6 +145,8 @@ export class QuestAddDialogComponent {
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
     const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    // New alarms have no prior bits, so compose directly from the two surfaced toggles (edit-in-place unsupported for quests).
+    const cleanValue = compose(!!common.clean, false, !!common.summary);
 
     const creates: ReturnType<typeof this.questService.create>[] = [];
 
@@ -151,7 +155,7 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedPokemonIds()) {
           creates.push(
             this.questService.create({
-              clean: common.clean ? 1 : 0,
+              clean: cleanValue,
               distance: distanceMeters,
               ping: common.ping || null,
               pokemonId,
@@ -166,7 +170,7 @@ export class QuestAddDialogComponent {
       case 1:
         creates.push(
           this.questService.create({
-            clean: common.clean ? 1 : 0,
+            clean: cleanValue,
             distance: distanceMeters,
             ping: common.ping || null,
             pokemonId: 0,
@@ -181,7 +185,7 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedMegaPokemonIds()) {
           creates.push(
             this.questService.create({
-              clean: common.clean ? 1 : 0,
+              clean: cleanValue,
               distance: distanceMeters,
               ping: common.ping || null,
               pokemonId,
@@ -197,7 +201,7 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedCandyPokemonIds()) {
           creates.push(
             this.questService.create({
-              clean: common.clean ? 1 : 0,
+              clean: cleanValue,
               distance: distanceMeters,
               ping: common.ping || null,
               pokemonId,

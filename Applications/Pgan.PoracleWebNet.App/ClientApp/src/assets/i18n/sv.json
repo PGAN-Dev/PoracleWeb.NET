@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Alla quest-larm raderade",
     "SNACK_FAILED_DELETE_ALL": "Kunde inte radera larm",
     "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd",
-    "CONFIRM_DELETE_SELECTED": "Radera valda"
+    "CONFIRM_DELETE_SELECTED": "Radera valda",
+    "SUMMARY_MODE": "Daglig sammanfattning",
+    "SUMMARY_HINT": "Samlar matchande uppdrag i ett enda sammanfattningsmeddelande i stället för en avisering per uppdrag. Kräver ett konfigurerat sammanfattningsschema i boten.",
+    "SUMMARY_BADGE": "Sammanfattning"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionslarm",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnetisk",
     "TYPE_RAINY": "Regnig",
     "TYPE_GOLDEN": "Gyllene",
-    "TYPE_UNKNOWN": "Lockbete #{{id}}"
+    "TYPE_UNKNOWN": "Lockbete #{{id}}",
+    "EDIT_MODE": "Redigera meddelandet på plats",
+    "EDIT_HINT": "Uppdaterar det befintliga Discord-meddelandet när betet ändras i stället för att skicka ett nytt.",
+    "EDIT_BADGE": "Redigera"
   },
   "NESTS": {
     "PAGE_TITLE": "Nästlarm",

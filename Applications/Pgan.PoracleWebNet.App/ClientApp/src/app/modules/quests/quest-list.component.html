@@ -87,6 +87,9 @@
             @if (isAutoDelete(quest.clean)) {
               <span class="clean-tag" [matTooltip]="'QUESTS.CLEAN_TOOLTIP' | translate">{{ 'QUESTS.CLEAN_TAG' | translate }}</span>
             }
+            @if (isSummary(quest.clean)) {
+              <span class="summary-tag" [matTooltip]="'QUESTS.SUMMARY_HINT' | translate">{{ 'QUESTS.SUMMARY_BADGE' | translate }}</span>
+            }
           </div>
         </div>
         <mat-card-content>

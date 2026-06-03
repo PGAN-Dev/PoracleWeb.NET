@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Alle quest-alarmer slettet",
     "SNACK_FAILED_DELETE_ALL": "Kunne ikke slette alarmer",
     "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande",
-    "CONFIRM_DELETE_SELECTED": "Slet valgte"
+    "CONFIRM_DELETE_SELECTED": "Slet valgte",
+    "SUMMARY_MODE": "Daglig oversigt",
+    "SUMMARY_HINT": "Samler matchende opgaver i én oversigtsbesked i stedet for én notifikation pr. opgave. Kræver en konfigureret oversigtsplan på botten.",
+    "SUMMARY_BADGE": "Oversigt"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionsalarmer",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnetisk",
     "TYPE_RAINY": "Regnfuld",
     "TYPE_GOLDEN": "Gylden",
-    "TYPE_UNKNOWN": "Lokke #{{id}}"
+    "TYPE_UNKNOWN": "Lokke #{{id}}",
+    "EDIT_MODE": "Rediger beskeden på stedet",
+    "EDIT_HINT": "Opdaterer den eksisterende Discord-besked, når lokkemodulet ændres, i stedet for at sende en ny.",
+    "EDIT_BADGE": "Rediger"
   },
   "NESTS": {
     "PAGE_TITLE": "Rede-alarmer",

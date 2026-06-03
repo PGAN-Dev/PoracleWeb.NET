@@ -85,6 +85,21 @@
   flex-shrink: 0;
   line-height: 16px;
 }
+// Edit-in-place status badge — mirrors .clean-tag geometry, themed with the M3 secondary
+// so it reads as a sibling status indicator next to the auto-delete (clean) tag.
+.edit-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 16px;
+  background: var(--mat-sys-secondary);
+  color: var(--mat-sys-on-secondary);
+  flex-shrink: 0;
+}
 .template-chip {
   display: inline-block;
   background: #e8eaf6;

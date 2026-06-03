@@ -65,6 +65,9 @@
             @if (isAutoDelete(lure.clean)) {
               <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">clean</span>
             }
+            @if (isEdit(lure.clean)) {
+              <span class="edit-tag" matTooltip="{{ 'LURES.EDIT_HINT' | translate }}">{{ 'LURES.EDIT_BADGE' | translate }}</span>
+            }
           </div>
         </div>
         <mat-card-content>

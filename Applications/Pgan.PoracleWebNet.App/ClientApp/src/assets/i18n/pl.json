@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Wszystkie alarmy zadań usunięte",
     "SNACK_FAILED_DELETE_ALL": "Nie udało się usunąć alarmów",
     "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości",
-    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone"
+    "CONFIRM_DELETE_SELECTED": "Usuń zaznaczone",
+    "SUMMARY_MODE": "Codzienne podsumowanie",
+    "SUMMARY_HINT": "Łączy pasujące zadania w jedną wiadomość podsumowującą zamiast osobnego powiadomienia dla każdego. Wymaga skonfigurowanego harmonogramu podsumowań w bocie.",
+    "SUMMARY_BADGE": "Podsumowanie"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmy inwazji",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnetyczny",
     "TYPE_RAINY": "Deszczowy",
     "TYPE_GOLDEN": "Złoty",
-    "TYPE_UNKNOWN": "Wabik #{{id}}"
+    "TYPE_UNKNOWN": "Wabik #{{id}}",
+    "EDIT_MODE": "Edytuj wiadomość w miejscu",
+    "EDIT_HINT": "Aktualizuje istniejącą wiadomość na Discordzie przy zmianie wabika zamiast wysyłać nową.",
+    "EDIT_BADGE": "Edycja"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmy gniazd",

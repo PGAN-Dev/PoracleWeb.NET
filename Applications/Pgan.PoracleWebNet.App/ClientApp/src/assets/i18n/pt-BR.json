@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Todos os alarmes de quest excluídos",
     "SNACK_FAILED_DELETE_ALL": "Falha ao excluir alarmes",
     "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias",
-    "CONFIRM_DELETE_SELECTED": "Excluir Selecionados"
+    "CONFIRM_DELETE_SELECTED": "Excluir Selecionados",
+    "SUMMARY_MODE": "Resumo diário",
+    "SUMMARY_HINT": "Reúne as missões correspondentes em uma única mensagem de resumo em vez de uma notificação para cada uma. Requer um agendamento de resumo configurado no bot.",
+    "SUMMARY_BADGE": "Resumo"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes de Invasão",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnético",
     "TYPE_RAINY": "Chuvoso",
     "TYPE_GOLDEN": "Dourado",
-    "TYPE_UNKNOWN": "Módulo #{{id}}"
+    "TYPE_UNKNOWN": "Módulo #{{id}}",
+    "EDIT_MODE": "Editar a mensagem no local",
+    "EDIT_HINT": "Atualiza a mensagem existente do Discord quando a isca muda em vez de enviar uma nova.",
+    "EDIT_BADGE": "Editar"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmes de Ninho",

@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Tutti gli allarmi missione eliminati",
     "SNACK_FAILED_DELETE_ALL": "Eliminazione allarmi fallita",
     "SNACK_FAILED_DISTANCE": "Aggiornamento distanze fallito",
-    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati"
+    "CONFIRM_DELETE_SELECTED": "Elimina Selezionati",
+    "SUMMARY_MODE": "Riepilogo giornaliero",
+    "SUMMARY_HINT": "Raccoglie le ricerche corrispondenti in un unico messaggio di riepilogo invece di una notifica per ciascuna. Richiede una pianificazione del riepilogo configurata sul bot.",
+    "SUMMARY_BADGE": "Riepilogo"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Allarmi Invasioni",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnetico",
     "TYPE_RAINY": "Piovoso",
     "TYPE_GOLDEN": "Dorato",
-    "TYPE_UNKNOWN": "Esca #{{id}}"
+    "TYPE_UNKNOWN": "Esca #{{id}}",
+    "EDIT_MODE": "Modifica il messaggio sul posto",
+    "EDIT_HINT": "Aggiorna il messaggio Discord esistente quando il modulo esca cambia invece di inviarne uno nuovo.",
+    "EDIT_BADGE": "Modifica"
   },
   "NESTS": {
     "PAGE_TITLE": "Allarmi Nidi",

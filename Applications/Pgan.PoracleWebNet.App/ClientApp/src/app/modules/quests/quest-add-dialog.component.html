@@ -111,6 +111,9 @@
 
         <mat-slide-toggle [formControl]="commonForm.controls.clean"> {{ 'ALARM.CLEAN_MODE' | translate }} </mat-slide-toggle>
         <p class="clean-hint">{{ 'ALARM.CLEAN_HINT_QUEST' | translate }}</p>
+
+        <mat-slide-toggle [formControl]="commonForm.controls.summary"> {{ 'QUESTS.SUMMARY_MODE' | translate }} </mat-slide-toggle>
+        <p class="clean-hint">{{ 'QUESTS.SUMMARY_HINT' | translate }}</p>
       </div>
     </mat-tab>
   </mat-tab-group>

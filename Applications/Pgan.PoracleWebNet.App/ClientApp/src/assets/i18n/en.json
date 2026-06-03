@@ -506,7 +506,10 @@
     "SNACK_DELETED_ALL": "All quest alarms deleted",
     "SNACK_FAILED_DELETE_ALL": "Failed to delete alarms",
     "SNACK_FAILED_DISTANCE": "Failed to update distances",
-    "CONFIRM_DELETE_SELECTED": "Delete Selected"
+    "CONFIRM_DELETE_SELECTED": "Delete Selected",
+    "SUMMARY_MODE": "Daily summary",
+    "SUMMARY_HINT": "Collect matching quests into a single summary message instead of one notification each. Requires a configured summary schedule on the bot.",
+    "SUMMARY_BADGE": "Summary"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasion Alarms",
@@ -614,7 +617,10 @@
     "TYPE_MAGNETIC": "Magnetic",
     "TYPE_RAINY": "Rainy",
     "TYPE_GOLDEN": "Golden",
-    "TYPE_UNKNOWN": "Lure #{{id}}"
+    "TYPE_UNKNOWN": "Lure #{{id}}",
+    "EDIT_MODE": "Edit message in place",
+    "EDIT_HINT": "Update the existing Discord message when the lure changes instead of sending a new one.",
+    "EDIT_BADGE": "Edit"
   },
   "NESTS": {
     "PAGE_TITLE": "Nest Alarms",

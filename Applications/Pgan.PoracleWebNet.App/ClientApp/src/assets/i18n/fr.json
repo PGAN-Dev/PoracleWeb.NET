@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Toutes les alarmes Quête supprimées",
     "SNACK_FAILED_DELETE_ALL": "Échec de la suppression des alarmes",
     "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances",
-    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection"
+    "CONFIRM_DELETE_SELECTED": "Supprimer la sélection",
+    "SUMMARY_MODE": "Résumé quotidien",
+    "SUMMARY_HINT": "Regroupe les quêtes correspondantes dans un seul message de résumé au lieu d’une notification par quête. Nécessite une planification de résumé configurée sur le bot.",
+    "SUMMARY_BADGE": "Résumé"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes Invasion",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnétique",
     "TYPE_RAINY": "Pluvieux",
     "TYPE_GOLDEN": "Doré",
-    "TYPE_UNKNOWN": "Module #{{id}}"
+    "TYPE_UNKNOWN": "Module #{{id}}",
+    "EDIT_MODE": "Modifier le message sur place",
+    "EDIT_HINT": "Met à jour le message Discord existant lorsque le leurre change au lieu d’en envoyer un nouveau.",
+    "EDIT_BADGE": "Modifier"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmes Nid",

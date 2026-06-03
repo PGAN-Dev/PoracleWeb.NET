@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Alle Quest-Alarme gelöscht",
     "SNACK_FAILED_DELETE_ALL": "Alarme konnten nicht gelöscht werden",
     "SNACK_FAILED_DISTANCE": "Entfernungen konnten nicht aktualisiert werden",
-    "CONFIRM_DELETE_SELECTED": "Ausgewählte löschen"
+    "CONFIRM_DELETE_SELECTED": "Ausgewählte löschen",
+    "SUMMARY_MODE": "Tägliche Zusammenfassung",
+    "SUMMARY_HINT": "Fasst passende Quests in einer einzigen Zusammenfassung zusammen, statt jede einzeln zu melden. Erfordert einen konfigurierten Zusammenfassungszeitplan im Bot.",
+    "SUMMARY_BADGE": "Zusammenfassung"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasions-Alarme",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnetisch",
     "TYPE_RAINY": "Regnerisch",
     "TYPE_GOLDEN": "Golden",
-    "TYPE_UNKNOWN": "Modul #{{id}}"
+    "TYPE_UNKNOWN": "Modul #{{id}}",
+    "EDIT_MODE": "Nachricht direkt bearbeiten",
+    "EDIT_HINT": "Aktualisiert die vorhandene Discord-Nachricht bei Änderungen am Lockmodul, statt eine neue zu senden.",
+    "EDIT_BADGE": "Bearbeiten"
   },
   "NESTS": {
     "PAGE_TITLE": "Nest-Alarme",

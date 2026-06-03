@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Todas las alarmas de misión eliminadas",
     "SNACK_FAILED_DELETE_ALL": "Error al eliminar las alarmas",
     "SNACK_FAILED_DISTANCE": "Error al actualizar las distancias",
-    "CONFIRM_DELETE_SELECTED": "Eliminar seleccionadas"
+    "CONFIRM_DELETE_SELECTED": "Eliminar seleccionadas",
+    "SUMMARY_MODE": "Resumen diario",
+    "SUMMARY_HINT": "Agrupa las misiones coincidentes en un único mensaje de resumen en lugar de una notificación por cada una. Requiere una programación de resumen configurada en el bot.",
+    "SUMMARY_BADGE": "Resumen"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmas de Invasión",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnético",
     "TYPE_RAINY": "Lluvioso",
     "TYPE_GOLDEN": "Dorado",
-    "TYPE_UNKNOWN": "Señuelo #{{id}}"
+    "TYPE_UNKNOWN": "Señuelo #{{id}}",
+    "EDIT_MODE": "Editar el mensaje en su lugar",
+    "EDIT_HINT": "Actualiza el mensaje de Discord existente cuando cambia el cebo en lugar de enviar uno nuevo.",
+    "EDIT_BADGE": "Editar"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmas de Nido",

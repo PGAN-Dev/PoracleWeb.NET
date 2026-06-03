@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Todos os alarmes de missões eliminados",
     "SNACK_FAILED_DELETE_ALL": "Falha ao eliminar alarmes",
     "SNACK_FAILED_DISTANCE": "Falha ao atualizar distâncias",
-    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados"
+    "CONFIRM_DELETE_SELECTED": "Eliminar Selecionados",
+    "SUMMARY_MODE": "Resumo diário",
+    "SUMMARY_HINT": "Reúne as missões correspondentes numa única mensagem de resumo em vez de uma notificação por cada. Requer um agendamento de resumo configurado no bot.",
+    "SUMMARY_BADGE": "Resumo"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes de Invasões",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnético",
     "TYPE_RAINY": "Chuvoso",
     "TYPE_GOLDEN": "Dourado",
-    "TYPE_UNKNOWN": "Módulo #{{id}}"
+    "TYPE_UNKNOWN": "Módulo #{{id}}",
+    "EDIT_MODE": "Editar a mensagem no local",
+    "EDIT_HINT": "Atualiza a mensagem existente do Discord quando o engodo muda em vez de enviar uma nova.",
+    "EDIT_BADGE": "Editar"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmes de Ninhos",

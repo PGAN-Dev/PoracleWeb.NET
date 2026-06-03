@@ -502,7 +502,10 @@
     "SNACK_DELETED_ALL": "Alle quest alarmen verwijderd",
     "SNACK_FAILED_DELETE_ALL": "Alarmen verwijderen mislukt",
     "SNACK_FAILED_DISTANCE": "Afstanden bijwerken mislukt",
-    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen"
+    "CONFIRM_DELETE_SELECTED": "Geselecteerde Verwijderen",
+    "SUMMARY_MODE": "Dagelijkse samenvatting",
+    "SUMMARY_HINT": "Bundel overeenkomende quests in één samenvattingsbericht in plaats van een melding per stuk. Vereist een geconfigureerd samenvattingsschema op de bot.",
+    "SUMMARY_BADGE": "Samenvatting"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasie Alarmen",
@@ -610,7 +613,10 @@
     "TYPE_MAGNETIC": "Magnetisch",
     "TYPE_RAINY": "Regenachtig",
     "TYPE_GOLDEN": "Gouden",
-    "TYPE_UNKNOWN": "Lokmodule #{{id}}"
+    "TYPE_UNKNOWN": "Lokmodule #{{id}}",
+    "EDIT_MODE": "Bericht ter plekke bewerken",
+    "EDIT_HINT": "Werk het bestaande Discord-bericht bij wanneer de lokmodule verandert in plaats van een nieuw bericht te sturen.",
+    "EDIT_BADGE": "Bewerken"
   },
   "NESTS": {
     "PAGE_TITLE": "Nest Alarmen",
