@@ -20,6 +20,7 @@ import { IconService } from '../../core/services/icon.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
+import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 
@@ -46,6 +47,7 @@ export interface RaidEditDialogData {
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    RsvpToggleComponent,
     LevelLabelPipe,
   ],
   selector: 'app-raid-edit-dialog',
@@ -68,6 +70,7 @@ export class RaidEditDialogComponent {
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.item.ping ?? ''],
+    rsvpChanges: [this.data.item.rsvpChanges],
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
   });
@@ -131,7 +134,7 @@ export class RaidEditDialogComponent {
         move: raid.move,
         ping: values.ping || null,
         pokemonId: raid.pokemonId,
-        rsvpChanges: raid.rsvpChanges,
+        rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
         template: values.template || null,
       };
@@ -154,7 +157,7 @@ export class RaidEditDialogComponent {
         gymId: this.selectedGymId() || null,
         level: egg.level,
         ping: values.ping || null,
-        rsvpChanges: egg.rsvpChanges,
+        rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
         template: values.template || null,
       };

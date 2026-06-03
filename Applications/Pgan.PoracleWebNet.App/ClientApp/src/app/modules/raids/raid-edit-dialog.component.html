@@ -40,6 +40,8 @@
         <h4>{{ 'RAIDS.SPECIFIC_GYM' | translate }}</h4>
         <app-gym-picker [(gymId)]="selectedGymId" />
         <p class="gym-picker-hint">{{ 'RAIDS.GYM_PICKER_HINT' | translate }}</p>
+
+        <app-rsvp-toggle [control]="form.controls.rsvpChanges" />
       </div>
     </mat-tab>
 

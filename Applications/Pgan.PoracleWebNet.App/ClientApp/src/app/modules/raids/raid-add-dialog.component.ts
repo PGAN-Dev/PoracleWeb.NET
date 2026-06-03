@@ -24,6 +24,7 @@ import { DeliveryPreviewComponent } from '../../shared/components/delivery-previ
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 @Component({
@@ -46,6 +47,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     DeliveryPreviewComponent,
     GymPickerComponent,
     LevelSelectorComponent,
+    RsvpToggleComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -69,6 +71,7 @@ export class RaidAddDialogComponent {
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     ping: [''],
+    rsvpChanges: [0],
     team: [4],
     template: [''],
   });
@@ -132,7 +135,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId: 9000,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -146,7 +149,7 @@ export class RaidAddDialogComponent {
           gymId: this.selectedGymId() || null,
           level,
           ping: common.ping || null,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -167,7 +170,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };

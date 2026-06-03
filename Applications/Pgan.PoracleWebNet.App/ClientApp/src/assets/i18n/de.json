@@ -339,6 +339,16 @@
     "COMMON_SETTINGS": "Allgemeine Einstellungen"
   },
   "RAIDS": {
+    "RSVP_LABEL": "RSVP-Benachrichtigungen",
+    "RSVP_OFF": "Nur Treffer",
+    "RSVP_INCLUDE": "Treffer + RSVP-Updates",
+    "RSVP_ONLY": "Nur RSVP-Updates",
+    "RSVP_OFF_DESC": "Nur normale Raid-/Ei-Benachrichtigungen.",
+    "RSVP_INCLUDE_DESC": "Zusätzlich erneut benachrichtigen, wenn sich RSVP-Zahlen ändern.",
+    "RSVP_ONLY_DESC": "Erste Treffer überspringen; nur bei RSVP-Änderungen benachrichtigen. Ohne einen RSVP-fähigen Scanner bleibt dieser Alarm stumm.",
+    "RSVP_HINT": "Erfordert, dass dein Scanner RSVP-Webhooks sendet.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Nur RSVP",
     "PAGE_TITLE": "Raid- & Ei-Alarme",
     "PAGE_DESC": "Werde über Raid-Bosse und schlüpfende Eier in nahen Arenen benachrichtigt.",
     "TAB_RAIDS": "Raids ({{count}})",

@@ -34,6 +34,8 @@
         <app-gym-picker [(gymId)]="selectedGymId" />
         <p class="gym-picker-hint">{{ 'RAIDS.GYM_PICKER_HINT' | translate }}</p>
 
+        <app-rsvp-toggle [control]="commonForm.controls.rsvpChanges" />
+
         <mat-tab-group [(selectedIndex)]="tabIndex">
           <!-- By Level -->
           <mat-tab [label]="'RAIDS.BY_LEVEL' | translate">

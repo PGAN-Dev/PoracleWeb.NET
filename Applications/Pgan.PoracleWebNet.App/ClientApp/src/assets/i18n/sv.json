@@ -339,6 +339,16 @@
     "COMMON_SETTINGS": "Gemensamma inställningar"
   },
   "RAIDS": {
+    "RSVP_LABEL": "RSVP-aviseringar",
+    "RSVP_OFF": "Endast träffar",
+    "RSVP_INCLUDE": "Träffar + RSVP-uppdateringar",
+    "RSVP_ONLY": "Endast RSVP-uppdateringar",
+    "RSVP_OFF_DESC": "Endast vanliga raid-/äggaviseringar.",
+    "RSVP_INCLUDE_DESC": "Meddela även när RSVP-antalet ändras.",
+    "RSVP_ONLY_DESC": "Hoppa över inledande träffar; meddela endast vid RSVP-ändringar. Utan en skanner som skickar RSVP blir larmet tyst.",
+    "RSVP_HINT": "Kräver att din skanner skickar RSVP-webhooks.",
+    "RSVP_PILL_INCLUDE": "RSVP",
+    "RSVP_PILL_ONLY": "Endast RSVP",
     "PAGE_TITLE": "Raid- och ägglarm",
     "PAGE_DESC": "Få notiser om raid-bossar och ägg-kläckningar på närliggande gym.",
     "TAB_RAIDS": "Raids ({{count}})",
