@@ -346,7 +346,6 @@
     "RSVP_OFF_DESC": "Tylko standardowe alerty rajdów/jaj.",
     "RSVP_INCLUDE_DESC": "Powiadamiaj także, gdy zmienią się liczby RSVP.",
     "RSVP_ONLY_DESC": "Pomiń początkowe dopasowania; powiadamiaj tylko o zmianach RSVP. Bez skanera emitującego RSVP alarm zostanie wyciszony.",
-    "RSVP_HINT": "Wymaga, aby Twój skaner wysyłał webhooki RSVP.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "Tylko RSVP",
     "PAGE_TITLE": "Alarmy rajdów i jajek",

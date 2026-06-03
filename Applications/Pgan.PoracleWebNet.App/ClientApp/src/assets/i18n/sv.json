@@ -346,7 +346,6 @@
     "RSVP_OFF_DESC": "Endast vanliga raid-/äggaviseringar.",
     "RSVP_INCLUDE_DESC": "Meddela även när RSVP-antalet ändras.",
     "RSVP_ONLY_DESC": "Hoppa över inledande träffar; meddela endast vid RSVP-ändringar. Utan en skanner som skickar RSVP blir larmet tyst.",
-    "RSVP_HINT": "Kräver att din skanner skickar RSVP-webhooks.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "Endast RSVP",
     "PAGE_TITLE": "Raid- och ägglarm",

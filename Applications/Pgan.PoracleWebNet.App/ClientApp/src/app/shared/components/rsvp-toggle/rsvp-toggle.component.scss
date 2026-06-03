@@ -2,16 +2,9 @@
   display: block;
 }
 
-// Mirrors the PvP-cap selector pattern: fieldset + uppercase legend section header.
-.rsvp-fieldset {
-  border: none;
-  padding: 0;
-  margin: 16px 0 0;
-  // A <fieldset> defaults to min-inline-size: auto and won't shrink to its
-  // container, so it overflows. Force it to honour the available width.
-  min-inline-size: 0;
-  width: 100%;
-  box-sizing: border-box;
+// Section block: uppercase header (legend) + control + hint, like the dialog's other sections.
+.rsvp-field {
+  margin-top: 16px;
 }
 
 .rsvp-legend {
@@ -27,11 +20,14 @@
 .rsvp-toggle {
   display: flex;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   // M3 defaults the segmented group to a pill radius; square it off for a crisper Material feel.
   --mat-button-toggle-shape: 4px;
 
   ::ng-deep .mat-button-toggle {
     flex: 1 1 0;
+    min-width: 0;
   }
 
   // Stretch the clickable button to the tallest segment so wrapped and

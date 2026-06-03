@@ -346,7 +346,6 @@
     "RSVP_OFF_DESC": "Alertes raid/œuf standard uniquement.",
     "RSVP_INCLUDE_DESC": "Notifier également lorsque les RSVP changent.",
     "RSVP_ONLY_DESC": "Ignorer les correspondances initiales ; notifier uniquement les changements de RSVP. Sans un scanner émettant des RSVP, cette alerte est silencieuse.",
-    "RSVP_HINT": "Nécessite que votre scanner émette des webhooks RSVP.",
     "RSVP_PILL_INCLUDE": "RSVP",
     "RSVP_PILL_ONLY": "RSVP uniquement",
     "PAGE_TITLE": "Alarmes Raid et Œuf",
