@@ -228,6 +228,7 @@
     "FILTER_FORM_GENDER": "Form & Gender",
     "LABEL_FORM": "Form",
     "ALL_FORMS": "All Forms",
+    "FORM_MULTI_HINT": "Leave empty to match all forms",
     "LABEL_GENDER": "Gender",
     "GENDER_ALL": "All",
     "GENDER_MALE": "Male",

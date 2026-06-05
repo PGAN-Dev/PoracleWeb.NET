@@ -77,6 +77,7 @@ export class PokemonAddDialogComponent implements OnInit {
     atk: [0, [Validators.min(0), Validators.max(15)]],
     def: [0, [Validators.min(0), Validators.max(15)]],
     form: [0],
+    forms: [[] as number[]],
     gender: [0],
     maxAtk: [15, [Validators.min(0), Validators.max(15)]],
     maxCp: [9000, [Validators.min(0), Validators.max(9000)]],
@@ -156,39 +157,48 @@ export class PokemonAddDialogComponent implements OnInit {
     const notif = this.notifForm.getRawValue();
     const distanceMeters = notif.distanceMode === 'areas' ? 0 : Math.round((notif.distanceKm ?? 1) * 1000);
 
-    const creates = this.selectedPokemonIds().map(pokemonId => {
-      const monster: MonsterCreate = {
-        atk: filters.atk ?? 0,
-        clean: notif.clean ? 1 : 0,
-        def: filters.def ?? 0,
-        distance: distanceMeters,
-        form: filters.form ?? 0,
-        gender: filters.gender ?? 0,
-        maxAtk: filters.maxAtk ?? 15,
-        maxCp: filters.maxCp ?? 9000,
-        maxDef: filters.maxDef ?? 15,
-        maxIv: filters.maxIv ?? 100,
-        maxLevel: filters.maxLevel ?? 55,
-        maxSize: filters.maxSize ?? 5,
-        maxSta: filters.maxSta ?? 15,
-        maxWeight: filters.maxWeight ?? 9000000,
-        minCp: filters.minCp ?? 0,
-        minIv: filters.minIv ?? 0,
-        minLevel: filters.minLevel ?? 0,
-        minWeight: filters.minWeight ?? 0,
-        ping: notif.ping || null,
-        pokemonId,
-        pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
-        pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
-        pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
-        pvpRankingMinCp: pvp.pvpRankingLeague ? (pvp.pvpRankingMinCp ?? 0) : 0,
-        pvpRankingWorst: pvp.pvpRankingLeague ? (pvp.pvpRankingWorst ?? 100) : 4096,
-        size: filters.size ?? -1,
-        sta: filters.sta ?? 0,
-        template: notif.template || null,
-      };
-      return this.monsterService.create(monster);
-    });
+    // PoracleNG models `form` as a single int per tracking entry, so a multi-form
+    // selection fans out into one alarm per form. When specific forms are available we
+    // use the multi-select; an empty selection means "all forms" (0). Otherwise we fall
+    // back to the manual form-id number input.
+    const formIds =
+      this.availableForms().length > 0 ? (filters.forms && filters.forms.length > 0 ? filters.forms : [0]) : [filters.form ?? 0];
+
+    const creates = this.selectedPokemonIds().flatMap(pokemonId =>
+      formIds.map(form => {
+        const monster: MonsterCreate = {
+          atk: filters.atk ?? 0,
+          clean: notif.clean ? 1 : 0,
+          def: filters.def ?? 0,
+          distance: distanceMeters,
+          form,
+          gender: filters.gender ?? 0,
+          maxAtk: filters.maxAtk ?? 15,
+          maxCp: filters.maxCp ?? 9000,
+          maxDef: filters.maxDef ?? 15,
+          maxIv: filters.maxIv ?? 100,
+          maxLevel: filters.maxLevel ?? 55,
+          maxSize: filters.maxSize ?? 5,
+          maxSta: filters.maxSta ?? 15,
+          maxWeight: filters.maxWeight ?? 9000000,
+          minCp: filters.minCp ?? 0,
+          minIv: filters.minIv ?? 0,
+          minLevel: filters.minLevel ?? 0,
+          minWeight: filters.minWeight ?? 0,
+          ping: notif.ping || null,
+          pokemonId,
+          pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
+          pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
+          pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
+          pvpRankingMinCp: pvp.pvpRankingLeague ? (pvp.pvpRankingMinCp ?? 0) : 0,
+          pvpRankingWorst: pvp.pvpRankingLeague ? (pvp.pvpRankingWorst ?? 100) : 4096,
+          size: filters.size ?? -1,
+          sta: filters.sta ?? 0,
+          template: notif.template || null,
+        };
+        return this.monsterService.create(monster);
+      }),
+    );
 
     forkJoin(creates).subscribe({
       error: () => {
