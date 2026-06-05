@@ -93,7 +93,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 
     How the unified geofence feed works
 
-    [:octicons-arrow-right-24: Custom Geofences](features/custom-geofences.md)
+    [:octicons-arrow-right-24: Custom Geofences](features/custom-geofences/index.md)
 
 </div>
 
