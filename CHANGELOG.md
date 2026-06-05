@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.1] - 2026-06-05
+
 ### Fixed
 - **Base/regional-default Pokémon forms (e.g. Unova Stunfisk) were missing from the form picker** ([#323](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/323)): the *Form & Gender* form picker in the Pokémon add/edit dialogs is built from the WatWowMap masterfile in `MasterDataService.loadForms()`, which discarded every form named `Normal` (alongside the synthetic id-0 "any" pseudo-form). For most Pokémon that's harmless, but for a species with a regional variant the `Normal` entry **is** the original/base form (Stunfisk lists `Normal` id `2246` for Unova and `Galarian` id `2345`), so dropping it left only "All Forms" and "Galarian" — there was no way to alert on Unova Stunfisk alone (e.g. for PVP) without also catching Galarian. The loader now keeps all real forms (`form.id !== 0`, including `Normal`) and only drops a `Normal` form when it's a species' **lone** form — where the existing "All Forms" option already covers it — so base regional forms become selectable when a sibling variant exists, while species with just a base form stay uncluttered. Combined with the multi-select picker (#318), users can now target the base form, a regional variant, or both. Unit tests cover the keep-when-sibling and drop-when-lone cases.
 
@@ -583,7 +585,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.11.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.11.1...HEAD
+[2.11.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.10.0...v2.11.0
 [2.10.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.8.0...v2.9.0
