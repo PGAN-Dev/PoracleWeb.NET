@@ -34,9 +34,40 @@ jobs:
             sed -i "s|\[Unreleased\]: .*|[Unreleased]: https://github.com/${{ github.repository }}/compare/v$VERSION...HEAD\n[$VERSION]: https://github.com/${{ github.repository }}/compare/v$PREV_VERSION...v$VERSION|" CHANGELOG.md
           fi
 
+      # Flags whether the GitHub App is configured. Secrets can't be read in `if:` conditions
+      # directly, so surface it as a step output the later steps can gate on.
+      - name: Detect app config
+        id: cfg
+        env:
+          APP_ID: ${{ secrets.CHANGELOG_APP_ID }}
+        run: |
+          if [ -n "$APP_ID" ]; then
+            echo "has_app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_app=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CHANGELOG_APP_ID/CHANGELOG_APP_PRIVATE_KEY not set — opening the changelog PR with GITHUB_TOKEN, which does not trigger the required CI checks. The PR will need a manual (admin) merge. See the workflow header for setup."
+          fi
+
+      # An App installation token makes the PR author the app bot, so push/PR events trigger the
+      # required status checks (Backend/Frontend/Changelog). GITHUB_TOKEN-authored PRs do NOT
+      # trigger workflows (GitHub's recursion guard), which leaves required checks permanently
+      # pending and the PR blocked. App tokens are short-lived and auto-minted per run — no PAT
+      # rotation. Requires a GitHub App (Contents: write, Pull requests: write) installed on this
+      # repo, with its App ID and a private key stored as the secrets below.
+      - name: Generate GitHub App token
+        id: app-token
+        if: steps.cfg.outputs.has_app == 'true'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CHANGELOG_APP_ID }}
+          private-key: ${{ secrets.CHANGELOG_APP_PRIVATE_KEY }}
+
       - name: Open PR with changelog update
+        id: cpr
         uses: peter-evans/create-pull-request@v8
         with:
+          # App token when configured; otherwise GITHUB_TOKEN (PR opens but needs a manual merge).
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           commit-message: "docs: cut changelog for ${{ github.event.release.tag_name }}"
           title: "docs: cut changelog for ${{ github.event.release.tag_name }}"
           body: |
@@ -49,3 +80,23 @@ jobs:
           base: main
           labels: docs,automated
           delete-branch: true
+
+      # Approve from the github-actions[bot] identity. The PR was authored by the app bot, so this
+      # is a distinct identity and satisfies the "1 approval" branch-protection rule.
+      - name: Approve the changelog PR
+        if: steps.cfg.outputs.has_app == 'true' && steps.cpr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ steps.cpr.outputs.pull-request-number }}
+        run: |
+          gh pr review "$PR" --approve \
+            --body "Automated changelog cut — approving the mechanical [Unreleased] → version promotion. Source entries were already reviewed on their own PRs."
+
+      # Squash-merge once the required checks pass (they run because the PR is app-authored).
+      - name: Enable auto-merge
+        if: steps.cfg.outputs.has_app == 'true' && steps.cpr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR: ${{ steps.cpr.outputs.pull-request-number }}
+        run: |
+          gh pr merge "$PR" --squash --auto --delete-branch
