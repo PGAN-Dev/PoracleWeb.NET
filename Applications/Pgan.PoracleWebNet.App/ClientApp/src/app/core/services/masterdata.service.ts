@@ -159,7 +159,10 @@ export class MasterDataService {
 
         const grouped = new Map<number, { id: number; name: string }[]>();
         for (const entry of Object.values(monsters)) {
-          if (!entry.form || entry.form.id === 0 || entry.form.name === 'Normal') continue;
+          // Skip only the synthetic id-0 "any" pseudo-form. Real forms (including the
+          // base "Normal"/regional-default form, e.g. Unova Stunfisk) are kept so they
+          // can be tracked distinctly from regional variants like Galarian.
+          if (!entry.form || entry.form.id === 0) continue;
           const pokemonId = entry.id;
           if (!grouped.has(pokemonId)) {
             grouped.set(pokemonId, []);
@@ -168,6 +171,16 @@ export class MasterDataService {
           // Avoid duplicates
           if (!forms.some(f => f.id === entry.form!.id)) {
             forms.push({ id: entry.form.id, name: entry.form.name });
+          }
+        }
+
+        // Drop a lone "Normal" form: when a species' only real form is its base/regional
+        // default, the synthetic "All Forms" option already covers it, so listing it adds
+        // noise. Keep "Normal" only when sibling variants (Galarian, Alolan, etc.) exist
+        // so users can target the base form on its own.
+        for (const [pokemonId, forms] of grouped) {
+          if (forms.length === 1 && forms[0].name === 'Normal') {
+            grouped.delete(pokemonId);
           }
         }
 

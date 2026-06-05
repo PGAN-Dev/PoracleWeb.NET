@@ -123,5 +123,43 @@ describe('MasterDataService', () => {
     it('should return empty array for pokemon with no forms', () => {
       expect(service.getFormsForPokemon(1)).toEqual([]);
     });
+
+    it('should keep the base "Normal" form when a regional variant exists', () => {
+      service.loadData().subscribe();
+
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '618': 'Stunfisk' });
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock
+        .expectOne(req => req.url.includes('master-latest-poracle'))
+        .flush({
+          monsters: {
+            '618_0': { id: 618, name: 'Stunfisk', form: { id: 0, name: '' } },
+            '618_2246': { id: 618, name: 'Stunfisk', form: { id: 2246, name: 'Normal' } },
+            '618_2345': { id: 618, name: 'Stunfisk', form: { id: 2345, name: 'Galarian' } },
+          },
+        });
+
+      expect(service.getFormsForPokemon(618)).toEqual([
+        { id: 2345, name: 'Galarian' },
+        { id: 2246, name: 'Normal' },
+      ]);
+    });
+
+    it('should drop a lone "Normal" form covered by "All Forms"', () => {
+      service.loadData().subscribe();
+
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1': 'Bulbasaur' });
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock
+        .expectOne(req => req.url.includes('master-latest-poracle'))
+        .flush({
+          monsters: {
+            '1_0': { id: 1, name: 'Bulbasaur', form: { id: 0, name: '' } },
+            '1_123': { id: 1, name: 'Bulbasaur', form: { id: 123, name: 'Normal' } },
+          },
+        });
+
+      expect(service.getFormsForPokemon(1)).toEqual([]);
+    });
   });
 });
