@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-06-05
+
 ### Added
 - **Multi-select Pokémon forms in the alarm add dialog** ([#318](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/318)): the *Form & Gender* form picker in the Pokémon add dialog only let users pick **one** specific form or "All Forms", so tracking (e.g.) Meowth's Alola **and** Galarian forms while ignoring Kanto meant adding each alarm by hand. The picker is now a **multi-select** — selecting two forms creates two alarms, one per form. Because PoracleNG models `form` as a single integer per tracking entry (no array support on the wire), the dialog reuses its existing per-Pokémon fan-out (`forkJoin`) and now emits one `MonsterCreate` per **(Pokémon × selected form)** combination; the success snackbar reports the correct total. An empty selection means "all forms" (form `0`), matching the previous default — there's no separate "All Forms" option to mis-toggle, and a "Leave empty to match all forms" hint makes that explicit. No backend, mapping, DB, or PoracleNG change was needed: each form remains its own independent alarm with its own UID, so editing/deleting per-form afterward works through the normal list. Scope is the **add** dialog only — the edit dialog stays single-form, since splitting one existing alarm into several on edit is a different (create-plus-delete) operation. A new dedicated `forms` form control backs the multi-select, leaving the manual numeric form-id fallback (shown when masterfile form data is unavailable) on the original single-value `form` control. New `POKEMON.FORM_MULTI_HINT` i18n key added and translated across all 11 locales. Unit tests cover the fan-out, the empty=all-forms default, the numeric fallback, and the success-count snackbar.
 
@@ -578,7 +580,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.10.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.11.0...HEAD
+[2.11.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.10.0...v2.11.0
 [2.10.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.7.0...v2.8.0
