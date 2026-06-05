@@ -44,14 +44,19 @@ export class GeofenceNameDialogComponent {
   readonly dialogRef = inject(MatDialogRef<GeofenceNameDialogComponent>);
 
   displayName = '';
-  readonly manualSelect = signal(!this.data.detectedRegion);
-  readonly namePattern = /^[a-zA-Z0-9 \-'.()&]+$/;
-
   readonly regionOptions: RegionOption[] = this.data.regions.map(r => ({
     id: r.id,
     label: r.displayName,
     shortLabel: r.displayName,
   }));
+
+  // When Koji defines no regions (a flat project), there is nothing to pick — hide the region UI
+  // entirely rather than showing an empty dropdown (issue #314).
+  readonly hasRegions = this.regionOptions.length > 0;
+
+  readonly manualSelect = signal(!this.data.detectedRegion);
+
+  readonly namePattern = /^[a-zA-Z0-9 \-'.()&]+$/;
 
   selectedRegionId: number | null = this.data.detectedRegion?.id ?? null;
 
@@ -61,7 +66,9 @@ export class GeofenceNameDialogComponent {
 
   get isValid(): boolean {
     const name = this.displayName.trim();
-    return name.length > 0 && name.length <= 50 && !this.hasInvalidChars && this.selectedRegionId !== null;
+    // Region is optional: a private geofence does not need a Koji region. The region/parent is only
+    // used when an admin later promotes the geofence to a public Koji area. See issue #314.
+    return name.length > 0 && name.length <= 50 && !this.hasInvalidChars;
   }
 
   onChangeRegion(): void {
@@ -75,13 +82,13 @@ export class GeofenceNameDialogComponent {
   save(): void {
     if (!this.isValid) return;
 
-    const region = this.data.regions.find(r => r.id === this.selectedRegionId);
-    if (!region) return;
+    // Region is optional — fall back to an empty group / parentId 0 when none is selected.
+    const region = this.selectedRegionId !== null ? this.data.regions.find(r => r.id === this.selectedRegionId) : undefined;
 
     this.dialogRef.close({
       displayName: this.displayName.trim(),
-      groupName: region.displayName,
-      parentId: region.id,
+      groupName: region?.displayName ?? '',
+      parentId: region?.id ?? 0,
     } as GeofenceNameDialogResult);
   }
 }

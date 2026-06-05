@@ -61,3 +61,20 @@
 .full-width {
   width: 100%;
 }
+
+.region-section {
+  margin-top: 4px;
+}
+
+.region-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin-bottom: 4px;
+}
+
+.region-hint {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin: 0 0 8px;
+}

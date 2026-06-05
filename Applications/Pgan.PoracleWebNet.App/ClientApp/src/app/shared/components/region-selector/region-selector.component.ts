@@ -89,6 +89,12 @@ export class RegionSelectorComponent {
   }
 
   onOptionSelected(option: RegionOption): void {
+    // The "All Regions" sentinel has an empty label — treat it as a clear so the field returns to the
+    // search input rather than rendering a blank chip (issue #314).
+    if (!option.label) {
+      this.clearSelection();
+      return;
+    }
     this.selectedOption.set(option);
     this.searchText.set('');
     this.regionSelected.emit(option);

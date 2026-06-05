@@ -25,10 +25,11 @@ import { TranslateModule } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { firstValueFrom } from 'rxjs';
 
-import { GeofenceData, UserGeofence } from '../../../core/models';
+import { GeofenceData, GeofenceRegion, UserGeofence } from '../../../core/models';
 import { AdminGeofenceService } from '../../../core/services/admin-geofence.service';
 import { AreaService } from '../../../core/services/area.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
   GeofenceApprovalDialogComponent,
@@ -78,7 +79,9 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
 
   private observer: IntersectionObserver | null = null;
   private readonly referenceGeofences = signal<GeofenceData[]>([]);
+  private readonly regions = signal<GeofenceRegion[]>([]);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly userGeofenceService = inject(UserGeofenceService);
 
   readonly activeFilter = signal<string>('all');
   readonly allGeofences = signal<UserGeofence[]>([]);
@@ -234,6 +237,10 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
       .getGeofencePolygons()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(geofences => this.referenceGeofences.set(geofences));
+    this.userGeofenceService
+      .getRegions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => {}, next: regions => this.regions.set(regions) });
   }
 
   openDetailDialog(geofence: UserGeofence): void {
@@ -249,7 +256,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
   openReviewDialog(geofence: UserGeofence): void {
     const ref = this.dialog.open(GeofenceApprovalDialogComponent, {
       width: '480px',
-      data: { geofence } as GeofenceApprovalDialogData,
+      data: { geofence, regions: this.regions() } as GeofenceApprovalDialogData,
     });
 
     ref
@@ -260,7 +267,11 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
 
         if (result.action === 'approve') {
           this.adminGeofenceService
-            .approveSubmission(geofence.id, { promotedName: result.promotedName })
+            .approveSubmission(geofence.id, {
+              groupName: result.groupName,
+              parentId: result.parentId,
+              promotedName: result.promotedName,
+            })
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               error: () =>

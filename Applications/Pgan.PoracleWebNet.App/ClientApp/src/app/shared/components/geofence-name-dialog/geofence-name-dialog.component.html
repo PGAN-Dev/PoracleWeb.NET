@@ -12,27 +12,30 @@
     }
   </mat-form-field>
 
-  <div class="region-section">
-    <label class="region-label">{{ 'GEOFENCES.REGION_LABEL' | translate }}</label>
-    @if (!manualSelect()) {
-      <div class="detected-region">
-        <mat-chip-set>
-          <mat-chip highlighted>
-            <mat-icon matChipAvatar>map</mat-icon>
-            {{ data.detectedRegion!.displayName }}
-          </mat-chip>
-        </mat-chip-set>
-        <button mat-button color="primary" (click)="onChangeRegion()">{{ 'GEOFENCES.CHANGE_REGION' | translate }}</button>
-      </div>
-    } @else {
-      <app-region-selector
-        [regions]="regionOptions"
-        [label]="'GEOFENCES.SELECT_REGION' | translate"
-        [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
-        [selectedValue]="selectedRegionId"
-        (regionSelected)="onRegionPicked($event)"></app-region-selector>
-    }
-  </div>
+  @if (hasRegions) {
+    <div class="region-section">
+      <label class="region-label">{{ 'GEOFENCES.REGION_LABEL' | translate }}</label>
+      <p class="region-hint">{{ 'GEOFENCES.REGION_OPTIONAL_HINT' | translate }}</p>
+      @if (!manualSelect()) {
+        <div class="detected-region">
+          <mat-chip-set>
+            <mat-chip highlighted>
+              <mat-icon matChipAvatar>map</mat-icon>
+              {{ data.detectedRegion!.displayName }}
+            </mat-chip>
+          </mat-chip-set>
+          <button mat-button color="primary" (click)="onChangeRegion()">{{ 'GEOFENCES.CHANGE_REGION' | translate }}</button>
+        </div>
+      } @else {
+        <app-region-selector
+          [regions]="regionOptions"
+          [label]="'GEOFENCES.SELECT_REGION' | translate"
+          [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
+          [selectedValue]="selectedRegionId"
+          (regionSelected)="onRegionPicked($event)"></app-region-selector>
+      }
+    </div>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

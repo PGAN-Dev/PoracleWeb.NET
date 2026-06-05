@@ -90,7 +90,13 @@ nav:
       - Alarm Management: features/alarms.md
       - Profiles: features/profiles.md
       - Quest Summary Delivery: features/quest-summary-schedules.md
-      - Custom Geofences: features/custom-geofences.md
+      - Custom Geofences:
+          - Overview: features/custom-geofences/index.md
+          - Key Concepts: features/custom-geofences/key-concepts.md
+          - Koji & Regions: features/custom-geofences/koji-and-regions.md
+          - Private Geofences & Promotion: features/custom-geofences/private-and-promotion.md
+          - Admin Operations: features/custom-geofences/admin-operations.md
+          - Troubleshooting: features/custom-geofences/troubleshooting.md
       - Internationalization (i18n): features/internationalization.md
   - Development:
       - Testing: development/testing.md

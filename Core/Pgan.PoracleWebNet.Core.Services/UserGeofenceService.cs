@@ -338,7 +338,7 @@ public partial class UserGeofenceService(
 
     public async Task<List<UserGeofence>> GetPendingSubmissionsAsync() => await this._repository.GetByStatusAsync("pending_review");
 
-    public async Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName)
+    public async Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName, int? parentId = null, string? groupName = null)
     {
         // Validate promotedName with the same rules as display names
         if (promotedName != null)
@@ -368,6 +368,19 @@ public partial class UserGeofenceService(
 
         var polygon = JsonSerializer.Deserialize<double[][]>(geofence.PolygonJson)
             ?? throw new InvalidOperationException($"Failed to deserialize polygon for geofence '{geofence.KojiName}'.");
+
+        // The region (parent/group) is what makes a promoted geofence appear under a region in Koji and
+        // PoracleNG's area picker. End users may create a geofence without one (issue #314), so let the
+        // approving admin set/override it here. Null args mean "keep whatever the submission already had".
+        if (parentId.HasValue)
+        {
+            geofence.ParentId = parentId.Value;
+        }
+
+        if (groupName != null)
+        {
+            geofence.GroupName = groupName.Trim();
+        }
 
         // Save to Koji as a public geofence (userSelectable + displayInMatches = true)
         var targetName = promotedName ?? geofence.KojiName;

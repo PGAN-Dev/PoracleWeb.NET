@@ -105,15 +105,26 @@ describe('GeofenceNameDialogComponent', () => {
       expect(component.selectedRegionId).toBeNull();
     });
 
-    it('should be invalid when no region is selected even with a name', () => {
+    it('should be valid with a name and no region selected (region is optional, #314)', () => {
       component.displayName = 'My Fence';
-      expect(component.isValid).toBe(false);
+      expect(component.isValid).toBe(true);
     });
 
     it('should be valid when both name and region are set', () => {
       component.displayName = 'My Fence';
       component.selectedRegionId = 2;
       expect(component.isValid).toBe(true);
+    });
+
+    it('should save with empty group and parentId 0 when no region is selected (#314)', () => {
+      component.displayName = 'Region-less Fence';
+      component.save();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        displayName: 'Region-less Fence',
+        groupName: '',
+        parentId: 0,
+      } as GeofenceNameDialogResult);
     });
 
     it('should return correct result when region is manually selected', () => {
@@ -128,12 +139,16 @@ describe('GeofenceNameDialogComponent', () => {
       } as GeofenceNameDialogResult);
     });
 
-    it('should not save when selected region is not found in regions list', () => {
+    it('should save with empty group when selected region id is not in the regions list', () => {
       component.displayName = 'Test';
       component.selectedRegionId = 999;
       component.save();
 
-      expect(dialogRef.close).not.toHaveBeenCalled();
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        displayName: 'Test',
+        groupName: '',
+        parentId: 0,
+      } as GeofenceNameDialogResult);
     });
   });
 

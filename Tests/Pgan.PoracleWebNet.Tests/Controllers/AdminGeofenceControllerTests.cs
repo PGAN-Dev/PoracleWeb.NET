@@ -198,7 +198,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
             Status = "approved",
             PromotedName = "Downtown Official"
         };
-        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 1, "Downtown Official")).ReturnsAsync(approved);
+        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 1, "Downtown Official", null, null)).ReturnsAsync(approved);
 
         var result = await this._sut.ApproveSubmission(1, new AdminGeofenceController.ApproveRequest { PromotedName = "Downtown Official" });
 
@@ -209,7 +209,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task ApproveSubmissionReturnsNotFoundWhenNotFound()
     {
-        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 99, null))
+        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 99, null, null, null))
             .ThrowsAsync(new InvalidOperationException("Submission not found."));
 
         var result = await this._sut.ApproveSubmission(99, null);
@@ -232,12 +232,26 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     public async Task ApproveSubmissionPassesNullPromotedNameWhenRequestIsNull()
     {
         var approved = new UserGeofence { Id = 1, Status = "approved" };
-        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 1, null)).ReturnsAsync(approved);
+        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 1, null, null, null)).ReturnsAsync(approved);
 
         var result = await this._sut.ApproveSubmission(1, null);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        this._service.Verify(s => s.ApproveSubmissionAsync("123456789", 1, null), Times.Once);
+        this._service.Verify(s => s.ApproveSubmissionAsync("123456789", 1, null, null, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionForwardsRegionOverride()
+    {
+        var approved = new UserGeofence { Id = 1, Status = "approved" };
+        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 1, "Downtown Official", 42, "Downtown")).ReturnsAsync(approved);
+
+        var result = await this._sut.ApproveSubmission(
+            1,
+            new AdminGeofenceController.ApproveRequest { PromotedName = "Downtown Official", ParentId = 42, GroupName = "Downtown" });
+
+        Assert.IsType<OkObjectResult>(result);
+        this._service.Verify(s => s.ApproveSubmissionAsync("123456789", 1, "Downtown Official", 42, "Downtown"), Times.Once);
     }
 
     // --- RejectSubmission ---
