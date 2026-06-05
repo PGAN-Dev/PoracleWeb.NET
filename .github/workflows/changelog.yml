@@ -1,150 +1,72 @@
-name: Update Changelog
+name: Changelog Check
+
+# Verify-only: confirms a PR adds an entry under "## [Unreleased]" in CHANGELOG.md.
+# It never writes to the repo, so it cannot trip branch protection on `main`.
+# Replaces the old post-merge auto-writer, which always failed pushing to protected main
+# and risked duplicate entries. Release cuts are still handled by release-changelog.yml.
 
 on:
   pull_request:
-    types: [closed]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: [main]
 
-jobs:
-  update-changelog:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+permissions:
+  contents: read
 
+jobs:
+  changelog:
+    name: Changelog entry present
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: main
           fetch-depth: 0
 
-      - name: Categorize PR
-        id: categorize
+      - name: Require a CHANGELOG entry under [Unreleased]
+        env:
+          # Passed via env (not inlined) to avoid shell injection from PR titles/labels.
+          TITLE: ${{ github.event.pull_request.title }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          TITLE="${{ github.event.pull_request.title }}"
-          PR_NUM="${{ github.event.pull_request.number }}"
-          PR_URL="${{ github.event.pull_request.html_url }}"
+          set -euo pipefail
 
-          # Extract category from conventional commit prefix
-          if echo "$TITLE" | grep -qiE '^feat(\(.*\))?[!]?:'; then
-            CATEGORY="Added"
-          elif echo "$TITLE" | grep -qiE '^fix(\(.*\))?[!]?:'; then
-            CATEGORY="Fixed"
-          elif echo "$TITLE" | grep -qiE '^refactor(\(.*\))?[!]?:'; then
-            CATEGORY="Changed"
-          elif echo "$TITLE" | grep -qiE '^perf(\(.*\))?[!]?:'; then
-            CATEGORY="Changed"
-          elif echo "$TITLE" | grep -qiE '^breaking(\(.*\))?[!]?:'; then
-            CATEGORY="Changed"
-          elif echo "$TITLE" | grep -qiE '^deprecate(\(.*\))?[!]?:'; then
-            CATEGORY="Deprecated"
-          elif echo "$TITLE" | grep -qiE '^remove(\(.*\))?[!]?:'; then
-            CATEGORY="Removed"
-          elif echo "$TITLE" | grep -qiE '^security(\(.*\))?[!]?:'; then
-            CATEGORY="Security"
-          elif echo "$TITLE" | grep -qiE '^docs(\(.*\))?[!]?:'; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          elif echo "$TITLE" | grep -qiE '^(style|chore|ci|test)(\(.*\))?[!]?:'; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          else
-            CATEGORY="Changed"
-          fi
-
-          # Strip prefix from title for the entry text
-          ENTRY=$(echo "$TITLE" | sed -E 's/^[a-zA-Z]+(\(.*\))?[!]?:\s*//')
-
-          echo "category=$CATEGORY" >> "$GITHUB_OUTPUT"
-          echo "entry=$ENTRY" >> "$GITHUB_OUTPUT"
-          echo "pr_num=$PR_NUM" >> "$GITHUB_OUTPUT"
-          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-
-      - name: Update CHANGELOG.md
-        if: steps.categorize.outputs.skip != 'true'
-        run: |
-          CATEGORY="${{ steps.categorize.outputs.category }}"
-          ENTRY="${{ steps.categorize.outputs.entry }}"
-          PR_NUM="${{ steps.categorize.outputs.pr_num }}"
-          PR_URL="${{ steps.categorize.outputs.pr_url }}"
-
-          # Skip if this PR is already referenced in the [Unreleased] section
-          # (e.g., changelog was updated manually in the PR branch)
-          UNRELEASED_BLOCK=$(awk '/^## \[Unreleased\]/,/^## \[[0-9]/' CHANGELOG.md 2>/dev/null)
-          if echo "$UNRELEASED_BLOCK" | grep -qF "#$PR_NUM"; then
-            echo "PR #$PR_NUM already referenced in [Unreleased] — skipping auto-insert"
+          # 1) Exempt non-user-facing PR types (mirrors the previous skip set).
+          if printf '%s' "$TITLE" | grep -qiE '^(docs|style|chore|ci|test|build)(\(.*\))?[!]?:'; then
+            echo "Exempt PR type — skipping changelog check."
+            echo "  title: $TITLE"
             exit 0
           fi
 
-          # Check if CHANGELOG.md exists
-          if [ ! -f CHANGELOG.md ]; then
-            cat > CHANGELOG.md << 'INIT'
-          # Changelog
-
-          All notable changes to this project are documented in this file.
-
-          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
-          ## [Unreleased]
-          INIT
+          # 2) Manual escape hatch for legitimate exceptions.
+          if printf ',%s,' "$LABELS" | grep -q ',skip-changelog,'; then
+            echo "skip-changelog label present — skipping changelog check."
+            exit 0
           fi
 
-          # Use awk to insert entry under [Unreleased] only (not older release sections)
-          # Pass values via environment to avoid awk -v escaping issues with special characters
-          export AWK_CATEGORY="### $CATEGORY"
-          export AWK_ENTRY="- $ENTRY ([PR #$PR_NUM]($PR_URL))"
-          awk '
-          BEGIN { category=ENVIRON["AWK_CATEGORY"]; entry=ENVIRON["AWK_ENTRY"]; found_unreleased=0; inserted=0 }
-          /^## \[Unreleased\]/ { found_unreleased=1; print; next }
-          # If we hit the next version section, unreleased block is over
-          found_unreleased && /^## \[/ {
-            if (!inserted) {
-              print ""
-              print category
-              print entry
-              inserted=1
-            }
-            found_unreleased=0
-            print; next
+          # 3) Extract the [Unreleased] block from both sides of the PR.
+          unreleased() {
+            git show "$1:CHANGELOG.md" 2>/dev/null \
+              | awk '/^## \[Unreleased\]/{f=1; next} f && /^## \[/{f=0} f'
           }
-          # Found existing category header under [Unreleased]
-          found_unreleased && !inserted && $0 == category {
-            print
-            print entry
-            inserted=1
-            next
-          }
-          # Hit a different category or blank line before any matching category — insert new section before it
-          found_unreleased && !inserted && /^### / {
-            print category
-            print entry
-            print ""
-            inserted=1
-            print; next
-          }
-          { print }
-          END {
-            if (!inserted) {
-              print ""
-              print category
-              print entry
-            }
-          }
-          ' CHANGELOG.md > CHANGELOG.tmp
-          if [ -s CHANGELOG.tmp ]; then
-            mv CHANGELOG.tmp CHANGELOG.md
-          else
-            echo "::error::awk produced empty output — CHANGELOG.md not modified"
-            rm -f CHANGELOG.tmp
-            exit 1
+          base_block="$(unreleased "$BASE_SHA" || true)"
+          head_block="$(unreleased "$HEAD_SHA" || true)"
+
+          # 4) Top-level entries this PR newly adds under [Unreleased].
+          new_entries="$(comm -13 \
+            <(printf '%s\n' "$base_block" | grep -E '^- ' | sort -u) \
+            <(printf '%s\n' "$head_block" | grep -E '^- ' | sort -u) || true)"
+
+          if [ -n "$new_entries" ]; then
+            echo "Found new [Unreleased] entry/entries:"
+            printf '%s\n' "$new_entries"
+            exit 0
           fi
 
-      - name: Commit and push
-        if: steps.categorize.outputs.skip != 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git diff --cached --quiet || (git commit -m "docs: update changelog for PR #${{ github.event.pull_request.number }}" && git push)
+          echo "::error::This PR has no new entry under '## [Unreleased]' in CHANGELOG.md."
+          echo "Add a Keep a Changelog entry (e.g. under '### Fixed'), or:"
+          echo "  - use a 'docs|style|chore|ci|test|build:' PR title for non-user-facing changes, or"
+          echo "  - apply the 'skip-changelog' label for a legitimate exception."
+          exit 1
