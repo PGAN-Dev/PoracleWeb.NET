@@ -7,7 +7,7 @@ import {
   GeofenceApprovalDialogData,
   GeofenceApprovalDialogResult,
 } from './geofence-approval-dialog.component';
-import { UserGeofence } from '../../../core/models';
+import { GeofenceRegion, UserGeofence } from '../../../core/models';
 
 describe('GeofenceApprovalDialogComponent', () => {
   let component: GeofenceApprovalDialogComponent;
@@ -25,6 +25,11 @@ describe('GeofenceApprovalDialogComponent', () => {
     updatedAt: '2026-03-21T00:00:00Z',
   };
 
+  const regions: GeofenceRegion[] = [
+    { id: 5, name: 'city', displayName: 'City Center' },
+    { id: 7, name: 'suburbs', displayName: 'Suburbs' },
+  ];
+
   function setup(data?: Partial<GeofenceApprovalDialogData>) {
     dialogRef = { close: jest.fn() };
 
@@ -32,7 +37,7 @@ describe('GeofenceApprovalDialogComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
-        { provide: MAT_DIALOG_DATA, useValue: { geofence: mockGeofence, ...data } },
+        { provide: MAT_DIALOG_DATA, useValue: { geofence: mockGeofence, regions: [], ...data } },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
       imports: [GeofenceApprovalDialogComponent],
@@ -142,5 +147,66 @@ describe('GeofenceApprovalDialogComponent', () => {
 
   it('should initialize reviewNotes as empty string', () => {
     expect(component.reviewNotes).toBe('');
+  });
+
+  describe('region selection (#314)', () => {
+    it('should report hasRegions=false and omit region overrides when no regions exist', () => {
+      setup({ regions: [] });
+      component.promotedName = 'Downtown Official';
+      component.onApprove();
+
+      expect(component.hasRegions).toBe(false);
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        action: 'approve',
+        promotedName: 'Downtown Official',
+      } as GeofenceApprovalDialogResult);
+    });
+
+    it('should default the selected region to the submission parentId', () => {
+      setup({ regions });
+      expect(component.hasRegions).toBe(true);
+      expect(component.selectedRegionId).toBe(5);
+    });
+
+    it('should send the defaulted region on approve when untouched', () => {
+      setup({ regions });
+      component.promotedName = 'Downtown Official';
+      component.onApprove();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        action: 'approve',
+        groupName: 'City Center',
+        parentId: 5,
+        promotedName: 'Downtown Official',
+      } as GeofenceApprovalDialogResult);
+    });
+
+    it('should send the admin-chosen region override on approve', () => {
+      setup({ regions });
+      component.onRegionPicked({ id: 7, label: 'Suburbs' });
+      component.promotedName = 'Downtown';
+      component.onApprove();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        action: 'approve',
+        groupName: 'Suburbs',
+        parentId: 7,
+        promotedName: 'Downtown',
+      } as GeofenceApprovalDialogResult);
+    });
+
+    it('should send parentId 0 / empty group when the region is cleared', () => {
+      setup({ regions });
+      component.onRegionPicked({ label: '' });
+      component.promotedName = 'Downtown';
+      component.onApprove();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        action: 'approve',
+        groupName: '',
+        parentId: 0,
+        promotedName: 'Downtown',
+      } as GeofenceApprovalDialogResult);
+    });
   });
 });

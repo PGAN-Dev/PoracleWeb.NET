@@ -39,12 +39,16 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                             type = "Polygon",
                             coordinates = new[] { coordinates }
                         },
-                        properties = new Dictionary<string, object>
+                        properties = new Dictionary<string, object?>
                         {
                             ["__name"] = geofenceName,
                             ["__mode"] = "unset",
                             ["__projects"] = new[] { this._projectId },
-                            ["__parent"] = parentId,
+                            // Koji resolves __parent as a geofence id. Sending 0 makes Koji try to look up a
+                            // non-existent parent and return HTTP 500 ("[GEOFENCE]: Does not exist"), even though
+                            // it still persists the row. A region-less geofence (parentId 0, see issue #314) must
+                            // send null — Koji's native "no parent" representation — to save cleanly.
+                            ["__parent"] = parentId > 0 ? parentId : null,
                             ["name"] = displayName,
                             ["group"] = group,
                             ["parent"] = group,
@@ -295,12 +299,13 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
                             type = "Polygon",
                             coordinates = new[] { geoJsonCoords }
                         },
-                        properties = new Dictionary<string, object>
+                        properties = new Dictionary<string, object?>
                         {
                             ["__name"] = targetName,
                             ["__mode"] = "unset",
                             ["__projects"] = new[] { this._projectId },
-                            ["__parent"] = parentId,
+                            // Same null-parent guard as SaveGeofenceAsync: Koji 500s on __parent 0 ("does not exist").
+                            ["__parent"] = parentId > 0 ? parentId : null,
                             ["userSelectable"] = true,
                             ["displayInMatches"] = false,
                             ["name"] = displayName,

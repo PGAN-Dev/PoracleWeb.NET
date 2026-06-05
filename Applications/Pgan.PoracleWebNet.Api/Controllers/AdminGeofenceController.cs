@@ -77,7 +77,8 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
 
         try
         {
-            var result = await this._userGeofenceService.ApproveSubmissionAsync(this.UserId, id, request?.PromotedName);
+            var result = await this._userGeofenceService.ApproveSubmissionAsync(
+                this.UserId, id, request?.PromotedName, request?.ParentId, request?.GroupName);
             return this.Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -116,6 +117,18 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
     public class ApproveRequest
     {
         public string? PromotedName
+        {
+            get; set;
+        }
+
+        /// <summary>Optional Koji parent id to assign on promotion. Null keeps the submission's existing region.</summary>
+        public int? ParentId
+        {
+            get; set;
+        }
+
+        /// <summary>Optional Koji group/region display name to assign on promotion. Null keeps the existing value.</summary>
+        public string? GroupName
         {
             get; set;
         }

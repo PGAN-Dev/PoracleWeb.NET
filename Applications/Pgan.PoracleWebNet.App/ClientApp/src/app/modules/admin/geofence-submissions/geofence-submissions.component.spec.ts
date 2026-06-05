@@ -12,6 +12,7 @@ import { UserGeofence } from '../../../core/models';
 import { AdminGeofenceService } from '../../../core/services/admin-geofence.service';
 import { AreaService } from '../../../core/services/area.service';
 import { ConfigService } from '../../../core/services/config.service';
+import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 
 // Mock IntersectionObserver for jsdom
 global.IntersectionObserver = jest.fn().mockImplementation(() => ({
@@ -41,6 +42,7 @@ describe('GeofenceSubmissionsComponent', () => {
   let component: GeofenceSubmissionsComponent;
   let adminGeofenceService: { [K in keyof AdminGeofenceService]?: jest.Mock };
   let areaService: { getGeofencePolygons: jest.Mock };
+  let userGeofenceService: { getRegions: jest.Mock };
   let mockDialog: { open: jest.Mock };
   let mockSnackBar: { open: jest.Mock };
 
@@ -132,6 +134,10 @@ describe('GeofenceSubmissionsComponent', () => {
       getGeofencePolygons: jest.fn().mockReturnValue(of([])),
     };
 
+    userGeofenceService = {
+      getRegions: jest.fn().mockReturnValue(of([])),
+    };
+
     mockDialog = {
       open: jest.fn().mockReturnValue({ afterClosed: () => of(null) }),
     };
@@ -148,6 +154,7 @@ describe('GeofenceSubmissionsComponent', () => {
         provideHttpClientTesting(),
         { provide: AdminGeofenceService, useValue: adminGeofenceService },
         { provide: AreaService, useValue: areaService },
+        { provide: UserGeofenceService, useValue: userGeofenceService },
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
       ],
       imports: [NoopAnimationsModule],

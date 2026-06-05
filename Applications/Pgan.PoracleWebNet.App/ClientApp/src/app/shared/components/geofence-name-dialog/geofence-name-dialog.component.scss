@@ -11,8 +11,13 @@ mat-dialog-content {
 .region-label {
   font-size: 12px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   display: block;
+}
+.region-hint {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  margin: 0 0 8px;
 }
 .detected-region {
   display: flex;

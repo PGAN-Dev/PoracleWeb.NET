@@ -133,6 +133,18 @@ describe('RegionSelectorComponent', () => {
       expect(emitSpy).toHaveBeenCalledWith(option);
     });
 
+    it('should clear selection (not render a blank chip) when the "All Regions" sentinel is picked (#314)', () => {
+      const emitSpy = jest.spyOn(component.regionSelected, 'emit');
+      component.onOptionSelected({ id: 1, label: 'Test', shortLabel: 'Test' });
+      emitSpy.mockClear();
+
+      component.onOptionSelected({ label: '' });
+
+      expect(component.selectedOption()).toBeNull();
+      expect(component.searchText()).toBe('');
+      expect(emitSpy).toHaveBeenCalledWith({ label: '' });
+    });
+
     it('should clear selection and emit empty label on clearSelection', () => {
       const emitSpy = jest.spyOn(component.regionSelected, 'emit');
       component.onOptionSelected({ id: 1, label: 'Test', shortLabel: 'Test' });

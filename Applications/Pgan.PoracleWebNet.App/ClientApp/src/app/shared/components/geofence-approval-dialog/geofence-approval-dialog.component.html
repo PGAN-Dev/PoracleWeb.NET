@@ -37,6 +37,19 @@
       <input matInput [(ngModel)]="promotedName" [placeholder]="'ADMIN.APPROVAL_PROMOTED_NAME_PLACEHOLDER' | translate" />
       <mat-hint>{{ 'ADMIN.APPROVAL_PROMOTED_NAME_HINT' | translate }}</mat-hint>
     </mat-form-field>
+
+    @if (hasRegions) {
+      <div class="region-section">
+        <label class="region-label">{{ 'GEOFENCES.REGION_LABEL' | translate }}</label>
+        <p class="region-hint">{{ 'ADMIN.APPROVAL_REGION_HINT' | translate }}</p>
+        <app-region-selector
+          [regions]="regionOptions"
+          [label]="'GEOFENCES.SELECT_REGION' | translate"
+          [placeholder]="'GEOFENCES.SEARCH_REGIONS' | translate"
+          [selectedValue]="selectedRegionId"
+          (regionSelected)="onRegionPicked($event)"></app-region-selector>
+      </div>
+    }
   }
 
   @if (mode === 'reject') {

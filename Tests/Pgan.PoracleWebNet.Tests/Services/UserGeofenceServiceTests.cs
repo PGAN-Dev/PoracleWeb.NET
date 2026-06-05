@@ -354,6 +354,64 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
+    public async Task ApproveSubmissionAsyncAppliesAdminRegionOverride()
+    {
+        // A geofence created without a region (parentId 0, empty group) — issue #314 — that the admin
+        // assigns a region to at approval time.
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
+        var geofence = new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            GroupName = string.Empty,
+            ParentId = 0,
+            Status = "pending_review",
+            PolygonJson = JsonSerializer.Serialize(polygon)
+        };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        UserGeofence? saved = null;
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) =>
+        {
+            saved = g;
+            return g;
+        });
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: 42, groupName: "City");
+
+        // Override is sent to Koji and persisted on the record.
+        this._kojiService.Verify(k => k.SaveGeofenceAsync("downtown", "Downtown", "City", 42, It.IsAny<double[][]>(), true), Times.Once);
+        Assert.NotNull(saved);
+        Assert.Equal(42, saved!.ParentId);
+        Assert.Equal("City", saved.GroupName);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncKeepsExistingRegionWhenOverrideOmitted()
+    {
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
+        var geofence = new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            GroupName = "City",
+            ParentId = 5,
+            Status = "pending_review",
+            PolygonJson = JsonSerializer.Serialize(polygon)
+        };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, null);
+
+        // Null override args leave the submission's region untouched.
+        this._kojiService.Verify(k => k.SaveGeofenceAsync("downtown", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
+    }
+
+    [Fact]
     public async Task ApproveSubmissionAsyncUsesPromotedNameForKoji()
     {
         var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
