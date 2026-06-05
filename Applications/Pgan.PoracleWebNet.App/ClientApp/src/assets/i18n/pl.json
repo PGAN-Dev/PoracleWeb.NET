@@ -228,6 +228,7 @@
     "FILTER_FORM_GENDER": "Forma i płeć",
     "LABEL_FORM": "Forma",
     "ALL_FORMS": "Wszystkie formy",
+    "FORM_MULTI_HINT": "Pozostaw puste, aby uwzględnić wszystkie formy",
     "LABEL_GENDER": "Płeć",
     "GENDER_ALL": "Wszystkie",
     "GENDER_MALE": "Samiec",

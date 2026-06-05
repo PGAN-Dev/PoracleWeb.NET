@@ -228,6 +228,7 @@
     "FILTER_FORM_GENDER": "Form og køn",
     "LABEL_FORM": "Form",
     "ALL_FORMS": "Alle former",
+    "FORM_MULTI_HINT": "Lad stå tomt for at matche alle former",
     "LABEL_GENDER": "Køn",
     "GENDER_ALL": "Alle",
     "GENDER_MALE": "Han",

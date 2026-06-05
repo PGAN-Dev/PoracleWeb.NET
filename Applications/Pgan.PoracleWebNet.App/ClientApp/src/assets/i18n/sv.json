@@ -228,6 +228,7 @@
     "FILTER_FORM_GENDER": "Form och kön",
     "LABEL_FORM": "Form",
     "ALL_FORMS": "Alla former",
+    "FORM_MULTI_HINT": "Lämna tomt för att matcha alla former",
     "LABEL_GENDER": "Kön",
     "GENDER_ALL": "Alla",
     "GENDER_MALE": "Hane",

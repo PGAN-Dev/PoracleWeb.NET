@@ -228,6 +228,7 @@
     "FILTER_FORM_GENDER": "Vorm & Geslacht",
     "LABEL_FORM": "Vorm",
     "ALL_FORMS": "Alle Vormen",
+    "FORM_MULTI_HINT": "Laat leeg om alle vormen op te nemen",
     "LABEL_GENDER": "Geslacht",
     "GENDER_ALL": "Alle",
     "GENDER_MALE": "Mannelijk",
