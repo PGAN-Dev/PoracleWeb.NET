@@ -6,6 +6,12 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+  # Rebuild when a release is published so the mkdocs-material version badge
+  # (fetched at build time from the GitHub Releases API) stays current even
+  # when a release touches only code/CHANGELOG and not docs/.
+  release:
+    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
