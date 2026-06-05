@@ -19,11 +19,14 @@ Runs on push to `main`:
 
 ## changelog.yml
 
-Runs on merged PRs:
+Runs on every PR to `main` as a **verify-only check** (it never writes to the repo):
 
-- Extracts the PR title and categorizes using conventional commit prefixes (`feat`, `fix`, `refactor`, `docs`, etc.)
-- Inserts the entry into the `[Unreleased]` section of `CHANGELOG.md`
-- Commits the update automatically
+- Confirms the PR adds an entry under the `## [Unreleased]` section of `CHANGELOG.md`.
+- **Exempt** PR types (no entry required): titles prefixed `docs:`, `style:`, `chore:`, `ci:`, `test:`, or `build:`.
+- **Escape hatch:** apply the `skip-changelog` label for a legitimate exception (re-runs automatically when the label is added).
+- Fails with a clear message if a user-facing PR is missing its `[Unreleased]` entry, so it's caught **before** merge.
+
+> Maintain `CHANGELOG.md` manually in each PR using the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format — add your entry under `## [Unreleased]` (e.g. beneath `### Added` / `### Fixed`).
 
 ## release-changelog.yml
 
