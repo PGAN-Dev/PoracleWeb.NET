@@ -284,6 +284,19 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    color: '#7c4dff',
+    icon: 'vpn_key',
+    labelKey: 'ADMIN_SETTINGS.GROUP_OIDC',
+    settings: [
+      {
+        descriptionKey: 'ADMIN_SETTINGS.ENABLE_OIDC_DESC',
+        key: 'enable_oidc',
+        labelKey: 'ADMIN_SETTINGS.ENABLE_OIDC_LABEL',
+        type: 'boolean',
+      },
+    ],
+  },
+  {
     color: '#2e7d32',
     icon: 'map',
     labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',

@@ -62,6 +62,21 @@ export class LoginComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
 
+  /** Whether a generic external OIDC provider is configured in the server's .env / appsettings. */
+  protected readonly oidcConfigured = signal(false);
+
+  /** Whether OIDC login is enabled by the admin (site setting `enable_oidc`). */
+  protected readonly oidcEnabledByAdmin = signal(true);
+
+  /** Computed: can the user actually use OIDC login without admin rejection? */
+  protected readonly oidcActive = computed(() => this.oidcConfigured() && this.oidcEnabledByAdmin());
+
+  /** Display name of the configured OIDC provider, shown on the button. */
+  protected readonly oidcProviderName = signal('');
+
+  /** Computed: should the OIDC button be shown at all? Only if configured in .env. */
+  protected readonly oidcVisible = computed(() => this.oidcConfigured());
+
   protected readonly signupUrl = computed(() => {
     return this.settingsService.siteSettings()['signup_url'] || null;
   });
@@ -103,6 +118,12 @@ export class LoginComponent implements OnInit {
     this.auth.loginWithDiscord();
   }
 
+  loginWithOidc(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.auth.loginWithOidc();
+  }
+
   ngOnInit(): void {
     // Load public site settings (custom_title, signup_url) and provider config in parallel.
     // Both calls use a 10s timeout and fallback to defaults on error so the login page
@@ -135,6 +156,10 @@ export class LoginComponent implements OnInit {
     const errorCode = fragmentParams.get('error');
     if (errorCode) {
       const errorKeys: Record<string, string> = {
+        oidc_disabled: 'AUTH.ERR_OIDC_DISABLED',
+        oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
+        oidc_token_exchange_failed: 'AUTH.ERR_OIDC_TOKEN_EXCHANGE',
+        oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
         discord_disabled: 'AUTH.ERR_DISCORD_DISABLED',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
@@ -168,6 +193,13 @@ export class LoginComponent implements OnInit {
     this.telegramBotUsername = providers.telegram.botUsername;
     this.telegramConfigured.set(providers.telegram.configured);
     this.telegramEnabledByAdmin.set(providers.telegram.enabledByAdmin);
+
+    // OIDC (generic external SSO provider) — optional; older API responses omit it.
+    if (providers.oidc) {
+      this.oidcConfigured.set(providers.oidc.configured);
+      this.oidcEnabledByAdmin.set(providers.oidc.enabledByAdmin);
+      this.oidcProviderName.set(providers.oidc.providerName);
+    }
   }
 
   private handleTelegramAuth(telegramData: Record<string, string>): void {

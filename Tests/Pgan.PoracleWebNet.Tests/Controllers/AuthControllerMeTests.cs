@@ -34,6 +34,7 @@ public class AuthControllerMeTests : ControllerTestBase
             this._jwtService.Object,
             Options.Create(new DiscordSettings()),
             Options.Create(new TelegramSettings()),
+            Options.Create(new OidcSettings()),
             Options.Create(new PoracleSettings()),
             config,
             new Mock<ILogger<AuthController>>().Object);

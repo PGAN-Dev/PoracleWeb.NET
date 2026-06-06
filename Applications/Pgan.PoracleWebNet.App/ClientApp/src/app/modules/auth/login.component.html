@@ -53,7 +53,23 @@
               }
             }
 
-            @if (!discordVisible() && !telegramVisible()) {
+            @if ((discordVisible() || telegramVisible()) && oidcVisible()) {
+              <div class="divider">
+                <span>{{ 'AUTH.OR' | translate }}</span>
+              </div>
+            }
+
+            @if (oidcVisible()) {
+              <button class="auth-btn oidc-btn" (click)="loginWithOidc()" [disabled]="loading()">
+                <mat-icon class="auth-icon">login</mat-icon>
+                {{ 'AUTH.SIGN_IN_OIDC' | translate: { provider: oidcProviderName() } }}
+              </button>
+              @if (!oidcActive()) {
+                <p class="provider-disabled-hint">{{ 'AUTH.PROVIDER_DISABLED_HINT' | translate }}</p>
+              }
+            }
+
+            @if (!discordVisible() && !telegramVisible() && !oidcVisible()) {
               <div class="no-methods-message">
                 <mat-icon>lock_outline</mat-icon>
                 <span>{{ 'AUTH.NO_METHODS' | translate }}</span>

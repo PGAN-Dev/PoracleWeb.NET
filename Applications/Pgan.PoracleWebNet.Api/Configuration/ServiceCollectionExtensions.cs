@@ -156,6 +156,7 @@ public static class ServiceCollectionExtensions
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));
         services.Configure<TelegramSettings>(configuration.GetSection("Telegram"));
+        services.Configure<OidcSettings>(configuration.GetSection("Oidc"));
         services.Configure<PoracleSettings>(configuration.GetSection("Poracle"));
         services.Configure<KojiSettings>(configuration.GetSection("Koji"));
 

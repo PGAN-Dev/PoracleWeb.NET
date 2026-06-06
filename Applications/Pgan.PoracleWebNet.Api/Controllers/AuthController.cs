@@ -23,12 +23,14 @@ public partial class AuthController(
     IJwtService jwtService,
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
+    IOptions<OidcSettings> oidcSettings,
     IOptions<PoracleSettings> poracleSettings,
     IConfiguration configuration,
     ILogger<AuthController> logger) : BaseApiController
 {
     private const string EnableDiscordKey = "enable_discord";
     private const string EnableTelegramKey = "enable_telegram";
+    private const string EnableOidcKey = "enable_oidc";
 
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
@@ -38,6 +40,7 @@ public partial class AuthController(
     private readonly IJwtService _jwtService = jwtService;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
+    private readonly OidcSettings _oidcSettings = oidcSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly ILogger<AuthController> _logger = logger;
@@ -213,6 +216,218 @@ public partial class AuthController(
     }
 
     [AllowAnonymous]
+    [HttpGet("oidc/login")]
+    public IActionResult OidcLogin()
+    {
+        // Generic external OIDC/OAuth2 provider — a configurable twin of the Discord flow.
+        // No early enable_oidc gate here: admins must be able to log in even when the
+        // provider is disabled for regular users. The check runs in OidcCallback() once
+        // we know whether the user is an admin (mirrors Discord).
+        if (!this.OidcConfigured())
+        {
+            return this.NotFound(new
+            {
+                error = "External login provider is not configured."
+            });
+        }
+
+        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+        var isHttps = string.Equals(this.Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isHttps,
+            SameSite = SameSiteMode.Lax,
+            MaxAge = TimeSpan.FromMinutes(10)
+        };
+
+        this.Response.Cookies.Append("oauth_state", state, cookieOptions);
+
+        // Save the frontend origin (validated against CORS origins) so the callback knows
+        // where to redirect — identical handling to DiscordLogin.
+        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var origin = selfOrigin;
+
+        var referer = this.Request.Headers.Referer.FirstOrDefault();
+        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+        {
+            var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
+            if (this._allowedOrigins.Length > 0
+                ? this._allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
+                : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
+            {
+                origin = refererOrigin;
+            }
+        }
+
+        this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
+
+        var callbackUri = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/oidc/callback";
+
+        var query = new Dictionary<string, string?>
+        {
+            ["client_id"] = this._oidcSettings.ClientId,
+            ["redirect_uri"] = callbackUri,
+            ["response_type"] = "code",
+            ["scope"] = string.IsNullOrWhiteSpace(this._oidcSettings.Scopes) ? "openid" : this._oidcSettings.Scopes,
+            ["state"] = state,
+        };
+
+        if (this._oidcSettings.UsePkce)
+        {
+            // PKCE: store the verifier in an HttpOnly cookie and send only the S256 challenge.
+            var codeVerifier = Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+            var challenge = Base64UrlEncode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
+            this.Response.Cookies.Append("oauth_pkce_verifier", codeVerifier, cookieOptions);
+            query["code_challenge"] = challenge;
+            query["code_challenge_method"] = "S256";
+        }
+
+        return this.Redirect(BuildUrlWithQuery(this._oidcSettings.AuthorizationUrl, query));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("oidc/callback")]
+    public async Task<IActionResult> OidcCallback([FromQuery] string code, [FromQuery] string? state)
+    {
+        var frontendUrl = this.GetFrontendUrl();
+
+        // Validate OAuth state parameter for CSRF protection
+        var savedState = this.Request.Cookies["oauth_state"];
+        this.Response.Cookies.Delete("oauth_state");
+
+        var pkceVerifier = this.Request.Cookies["oauth_pkce_verifier"];
+        this.Response.Cookies.Delete("oauth_pkce_verifier");
+
+        if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(savedState) || state != savedState)
+        {
+            return this.BadRequest(new
+            {
+                error = "Invalid OAuth state. Possible CSRF attack."
+            });
+        }
+
+        if (!this.OidcConfigured())
+        {
+            return this.Redirect($"{frontendUrl}/login#error=oidc_disabled");
+        }
+
+        if (string.IsNullOrEmpty(code))
+        {
+            return this.Redirect($"{frontendUrl}/login#error=missing_code");
+        }
+
+        using var httpClient = new HttpClient();
+
+        // Exchange the authorization code for an access token
+        var tokenForm = new Dictionary<string, string>
+        {
+            ["grant_type"] = "authorization_code",
+            ["code"] = code,
+            ["redirect_uri"] = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/oidc/callback",
+            ["client_id"] = this._oidcSettings.ClientId,
+            ["client_secret"] = this._oidcSettings.ClientSecret,
+        };
+
+        if (this._oidcSettings.UsePkce && !string.IsNullOrEmpty(pkceVerifier))
+        {
+            tokenForm["code_verifier"] = pkceVerifier;
+        }
+
+        var tokenResponse = await httpClient.PostAsync(this._oidcSettings.TokenUrl, new FormUrlEncodedContent(tokenForm));
+        if (!tokenResponse.IsSuccessStatusCode)
+        {
+            var errorBody = await tokenResponse.Content.ReadAsStringAsync();
+            LogOidcTokenExchangeFailed(this._logger, tokenResponse.StatusCode, errorBody);
+            return this.Redirect($"{frontendUrl}/login#error=oidc_token_exchange_failed");
+        }
+
+        var tokenJson = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
+        if (!tokenJson.TryGetProperty("access_token", out var accessTokenProp) ||
+            accessTokenProp.GetString() is not { Length: > 0 } accessToken)
+        {
+            return this.Redirect($"{frontendUrl}/login#error=oidc_token_exchange_failed");
+        }
+
+        // Fetch the user's claims from the UserInfo endpoint
+        httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var userResponse = await httpClient.GetAsync(this._oidcSettings.UserInfoUrl);
+        if (!userResponse.IsSuccessStatusCode)
+        {
+            var errorBody = await userResponse.Content.ReadAsStringAsync();
+            LogOidcUserInfoFailed(this._logger, userResponse.StatusCode, errorBody);
+            return this.Redirect($"{frontendUrl}/login#error=oidc_userinfo_failed");
+        }
+
+        var userInfoJson = await userResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        // The identity claim maps to the Poracle human id (a Discord/Telegram id).
+        // Fall back to the standard OIDC `sub` claim when the configured claim is absent.
+        var identity = GetClaimString(userInfoJson, this._oidcSettings.IdentityClaim)
+                       ?? GetClaimString(userInfoJson, "sub");
+        if (string.IsNullOrEmpty(identity))
+        {
+            return this.Redirect($"{frontendUrl}/login#error=oidc_no_identity");
+        }
+
+        var username = GetClaimString(userInfoJson, this._oidcSettings.UsernameClaim) ?? identity;
+        var avatarUrl = GetClaimString(userInfoJson, this._oidcSettings.AvatarClaim);
+
+        // Look up user in DB
+        var human = await this._humanService.GetByIdAsync(identity);
+        if (human == null)
+        {
+            return this.Redirect($"{frontendUrl}/login#error=user_not_registered");
+        }
+
+        var (isAdmin, managedWebhooks) = await this.GetRolesAsync(identity);
+        if (!isAdmin)
+        {
+            // Enforce enable_oidc site setting for non-admin users.
+            // Admins can always log in so they can re-enable the setting.
+            var oidcSetting = await this._siteSettingService.GetValueAsync(EnableOidcKey);
+            if (string.Equals(oidcSetting, "false", StringComparison.OrdinalIgnoreCase))
+            {
+                LogAuthMethodDisabled(this._logger, "OIDC");
+                return this.Redirect($"{frontendUrl}/login#error=oidc_disabled");
+            }
+
+            // Reuse Discord guild role gating when the identity is a Discord id.
+            var roleCheckResult = await this.CheckRoleAccessAsync(identity);
+            if (roleCheckResult != null)
+            {
+                return this.Redirect($"{frontendUrl}/login#error={roleCheckResult}");
+            }
+        }
+
+        var userInfo = new UserInfo
+        {
+            Id = identity,
+            Username = username,
+            Type = string.IsNullOrEmpty(this._oidcSettings.IdentityType) ? "discord:user" : this._oidcSettings.IdentityType,
+            IsAdmin = isAdmin,
+            AdminDisable = human.AdminDisable == 1,
+            Enabled = human.Enabled == 1 && human.AdminDisable == 0,
+            ProfileNo = human.CurrentProfileNo,
+            AvatarUrl = avatarUrl,
+            ManagedWebhooks = managedWebhooks
+        };
+
+        if (!string.IsNullOrEmpty(avatarUrl))
+        {
+            Services.AvatarCacheService.SetAvatar(identity, avatarUrl);
+            Services.AvatarCacheService.Save();
+        }
+
+        var jwt = this._jwtService.GenerateToken(userInfo);
+
+        return this.Redirect($"{frontendUrl}/auth/oidc/callback#token={jwt}");
+    }
+
+    [AllowAnonymous]
     [HttpPost("telegram/verify")]
     public async Task<IActionResult> TelegramVerify([FromBody] Dictionary<string, string> telegramData)
     {
@@ -376,6 +591,11 @@ public partial class AuthController(
         var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
         var telegramDisabledByAdmin = string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase);
 
+        // Generic external OIDC provider — "configured" requires the full server-side config.
+        var oidcConfigured = this.OidcConfigured();
+        var oidcSetting = await this._siteSettingService.GetValueAsync(EnableOidcKey);
+        var oidcDisabledByAdmin = string.Equals(oidcSetting, "false", StringComparison.OrdinalIgnoreCase);
+
         return this.Ok(new
         {
             discord = new
@@ -388,6 +608,12 @@ public partial class AuthController(
                 configured = telegramConfigured,
                 enabledByAdmin = !telegramDisabledByAdmin,
                 botUsername = telegramConfigured ? this._telegramSettings.BotUsername : string.Empty,
+            },
+            oidc = new
+            {
+                configured = oidcConfigured,
+                enabledByAdmin = !oidcDisabledByAdmin,
+                providerName = oidcConfigured ? this._oidcSettings.ProviderName : string.Empty,
             },
         });
     }
@@ -672,6 +898,55 @@ public partial class AuthController(
         return $"{this.Request.Scheme}://{this.Request.Host}";
     }
 
+    /// <summary>
+    /// The external OIDC provider is "configured" only when enabled and the full set of
+    /// endpoints plus a client id is present. Mirrors the Discord "configured" check.
+    /// </summary>
+    private bool OidcConfigured() =>
+        this._oidcSettings.Enabled
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.AuthorizationUrl)
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.TokenUrl)
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.UserInfoUrl)
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.ClientId);
+
+    /// <summary>
+    /// Reads a UserInfo claim as a string, tolerating both string and numeric JSON values
+    /// (e.g. a numeric <c>sub</c>). Returns null when absent or empty.
+    /// </summary>
+    private static string? GetClaimString(JsonElement userInfo, string claim)
+    {
+        if (string.IsNullOrEmpty(claim) || !userInfo.TryGetProperty(claim, out var prop))
+        {
+            return null;
+        }
+
+        var value = prop.ValueKind switch
+        {
+            JsonValueKind.String => prop.GetString(),
+            JsonValueKind.Number => prop.GetRawText(),
+            _ => null
+        };
+
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
+
+    /// <summary>Base64url encoding without padding (RFC 7636), for PKCE verifier/challenge.</summary>
+    private static string Base64UrlEncode(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    /// <summary>
+    /// Appends query parameters to a base URL, preserving any existing query string the
+    /// admin-configured authorization endpoint may already carry. Values are URL-encoded.
+    /// </summary>
+    private static string BuildUrlWithQuery(string baseUrl, IDictionary<string, string?> parameters)
+    {
+        var present = parameters
+            .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(baseUrl, present);
+    }
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Role-based access enabled but Discord BotToken or GuildId not configured.")]
     private static partial void LogRoleMisconfigured(ILogger logger);
 
@@ -689,6 +964,12 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Discord token exchange failed: {Status} {Body}")]
     private static partial void LogDiscordTokenExchangeFailed(ILogger logger, System.Net.HttpStatusCode status, string body);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "OIDC token exchange failed: {Status} {Body}")]
+    private static partial void LogOidcTokenExchangeFailed(ILogger logger, System.Net.HttpStatusCode status, string body);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "OIDC userinfo fetch failed: {Status} {Body}")]
+    private static partial void LogOidcUserInfoFailed(ILogger logger, System.Net.HttpStatusCode status, string body);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
     private static partial void LogPoracleConfigFetchFailed(ILogger logger, Exception ex, string userId);

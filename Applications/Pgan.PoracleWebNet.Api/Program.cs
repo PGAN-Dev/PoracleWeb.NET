@@ -57,6 +57,19 @@ MapEnvVar("DISCORD_GEOFENCE_FORUM_CHANNEL_ID", "Discord__GeofenceForumChannelId"
 MapEnvVar("TELEGRAM_ENABLED", "Telegram__Enabled");
 MapEnvVar("TELEGRAM_BOT_TOKEN", "Telegram__BotToken");
 MapEnvVar("TELEGRAM_BOT_USERNAME", "Telegram__BotUsername");
+MapEnvVar("OIDC_ENABLED", "Oidc__Enabled");
+MapEnvVar("OIDC_PROVIDER_NAME", "Oidc__ProviderName");
+MapEnvVar("OIDC_AUTHORIZATION_URL", "Oidc__AuthorizationUrl");
+MapEnvVar("OIDC_TOKEN_URL", "Oidc__TokenUrl");
+MapEnvVar("OIDC_USERINFO_URL", "Oidc__UserInfoUrl");
+MapEnvVar("OIDC_CLIENT_ID", "Oidc__ClientId");
+MapEnvVar("OIDC_CLIENT_SECRET", "Oidc__ClientSecret");
+MapEnvVar("OIDC_SCOPES", "Oidc__Scopes");
+MapEnvVar("OIDC_IDENTITY_CLAIM", "Oidc__IdentityClaim");
+MapEnvVar("OIDC_USERNAME_CLAIM", "Oidc__UsernameClaim");
+MapEnvVar("OIDC_AVATAR_CLAIM", "Oidc__AvatarClaim");
+MapEnvVar("OIDC_IDENTITY_TYPE", "Oidc__IdentityType");
+MapEnvVar("OIDC_USE_PKCE", "Oidc__UsePkce");
 MapEnvVar("PORACLE_API_ADDRESS", "Poracle__ApiAddress");
 MapEnvVar("PORACLE_API_SECRET", "Poracle__ApiSecret");
 MapEnvVar("PORACLE_ADMIN_IDS", "Poracle__AdminIds");
@@ -85,6 +98,18 @@ if (string.IsNullOrEmpty(telegramEnabled)
     && !string.IsNullOrEmpty(telegramUsername))
 {
     Environment.SetEnvironmentVariable("Telegram__Enabled", "true");
+}
+
+// Auto-infer OIDC__Enabled=true when the full provider config is present but Enabled was
+// not explicitly set — same first-time-setup safeguard as Telegram above.
+var oidcEnabled = Environment.GetEnvironmentVariable("Oidc__Enabled");
+if (string.IsNullOrEmpty(oidcEnabled)
+    && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Oidc__ClientId"))
+    && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Oidc__AuthorizationUrl"))
+    && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Oidc__TokenUrl"))
+    && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Oidc__UserInfoUrl")))
+{
+    Environment.SetEnvironmentVariable("Oidc__Enabled", "true");
 }
 
 // Reload configuration after env var bridging

@@ -46,6 +46,7 @@ describe('LoginComponent', () => {
           provide: AuthService,
           useValue: {
             getProviders: jest.fn(() => (opts?.providersError ? throwError(() => new Error('fail')) : of(providers))),
+            loginWithOidc: jest.fn(),
             getTelegramConfig: jest.fn(() => of({ botUsername: '', enabled: false })),
             isLoggedIn: jest.fn(() => false),
             loginWithDiscord: jest.fn(),
@@ -141,6 +142,54 @@ describe('LoginComponent', () => {
       const btn = fixture.nativeElement.querySelector('.telegram-btn');
       expect(widget).toBeNull();
       expect(btn).toBeNull();
+    });
+
+    it('should show OIDC button when configured and enabled', () => {
+      setup({
+        providers: {
+          oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: true },
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const btn = fixture.nativeElement.querySelector('.oidc-btn');
+      expect(btn).toBeTruthy();
+      expect(btn.disabled).toBe(false);
+      expect(component['oidcProviderName']()).toBe('PogoAlerts');
+    });
+
+    it('should show OIDC button with hint when configured but admin-disabled', () => {
+      setup({
+        providers: {
+          oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: false },
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.oidc-btn')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.provider-disabled-hint')).toBeTruthy();
+    });
+
+    it('should hide OIDC button when not configured', () => {
+      setup();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.oidc-btn')).toBeNull();
+    });
+
+    it('should delegate to AuthService.loginWithOidc on click', () => {
+      setup({
+        providers: {
+          oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: true },
+          discord: { configured: false, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const auth = TestBed.inject(AuthService);
+      fixture.nativeElement.querySelector('.oidc-btn').click();
+      expect(auth.loginWithOidc).toHaveBeenCalled();
     });
   });
 

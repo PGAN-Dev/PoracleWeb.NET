@@ -86,6 +86,9 @@ public partial class SettingsMigrationService(
         ["telegram_bot"] = "telegram",
         ["telegram_bot_token"] = "telegram",
 
+        // oidc (generic external SSO provider)
+        ["enable_oidc"] = "oidc",
+
         // maps
         ["provider_url"] = "maps",
 
@@ -120,6 +123,7 @@ public partial class SettingsMigrationService(
         "disable_profiles", "disable_location", "disable_nominatim",
         "disable_geomap", "disable_geomap_select", "disable_user_geofences",
         "enable_templates", "enable_roles", "enable_telegram", "enable_discord",
+        "enable_oidc",
         "hide_header_logo", "site_is_https", "debug",
     };
 

@@ -115,6 +115,10 @@ export class AuthService {
     window.location.href = `${this.config.apiHost}/api/auth/discord/login`;
   }
 
+  loginWithOidc(): void {
+    window.location.href = `${this.config.apiHost}/api/auth/oidc/login`;
+  }
+
   loginWithTelegram(telegramData: Record<string, string>): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${this.config.apiHost}/api/auth/telegram/verify`, telegramData)

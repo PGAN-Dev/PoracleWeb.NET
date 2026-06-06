@@ -318,8 +318,14 @@ export interface TelegramProviderStatus extends AuthProviderStatus {
   botUsername: string;
 }
 
+export interface OidcProviderStatus extends AuthProviderStatus {
+  providerName: string;
+}
+
 export interface AuthProviders {
   discord: AuthProviderStatus;
+  // Optional: older API responses (pre-SSO) omit this block; the login page guards for it.
+  oidc?: OidcProviderStatus;
   telegram: TelegramProviderStatus;
 }
 
