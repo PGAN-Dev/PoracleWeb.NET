@@ -63,7 +63,7 @@ All variables are optional and default-safe. Add them to your `.env` (or use the
 | `OIDC_ACCESS_TOKEN_MINUTES` | `Oidc__AccessTokenMinutes` | `30` | Internal JWT lifetime (minutes) for **refresh-backed OIDC sessions only**. Kept short so a disable/revocation at the provider propagates within ~one access-token lifetime. Other logins are unaffected. |
 | `OIDC_REFRESH_TOKEN_LIFETIME_DAYS` | `Oidc__RefreshTokenLifetimeDays` | `30` | PoracleWeb-side absolute cap (days) on a refresh session/family before a real re-login is forced. Independent of the provider's own refresh-token lifetime; if the provider's token expires first, the refresh call fails and the session is revoked. |
 | `OIDC_SESSION_REVOKED_RETENTION_DAYS` | `Oidc__RevokedRetentionDays` | `2` | How long a revoked/rotated `oidc_sessions` row is kept (so a replayed old token is still detected and family-revoked) before the 6-hourly cleanup deletes it. Kept short and separate from the session cap so frequent rotation doesn't accumulate weeks of dead rows. Expired rows are deleted regardless. |
-| `OIDC_OFFLINE_ACCESS_SCOPE` | `Oidc__OfflineAccessScope` | `offline_access` | Scope appended to the authorize request (only when `UseRefreshTokens` is on and the scope isn't already in `OIDC_SCOPES`) so a standards-compliant provider issues a refresh token. **Set empty** for providers that issue refresh tokens unconditionally (PogoAlerts) or use a non-standard mechanism (Google's `access_type=offline`). |
+| `OIDC_OFFLINE_ACCESS_SCOPE` | `Oidc__OfflineAccessScope` | `offline_access` | Scope appended to the authorize request (only when `UseRefreshTokens` is on and the scope isn't already in `OIDC_SCOPES`) so a standards-compliant provider issues a refresh token (this includes PogoAlerts). **Set empty** only for providers that issue refresh tokens unconditionally regardless of scope, or that use a non-standard mechanism (e.g. Google's `access_type=offline`). |
 | `OIDC_TOKEN_AUTH_METHOD` | `Oidc__TokenEndpointAuthMethod` | `client_secret_post` | How client credentials are presented at the token endpoint: `client_secret_post` (credentials in the form body — PogoAlerts, Authentik, Auth0, Google, Azure AD) or `client_secret_basic` (HTTP Basic header — Keycloak, Okta). Applies to **both** the code exchange and the refresh grant. |
 
 ### Relationship to the existing `OIDC_*` variables
@@ -296,7 +296,7 @@ variables (`OIDC_ENABLED`, `OIDC_AUTHORIZATION_URL`, `OIDC_TOKEN_URL`, `OIDC_USE
 
 | Provider | `OIDC_SCOPES` | `OIDC_OFFLINE_ACCESS_SCOPE` | `OIDC_TOKEN_AUTH_METHOD` | `OIDC_IDENTITY_CLAIM` |
 |---|---|---|---|---|
-| PogoAlerts | `openid profile email` | *(empty)* | `client_secret_post` | `discord_id` |
+| PogoAlerts | `openid profile email` | `offline_access` | `client_secret_post` | `discord_id` |
 | Keycloak | `openid profile email` | `offline_access` | `client_secret_basic` | `sub` |
 | Authentik | `openid profile email` | `offline_access` | `client_secret_post` | `sub` |
 | Auth0 | `openid profile email` | `offline_access` | `client_secret_post` | `sub` |
@@ -308,16 +308,6 @@ variables (`OIDC_ENABLED`, `OIDC_AUTHORIZATION_URL`, `OIDC_TOKEN_URL`, `OIDC_USE
 `offline_access` scope. The authorize-URL builder preserves arbitrary query params on
 `OIDC_AUTHORIZATION_URL`, so append `?access_type=offline` (and optionally `&prompt=consent`)
 directly to the URL and leave `OIDC_OFFLINE_ACCESS_SCOPE` empty.
-
-#### PogoAlerts (reference)
-
-```bash
-OIDC_USE_REFRESH_TOKENS=true
-OIDC_SCOPES=openid profile email
-OIDC_OFFLINE_ACCESS_SCOPE=
-OIDC_TOKEN_AUTH_METHOD=client_secret_post
-OIDC_IDENTITY_CLAIM=discord_id
-```
 
 #### Keycloak
 

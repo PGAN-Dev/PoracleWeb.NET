@@ -238,7 +238,7 @@ matter — those columns are included for convenience.)
 
 | Provider | `OIDC_IDENTITY_CLAIM` | `OIDC_TOKEN_AUTH_METHOD` † | `OIDC_OFFLINE_ACCESS_SCOPE` † |
 |---|---|---|---|
-| PogoAlerts | `discord_id` | `client_secret_post` | *(empty)* |
+| PogoAlerts | `discord_id` | `client_secret_post` | `offline_access` |
 | Keycloak | `sub` | `client_secret_basic` | `offline_access` |
 | Authentik | `sub` | `client_secret_post` | `offline_access` |
 | Auth0 | `sub` | `client_secret_post` | `offline_access` |
@@ -248,21 +248,8 @@ matter — those columns are included for convenience.)
 
 † Only relevant if you also enable refresh tokens. For plain login, these are ignored.
 
-Copy-paste login snippets for the most common providers:
-
-### PogoAlerts (reference)
-
-```bash
-OIDC_PROVIDER_NAME=PogoAlerts
-OIDC_AUTHORIZATION_URL=https://pogoalerts.net/login
-OIDC_TOKEN_URL=https://pogoalerts.net/api/oauth/token
-OIDC_USERINFO_URL=https://pogoalerts.net/api/oauth/userinfo
-OIDC_CLIENT_ID=your_oidc_client_id
-OIDC_CLIENT_SECRET=your_oidc_client_secret
-OIDC_SCOPES=openid profile email
-OIDC_IDENTITY_CLAIM=discord_id
-OIDC_USE_PKCE=true
-```
+Copy-paste login snippets for the most common providers (replace the example URLs with your
+provider's actual endpoints):
 
 ### Keycloak
 
