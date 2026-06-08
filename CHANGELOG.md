@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Localized the external SSO / OIDC strings** across all bundled locales. The SSO login feature added 30 i18n keys to English only, so every non-English locale fell back to English for the "Sign in with {provider}" button, the signed-out panel, the OIDC error messages, and the admin Authentication / External SSO settings group. These are now translated into Danish, German, Spanish, French, Italian, Dutch, Polish, Portuguese (PT & BR), and Swedish. Translation-only — no code or behavior change.
+- **Admin Server Settings page UX overhaul.** Adds a live **search/filter** (sticky bar, match highlighting, `/` or Ctrl/Cmd+K to focus), a **sticky save + discard bar** so saving is always reachable on the long page, **sign-in providers grouped under Authentication** (Telegram/Discord moved up), and **collapsible sections** (persisted) with per-section "unsaved" chips and state summaries (e.g. "7 of 9 enabled"). Headline fix: the alarm-type/feature toggles were a confusing **double negative** ("Disable X", ON = feature off) mixed with positive `enable_*` toggles; they are now **uniformly positive** (ON = enabled, labels are the feature name, descriptions are "Let users …"). The stored `disable_*` keys are **unchanged** — a presentation-only inversion — so backend feature-gating is unaffected. New UX i18n keys and the reframed positive labels/descriptions are translated across all 11 locales.
 
 ## [2.11.1] - 2026-06-05
 

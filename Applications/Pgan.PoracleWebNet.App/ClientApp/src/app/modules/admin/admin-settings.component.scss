@@ -25,7 +25,7 @@
   padding-left: 12px;
 }
 .page-content {
-  padding: 0 24px 48px;
+  padding: 0 24px 80px;
   max-width: 860px;
 }
 .loading-container {
@@ -362,6 +362,147 @@
 
 .favicon-cache-warning {
   margin-top: 4px;
+}
+
+// ─── Live search bar ────────────────────────────────────────────────────────
+.settings-search {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  margin-bottom: 16px;
+  border-radius: 24px;
+  background: var(--mat-app-surface, var(--surface-variant, rgba(255, 255, 255, 0.96)));
+  border: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.search-leading {
+  flex-shrink: 0;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: var(--text-primary, rgba(0, 0, 0, 0.87));
+  padding: 8px 0;
+
+  &::placeholder {
+    color: var(--text-hint, rgba(0, 0, 0, 0.4));
+  }
+}
+.search-clear {
+  flex-shrink: 0;
+}
+
+// ─── Collapsible section header ─────────────────────────────────────────────
+.section-header-toggle {
+  width: 100%;
+  border: none;
+  border-left: 4px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s;
+
+  &:hover {
+    filter: brightness(0.98);
+  }
+}
+.section-header-spacer {
+  flex: 1;
+}
+.section-summary {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--text-hint, rgba(0, 0, 0, 0.45));
+}
+.section-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(25, 118, 210, 0.12);
+  color: #1976d2;
+  white-space: nowrap;
+}
+.section-chevron {
+  flex-shrink: 0;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.5));
+}
+
+// ─── Sticky save / discard bar ──────────────────────────────────────────────
+.settings-actionbar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--mat-app-surface, var(--surface-variant, rgba(255, 255, 255, 0.98)));
+  border: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+  animation: actionbar-slide-up 0.2s ease-out;
+}
+.actionbar-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, rgba(0, 0, 0, 0.87));
+}
+.actionbar-spacer {
+  flex: 1;
+}
+
+@keyframes actionbar-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ─── Staggered section entrance ─────────────────────────────────────────────
+.fade-in-up {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up,
+  .settings-actionbar {
+    animation: none;
+  }
 }
 
 .auth-mode-row {

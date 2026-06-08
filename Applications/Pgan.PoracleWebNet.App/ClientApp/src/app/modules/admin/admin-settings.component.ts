@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  ViewChild,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -44,6 +55,38 @@ interface SettingGroup {
 }
 
 const SETTING_GROUPS: SettingGroup[] = [
+  {
+    color: '#0088cc',
+    icon: 'send',
+    labelKey: 'ADMIN_SETTINGS.GROUP_TELEGRAM',
+    settings: [
+      {
+        descriptionKey: 'ADMIN_SETTINGS.ENABLE_TELEGRAM_DESC',
+        key: 'enable_telegram',
+        labelKey: 'ADMIN_SETTINGS.ENABLE_TELEGRAM_LABEL',
+        type: 'boolean',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.TELEGRAM_BOT_DESC',
+        key: 'telegram_bot',
+        labelKey: 'ADMIN_SETTINGS.TELEGRAM_BOT_LABEL',
+        type: 'text',
+      },
+    ],
+  },
+  {
+    color: '#5865F2',
+    icon: 'forum',
+    labelKey: 'ADMIN_SETTINGS.GROUP_DISCORD',
+    settings: [
+      {
+        descriptionKey: 'ADMIN_SETTINGS.ENABLE_DISCORD_DESC',
+        key: 'enable_discord',
+        labelKey: 'ADMIN_SETTINGS.ENABLE_DISCORD_LABEL',
+        type: 'boolean',
+      },
+    ],
+  },
   {
     color: '#1976d2',
     icon: 'palette',
@@ -255,38 +298,6 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#0088cc',
-    icon: 'send',
-    labelKey: 'ADMIN_SETTINGS.GROUP_TELEGRAM',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.ENABLE_TELEGRAM_DESC',
-        key: 'enable_telegram',
-        labelKey: 'ADMIN_SETTINGS.ENABLE_TELEGRAM_LABEL',
-        type: 'boolean',
-      },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.TELEGRAM_BOT_DESC',
-        key: 'telegram_bot',
-        labelKey: 'ADMIN_SETTINGS.TELEGRAM_BOT_LABEL',
-        type: 'text',
-      },
-    ],
-  },
-  {
-    color: '#5865F2',
-    icon: 'forum',
-    labelKey: 'ADMIN_SETTINGS.GROUP_DISCORD',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.ENABLE_DISCORD_DESC',
-        key: 'enable_discord',
-        labelKey: 'ADMIN_SETTINGS.ENABLE_DISCORD_LABEL',
-        type: 'boolean',
-      },
-    ],
-  },
-  {
     color: '#2e7d32',
     icon: 'map',
     labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',
@@ -359,6 +370,8 @@ const SETTING_GROUPS: SettingGroup[] = [
   templateUrl: './admin-settings.component.html',
 })
 export class AdminSettingsComponent implements OnInit {
+  private static readonly COLLAPSED_STORAGE_KEY = 'poracle-admin-settings-collapsed';
+
   private readonly allDefinedKeys = new Set([
     ...SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)),
     'uicons_pkmn',
@@ -374,6 +387,7 @@ export class AdminSettingsComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
+
   private readonly i18n = inject(I18nService);
 
   private readonly internalPrefixes = [
@@ -393,6 +407,8 @@ export class AdminSettingsComponent implements OnInit {
     'migration_completed',
   ];
 
+  private readonly originalSnapshot = signal<AnySettingItem[]>([]);
+
   readonly settings = signal<AnySettingItem[]>([]);
 
   private readonly settingMap = computed(() => {
@@ -402,12 +418,15 @@ export class AdminSettingsComponent implements OnInit {
   });
 
   private readonly settingsService = inject(SettingsService);
+
   private readonly snackBar = inject(MatSnackBar);
+
   /** Current sign-in mode, derived from enable_oidc (opt-in; absent/false = local). */
   readonly authMode = computed<'local' | 'oidc'>(() => (this.getBool('enable_oidc') ? 'oidc' : 'local'));
-  readonly bulkSaving = signal(false);
-  readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
+  readonly bulkSaving = signal(false);
+  readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
+  readonly discordConfig = signal<DiscordServerConfig | null>(null);
   readonly iconRepos = [
     {
       name: 'Whitewillem (Ingame)',
@@ -479,6 +498,10 @@ export class AdminSettingsComponent implements OnInit {
   /** Single-logout admin toggle state — absent defaults to ON once the end-session URL is wired. */
   readonly oidcSloEnabled = computed(() => (this.getSettingValue('enable_oidc_slo') ?? '').toLowerCase() !== 'false');
 
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
+
+  readonly searchQuery = signal('');
+
   readonly settingsLoading = signal(true);
   readonly telegramConfig = signal<TelegramServerConfig | null>(null);
 
@@ -494,7 +517,8 @@ export class AdminSettingsComponent implements OnInit {
     // OIDC config card is shown by the bespoke Authentication section instead.
     const localProviderGroups = new Set(['ADMIN_SETTINGS.GROUP_DISCORD', 'ADMIN_SETTINGS.GROUP_TELEGRAM']);
     const oidcMode = this.authMode() === 'oidc';
-    return SETTING_GROUPS.filter(g => {
+    const query = this.searchQuery().trim();
+    const base = SETTING_GROUPS.filter(g => {
       if (oidcMode && localProviderGroups.has(g.labelKey)) return false;
       return (
         g.settings.some(s => this.settingMap().has(s.key)) ||
@@ -502,7 +526,31 @@ export class AdminSettingsComponent implements OnInit {
         (g.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && this.telegramConfig() !== null)
       );
     });
+    if (!query) return base;
+    return base.map(g => ({ ...g, settings: g.settings.filter(s => this.settingMatches(s)) })).filter(g => g.settings.length > 0);
   });
+
+  private static loadCollapsed(): Set<string> {
+    try {
+      const raw = localStorage.getItem(AdminSettingsComponent.COLLAPSED_STORAGE_KEY);
+      if (!raw) return new Set();
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) return new Set(parsed.filter((x): x is string => typeof x === 'string'));
+    } catch {
+      // Ignore malformed/inaccessible storage.
+    }
+    return new Set();
+  }
+
+  discardAllModified(): void {
+    this.settings.set(this.originalSnapshot().map(s => ({ ...s })));
+    this.modifiedSettings.set(new Map());
+  }
+
+  /** Positive-framing checked state for a boolean setting (ON = enabled). */
+  featureEnabled(meta: SettingMeta): boolean {
+    return this.isInverted(meta) ? !this.getBool(meta.key) : this.getBool(meta.key);
+  }
 
   getBool(key: string): boolean {
     return (this.getSettingValue(key) ?? '').toLowerCase() === 'true';
@@ -511,6 +559,46 @@ export class AdminSettingsComponent implements OnInit {
   getSettingValue(key: string): string | null | undefined {
     const map = this.settingMap();
     return map.has(key) ? (map.get(key) ?? null) : undefined;
+  }
+
+  groupModifiedCount(group: SettingGroup): number {
+    const modified = this.modifiedSettings();
+    return group.settings.reduce((acc, s) => acc + (modified.has(s.key) ? 1 : 0), 0);
+  }
+
+  groupSummary(group: SettingGroup): string {
+    const disableKeys = group.settings.filter(s => s.key.startsWith('disable_'));
+    if (disableKeys.length === 0) return '';
+    // Positive framing: report how many features are enabled (i.e. NOT disabled).
+    const count = disableKeys.reduce((acc, s) => acc + (this.getBool(s.key) ? 0 : 1), 0);
+    return this.i18n.instant('ADMIN_SETTINGS.SUMMARY_ENABLED', { count, total: disableKeys.length });
+  }
+
+  /** Translated label/description with current search matches wrapped in <mark>. */
+  highlight(key: string): string {
+    const text = this.i18n.instant(key);
+    const escaped = this.escapeHtml(text);
+    const query = this.searchQuery().trim();
+    if (!query) return escaped;
+    const pattern = new RegExp(`(${this.escapeRegExp(this.escapeHtml(query))})`, 'gi');
+    return escaped.replace(pattern, '<mark>$1</mark>');
+  }
+
+  /** Search-active force-expands; otherwise read collapsed membership. */
+  isCollapsed(labelKey: string): boolean {
+    if (this.searchQuery().trim()) return false;
+    return this.collapsedGroups().has(labelKey);
+  }
+
+  /**
+   * Boolean settings are presented in positive framing: a toggle ON always means "feature
+   * enabled". The stored `disable_*` keys have inverted semantics (true = disabled), so they are
+   * displayed and written inverted. `enable_*`/other booleans pass through unchanged. The stored
+   * value is never changed in meaning — only the presentation — so backend feature-gating is
+   * unaffected.
+   */
+  isInverted(meta: SettingMeta): boolean {
+    return meta.key.startsWith('disable_');
   }
 
   isRepoActive(repo: { base: string }): boolean {
@@ -539,6 +627,7 @@ export class AdminSettingsComponent implements OnInit {
         },
         next: settings => {
           this.settings.set(settings);
+          this.originalSnapshot.set(settings.map(s => ({ ...s })));
           this.settingsLoading.set(false);
         },
       });
@@ -561,6 +650,30 @@ export class AdminSettingsComponent implements OnInit {
 
   onBoolChange(key: string, value: boolean): void {
     this.applyChange(key, value ? 'True' : 'False');
+  }
+
+  /** Persist a positive-framing toggle, converting back to the stored (possibly inverted) value. */
+  onFeatureToggle(meta: SettingMeta, checked: boolean): void {
+    this.onBoolChange(meta.key, this.isInverted(meta) ? !checked : checked);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const tag = target?.tagName?.toLowerCase();
+    const isEditable = tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable === true;
+
+    if (event.key === 'Escape' && this.searchInput && target === this.searchInput.nativeElement) {
+      this.searchQuery.set('');
+      return;
+    }
+
+    const isSlash = event.key === '/' && !isEditable;
+    const isCmdK = (event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K');
+    if (isSlash || isCmdK) {
+      event.preventDefault();
+      this.searchInput?.nativeElement.focus();
+    }
   }
 
   onPreviewError(event: Event): void {
@@ -658,6 +771,18 @@ export class AdminSettingsComponent implements OnInit {
     this.applyChange('enable_oidc', 'False');
   }
 
+  toggleGroup(labelKey: string): void {
+    const next = new Set(this.collapsedGroups());
+    if (next.has(labelKey)) next.delete(labelKey);
+    else next.add(labelKey);
+    this.collapsedGroups.set(next);
+    try {
+      localStorage.setItem(AdminSettingsComponent.COLLAPSED_STORAGE_KEY, JSON.stringify([...next]));
+    } catch {
+      // Ignore persistence failures (e.g. private mode quota).
+    }
+  }
+
   private applyChange(key: string, value: string): void {
     this.settings.update(list => {
       const exists = list.some(s => settingKey(s) === key);
@@ -671,8 +796,20 @@ export class AdminSettingsComponent implements OnInit {
     });
   }
 
+  private escapeHtml(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  private escapeRegExp(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   private finish(done: number, errors: number, errorMessages: string[] = []): void {
     this.bulkSaving.set(false);
+    if (errors === 0) {
+      // Saved values become the new baseline for discard.
+      this.originalSnapshot.set(this.settings().map(s => ({ ...s })));
+    }
     const msg =
       errors === 0
         ? this.i18n.instant('ADMIN_SETTINGS.SAVE_SUCCESS', { count: done })
@@ -680,5 +817,12 @@ export class AdminSettingsComponent implements OnInit {
           ? errorMessages.join(' ')
           : this.i18n.instant('ADMIN_SETTINGS.SAVE_PARTIAL', { done, errors });
     this.snackBar.open(msg, this.i18n.instant('COMMON.OK'), { duration: errors ? 5000 : 3000 });
+  }
+
+  private settingMatches(meta: SettingMeta): boolean {
+    const query = this.searchQuery().trim().toLowerCase();
+    if (!query) return true;
+    const haystack = `${this.i18n.instant(meta.labelKey)} ${this.i18n.instant(meta.descriptionKey)} ${meta.key}`.toLowerCase();
+    return haystack.includes(query);
   }
 }
