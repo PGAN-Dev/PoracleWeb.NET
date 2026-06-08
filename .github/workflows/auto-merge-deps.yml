@@ -27,7 +27,7 @@ jobs:
       - name: Fetch Dependabot metadata
         id: meta
         if: github.actor == 'dependabot[bot]'
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
 
       - name: Enable auto-merge for low-risk bumps
         # Auto-merge criteria:
