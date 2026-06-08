@@ -25,7 +25,7 @@ describe('LoginComponent', () => {
     telegram: { botUsername: '', configured: false, enabledByAdmin: true },
   };
 
-  const setup = (opts?: { providers?: AuthProviders; providersError?: boolean }) => {
+  const setup = (opts?: { providers?: AuthProviders; providersError?: boolean; loggedOut?: boolean }) => {
     settingsSignal = signal<Record<string, string>>({});
 
     const providers = opts?.providers ?? defaultProviders;
@@ -54,7 +54,15 @@ describe('LoginComponent', () => {
           },
         },
         { provide: Router, useValue: { navigate: jest.fn() } },
-        { provide: ActivatedRoute, useValue: { snapshot: { fragment: '' } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              fragment: '',
+              queryParamMap: { get: (k: string) => (k === 'loggedout' && opts?.loggedOut ? '1' : null) },
+            },
+          },
+        },
       ],
       imports: [LoginComponent],
     });
@@ -144,19 +152,21 @@ describe('LoginComponent', () => {
       expect(btn).toBeNull();
     });
 
-    it('should show OIDC button when configured and enabled', () => {
+    it('should auto-redirect to OIDC (no local page) when configured and enabled', () => {
       setup({
         providers: {
           oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: true },
-          discord: { configured: false, enabledByAdmin: true },
+          discord: { configured: true, enabledByAdmin: true },
           telegram: { botUsername: '', configured: false, enabledByAdmin: true },
         },
       });
       fixture.detectChanges();
-      const btn = fixture.nativeElement.querySelector('.oidc-btn');
-      expect(btn).toBeTruthy();
-      expect(btn.disabled).toBe(false);
-      expect(component['oidcProviderName']()).toBe('PogoAlerts');
+      const auth = TestBed.inject(AuthService);
+      // OIDC is the active sign-in method, so we redirect to the provider instead of
+      // rendering the local login page (configLoaded never flips true — we navigate away).
+      expect(auth.loginWithOidc).toHaveBeenCalled();
+      expect(component['configLoaded']()).toBe(false);
+      expect(fixture.nativeElement.querySelector('.oidc-btn')).toBeNull();
     });
 
     it('should show OIDC button with hint when configured but admin-disabled', () => {
@@ -179,9 +189,11 @@ describe('LoginComponent', () => {
     });
 
     it('should delegate to AuthService.loginWithOidc on click', () => {
+      // Admin-disabled OIDC stays on the local page (no auto-redirect), so the button
+      // renders and we can verify its click handler delegates to the service.
       setup({
         providers: {
-          oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: true },
+          oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: false },
           discord: { configured: false, enabledByAdmin: true },
           telegram: { botUsername: '', configured: false, enabledByAdmin: true },
         },
@@ -190,6 +202,37 @@ describe('LoginComponent', () => {
       const auth = TestBed.inject(AuthService);
       fixture.nativeElement.querySelector('.oidc-btn').click();
       expect(auth.loginWithOidc).toHaveBeenCalled();
+    });
+
+    it('should not auto-redirect to OIDC when an auth error is present in the fragment', () => {
+      window.location.hash = '#error=oidc_userinfo_failed';
+      setup({
+        providers: {
+          oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: true },
+          discord: { configured: true, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+      });
+      fixture.detectChanges();
+      const auth = TestBed.inject(AuthService);
+      expect(auth.loginWithOidc).not.toHaveBeenCalled();
+      expect(component['configLoaded']()).toBe(true);
+    });
+
+    it('shows the signed-out panel and does not auto-redirect when ?loggedout=1', () => {
+      setup({
+        providers: {
+          oidc: { providerName: 'PogoAlerts', configured: true, enabledByAdmin: true },
+          discord: { configured: true, enabledByAdmin: true },
+          telegram: { botUsername: '', configured: false, enabledByAdmin: true },
+        },
+        loggedOut: true,
+      });
+      fixture.detectChanges();
+      const auth = TestBed.inject(AuthService);
+      expect(auth.loginWithOidc).not.toHaveBeenCalled();
+      expect(component['signedOut']()).toBe(true);
+      expect(fixture.nativeElement.querySelector('.signed-out-panel')).toBeTruthy();
     });
   });
 

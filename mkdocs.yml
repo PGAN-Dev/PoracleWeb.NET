@@ -79,6 +79,8 @@ nav:
   - Configuration:
       - Reference: configuration/reference.md
       - Site Settings: configuration/site-settings.md
+      - External SSO (OIDC): configuration/external-sso.md
+      - OIDC Refresh Tokens: configuration/oidc-refresh-tokens.md
       - Docker Compose: configuration/docker.md
   - Architecture:
       - Overview: architecture/overview.md

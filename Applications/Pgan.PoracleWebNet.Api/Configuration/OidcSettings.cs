@@ -21,6 +21,15 @@ public class OidcSettings
     /// <summary>Token endpoint that exchanges the authorization code for an access token.</summary>
     public string TokenUrl { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Optional OIDC RP-initiated logout (end-session) endpoint. When set, signing out of
+    /// PoracleWeb redirects the browser here with a <c>post_logout_redirect_uri</c> so the
+    /// provider can also end its own session (true single logout). When empty, logout is
+    /// local-only (the provider session survives). For PogoAlerts this is e.g.
+    /// https://pogoalerts.net/logout.
+    /// </summary>
+    public string EndSessionUrl { get; set; } = string.Empty;
+
     /// <summary>UserInfo endpoint (OpenID Connect compatible) returning the user's claims.</summary>
     public string UserInfoUrl { get; set; } = string.Empty;
 
@@ -52,4 +61,55 @@ public class OidcSettings
 
     /// <summary>Whether to use PKCE (Proof Key for Code Exchange) — recommended and supported by PogoAlerts.</summary>
     public bool UsePkce { get; set; } = true;
+
+    /// <summary>
+    /// Master opt-in for consuming the provider's refresh token (silent session renewal +
+    /// revocation propagation). Default <c>false</c> — when off, behavior is identical to a
+    /// plain login: the provider's tokens are discarded and the internal JWT lives its full
+    /// <see cref="JwtSettings.ExpirationMinutes"/>. Requires the provider to actually issue a
+    /// refresh token (standard providers gate that behind the <c>offline_access</c> scope —
+    /// see <see cref="OfflineAccessScope"/>).
+    /// </summary>
+    public bool UseRefreshTokens { get; set; }
+
+    /// <summary>
+    /// Internal JWT lifetime (minutes) for refresh-backed OIDC sessions only. Kept short so a
+    /// disable/revocation at the provider propagates within roughly one access-token lifetime.
+    /// Other logins (Discord, Telegram, local, OIDC without refresh) are unaffected and keep
+    /// <see cref="JwtSettings.ExpirationMinutes"/>.
+    /// </summary>
+    public int AccessTokenMinutes { get; set; } = 30;
+
+    /// <summary>
+    /// PoracleWeb-side absolute cap (days) on a refresh session/family before a real re-login is
+    /// forced. Independent of the provider's own refresh-token lifetime; if the provider's token
+    /// expires first, the refresh call fails and the session is revoked — correct either way.
+    /// </summary>
+    public int RefreshTokenLifetimeDays { get; set; } = 30;
+
+    /// <summary>
+    /// How long (days) a revoked/rotated <c>oidc_sessions</c> row is retained before the cleanup
+    /// service deletes it. Revoked rows are kept briefly so a replayed old opaque token is still
+    /// detected (and family-revoked) rather than silently 401ing; replay happens fast, so a short
+    /// window suffices. Kept separate from <see cref="RefreshTokenLifetimeDays"/> so frequent
+    /// rotation doesn't pile up 30 days of dead rows. Expired rows are deleted regardless of this.
+    /// </summary>
+    public int RevokedRetentionDays { get; set; } = 2;
+
+    /// <summary>
+    /// Scope appended to the authorization request (only when <see cref="UseRefreshTokens"/> is on
+    /// and it isn't already present) so a standards-compliant provider issues a refresh token.
+    /// Defaults to <c>offline_access</c>. Set empty for providers that issue refresh tokens
+    /// unconditionally, or that use a non-standard mechanism (e.g. Google's
+    /// <c>access_type=offline</c> appended directly to <see cref="AuthorizationUrl"/>).
+    /// </summary>
+    public string OfflineAccessScope { get; set; } = "offline_access";
+
+    /// <summary>
+    /// How client credentials are presented at the token endpoint: <c>client_secret_post</c>
+    /// (default — credentials in the form body, what PogoAlerts uses) or <c>client_secret_basic</c>
+    /// (HTTP Basic auth header — the default for Keycloak/Okta). Applies to both the
+    /// authorization-code exchange and the refresh-token grant.
+    /// </summary>
+    public string TokenEndpointAuthMethod { get; set; } = "client_secret_post";
 }

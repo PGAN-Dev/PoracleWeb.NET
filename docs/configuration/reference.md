@@ -40,6 +40,43 @@ All configuration can be provided via environment variables or `appsettings.json
 | Telegram Bot Token | `TELEGRAM_BOT_TOKEN` | `Telegram__BotToken` | — | Telegram bot token |
 | Telegram Bot Username | `TELEGRAM_BOT_USERNAME` | `Telegram__BotUsername` | — | Telegram bot username |
 
+### External SSO / OIDC
+
+Optional. Delegates PoracleWeb.NET login to your own OAuth2/OIDC provider (e.g. PogoAlerts) for single sign-on. See [External SSO setup](external-sso.md) for the full setup guide.
+
+The provider is enabled automatically when `OIDC_CLIENT_ID` plus all three of `OIDC_AUTHORIZATION_URL`, `OIDC_TOKEN_URL`, and `OIDC_USERINFO_URL` are set. Set `OIDC_ENABLED` explicitly to override the inference.
+
+| Setting | `.env` name | `.NET` env variable | Default | Description |
+|---|---|---|---|---|
+| Enabled | `OIDC_ENABLED` | `Oidc__Enabled` | — | Master switch. Auto-inferred `true` when `OIDC_CLIENT_ID` and the three endpoint URLs are all set. When `false`, the provider is hidden regardless of other values. |
+| Provider Name | `OIDC_PROVIDER_NAME` | `Oidc__ProviderName` | `""` | Display name shown on the login button (e.g. `PogoAlerts`). |
+| Authorization URL | `OIDC_AUTHORIZATION_URL` | `Oidc__AuthorizationUrl` | `""` | Browser-facing authorize endpoint. Any existing query string is preserved. |
+| Token URL | `OIDC_TOKEN_URL` | `Oidc__TokenUrl` | `""` | Token endpoint that exchanges the authorization code for an access token. |
+| UserInfo URL | `OIDC_USERINFO_URL` | `Oidc__UserInfoUrl` | `""` | UserInfo endpoint returning the user's claims. |
+| End Session URL | `OIDC_END_SESSION_URL` | `Oidc__EndSessionUrl` | `""` | Optional RP-initiated logout (end-session) endpoint. When set, enables single logout (the provider's session is also ended). When empty, logout is local-only. |
+| Client ID | `OIDC_CLIENT_ID` | `Oidc__ClientId` | `""` | OAuth2 client ID. |
+| Client Secret | `OIDC_CLIENT_SECRET` | `Oidc__ClientSecret` | `""` | OAuth2 client secret. Read from config only — never stored in the database. |
+| Scopes | `OIDC_SCOPES` | `Oidc__Scopes` | `openid profile email` | Space-delimited OAuth scopes requested at authorization time. |
+| Identity Claim | `OIDC_IDENTITY_CLAIM` | `Oidc__IdentityClaim` | `discord_id` | UserInfo claim whose value maps to the Poracle human id (a Discord/Telegram id). Falls back to `sub` when the configured claim is absent. |
+| Username Claim | `OIDC_USERNAME_CLAIM` | `Oidc__UsernameClaim` | `preferred_username` | UserInfo claim used as the display username. |
+| Avatar Claim | `OIDC_AVATAR_CLAIM` | `Oidc__AvatarClaim` | `picture` | UserInfo claim used as the avatar URL. |
+| Identity Type | `OIDC_IDENTITY_TYPE` | `Oidc__IdentityType` | `discord:user` | Value written to the JWT `type` claim for users logging in via this provider. |
+| Use PKCE | `OIDC_USE_PKCE` | `Oidc__UsePkce` | `true` | Use PKCE (Proof Key for Code Exchange) for the authorization-code flow. |
+| Force Local Login | `AUTH_FORCE_LOCAL` | `Auth__ForceLocal` | `false` | Break-glass override forcing the local login page regardless of the SSO mode. Recovery path when an admin switches to OIDC against a broken/unreachable provider and gets locked out. |
+
+#### OIDC refresh tokens
+
+Optional, opt-in. Enables silent server-side session renewal and provider-side revocation propagation. See [OIDC Refresh Tokens](oidc-refresh-tokens.md) for full detail.
+
+| Setting | `.env` name | `.NET` env variable | Default | Description |
+|---|---|---|---|---|
+| Use Refresh Tokens | `OIDC_USE_REFRESH_TOKENS` | `Oidc__UseRefreshTokens` | `false` | Master opt-in for brokering the provider's refresh token (silent renewal + revocation propagation). Requires the provider to issue a refresh token. |
+| Access Token Minutes | `OIDC_ACCESS_TOKEN_MINUTES` | `Oidc__AccessTokenMinutes` | `30` | Internal JWT lifetime (minutes) for refresh-backed OIDC sessions only. Other logins keep `Jwt__ExpirationMinutes`. |
+| Refresh Token Lifetime (days) | `OIDC_REFRESH_TOKEN_LIFETIME_DAYS` | `Oidc__RefreshTokenLifetimeDays` | `30` | PoracleWeb-side absolute cap (days) on a refresh session before a real re-login is forced. |
+| Revoked Retention (days) | `OIDC_SESSION_REVOKED_RETENTION_DAYS` | `Oidc__RevokedRetentionDays` | `2` | How long (days) revoked/rotated session rows are retained for replay detection before cleanup deletes them. |
+| Offline Access Scope | `OIDC_OFFLINE_ACCESS_SCOPE` | `Oidc__OfflineAccessScope` | `offline_access` | Scope appended to the authorize request so a compliant provider issues a refresh token. Set empty for providers that issue refresh tokens unconditionally or use a non-standard mechanism (e.g. Google's `access_type=offline`). |
+| Token Auth Method | `OIDC_TOKEN_AUTH_METHOD` | `Oidc__TokenEndpointAuthMethod` | `client_secret_post` | How client credentials are presented at the token endpoint: `client_secret_post` (form body) or `client_secret_basic` (HTTP Basic header). |
+
 ### Databases
 
 | Setting | `.env` name | `.NET` env variable | Description |

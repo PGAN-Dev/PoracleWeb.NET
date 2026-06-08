@@ -129,6 +129,12 @@
         <mat-icon>logout</mat-icon>
         <span>{{ 'MENU.LOGOUT' | translate }}</span>
       </button>
+      @if (ssoLogoutAvailable()) {
+        <button mat-menu-item (click)="logout(true)">
+          <mat-icon>exit_to_app</mat-icon>
+          <span>{{ 'MENU.LOGOUT_EVERYWHERE' | translate }}</span>
+        </button>
+      }
     </mat-menu>
     <mat-menu #accentMenu="matMenu">
       <button mat-menu-item (click)="setAccentTheme('')">

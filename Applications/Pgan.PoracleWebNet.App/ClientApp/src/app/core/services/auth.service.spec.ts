@@ -126,7 +126,7 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should clear tokens, reset user, and navigate to login', () => {
+    it('should clear tokens, reset user, and navigate to the signed-out login page', () => {
       localStorage.setItem('poracle_token', 'some-token');
       localStorage.setItem('poracle_admin_token', 'admin-token');
 
@@ -136,7 +136,21 @@ describe('AuthService', () => {
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
       expect(service.isLoggedIn()).toBe(false);
       expect(service.isImpersonating()).toBe(false);
-      expect(router.navigate).toHaveBeenCalledWith(['/login']);
+      // ?loggedout=1 shows the signed-out panel and suppresses the OIDC auto-redirect.
+      expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { loggedout: 1 } });
+    });
+
+    it('should perform single logout (no in-app navigation) when sso=true', () => {
+      localStorage.setItem('poracle_token', 'some-token');
+
+      // sso:true takes the window.location bounce to /api/auth/oidc/logout (jsdom no-ops the
+      // assignment); the distinguishing, observable behaviour is that it does NOT use the
+      // in-app router (unlike the default RP logout, which navigates to /login?loggedout=1).
+      service.logout({ sso: true });
+
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(service.isLoggedIn()).toBe(false);
+      expect(router.navigate).not.toHaveBeenCalled();
     });
   });
 

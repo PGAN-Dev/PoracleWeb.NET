@@ -30,6 +30,11 @@ public class PoracleWebContext(DbContextOptions<PoracleWebContext> options) : Db
         get; set;
     }
 
+    public DbSet<OidcSessionEntity> OidcSessions
+    {
+        get; set;
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

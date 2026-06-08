@@ -18,11 +18,25 @@
 
     <mat-card class="login-card" appearance="outlined">
       <mat-card-content>
-        <h2 class="login-heading">{{ 'AUTH.SIGN_IN' | translate }}</h2>
-        <p class="login-subheading">{{ 'AUTH.SIGN_IN_DESC' | translate }}</p>
+        @if (signedOut()) {
+          <h2 class="login-heading">{{ 'AUTH.SIGNED_OUT_TITLE' | translate }}</h2>
+          <p class="login-subheading">{{ 'AUTH.SIGNED_OUT_DESC' | translate }}</p>
+        } @else {
+          <h2 class="login-heading">{{ 'AUTH.SIGN_IN' | translate }}</h2>
+          <p class="login-subheading">{{ 'AUTH.SIGN_IN_DESC' | translate }}</p>
+        }
 
         <div class="login-buttons">
-          @if (!configLoaded()) {
+          @if (signedOut()) {
+            <!-- Post-logout confirmation; deliberately no auto-redirect back to the provider -->
+            <div class="signed-out-panel">
+              <mat-icon class="signed-out-icon">check_circle</mat-icon>
+              <button class="auth-btn oidc-btn" (click)="signInAgain()">
+                <mat-icon class="auth-icon">login</mat-icon>
+                {{ 'AUTH.SIGN_IN_AGAIN' | translate }}
+              </button>
+            </div>
+          } @else if (!configLoaded()) {
             <!-- Loading skeleton while providers config is being fetched -->
             <div class="skeleton-btn"></div>
           } @else {

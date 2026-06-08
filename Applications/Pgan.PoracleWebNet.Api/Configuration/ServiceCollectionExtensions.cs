@@ -59,6 +59,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
         services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
         services.AddScoped<IUserAreaDualWriter, UserAreaDualWriter>();
+        services.AddScoped<IOidcSessionRepository, OidcSessionRepository>();
 
         // Register Services
         services.AddScoped<IMonsterService, MonsterService>();
@@ -148,6 +149,11 @@ public static class ServiceCollectionExtensions
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", kojiToken);
             }
         });
+
+        // Register the generic OIDC HTTP client (code exchange / refresh / userinfo) and the
+        // server-side refresh-session service (opaque-token rotation + encrypted RT storage).
+        services.AddHttpClient<Services.Oidc.IOidcClient, Services.Oidc.OidcClient>();
+        services.AddScoped<Services.Oidc.IOidcSessionService, Services.Oidc.OidcSessionService>();
 
         // Register JWT service (shared token generation across controllers)
         services.AddSingleton<IJwtService, JwtService>();

@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal,
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,9 +14,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule } from '@ngx-translate/core';
 
-import { DiscordServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /** Union type for backward compatibility during migration */
 type AnySettingItem = PwebSetting | SiteSetting;
@@ -284,19 +287,6 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#7c4dff',
-    icon: 'vpn_key',
-    labelKey: 'ADMIN_SETTINGS.GROUP_OIDC',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.ENABLE_OIDC_DESC',
-        key: 'enable_oidc',
-        labelKey: 'ADMIN_SETTINGS.ENABLE_OIDC_LABEL',
-        type: 'boolean',
-      },
-    ],
-  },
-  {
     color: '#2e7d32',
     icon: 'map',
     labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',
@@ -351,6 +341,8 @@ const SETTING_GROUPS: SettingGroup[] = [
   imports: [
     FormsModule,
     MatButtonModule,
+    MatButtonToggleModule,
+    MatDialogModule,
     MatIconModule,
     MatInputModule,
     MatFormFieldModule,
@@ -373,10 +365,17 @@ export class AdminSettingsComponent implements OnInit {
     'uicons_gym',
     'uicons_raid',
     'uicons_reward',
+    // Driven by the Authentication mode switch rather than a generic group row, but still
+    // a known key so it doesn't fall through to the "Other" catch-all section.
+    'enable_oidc',
+    // Single-logout toggle, surfaced as a dedicated control in the Authentication section.
+    'enable_oidc_slo',
   ]);
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
+
   private readonly internalPrefixes = [
     'webhook_delegates:',
     'quick_pick:',
@@ -395,6 +394,7 @@ export class AdminSettingsComponent implements OnInit {
   ];
 
   readonly settings = signal<AnySettingItem[]>([]);
+
   private readonly settingMap = computed(() => {
     const map = new Map<string, string | null>();
     for (const s of this.settings()) map.set(settingKey(s), s.value);
@@ -403,6 +403,8 @@ export class AdminSettingsComponent implements OnInit {
 
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
+  /** Current sign-in mode, derived from enable_oidc (opt-in; absent/false = local). */
+  readonly authMode = computed<'local' | 'oidc'>(() => (this.getBool('enable_oidc') ? 'oidc' : 'local'));
   readonly bulkSaving = signal(false);
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
@@ -466,6 +468,17 @@ export class AdminSettingsComponent implements OnInit {
 
   readonly modifiedSettings = signal<Map<string, string>>(new Map());
 
+  readonly oidcConfig = signal<OidcServerConfig | null>(null);
+
+  /** Whether the OIDC provider is fully configured in the server env (gates the SSO option). */
+  readonly oidcConfigured = computed(() => this.oidcConfig()?.configured ?? false);
+
+  /** Whether a provider end-session endpoint is configured (gates the single-logout toggle). */
+  readonly oidcEndSessionConfigured = computed(() => !!this.oidcConfig()?.endSessionUrl);
+
+  /** Single-logout admin toggle state — absent defaults to ON once the end-session URL is wired. */
+  readonly oidcSloEnabled = computed(() => (this.getSettingValue('enable_oidc_slo') ?? '').toLowerCase() !== 'false');
+
   readonly settingsLoading = signal(true);
   readonly telegramConfig = signal<TelegramServerConfig | null>(null);
 
@@ -476,14 +489,20 @@ export class AdminSettingsComponent implements OnInit {
     }),
   );
 
-  readonly visibleGroups = computed(() =>
-    SETTING_GROUPS.filter(
-      g =>
+  readonly visibleGroups = computed(() => {
+    // In OIDC sign-in mode the local provider sections are moot — hide them; the read-only
+    // OIDC config card is shown by the bespoke Authentication section instead.
+    const localProviderGroups = new Set(['ADMIN_SETTINGS.GROUP_DISCORD', 'ADMIN_SETTINGS.GROUP_TELEGRAM']);
+    const oidcMode = this.authMode() === 'oidc';
+    return SETTING_GROUPS.filter(g => {
+      if (oidcMode && localProviderGroups.has(g.labelKey)) return false;
+      return (
         g.settings.some(s => this.settingMap().has(s.key)) ||
         (g.labelKey === 'ADMIN_SETTINGS.GROUP_DISCORD' && this.discordConfig() !== null) ||
-        (g.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && this.telegramConfig() !== null),
-    ),
-  );
+        (g.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && this.telegramConfig() !== null)
+      );
+    });
+  });
 
   getBool(key: string): boolean {
     return (this.getSettingValue(key) ?? '').toLowerCase() === 'true';
@@ -533,6 +552,11 @@ export class AdminSettingsComponent implements OnInit {
       .getTelegramConfig()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: config => this.telegramConfig.set(config) });
+
+    this.settingsService
+      .getOidcConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: config => this.oidcConfig.set(config) });
   }
 
   onBoolChange(key: string, value: boolean): void {
@@ -604,6 +628,34 @@ export class AdminSettingsComponent implements OnInit {
       this.i18n.instant('COMMON.OK'),
       { duration: 4000 },
     );
+  }
+
+  /**
+   * Switch the sign-in mode. OIDC is gated on the provider being configured in env, and a
+   * confirmation warns that local login is bypassed (and about the AUTH_FORCE_LOCAL recovery
+   * path). The change is staged like any other setting — it persists on Save.
+   */
+  setAuthMode(mode: 'local' | 'oidc'): void {
+    if (mode === this.authMode()) return;
+
+    if (mode === 'oidc') {
+      if (!this.oidcConfigured()) return;
+      const provider = this.oidcConfig()?.providerName || this.i18n.instant('ADMIN_SETTINGS.AUTH_MODE_OIDC');
+      const ref = this.dialog.open(ConfirmDialogComponent, {
+        data: {
+          confirmText: this.i18n.instant('ADMIN_SETTINGS.AUTH_MODE_SWITCH_CONFIRM'),
+          message: this.i18n.instant('ADMIN_SETTINGS.AUTH_MODE_OIDC_CONFIRM_MSG', { provider }),
+          title: this.i18n.instant('ADMIN_SETTINGS.AUTH_MODE_OIDC_CONFIRM_TITLE'),
+          warn: true,
+        } as ConfirmDialogData,
+      });
+      ref.afterClosed().subscribe(confirmed => {
+        if (confirmed) this.applyChange('enable_oidc', 'True');
+      });
+      return;
+    }
+
+    this.applyChange('enable_oidc', 'False');
   }
 
   private applyChange(key: string, value: string): void {

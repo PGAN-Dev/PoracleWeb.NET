@@ -21,6 +21,167 @@
       <mat-spinner diameter="48"></mat-spinner>
     </div>
   } @else {
+    <!-- Authentication mode: Local (Discord/Telegram) vs external SSO (OIDC) -->
+    <section class="settings-section">
+      <div class="section-header" style="border-left: 4px solid #7c4dff">
+        <mat-icon class="section-icon" style="color: #7c4dff">vpn_key</mat-icon>
+        <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_AUTH' | translate }}</span>
+      </div>
+
+      <div class="auth-mode-row">
+        <div class="setting-info">
+          <span class="setting-label">{{ 'ADMIN_SETTINGS.AUTH_MODE_LABEL' | translate }}</span>
+          <span class="setting-desc">{{
+            (authMode() === 'oidc' ? 'ADMIN_SETTINGS.AUTH_MODE_OIDC_DESC' : 'ADMIN_SETTINGS.AUTH_MODE_LOCAL_DESC') | translate
+          }}</span>
+        </div>
+        <mat-button-toggle-group
+          class="auth-mode-toggle"
+          [value]="authMode()"
+          (change)="setAuthMode($event.value)"
+          [attr.aria-label]="'ADMIN_SETTINGS.AUTH_MODE_LABEL' | translate">
+          <mat-button-toggle value="local">
+            <mat-icon>group</mat-icon>
+            {{ 'ADMIN_SETTINGS.AUTH_MODE_LOCAL' | translate }}
+          </mat-button-toggle>
+          <mat-button-toggle
+            value="oidc"
+            [disabled]="!oidcConfigured()"
+            [matTooltip]="!oidcConfigured() ? ('ADMIN_SETTINGS.AUTH_OIDC_NOT_CONFIGURED' | translate) : ''">
+            <mat-icon>vpn_key</mat-icon>
+            {{ 'ADMIN_SETTINGS.AUTH_MODE_OIDC' | translate }}
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      @if (!oidcConfigured()) {
+        <div class="config-hint">
+          <mat-icon>info_outline</mat-icon>
+          <span>{{ 'ADMIN_SETTINGS.AUTH_OIDC_NOT_CONFIGURED' | translate }}</span>
+        </div>
+      }
+
+      @if (authMode() === 'oidc') {
+        <div class="config-hint">
+          <mat-icon>info_outline</mat-icon>
+          <span>{{ 'ADMIN_SETTINGS.AUTH_OIDC_HIDES_LOCAL' | translate }}</span>
+        </div>
+
+        @if (oidcConfig()?.forceLocal) {
+          <div class="config-hint warning">
+            <mat-icon>warning</mat-icon>
+            <span>{{ 'ADMIN_SETTINGS.AUTH_FORCE_LOCAL_ACTIVE' | translate }}</span>
+          </div>
+        }
+
+        @if (oidcEndSessionConfigured()) {
+          <div class="setting-row" [class.modified]="modifiedSettings().has('enable_oidc_slo')">
+            <div class="setting-info">
+              <span class="setting-label">{{ 'ADMIN_SETTINGS.AUTH_SLO_LABEL' | translate }}</span>
+              <span class="setting-desc">{{ 'ADMIN_SETTINGS.AUTH_SLO_DESC' | translate }}</span>
+            </div>
+            <div class="setting-control">
+              <mat-slide-toggle
+                [checked]="oidcSloEnabled()"
+                (change)="onBoolChange('enable_oidc_slo', $event.checked)"
+                color="primary"></mat-slide-toggle>
+            </div>
+          </div>
+        } @else {
+          <div class="config-hint">
+            <mat-icon>info_outline</mat-icon>
+            <span>{{ 'ADMIN_SETTINGS.AUTH_SLO_UNAVAILABLE' | translate }}</span>
+          </div>
+        }
+
+        @if (oidcConfig(); as oidc) {
+          <div class="server-config-block">
+            <div class="server-config-header">
+              <mat-icon class="server-config-icon">dns</mat-icon>
+              <span class="server-config-title">{{ 'ADMIN_SETTINGS.OIDC_SERVER_CONFIG' | translate }}</span>
+              <span class="server-config-badge" [matTooltip]="'ADMIN.READ_ONLY_TOOLTIP' | translate">
+                {{ 'ADMIN.READ_ONLY' | translate }}
+              </span>
+            </div>
+            <div class="server-config-rows">
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_PROVIDER_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!oidc.providerName">{{ oidc.providerName || ('ADMIN.NOT_CONFIGURED' | translate) }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_AUTHORIZATION_URL_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!oidc.authorizationUrl">{{ oidc.authorizationUrl || ('ADMIN.NOT_CONFIGURED' | translate) }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_TOKEN_URL_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!oidc.tokenUrl">{{ oidc.tokenUrl || ('ADMIN.NOT_CONFIGURED' | translate) }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_USERINFO_URL_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!oidc.userInfoUrl">{{ oidc.userInfoUrl || ('ADMIN.NOT_CONFIGURED' | translate) }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_CLIENT_ID_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!oidc.clientId">{{ oidc.clientId || ('ADMIN.NOT_CONFIGURED' | translate) }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_SCOPES_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!oidc.scopes">{{ oidc.scopes || ('ADMIN.NOT_CONFIGURED' | translate) }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_IDENTITY_CLAIM_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code [class.empty]="!oidc.identityClaim">{{ oidc.identityClaim || ('ADMIN.NOT_CONFIGURED' | translate) }}</code>
+                </div>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="server-config-row">
+                <div class="setting-info">
+                  <span class="setting-label">{{ 'ADMIN_SETTINGS.OIDC_USE_PKCE_LABEL' | translate }}</span>
+                </div>
+                <div class="server-config-value">
+                  <code>{{ oidc.usePkce ? 'true' : 'false' }}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </section>
+    <div class="section-gap"></div>
+
     @for (group of visibleGroups(); track group.labelKey; let last = $last) {
       <section class="settings-section">
         <div class="section-header" [style.border-left]="'4px solid ' + group.color">

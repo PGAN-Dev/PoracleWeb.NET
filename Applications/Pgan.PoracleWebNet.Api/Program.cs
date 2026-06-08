@@ -61,6 +61,7 @@ MapEnvVar("OIDC_ENABLED", "Oidc__Enabled");
 MapEnvVar("OIDC_PROVIDER_NAME", "Oidc__ProviderName");
 MapEnvVar("OIDC_AUTHORIZATION_URL", "Oidc__AuthorizationUrl");
 MapEnvVar("OIDC_TOKEN_URL", "Oidc__TokenUrl");
+MapEnvVar("OIDC_END_SESSION_URL", "Oidc__EndSessionUrl");
 MapEnvVar("OIDC_USERINFO_URL", "Oidc__UserInfoUrl");
 MapEnvVar("OIDC_CLIENT_ID", "Oidc__ClientId");
 MapEnvVar("OIDC_CLIENT_SECRET", "Oidc__ClientSecret");
@@ -70,6 +71,17 @@ MapEnvVar("OIDC_USERNAME_CLAIM", "Oidc__UsernameClaim");
 MapEnvVar("OIDC_AVATAR_CLAIM", "Oidc__AvatarClaim");
 MapEnvVar("OIDC_IDENTITY_TYPE", "Oidc__IdentityType");
 MapEnvVar("OIDC_USE_PKCE", "Oidc__UsePkce");
+// Refresh-token consumption (opt-in, default off). When on, PoracleWeb brokers the provider's
+// refresh token server-side for silent renewal + revocation propagation. Provider-agnostic.
+MapEnvVar("OIDC_USE_REFRESH_TOKENS", "Oidc__UseRefreshTokens");
+MapEnvVar("OIDC_ACCESS_TOKEN_MINUTES", "Oidc__AccessTokenMinutes");
+MapEnvVar("OIDC_REFRESH_TOKEN_LIFETIME_DAYS", "Oidc__RefreshTokenLifetimeDays");
+MapEnvVar("OIDC_SESSION_REVOKED_RETENTION_DAYS", "Oidc__RevokedRetentionDays");
+MapEnvVar("OIDC_OFFLINE_ACCESS_SCOPE", "Oidc__OfflineAccessScope");
+MapEnvVar("OIDC_TOKEN_AUTH_METHOD", "Oidc__TokenEndpointAuthMethod");
+// Break-glass: forces the local login page regardless of the OIDC sign-in mode. Recovery
+// path when an admin switches to OIDC against a broken/unreachable provider and gets locked out.
+MapEnvVar("AUTH_FORCE_LOCAL", "Auth__ForceLocal");
 MapEnvVar("PORACLE_API_ADDRESS", "Poracle__ApiAddress");
 MapEnvVar("PORACLE_API_SECRET", "Poracle__ApiSecret");
 MapEnvVar("PORACLE_ADMIN_IDS", "Poracle__AdminIds");
@@ -175,6 +187,7 @@ builder.Services.AddPoracleServices(builder.Configuration);
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.AvatarCacheService>();
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.DtsCacheService>();
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.SettingsMigrationStartupService>();
+builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.Oidc.OidcSessionCleanupService>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;

@@ -16,6 +16,13 @@ public interface IJwtService
     string GenerateToken(UserInfo user);
 
     /// <summary>
+    /// Generates a fresh JWT with an explicit lifetime (minutes), overriding the configured
+    /// default. Used for refresh-backed OIDC sessions, which are deliberately short-lived so
+    /// provider-side revocation propagates quickly via silent refresh.
+    /// </summary>
+    string GenerateToken(UserInfo user, int lifetimeMinutes);
+
+    /// <summary>
     /// Generates a JWT for an impersonated user. Includes an <c>impersonatedBy</c> claim
     /// identifying the admin who initiated the impersonation.
     /// </summary>

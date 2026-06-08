@@ -28,6 +28,7 @@ export class CallbackComponent implements OnInit {
     const fragment = this.route.snapshot.fragment || '';
     const fragmentParams = new URLSearchParams(fragment);
     const token = fragmentParams.get('token');
+    const refreshToken = fragmentParams.get('refresh_token');
     const errorParam = this.route.snapshot.queryParamMap.get('error');
 
     if (errorParam) {
@@ -44,7 +45,7 @@ export class CallbackComponent implements OnInit {
       const key = messageKeys[errorParam];
       this.error.set(key ? this.i18n.instant(key) : this.i18n.instant('AUTH.ERR_GENERIC', { error: errorParam }));
     } else if (token) {
-      this.auth.handleTokenFromCallback(token);
+      this.auth.handleTokenFromCallback(token, refreshToken);
     } else {
       this.error.set(this.i18n.instant('AUTH.ERR_NO_TOKEN'));
     }

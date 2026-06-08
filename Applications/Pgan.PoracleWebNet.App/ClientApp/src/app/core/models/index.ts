@@ -319,7 +319,11 @@ export interface TelegramProviderStatus extends AuthProviderStatus {
 }
 
 export interface OidcProviderStatus extends AuthProviderStatus {
+  /** Whether a provider end-session endpoint is configured (enables single logout). */
+  endSession?: boolean;
   providerName: string;
+  /** Whether silent refresh is active (server brokers the provider refresh token). */
+  refresh?: boolean;
 }
 
 export interface AuthProviders {
@@ -452,6 +456,30 @@ export interface DiscordServerConfig {
   clientSecret: string;
   geofenceForumChannelId: string;
   guildId: string;
+}
+
+// ─── OidcServerConfig ────────────────────────────────────────────────────────
+
+export interface OidcServerConfig {
+  authorizationUrl: string;
+  /** Masked client id (first/last 4 chars). */
+  clientId: string;
+  /** Masked client secret (last 4 chars only). */
+  clientSecret: string;
+  /** Whether the full provider config (client id + 3 URLs) is present in the server env. */
+  configured: boolean;
+  /** Master OIDC switch from server config (Oidc__Enabled / auto-inferred). */
+  enabled: boolean;
+  /** Optional RP-initiated logout (end-session) endpoint; empty when not configured. */
+  endSessionUrl: string;
+  /** AUTH_FORCE_LOCAL break-glass — when true, OIDC is forced off regardless of mode. */
+  forceLocal: boolean;
+  identityClaim: string;
+  providerName: string;
+  scopes: string;
+  tokenUrl: string;
+  usePkce: boolean;
+  userInfoUrl: string;
 }
 
 // ─── WebhookDelegate ─────────────────────────────────────────────────────────

@@ -322,3 +322,131 @@ docker logs poracleweb.net 2>&1 | grep -i golbat
 1. **Enable Daily summary on at least one quest alarm** (the per-alarm toggle in the quest add/edit dialog). Only alarms with this toggle are buffered; the rest deliver immediately.
 2. **Confirm the feature is enabled on the bot** (`tracking.quest_summary_enabled = true`) — when it is off, PoracleNG's matcher does not buffer at all, so the buffer stays empty.
 3. **Give it time**: quests are buffered as they match. Right after enabling the feature, or after a summary fires, the buffer starts empty and fills as matching quests come in. PoracleNG's status log shows the current count (`Summary: N buffered`).
+
+---
+
+## External SSO / OIDC login
+
+The issues below cover the generic external OIDC/OAuth2 login provider. For the full settings reference, see [External SSO](configuration/external-sso.md); for the silent-refresh feature, see [OIDC Refresh Tokens](configuration/oidc-refresh-tokens.md).
+
+### "External login failed" / 405 on the token or userinfo call
+
+**Problem**: The OIDC login starts, the user authenticates at the provider, but the callback redirects to `/login#error=oidc_token_exchange_failed` (or `oidc_userinfo_failed`). The provider's logs show a `405 Method Not Allowed` on the token or userinfo request.
+
+**Solution**: Some providers are *split-host* — the browser-facing authorize endpoint lives on one host (the frontend/login host) while the token and userinfo endpoints live on a separate API host. Pointing `OIDC_TOKEN_URL` / `OIDC_USERINFO_URL` at the frontend host hits a static site with no POST handler, which returns `405`.
+
+Set each endpoint to its correct host:
+
+```env
+OIDC_AUTHORIZATION_URL=https://login.provider.example/oauth2/authorize
+OIDC_TOKEN_URL=https://api.provider.example/oauth2/token
+OIDC_USERINFO_URL=https://api.provider.example/oauth2/userinfo
+```
+
+Only `OIDC_AUTHORIZATION_URL` belongs on the frontend host; `OIDC_TOKEN_URL` and `OIDC_USERINFO_URL` go to the API host.
+
+---
+
+### redirect_uri mismatch / invalid redirect
+
+**Problem**: The provider rejects the login with an "invalid redirect URI" or "redirect_uri mismatch" error before the user ever reaches PoracleWeb.NET's callback.
+
+**Solution**: PoracleWeb.NET builds the callback URL as `{scheme}://{Host}/api/auth/oidc/callback` from the **incoming request Host header**, and that exact URL must be registered at the IdP. In local development the Angular dev-server proxy preserves `Host = localhost:4201`, so the callback becomes `:4201`, not the API's `:5048`. Register every host that can originate the request as an allowed redirect URI at the provider:
+
+```text
+http://localhost:5048/api/auth/oidc/callback
+http://localhost:4201/api/auth/oidc/callback
+https://poracle.example.com/api/auth/oidc/callback
+```
+
+Include your real production host alongside the two local-dev URIs.
+
+---
+
+### 404 after OIDC login in local dev (standalone `ng serve`)
+
+**Problem**: Running the Angular dev server standalone, OIDC login completes at the provider but the browser lands on a 404 instead of the dashboard.
+
+**Solution**: The callback issues a `302` to the Angular client route `/auth/oidc/callback#token=…`. The committed `proxy.conf.json` proxies `/auth` to the API, so the dev server forwards that client route to the API (which has no such route) → `404`. Run the dev server with an `/api`-only proxy so Angular serves `/auth/*` itself:
+
+```json
+{
+  "/api": { "target": "http://localhost:5048", "secure": false }
+}
+```
+
+A ready-made `proxy.local.json` is provided for this; start the dev server with `ng serve --proxy-config proxy.local.json`.
+
+!!! note "Only affects standalone `ng serve`"
+    When the API serves the built SPA (Docker, production), there is no separate dev-server proxy and Angular's router handles `/auth/oidc/callback` directly — this issue does not occur.
+
+---
+
+### `#error=user_not_registered` at the callback
+
+**Problem**: Login succeeds at the provider but the browser returns to `/login#error=user_not_registered`.
+
+**Solution**: The value carried by the configured identity claim has no matching row in the Poracle `human` table — the SSO user has no Poracle account. PoracleWeb.NET reads `OIDC_IDENTITY_CLAIM` (default `discord_id`, falling back to the standard `sub` claim) and looks that value up as the Poracle human id. To fix:
+
+1. Ensure the claim carries the user's Poracle id — a linked Discord or Telegram id, not an internal SSO/email id.
+2. Confirm a matching user actually exists in Poracle (they must have registered with the bot).
+
+!!! note "PogoAlerts users must link Discord"
+    At PogoAlerts the user must have Discord linked to their account so the provider emits the `discord_id` claim. Without a linked Discord, no `discord_id` is sent and the lookup fails.
+
+---
+
+### Silent refresh not happening / no refresh token issued
+
+**Problem**: Sessions still expire at the full JWT lifetime instead of refreshing silently. The app logs *"OIDC refresh tokens are enabled but the provider returned no refresh token (offline_access not granted?); falling back to a standard session."*
+
+**Solution**: Standards-compliant providers only issue a refresh token when the `offline_access` scope is requested and granted. If `OIDC_OFFLINE_ACCESS_SCOPE` is blanked (or the provider declined to grant it), the token response carries no refresh token, and PoracleWeb.NET gracefully falls back to a normal full-lifetime session — no error is shown to the user.
+
+1. Set `OIDC_USE_REFRESH_TOKENS=true`.
+2. Ensure the provider actually issues refresh tokens: leave `OIDC_OFFLINE_ACCESS_SCOPE=offline_access` (the default) so the scope is requested, or use the provider's own mechanism (e.g. Google's `?access_type=offline`).
+
+See [OIDC Refresh Tokens](configuration/oidc-refresh-tokens.md) for the full setup.
+
+---
+
+### Token endpoint returns 400/401 invalid_client
+
+**Problem**: The token exchange fails with the provider returning `400`/`401` and an `invalid_client` error, so the callback redirects to `/login#error=oidc_token_exchange_failed`.
+
+**Solution**: `OIDC_TOKEN_AUTH_METHOD` must match how the provider expects client credentials presented:
+
+- `client_secret_post` — credentials sent in the request **body**.
+- `client_secret_basic` — credentials sent in the HTTP **Basic** `Authorization` header.
+
+Match the provider's expectation: Keycloak and Okta default to `client_secret_basic`; Auth0, Azure, and PogoAlerts use `client_secret_post`.
+
+---
+
+### Locked out after switching to SSO (provider down / misconfigured)
+
+**Problem**: An admin set `enable_oidc` to SSO mode, the login page now auto-redirects to the provider, and the provider is down or misconfigured — nobody can sign in to fix it.
+
+**Solution**: This is the break-glass scenario. Set the env flag and restart:
+
+```env
+AUTH_FORCE_LOCAL=true
+```
+
+This forces the local login page regardless of the `enable_oidc` mode, so an admin can sign in and disable or repair the OIDC configuration. Once fixed, remove the flag and restart.
+
+!!! note "Admins can always reach local login"
+    Even when `enable_oidc` is off (or a provider is broken), admins can always reach the local login page — the `enable_oidc` gate is enforced *after* authentication so an admin is never locked out of re-enabling or fixing the setting.
+
+---
+
+### "Sign out everywhere" 404s / single logout doesn't end the provider session
+
+**Problem**: The "Sign out everywhere" option is missing, returns a 404, or signs the user out of PoracleWeb.NET but leaves the provider session active (so the next login skips re-authentication).
+
+**Solution**: RP-initiated single logout requires all three of:
+
+1. **`OIDC_END_SESSION_URL` configured** — without it, logout falls back to a plain local sign-out.
+2. **`enable_oidc_slo` not set to `false`** — this admin runtime toggle defaults to on once the end-session URL is wired; an explicit `false` disables single logout.
+3. **The `post_logout_redirect_uri` registered at the IdP** — PoracleWeb.NET sends `{origin}/login?loggedout=1`. If that URL isn't in the provider's allow-list, the provider rejects the logout redirect.
+
+Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and register the post-logout redirect URI at the IdP.

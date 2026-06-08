@@ -33,6 +33,12 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
         return this.WriteToken(claims);
     }
 
+    public string GenerateToken(UserInfo user, int lifetimeMinutes)
+    {
+        var claims = BuildClaims(user);
+        return this.WriteToken(claims, lifetimeMinutes);
+    }
+
     public string GenerateImpersonationToken(UserInfo user, string impersonatedBy)
     {
         var claims = BuildClaims(user);
@@ -88,7 +94,9 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
         return claims;
     }
 
-    private string WriteToken(List<Claim> claims)
+    private string WriteToken(List<Claim> claims) => this.WriteToken(claims, this._settings.ExpirationMinutes);
+
+    private string WriteToken(List<Claim> claims, int lifetimeMinutes)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this._settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -97,7 +105,7 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
             issuer: this._settings.Issuer,
             audience: this._settings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(this._settings.ExpirationMinutes),
+            expires: DateTime.UtcNow.AddMinutes(lifetimeMinutes),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

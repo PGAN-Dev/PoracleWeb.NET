@@ -363,3 +363,21 @@
 .favicon-cache-warning {
   margin-top: 4px;
 }
+
+.auth-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+}
+.auth-mode-toggle {
+  flex-shrink: 0;
+  mat-icon {
+    margin-right: 6px;
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    vertical-align: text-bottom;
+  }
+}
