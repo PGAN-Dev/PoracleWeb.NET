@@ -62,6 +62,24 @@ export class LoginComponent implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
 
+  /** Whether a generic external OIDC provider is configured in the server's .env / appsettings. */
+  protected readonly oidcConfigured = signal(false);
+
+  /** Whether OIDC login is enabled by the admin (site setting `enable_oidc`). */
+  protected readonly oidcEnabledByAdmin = signal(true);
+
+  /** Computed: can the user actually use OIDC login without admin rejection? */
+  protected readonly oidcActive = computed(() => this.oidcConfigured() && this.oidcEnabledByAdmin());
+
+  /** Display name of the configured OIDC provider, shown on the button. */
+  protected readonly oidcProviderName = signal('');
+
+  /** Computed: should the OIDC button be shown at all? Only if configured in .env. */
+  protected readonly oidcVisible = computed(() => this.oidcConfigured());
+
+  /** True when arriving via logout (?loggedout=1): show the signed-out panel, no auto-redirect. */
+  protected readonly signedOut = signal(false);
+
   protected readonly signupUrl = computed(() => {
     return this.settingsService.siteSettings()['signup_url'] || null;
   });
@@ -103,7 +121,26 @@ export class LoginComponent implements OnInit {
     this.auth.loginWithDiscord();
   }
 
+  loginWithOidc(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.auth.loginWithOidc();
+  }
+
   ngOnInit(): void {
+    // Parse any auth error from the URL fragment (e.g. /login#error=missing_required_role)
+    // up front, so the provider-config handler below can decide whether to auto-redirect
+    // to an external OIDC provider.
+    const fragment = window.location.hash?.substring(1) ?? '';
+    const fragmentParams = new URLSearchParams(fragment);
+    const errorCode = fragmentParams.get('error');
+
+    // /login?loggedout=1 (set by logout / the OIDC end-session return) shows the signed-out
+    // panel and SUPPRESSES the OIDC auto-redirect, so the user isn't bounced straight back
+    // into the provider and silently re-logged in.
+    const loggedOut = this.route.snapshot.queryParamMap.get('loggedout') === '1';
+    this.signedOut.set(loggedOut);
+
     // Load public site settings (custom_title, signup_url) and provider config in parallel.
     // Both calls use a 10s timeout and fallback to defaults on error so the login page
     // never gets stuck in an unrecoverable state.
@@ -126,15 +163,25 @@ export class LoginComponent implements OnInit {
           this.discordConfigured.set(true);
           this.discordEnabledByAdmin.set(true);
         }
+
+        // When a generic external OIDC provider is the active sign-in method, skip the
+        // local login page and send the user straight to the provider. Guarded so we
+        // never loop: not after an auth-error bounce and not when already logged in.
+        if (this.oidcActive() && !errorCode && !loggedOut && !this.auth.isLoggedIn()) {
+          this.auth.loginWithOidc();
+          return;
+        }
+
         this.configLoaded.set(true);
       });
 
     // Show error from URL fragment (e.g. /login#error=missing_required_role)
-    const fragment = window.location.hash?.substring(1) ?? '';
-    const fragmentParams = new URLSearchParams(fragment);
-    const errorCode = fragmentParams.get('error');
     if (errorCode) {
       const errorKeys: Record<string, string> = {
+        oidc_disabled: 'AUTH.ERR_OIDC_DISABLED',
+        oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
+        oidc_token_exchange_failed: 'AUTH.ERR_OIDC_TOKEN_EXCHANGE',
+        oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
         discord_disabled: 'AUTH.ERR_DISCORD_DISABLED',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
@@ -158,6 +205,18 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  /**
+   * Sign in again from the signed-out panel. In OIDC mode this re-initiates the provider
+   * flow (full credentials if single logout ended the provider session, silent otherwise);
+   * in local mode it simply reveals the Discord/Telegram buttons.
+   */
+  signInAgain(): void {
+    this.signedOut.set(false);
+    if (this.oidcActive()) {
+      this.loginWithOidc();
+    }
+  }
+
   private applyProviders(providers: AuthProviders): void {
     // Discord
     this.discordConfigured.set(providers.discord.configured);
@@ -168,6 +227,13 @@ export class LoginComponent implements OnInit {
     this.telegramBotUsername = providers.telegram.botUsername;
     this.telegramConfigured.set(providers.telegram.configured);
     this.telegramEnabledByAdmin.set(providers.telegram.enabledByAdmin);
+
+    // OIDC (generic external SSO provider) — optional; older API responses omit it.
+    if (providers.oidc) {
+      this.oidcConfigured.set(providers.oidc.configured);
+      this.oidcEnabledByAdmin.set(providers.oidc.enabledByAdmin);
+      this.oidcProviderName.set(providers.oidc.providerName);
+    }
   }
 
   private handleTelegramAuth(telegramData: Record<string, string>): void {

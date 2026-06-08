@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
@@ -17,7 +18,9 @@ public class SettingsControllerTests : ControllerTestBase
         this._siteService.Object,
         Options.Create(new DiscordSettings()),
         Options.Create(new PoracleSettings()),
-        Options.Create(new TelegramSettings()));
+        Options.Create(new TelegramSettings()),
+        Options.Create(new OidcSettings()),
+        new ConfigurationBuilder().Build());
 
     [Fact]
     public async Task GetAllReturnsOkForAdmin()
@@ -148,7 +151,9 @@ public class SettingsControllerTests : ControllerTestBase
             {
                 AdminIds = "111111111,222222222",
             }),
-            Options.Create(new TelegramSettings()));
+            Options.Create(new TelegramSettings()),
+            Options.Create(new OidcSettings()),
+            new ConfigurationBuilder().Build());
         SetupUser(controller, isAdmin: true);
 
         var result = controller.GetDiscordConfig();

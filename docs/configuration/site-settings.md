@@ -112,6 +112,23 @@ Configure Telegram authentication alongside or instead of Discord.
 
 ---
 
+## Authentication
+
+Runtime toggles for the generic external SSO / OIDC sign-in flow. See [External SSO / OIDC](external-sso.md) for the full provider setup and [OIDC Refresh Tokens](oidc-refresh-tokens.md) for silent session refresh.
+
+| Key | Label | Type | Description |
+|---|---|---|---|
+| `enable_oidc` | Authentication Mode (Local ⇄ SSO) | boolean | Controls the admin **Authentication** Local ⇄ SSO mode switch. **Opt-in:** SSO is active only when this is explicitly the string `"true"`. When the setting is **absent** (or `"false"`), the instance stays in **Local mode** — this is the default. Admins can always sign in via local auth even when SSO is on, so they can switch the mode back if the provider breaks. |
+| `enable_oidc_slo` | Single Logout (Sign Out Everywhere) | boolean | Toggles RP-initiated single logout ("Sign out everywhere"). When **absent** this is **on** once an end-session endpoint is configured (`OIDC_END_SESSION_URL` in [appsettings](reference.md)). Set to `"false"` to disable single logout and fall back to a local logout. |
+
+!!! note "Absent = default"
+    These two settings differ from most boolean toggles on this page: their behaviour depends on whether the key is **present**. `enable_oidc` defaults **off** (Local mode) and must be explicitly `"true"` to enable SSO. `enable_oidc_slo` defaults **on** once an end-session endpoint is configured in [appsettings](reference.md), and only turns off when explicitly set to `"false"`.
+
+!!! info "Silent refresh has no runtime toggle"
+    Whether silent session refresh is active is controlled solely by the `OIDC_USE_REFRESH_TOKENS` [appsettings](reference.md) flag — there is intentionally **no** `enable_oidc_refresh` site setting. Refresh is coupled to the per-login JWT lifetime, so it's a deploy-time decision (turning it off at runtime would strand the short-lived tokens of users who are already signed in). See [OIDC Refresh Tokens](oidc-refresh-tokens.md).
+
+---
+
 ## Maps & Assets
 
 Configure the map tile provider used for static map images.

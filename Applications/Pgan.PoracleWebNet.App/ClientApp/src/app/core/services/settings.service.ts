@@ -3,7 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { DiscordServerConfig, PoracleConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../models';
+import { DiscordServerConfig, OidcServerConfig, PoracleConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../models';
 
 /** Union of old and new setting response shapes */
 type AnySettingItem = PwebSetting | SiteSetting;
@@ -32,6 +32,10 @@ export class SettingsService {
 
   getDiscordConfig(): Observable<DiscordServerConfig> {
     return this.http.get<DiscordServerConfig>(`${this.config.apiHost}/api/settings/discord-config`);
+  }
+
+  getOidcConfig(): Observable<OidcServerConfig> {
+    return this.http.get<OidcServerConfig>(`${this.config.apiHost}/api/settings/oidc-config`);
   }
 
   getTelegramConfig(): Observable<TelegramServerConfig> {

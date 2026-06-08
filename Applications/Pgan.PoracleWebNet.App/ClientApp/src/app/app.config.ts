@@ -8,12 +8,15 @@ import { TranslateHttpLoader, provideTranslateHttpLoader } from '@ngx-translate/
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { oidcRefreshInterceptor } from './core/interceptors/oidc-refresh.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    // oidcRefreshInterceptor sits closest to the backend so it catches a 401 (and can silently
+    // refresh + retry) before errorInterceptor redirects to the login page.
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor, oidcRefreshInterceptor])),
     provideAnimationsAsync(),
     provideTranslateService({
       defaultLanguage: 'en',

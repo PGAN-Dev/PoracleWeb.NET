@@ -91,7 +91,6 @@ export class App implements OnInit {
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
 
   protected readonly auth = inject(AuthService);
-
   protected readonly navItems: NavItem[] = [
     { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'NAV.DASHBOARD', route: '/dashboard' },
     { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'NAV.QUICK_PICKS', route: '/quick-picks' },
@@ -257,6 +256,9 @@ export class App implements OnInit {
 
   protected readonly sidenavOpened = signal(!this.isMobile());
 
+  /** Whether the active SSO provider supports single logout ("Sign out everywhere"). */
+  protected readonly ssoLogoutAvailable = signal(false);
+
   protected readonly supportNavItems = computed(() => this.navItems.filter(item => item.group === 'support'));
 
   protected readonly toolbarGradient = computed(() => {
@@ -291,8 +293,9 @@ export class App implements OnInit {
     });
   }
 
-  logout(): void {
-    this.auth.logout();
+  /** @param sso when true, also ends the external provider session (single logout). */
+  logout(sso = false): void {
+    this.auth.logout({ sso });
   }
 
   ngOnInit(): void {
@@ -301,6 +304,12 @@ export class App implements OnInit {
         const allowed = this.settingsService.siteSettings()['allowed_languages'];
         this.i18n.init(allowed);
       },
+    });
+
+    // Determine whether the active SSO provider supports single logout (end-session),
+    // which gates the "Sign out everywhere" menu item.
+    this.auth.getProviders().subscribe({
+      next: providers => this.ssoLogoutAvailable.set(providers.oidc?.endSession === true),
     });
   }
 

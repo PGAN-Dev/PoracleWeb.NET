@@ -362,3 +362,18 @@
     animation: none;
   }
 }
+
+.signed-out-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+.signed-out-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #2e7d32;
+}

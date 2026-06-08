@@ -13,7 +13,9 @@ public class SettingsController(
     ISiteSettingService siteSettingService,
     IOptions<DiscordSettings> discordSettings,
     IOptions<PoracleSettings> poracleSettings,
-    IOptions<TelegramSettings> telegramSettings) : BaseApiController
+    IOptions<TelegramSettings> telegramSettings,
+    IOptions<OidcSettings> oidcSettings,
+    IConfiguration configuration) : BaseApiController
 {
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -32,6 +34,7 @@ public class SettingsController(
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
+    private readonly OidcSettings _oidcSettings = oidcSettings.Value;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
 
     [HttpGet]
@@ -92,6 +95,52 @@ public class SettingsController(
             botToken = MaskSecret(this._telegramSettings.BotToken),
             botUsername = this._telegramSettings.BotUsername,
             enabled = this._telegramSettings.Enabled,
+        });
+    }
+
+    /// <summary>
+    /// Returns the server-side OIDC provider configuration (env / appsettings) for the admin
+    /// settings UI to display read-only. Secrets are masked; the client secret is never returned
+    /// in full. <c>configured</c> reflects whether the full provider config is present, and
+    /// <c>forceLocal</c> surfaces the AUTH_FORCE_LOCAL break-glass so the UI can explain why
+    /// OIDC may be inactive even when enabled.
+    /// </summary>
+    [HttpGet("oidc-config")]
+    public IActionResult GetOidcConfig()
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        var configured = !string.IsNullOrEmpty(this._oidcSettings.ClientId)
+            && !string.IsNullOrEmpty(this._oidcSettings.AuthorizationUrl)
+            && !string.IsNullOrEmpty(this._oidcSettings.TokenUrl)
+            && !string.IsNullOrEmpty(this._oidcSettings.UserInfoUrl);
+
+        return this.Ok(new
+        {
+            configured,
+            enabled = this._oidcSettings.Enabled,
+            forceLocal = configuration.GetValue<bool>("Auth:ForceLocal"),
+            providerName = this._oidcSettings.ProviderName,
+            authorizationUrl = this._oidcSettings.AuthorizationUrl,
+            tokenUrl = this._oidcSettings.TokenUrl,
+            userInfoUrl = this._oidcSettings.UserInfoUrl,
+            endSessionUrl = this._oidcSettings.EndSessionUrl,
+            clientId = MaskValue(this._oidcSettings.ClientId),
+            clientSecret = MaskSecret(this._oidcSettings.ClientSecret),
+            scopes = this._oidcSettings.Scopes,
+            identityClaim = this._oidcSettings.IdentityClaim,
+            usePkce = this._oidcSettings.UsePkce,
+            // Refresh-token consumption (server-side config only — controlled by OIDC_USE_REFRESH_TOKENS;
+            // there is no runtime admin toggle, as refresh is coupled to the per-login JWT lifetime).
+            useRefreshTokens = this._oidcSettings.UseRefreshTokens,
+            accessTokenMinutes = this._oidcSettings.AccessTokenMinutes,
+            refreshTokenLifetimeDays = this._oidcSettings.RefreshTokenLifetimeDays,
+            revokedRetentionDays = this._oidcSettings.RevokedRetentionDays,
+            offlineAccessScope = this._oidcSettings.OfflineAccessScope,
+            tokenEndpointAuthMethod = this._oidcSettings.TokenEndpointAuthMethod,
         });
     }
 

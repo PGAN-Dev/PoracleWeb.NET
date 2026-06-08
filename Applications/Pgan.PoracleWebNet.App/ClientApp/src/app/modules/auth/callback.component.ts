@@ -28,10 +28,15 @@ export class CallbackComponent implements OnInit {
     const fragment = this.route.snapshot.fragment || '';
     const fragmentParams = new URLSearchParams(fragment);
     const token = fragmentParams.get('token');
+    const refreshToken = fragmentParams.get('refresh_token');
     const errorParam = this.route.snapshot.queryParamMap.get('error');
 
     if (errorParam) {
       const messageKeys: Record<string, string> = {
+        oidc_disabled: 'AUTH.ERR_OIDC_DISABLED',
+        oidc_no_identity: 'AUTH.ERR_OIDC_NO_IDENTITY',
+        oidc_token_exchange_failed: 'AUTH.ERR_OIDC_TOKEN_EXCHANGE',
+        oidc_userinfo_failed: 'AUTH.ERR_OIDC_USERINFO',
         discord_user_fetch_failed: 'AUTH.ERR_DISCORD_FETCH',
         missing_code: 'AUTH.ERR_MISSING_CODE',
         token_exchange_failed: 'AUTH.ERR_TOKEN_EXCHANGE',
@@ -40,7 +45,7 @@ export class CallbackComponent implements OnInit {
       const key = messageKeys[errorParam];
       this.error.set(key ? this.i18n.instant(key) : this.i18n.instant('AUTH.ERR_GENERIC', { error: errorParam }));
     } else if (token) {
-      this.auth.handleTokenFromCallback(token);
+      this.auth.handleTokenFromCallback(token, refreshToken);
     } else {
       this.error.set(this.i18n.instant('AUTH.ERR_NO_TOKEN'));
     }

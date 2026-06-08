@@ -5,6 +5,7 @@ import { Observable, ReplaySubject, tap, firstValueFrom } from 'rxjs';
 
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
+import { TokenStoreService } from './token-store.service';
 import { UserInfo, LoginResponse, TelegramConfig, AuthProviders } from '../models';
 
 const TOKEN_KEY = 'poracle_token';
@@ -20,6 +21,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly settingsService = inject(SettingsService);
+  private readonly tokenStore = inject(TokenStoreService);
   private readonly userLoaded$ = new ReplaySubject<UserInfo | null>(1);
 
   readonly hasManagedWebhooks = computed(() => (this.currentUser()?.managedWebhooks?.length ?? 0) > 0);
@@ -31,6 +33,9 @@ export class AuthService {
   readonly user = this.currentUser.asReadonly();
 
   constructor() {
+    // A definitively failed silent refresh ends the session.
+    this.tokenStore.forceLogout$.subscribe(() => this.logout());
+
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       this.loadCurrentUser();
@@ -56,8 +61,9 @@ export class AuthService {
     return localStorage.getItem(TOKEN_KEY);
   }
 
-  async handleTokenFromCallback(token: string): Promise<void> {
-    localStorage.setItem(TOKEN_KEY, token);
+  async handleTokenFromCallback(token: string, refreshToken?: string | null): Promise<void> {
+    // Stores the JWT plus, for refresh-backed OIDC logins, the opaque refresh token + expiry.
+    this.tokenStore.storeTokens(token, refreshToken ?? null);
     await this.loadCurrentUser();
     // Load site settings now that we have a valid token — the initial loadOnce()
     // in App.ngOnInit() fires before the token is stored, so settings (including
@@ -115,18 +121,38 @@ export class AuthService {
     window.location.href = `${this.config.apiHost}/api/auth/discord/login`;
   }
 
+  loginWithOidc(): void {
+    window.location.href = `${this.config.apiHost}/api/auth/oidc/login`;
+  }
+
   loginWithTelegram(telegramData: Record<string, string>): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${this.config.apiHost}/api/auth/telegram/verify`, telegramData)
       .pipe(tap(res => this.handleAuthResponse(res)));
   }
 
-  logout(): void {
+  /**
+   * Clears the local session. With `sso: true` it then performs an OIDC RP-initiated
+   * (single) logout — bouncing through the API to the provider's end-session endpoint so
+   * the provider session is ended too, returning to the signed-out landing. Otherwise it
+   * navigates to `/login?loggedout=1`, which shows the signed-out panel and (importantly)
+   * suppresses the OIDC auto-redirect so the user isn't silently logged straight back in.
+   */
+  logout(options?: { sso?: boolean }): void {
+    // Revoke the server-side refresh session (fire-and-forget) before discarding local state.
+    this.tokenStore.revoke();
+    this.tokenStore.clear();
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
     this.currentUser.set(null);
-    this.router.navigate(['/login']);
+
+    if (options?.sso) {
+      window.location.href = `${this.config.apiHost}/api/auth/oidc/logout`;
+      return;
+    }
+
+    this.router.navigate(['/login'], { queryParams: { loggedout: 1 } });
   }
 
   /** Store a new JWT token (e.g. after profile switch). */

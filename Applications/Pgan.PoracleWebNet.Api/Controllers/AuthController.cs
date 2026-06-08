@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Services.Oidc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -21,14 +22,19 @@ public partial class AuthController(
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
     IJwtService jwtService,
+    IOidcClient oidcClient,
+    IOidcSessionService oidcSessionService,
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
+    IOptions<OidcSettings> oidcSettings,
     IOptions<PoracleSettings> poracleSettings,
     IConfiguration configuration,
     ILogger<AuthController> logger) : BaseApiController
 {
     private const string EnableDiscordKey = "enable_discord";
     private const string EnableTelegramKey = "enable_telegram";
+    private const string EnableOidcKey = "enable_oidc";
+    private const string EnableOidcSloKey = "enable_oidc_slo";
 
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
@@ -36,8 +42,11 @@ public partial class AuthController(
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly IOidcClient _oidcClient = oidcClient;
+    private readonly IOidcSessionService _oidcSessionService = oidcSessionService;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
+    private readonly OidcSettings _oidcSettings = oidcSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     private readonly ILogger<AuthController> _logger = logger;
@@ -213,6 +222,281 @@ public partial class AuthController(
     }
 
     [AllowAnonymous]
+    [HttpGet("oidc/login")]
+    public IActionResult OidcLogin()
+    {
+        // Generic external OIDC/OAuth2 provider — a configurable twin of the Discord flow.
+        // No early enable_oidc gate here: admins must be able to log in even when the
+        // provider is disabled for regular users. The check runs in OidcCallback() once
+        // we know whether the user is an admin (mirrors Discord).
+        if (!this.OidcConfigured())
+        {
+            return this.NotFound(new
+            {
+                error = "External login provider is not configured."
+            });
+        }
+
+        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+        var isHttps = string.Equals(this.Request.Scheme, "https", StringComparison.OrdinalIgnoreCase);
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isHttps,
+            SameSite = SameSiteMode.Lax,
+            MaxAge = TimeSpan.FromMinutes(10)
+        };
+
+        this.Response.Cookies.Append("oauth_state", state, cookieOptions);
+
+        // Save the frontend origin (validated against CORS origins) so the callback knows
+        // where to redirect — identical handling to DiscordLogin.
+        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var origin = selfOrigin;
+
+        var referer = this.Request.Headers.Referer.FirstOrDefault();
+        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+        {
+            var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
+            if (this._allowedOrigins.Length > 0
+                ? this._allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
+                : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
+            {
+                origin = refererOrigin;
+            }
+        }
+
+        this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
+
+        var callbackUri = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/oidc/callback";
+
+        var query = new Dictionary<string, string?>
+        {
+            ["client_id"] = this._oidcSettings.ClientId,
+            ["redirect_uri"] = callbackUri,
+            ["response_type"] = "code",
+            ["scope"] = this.BuildOidcScope(),
+            ["state"] = state,
+        };
+
+        if (this._oidcSettings.UsePkce)
+        {
+            // PKCE: store the verifier in an HttpOnly cookie and send only the S256 challenge.
+            var codeVerifier = Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+            var challenge = Base64UrlEncode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));
+            this.Response.Cookies.Append("oauth_pkce_verifier", codeVerifier, cookieOptions);
+            query["code_challenge"] = challenge;
+            query["code_challenge_method"] = "S256";
+        }
+
+        return this.Redirect(BuildUrlWithQuery(this._oidcSettings.AuthorizationUrl, query));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("oidc/logout")]
+    public async Task<IActionResult> OidcLogout()
+    {
+        // OIDC RP-initiated (single) logout: bounce the browser to the provider's end-session
+        // endpoint so it can clear its OWN session too, then return to the signed-out landing.
+        // The frontend has already discarded the local JWT before calling this.
+        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var origin = selfOrigin;
+
+        // Validate the return origin the same way the login flow validates oauth_origin.
+        var referer = this.Request.Headers.Referer.FirstOrDefault();
+        if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+        {
+            var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
+            if (this._allowedOrigins.Length > 0
+                ? this._allowedOrigins.Any(o => string.Equals(o, refererOrigin, StringComparison.OrdinalIgnoreCase))
+                : string.Equals(refererOrigin, selfOrigin, StringComparison.OrdinalIgnoreCase))
+            {
+                origin = refererOrigin;
+            }
+        }
+
+        // ?loggedout=1 tells the login page to show the signed-out panel instead of auto-redirecting.
+        var postLogout = $"{origin}/login?loggedout=1";
+
+        // Single logout requires both a configured end-session endpoint and the admin
+        // runtime toggle (enable_oidc_slo; absent = on). Otherwise fall back to local logout.
+        var sloSetting = await this._siteSettingService.GetValueAsync(EnableOidcSloKey);
+        var sloDisabledByAdmin = string.Equals(sloSetting, "false", StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(this._oidcSettings.EndSessionUrl) || sloDisabledByAdmin)
+        {
+            return this.Redirect(postLogout);
+        }
+
+        var query = new Dictionary<string, string?>
+        {
+            ["post_logout_redirect_uri"] = postLogout,
+            ["client_id"] = this._oidcSettings.ClientId,
+        };
+
+        return this.Redirect(BuildUrlWithQuery(this._oidcSettings.EndSessionUrl, query));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("oidc/callback")]
+    public async Task<IActionResult> OidcCallback([FromQuery] string code, [FromQuery] string? state)
+    {
+        var frontendUrl = this.GetFrontendUrl();
+
+        // Validate OAuth state parameter for CSRF protection
+        var savedState = this.Request.Cookies["oauth_state"];
+        this.Response.Cookies.Delete("oauth_state");
+
+        var pkceVerifier = this.Request.Cookies["oauth_pkce_verifier"];
+        this.Response.Cookies.Delete("oauth_pkce_verifier");
+
+        if (string.IsNullOrEmpty(state) || string.IsNullOrEmpty(savedState) || state != savedState)
+        {
+            return this.BadRequest(new
+            {
+                error = "Invalid OAuth state. Possible CSRF attack."
+            });
+        }
+
+        if (!this.OidcConfigured())
+        {
+            return this.Redirect($"{frontendUrl}/login#error=oidc_disabled");
+        }
+
+        if (string.IsNullOrEmpty(code))
+        {
+            return this.Redirect($"{frontendUrl}/login#error=missing_code");
+        }
+
+        // Exchange the authorization code for tokens via the generic, provider-agnostic OIDC client.
+        var redirectUri = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/oidc/callback";
+        var tokenResult = await this._oidcClient.ExchangeCodeAsync(code, redirectUri, pkceVerifier);
+        if (tokenResult is null)
+        {
+            return this.Redirect($"{frontendUrl}/login#error=oidc_token_exchange_failed");
+        }
+
+        var userInfoJson = await this._oidcClient.GetUserInfoAsync(tokenResult.AccessToken);
+        if (userInfoJson is null)
+        {
+            return this.Redirect($"{frontendUrl}/login#error=oidc_userinfo_failed");
+        }
+
+        var (userInfo, error) = await this.BuildOidcUserInfoAsync(userInfoJson.Value);
+        if (error is not null || userInfo is null)
+        {
+            return this.Redirect($"{frontendUrl}/login#error={error ?? "oidc_no_identity"}");
+        }
+
+        if (!string.IsNullOrEmpty(userInfo.AvatarUrl))
+        {
+            Services.AvatarCacheService.SetAvatar(userInfo.Id, userInfo.AvatarUrl);
+            Services.AvatarCacheService.Save();
+        }
+
+        // When refresh-token consumption is enabled AND the provider actually issued a refresh
+        // token, persist an encrypted server-side session and hand the browser a short-lived JWT
+        // plus an opaque refresh token. Otherwise fall back to a normal full-lifetime JWT — this is
+        // the graceful path for providers that don't issue refresh tokens (or when the feature is off).
+        if (this._oidcSettings.UseRefreshTokens && !string.IsNullOrEmpty(tokenResult.RefreshToken))
+        {
+            var (ip, ua) = this.GetClientMetadata();
+            var opaque = await this._oidcSessionService.IssueAsync(userInfo.Id, tokenResult.RefreshToken, ip, ua);
+            var shortJwt = this._jwtService.GenerateToken(userInfo, this._oidcSettings.AccessTokenMinutes);
+            return this.Redirect($"{frontendUrl}/auth/oidc/callback#token={shortJwt}&refresh_token={opaque}");
+        }
+
+        if (this._oidcSettings.UseRefreshTokens)
+        {
+            LogOidcRefreshUnavailable(this._logger);
+        }
+
+        var jwt = this._jwtService.GenerateToken(userInfo);
+        return this.Redirect($"{frontendUrl}/auth/oidc/callback#token={jwt}");
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [HttpPost("oidc/refresh")]
+    public async Task<IActionResult> OidcRefresh([FromBody] OidcRefreshRequest request)
+    {
+        if (!this._oidcSettings.UseRefreshTokens || string.IsNullOrEmpty(request?.RefreshToken))
+        {
+            return this.Unauthorized(new { error = "invalid_grant" });
+        }
+
+        var (ip, ua) = this.GetClientMetadata();
+
+        OidcRotationTicket ticket;
+        try
+        {
+            ticket = await this._oidcSessionService.StartRotationAsync(request.RefreshToken, ip, ua);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return this.Unauthorized(new { error = "invalid_grant" });
+        }
+
+        // Redeem the provider refresh token. A failure here means the provider revoked it (or the
+        // user was disabled at the provider) — propagate by revoking our family and logging out.
+        var tokenResult = await this._oidcClient.RefreshAsync(ticket.DecryptedRefreshToken);
+        if (tokenResult is null)
+        {
+            await this._oidcSessionService.AbortRotationAsync(ticket, "provider_revoked");
+            return this.Unauthorized(new { error = "invalid_grant" });
+        }
+
+        // Re-validate the user live (existence, enabled, roles) on every refresh.
+        var userInfoJson = await this._oidcClient.GetUserInfoAsync(tokenResult.AccessToken);
+        if (userInfoJson is null)
+        {
+            await this._oidcSessionService.AbortRotationAsync(ticket, "provider_revoked");
+            return this.Unauthorized(new { error = "invalid_grant" });
+        }
+
+        var (userInfo, error) = await this.BuildOidcUserInfoAsync(userInfoJson.Value);
+        if (error is not null || userInfo is null)
+        {
+            await this._oidcSessionService.AbortRotationAsync(ticket, "account_inactive");
+            return this.Unauthorized(new { error = "invalid_grant" });
+        }
+
+        // Propagate an admin disable: kill the session rather than keep renewing it. (A user who
+        // merely toggled their own alerts off keeps AdminDisable == false and is unaffected.)
+        if (userInfo.AdminDisable)
+        {
+            await this._oidcSessionService.AbortRotationAsync(ticket, "admin_disable");
+            return this.Unauthorized(new { error = "invalid_grant" });
+        }
+
+        // Non-rotating providers return no new refresh token — carry the existing one forward.
+        var newIdpRefreshToken = tokenResult.RefreshToken ?? ticket.DecryptedRefreshToken;
+        await this._oidcSessionService.CompleteRotationAsync(ticket, newIdpRefreshToken);
+
+        var jwt = this._jwtService.GenerateToken(userInfo, this._oidcSettings.AccessTokenMinutes);
+
+        return this.Ok(new
+        {
+            token = jwt,
+            refreshToken = ticket.NewOpaqueToken,
+            expiresIn = this._oidcSettings.AccessTokenMinutes * 60,
+        });
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [HttpPost("oidc/refresh/revoke")]
+    public async Task<IActionResult> OidcRefreshRevoke([FromBody] OidcRefreshRequest request)
+    {
+        if (!string.IsNullOrEmpty(request?.RefreshToken))
+        {
+            await this._oidcSessionService.RevokeAsync(request.RefreshToken, "logout");
+        }
+
+        return this.NoContent();
+    }
+
+    [AllowAnonymous]
     [HttpPost("telegram/verify")]
     public async Task<IActionResult> TelegramVerify([FromBody] Dictionary<string, string> telegramData)
     {
@@ -376,6 +660,30 @@ public partial class AuthController(
         var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
         var telegramDisabledByAdmin = string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase);
 
+        // Generic external OIDC provider — "configured" requires the full server-side config.
+        // Unlike Discord/Telegram (absent setting = enabled), OIDC is OPT-IN: it is only
+        // active when enable_oidc is explicitly "true", so the default sign-in mode is local.
+        // The AUTH_FORCE_LOCAL break-glass env flag forces it off regardless — recovery when
+        // an admin switches to OIDC against a broken provider and locks everyone out.
+        var oidcConfigured = this.OidcConfigured();
+        var oidcSetting = await this._siteSettingService.GetValueAsync(EnableOidcKey);
+        var forceLocal = configuration.GetValue<bool>("Auth:ForceLocal");
+        var oidcEnabledByAdmin = string.Equals(oidcSetting, "true", StringComparison.OrdinalIgnoreCase) && !forceLocal;
+
+        // Single logout: available when a provider end-session endpoint is configured AND the
+        // admin runtime toggle is on (enable_oidc_slo; absent = on once the URL is wired).
+        var endSessionConfigured = !string.IsNullOrWhiteSpace(this._oidcSettings.EndSessionUrl);
+        var sloSetting = await this._siteSettingService.GetValueAsync(EnableOidcSloKey);
+        var sloEnabledByAdmin = !string.Equals(sloSetting, "false", StringComparison.OrdinalIgnoreCase);
+
+        // Silent refresh is active when the provider is configured and the server-side master
+        // switch (OIDC_USE_REFRESH_TOKENS) is on. Read-only status — there is intentionally no
+        // runtime admin override: enabling/disabling refresh is a deploy-time decision because it
+        // is coupled to the per-login JWT lifetime (turning it off mid-session would strand the
+        // short-lived JWTs of already-logged-in users). Single logout (above) is different — it
+        // only affects the next logout, so it stays a runtime toggle.
+        var refreshConfigured = oidcConfigured && this._oidcSettings.UseRefreshTokens;
+
         return this.Ok(new
         {
             discord = new
@@ -388,6 +696,17 @@ public partial class AuthController(
                 configured = telegramConfigured,
                 enabledByAdmin = !telegramDisabledByAdmin,
                 botUsername = telegramConfigured ? this._telegramSettings.BotUsername : string.Empty,
+            },
+            oidc = new
+            {
+                configured = oidcConfigured,
+                enabledByAdmin = oidcEnabledByAdmin,
+                providerName = oidcConfigured ? this._oidcSettings.ProviderName : string.Empty,
+                // Whether single logout ("Sign out everywhere") is available: end-session
+                // endpoint configured AND enabled by the admin (enable_oidc_slo).
+                endSession = oidcConfigured && endSessionConfigured && sloEnabledByAdmin,
+                // Whether the frontend should run silent refresh (server brokers the provider RT).
+                refresh = refreshConfigured,
             },
         });
     }
@@ -672,6 +991,148 @@ public partial class AuthController(
         return $"{this.Request.Scheme}://{this.Request.Host}";
     }
 
+    /// <summary>
+    /// The external OIDC provider is "configured" only when enabled and the full set of
+    /// endpoints plus a client id is present. Mirrors the Discord "configured" check.
+    /// </summary>
+    private bool OidcConfigured() =>
+        this._oidcSettings.Enabled
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.AuthorizationUrl)
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.TokenUrl)
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.UserInfoUrl)
+        && !string.IsNullOrWhiteSpace(this._oidcSettings.ClientId);
+
+    /// <summary>
+    /// Builds the authorization-request scope, appending the configured offline-access scope
+    /// (default <c>offline_access</c>) when refresh consumption is enabled and it isn't already
+    /// present — the one and only scope mutation we perform. Standards-compliant providers gate
+    /// refresh-token issuance behind this scope; providers that issue unconditionally (or use a
+    /// non-standard mechanism) leave <c>OIDC_OFFLINE_ACCESS_SCOPE</c> empty.
+    /// </summary>
+    private string BuildOidcScope()
+    {
+        var scope = string.IsNullOrWhiteSpace(this._oidcSettings.Scopes) ? "openid" : this._oidcSettings.Scopes;
+
+        if (this._oidcSettings.UseRefreshTokens && !string.IsNullOrWhiteSpace(this._oidcSettings.OfflineAccessScope))
+        {
+            var parts = scope.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (!parts.Contains(this._oidcSettings.OfflineAccessScope, StringComparer.Ordinal))
+            {
+                scope = $"{scope} {this._oidcSettings.OfflineAccessScope}";
+            }
+        }
+
+        return scope;
+    }
+
+    /// <summary>
+    /// Maps OIDC userinfo claims to a <see cref="UserInfo"/>, re-validating identity, registration,
+    /// the <c>enable_oidc</c> admin gate, and role access. Returns <c>(user, null)</c> on success or
+    /// <c>(null, errorCode)</c> on any failure. Shared by the login callback and the refresh path so
+    /// a user disabled/derole'd at the provider is re-evaluated on every silent refresh.
+    /// </summary>
+    private async Task<(UserInfo? user, string? error)> BuildOidcUserInfoAsync(JsonElement userInfoJson)
+    {
+        // The identity claim maps to the Poracle human id (a Discord/Telegram id).
+        // Fall back to the standard OIDC `sub` claim when the configured claim is absent.
+        var identity = GetClaimString(userInfoJson, this._oidcSettings.IdentityClaim)
+                       ?? GetClaimString(userInfoJson, "sub");
+        if (string.IsNullOrEmpty(identity))
+        {
+            return (null, "oidc_no_identity");
+        }
+
+        var username = GetClaimString(userInfoJson, this._oidcSettings.UsernameClaim) ?? identity;
+        var avatarUrl = GetClaimString(userInfoJson, this._oidcSettings.AvatarClaim);
+
+        var human = await this._humanService.GetByIdAsync(identity);
+        if (human == null)
+        {
+            return (null, "user_not_registered");
+        }
+
+        var (isAdmin, managedWebhooks) = await this.GetRolesAsync(identity);
+        if (!isAdmin)
+        {
+            // Enforce enable_oidc site setting for non-admin users.
+            // Admins can always log in so they can re-enable the setting.
+            var oidcSetting = await this._siteSettingService.GetValueAsync(EnableOidcKey);
+            if (string.Equals(oidcSetting, "false", StringComparison.OrdinalIgnoreCase))
+            {
+                LogAuthMethodDisabled(this._logger, "OIDC");
+                return (null, "oidc_disabled");
+            }
+
+            // Reuse Discord guild role gating when the identity is a Discord id.
+            var roleCheckResult = await this.CheckRoleAccessAsync(identity);
+            if (roleCheckResult != null)
+            {
+                return (null, roleCheckResult);
+            }
+        }
+
+        var userInfo = new UserInfo
+        {
+            Id = identity,
+            Username = username,
+            Type = string.IsNullOrEmpty(this._oidcSettings.IdentityType) ? "discord:user" : this._oidcSettings.IdentityType,
+            IsAdmin = isAdmin,
+            AdminDisable = human.AdminDisable == 1,
+            Enabled = human.Enabled == 1 && human.AdminDisable == 0,
+            ProfileNo = human.CurrentProfileNo,
+            AvatarUrl = avatarUrl,
+            ManagedWebhooks = managedWebhooks
+        };
+
+        return (userInfo, null);
+    }
+
+    /// <summary>Best-effort client IP + user-agent for session audit metadata (not security-bearing).</summary>
+    private (string? ip, string? ua) GetClientMetadata()
+    {
+        var ip = this.HttpContext.Connection.RemoteIpAddress?.ToString();
+        var ua = this.Request.Headers.UserAgent.ToString();
+        return (ip, string.IsNullOrEmpty(ua) ? null : ua);
+    }
+
+    /// <summary>
+    /// Reads a UserInfo claim as a string, tolerating both string and numeric JSON values
+    /// (e.g. a numeric <c>sub</c>). Returns null when absent or empty.
+    /// </summary>
+    private static string? GetClaimString(JsonElement userInfo, string claim)
+    {
+        if (string.IsNullOrEmpty(claim) || !userInfo.TryGetProperty(claim, out var prop))
+        {
+            return null;
+        }
+
+        var value = prop.ValueKind switch
+        {
+            JsonValueKind.String => prop.GetString(),
+            JsonValueKind.Number => prop.GetRawText(),
+            _ => null
+        };
+
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
+
+    /// <summary>Base64url encoding without padding (RFC 7636), for PKCE verifier/challenge.</summary>
+    private static string Base64UrlEncode(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    /// <summary>
+    /// Appends query parameters to a base URL, preserving any existing query string the
+    /// admin-configured authorization endpoint may already carry. Values are URL-encoded.
+    /// </summary>
+    private static string BuildUrlWithQuery(string baseUrl, IDictionary<string, string?> parameters)
+    {
+        var present = parameters
+            .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(baseUrl, present);
+    }
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Role-based access enabled but Discord BotToken or GuildId not configured.")]
     private static partial void LogRoleMisconfigured(ILogger logger);
 
@@ -689,6 +1150,9 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Discord token exchange failed: {Status} {Body}")]
     private static partial void LogDiscordTokenExchangeFailed(ILogger logger, System.Net.HttpStatusCode status, string body);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "OIDC refresh tokens are enabled but the provider returned no refresh token (offline_access not granted?); falling back to a standard session.")]
+    private static partial void LogOidcRefreshUnavailable(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
     private static partial void LogPoracleConfigFetchFailed(ILogger logger, Exception ex, string userId);

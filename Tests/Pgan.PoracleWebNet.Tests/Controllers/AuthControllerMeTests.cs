@@ -32,8 +32,11 @@ public class AuthControllerMeTests : ControllerTestBase
             new Mock<ISiteSettingService>().Object,
             new Mock<IWebhookDelegateService>().Object,
             this._jwtService.Object,
+            new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcClient>().Object,
+            new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcSessionService>().Object,
             Options.Create(new DiscordSettings()),
             Options.Create(new TelegramSettings()),
+            Options.Create(new OidcSettings()),
             Options.Create(new PoracleSettings()),
             config,
             new Mock<ILogger<AuthController>>().Object);
