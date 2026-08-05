@@ -1543,7 +1543,7 @@
     "ENABLE_ROLES_LABEL": "Aktivera rollbaserad åtkomst",
     "ENABLE_ROLES_DESC": "Tillåt endast användare med specifika Discord-roller att logga in. Kräver Bot Token och Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Tillåtna roll-ID:n",
-    "ALLOWED_ROLE_IDS_DESC": "Kommaseparerade Discord-roll-ID:n som ger åtkomst (t.ex. \"123456789,987654321\"). Lämna tomt för att tillåta alla.",
+    "ALLOWED_ROLE_IDS_DESC": "Kommaseparerade Discord-roll-ID:n, t.ex. 123456789,987654321. En användare behöver minst en av dessa roller för att logga in. Lämna tomt för att tillåta alla.",
     "REGISTER_COMMAND_LABEL": "Registreringskommando",
     "REGISTER_COMMAND_DESC": "Poracle-bot-kommando som användare kör för att registrera sig (t.ex. \"$!register\").",
     "LOCATION_COMMAND_LABEL": "Platskommando",

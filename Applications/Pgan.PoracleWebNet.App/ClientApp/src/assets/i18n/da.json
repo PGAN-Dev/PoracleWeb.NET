@@ -1551,7 +1551,7 @@
     "ENABLE_ROLES_LABEL": "Aktiver rollebaseret adgang",
     "ENABLE_ROLES_DESC": "Tillad kun brugere med specifikke Discord-roller at logge ind. Kræver Bot-token og Guild-ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Tilladte rolle-ID'er",
-    "ALLOWED_ROLE_IDS_DESC": "Kommaseparerede Discord-rolle-ID'er, der giver adgang (f.eks. \"123456789,987654321\"). Lad stå tomt for at tillade alle.",
+    "ALLOWED_ROLE_IDS_DESC": "Kommaseparerede Discord-rolle-ID'er, f.eks. 123456789,987654321. En bruger skal have mindst én af disse roller for at kunne logge ind. Lad stå tomt for at tillade alle.",
     "REGISTER_COMMAND_LABEL": "Registreringskommando",
     "REGISTER_COMMAND_DESC": "Poracle-bot-kommando, som brugere kører for at registrere sig (f.eks. \"$!register\").",
     "LOCATION_COMMAND_LABEL": "Placeringskommando",

@@ -206,8 +206,8 @@ message.
 | `oidc_no_identity` | Neither the configured `OIDC_IDENTITY_CLAIM` nor the fallback `sub` claim was present in userinfo. |
 | `user_not_registered` | The identity claim resolved, but no matching Poracle `human` exists. Register the user in Poracle first (the [inherent constraint](#external-sso-openid-connect-login)). |
 | `not_in_guild` | Role gating reused from the Discord path: the (Discord) user isn't in the configured guild. |
-| `missing_required_role` | Role gating: the user lacks one or more required roles. |
-| `role_check_failed` | Role gating: the role check itself errored (e.g. bot token / guild misconfigured). |
+| `missing_required_role` | Role gating: the user has none of the allowed roles. |
+| `role_check_failed` | Role gating: the role check itself errored, or `allowed_role_ids` is set but holds no usable role IDs. |
 
 The `not_in_guild` / `missing_required_role` / `role_check_failed` codes only apply when role-based
 access (`enable_roles`) is configured and the identity is a Discord id — they are shared verbatim with

@@ -36,6 +36,11 @@ public partial class AuthController(
     private const string EnableOidcKey = "enable_oidc";
     private const string EnableOidcSloKey = "enable_oidc_slo";
 
+    // Quote characters used in the allowed_role_ids example across the translated tooltips --
+    // users paste them in along with the IDs.
+    private static readonly char[] RoleIdTrimChars =
+        ['"', '\'', '«', '»', '“', '”', '„', '‘', '’', ' ', '\t'];
+
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
@@ -912,8 +917,20 @@ public partial class AuthController(
                 return null; // No roles configured, allow everyone
             }
 
-            var allowedRoles = new HashSet<string>(
-                roleIdsStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            var (allowedRoles, invalidEntries) = ParseAllowedRoleIds(roleIdsStr);
+
+            if (invalidEntries.Count > 0)
+            {
+                LogRoleIdsIgnored(this._logger, string.Join(", ", invalidEntries));
+            }
+
+            if (allowedRoles.Count == 0)
+            {
+                // The setting is non-empty but nothing in it can ever match a Discord role ID.
+                // Fail closed: treating this as "allow everyone" would silently disable the gate.
+                LogRoleIdsUnusable(this._logger);
+                return "role_check_failed";
+            }
 
             // Need bot token and guild ID to check roles
             if (string.IsNullOrEmpty(this._discordSettings.BotToken) || string.IsNullOrEmpty(this._discordSettings.GuildId))
@@ -961,8 +978,7 @@ public partial class AuthController(
 #pragma warning restore CA1873
             }
 
-            // User must have ALL of the allowed roles
-            if (allowedRoles.IsSubsetOf(userRoles))
+            if (HasAllowedRole(allowedRoles, userRoles))
             {
                 return null;
             }
@@ -976,6 +992,52 @@ public partial class AuthController(
             return "role_check_failed";
         }
     }
+
+    /// <summary>
+    /// Parses the <c>allowed_role_ids</c> site setting into a set of Discord role IDs.
+    /// Entries are comma-separated. Surrounding whitespace and quote characters are stripped so a
+    /// value pasted straight from the setting's example (<c>"123,456"</c>) still parses, and entries
+    /// that are not snowflakes are reported separately instead of being kept as unmatchable garbage.
+    /// </summary>
+    internal static (HashSet<string> RoleIds, List<string> InvalidEntries) ParseAllowedRoleIds(string? value)
+    {
+        var roleIds = new HashSet<string>(StringComparer.Ordinal);
+        var invalidEntries = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return (roleIds, invalidEntries);
+        }
+
+        foreach (var entry in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var trimmed = entry.Trim(RoleIdTrimChars);
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+
+            // Discord role IDs are snowflakes -- digits only. Anything else (a role name, stray
+            // punctuation) can never equal a value from the guild member API.
+            if (trimmed.All(char.IsAsciiDigit))
+            {
+                roleIds.Add(trimmed);
+            }
+            else
+            {
+                invalidEntries.Add(trimmed);
+            }
+        }
+
+        return (roleIds, invalidEntries);
+    }
+
+    /// <summary>
+    /// Returns true when the user holds any one of the allowed roles. <c>allowed_role_ids</c> is an
+    /// allow-list: holding one listed role is enough, the user does not have to hold all of them.
+    /// </summary>
+    internal static bool HasAllowedRole(HashSet<string> allowedRoleIds, HashSet<string> userRoleIds) =>
+        allowedRoleIds.Overlaps(userRoleIds);
 
     private string GetFrontendUrl()
     {
@@ -1139,11 +1201,17 @@ public partial class AuthController(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch guild member {UserId}: {Status} {Body}")]
     private static partial void LogGuildMemberFetchFailed(ILogger logger, string userId, System.Net.HttpStatusCode status, string body);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Role check for {UserId}: required=[{Required}], user=[{UserRoles}]")]
-    private static partial void LogRoleCheck(ILogger logger, string userId, string required, string userRoles);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Role check for {UserId}: allowed=[{Allowed}], user=[{UserRoles}]")]
+    private static partial void LogRoleCheck(ILogger logger, string userId, string allowed, string userRoles);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "User {UserId} denied: missing required roles.")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "User {UserId} denied: has none of the allowed roles.")]
     private static partial void LogRoleDenied(ILogger logger, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Ignoring allowed_role_ids entries that are not Discord role IDs: {Entries}")]
+    private static partial void LogRoleIdsIgnored(ILogger logger, string entries);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "allowed_role_ids is set but contains no usable Discord role IDs; denying non-admin logins.")]
+    private static partial void LogRoleIdsUnusable(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Role check failed for {UserId}, denying access.")]
     private static partial void LogRoleCheckFailed(ILogger logger, Exception ex, string userId);
