@@ -19,7 +19,7 @@ Pgan.PoracleWebNet.slnx
 ├── Core/
 │   ├── Core.Abstractions/          Interfaces (IService, IPoracleTrackingProxy, IPoracleHumanProxy)
 │   ├── Core.Models/                DTOs passed between layers
-│   ├── Core.Mappings/              AutoMapper profiles (Human, Profile, PoracleWeb.NET tables)
+│   ├── Core.Mappings/              Mapping extension methods (alarm DTOs, Human, Profile, PoracleWeb.NET tables)
 │   ├── Core.Repositories/          Data access (Human, Profile, PoracleWeb-owned tables)
 │   └── Core.Services/              Business logic + PoracleNG API proxies
 ├── Data/
@@ -91,8 +91,8 @@ PoracleWeb.NET does **not** modify the Poracle DB schema. The Poracle database i
 ### Unified geofence feed
 PoracleWeb.NET acts as the single geofence source for PoracleJS. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleJS or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.
 
-### AutoMapper for partial updates
-All update models use nullable `int?` properties so partial updates don't zero out unset fields. The mapping profile skips null properties automatically. Note: AutoMapper is now only used for non-alarm entities (humans, profiles). Alarm data flows as raw JSON through the PoracleNG API proxy.
+### Manual mapping extensions
+Mapping lives in static extension methods under `Core.Mappings/` -- there is no AutoMapper dependency. `AlarmMappingExtensions` provides `To*()` for `*Create` DTOs and `ApplyUpdate()` for `*Update` DTOs; `EntityMappingExtensions` provides `ToModel()`, `ToEntity()`, and `ApplyTo()` for Human, Profile, and the `poracle_web`-owned tables. Update models use nullable properties and `ApplyUpdate` skips nulls, so partial updates don't zero out unset fields. Alarm data itself flows as raw JSON through the PoracleNG API proxy. See [Backend Patterns](backend.md).
 
 ### Gym picker
 The `GymPickerComponent` (shared) lets users search for specific gyms when creating team, raid, or egg alarms. It calls the `ScannerService` (frontend) which hits scanner gym search endpoints on the backend (`ScannerController`). Search results use the `GymSearchResult` model and include photo thumbnails and area names resolved via the `PointInPolygon` geo utility. The scanner DB is optional — when not configured, the gym picker is hidden.

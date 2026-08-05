@@ -145,7 +145,7 @@ See [PoracleNG Enhancement Requests](../poracleng-enhancement-requests.md) for t
 3. Register the service in `ServiceCollectionExtensions.cs`.
 4. Create the corresponding controller under `Controllers/`.
 
-No repository, entity, or AutoMapper mapping is needed for alarm types -- the proxy handles all database interaction through PoracleNG.
+No repository or entity is needed for alarm types -- the proxy handles all database interaction through PoracleNG.
 
 ## Registration
 
