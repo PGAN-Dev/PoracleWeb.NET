@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 
 import { GeofenceData, UserGeofence } from '../../../core/models';
@@ -37,7 +37,7 @@ export interface GeofenceDetailDialogData {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, MatButtonModule, MatChipsModule, MatDialogModule, MatIconModule, TranslateModule],
+  imports: [DatePipe, MatButtonModule, MatChipsModule, MatDialogModule, MatIconModule, TranslatePipe],
   selector: 'app-geofence-detail-dialog',
   standalone: true,
   styleUrl: './geofence-detail-dialog.component.scss',

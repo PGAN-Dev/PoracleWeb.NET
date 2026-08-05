@@ -13,6 +13,17 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <!--
+      Direct pin to clear NU1903 (GHSA-v5pm-xwqc-g5wc, high): a circular schema reference can
+      terminate OpenAPI parsing. Microsoft.OpenApi is vulnerable at >= 2.0.0-preview.11 and
+      <= 2.7.4; 2.7.5 is the first patched release.
+
+      Microsoft.AspNetCore.OpenApi 10.0.10 still pins Microsoft.OpenApi 2.0.0 transitively, so
+      the advisory is not cleared by bumping the ASP.NET Core package: 10.0.8 and 10.0.10 pull
+      the same 2.0.0. This direct reference is the only way to raise it, and can be dropped once
+      Microsoft.AspNetCore.OpenApi ships a patched floor of its own.
+    -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

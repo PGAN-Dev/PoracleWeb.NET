@@ -14,7 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { AdminUser } from '../../core/models';
 import { AdminService } from '../../core/services/admin.service';
@@ -42,7 +42,7 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatPaginatorModule,
     MatSortModule,
     MatSelectModule,
-    TranslateModule,
+    TranslatePipe,
     DiscordAvatarComponent,
   ],
   selector: 'app-admin-users',

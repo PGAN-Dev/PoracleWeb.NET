@@ -4,7 +4,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
@@ -17,7 +17,7 @@ const STORAGE_KEY = 'poracle-language';
  * from the toolbar display-language menu, which only changes the Angular UI translations.
  */
 @Component({
-  imports: [MatSelectModule, MatFormFieldModule, MatIconModule, MatSnackBarModule, TranslateModule],
+  imports: [MatSelectModule, MatFormFieldModule, MatIconModule, MatSnackBarModule, TranslatePipe],
   selector: 'app-language-selector',
   standalone: true,
   styleUrl: './language-selector.component.scss',

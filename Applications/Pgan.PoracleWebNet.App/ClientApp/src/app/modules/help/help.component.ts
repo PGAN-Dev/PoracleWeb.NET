@@ -4,14 +4,14 @@ import { MatExpansionModule, MatExpansionPanel } from '@angular/material/expansi
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { HELP_SECTIONS, HelpSection } from './help-sections';
 import { I18nService } from '../../core/services/i18n.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatExpansionModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, TranslateModule],
+  imports: [MatExpansionModule, MatIconModule, MatButtonModule, MatFormFieldModule, MatInputModule, TranslatePipe],
   selector: 'app-help',
   styleUrl: './help.component.scss',
   templateUrl: './help.component.html',

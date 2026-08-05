@@ -5,7 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, forkJoin, of, timeout } from 'rxjs';
 
 import { AuthProviders } from '../../core/models';
@@ -23,7 +23,7 @@ declare global {
 }
 
 @Component({
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TranslateModule],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
   selector: 'app-login',
   standalone: true,
   styleUrl: './login.component.scss',

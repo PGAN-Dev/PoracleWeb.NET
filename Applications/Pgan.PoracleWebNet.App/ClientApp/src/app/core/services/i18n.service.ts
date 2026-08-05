@@ -63,7 +63,7 @@ export class I18nService {
     this.initialized = true;
 
     this.translate.addLangs(this.allLanguages.map(l => l.code));
-    this.translate.setDefaultLang('en');
+    this.translate.setFallbackLang('en');
 
     const stored = localStorage.getItem(STORAGE_KEY);
     const detected = this.detectBrowserLanguage();
