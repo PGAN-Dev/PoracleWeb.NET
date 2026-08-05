@@ -3,7 +3,7 @@ using Pgan.PoracleWebNet.Data.Scanner.Entities;
 
 namespace Pgan.PoracleWebNet.Data.Scanner;
 
-public class ScannerDbContext(DbContextOptions<ScannerDbContext> options) : DbContext(options)
+public class ScannerContext(DbContextOptions<ScannerContext> options) : DbContext(options)
 {
     public DbSet<ScannerPokestopEntity> Pokestops => this.Set<ScannerPokestopEntity>();
     public DbSet<ScannerGymEntity> Gyms => this.Set<ScannerGymEntity>();

@@ -6,9 +6,9 @@ using Pgan.PoracleWebNet.Data.Scanner;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class ScannerService(ScannerDbContext context, ILogger<ScannerService> logger) : IScannerService
+public partial class ScannerService(ScannerContext context, ILogger<ScannerService> logger) : IScannerService
 {
-    private readonly ScannerDbContext _context = context;
+    private readonly ScannerContext _context = context;
     private readonly ILogger<ScannerService> _logger = logger;
 
     private const int MaxResultRows = 5000;

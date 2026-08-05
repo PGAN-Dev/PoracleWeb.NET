@@ -101,7 +101,7 @@ public static class ServiceCollectionExtensions
         var scannerConnectionString = configuration.GetConnectionString("ScannerDb");
         if (!string.IsNullOrEmpty(scannerConnectionString))
         {
-            services.AddDbContext<ScannerDbContext>(options =>
+            services.AddDbContext<ScannerContext>(options =>
                 options.UseMySQL(scannerConnectionString));
             services.AddScoped<IScannerService, ScannerService>();
         }
