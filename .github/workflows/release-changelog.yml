@@ -159,10 +159,18 @@ jobs:
             --body "Automated changelog cut — approving the mechanical [Unreleased] → version promotion. Source entries were already reviewed on their own PRs."
 
       # Squash-merge once the required checks pass (they run because the PR is app-authored).
+      #
+      # No --delete-branch: `main` uses a merge queue, and gh rejects the flag outright with
+      # "Cannot use `-d` or `--delete-branch` when merge queue enabled", failing the whole step.
+      # It was redundant anyway -- create-pull-request above already sets `delete-branch: true`,
+      # which removes the branch once the PR closes.
+      #
+      # --squash is likewise decorative now (gh warns "the merge strategy for main is set by the
+      # merge queue") but is kept so the intent still reads correctly if the queue is ever removed.
       - name: Enable auto-merge
         if: steps.cfg.outputs.has_app == 'true' && steps.cpr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR: ${{ steps.cpr.outputs.pull-request-number }}
         run: |
-          gh pr merge "$PR" --squash --auto --delete-branch
+          gh pr merge "$PR" --squash --auto
