@@ -31,7 +31,7 @@ Uses xUnit with Moq. Tests cover:
 - Human/profile services (`HumanServiceTests`, `ProfileServiceTests`) -- mock `IPoracleHumanProxy` for single-user ops, `IHumanRepository` for admin bulk ops
 - Active hours validation (`ActiveHoursValidationTests`) -- 17 tests for server-side active hours validation rules
 - Other services (`UserGeofenceServiceTests`, `CleaningServiceTests`, `DashboardServiceTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `QuickPickServiceSecurityTests`, `PokemonAvailabilityServiceTests`)
-- AutoMapper mappings (non-alarm entities)
+- Mapping extensions (`MappingExtensionTests`) -- alarm DTO `To*()` / `ApplyUpdate()` and entity `ToModel()` / `ToEntity()` / `ApplyTo()`
 
 !!! info "Alarm service tests mock IPoracleTrackingProxy"
     Since alarm services no longer use repositories, their tests mock `IPoracleTrackingProxy` instead of `IRepository`. The mock returns `JsonElement` values matching PoracleNG's snake_case JSON format.

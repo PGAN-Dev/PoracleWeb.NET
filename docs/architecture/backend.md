@@ -29,15 +29,23 @@ PoracleNG's tracking POST endpoint handles both creates and updates. When the re
 !!! note "`BaseRepository` removed"
     The generic `BaseRepository<TEntity, TModel>` and all alarm repository classes have been removed. `EnsureNotNullDefaults()` is no longer needed -- PoracleNG handles NULL defaults for alarm writes, and the remaining repositories handle null normalization as needed.
 
-## AutoMapper (non-alarm entities only)
+## Mapping extensions
 
-AutoMapper is used for `humans` and `profiles` entities. Alarm tracking data flows as raw JSON through the PoracleNG API proxy and does not use AutoMapper.
+Mapping is done with static extension methods in `Core.Mappings/`. There is no AutoMapper dependency.
 
-All `*Update` models for non-alarm entities use **nullable `int?`** properties so partial updates don't zero out unset fields.
+`AlarmMappingExtensions` covers the alarm DTOs: `To*()` builds a model from a `*Create` DTO (`create.ToMonster()`), and `ApplyUpdate()` merges a `*Update` DTO onto an existing model (`update.ApplyUpdate(existing)`).
+
+`EntityMappingExtensions` covers `Human`, `Profile`, and the `poracle_web`-owned entities (user geofences, site settings, webhook delegates, quick picks) with `ToModel()`, `ToEntity()`, and `ApplyTo()`.
+
+All `*Update` models use **nullable** properties so partial updates don't zero out unset fields. `ApplyUpdate` skips nulls explicitly:
 
 ```csharp
-// The mapping profile skips null properties
-.ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null))
+public static void ApplyUpdate(this MonsterUpdate src, Monster dest)
+{
+    if (src.Ping != null) dest.Ping = src.Ping;
+    if (src.Distance != null) dest.Distance = src.Distance.Value;
+    // ... one guarded assignment per field
+}
 ```
 
 ## Alarm field defaults
