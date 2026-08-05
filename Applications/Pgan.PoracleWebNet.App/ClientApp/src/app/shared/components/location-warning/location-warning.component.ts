@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, MatTooltipModule, TranslateModule],
+  imports: [MatIconModule, MatTooltipModule, TranslatePipe],
   selector: 'app-location-warning',
   standalone: true,
   styleUrl: './location-warning.component.scss',

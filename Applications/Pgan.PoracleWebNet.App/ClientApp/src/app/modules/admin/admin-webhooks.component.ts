@@ -16,7 +16,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { AdminUser } from '../../core/models';
@@ -28,7 +28,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 // ─── Add Webhook Dialog ───────────────────────────────────────────────────────
 
 @Component({
-  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslateModule],
+  imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, TranslatePipe],
   selector: 'app-add-webhook-dialog',
   standalone: true,
   styleUrl: './add-webhook-dialog.component.scss',
@@ -71,7 +71,7 @@ interface DelegatesDialogData {
     MatProgressSpinnerModule,
     MatAutocompleteModule,
     MatTooltipModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-webhook-delegates-dialog',
   standalone: true,
@@ -180,7 +180,7 @@ type StatusFilter = 'all' | 'active' | 'stopped' | 'blocked';
     MatSortModule,
     MatSelectModule,
     MatChipsModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-admin-webhooks',
   standalone: true,

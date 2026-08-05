@@ -8,7 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { AreaDefinition, GeoJsonImportResult, GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
@@ -47,7 +47,7 @@ const MAX_CUSTOM_GEOFENCES = 10;
     MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
-    TranslateModule,
+    TranslatePipe,
     AreaMapComponent,
   ],
   selector: 'app-geofence-list',

@@ -11,7 +11,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
@@ -37,7 +37,7 @@ import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
     MatSnackBarModule,
     MatTabsModule,
     MatProgressSpinnerModule,
-    TranslateModule,
+    TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,

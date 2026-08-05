@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfigService } from '../../../core/services/config.service';
@@ -67,7 +67,7 @@ const CONDITION_I18N_KEYS: Record<string, string> = {
     MatSlideToggleModule,
     MatChipsModule,
     MatButtonModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-template-selector',
   standalone: true,

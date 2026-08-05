@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { QuickPickDefinition } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -28,7 +28,7 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
     MatSlideToggleModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-quick-pick-admin-dialog',
   standalone: true,

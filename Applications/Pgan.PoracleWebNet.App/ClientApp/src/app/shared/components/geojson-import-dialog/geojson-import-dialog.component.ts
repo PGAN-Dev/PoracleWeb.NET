@@ -10,7 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { GeoJsonImportResult, GeofenceRegion } from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -51,7 +51,7 @@ type DialogStep = 'upload' | 'preview' | 'results';
     MatProgressBarModule,
     MatSelectModule,
     MatTooltipModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-geojson-import-dialog',
   standalone: true,

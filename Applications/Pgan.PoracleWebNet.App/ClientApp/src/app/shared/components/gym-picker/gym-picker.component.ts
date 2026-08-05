@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, tap } from 'rxjs/operators';
 
@@ -22,7 +22,7 @@ import { GymSearchResult, ScannerService } from '../../../core/services/scanner.
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-gym-picker',
   standalone: true,

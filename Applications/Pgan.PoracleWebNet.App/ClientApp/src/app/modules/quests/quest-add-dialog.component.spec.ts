@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { QuestAddDialogComponent } from './quest-add-dialog.component';
@@ -25,6 +25,7 @@ describe('QuestAddDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: MatDialogRef, useValue: dialogRef },
@@ -44,7 +45,7 @@ describe('QuestAddDialogComponent', () => {
         { provide: PokemonAvailabilityService, useValue: { enabled: () => false, isAvailable: () => true, load: () => undefined } },
         { provide: IconService, useValue: { getItemUrl: () => '' } },
       ],
-      imports: [QuestAddDialogComponent, TranslateModule.forRoot()],
+      imports: [QuestAddDialogComponent],
     });
 
     const fixture = TestBed.createComponent(QuestAddDialogComponent);

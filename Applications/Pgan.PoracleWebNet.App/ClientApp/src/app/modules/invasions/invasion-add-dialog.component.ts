@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { getGruntDisplayName, isGenderFixed, UICONS_BASE } from './invasion.constants';
@@ -55,7 +55,7 @@ interface GruntOption {
     MatSelectModule,
     MatTabsModule,
     MatSnackBarModule,
-    TranslateModule,
+    TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],

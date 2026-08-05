@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { FortChange, FortChangeUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -35,7 +35,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     MatSlideToggleModule,
     MatTabsModule,
     MatSnackBarModule,
-    TranslateModule,
+    TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],
