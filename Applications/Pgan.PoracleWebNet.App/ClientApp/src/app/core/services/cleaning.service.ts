@@ -5,16 +5,7 @@ import { Observable } from 'rxjs';
 import { ConfigService } from './config.service';
 
 export type CleanAlarmType =
-  | 'eggs'
-  | 'fortchanges'
-  | 'gyms'
-  | 'invasions'
-  | 'lures'
-  | 'maxbattles'
-  | 'monsters'
-  | 'nests'
-  | 'quests'
-  | 'raids';
+  'eggs' | 'fortchanges' | 'gyms' | 'invasions' | 'lures' | 'maxbattles' | 'monsters' | 'nests' | 'quests' | 'raids';
 
 @Injectable({ providedIn: 'root' })
 export class CleaningService {
