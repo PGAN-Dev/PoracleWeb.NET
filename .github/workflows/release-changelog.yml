@@ -34,6 +34,70 @@ jobs:
             sed -i "s|\[Unreleased\]: .*|[Unreleased]: https://github.com/${{ github.repository }}/compare/v$VERSION...HEAD\n[$VERSION]: https://github.com/${{ github.repository }}/compare/v$PREV_VERSION...v$VERSION|" CHANGELOG.md
           fi
 
+      # Collect dependency bumps into the freshly-cut version section.
+      #
+      # Dependabot PRs are exempt from the per-PR changelog check (see changelog.yml) so they can
+      # be batched here instead. The alternative — a bot committing an entry onto each Dependabot
+      # branch — makes concurrent Dependabot PRs conflict on the same lines of CHANGELOG.md, and
+      # Dependabot stops rebasing any PR another actor has modified.
+      - name: Add Dependencies section for merged deps PRs
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${TAG#v}"
+
+          # Range: previous tag (exclusive) through this release's tag. `git describe` walks back
+          # from the tag's parent to the preceding tag; with no preceding tag (first release) the
+          # range degrades to the whole history, which is what we want.
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then END="$TAG"; else END="HEAD"; fi
+          PREV_TAG="$(git describe --tags --abbrev=0 "$END^" 2>/dev/null || true)"
+          if [ -n "$PREV_TAG" ]; then RANGE="$PREV_TAG..$END"; else RANGE="$END"; fi
+          echo "Collecting dependency commits over $RANGE"
+
+          # Squash merges land as `deps: bump the angular group ... (#338)`. Only `deps:` is
+          # collected: that prefix is configured for the nuget and npm ecosystems in
+          # dependabot.yml. `ci:` (Actions) and `build:` (Docker base images) are deliberately
+          # excluded — they are not runtime dependencies of the shipped product.
+          entries="$(git log --no-merges --pretty=%s "$RANGE" \
+            | grep -E '^deps(\(.*\))?!?: ' \
+            | sed -E 's/^deps(\(.*\))?!?: //' \
+            | sed -E "s|\(#([0-9]+)\)\$|([#\1](https://github.com/$REPO/pull/\1))|" \
+            | sed -E 's/^(.)/\U\1/' \
+            | sort -u \
+            | sed 's/^/- /' || true)"
+
+          if [ -z "$entries" ]; then
+            echo "No dependency commits in range — no Dependencies section to add."
+            exit 0
+          fi
+
+          echo "Adding:"
+          printf '%s\n' "$entries"
+
+          # Append the section at the end of the new version's block, i.e. immediately before the
+          # next `## [version]` heading or the link-definition footer, whichever comes first.
+          block="### Dependencies"$'\n'"$entries"$'\n'
+          # index() rather than a regex: the version is interpolated, and `[2.12.0]` in a regex
+          # is a character class, not a literal — that silently never matches the heading.
+          awk -v ver="$VERSION" -v block="$block" '
+            !done && index($0, "## [" ver "]") == 1 { inver = 1; prev = $0; print; next }
+            inver && (/^## \[/ || /^\[[^]]+\]: /) {
+              if (prev != "") print ""
+              print block
+              inver = 0; done = 1
+            }
+            { prev = $0; print }
+            END {
+              if (inver) {
+                if (prev != "") print ""
+                print block
+              }
+            }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+
       # Flags whether the GitHub App is configured. Secrets can't be read in `if:` conditions
       # directly, so surface it as a step output the later steps can gate on.
       - name: Detect app config
@@ -74,6 +138,8 @@ jobs:
             Automated CHANGELOG update for release ${{ github.event.release.tag_name }}.
 
             Promotes the `[Unreleased]` section to `[${{ github.event.release.tag_name }}]` and opens a fresh `[Unreleased]` section.
+
+            Also appends a `### Dependencies` section listing every `deps:` PR merged since the previous tag.
 
             Triggered by release [${{ github.event.release.tag_name }}](${{ github.event.release.html_url }}).
           branch: changelog/${{ github.event.release.tag_name }}
