@@ -45,7 +45,7 @@ Pgan.PoracleWebNet.slnx
 |   |                            WebhookDelegateEntity, QuickPickDefinitionEntity,
 |   |                            QuickPickAppliedStateEntity),
 |   |                            Configurations/ (EF Core entity type configurations)
-|   +-- Data.Scanner/            ScannerDbContext for optional scanner DB
+|   +-- Data.Scanner/            ScannerContext for optional scanner DB
 |
 +-- Applications/
 |   +-- Web.Api/                 ASP.NET Core host
