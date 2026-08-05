@@ -31,6 +31,15 @@ RUN dotnet publish Applications/Pgan.PoracleWebNet.Api/Pgan.PoracleWebNet.Api.cs
 # Stage 3: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+# curl is for the compose healthcheck -- the aspnet:10.0 base (Ubuntu 24.04)
+# ships neither curl nor wget, so the probe fails with "curl: not found" and
+# the container reports unhealthy while serving traffic fine. See #239.
+# Unpinned deliberately: the base is the rolling `aspnet:10.0` tag, so a pinned
+# curl version would fail to resolve as soon as Ubuntu supersedes the package.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --no-create-home appuser
 COPY --from=dotnet-build /app/publish .
 COPY --from=angular-build /app/angular/dist/ClientApp/browser wwwroot/
