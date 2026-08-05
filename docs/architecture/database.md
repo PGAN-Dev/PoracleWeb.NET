@@ -58,7 +58,7 @@ A separate EF Core context for **application-owned data**.
 !!! info "MariaDB compatibility"
     `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK(-1)` which returns NULL on MariaDB. The `MariaDbHistoryRepository` class overrides the lock to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
 
-### ScannerDbContext (optional)
+### ScannerContext (optional)
 
 Connects to a Golbat scanner database for nest, Pokemon, and gym data.
 
