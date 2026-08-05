@@ -35,8 +35,20 @@ jobs:
         #  - any grouped bundle (groups are curated; CI gates)
         #  - GitHub Actions minor bumps
         # Majors and runtime-dep minors wait for human review.
+        #
+        # The major exclusion is hoisted out in front of the group clause deliberately. Without
+        # it, `dependency-group != ''` waved through a major inside any curated group, which
+        # contradicts the line above. That is not hypothetical: #344 opened as
+        # jest-preset-angular 16.1.5 -> 16.2.0 and Dependabot recreated it in place as
+        # 16.1.5 -> 17.0.0, still auto-merge eligible because it belongs to the `jest` group.
+        #
+        # For a grouped PR, fetch-metadata reports `update-type` as the highest semver change in
+        # the bundle, so one major anywhere in a group holds the whole bundle for review. If the
+        # output is ever absent the comparison is simply true and grouped bundles behave exactly
+        # as they did before, so this cannot fail closed on us.
         if: |
-          github.actor == 'dependabot[bot]' && (
+          github.actor == 'dependabot[bot]' &&
+          steps.meta.outputs.update-type != 'version-update:semver-major' && (
             steps.meta.outputs.update-type == 'version-update:semver-patch' ||
             steps.meta.outputs.dependency-group != '' ||
             (steps.meta.outputs.package-ecosystem == 'github_actions' &&
@@ -47,9 +59,12 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Same major exclusion as the auto-merge gate above — a bundle held for review must not
+      # arrive pre-approved, or the review requirement is satisfied without anyone looking.
       - name: Approve on behalf of repo
         if: |
-          github.actor == 'dependabot[bot]' && (
+          github.actor == 'dependabot[bot]' &&
+          steps.meta.outputs.update-type != 'version-update:semver-major' && (
             steps.meta.outputs.update-type == 'version-update:semver-patch' ||
             steps.meta.outputs.dependency-group != ''
           )
