@@ -79,11 +79,14 @@ Access control and language restrictions.
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `enable_roles` | Enable Role-Based Access | boolean | Only allow users with specific Discord roles to log in. Requires `Discord:BotToken` and `Discord:GuildId` in [appsettings](reference.md). |
-| `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs that grant access (e.g., `123456789,987654321`). Leave empty to allow all. Only visible when `enable_roles` is enabled. |
+| `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
 | `allowed_languages` | Allowed Languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all available languages. |
 
 !!! warning "Role-based access prerequisites"
     Role-based access requires `Discord:BotToken` and `Discord:GuildId` to be configured in appsettings. Without these, role checks cannot be performed and the setting has no effect.
+
+!!! note "Formatting `allowed_role_ids`"
+    Enter the IDs bare: `123456789,987654321`. Surrounding quotes are stripped, but any entry that is not a numeric Discord role ID is ignored and logged as a warning. If nothing usable is left, non-admin logins are denied with `role_check_failed` rather than silently allowing everyone. Admins can always log in, so a bad value can be corrected from the admin panel.
 
 ---
 

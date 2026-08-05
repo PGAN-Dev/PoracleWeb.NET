@@ -1544,7 +1544,7 @@
     "ENABLE_ROLES_LABEL": "Enable Role-Based Access",
     "ENABLE_ROLES_DESC": "Only allow users with specific Discord roles to log in. Requires Bot Token and Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Allowed Role IDs",
-    "ALLOWED_ROLE_IDS_DESC": "Comma-separated Discord role IDs that grant access (e.g. \"123456789,987654321\"). Leave empty to allow all.",
+    "ALLOWED_ROLE_IDS_DESC": "Comma-separated Discord role IDs, e.g. 123456789,987654321. A user needs at least one of these roles to log in. Leave empty to allow all.",
     "REGISTER_COMMAND_LABEL": "Register Command",
     "REGISTER_COMMAND_DESC": "The Poracle bot command users run to register (e.g. \"$!register\").",
     "LOCATION_COMMAND_LABEL": "Location Command",
