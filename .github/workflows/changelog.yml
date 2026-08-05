@@ -34,7 +34,13 @@ jobs:
           set -euo pipefail
 
           # 1) Exempt non-user-facing PR types (mirrors the previous skip set).
-          if printf '%s' "$TITLE" | grep -qiE '^(docs|style|chore|ci|test|build)(\(.*\))?[!]?:'; then
+          #
+          # `deps:` is exempt here but is NOT undocumented: release-changelog.yml batches every
+          # merged `deps:` PR since the previous tag into a "### Dependencies" section when it
+          # cuts the release. Requiring a per-PR entry instead would mean a bot committing to
+          # each Dependabot branch, which makes concurrent Dependabot PRs conflict on CHANGELOG.md
+          # and makes Dependabot stop rebasing them (it abandons PRs modified by others).
+          if printf '%s' "$TITLE" | grep -qiE '^(deps|docs|style|chore|ci|test|build)(\(.*\))?[!]?:'; then
             echo "Exempt PR type — skipping changelog check."
             echo "  title: $TITLE"
             exit 0
