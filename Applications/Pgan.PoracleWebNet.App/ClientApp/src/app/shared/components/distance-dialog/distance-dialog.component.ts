@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { DeliveryPreviewComponent } from '../delivery-preview/delivery-preview.component';
 
@@ -20,7 +20,7 @@ import { DeliveryPreviewComponent } from '../delivery-preview/delivery-preview.c
     MatRadioModule,
     MatIconModule,
     DeliveryPreviewComponent,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-distance-dialog',
   standalone: true,

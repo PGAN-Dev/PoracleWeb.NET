@@ -7,7 +7,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { QuickPickSummary } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -25,7 +25,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/c
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-quick-pick-list',
   standalone: true,

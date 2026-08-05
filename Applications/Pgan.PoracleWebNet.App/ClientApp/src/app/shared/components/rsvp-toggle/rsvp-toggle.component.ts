@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, MatButtonToggleModule, TranslateModule],
+  imports: [ReactiveFormsModule, MatButtonToggleModule, TranslatePipe],
   selector: 'app-rsvp-toggle',
   standalone: true,
   styleUrl: './rsvp-toggle.component.scss',

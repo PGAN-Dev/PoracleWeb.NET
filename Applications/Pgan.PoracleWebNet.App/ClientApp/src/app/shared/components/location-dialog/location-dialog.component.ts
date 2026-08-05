@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { Subject } from 'rxjs';
 import { debounceTime, switchMap, takeUntil, filter, distinctUntilChanged } from 'rxjs/operators';
@@ -30,7 +30,7 @@ import { LocationService } from '../../../core/services/location.service';
     MatProgressBarModule,
     MatAutocompleteModule,
     MatListModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-location-dialog',
   standalone: true,

@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { RaidCreate, EggCreate } from '../../core/models';
@@ -43,7 +43,7 @@ import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
     MatRadioModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    TranslateModule,
+    TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,

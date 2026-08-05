@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { LureEditDialogComponent } from './lure-edit-dialog.component';
@@ -34,6 +34,7 @@ describe('LureEditDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
@@ -42,7 +43,7 @@ describe('LureEditDialogComponent', () => {
         { provide: LureService, useValue: lureService },
         { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
       ],
-      imports: [LureEditDialogComponent, TranslateModule.forRoot()],
+      imports: [LureEditDialogComponent],
     });
 
     const fixture = TestBed.createComponent(LureEditDialogComponent);

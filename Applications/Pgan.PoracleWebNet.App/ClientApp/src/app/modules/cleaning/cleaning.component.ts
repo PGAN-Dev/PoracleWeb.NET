@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { CleaningService, CleanAlarmType } from '../../core/services/cleaning.service';
 import { DashboardService } from '../../core/services/dashboard.service';
@@ -33,7 +33,7 @@ interface CleaningItem {
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-cleaning',
   standalone: true,

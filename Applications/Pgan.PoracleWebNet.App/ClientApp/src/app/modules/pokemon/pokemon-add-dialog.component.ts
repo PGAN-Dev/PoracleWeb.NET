@@ -13,7 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { MonsterCreate } from '../../core/models';
@@ -46,7 +46,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-pokemon-add-dialog',
   standalone: true,

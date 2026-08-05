@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { Profile } from '../../core/models';
 import { I18nService } from '../../core/services/i18n.service';
@@ -24,7 +24,7 @@ import { ProfileService } from '../../core/services/profile.service';
     MatIconModule,
     MatSnackBarModule,
     MatProgressBarModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-profile-edit-dialog',
   standalone: true,

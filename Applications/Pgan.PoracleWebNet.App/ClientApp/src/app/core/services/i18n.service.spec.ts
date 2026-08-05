@@ -32,7 +32,7 @@ describe('I18nService', () => {
     it('should set default language to en', () => {
       service.init();
 
-      expect(translateService.getDefaultLang()).toBe('en');
+      expect(translateService.getFallbackLang()).toBe('en');
     });
 
     it('should use browser detection when no stored language exists', () => {

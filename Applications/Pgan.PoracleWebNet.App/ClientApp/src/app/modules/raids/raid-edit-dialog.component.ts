@@ -10,7 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { Raid, Egg, RaidUpdate, EggUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -44,7 +44,7 @@ export interface RaidEditDialogData {
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
-    TranslateModule,
+    TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,

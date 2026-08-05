@@ -21,7 +21,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { firstValueFrom } from 'rxjs';
 
@@ -60,7 +60,7 @@ export interface RegionGroup {
     MatIconModule,
     MatSnackBarModule,
     MatTooltipModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-geofence-submissions',
   standalone: true,
