@@ -53,5 +53,16 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DATA_DIR=/app/data
 
+# Build provenance, surfaced at runtime by GET /api/version. The image's OCI labels already
+# carry this, but labels are only readable via `docker inspect` on the host -- useless for
+# checking a deployed instance from outside. CI passes these from the same metadata that
+# produces the labels; local builds leave them "unknown".
+ARG BUILD_VERSION=unknown
+ARG BUILD_REVISION=unknown
+ARG BUILD_DATE=unknown
+ENV BUILD_VERSION=$BUILD_VERSION
+ENV BUILD_REVISION=$BUILD_REVISION
+ENV BUILD_DATE=$BUILD_DATE
+
 USER appuser
 ENTRYPOINT ["dotnet", "Pgan.PoracleWebNet.Api.dll"]

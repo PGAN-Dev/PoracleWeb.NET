@@ -45,6 +45,12 @@ jobs:
             type=sha,prefix=main-,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
             type=sha,prefix=,enable=${{ github.event_name == 'release' }}
 
+      # Computed here rather than pulled out of the metadata-action JSON, so the value passed
+      # to the build is plainly visible in the log next to the one baked into the labels.
+      - name: Build timestamp
+        id: build
+        run: echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
@@ -52,6 +58,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Mirrors the OCI labels above into the running container, where GET /api/version can
+          # read them. Labels alone are not visible from inside the container at runtime.
+          build-args: |
+            BUILD_VERSION=${{ steps.meta.outputs.version }}
+            BUILD_REVISION=${{ github.sha }}
+            BUILD_DATE=${{ steps.build.outputs.date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
