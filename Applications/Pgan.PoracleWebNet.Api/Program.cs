@@ -370,17 +370,12 @@ forwardedHeadersOptions.KnownNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
-// Security headers
+// Security headers -- values live in SecurityHeaders so they can be unit-tested
 app.Use(async (context, next) =>
 {
     context.Response.OnStarting(() =>
     {
-        var headers = context.Response.Headers;
-        headers.XContentTypeOptions = "nosniff";
-        headers.XFrameOptions = "DENY";
-        headers.XXSSProtection = "0";
-        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        headers.ContentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc=' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://raw.githubusercontent.com; frame-src https://oauth.telegram.org";
+        SecurityHeaders.Apply(context.Response.Headers);
         return Task.CompletedTask;
     });
     await next();
