@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **English UI showed raw translation keys (`NAV.DASHBOARD`, `AUTH.SIGN_IN`) after upgrading to v2.12.0.** The ngx-translate v18 upgrade moved `defaultLanguage` to `fallbackLang`, but v18 loads the fallback language *eagerly from inside the `TranslateService` constructor*. Setting it in `provideTranslateService()` therefore resolved `TranslateLoader` while the injector was still building `TranslateService`, failing with `NG0200: Circular dependency detected`. Only the fallback language was affected, so English rendered raw keys while every other locale — loaded later via `use()` — worked normally. The fallback is now set in `I18nService.init()` after bootstrap, where the injector is complete. Regression tests exercise the real `appConfig` providers, so re-adding `fallbackLang` to the provider config fails CI.
+
 ## [2.12.0] - 2026-08-05
 
 ### Added
