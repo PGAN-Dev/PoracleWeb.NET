@@ -1,9 +1,9 @@
 @if (selectedGym(); as gym) {
   <div class="selected-gym">
     @if (gym.url) {
-      <img [src]="gym.url" class="gym-photo" />
+      <img [src]="gym.url" class="gym-photo" referrerpolicy="no-referrer" />
     } @else {
-      <img [src]="getTeamIcon(gym.teamId)" class="team-icon" />
+      <img [src]="getTeamIcon(gym.teamId)" class="team-icon" referrerpolicy="no-referrer" />
     }
     <div class="selected-text">
       <span class="gym-name">{{ gym.name ?? gym.id }}</span>
@@ -31,9 +31,9 @@
         <mat-option [value]="gym">
           <div class="option-row">
             @if (gym.url) {
-              <img [src]="gym.url" class="gym-photo-sm" />
+              <img [src]="gym.url" class="gym-photo-sm" referrerpolicy="no-referrer" />
             } @else {
-              <img [src]="getTeamIcon(gym.teamId)" class="team-icon-sm" />
+              <img [src]="getTeamIcon(gym.teamId)" class="team-icon-sm" referrerpolicy="no-referrer" />
             }
             <div class="option-text">
               <span class="option-name">{{ gym.name ?? gym.id }}</span>
