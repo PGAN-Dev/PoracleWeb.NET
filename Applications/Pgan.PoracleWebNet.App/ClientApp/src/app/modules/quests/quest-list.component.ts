@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { QuestAddDialogComponent } from './quest-add-dialog.component';
@@ -36,7 +36,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
-    TranslateModule,
+    TranslatePipe,
     AlarmInfoComponent,
   ],
   selector: 'app-quest-list',

@@ -7,7 +7,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
@@ -32,7 +32,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
-    TranslateModule,
+    TranslatePipe,
     AlarmInfoComponent,
   ],
   selector: 'app-max-battle-list',

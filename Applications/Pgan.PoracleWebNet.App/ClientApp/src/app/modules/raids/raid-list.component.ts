@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom, forkJoin } from 'rxjs';
 
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
@@ -40,7 +40,7 @@ import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
     MatTooltipModule,
     MatSnackBarModule,
     MatTabsModule,
-    TranslateModule,
+    TranslatePipe,
     AlarmInfoComponent,
     RsvpPillComponent,
     LevelLabelPipe,

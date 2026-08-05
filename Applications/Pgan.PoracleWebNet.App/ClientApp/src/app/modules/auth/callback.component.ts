@@ -3,13 +3,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 
 @Component({
-  imports: [MatProgressSpinnerModule, MatButtonModule, MatIconModule, RouterLink, TranslateModule],
+  imports: [MatProgressSpinnerModule, MatButtonModule, MatIconModule, RouterLink, TranslatePipe],
   selector: 'app-callback',
   standalone: true,
   styleUrl: './callback.component.scss',

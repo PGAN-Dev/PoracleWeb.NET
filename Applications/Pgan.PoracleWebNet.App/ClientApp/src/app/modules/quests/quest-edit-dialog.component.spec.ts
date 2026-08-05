@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { QuestEditDialogComponent } from './quest-edit-dialog.component';
@@ -38,6 +38,7 @@ describe('QuestEditDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: MAT_DIALOG_DATA, useValue: data },
@@ -50,7 +51,7 @@ describe('QuestEditDialogComponent', () => {
         },
         { provide: IconService, useValue: { getItemUrl: () => '', getPokemonUrl: () => '', getRewardUrl: () => '' } },
       ],
-      imports: [QuestEditDialogComponent, TranslateModule.forRoot()],
+      imports: [QuestEditDialogComponent],
     });
 
     const fixture = TestBed.createComponent(QuestEditDialogComponent);

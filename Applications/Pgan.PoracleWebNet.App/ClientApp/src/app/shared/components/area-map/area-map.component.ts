@@ -19,7 +19,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 
@@ -53,7 +53,7 @@ interface RegionEntry {
 }
 
 @Component({
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule, TranslateModule, RegionSelectorComponent],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, RegionSelectorComponent],
   selector: 'app-area-map',
   standalone: true,
   styleUrl: './area-map.component.scss',

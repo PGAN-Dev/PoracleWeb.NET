@@ -9,7 +9,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { Quest, QuestUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -34,7 +34,7 @@ import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from
     MatRadioModule,
     MatTabsModule,
     MatSnackBarModule,
-    TranslateModule,
+    TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
   ],

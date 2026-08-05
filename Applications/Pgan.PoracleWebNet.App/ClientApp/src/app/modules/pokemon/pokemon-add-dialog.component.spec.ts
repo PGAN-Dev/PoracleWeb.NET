@@ -3,7 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
@@ -42,6 +42,7 @@ describe('PokemonAddDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: ConfigService, useValue: { apiHost: 'http://test-api' } },
@@ -56,7 +57,7 @@ describe('PokemonAddDialogComponent', () => {
         },
         { provide: AuthService, useValue: { isImpersonating: () => false } },
       ],
-      imports: [PokemonAddDialogComponent, TranslateModule.forRoot()],
+      imports: [PokemonAddDialogComponent],
     });
 
     // MatSnackBar is providedIn MatSnackBarModule, which the standalone component imports, so

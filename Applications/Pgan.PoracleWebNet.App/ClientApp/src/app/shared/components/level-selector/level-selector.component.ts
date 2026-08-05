@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { ANY_LEVEL, ANY_LEVEL_VALUE, isKnownLevel, LevelOption, makeCustomLevel } from '../../../core/models/raid-level.models';
 import { RaidLevelService } from '../../../core/services/raid-level.service';
@@ -28,7 +28,7 @@ import { RaidLevelService } from '../../../core/services/raid-level.service';
  * - `boss`  : single-select, primary + overflow, Any chip
  */
 @Component({
-  imports: [MatButtonModule, MatChipsModule, MatIconModule, MatMenuModule, MatSnackBarModule, MatTooltipModule, TranslateModule],
+  imports: [MatButtonModule, MatChipsModule, MatIconModule, MatMenuModule, MatSnackBarModule, MatTooltipModule, TranslatePipe],
   selector: 'app-level-selector',
   standalone: true,
   styleUrl: './level-selector.component.scss',

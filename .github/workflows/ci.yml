@@ -1,10 +1,15 @@
 name: CI
 
+# `merge_group` is required for the merge queue on `main`. Both jobs below are required
+# status checks, and a queued PR waits on them being reported against the queue's temporary
+# merge branch -- not against the PR head. Without this trigger they never run there and
+# every queued PR stalls until it times out.
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
 
 jobs:
   backend:
@@ -13,15 +18,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
       - name: Cache NuGet packages
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.slnx') }}
@@ -54,10 +59,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'

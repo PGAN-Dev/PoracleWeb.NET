@@ -5,10 +5,18 @@ name: Changelog Check
 # Replaces the old post-merge auto-writer, which always failed pushing to protected main
 # and risked duplicate entries. Release cuts are still handled by release-changelog.yml.
 
+# `merge_group` is listed so this required check reports against the merge queue's temporary
+# branch; without it, every queued PR stalls waiting for a check that never runs.
+#
+# The check itself is a pull-request-level policy and is deliberately a no-op in the queue.
+# A `merge_group` payload has no `pull_request` object at all, so TITLE, LABELS, BASE_SHA and
+# HEAD_SHA would all be empty: the exempt-prefix test would miss, `git show ""` would fail,
+# and the job would report a bogus failure on a PR that already passed this gate.
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: [main]
+  merge_group:
 
 permissions:
   contents: read
@@ -18,12 +26,24 @@ jobs:
     name: Changelog entry present
     runs-on: ubuntu-latest
     steps:
+      # Unconditional, so the job always has at least one successful step. A job whose every
+      # step is skipped by an `if:` is recorded as a failure, which would block the queue --
+      # the same trap documented in auto-merge-deps.yml.
+      - name: Context
+        run: echo "event=${{ github.event_name }}"
+
       - name: Checkout
-        uses: actions/checkout@v6
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      - name: Already validated on the pull request
+        if: github.event_name == 'merge_group'
+        run: echo "Merge queue run — the CHANGELOG gate was enforced when this PR was reviewed."
+
       - name: Require a CHANGELOG entry under [Unreleased]
+        if: github.event_name == 'pull_request'
         env:
           # Passed via env (not inlined) to avoid shell injection from PR titles/labels.
           TITLE: ${{ github.event.pull_request.title }}
@@ -34,7 +54,13 @@ jobs:
           set -euo pipefail
 
           # 1) Exempt non-user-facing PR types (mirrors the previous skip set).
-          if printf '%s' "$TITLE" | grep -qiE '^(docs|style|chore|ci|test|build)(\(.*\))?[!]?:'; then
+          #
+          # `deps:` is exempt here but is NOT undocumented: release-changelog.yml batches every
+          # merged `deps:` PR since the previous tag into a "### Dependencies" section when it
+          # cuts the release. Requiring a per-PR entry instead would mean a bot committing to
+          # each Dependabot branch, which makes concurrent Dependabot PRs conflict on CHANGELOG.md
+          # and makes Dependabot stop rebasing them (it abandons PRs modified by others).
+          if printf '%s' "$TITLE" | grep -qiE '^(deps|docs|style|chore|ci|test|build)(\(.*\))?[!]?:'; then
             echo "Exempt PR type — skipping changelog check."
             echo "  title: $TITLE"
             exit 0
@@ -67,6 +93,6 @@ jobs:
 
           echo "::error::This PR has no new entry under '## [Unreleased]' in CHANGELOG.md."
           echo "Add a Keep a Changelog entry (e.g. under '### Fixed'), or:"
-          echo "  - use a 'docs|style|chore|ci|test|build:' PR title for non-user-facing changes, or"
+          echo "  - use a 'deps|docs|style|chore|ci|test|build:' PR title for non-user-facing changes, or"
           echo "  - apply the 'skip-changelog' label for a legitimate exception."
           exit 1

@@ -5,7 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatStepperModule } from '@angular/material/stepper';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { firstValueFrom, forkJoin, catchError, of } from 'rxjs';
 
 import { AreaService } from '../../../core/services/area.service';
@@ -15,7 +15,7 @@ import { SettingsService } from '../../../core/services/settings.service';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 @Component({
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatStepperModule, RouterLink, TranslateModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatStepperModule, RouterLink, TranslatePipe],
   selector: 'app-onboarding',
   standalone: true,
   styles: [

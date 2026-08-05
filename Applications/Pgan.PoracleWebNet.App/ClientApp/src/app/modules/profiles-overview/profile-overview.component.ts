@@ -13,7 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import {
@@ -76,7 +76,7 @@ interface DuplicateInfo {
     MatProgressBarModule,
     MatSnackBarModule,
     MatTooltipModule,
-    TranslateModule,
+    TranslatePipe,
     ActiveHoursChipComponent,
     LocationWarningComponent,
   ],

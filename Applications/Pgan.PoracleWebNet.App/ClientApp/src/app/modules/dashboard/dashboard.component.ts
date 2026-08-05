@@ -10,7 +10,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { switchMap, forkJoin, EMPTY } from 'rxjs';
 
 import { DashboardCounts, GeofenceData, Location, Profile, WeatherData } from '../../core/models';
@@ -57,7 +57,7 @@ interface Tip {
     AreaOverviewMapComponent,
     OnboardingComponent,
     RouterModule,
-    TranslateModule,
+    TranslatePipe,
   ],
   selector: 'app-dashboard',
   standalone: true,
