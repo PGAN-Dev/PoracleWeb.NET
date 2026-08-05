@@ -14,18 +14,28 @@ updates:
     commit-message:
       prefix: deps
     groups:
-      microsoft:
+      # One group for the whole .NET platform. These packages ship as a single versioned set:
+      # Microsoft.EntityFrameworkCore 10.0.x transitively requires Microsoft.Extensions.* at
+      # >= the same 10.0.x, so any grouping that splits them produces a PR that cannot restore.
+      #
+      # The previous `microsoft` / `aspnetcore` / `ef-core` split did exactly that, and the
+      # patterns overlapped besides -- `Microsoft.*` is a superset of both `Microsoft.AspNetCore.*`
+      # and `Microsoft.EntityFrameworkCore*`. It yielded three PRs carving up one package set,
+      # of which only the widest could build. See #366: EF Core went to 10.0.10 while
+      # Microsoft.Extensions.* stayed at 10.0.8, giving `NU1605: Detected package downgrade`
+      # (a hard error under the .NET 10 SDK, not a warning).
+      #
+      # MySql.EntityFrameworkCore belongs here too: it version-locks to
+      # Microsoft.EntityFrameworkCore.Relational and drags the same Extensions floor with it.
+      dotnet:
         patterns:
           - 'Microsoft.*'
           - 'System.*'
-      aspnetcore:
-        patterns:
-          - 'Microsoft.AspNetCore.*'
-          - 'Microsoft.Extensions.*'
-      ef-core:
-        patterns:
-          - 'Microsoft.EntityFrameworkCore*'
           - 'MySql.EntityFrameworkCore'
+        exclude-patterns:
+          # Test-only and versioned independently of the platform (18.x, not 10.0.x).
+          # Kept in the `test` group so a runtime bump and a test-tooling bump stay separable.
+          - 'Microsoft.NET.Test.Sdk'
       test:
         patterns:
           - 'xunit*'
