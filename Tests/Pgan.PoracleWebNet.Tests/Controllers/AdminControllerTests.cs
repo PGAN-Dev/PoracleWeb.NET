@@ -34,6 +34,64 @@ public class AdminControllerTests : ControllerTestBase
             this._logger.Object);
     }
 
+    // --- GetUserAvatars (#395) ---
+
+    [Fact]
+    public void GetUserAvatarsReturnsForbidWhenNotAdmin()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        Assert.IsType<ForbidResult>(this._sut.GetUserAvatars(["u1"]));
+    }
+
+    [Fact]
+    public void GetUserAvatarsReturnsAnEntryForEveryRequestedId()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = Assert.IsType<OkObjectResult>(this._sut.GetUserAvatars(["111", "222"]));
+        var avatars = Assert.IsType<Dictionary<string, string>>(result.Value);
+
+        // Unknown IDs still resolve, to Discord's default avatar rather than nothing -- the caller
+        // treats a missing key as "not yet loaded" and would keep asking.
+        Assert.Equal(2, avatars.Count);
+        Assert.All(avatars.Values, url => Assert.False(string.IsNullOrWhiteSpace(url)));
+    }
+
+    [Fact]
+    public void GetUserAvatarsHandlesEmptyAndNullInput()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        Assert.Empty(Assert.IsType<Dictionary<string, string>>(
+            Assert.IsType<OkObjectResult>(this._sut.GetUserAvatars([])).Value));
+        Assert.Empty(Assert.IsType<Dictionary<string, string>>(
+            Assert.IsType<OkObjectResult>(this._sut.GetUserAvatars(null!)).Value));
+    }
+
+    [Fact]
+    public void GetUserAvatarsDedupesAndSkipsBlankIds()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = Assert.IsType<OkObjectResult>(this._sut.GetUserAvatars(["111", "111", "  ", ""]));
+        var avatars = Assert.IsType<Dictionary<string, string>>(result.Value);
+
+        Assert.Single(avatars);
+        Assert.True(avatars.ContainsKey("111"));
+    }
+
+    [Fact]
+    public void GetUserAvatarsCapsTheBatchSize()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var ids = Enumerable.Range(1, 500).Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        var result = Assert.IsType<OkObjectResult>(this._sut.GetUserAvatars(ids));
+        var avatars = Assert.IsType<Dictionary<string, string>>(result.Value);
+
+        Assert.Equal(200, avatars.Count);
+    }
+
     // --- GetAllUsers ---
 
     [Fact]

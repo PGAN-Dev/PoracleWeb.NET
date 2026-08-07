@@ -37,6 +37,31 @@ public class MasterDataController(
     }
 
     [AllowAnonymous]
+    /// <summary>
+    /// Move ID to name map. Used to label the charged moves on Max Battle alarms, which otherwise
+    /// render as bare <c>Move #123</c>.
+    /// </summary>
+    [HttpGet("moves")]
+    public async Task<IActionResult> GetMoves()
+    {
+        var data = await this._masterDataService.GetMoveDataAsync();
+        if (data == null)
+        {
+            await this._masterDataService.RefreshCacheAsync();
+            data = await this._masterDataService.GetMoveDataAsync();
+        }
+
+        if (data == null)
+        {
+            return this.NotFound(new
+            {
+                message = "Move data not available."
+            });
+        }
+
+        return this.Content(data, "application/json");
+    }
+
     [HttpGet("items")]
     public async Task<IActionResult> GetItems()
     {

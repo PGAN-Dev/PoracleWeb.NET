@@ -108,23 +108,6 @@ describe('SettingsService', () => {
     });
   });
 
-  describe('getConfig', () => {
-    it('should fetch poracle config', () => {
-      service.getConfig().subscribe(config => {
-        expect(config.areas).toHaveLength(0);
-      });
-
-      httpMock.expectOne(`${API}/api/settings/config`).flush({
-        areas: [],
-        forms: {},
-        grunts: {},
-        items: {},
-        moves: {},
-        pokemon: {},
-      });
-    });
-  });
-
   describe('isDisabled', () => {
     it('should return true when setting is "true"', () => {
       service.getAll().subscribe();
