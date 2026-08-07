@@ -1,10 +1,14 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/areas")]
+[RequireFeatureEnabled(DisableFeatureKeys.Areas)]
 public partial class AreaController(
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
