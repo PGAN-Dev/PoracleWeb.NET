@@ -86,6 +86,10 @@ KOJI_PROJECT_NAME=your_koji_project_name
 # Discord forum channel for geofence submission threads
 DISCORD_GEOFENCE_FORUM_CHANNEL_ID=
 
+# Public URL of this site, no trailing slash (optional).
+# Links geofence review threads to the admin review page.
+# PUBLIC_URL=https://alerts.example.com
+
 # Scanner DB for gym picker in raid/egg dialogs (optional)
 # SCANNER_DB_CONNECTION=Server=host.docker.internal;Port=3306;Database=golbat;User=root;Password=your_password
 

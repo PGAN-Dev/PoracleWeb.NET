@@ -367,18 +367,11 @@ public class DiscordNotificationServiceTests
     private static JsonElement Field(DiscordHandler discord, string name) =>
         TryField(discord, name) ?? throw new InvalidOperationException($"No '{name}' field on the embed.");
 
-    private static JsonElement? TryField(DiscordHandler discord, string name)
-    {
-        foreach (var field in Embed(discord).GetProperty("fields").EnumerateArray())
-        {
-            if (field.GetProperty("name").GetString() == name)
-            {
-                return field;
-            }
-        }
-
-        return null;
-    }
+    private static JsonElement? TryField(DiscordHandler discord, string name) =>
+        Embed(discord).GetProperty("fields").EnumerateArray()
+            .Where(field => field.GetProperty("name").GetString() == name)
+            .Cast<JsonElement?>()
+            .FirstOrDefault();
 
     private sealed class StubHttpClientFactory(HttpClient client) : IHttpClientFactory
     {

@@ -30,7 +30,7 @@ Uses xUnit with Moq. Tests cover:
 - Proxy classes (`PoracleTrackingProxyTests`, `PoracleHumanProxyTests`) -- verify HTTP request construction, URL encoding, response unwrapping
 - Human/profile services (`HumanServiceTests`, `ProfileServiceTests`) -- mock `IPoracleHumanProxy` for single-user ops, `IHumanRepository` for admin bulk ops
 - Active hours validation (`ActiveHoursValidationTests`) -- 17 tests for server-side active hours validation rules
-- Other services (`UserGeofenceServiceTests`, `CleaningServiceTests`, `DashboardServiceTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `QuickPickServiceSecurityTests`, `PokemonAvailabilityServiceTests`)
+- Other services (`UserGeofenceServiceTests`, `DiscordNotificationServiceTests`, `GeoMathTests`, `CleaningServiceTests`, `DashboardServiceTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `QuickPickServiceSecurityTests`, `PokemonAvailabilityServiceTests`)
 - Mapping extensions (`MappingExtensionTests`) -- alarm DTO `To*()` / `ApplyUpdate()` and entity `ToModel()` / `ToEntity()` / `ApplyTo()`
 
 !!! info "Alarm service tests mock IPoracleTrackingProxy"
