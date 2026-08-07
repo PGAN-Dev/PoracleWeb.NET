@@ -46,13 +46,19 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         model.GruntType ??= "";
         var oldUid = model.Uid;
-        var body = SerializeToElement(model);
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        // PoracleNG dedups invasions by (grunt_type, gender) and inserts rather than upserts when an edit
-        // changes either. Shared with the other tracking types -- see TrackingUpdateReconciler.
-        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+        // PoracleNG guards this type with a natural unique key and its create has no upsert path, so
+        // changing a field outside that key collides (Error 1062) and returns 500. Replace the row instead.
+        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
+
+        model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
+            this._proxy,
+            TrackingType,
+            userId,
+            oldUid,
+            original is null ? null : SerializeToElement(original),
+            SerializeToElement(model),
+            this._logger);
 
         return model;
     }

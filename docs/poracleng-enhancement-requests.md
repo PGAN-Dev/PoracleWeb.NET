@@ -204,3 +204,34 @@ This crashes the **entire state reload**, freezing PoracleNG on stale data for a
 | Atomic profile switch | Low | Already in PoracleNG | **Adopted** |
 | Atomic area update | Low | Already in PoracleNG | **Adopted** |
 | NULL field defaults | Low | Handled by PoracleNG cleanRow() | Resolved by migration |
+
+### Tracking create has no upsert path for natural-key types
+
+`lure` and `invasion` are the only tracking tables carrying a unique index over a natural key:
+
+```
+lure       lure_tracking(id, profile_no, lure_id)
+invasion   invasion_tracking(id, profile_no, gender, grunt_type)
+```
+
+Every other type is unique on `PRIMARY(uid)` alone.
+
+`HandleCreateLure` / `HandleCreateInvasion` treat a row as "already present" only when **every** field matches. Changing a field *outside* the natural key — distance, template or clean on a lure — is therefore not recognised as an existing row, so the handler attempts an `INSERT` that collides with the unique index:
+
+```
+Tracking API: insert lure: Error 1062 (23000):
+Duplicate entry '<id>-<profile_no>-<lure_id>' for key 'lure_tracking'
+```
+
+PoracleNG answers `500 {"message":"database error"}` and the edit is discarded. Reproduced against a dev instance:
+
+| Request | Result |
+|---|---|
+| create a lure with an untracked `lure_id` | `200 insert:1` |
+| re-post the identical row | `200 alreadyPresent:1` |
+| re-post with only `distance` changed | **`500 database error`** |
+| `DELETE byUid` then re-post | `200 insert:1` |
+
+So the only way to edit these two types is to delete the row first, which is what PoracleWeb now does (`NaturalKeyTrackingUpdate`). The cost is that the `uid` rotates on every edit, which in turn orphans anything holding the old uid — quick-pick applied state tracks uids, for example.
+
+**Request:** make the create handler upsert when the natural key matches an existing row for the same `(id, profile_no)`, updating the non-key columns in place and returning `updates: 1` with the existing uid. That matches how the uid-only types already behave and would let PoracleWeb drop the delete-then-create workaround along with the uid churn it causes.

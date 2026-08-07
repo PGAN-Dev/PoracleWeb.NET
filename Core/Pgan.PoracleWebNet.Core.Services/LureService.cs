@@ -44,13 +44,19 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Lures);
         var oldUid = model.Uid;
-        var body = SerializeToElement(model);
-        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
-        // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
-        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+        // PoracleNG guards this type with a natural unique key and its create has no upsert path, so
+        // changing a field outside that key collides (Error 1062) and returns 500. Replace the row instead.
+        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
+
+        model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
+            this._proxy,
+            TrackingType,
+            userId,
+            oldUid,
+            original is null ? null : SerializeToElement(original),
+            SerializeToElement(model),
+            this._logger);
 
         return model;
     }

@@ -23,6 +23,11 @@ public class InvasionServiceTests
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance);
+        // The natural-key replace strategy reads the original row and frees the key first.
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", It.IsAny<string>()))
+            .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
+        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", It.IsAny<string>(), It.IsAny<int>()))
+            .Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -214,63 +219,6 @@ public class InvasionServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsyncDeletesStaleUidWhenNaturalKeyChanges()
-    {
-        // PoracleNG dedups invasions by (grunt_type, gender); changing either triggers an insert
-        // with a new uid. The service must delete the old uid to avoid a stale duplicate row.
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([999], 0, 0, 1));
-
-        var model = new Invasion { Uid = 497, GruntType = "water", Gender = 2 };
-        var result = await this._sut.UpdateAsync("u1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync("invasion", "u1", 497), Times.Once);
-        Assert.Equal(999, result.Uid);
-    }
-
-    [Fact]
-    public async Task UpdateAsyncDoesNotDeleteWhenProxyReportsInPlaceUpdate()
-    {
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
-
-        var model = new Invasion { Uid = 497, GruntType = "water", Gender = 1 };
-        await this._sut.UpdateAsync("u1", model);
-
-        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
-    }
-
-    [Theory]
-    [InlineData(typeof(HttpRequestException))]
-    [InlineData(typeof(TaskCanceledException))]
-    public async Task UpdateAsyncSwallowsStaleDeleteFailureAndLogsWarning(Type exceptionType)
-    {
-        // Network failure or timeout during the cleanup delete must not fail the update —
-        // the new row is already correct; log at Warning so the stale dup is discoverable.
-        var logger = new Mock<ILogger<InvasionService>>();
-        logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
-        var sut = new InvasionService(this._proxy.Object, this._featureGate.Object, logger.Object);
-        var ex = (Exception)Activator.CreateInstance(exceptionType, "proxy unavailable")!;
-
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([999], 0, 0, 1));
-        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "u1", 497)).ThrowsAsync(ex);
-
-        var model = new Invasion { Uid = 497, GruntType = "water", Gender = 2 };
-        var result = await sut.UpdateAsync("u1", model);
-
-        Assert.Equal(999, result.Uid);
-        logger.Verify(
-            l => l.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
-                ex,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
-
-    [Fact]
     public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
     {
         this._featureGate
@@ -303,4 +251,56 @@ public class InvasionServiceTests
         using var doc = JsonDocument.Parse(jsonStr);
         return doc.RootElement.Clone();
     }
+
+    // --- Natural-key replace (#401) ---
+    // PoracleNG guards invasion with a unique natural key and its create has no upsert path, so editing a field
+    // OUTSIDE that key made it INSERT, collide (Error 1062) and return 500 while discarding the edit.
+
+    [Fact]
+    public async Task UpdateAsyncDeletesTheOldRowBeforeRecreatingIt()
+    {
+        var model = new Invasion { Uid = 41, GruntType = "grunt" };
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "user1")).ReturnsAsync(ItemsJson(41));
+        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "user1", 41)).Returns(Task.CompletedTask);
+        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
+
+        var result = await this._sut.UpdateAsync("user1", model);
+
+        this._proxy.Verify(p => p.DeleteByUidAsync("invasion", "user1", 41), Times.Once);
+        Assert.Equal(42, result.Uid);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncRestoresTheOriginalWhenRecreatingFails()
+    {
+        var model = new Invasion { Uid = 41, GruntType = "grunt" };
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "user1")).ReturnsAsync(ItemsJson(41));
+        this._proxy.Setup(p => p.DeleteByUidAsync("invasion", "user1", 41)).Returns(Task.CompletedTask);
+        this._proxy.SetupSequence(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ThrowsAsync(new HttpRequestException("upstream 500"))
+            .ReturnsAsync(new TrackingCreateResult([43], 0, 0, 1));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.UpdateAsync("user1", model));
+
+        // Two creates: the failed edit, then the restore of the original row.
+        this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task UpdateAsyncOnANewRecordDoesNotDeleteAnything()
+    {
+        var model = new Invasion { Uid = 0, GruntType = "grunt" };
+        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([44], 0, 0, 1));
+
+        var result = await this._sut.UpdateAsync("user1", model);
+
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        Assert.Equal(44, result.Uid);
+    }
+
+    private static JsonElement ItemsJson(int uid) =>
+        JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
+
 }
