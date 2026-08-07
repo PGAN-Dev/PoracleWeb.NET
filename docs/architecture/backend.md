@@ -204,6 +204,22 @@ The `ScannerGymEntity` in the scanner context maps the `url` column from the `gy
 
 `IScannerService` declares a static `PointInPolygon(double lat, double lon, double[][] polygon)` method using the ray-casting algorithm. The method tests if a point lies inside a polygon (where each entry is `[lat, lon]`) and returns `false` for degenerate polygons with fewer than 3 vertices. Used by `ScannerController` to determine which Koji geofence area a gym belongs to.
 
+## GeoMath
+
+`Core.Services/GeoMath.cs` holds the polygon maths used outside the scanner path: `AreaSqKm` (spherical excess / Girard's theorem, R = 6371 km), `Centroid` (vertex mean), `Contains` (ray casting), and `DescribeArea` (plain-language size band). It backs the geofence review card's size, location and overlap fields.
+
+!!! warning "Keep in sync with the frontend"
+    `GeoMath` is a hand-port of the frontend's `shared/utils/geo.utils.ts`. If the two drift, the area a user sees while drawing a geofence stops matching the one an admin sees in the review thread. The tests derive their expected values from the sphere's radius (`2πR/360`) rather than from the implementation, so a port mistake fails rather than being enshrined.
+
+## Discord notifications
+
+`IDiscordNotificationService` opens and maintains the geofence review thread. Two mechanics are easy to get wrong:
+
+- **The map must be uploaded, not linked.** Poracle's `GET /api/geofence/{area}/map` returns a *pregenerated tileserver-cache* URL that the cache evicts, so an embed linking it goes blank within hours. The bytes are downloaded (via a separate unauthenticated named `HttpClient`, so the bot token never reaches the tileserver) and posted as a message attachment.
+- **Editing the card re-uploads the map.** Discord folds an `attachment://` attachment into the embed, so the message reports an empty `attachments` array — there is no ID to carry forward, and the embed's resolved `cdn.discordapp.com` URL is a signed link that expires. A forum post's starter message shares the thread's ID, so the opening embed is edited with `PATCH /channels/{threadId}/messages/{threadId}`.
+
+One `BuildEmbed` produces the pending, approved and rejected cards so they cannot drift apart, and each piece degrades on its own: a failed download links the URL, a failed card rewrite still posts the verdict reply, and a Koji outage just omits the overlap line.
+
 ## Golbat API proxy
 
 ### IGolbatApiProxy (Pokemon availability)

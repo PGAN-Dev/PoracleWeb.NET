@@ -36,6 +36,7 @@ All configuration can be provided via environment variables or `appsettings.json
 | Discord Bot Token | `DISCORD_BOT_TOKEN` | `Discord__BotToken` | — | Enables Discord avatar display |
 | Discord Guild ID | `DISCORD_GUILD_ID` | `Discord__GuildId` | — | Discord server ID |
 | Discord Geofence Forum | `DISCORD_GEOFENCE_FORUM_CHANNEL_ID` | `Discord__GeofenceForumChannelId` | — | Forum channel for geofence submission threads |
+| Public site URL | `PUBLIC_URL` | `Site__PublicUrl` | — | Public URL users reach this site at, no trailing slash (e.g. `https://alerts.example.com`). Used to link geofence review threads to the admin review page; the link is omitted when unset. |
 | Telegram Enabled | `TELEGRAM_ENABLED` | `Telegram__Enabled` | `false` | Enable Telegram authentication |
 | Telegram Bot Token | `TELEGRAM_BOT_TOKEN` | `Telegram__BotToken` | — | Telegram bot token |
 | Telegram Bot Username | `TELEGRAM_BOT_USERNAME` | `Telegram__BotUsername` | — | Telegram bot username |

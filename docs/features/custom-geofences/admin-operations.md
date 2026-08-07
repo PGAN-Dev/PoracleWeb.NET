@@ -56,13 +56,27 @@ You can have PoracleWeb.NET open a **Discord forum thread** for each submission,
 | Config | What it does |
 |---|---|
 | `Discord:GeofenceForumChannelId` | The Discord **forum channel** where submission threads are created. Leave unset to disable. |
+| `Site:PublicUrl` | Optional. The public URL of your site, no trailing slash. Makes the review card's title a link straight to the Geofence Submissions screen. The link is omitted when unset. |
 
-When configured:
+### The review card
 
-- **On submit**, a thread is created (titled after the geofence) with a **Pending** tag and an embed showing the name, region, point count, and a map image.
-- **On approve/reject**, PoracleWeb.NET posts the outcome in the thread, retags it **Approved**/**Rejected**, then **locks and archives** it.
+**On submit**, a thread is created titled after the geofence, tagged **Pending**, with a card built to be decided on without leaving Discord:
 
-If Discord is unreachable or the channel isn't set, the submission still works — the geofence still moves to `pending_review`/`approved`/`rejected`. The forum post is a convenience, never a blocker.
+| Field | Why it's there |
+|---|---|
+| **Size** | Area in km² plus a plain-language band (`a block or two`, `neighbourhood`, `district`, `city-sized`, `very large`). This is the main gate — approving publishes the area to everyone, so a neighbourhood is fine and a whole metro usually isn't. The map alone can't tell you: a static map auto-zooms to fit, so a park and a county look identical. |
+| **Region** | The auto-detected Koji parent region, or `Not detected`. |
+| **Publishes as** | The lowercase name the area would take in the shared public list. This is what approval actually publishes, so `zz my house` and `Bowie - Melford` are worth telling apart before you click. |
+| **Location** | Centroid coordinates with a maps link. Matters most when the region wasn't detected. |
+| **Already covered by** | Only shown when the area's centre falls inside an existing public area, naming it, so duplicates are visible without opening a map. It's a centre-point test, not a true overlap measurement — a partial overlap won't trigger it. |
+
+The submitter appears in the card's author line, with a clickable mention in the message above it. The map is uploaded to Discord as an attachment rather than linked, so it doesn't expire when the tile server drops its cached copy.
+
+The colour bar tracks state: **amber** while pending, **green** approved, **red** rejected.
+
+**On approve/reject**, PoracleWeb.NET rewrites the original card in place — new colour, updated footer, the published name, and on rejection the reason — then posts the outcome as a reply, retags the thread **Approved**/**Rejected**, and **locks and archives** it. Rewriting the opening post means anyone opening the thread later sees the outcome immediately instead of scrolling for it.
+
+If Discord is unreachable or the channel isn't set, the submission still works — the geofence still moves to `pending_review`/`approved`/`rejected`. The forum post is a convenience, never a blocker. The same applies to the individual pieces: a failed map download falls back to linking it, a failed card rewrite still posts the outcome reply, and a Koji outage just omits the "Already covered by" line.
 
 !!! note "Bot token and tags"
     PoracleWeb.NET uses the Discord bot token from your PoracleJS/PoracleNG server's Discord bot configuration. The forum tags (`Geofence - Pending` / `Approved` / `Rejected`) are created automatically the first time they're needed. If you rename those tags in Discord, restart PoracleWeb.NET so it re-reads them.

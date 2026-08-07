@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -5,6 +6,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -190,7 +192,7 @@ public partial class DiscordNotificationService(
         }
     }
 
-    public async Task<string?> CreateGeofenceSubmissionPostAsync(string userId, string userName, string geofenceName, string groupName, int polygonPoints, string? mapImageUrl)
+    public async Task<string?> CreateGeofenceSubmissionPostAsync(GeofenceSubmissionPost post)
     {
         if (string.IsNullOrEmpty(this._forumChannelId))
         {
@@ -202,52 +204,22 @@ public partial class DiscordNotificationService(
 
         try
         {
-            var appliedTags = s_pendingTagId != null ? [s_pendingTagId] : Array.Empty<string>();
-
             // PoracleNG hands back a pregenerated tileserver URL that the tile cache eventually evicts,
             // which leaves the embed with a dead image. Upload the bytes as a real Discord attachment so
             // the map stays with the message. Fall back to the raw URL when the download fails.
-            var mapImageBytes = mapImageUrl != null ? await this.TryDownloadMapImageAsync(mapImageUrl) : null;
-
-            object? image = null;
-            if (mapImageBytes != null)
-            {
-                image = new { url = $"attachment://{MapAttachmentFileName}" };
-            }
-            else if (mapImageUrl != null)
-            {
-                image = new { url = mapImageUrl };
-            }
-
-            var embeds = new List<object>
-            {
-                new
-                {
-                    title = $"Geofence: {geofenceName}",
-                    color = 2196944, // #2196f3 as decimal
-                    fields = new object[]
-                    {
-                        new { name = "Region", value = string.IsNullOrWhiteSpace(groupName) ? "Unassigned" : groupName, inline = true },
-                        new { name = "Points", value = polygonPoints.ToString(System.Globalization.CultureInfo.InvariantCulture), inline = true },
-                        new { name = "Submitted By", value = $"<@{userId}>", inline = true },
-                    },
-                    image,
-                },
-            };
+            var mapImageBytes = post.MapImageUrl != null ? await this.TryDownloadMapImageAsync(post.MapImageUrl) : null;
 
             var body = new
             {
-                name = $"Geofence Request: {geofenceName}",
+                name = $"Geofence Request: {post.DisplayName}",
                 auto_archive_duration = 10080,
-                applied_tags = appliedTags,
+                applied_tags = TagsFor(post.State),
                 message = new
                 {
-                    content = "A custom geofence has been submitted for review.\n\n"
-                        + "Please share any context about this area (community day spot, park, popular route, etc.)",
-                    embeds,
-                    attachments = mapImageBytes != null
-                        ? new object[] { new { id = "0", filename = MapAttachmentFileName } }
-                        : null,
+                    content = $"<@{post.UserId}> submitted an area for review.\n\n"
+                        + "Please share any context about it (community day spot, park, popular route, etc.)",
+                    embeds = new object[] { BuildEmbed(post, mapImageBytes != null) },
+                    attachments = AttachmentsFor(mapImageBytes),
                 },
             };
 
@@ -262,16 +234,193 @@ public partial class DiscordNotificationService(
             var threadJson = await response.Content.ReadFromJsonAsync<JsonElement>();
             var threadId = threadJson.GetProperty("id").GetString();
 
-            LogForumPostCreated(this._logger, geofenceName, threadId);
+            LogForumPostCreated(this._logger, post.DisplayName, threadId);
 
             return threadId;
         }
         catch (Exception ex)
         {
-            LogForumPostFailed(this._logger, ex, geofenceName);
+            LogForumPostFailed(this._logger, ex, post.DisplayName);
             return null;
         }
     }
+
+    public async Task PostReviewOutcomeAsync(string threadId, GeofenceSubmissionPost post)
+    {
+        await this.EnsureForumTagsExistAsync();
+
+        // A forum post's starter message shares the thread's ID, so the opening embed can be rewritten
+        // without storing a separate message ID. Best-effort: a failed edit must not stop the verdict reply.
+        try
+        {
+            await this.UpdateOpeningEmbedAsync(threadId, post);
+        }
+        catch (Exception ex)
+        {
+            LogOpeningEmbedUpdateFailed(this._logger, ex, threadId);
+        }
+
+        try
+        {
+            var messageBody = new { content = VerdictText(post) };
+            var messageResponse = await this._httpClient.PostAsJsonAsync($"channels/{threadId}/messages", messageBody);
+            messageResponse.EnsureSuccessStatusCode();
+
+            var patchBody = new
+            {
+                applied_tags = TagsFor(post.State),
+                locked = true,
+                archived = true,
+            };
+            var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
+            patchResponse.EnsureSuccessStatusCode();
+
+            LogOutcomePosted(this._logger, threadId, post.DisplayName, post.State.ToString());
+        }
+        catch (Exception ex)
+        {
+            LogOutcomeFailed(this._logger, ex, threadId);
+        }
+    }
+
+    /// <summary>
+    /// Rewrites the starter message's embed in place.
+    /// <para>
+    /// The map is re-uploaded rather than retained by ID. Discord consumes an attachment referenced by
+    /// <c>attachment://</c> into the embed, so the edited message reports an empty <c>attachments</c> array
+    /// and there is no ID to carry forward. Reusing the embed's resolved <c>cdn.discordapp.com</c> URL is
+    /// not an option either -- it is a signed link that expires, which is the rot this whole feature exists
+    /// to avoid. Falls back to linking the tileserver URL only when the re-download fails.
+    /// </para>
+    /// </summary>
+    private async Task UpdateOpeningEmbedAsync(string threadId, GeofenceSubmissionPost post)
+    {
+        var mapImageBytes = post.MapImageUrl != null ? await this.TryDownloadMapImageAsync(post.MapImageUrl) : null;
+
+        var body = new
+        {
+            embeds = new object[] { BuildEmbed(post, mapImageBytes != null) },
+            attachments = AttachmentsFor(mapImageBytes) ?? [],
+        };
+
+        var payloadJson = JsonSerializer.Serialize(body, DiscordPayloadOptions);
+        using HttpContent content = mapImageBytes != null
+            ? BuildMultipartBody(payloadJson, mapImageBytes)
+            : new StringContent(payloadJson, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await this._httpClient.PatchAsync($"channels/{threadId}/messages/{threadId}", content);
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    /// Builds the review card. Field order is the reading order a reviewer needs: how big, where, what it
+    /// would be called. Vertex count is deliberately absent -- it never changes an approve/reject decision.
+    /// </summary>
+    private static object BuildEmbed(GeofenceSubmissionPost post, bool hasAttachment)
+    {
+        var fields = new List<object>
+        {
+            new
+            {
+                name = "Size",
+                value = $"{post.AreaSqKm.ToString("0.##", CultureInfo.InvariantCulture)} km²\n{GeoMath.DescribeArea(post.AreaSqKm)}",
+                inline = true,
+            },
+            new
+            {
+                name = "Region",
+                value = string.IsNullOrWhiteSpace(post.GroupName) ? "Not detected" : post.GroupName,
+                inline = true,
+            },
+            new
+            {
+                name = post.State == GeofenceReviewState.Approved ? "Published as" : "Publishes as",
+                value = $"`{post.PublicName}`",
+                inline = true,
+            },
+        };
+
+        var lat = post.CentroidLat.ToString("0.0000", CultureInfo.InvariantCulture);
+        var lon = post.CentroidLon.ToString("0.0000", CultureInfo.InvariantCulture);
+        fields.Add(new
+        {
+            name = "Location",
+            value = $"{lat}, {lon} · [Open in maps](https://www.google.com/maps/search/?api=1&query={lat},{lon})",
+            inline = false,
+        });
+
+        if (!string.IsNullOrWhiteSpace(post.OverlapsArea))
+        {
+            fields.Add(new
+            {
+                name = "Already covered by",
+                value = $"{post.OverlapsArea} — this area's centre already falls inside a public area.",
+                inline = false,
+            });
+        }
+
+        if (post.State == GeofenceReviewState.Rejected && !string.IsNullOrWhiteSpace(post.ReviewNotes))
+        {
+            fields.Add(new { name = "Reason", value = Truncate(post.ReviewNotes, 1024), inline = false });
+        }
+
+        object? image = hasAttachment ? new { url = $"attachment://{MapAttachmentFileName}" }
+            : post.MapImageUrl != null ? new { url = post.MapImageUrl }
+            : null;
+
+        return new
+        {
+            title = post.DisplayName,
+            url = post.ReviewUrl,
+            color = ColorFor(post.State),
+            author = string.IsNullOrWhiteSpace(post.UserName) ? null : new { name = post.UserName },
+            fields = fields.ToArray(),
+            image,
+            footer = new { text = FooterFor(post.State) },
+            timestamp = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
+        };
+    }
+
+    private static int ColorFor(GeofenceReviewState state) => state switch
+    {
+        GeofenceReviewState.Approved => 2278750,  // #22c55e
+        GeofenceReviewState.Rejected => 15680580, // #ef4444
+        _ => 16096779,                            // #f59e0b
+    };
+
+    private static string FooterFor(GeofenceReviewState state) => state switch
+    {
+        GeofenceReviewState.Approved => "Approved",
+        GeofenceReviewState.Rejected => "Rejected",
+        _ => "Awaiting review",
+    };
+
+    private static string[] TagsFor(GeofenceReviewState state)
+    {
+        var tagId = state switch
+        {
+            GeofenceReviewState.Approved => s_approvedTagId,
+            GeofenceReviewState.Rejected => s_rejectedTagId,
+            _ => s_pendingTagId,
+        };
+
+        return tagId != null ? [tagId] : [];
+    }
+
+    private static object[]? AttachmentsFor(byte[]? mapImageBytes) =>
+        mapImageBytes != null ? [new { id = "0", filename = MapAttachmentFileName }] : null;
+
+    private static string VerdictText(GeofenceSubmissionPost post) => post.State switch
+    {
+        GeofenceReviewState.Approved =>
+            $"✅ **Approved.** Published as **{post.PublicName}** and now selectable by everyone on the Areas page.",
+        GeofenceReviewState.Rejected =>
+            $"❌ **Rejected.** {post.ReviewNotes}\n\nThe area keeps working privately for your own alerts.",
+        _ => "This submission is awaiting review.",
+    };
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : string.Concat(value.AsSpan(0, max - 1), "…");
 
     /// <summary>
     /// Downloads the static map so it can be uploaded to Discord as an attachment. Returns null on any
@@ -330,70 +479,6 @@ public partial class DiscordNotificationService(
         return multipart;
     }
 
-    public async Task PostApprovalMessageAsync(string threadId, string geofenceName, string promotedName)
-    {
-        try
-        {
-            // Post approval message
-            var messageBody = new
-            {
-                content = $"\u2705 **Approved!** This geofence has been published as **{promotedName}** and is now available to all users on the Areas page.",
-            };
-            var messageResponse = await this._httpClient.PostAsJsonAsync($"channels/{threadId}/messages", messageBody);
-            messageResponse.EnsureSuccessStatusCode();
-
-            // Update tags and lock/archive the thread
-            await this.EnsureForumTagsExistAsync();
-            var appliedTags = s_approvedTagId != null ? [s_approvedTagId] : Array.Empty<string>();
-            var patchBody = new
-            {
-                applied_tags = appliedTags,
-                locked = true,
-                archived = true,
-            };
-            var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
-            patchResponse.EnsureSuccessStatusCode();
-
-            LogApprovalPosted(this._logger, threadId, geofenceName);
-        }
-        catch (Exception ex)
-        {
-            LogApprovalFailed(this._logger, ex, threadId);
-        }
-    }
-
-    public async Task PostRejectionMessageAsync(string threadId, string geofenceName, string reason)
-    {
-        try
-        {
-            // Post rejection message
-            var messageBody = new
-            {
-                content = $"\u274C **Rejected.** {reason}\n\nYour geofence will continue to work privately for your own alerts.",
-            };
-            var messageResponse = await this._httpClient.PostAsJsonAsync($"channels/{threadId}/messages", messageBody);
-            messageResponse.EnsureSuccessStatusCode();
-
-            // Update tags and lock/archive the thread
-            await this.EnsureForumTagsExistAsync();
-            var appliedTags = s_rejectedTagId != null ? [s_rejectedTagId] : Array.Empty<string>();
-            var patchBody = new
-            {
-                applied_tags = appliedTags,
-                locked = true,
-                archived = true,
-            };
-            var patchResponse = await this._httpClient.PatchAsJsonAsync($"channels/{threadId}", patchBody);
-            patchResponse.EnsureSuccessStatusCode();
-
-            LogRejectionPosted(this._logger, threadId, geofenceName);
-        }
-        catch (Exception ex)
-        {
-            LogRejectionFailed(this._logger, ex, threadId);
-        }
-    }
-
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to initialize Discord forum tags")]
     private static partial void LogForumTagInitFailed(ILogger logger, Exception ex);
 
@@ -406,17 +491,14 @@ public partial class DiscordNotificationService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to create Discord forum post for geofence '{GeofenceName}'")]
     private static partial void LogForumPostFailed(ILogger logger, Exception ex, string geofenceName);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Posted approval to Discord thread {ThreadId} for geofence '{GeofenceName}'")]
-    private static partial void LogApprovalPosted(ILogger logger, string threadId, string geofenceName);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Posted {State} outcome to Discord thread {ThreadId} for geofence '{GeofenceName}'")]
+    private static partial void LogOutcomePosted(ILogger logger, string threadId, string geofenceName, string state);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post approval to Discord thread {ThreadId}")]
-    private static partial void LogApprovalFailed(ILogger logger, Exception ex, string threadId);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post review outcome to Discord thread {ThreadId}")]
+    private static partial void LogOutcomeFailed(ILogger logger, Exception ex, string threadId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Posted rejection to Discord thread {ThreadId} for geofence '{GeofenceName}'")]
-    private static partial void LogRejectionPosted(ILogger logger, string threadId, string geofenceName);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to post rejection to Discord thread {ThreadId}")]
-    private static partial void LogRejectionFailed(ILogger logger, Exception ex, string threadId);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not rewrite the opening embed on Discord thread {ThreadId}; posting the verdict anyway")]
+    private static partial void LogOpeningEmbedUpdateFailed(ILogger logger, Exception ex, string threadId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Discord GeofenceForumChannelId is not configured; skipping forum tag setup")]
     private static partial void LogForumChannelNotConfiguredForTags(ILogger logger);

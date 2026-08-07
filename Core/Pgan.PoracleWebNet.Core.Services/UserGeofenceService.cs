@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -17,6 +18,7 @@ public partial class UserGeofenceService(
     IUserAreaDualWriter areaWriter,
     IDiscordNotificationService discordNotificationService,
     IFeatureGate featureGate,
+    IConfiguration configuration,
     ILogger<UserGeofenceService> logger) : IUserGeofenceService
 {
     private const int MaxGeofencesPerUser = 10;
@@ -29,6 +31,7 @@ public partial class UserGeofenceService(
     private readonly IUserAreaDualWriter _areaWriter = areaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly IConfiguration _configuration = configuration;
     private readonly ILogger<UserGeofenceService> _logger = logger;
 
     public async Task<List<UserGeofence>> GetByUserAsync(string humanId)
@@ -289,40 +292,8 @@ public partial class UserGeofenceService(
         // Create Discord forum post for the submission
         try
         {
-            var human = await this._humanRepository.GetByIdAndProfileAsync(humanId, 1);
-            var userName = human?.Name ?? humanId;
-
-            // Get polygon point count and static map from Poracle
-            var polygonPoints = 0;
-            string? mapImageUrl = null;
-            if (!string.IsNullOrEmpty(geofence.PolygonJson))
-            {
-                try
-                {
-                    var polygon = JsonSerializer.Deserialize<double[][]>(geofence.PolygonJson);
-                    polygonPoints = polygon?.Length ?? 0;
-                }
-                catch (JsonException ex)
-                {
-                    LogPolygonDeserializationFailed(this._logger, ex, geofence.KojiName);
-                }
-            }
-
-            try
-            {
-                mapImageUrl = await this._poracleApiProxy.GetAreaMapUrlAsync(geofence.KojiName);
-                if (mapImageUrl == null)
-                {
-                    LogStaticMapUnavailable(this._logger, geofence.KojiName);
-                }
-            }
-            catch (Exception ex)
-            {
-                LogStaticMapFetchFailed(this._logger, ex, geofence.KojiName);
-            }
-
-            var threadId = await this._discordNotificationService.CreateGeofenceSubmissionPostAsync(
-                humanId, userName, geofence.DisplayName, geofence.GroupName, polygonPoints, mapImageUrl);
+            var post = await this.BuildSubmissionPostAsync(updated, GeofenceReviewState.Pending);
+            var threadId = await this._discordNotificationService.CreateGeofenceSubmissionPostAsync(post);
 
             if (threadId != null)
             {
@@ -338,6 +309,118 @@ public partial class UserGeofenceService(
         LogGeofenceSubmittedForReview(this._logger, humanId, kojiName);
 
         return updated;
+    }
+
+    /// <summary>
+    /// Assembles everything the Discord review card shows. Rebuilt on approval/rejection rather than
+    /// cached, so the edited post reflects whatever the admin actually published.
+    /// </summary>
+    private async Task<GeofenceSubmissionPost> BuildSubmissionPostAsync(UserGeofence geofence, GeofenceReviewState state)
+    {
+        // Profile-agnostic on purpose. GetByIdAndProfileAsync(id, 1) also filters on current_profile_no, so
+        // it finds nobody whose active profile isn't #1 -- which is most people, since the default is 0.
+        var human = await this._humanRepository.GetByIdAsync(geofence.HumanId);
+
+        double[][]? polygon = null;
+        if (!string.IsNullOrEmpty(geofence.PolygonJson))
+        {
+            try
+            {
+                polygon = JsonSerializer.Deserialize<double[][]>(geofence.PolygonJson);
+            }
+            catch (JsonException ex)
+            {
+                LogPolygonDeserializationFailed(this._logger, ex, geofence.KojiName);
+            }
+        }
+
+        var area = polygon != null ? GeoMath.AreaSqKm(polygon) : 0;
+        var (lat, lon) = polygon != null ? GeoMath.Centroid(polygon) : (0, 0);
+
+        string? mapImageUrl = null;
+        try
+        {
+            // Approved geofences live in Koji under their published name; everything else under the original.
+            var mapName = state == GeofenceReviewState.Approved && geofence.PromotedName != null
+                ? geofence.PromotedName.ToLowerInvariant()
+                : geofence.KojiName;
+
+            mapImageUrl = await this._poracleApiProxy.GetAreaMapUrlAsync(mapName);
+            if (mapImageUrl == null)
+            {
+                LogStaticMapUnavailable(this._logger, geofence.KojiName);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogStaticMapFetchFailed(this._logger, ex, geofence.KojiName);
+        }
+
+        var publicName = state == GeofenceReviewState.Approved && geofence.PromotedName != null
+            ? geofence.PromotedName.ToLowerInvariant()
+            : geofence.KojiName;
+
+        return new GeofenceSubmissionPost
+        {
+            UserId = geofence.HumanId,
+            // Never a raw snowflake: with no name the author block is dropped and the mention in the
+            // message body carries the identity instead.
+            UserName = string.IsNullOrWhiteSpace(human?.Name) ? null : human.Name,
+            DisplayName = geofence.DisplayName,
+            PublicName = publicName,
+            GroupName = geofence.GroupName,
+            AreaSqKm = area,
+            CentroidLat = lat,
+            CentroidLon = lon,
+            OverlapsArea = polygon != null && state == GeofenceReviewState.Pending
+                ? await this.FindContainingPublicAreaAsync(lat, lon)
+                : null,
+            MapImageUrl = mapImageUrl,
+            State = state,
+            ReviewNotes = geofence.ReviewNotes,
+            ReviewUrl = this.BuildReviewUrl(),
+        };
+    }
+
+    /// <summary>
+    /// Names an existing public area whose polygon contains this submission's centre, so a reviewer can spot
+    /// a duplicate without opening a map. A centroid test, not a true overlap measurement.
+    /// </summary>
+    private async Task<string?> FindContainingPublicAreaAsync(double lat, double lon)
+    {
+        try
+        {
+            var adminGeofences = await this._kojiService.GetAdminGeofencesAsync();
+
+            foreach (var fence in adminGeofences)
+            {
+                // Bounding box first -- the Koji cache precomputes it precisely to avoid ray-casting 800 fences.
+                if (lat < fence.MinLat || lat > fence.MaxLat || lon < fence.MinLon || lon > fence.MaxLon)
+                {
+                    continue;
+                }
+
+                if (GeoMath.Contains(fence.Path, lat, lon))
+                {
+                    return fence.Name;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogOverlapCheckFailed(this._logger, ex);
+        }
+
+        return null;
+    }
+
+    /// <summary>Deep link to the admin review queue, or null when no public site URL is configured.</summary>
+    private string? BuildReviewUrl()
+    {
+        var siteUrl = this._configuration["Site:PublicUrl"];
+        return string.IsNullOrWhiteSpace(siteUrl)
+            ? null
+            : $"{siteUrl.TrimEnd('/')}/admin/geofence-submissions";
     }
 
     public async Task<List<UserGeofence>> GetPendingSubmissionsAsync() => await this._repository.GetByStatusAsync("pending_review");
@@ -448,8 +531,8 @@ public partial class UserGeofenceService(
         {
             try
             {
-                await this._discordNotificationService.PostApprovalMessageAsync(
-                    geofence.DiscordThreadId, geofence.DisplayName, promotedName ?? geofence.DisplayName);
+                var post = await this.BuildSubmissionPostAsync(updated, GeofenceReviewState.Approved);
+                await this._discordNotificationService.PostReviewOutcomeAsync(geofence.DiscordThreadId, post);
             }
             catch (Exception ex)
             {
@@ -479,8 +562,8 @@ public partial class UserGeofenceService(
         {
             try
             {
-                await this._discordNotificationService.PostRejectionMessageAsync(
-                    geofence.DiscordThreadId, geofence.DisplayName, reviewNotes);
+                var post = await this.BuildSubmissionPostAsync(updated, GeofenceReviewState.Rejected);
+                await this._discordNotificationService.PostReviewOutcomeAsync(geofence.DiscordThreadId, post);
             }
             catch (Exception ex)
             {
@@ -633,6 +716,9 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Poracle returned no static map URL for geofence '{KojiName}'; the submission embed will have no map")]
     private static partial void LogStaticMapUnavailable(ILogger logger, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not check the submission against existing public areas; the overlap hint will be omitted")]
+    private static partial void LogOverlapCheckFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to create Discord forum post for geofence submission '{KojiName}'")]
     private static partial void LogDiscordForumPostCreationFailed(ILogger logger, Exception ex, string kojiName);
