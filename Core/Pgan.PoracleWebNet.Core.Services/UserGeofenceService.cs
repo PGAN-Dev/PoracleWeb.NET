@@ -311,6 +311,10 @@ public partial class UserGeofenceService(
             try
             {
                 mapImageUrl = await this._poracleApiProxy.GetAreaMapUrlAsync(geofence.KojiName);
+                if (mapImageUrl == null)
+                {
+                    LogStaticMapUnavailable(this._logger, geofence.KojiName);
+                }
             }
             catch (Exception ex)
             {
@@ -626,6 +630,9 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch static map for geofence '{KojiName}'")]
     private static partial void LogStaticMapFetchFailed(ILogger logger, Exception ex, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Poracle returned no static map URL for geofence '{KojiName}'; the submission embed will have no map")]
+    private static partial void LogStaticMapUnavailable(ILogger logger, string kojiName);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to create Discord forum post for geofence submission '{KojiName}'")]
     private static partial void LogDiscordForumPostCreationFailed(ILogger logger, Exception ex, string kojiName);
