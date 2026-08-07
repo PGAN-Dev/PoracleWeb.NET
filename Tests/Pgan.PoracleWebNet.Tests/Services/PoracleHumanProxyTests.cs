@@ -181,7 +181,8 @@ public class PoracleHumanProxyTests
         Assert.Equal($"{ApiAddress}/api/humans/user1/adminDisabled", handler.LastRequest.RequestUri?.ToString());
 
         var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
-        Assert.Contains("\"adminDisable\":1", sentBody);
+        Assert.Contains("\"state\":true", sentBody);
+        Assert.DoesNotContain("adminDisable", sentBody);
     }
 
     [Fact]
@@ -193,7 +194,8 @@ public class PoracleHumanProxyTests
         await sut.AdminDisabledAsync("user1", false);
 
         var sentBody = await handler.LastRequest!.Content!.ReadAsStringAsync();
-        Assert.Contains("\"adminDisable\":0", sentBody);
+        Assert.Contains("\"state\":false", sentBody);
+        Assert.DoesNotContain("adminDisable", sentBody);
     }
 
     [Fact]

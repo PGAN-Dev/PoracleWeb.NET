@@ -57,9 +57,12 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
     public async Task AdminDisabledAsync(string userId, bool disabled)
     {
+        // PoracleNG's adminDisabledRequest is `State *bool \`json:"state"\`` -- it rejects any other key
+        // with 400 "state is required (true/false)", including the `adminDisable` this used to send, so
+        // ban/unban failed on every call against every PoracleNG.
         var body = JsonSerializer.Serialize(new
         {
-            adminDisable = disabled ? 1 : 0
+            state = disabled
         });
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/adminDisabled", body);
         response.EnsureSuccessStatusCode();

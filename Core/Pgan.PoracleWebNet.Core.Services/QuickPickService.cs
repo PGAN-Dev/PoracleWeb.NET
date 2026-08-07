@@ -112,12 +112,69 @@ public partial class QuickPickService(
 
     public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition)
     {
+        definition.Id = await this.EnsureIdAsync(definition);
         definition.Scope = "global";
         definition.OwnerUserId = null;
 
         await this._definitionRepository.CreateOrUpdateAsync(definition);
 
         return definition;
+    }
+
+    /// <summary>
+    /// Returns the definition's id, generating a slug from its name when the caller supplied none.
+    /// <para>
+    /// The create dialog has no id field and sends <c>""</c>, which the repository stored verbatim. Every
+    /// id-bearing route then collapsed to <c>/api/quick-picks/</c> and could not match: delete returned 405,
+    /// apply returned 404, and the pick could not be removed through any API path.
+    /// </para>
+    /// </summary>
+    private async Task<string> EnsureIdAsync(QuickPickDefinition definition)
+    {
+        if (!string.IsNullOrWhiteSpace(definition.Id))
+        {
+            return definition.Id;
+        }
+
+        var slug = Slugify(definition.Name);
+        if (slug.Length == 0)
+        {
+            slug = "quick-pick";
+        }
+
+        // Names are not unique, so settle collisions with a counter before falling back to a guid.
+        var candidate = slug;
+        for (var attempt = 2; attempt <= 50; attempt++)
+        {
+            if (await this._definitionRepository.GetByIdAsync(candidate) is null)
+            {
+                return candidate;
+            }
+
+            candidate = $"{slug}-{attempt}";
+        }
+
+        return $"{slug}-{Guid.NewGuid():N}";
+    }
+
+    private static string Slugify(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return string.Empty;
+        }
+
+        var chars = name.Trim().ToLowerInvariant()
+            .Select(c => char.IsLetterOrDigit(c) ? c : '-');
+
+        // Collapse runs of separators so "Hundo  IV!" becomes "hundo-iv".
+        var slug = string.Concat(chars);
+        while (slug.Contains("--", StringComparison.Ordinal))
+        {
+            slug = slug.Replace("--", "-", StringComparison.Ordinal);
+        }
+
+        return slug.Trim('-');
     }
 
     public async Task<QuickPickDefinition> SaveUserPickAsync(string userId, QuickPickDefinition definition)
@@ -136,6 +193,7 @@ public partial class QuickPickService(
             }
         }
 
+        definition.Id = await this.EnsureIdAsync(definition);
         definition.Scope = "user";
         definition.OwnerUserId = userId;
 
