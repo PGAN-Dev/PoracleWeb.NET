@@ -90,6 +90,60 @@ public class MasterDataServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetMoveDataAsyncReturnsNullWhenCacheEmptyAndFetchFails()
+    {
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FailingHandler()));
+
+        var result = await this._sut.GetMoveDataAsync();
+
+        Assert.Null(result);
+    }
+
+    /// <summary>
+    /// Masterfile moves are <c>{ "13": { "name": "Wrap", "type": "Normal" } }</c>; only the name is kept,
+    /// so the cached shape matches the id-to-name map the Max Battle list consumes.
+    /// </summary>
+    [Fact]
+    public async Task GetMoveDataAsyncReturnsIdToNameMapAfterSuccessfulFetch()
+    {
+        var masterJson = /*lang=json,strict*/ """
+        {
+            "monsters": {},
+            "items": {},
+            "moves": {
+                "13": { "name": "Wrap", "type": "Normal" },
+                "14": { "name": "Hyper Beam", "type": "Normal" }
+            }
+        }
+        """;
+
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FakeHandler(masterJson)));
+
+        var result = await this._sut.GetMoveDataAsync();
+
+        Assert.NotNull(result);
+        var map = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(result);
+        Assert.NotNull(map);
+        Assert.Equal("Wrap", map["13"]);
+        Assert.Equal("Hyper Beam", map["14"]);
+    }
+
+    [Fact]
+    public async Task GetMoveDataAsyncReturnsEmptyMapWhenMasterfileHasNoMoves()
+    {
+        var masterJson = /*lang=json,strict*/ """{"monsters":{},"items":{}}""";
+
+        this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FakeHandler(masterJson)));
+
+        var result = await this._sut.GetMoveDataAsync();
+
+        Assert.Equal("{}", result);
+    }
+
+    [Fact]
     public async Task RefreshCacheAsyncHandlesExceptionGracefully()
     {
         this._httpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))

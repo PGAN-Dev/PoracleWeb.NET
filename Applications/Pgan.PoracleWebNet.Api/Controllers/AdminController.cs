@@ -24,6 +24,9 @@ public partial class AdminController(
     private readonly IJwtService _jwtService = jwtService;
     private readonly ILogger<AdminController> _logger = logger;
 
+    /// <summary>Caps one avatar batch. The admin user list is the only caller and batches per viewport.</summary>
+    private const int MaxAvatarBatchSize = 200;
+
     [HttpGet("users")]
     public async Task<IActionResult> GetAllUsers()
     {
@@ -51,6 +54,34 @@ public partial class AdminController(
         });
 
         return this.Ok(userList);
+    }
+
+    /// <summary>
+    /// Resolves avatar URLs for a batch of user IDs. <see cref="Services.AvatarCacheService"/> already holds
+    /// them (the background cache populates it and <c>GET users</c> reads the same source), so this is a
+    /// lookup rather than a fetch -- it never calls Discord.
+    /// </summary>
+    [HttpPost("users/avatars")]
+    public IActionResult GetUserAvatars([FromBody] string[] userIds)
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        if (userIds is null || userIds.Length == 0)
+        {
+            return this.Ok(new Dictionary<string, string>());
+        }
+
+        // Bounded so a caller cannot ask for an unlimited batch in one request.
+        var avatars = userIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.Ordinal)
+            .Take(MaxAvatarBatchSize)
+            .ToDictionary(id => id, id => Services.AvatarCacheService.GetAvatarOrDefault(id), StringComparer.Ordinal);
+
+        return this.Ok(avatars);
     }
 
     [HttpGet("users/by-id")]

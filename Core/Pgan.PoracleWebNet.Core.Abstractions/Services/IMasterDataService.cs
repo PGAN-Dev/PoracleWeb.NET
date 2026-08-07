@@ -6,6 +6,9 @@ public interface IMasterDataService
 {
     public Task<string?> GetPokemonDataAsync();
     public Task<string?> GetItemDataAsync();
+
+    /// <summary>Move ID to name map (e.g. <c>{"13":"Wrap"}</c>), sourced from the masterfile.</summary>
+    public Task<string?> GetMoveDataAsync();
     public Task RefreshCacheAsync();
 
     /// <summary>

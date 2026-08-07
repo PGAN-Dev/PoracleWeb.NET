@@ -17,6 +17,7 @@ public partial class MasterDataService(
 
     private const string PokemonCacheKey = "MasterData_Pokemon";
     private const string ItemCacheKey = "MasterData_Items";
+    private const string MoveCacheKey = "MasterData_Moves";
     private const string BaseStatsCacheKey = "MasterData_BaseStats";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
 
@@ -36,6 +37,13 @@ public partial class MasterDataService(
     {
         await this.EnsureInitializedAsync();
         this._cache.TryGetValue(ItemCacheKey, out string? data);
+        return data;
+    }
+
+    public async Task<string?> GetMoveDataAsync()
+    {
+        await this.EnsureInitializedAsync();
+        this._cache.TryGetValue(MoveCacheKey, out string? data);
         return data;
     }
 
@@ -132,6 +140,30 @@ public partial class MasterDataService(
             }
             this._cache.Set(ItemCacheKey, JsonSerializer.Serialize(itemMap), CacheDuration);
             LogCachedItemEntries(this._logger, itemMap.Count);
+
+            // Build move name map. Masterfile entries are { "13": { "name": "Wrap", "type": "Normal" } };
+            // only the name is needed, so this collapses to id -> name like the item map.
+            var moveMap = new Dictionary<string, string>();
+            if (root.TryGetProperty("moves", out var moves))
+            {
+                foreach (var entry in moves.EnumerateObject())
+                {
+                    var id = entry.Name;
+                    var name = id;
+                    if (entry.Value.TryGetProperty("name", out var nameProp))
+                    {
+                        name = nameProp.GetString() ?? id;
+                    }
+                    else if (entry.Value.ValueKind == JsonValueKind.String)
+                    {
+                        name = entry.Value.GetString() ?? id;
+                    }
+
+                    moveMap[id] = name;
+                }
+            }
+            this._cache.Set(MoveCacheKey, JsonSerializer.Serialize(moveMap), CacheDuration);
+            LogCachedMoveEntries(this._logger, moveMap.Count);
         }
         catch (Exception ex)
         {
@@ -158,6 +190,9 @@ public partial class MasterDataService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} base stat entries.")]
     private static partial void LogCachedBaseStats(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} move entries.")]
+    private static partial void LogCachedMoveEntries(ILogger logger, int count);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} item entries.")]
     private static partial void LogCachedItemEntries(ILogger logger, int count);

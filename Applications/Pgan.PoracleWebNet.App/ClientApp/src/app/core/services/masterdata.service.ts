@@ -22,6 +22,7 @@ export class MasterDataService {
   private itemMap = new Map<number, string>();
   private loaded = false;
   private loadRequested = false;
+  private moveMap = new Map<number, string>();
   private pokemonMap = new Map<number, string>();
   private readonly ready$ = new ReplaySubject<boolean>(1);
   private readonly typesMap = signal(new Map<number, string[]>());
@@ -77,6 +78,10 @@ export class MasterDataService {
     return this.itemMap.get(id) ?? `Item #${id}`;
   }
 
+  getMoveName(id: number): string {
+    return this.moveMap.get(id) ?? `Move #${id}`;
+  }
+
   getPokemonName(id: number): string {
     if (id === 0) return 'All Pokemon';
     return this.pokemonMap.get(id) ?? `Pokemon #${id}`;
@@ -96,6 +101,7 @@ export class MasterDataService {
 
       forkJoin({
         items: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/items`),
+        moves: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/moves`),
         pokemon: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/pokemon`),
       }).subscribe({
         error: () => {
@@ -104,7 +110,7 @@ export class MasterDataService {
           this.loadRequested = false;
           this.ready$.next(true);
         },
-        next: ({ items, pokemon }) => {
+        next: ({ items, moves, pokemon }) => {
           this.pokemonMap.clear();
           if (pokemon) {
             Object.entries(pokemon).forEach(([id, name]) => {
@@ -116,6 +122,13 @@ export class MasterDataService {
           if (items) {
             Object.entries(items).forEach(([id, name]) => {
               this.itemMap.set(Number(id), name as string);
+            });
+          }
+
+          this.moveMap.clear();
+          if (moves) {
+            Object.entries(moves).forEach(([id, name]) => {
+              this.moveMap.set(Number(id), name as string);
             });
           }
 

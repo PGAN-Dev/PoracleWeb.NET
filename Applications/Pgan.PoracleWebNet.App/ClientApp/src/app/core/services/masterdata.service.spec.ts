@@ -51,9 +51,11 @@ describe('MasterDataService', () => {
 
       const pokemonReq = httpMock.expectOne(`${API}/api/masterdata/pokemon`);
       const itemsReq = httpMock.expectOne(`${API}/api/masterdata/items`);
+      const movesReq = httpMock.expectOne(`${API}/api/masterdata/moves`);
 
       pokemonReq.flush({ '25': 'Pikachu', '150': 'Mewtwo' });
       itemsReq.flush({ '1': 'Poke Ball', '2': 'Great Ball' });
+      movesReq.flush({ '13': 'Wrap', '14': 'Hyper Beam' });
 
       // Also handle the forms request from loadForms()
       const formsReq = httpMock.expectOne(req => req.url.includes('master-latest-poracle'));
@@ -63,6 +65,20 @@ describe('MasterDataService', () => {
       expect(service.getPokemonName(25)).toBe('Pikachu');
       expect(service.getPokemonName(150)).toBe('Mewtwo');
       expect(service.getItemName(1)).toBe('Poke Ball');
+      expect(service.getMoveName(13)).toBe('Wrap');
+      expect(service.getMoveName(14)).toBe('Hyper Beam');
+    });
+
+    it('should fall back to "Move #id" for an unknown move (#396)', () => {
+      service.loadData().subscribe();
+
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({ '13': 'Wrap' });
+      httpMock.expectOne(req => req.url.includes('master-latest-poracle')).flush({});
+
+      expect(service.getMoveName(13)).toBe('Wrap');
+      expect(service.getMoveName(9999)).toBe('Move #9999');
     });
 
     it('should only make one HTTP request even when called multiple times', () => {
@@ -72,6 +88,7 @@ describe('MasterDataService', () => {
       // Should only have one of each request
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
       httpMock.expectOne(req => req.url.includes('master-latest-poracle')).flush({});
     });
 
@@ -84,6 +101,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).error(new ProgressEvent('error'), { status: 500, statusText: 'Error' });
       // The items request gets cancelled by forkJoin, so just match and discard it
       httpMock.match(`${API}/api/masterdata/items`);
+      httpMock.match(`${API}/api/masterdata/moves`);
 
       expect(service.isLoaded()).toBe(true);
     });
@@ -99,6 +117,7 @@ describe('MasterDataService', () => {
         '150': 'Mewtwo',
       });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
       httpMock.expectOne(req => req.url.includes('master-latest-poracle')).flush({});
 
       const pokemon = service.getAllPokemon();
@@ -129,6 +148,7 @@ describe('MasterDataService', () => {
 
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '618': 'Stunfisk' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
       httpMock
         .expectOne(req => req.url.includes('master-latest-poracle'))
         .flush({
@@ -150,6 +170,7 @@ describe('MasterDataService', () => {
 
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1': 'Bulbasaur' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
       httpMock
         .expectOne(req => req.url.includes('master-latest-poracle'))
         .flush({

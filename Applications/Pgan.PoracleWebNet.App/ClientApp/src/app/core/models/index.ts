@@ -335,15 +335,6 @@ export interface AuthProviders {
 
 // ─── Poracle Config ────────────────────────────────────────────────────────────
 
-export interface PoracleConfig {
-  areas: AreaDefinition[];
-  forms: Record<string, string>;
-  grunts: Record<string, string>;
-  items: Record<string, string>;
-  moves: Record<string, string>;
-  pokemon: Record<string, string>;
-}
-
 /**
  * Server-side Poracle config surfaced via GET /api/config.
  * Mirrors the .NET PoracleConfig model.
