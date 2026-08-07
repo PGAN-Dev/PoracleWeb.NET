@@ -6,6 +6,9 @@ public interface IQuickPickService
 {
     public Task<IEnumerable<QuickPickSummary>> GetAllAsync(string userId, int profileNo);
     public Task<QuickPickDefinition?> GetByIdAsync(string id);
+
+    /// <summary>Ownership-scoped read: global picks are public, user picks are visible only to their owner.</summary>
+    public Task<QuickPickDefinition?> GetVisibleByIdAsync(string userId, string id);
     public Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition);
     public Task<QuickPickDefinition> SaveUserPickAsync(string userId, QuickPickDefinition definition);
     public Task<bool> DeleteAdminPickAsync(string id);

@@ -103,6 +103,13 @@ public partial class QuickPickService(
 
     public async Task<QuickPickDefinition?> GetByIdAsync(string id) => await this._definitionRepository.GetByIdAsync(id);
 
+    /// <summary>
+    /// Returns the pick only if <paramref name="userId"/> is allowed to see it: global picks are public,
+    /// user picks are visible to their owner alone.
+    /// </summary>
+    public async Task<QuickPickDefinition?> GetVisibleByIdAsync(string userId, string id) =>
+        await this.LoadDefinitionAsync(userId, id);
+
     public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition)
     {
         definition.Scope = "global";
@@ -115,6 +122,20 @@ public partial class QuickPickService(
 
     public async Task<QuickPickDefinition> SaveUserPickAsync(string userId, QuickPickDefinition definition)
     {
+        // CreateOrUpdateAsync upserts on Id alone, and the Id arrives from the request body. Without this
+        // check a user could post a global pick's well-known Id (hundo, nundo, raid-5star, ...) and the
+        // upsert would rewrite that row -- flipping it to scope=user under their ownership and removing it
+        // from every other user's list. The same applies to another user's private pick.
+        if (!string.IsNullOrEmpty(definition.Id))
+        {
+            var existing = await this._definitionRepository.GetByIdAsync(definition.Id);
+            if (existing != null && !IsOwnedBy(existing, userId))
+            {
+                throw new UnauthorizedAccessException(
+                    $"Quick pick '{definition.Id}' already exists and is not yours.");
+            }
+        }
+
         definition.Scope = "user";
         definition.OwnerUserId = userId;
 
@@ -122,6 +143,11 @@ public partial class QuickPickService(
 
         return definition;
     }
+
+    /// <summary>A pick is the caller's only when it is user-scoped and owned by them.</summary>
+    private static bool IsOwnedBy(QuickPickDefinition definition, string userId) =>
+        !string.Equals(definition.Scope, "global", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(definition.OwnerUserId, userId, StringComparison.Ordinal);
 
     public async Task<bool> DeleteAdminPickAsync(string id)
     {
@@ -269,14 +295,16 @@ public partial class QuickPickService(
 
     private async Task<QuickPickDefinition?> LoadDefinitionAsync(string userId, string quickPickId)
     {
-        // Check global picks first
+        // Global picks are readable by everyone. The unscoped lookup returns rows of ANY scope, so it must
+        // be narrowed to global here -- otherwise applying another user's private pick succeeds and creates
+        // real alarms from filters the caller was never allowed to see.
         var definition = await this._definitionRepository.GetByIdAsync(quickPickId);
-        if (definition != null)
+        if (definition != null && string.Equals(definition.Scope, "global", StringComparison.OrdinalIgnoreCase))
         {
             return definition;
         }
 
-        // Check user picks
+        // Otherwise it must be the caller's own pick.
         return await this._definitionRepository.GetByIdAndOwnerAsync(quickPickId, userId);
     }
 

@@ -56,6 +56,101 @@ public class SettingsControllerTests : ControllerTestBase
         Assert.Equal("custom_title", settings[0].Key);
     }
 
+    /// <summary>
+    /// The real key names, not the placeholder ones. The old denylist contained the literal "scan_db",
+    /// which matches none of these rows, and omitted cf_id/cf_secret entirely -- so a scanner-database
+    /// password and a Cloudflare Access token were served to every authenticated non-admin session.
+    /// </summary>
+    [Theory]
+    [InlineData("scan_dbhost")]
+    [InlineData("scan_dbuser")]
+    [InlineData("scan_dbpass")]
+    [InlineData("scan_dbport")]
+    [InlineData("scan_dbname")]
+    [InlineData("cf_id")]
+    [InlineData("cf_secret")]
+    [InlineData("api_secret")]
+    [InlineData("telegram_bot_token")]
+    [InlineData("discord_client_secret")]
+    [InlineData("discord_bot_token")]
+    [InlineData("admin_channel_id")]
+    public async Task GetAllWithholdsCredentialBearingKeysFromNonAdmins(string key)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new() { Key = "custom_title", Value = "My App" },
+            new() { Key = key, Value = "s3cret" }
+        ]);
+
+        var settings = await this.GetAllKeysAsync();
+
+        Assert.DoesNotContain(key, settings);
+        Assert.Contains("custom_title", settings);
+    }
+
+    /// <summary>Allowlist semantics: a key nobody has classified is hidden rather than exposed.</summary>
+    [Fact]
+    public async Task GetAllHidesUnrecognisedKeysFromNonAdminsByDefault()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new() { Key = "some_future_integration_token", Value = "s3cret" },
+            new() { Key = "site_name", Value = "PGAN" }
+        ]);
+
+        var settings = await this.GetAllKeysAsync();
+
+        Assert.DoesNotContain("some_future_integration_token", settings);
+        Assert.Contains("site_name", settings);
+    }
+
+    [Theory]
+    [InlineData("disable_mons")]
+    [InlineData("disable_user_geofences")]
+    [InlineData("enable_discord")]
+    [InlineData("enable_templates")]
+    [InlineData("uicons_pkmn")]
+    [InlineData("allowed_languages")]
+    [InlineData("custom_title")]
+    [InlineData("favicon_url")]
+    [InlineData("header_logo_url")]
+    [InlineData("hide_header_logo")]
+    [InlineData("signup_url")]
+    [InlineData("site_name")]
+    public async Task GetAllStillServesTheKeysTheSpaNeedsToNonAdmins(string key)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Key = key, Value = "v" }]);
+
+        Assert.Contains(key, await this.GetAllKeysAsync());
+    }
+
+    [Fact]
+    public async Task GetAllStillReturnsEverythingToAdmins()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new() { Key = "scan_dbpass", Value = "p" },
+            new() { Key = "cf_secret", Value = "s" },
+            new() { Key = "custom_title", Value = "t" }
+        ]);
+
+        var settings = await this.GetAllKeysAsync();
+
+        Assert.Contains("scan_dbpass", settings);
+        Assert.Contains("cf_secret", settings);
+        Assert.Contains("custom_title", settings);
+    }
+
+    private async Task<List<string>> GetAllKeysAsync()
+    {
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetAll());
+        return [.. Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).Select(s => s.Key!)];
+    }
+
     [Fact]
     public async Task GetPublicReturnsOk()
     {

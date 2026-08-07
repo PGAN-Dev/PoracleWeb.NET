@@ -19,7 +19,12 @@ public class QuickPickController(IQuickPickService quickPickService) : BaseApiCo
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        var pick = await this._quickPickService.GetByIdAsync(id);
+        // Scoped: a global pick is public, a user pick is only its owner's. Returning any row by id leaked
+        // another user's private pick along with their Discord ID in ownerUserId.
+        var pick = this.IsAdmin
+            ? await this._quickPickService.GetByIdAsync(id)
+            : await this._quickPickService.GetVisibleByIdAsync(this.UserId, id);
+
         if (pick is null)
         {
             return this.NotFound();
@@ -43,8 +48,16 @@ public class QuickPickController(IQuickPickService quickPickService) : BaseApiCo
     [HttpPost("user")]
     public async Task<IActionResult> SaveUser([FromBody] QuickPickDefinition definition)
     {
-        var saved = await this._quickPickService.SaveUserPickAsync(this.UserId, definition);
-        return this.Ok(saved);
+        try
+        {
+            var saved = await this._quickPickService.SaveUserPickAsync(this.UserId, definition);
+            return this.Ok(saved);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The id belongs to a global pick or another user's pick.
+            return this.Forbid();
+        }
     }
 
     [HttpDelete("{id}")]
