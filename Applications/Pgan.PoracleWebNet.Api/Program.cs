@@ -54,6 +54,7 @@ MapEnvVar("DISCORD_CLIENT_SECRET", "Discord__ClientSecret");
 MapEnvVar("DISCORD_BOT_TOKEN", "Discord__BotToken");
 MapEnvVar("DISCORD_GUILD_ID", "Discord__GuildId");
 MapEnvVar("DISCORD_GEOFENCE_FORUM_CHANNEL_ID", "Discord__GeofenceForumChannelId");
+MapEnvVar("PUBLIC_URL", "Site__PublicUrl");
 MapEnvVar("TELEGRAM_ENABLED", "Telegram__Enabled");
 MapEnvVar("TELEGRAM_BOT_TOKEN", "Telegram__BotToken");
 MapEnvVar("TELEGRAM_BOT_USERNAME", "Telegram__BotUsername");

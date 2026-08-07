@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
@@ -18,6 +19,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IUserAreaDualWriter> _areaWriter = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly IConfiguration _configuration = new ConfigurationBuilder().Build();
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
 
@@ -30,6 +32,7 @@ public class UserGeofenceServiceTests
             this._areaWriter.Object,
             this._discordNotificationService.Object,
             this._featureGate.Object,
+            this._configuration,
             this._logger.Object);
 
     /// <summary>
@@ -271,8 +274,7 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
         this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
-        this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>()))
+        this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(It.IsAny<GeofenceSubmissionPost>()))
             .ReturnsAsync((string?)null);
 
         var result = await this._sut.SubmitForReviewAsync("u1", "downtown");
@@ -315,7 +317,8 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
         this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
         this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(
-            "u1", "TestUser", "Downtown", "City", 3, It.IsAny<string?>()))
+            It.Is<GeofenceSubmissionPost>(p => p.UserId == "u1" && p.UserName == "TestUser"
+                && p.DisplayName == "Downtown" && p.GroupName == "City" && p.PublicName == "downtown")))
             .ReturnsAsync("thread_123");
 
         var result = await this._sut.SubmitForReviewAsync("u1", "downtown");
@@ -541,7 +544,9 @@ public class UserGeofenceServiceTests
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, null);
 
-        this._discordNotificationService.Verify(d => d.PostApprovalMessageAsync("thread_456", "Downtown", "Downtown"), Times.Once);
+        this._discordNotificationService.Verify(d => d.PostReviewOutcomeAsync(
+            "thread_456",
+            It.Is<GeofenceSubmissionPost>(p => p.State == GeofenceReviewState.Approved && p.DisplayName == "Downtown")), Times.Once);
     }
 
     // --- RejectSubmissionAsync ---
@@ -586,7 +591,9 @@ public class UserGeofenceServiceTests
 
         await this._sut.RejectSubmissionAsync("admin1", 1, "Overlaps existing");
 
-        this._discordNotificationService.Verify(d => d.PostRejectionMessageAsync("thread_789", "Downtown", "Overlaps existing"), Times.Once);
+        this._discordNotificationService.Verify(d => d.PostReviewOutcomeAsync(
+            "thread_789",
+            It.Is<GeofenceSubmissionPost>(p => p.State == GeofenceReviewState.Rejected && p.ReviewNotes == "Overlaps existing")), Times.Once);
     }
 
     [Fact]
@@ -598,7 +605,8 @@ public class UserGeofenceServiceTests
 
         await this._sut.RejectSubmissionAsync("admin1", 1, "No good");
 
-        this._discordNotificationService.Verify(d => d.PostRejectionMessageAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._discordNotificationService.Verify(d => d.PostReviewOutcomeAsync(
+            It.IsAny<string>(), It.IsAny<GeofenceSubmissionPost>()), Times.Never);
     }
 
     // --- AdminDeleteAsync ---
