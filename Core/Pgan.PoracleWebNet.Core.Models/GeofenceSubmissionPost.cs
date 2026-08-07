@@ -9,8 +9,11 @@ public sealed record GeofenceSubmissionPost
     /// <summary>Discord user ID of the submitter, used for the clickable mention.</summary>
     public required string UserId { get; init; }
 
-    /// <summary>Display name of the submitter, shown in the embed author block.</summary>
-    public required string UserName { get; init; }
+    /// <summary>
+    /// Display name of the submitter, shown in the embed author block. Null when it could not be resolved,
+    /// in which case the author block is omitted rather than showing a raw Discord ID.
+    /// </summary>
+    public string? UserName { get; init; }
 
     /// <summary>Name the submitter gave the area.</summary>
     public required string DisplayName { get; init; }

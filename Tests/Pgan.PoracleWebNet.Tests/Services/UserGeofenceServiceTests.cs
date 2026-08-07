@@ -273,7 +273,7 @@ public class UserGeofenceServiceTests
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active", PolygonJson = "[[1,2],[3,4],[5,6]]" };
         this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
+        this._humanRepo.Setup(r => r.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
         this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(It.IsAny<GeofenceSubmissionPost>()))
             .ReturnsAsync((string?)null);
 
@@ -315,7 +315,7 @@ public class UserGeofenceServiceTests
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown", GroupName = "City", Status = "active", PolygonJson = "[[1,2],[3,4],[5,6]]" };
         this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
+        this._humanRepo.Setup(r => r.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
         this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(
             It.Is<GeofenceSubmissionPost>(p => p.UserId == "u1" && p.UserName == "TestUser"
                 && p.DisplayName == "Downtown" && p.GroupName == "City" && p.PublicName == "downtown")))

@@ -375,7 +375,7 @@ public partial class DiscordNotificationService(
             title = post.DisplayName,
             url = post.ReviewUrl,
             color = ColorFor(post.State),
-            author = new { name = post.UserName },
+            author = string.IsNullOrWhiteSpace(post.UserName) ? null : new { name = post.UserName },
             fields = fields.ToArray(),
             image,
             footer = new { text = FooterFor(post.State) },

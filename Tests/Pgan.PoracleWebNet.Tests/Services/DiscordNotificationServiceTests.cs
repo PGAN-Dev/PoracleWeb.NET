@@ -175,6 +175,21 @@ public class DiscordNotificationServiceTests
     }
 
     [Fact]
+    public async Task EmbedOmitsTheAuthorBlockRatherThanShowingARawId()
+    {
+        var discord = new DiscordHandler();
+        var sut = CreateSut(discord, new MapHandler(HttpStatusCode.OK, PngBytes));
+
+        var post = Post() with { UserName = null };
+        await sut.CreateGeofenceSubmissionPostAsync(post);
+
+        Assert.False(Embed(discord).TryGetProperty("author", out _));
+
+        // The mention still identifies the submitter.
+        Assert.Contains("<@user1>", Message(discord).GetProperty("content").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task EmbedLinksTheCentroidToAMap()
     {
         var discord = new DiscordHandler();

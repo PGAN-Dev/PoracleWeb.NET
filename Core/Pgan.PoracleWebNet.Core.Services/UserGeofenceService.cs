@@ -317,7 +317,9 @@ public partial class UserGeofenceService(
     /// </summary>
     private async Task<GeofenceSubmissionPost> BuildSubmissionPostAsync(UserGeofence geofence, GeofenceReviewState state)
     {
-        var human = await this._humanRepository.GetByIdAndProfileAsync(geofence.HumanId, 1);
+        // Profile-agnostic on purpose. GetByIdAndProfileAsync(id, 1) also filters on current_profile_no, so
+        // it finds nobody whose active profile isn't #1 -- which is most people, since the default is 0.
+        var human = await this._humanRepository.GetByIdAsync(geofence.HumanId);
 
         double[][]? polygon = null;
         if (!string.IsNullOrEmpty(geofence.PolygonJson))
@@ -361,7 +363,9 @@ public partial class UserGeofenceService(
         return new GeofenceSubmissionPost
         {
             UserId = geofence.HumanId,
-            UserName = human?.Name ?? geofence.HumanId,
+            // Never a raw snowflake: with no name the author block is dropped and the mention in the
+            // message body carries the identity instead.
+            UserName = string.IsNullOrWhiteSpace(human?.Name) ? null : human.Name,
             DisplayName = geofence.DisplayName,
             PublicName = publicName,
             GroupName = geofence.GroupName,
