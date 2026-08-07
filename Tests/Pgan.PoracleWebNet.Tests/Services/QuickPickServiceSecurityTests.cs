@@ -39,6 +39,105 @@ public class QuickPickServiceSecurityTests
             this._masterDataService.Object,
             this._logger.Object);
 
+    // --- Ownership on the write path ---
+    // CreateOrUpdateAsync upserts on Id alone and the Id comes from the request body, so without an
+    // ownership check a user could post a global pick's well-known id and take the row over.
+
+    [Fact]
+    public async Task SaveUserPickRejectsAnIdThatBelongsToAGlobalPick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("hundo"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "hundo", Scope = "global", OwnerUserId = null });
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            this._sut.SaveUserPickAsync("attacker", new QuickPickDefinition { Id = "hundo", Name = "HIJACKED" }));
+
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveUserPickRejectsAnotherUsersPrivatePick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("victims-pick"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "victims-pick", Scope = "user", OwnerUserId = "victim" });
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            this._sut.SaveUserPickAsync("attacker", new QuickPickDefinition { Id = "victims-pick" }));
+
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveUserPickAllowsOverwritingYourOwnPick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("mine"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "mine", Scope = "user", OwnerUserId = "owner" });
+
+        var saved = await this._sut.SaveUserPickAsync("owner", new QuickPickDefinition { Id = "mine", Name = "Renamed" });
+
+        Assert.Equal("user", saved.Scope);
+        Assert.Equal("owner", saved.OwnerUserId);
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SaveUserPickAllowsABrandNewId()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("brand-new")).ReturnsAsync((QuickPickDefinition?)null);
+
+        var saved = await this._sut.SaveUserPickAsync("owner", new QuickPickDefinition { Id = "brand-new" });
+
+        Assert.Equal("owner", saved.OwnerUserId);
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Once);
+    }
+
+    // --- Ownership on the read/apply path ---
+
+    [Fact]
+    public async Task GetVisibleByIdReturnsGlobalPicksToAnyone()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("hundo"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "hundo", Scope = "global" });
+
+        Assert.NotNull(await this._sut.GetVisibleByIdAsync("anyone", "hundo"));
+    }
+
+    [Fact]
+    public async Task GetVisibleByIdHidesAnotherUsersPrivatePick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("victims-pick"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "victims-pick", Scope = "user", OwnerUserId = "victim" });
+        this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("victims-pick", "attacker"))
+            .ReturnsAsync((QuickPickDefinition?)null);
+
+        Assert.Null(await this._sut.GetVisibleByIdAsync("attacker", "victims-pick"));
+    }
+
+    [Fact]
+    public async Task GetVisibleByIdReturnsYourOwnPick()
+    {
+        var mine = new QuickPickDefinition { Id = "mine", Scope = "user", OwnerUserId = "owner" };
+        this._definitionRepository.Setup(r => r.GetByIdAsync("mine")).ReturnsAsync(mine);
+        this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("mine", "owner")).ReturnsAsync(mine);
+
+        Assert.NotNull(await this._sut.GetVisibleByIdAsync("owner", "mine"));
+    }
+
+    [Fact]
+    public async Task ApplyAsyncRefusesAnotherUsersPrivatePick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("victims-pick"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "victims-pick", Scope = "user", OwnerUserId = "victim" });
+        this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("victims-pick", "attacker"))
+            .ReturnsAsync((QuickPickDefinition?)null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            this._sut.ApplyAsync("attacker", 1, "victims-pick", null));
+
+        this._monsterService.Verify(s => s.CreateAsync(It.IsAny<string>(), It.IsAny<Monster>()), Times.Never);
+        this._monsterService.Verify(s => s.BulkCreateAsync(It.IsAny<string>(), It.IsAny<IEnumerable<Monster>>()), Times.Never);
+    }
+
     [Fact]
     public async Task ApplyAsyncIgnoresIdAndUidInMonsterFilters()
     {

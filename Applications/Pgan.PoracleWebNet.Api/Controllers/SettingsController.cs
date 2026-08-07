@@ -17,11 +17,26 @@ public class SettingsController(
     IOptions<OidcSettings> oidcSettings,
     IConfiguration configuration) : BaseApiController
 {
-    private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>
+    /// Exact setting keys a non-admin may read. This is an <em>allowlist</em>, deliberately: the previous
+    /// denylist listed <c>scan_db</c>, which matches no real key (the rows are <c>scan_dbhost</c>,
+    /// <c>scan_dbuser</c>, <c>scan_dbpass</c>, ...) and omitted <c>cf_id</c>/<c>cf_secret</c> entirely, so a
+    /// scanner-database password and a Cloudflare Access token were served to every authenticated session.
+    /// With an allowlist a newly added credential-bearing key is hidden by default instead of exposed.
+    /// Admins still receive everything.
+    /// </summary>
+    private static readonly HashSet<string> UserVisibleKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "api_secret", "telegram_bot_token", "scan_db",
-        "discord_client_secret", "discord_bot_token",
+        "allowed_languages", "custom_title", "favicon_url", "header_logo_url",
+        "hide_header_logo", "signup_url", "site_name",
     };
+
+    /// <summary>
+    /// Key families the SPA reads dynamically rather than by literal name: feature gates via
+    /// <c>isDisabled(key)</c> / <c>disabledFeatureGuard</c>, and the uicons URL set. All are
+    /// booleans or public asset URLs.
+    /// </summary>
+    private static readonly string[] UserVisibleKeyPrefixes = ["disable_", "enable_", "uicons_"];
 
     private static readonly HashSet<string> InternalKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -45,14 +60,20 @@ public class SettingsController(
         // Always hide internal system settings (e.g. migration sentinel)
         settings = settings.Where(s => !InternalKeys.Contains(s.Key));
 
-        // Non-admin users only see non-sensitive settings
+        // Non-admins see only the allowlisted keys the SPA actually needs.
         if (!this.IsAdmin)
         {
-            settings = settings.Where(s => !SensitiveKeys.Contains(s.Key));
+            settings = settings.Where(s => IsUserVisible(s.Key));
         }
 
         return this.Ok(settings.ToList());
     }
+
+    /// <summary>True when a non-admin may read <paramref name="key"/>.</summary>
+    internal static bool IsUserVisible(string? key) =>
+        !string.IsNullOrWhiteSpace(key)
+        && (UserVisibleKeys.Contains(key)
+            || Array.Exists(UserVisibleKeyPrefixes, p => key.StartsWith(p, StringComparison.OrdinalIgnoreCase)));
 
     [AllowAnonymous]
     [EnableRateLimiting("auth-read")]
