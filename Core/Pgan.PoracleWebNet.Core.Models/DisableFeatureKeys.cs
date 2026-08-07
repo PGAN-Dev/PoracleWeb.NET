@@ -37,6 +37,26 @@ public static class DisableFeatureKeys
     public const string UserGeofences = "disable_user_geofences";
 
     /// <summary>
+    /// Disables area (geofence subscription) management. Not an alarm type — gates
+    /// <c>AreaController</c>. Existing subscriptions keep working; only changing them is blocked.
+    /// </summary>
+    public const string Areas = "disable_areas";
+
+    /// <summary>
+    /// Disables profile management and switching. Gates <c>ProfileController</c> and
+    /// <c>ProfileOverviewController</c>. The user stays on whichever profile is currently active —
+    /// <c>/api/auth/me</c> is deliberately not gated, so the JWT profile resync keeps working and
+    /// PoracleNG's active-hours scheduler can still move a user between profiles.
+    /// </summary>
+    public const string Profiles = "disable_profiles";
+
+    /// <summary>
+    /// Disables setting a home location and its distance radius. Gates <c>LocationController</c>.
+    /// A location already set stays set.
+    /// </summary>
+    public const string Location = "disable_location";
+
+    /// <summary>
     /// Tracking-type string (as used in PoracleNG's <c>/api/tracking/{type}</c> URLs and
     /// <c>ProfileOverviewService</c>'s alarm-type loop) → matching <c>disable_*</c> key.
     /// Lets <c>ProfileOverviewService</c>, <c>TestAlertController</c>, and any future

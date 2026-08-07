@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -7,6 +8,7 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/profiles")]
+[RequireFeatureEnabled(DisableFeatureKeys.Profiles)]
 public class ProfileController(
     IProfileService profileService,
     IHumanService humanService,

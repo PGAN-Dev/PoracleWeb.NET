@@ -1,9 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/location")]
+[RequireFeatureEnabled(DisableFeatureKeys.Location)]
 public class LocationController(
     IHumanService humanService,
     IProfileService profileService,

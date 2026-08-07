@@ -28,7 +28,7 @@ export const routes: Routes = [
     path: 'dashboard',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_profiles')],
     loadComponent: () => import('./modules/profiles-overview/profile-overview.component').then(m => m.ProfileOverviewComponent),
     path: 'profiles',
   },
@@ -83,7 +83,7 @@ export const routes: Routes = [
     path: 'max-battles',
   },
   {
-    canActivate: [authGuard],
+    canActivate: [authGuard, disabledFeatureGuard('disable_areas')],
     loadComponent: () => import('./modules/areas/area-list.component').then(m => m.AreaListComponent),
     path: 'areas',
   },

@@ -208,6 +208,14 @@ Pgan.PoracleWebNet.slnx
 ### Feature Gating (`disable_*` Site Settings)
 The `disable_mons` / `disable_raids` / `disable_quests` / `disable_invasions` / `disable_lures` / `disable_nests` / `disable_gyms` / `disable_maxbattles` / `disable_fort_changes` site settings disable entire alarm types for everyone, including admins. Eggs share `disable_raids` (no separate `disable_eggs` exists; eggs share the raid UI in the SPA). See #236 for the original bug.
 
+**Any `disable_*` toggle must be enforced server-side.** A toggle wired only into the SPA (nav item, route guard) is decoration, not a gate: the endpoints stay reachable by direct API call, and client state — the `siteSettings` signal — is trivially tampered with. `disable_areas`, `disable_profiles` and `disable_location` all shipped that way and were only closed later. `FeatureGateCoverageTests` now fails the build if a key is added to `DisableFeatureKeys` without a controller enforcing it.
+
+Non-alarm features follow the same rules, minus the tracking-type dictionary: add the constant, apply `[RequireFeatureEnabled(...)]` to the controller (or to individual actions, as `UserGeofenceController` does so its reads stay open), add a `disabledFeatureGuard` to the route in `app.routes.ts` **and** the `disableKey` to the nav item — the nav entry alone is not enough.
+
+Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT profile resync keeps working and PoracleNG's active-hours scheduler can still move a user between profiles.
+
+Four keys exist in the admin UI that PoracleWeb never implemented — `disable_nominatim`, `disable_geomap`, `disable_geomap_select`, `disable_userlist`. They are legacy PoracleJS `pweb_settings` keys carried over by `SettingsMigrationService` and are read by nothing in this codebase, front or back. They are inert toggles that mislead operators (notably `disable_nominatim`, which does **not** stop third-party geocoding), and should be removed from the admin settings UI rather than given invented server-side semantics.
+
 **Adding a new alarm type? Wire it through all four layers:**
 
 1. **Constant** — add to `Core/Pgan.PoracleWebNet.Core.Models/DisableFeatureKeys.cs` (both the `const string` field and the `ByTrackingType` dictionary entry).
