@@ -139,6 +139,13 @@ public static class ServiceCollectionExtensions
             }
         });
 
+        // Unauthenticated client for pulling the static map off the tileserver before uploading it to
+        // Discord. Kept separate so the bot token never leaves discordapp.com.
+        services.AddHttpClient(DiscordNotificationService.MapImageHttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         // Register HttpClient for Koji API
         var kojiToken = configuration["Koji:BearerToken"] ?? string.Empty;
         services.AddHttpClient<IKojiService, KojiService>(client =>

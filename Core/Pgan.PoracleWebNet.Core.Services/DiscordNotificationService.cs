@@ -10,16 +10,38 @@ namespace Pgan.PoracleWebNet.Core.Services;
 
 public partial class DiscordNotificationService(
     HttpClient httpClient,
+    IHttpClientFactory httpClientFactory,
     IConfiguration configuration,
     ILogger<DiscordNotificationService> logger) : IDiscordNotificationService
 {
+    /// <summary>
+    /// Named HttpClient used to download the static map image. Deliberately separate from the Discord
+    /// client so the bot token is never sent to the tileserver.
+    /// </summary>
+    public const string MapImageHttpClientName = "geofence-map-image";
+
+    private const string MapAttachmentFileName = "geofence-map.png";
+
+    /// <summary>Discord's per-attachment limit on the free tier is 25 MB; a static map is ~100 KB.</summary>
+    private const int MaxMapImageBytes = 8 * 1024 * 1024;
+
     private readonly HttpClient _httpClient = httpClient;
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ILogger<DiscordNotificationService> _logger = logger;
     private readonly string _forumChannelId = configuration["Discord:GeofenceForumChannelId"] ?? string.Empty;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
+    /// <summary>
+    /// Discord payloads are authored with literal wire names (<c>auto_archive_duration</c>), so no naming
+    /// policy is applied. Nulls are dropped -- Discord rejects <c>attachments: null</c>.
+    /// </summary>
+    private static readonly JsonSerializerOptions DiscordPayloadOptions = new()
+    {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
@@ -182,6 +204,21 @@ public partial class DiscordNotificationService(
         {
             var appliedTags = s_pendingTagId != null ? [s_pendingTagId] : Array.Empty<string>();
 
+            // PoracleNG hands back a pregenerated tileserver URL that the tile cache eventually evicts,
+            // which leaves the embed with a dead image. Upload the bytes as a real Discord attachment so
+            // the map stays with the message. Fall back to the raw URL when the download fails.
+            var mapImageBytes = mapImageUrl != null ? await this.TryDownloadMapImageAsync(mapImageUrl) : null;
+
+            object? image = null;
+            if (mapImageBytes != null)
+            {
+                image = new { url = $"attachment://{MapAttachmentFileName}" };
+            }
+            else if (mapImageUrl != null)
+            {
+                image = new { url = mapImageUrl };
+            }
+
             var embeds = new List<object>
             {
                 new
@@ -190,11 +227,11 @@ public partial class DiscordNotificationService(
                     color = 2196944, // #2196f3 as decimal
                     fields = new object[]
                     {
-                        new { name = "Region", value = groupName, inline = true },
+                        new { name = "Region", value = string.IsNullOrWhiteSpace(groupName) ? "Unassigned" : groupName, inline = true },
                         new { name = "Points", value = polygonPoints.ToString(System.Globalization.CultureInfo.InvariantCulture), inline = true },
                         new { name = "Submitted By", value = $"<@{userId}>", inline = true },
                     },
-                    image = mapImageUrl != null ? new { url = mapImageUrl } : null,
+                    image,
                 },
             };
 
@@ -208,10 +245,18 @@ public partial class DiscordNotificationService(
                     content = "A custom geofence has been submitted for review.\n\n"
                         + "Please share any context about this area (community day spot, park, popular route, etc.)",
                     embeds,
+                    attachments = mapImageBytes != null
+                        ? new object[] { new { id = "0", filename = MapAttachmentFileName } }
+                        : null,
                 },
             };
 
-            var response = await this._httpClient.PostAsJsonAsync($"channels/{this._forumChannelId}/threads", body);
+            var payloadJson = JsonSerializer.Serialize(body, DiscordPayloadOptions);
+            using HttpContent content = mapImageBytes != null
+                ? BuildMultipartBody(payloadJson, mapImageBytes)
+                : new StringContent(payloadJson, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await this._httpClient.PostAsync($"channels/{this._forumChannelId}/threads", content);
             response.EnsureSuccessStatusCode();
 
             var threadJson = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -226,6 +271,63 @@ public partial class DiscordNotificationService(
             LogForumPostFailed(this._logger, ex, geofenceName);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Downloads the static map so it can be uploaded to Discord as an attachment. Returns null on any
+    /// failure -- the caller falls back to linking the URL directly.
+    /// </summary>
+    private async Task<byte[]?> TryDownloadMapImageAsync(string mapImageUrl)
+    {
+        try
+        {
+            var client = this._httpClientFactory.CreateClient(MapImageHttpClientName);
+            using var response = await client.GetAsync(mapImageUrl, HttpCompletionOption.ResponseHeadersRead);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                LogMapImageDownloadFailed(this._logger, mapImageUrl, (int)response.StatusCode);
+                return null;
+            }
+
+            if (response.Content.Headers.ContentLength > MaxMapImageBytes)
+            {
+                LogMapImageTooLarge(this._logger, mapImageUrl, response.Content.Headers.ContentLength ?? 0);
+                return null;
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            if (bytes.Length == 0 || bytes.Length > MaxMapImageBytes)
+            {
+                LogMapImageTooLarge(this._logger, mapImageUrl, bytes.Length);
+                return null;
+            }
+
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            LogMapImageDownloadError(this._logger, ex, mapImageUrl);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Builds the multipart body Discord expects for a message with an uploaded file: the JSON payload
+    /// under <c>payload_json</c> and the file under <c>files[0]</c>, matched to <c>attachments[0].id</c>.
+    /// </summary>
+    private static MultipartFormDataContent BuildMultipartBody(string payloadJson, byte[] mapImageBytes)
+    {
+        var multipart = new MultipartFormDataContent
+        {
+            { new StringContent(payloadJson, System.Text.Encoding.UTF8, "application/json"), "payload_json" },
+        };
+
+        var fileContent = new ByteArrayContent(mapImageBytes);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        multipart.Add(fileContent, "files[0]", MapAttachmentFileName);
+
+        return multipart;
     }
 
     public async Task PostApprovalMessageAsync(string threadId, string geofenceName, string promotedName)
@@ -321,4 +423,13 @@ public partial class DiscordNotificationService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Discord forum tags initialized: Pending={PendingId}, Approved={ApprovedId}, Rejected={RejectedId}")]
     private static partial void LogForumTagsInitialized(ILogger logger, string? pendingId, string? approvedId, string? rejectedId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Static map download for the geofence embed returned HTTP {StatusCode} for {MapImageUrl}; linking the URL instead")]
+    private static partial void LogMapImageDownloadFailed(ILogger logger, string mapImageUrl, int statusCode);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Static map at {MapImageUrl} is {ByteCount} bytes; skipping the attachment upload")]
+    private static partial void LogMapImageTooLarge(ILogger logger, string mapImageUrl, long byteCount);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Static map download for the geofence embed failed for {MapImageUrl}; linking the URL instead")]
+    private static partial void LogMapImageDownloadError(ILogger logger, Exception ex, string mapImageUrl);
 }
