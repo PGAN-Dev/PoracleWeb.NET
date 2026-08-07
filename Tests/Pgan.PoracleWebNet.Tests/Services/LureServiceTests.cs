@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -20,7 +21,7 @@ public class LureServiceTests
     public LureServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new LureService(this._proxy.Object, this._featureGate.Object);
+        this._sut = new LureService(this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance);
     }
 
     [Fact]
@@ -182,4 +183,63 @@ public class LureServiceTests
         using var doc = JsonDocument.Parse(jsonStr);
         return doc.RootElement.Clone();
     }
+
+    // --- Duplicate-on-edit ---
+    // PoracleNG dedups lure tracking by a natural key. When an edit changes a field in that key it INSERTS
+    // instead of upserting, leaving the pre-edit row behind as a second live alarm firing the old filter.
+
+    [Fact]
+    public async Task UpdateAsyncDeletesTheSupersededRowWhenPoracleNgInsertsInsteadOfUpdating()
+    {
+        var model = new Lure { Uid = 41 };
+        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
+        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 41)).Returns(Task.CompletedTask);
+
+        var result = await this._sut.UpdateAsync("user1", model);
+
+        this._proxy.Verify(p => p.DeleteByUidAsync("lure", "user1", 41), Times.Once);
+        Assert.Equal(42, result.Uid);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncKeepsTheUidAndDeletesNothingWhenPoracleNgUpserts()
+    {
+        var model = new Lure { Uid = 41 };
+        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        var result = await this._sut.UpdateAsync("user1", model);
+
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+        Assert.Equal(41, result.Uid);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncStillSucceedsWhenDeletingTheSupersededRowFails()
+    {
+        var model = new Lure { Uid = 41 };
+        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
+        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 41))
+            .ThrowsAsync(new HttpRequestException("boom"));
+
+        // The inserted row already carries the user's settings, so the edit must not fail.
+        var result = await this._sut.UpdateAsync("user1", model);
+
+        Assert.Equal(42, result.Uid);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncOnANewRecordDoesNotAttemptAStaleDelete()
+    {
+        var model = new Lure { Uid = 0 };
+        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
+
+        await this._sut.UpdateAsync("user1", model);
+
+        this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
 }
