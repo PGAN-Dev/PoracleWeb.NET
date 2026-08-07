@@ -109,8 +109,11 @@ public class HumanService(
             id = human.Id,
             name = human.Name ?? human.Id,
             type = human.Type ?? "discord:user",
-            enabled = human.Enabled,
-            admin_disable = human.AdminDisable,
+            // PoracleNG's createHumanRequest declares both as *bool. Sending the int these are stored as
+            // fails with "json: cannot unmarshal number into Go struct field createHumanRequest.enabled
+            // of type bool", so webhook creation could never succeed.
+            enabled = human.Enabled != 0,
+            admin_disable = human.AdminDisable != 0,
         });
 
         using var doc = JsonDocument.Parse(json);

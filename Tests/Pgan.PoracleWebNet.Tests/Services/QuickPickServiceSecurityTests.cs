@@ -271,4 +271,62 @@ public class QuickPickServiceSecurityTests
 
         this._raidService.Verify(s => s.DeleteAsync("real_user", 5), Times.Once);
     }
+
+    // --- Generated ids (#413) ---
+    // The create dialog has no id field and sends "", which was stored verbatim. Every id-bearing route
+    // then collapsed to /api/quick-picks/ so the pick could not be deleted or applied through any path.
+
+    [Fact]
+    public async Task SaveAdminPickGeneratesASlugWhenNoIdIsSupplied()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);
+
+        var saved = await this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "", Name = "Hundo IV!" });
+
+        Assert.Equal("hundo-iv", saved.Id);
+    }
+
+    [Fact]
+    public async Task SaveUserPickGeneratesASlugWhenNoIdIsSupplied()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);
+
+        var saved = await this._sut.SaveUserPickAsync("owner", new QuickPickDefinition { Id = "  ", Name = "My  Pick" });
+
+        Assert.Equal("my-pick", saved.Id);
+        Assert.Equal("owner", saved.OwnerUserId);
+    }
+
+    [Fact]
+    public async Task GeneratedIdsAvoidCollidingWithAnExistingPick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("hundo"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "hundo", Scope = "global" });
+        this._definitionRepository.Setup(r => r.GetByIdAsync("hundo-2")).ReturnsAsync((QuickPickDefinition?)null);
+
+        var saved = await this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "", Name = "Hundo" });
+
+        Assert.Equal("hundo-2", saved.Id);
+    }
+
+    [Fact]
+    public async Task AnExplicitIdIsLeftAlone()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("raid-5star")).ReturnsAsync((QuickPickDefinition?)null);
+
+        var saved = await this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "raid-5star", Name = "Whatever" });
+
+        Assert.Equal("raid-5star", saved.Id);
+    }
+
+    [Fact]
+    public async Task AnUnnamedPickStillGetsAUsableId()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);
+
+        var saved = await this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "", Name = "" });
+
+        Assert.False(string.IsNullOrWhiteSpace(saved.Id));
+    }
+
 }

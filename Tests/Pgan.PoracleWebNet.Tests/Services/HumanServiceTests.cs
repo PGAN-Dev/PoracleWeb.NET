@@ -94,6 +94,36 @@ public class HumanServiceTests
         this._humanProxy.Verify(p => p.CreateHumanAsync(It.IsAny<JsonElement>()), Times.Once);
     }
 
+    /// <summary>
+    /// PoracleNG's <c>createHumanRequest</c> declares <c>Enabled</c> and <c>AdminDisable</c> as <c>*bool</c>.
+    /// These are stored as <c>int</c> here, and sending the raw int failed with
+    /// "json: cannot unmarshal number into Go struct field createHumanRequest.enabled of type bool",
+    /// so admin webhook creation could never succeed. The old test only asserted that the proxy was called
+    /// with any JsonElement, which is why the drift went unnoticed.
+    /// </summary>
+    [Theory]
+    [InlineData(1, 0, true, false)]
+    [InlineData(0, 1, false, true)]
+    public async Task CreateAsyncSendsEnabledAndAdminDisableAsBooleans(
+        int enabled, int adminDisable, bool expectedEnabled, bool expectedAdminDisable)
+    {
+        var human = new Human { Id = "u1", Name = "Hook", Type = "webhook", Enabled = enabled, AdminDisable = adminDisable };
+
+        JsonElement sent = default;
+        this._humanProxy.Setup(p => p.CreateHumanAsync(It.IsAny<JsonElement>()))
+            .Callback<JsonElement>(b => sent = b.Clone())
+            .Returns(Task.CompletedTask);
+        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(CreateHumanJson("u1", "Hook"));
+
+        await this._sut.CreateAsync(human);
+
+        // JSON booleans, not numbers — a number is what PoracleNG rejected.
+        Assert.NotEqual(JsonValueKind.Number, sent.GetProperty("enabled").ValueKind);
+        Assert.NotEqual(JsonValueKind.Number, sent.GetProperty("admin_disable").ValueKind);
+        Assert.Equal(expectedEnabled, sent.GetProperty("enabled").GetBoolean());
+        Assert.Equal(expectedAdminDisable, sent.GetProperty("admin_disable").GetBoolean());
+    }
+
     [Fact]
     public async Task UpdateAsyncDelegatesToRepository()
     {
