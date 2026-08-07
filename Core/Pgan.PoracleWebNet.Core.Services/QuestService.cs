@@ -1,14 +1,16 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IQuestService
+public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<QuestService> logger) : IQuestService
 {
     private const string TrackingType = "quest";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly ILogger<QuestService> _logger = logger;
 
     public async Task<IEnumerable<Quest>> GetByUserAsync(string userId, int profileNo)
     {
@@ -41,8 +43,15 @@ public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate)
     public async Task<Quest> UpdateAsync(string userId, Quest model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
+        var oldUid = model.Uid;
         var body = SerializeToElement(model);
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+
+        // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
+        // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
+        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
+            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+
         return model;
     }
 

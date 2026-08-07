@@ -1,14 +1,16 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IEggService
+public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<EggService> logger) : IEggService
 {
     private const string TrackingType = "egg";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly ILogger<EggService> _logger = logger;
 
     public async Task<IEnumerable<Egg>> GetByUserAsync(string userId, int profileNo)
     {
@@ -43,8 +45,15 @@ public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) :
     public async Task<Egg> UpdateAsync(string userId, Egg model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
+        var oldUid = model.Uid;
         var body = SerializeToElement(model);
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+
+        // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
+        // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
+        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
+            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+
         return model;
     }
 

@@ -1,14 +1,16 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) : IRaidService
+public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<RaidService> logger) : IRaidService
 {
     private const string TrackingType = "raid";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly ILogger<RaidService> _logger = logger;
 
     public async Task<IEnumerable<Raid>> GetByUserAsync(string userId, int profileNo)
     {
@@ -41,8 +43,15 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate) 
     public async Task<Raid> UpdateAsync(string userId, Raid model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
+        var oldUid = model.Uid;
         var body = SerializeToElement(model);
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        var result = await this._proxy.CreateAsync(TrackingType, userId, body);
+
+        // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
+        // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
+        model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
+            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+
         return model;
     }
 
