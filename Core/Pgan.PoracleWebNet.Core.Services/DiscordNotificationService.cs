@@ -284,31 +284,29 @@ public partial class DiscordNotificationService(
     }
 
     /// <summary>
-    /// Rewrites the starter message's embed in place. The map is re-referenced as <c>attachment://</c> and
-    /// the existing attachment is retained by ID, so Discord re-resolves it rather than us re-uploading
-    /// (or worse, persisting the expiring signed CDN URL as an external link).
+    /// Rewrites the starter message's embed in place.
+    /// <para>
+    /// The map is re-uploaded rather than retained by ID. Discord consumes an attachment referenced by
+    /// <c>attachment://</c> into the embed, so the edited message reports an empty <c>attachments</c> array
+    /// and there is no ID to carry forward. Reusing the embed's resolved <c>cdn.discordapp.com</c> URL is
+    /// not an option either -- it is a signed link that expires, which is the rot this whole feature exists
+    /// to avoid. Falls back to linking the tileserver URL only when the re-download fails.
+    /// </para>
     /// </summary>
     private async Task UpdateOpeningEmbedAsync(string threadId, GeofenceSubmissionPost post)
     {
-        var existing = await this._httpClient.GetAsync($"channels/{threadId}/messages/{threadId}");
-        existing.EnsureSuccessStatusCode();
-
-        var message = await existing.Content.ReadFromJsonAsync<JsonElement>();
-
-        string? attachmentId = null;
-        if (message.TryGetProperty("attachments", out var attachments) && attachments.GetArrayLength() > 0)
-        {
-            attachmentId = attachments[0].GetProperty("id").GetString();
-        }
+        var mapImageBytes = post.MapImageUrl != null ? await this.TryDownloadMapImageAsync(post.MapImageUrl) : null;
 
         var body = new
         {
-            embeds = new object[] { BuildEmbed(post, attachmentId != null) },
-            attachments = attachmentId != null ? new object[] { new { id = attachmentId } } : Array.Empty<object>(),
+            embeds = new object[] { BuildEmbed(post, mapImageBytes != null) },
+            attachments = AttachmentsFor(mapImageBytes) ?? [],
         };
 
         var payloadJson = JsonSerializer.Serialize(body, DiscordPayloadOptions);
-        using var content = new StringContent(payloadJson, System.Text.Encoding.UTF8, "application/json");
+        using HttpContent content = mapImageBytes != null
+            ? BuildMultipartBody(payloadJson, mapImageBytes)
+            : new StringContent(payloadJson, System.Text.Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.PatchAsync($"channels/{threadId}/messages/{threadId}", content);
         response.EnsureSuccessStatusCode();

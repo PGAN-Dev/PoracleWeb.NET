@@ -281,7 +281,7 @@ public class DiscordNotificationServiceTests
     [Fact]
     public async Task ApprovalRewritesTheOpeningEmbedGreenAndKeepsTheMap()
     {
-        var discord = new DiscordHandler { ExistingAttachmentId = "attach-1" };
+        var discord = new DiscordHandler();
         var sut = CreateSut(discord, new MapHandler(HttpStatusCode.OK, PngBytes));
 
         await sut.PostReviewOutcomeAsync(ThreadId, Post(GeofenceReviewState.Approved));
@@ -294,15 +294,32 @@ public class DiscordNotificationServiceTests
         Assert.Equal("Published as", embed.GetProperty("fields")[2].GetProperty("name").GetString());
         Assert.Equal("Approved", embed.GetProperty("footer").GetProperty("text").GetString());
 
-        // The map is re-referenced by attachment ID rather than re-uploaded or pinned to a signed CDN URL.
+        // Discord folds an attachment:// attachment into the embed, so the edited message lists no
+        // attachments and there is no ID to carry forward -- the map must be re-uploaded.
+        Assert.True(discord.PatchWasMultipart);
+        Assert.Equal(PngBytes, discord.PatchedBytes);
         Assert.Equal("attachment://geofence-map.png", embed.GetProperty("image").GetProperty("url").GetString());
-        Assert.Equal("attach-1", edited.GetProperty("attachments")[0].GetProperty("id").GetString());
+        Assert.Equal("0", edited.GetProperty("attachments")[0].GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public async Task OutcomeFallsBackToLinkingTheMapWhenItCannotBeReuploaded()
+    {
+        var discord = new DiscordHandler();
+        var sut = CreateSut(discord, new MapHandler(HttpStatusCode.NotFound, []));
+
+        await sut.PostReviewOutcomeAsync(ThreadId, Post(GeofenceReviewState.Approved));
+
+        var edited = JsonDocument.Parse(discord.PatchedMessageJson!).RootElement;
+        Assert.False(discord.PatchWasMultipart);
+        Assert.Equal(MapUrl, edited.GetProperty("embeds")[0].GetProperty("image").GetProperty("url").GetString());
+        Assert.Empty(edited.GetProperty("attachments").EnumerateArray());
     }
 
     [Fact]
     public async Task RejectionRewritesTheOpeningEmbedRedAndCarriesTheReason()
     {
-        var discord = new DiscordHandler { ExistingAttachmentId = "attach-1" };
+        var discord = new DiscordHandler();
         var sut = CreateSut(discord, new MapHandler(HttpStatusCode.OK, PngBytes));
 
         await sut.PostReviewOutcomeAsync(ThreadId, Post(GeofenceReviewState.Rejected, reviewNotes: "Too large"));
@@ -331,7 +348,7 @@ public class DiscordNotificationServiceTests
     [Fact]
     public async Task OutcomeLocksAndArchivesTheThread()
     {
-        var discord = new DiscordHandler { ExistingAttachmentId = "attach-1" };
+        var discord = new DiscordHandler();
         var sut = CreateSut(discord, new MapHandler(HttpStatusCode.OK, PngBytes));
 
         await sut.PostReviewOutcomeAsync(ThreadId, Post(GeofenceReviewState.Approved));
@@ -374,8 +391,6 @@ public class DiscordNotificationServiceTests
     /// </summary>
     private sealed class DiscordHandler : HttpMessageHandler
     {
-        public string? ExistingAttachmentId { get; init; }
-
         public bool FailMessageEdit { get; init; }
 
         public string? PayloadJson { get; private set; }
@@ -390,6 +405,10 @@ public class DiscordNotificationServiceTests
 
         public string? PatchedMessageJson { get; private set; }
 
+        public bool PatchWasMultipart { get; private set; }
+
+        public byte[]? PatchedBytes { get; private set; }
+
         public string? PostedMessageContent { get; private set; }
 
         public bool ThreadLocked { get; private set; }
@@ -399,14 +418,6 @@ public class DiscordNotificationServiceTests
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.AbsolutePath.Replace("/api/v9/", string.Empty, StringComparison.Ordinal);
-
-            if (request.Method == HttpMethod.Get && path.Contains("/messages/", StringComparison.Ordinal))
-            {
-                var attachments = this.ExistingAttachmentId != null
-                    ? $$"""[{"id":"{{this.ExistingAttachmentId}}","filename":"geofence-map.png"}]"""
-                    : "[]";
-                return Json($$"""{"id":"{{ThreadId}}","attachments":{{attachments}}}""");
-            }
 
             if (request.Method == HttpMethod.Get)
             {
@@ -423,7 +434,19 @@ public class DiscordNotificationServiceTests
                 }
 
                 this.PatchedMessagePath = path;
-                this.PatchedMessageJson = await request.Content!.ReadAsStringAsync(cancellationToken);
+
+                if (request.Content is MultipartFormDataContent patchParts)
+                {
+                    this.PatchWasMultipart = true;
+                    var parts = patchParts.ToList();
+                    this.PatchedMessageJson = await parts[0].ReadAsStringAsync(cancellationToken);
+                    this.PatchedBytes = await parts[1].ReadAsByteArrayAsync(cancellationToken);
+                }
+                else
+                {
+                    this.PatchedMessageJson = await request.Content!.ReadAsStringAsync(cancellationToken);
+                }
+
                 return Json("{}");
             }
 
