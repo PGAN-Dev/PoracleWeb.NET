@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Turning off areas or custom geofences did not stop geofences being switched on and off** ([#478](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/478)). Those two buttons wrote area subscriptions without checking either switch, so the Areas page refused while the same change went through elsewhere. Both are now enforced, at the endpoint and in the service.
+- **Turning off locations broke the notification language selector** ([#479](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/479)). The language endpoints sat behind the location switch despite having nothing to do with a location, and the Areas page loads the selector on open — so with locations off, opening Areas bounced you to the dashboard. Language is now independent of it.
+
+### Fixed
 - **Importing a profile put the alarms on whatever profile the file named** ([#465](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/465)). A backup carrying a profile number wrote its alarms there instead of into the profile just created, leaving them orphaned on a profile that might not exist — and inherited by a future profile created at that number. The file no longer chooses the profile or the owner.
 - **Duplicating a profile copied the wrong areas and location** ([#466](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/466)). The copy silently inherited whichever profile was active rather than the one being duplicated, so you got the right alarms over the wrong map — and since the coordinates also drive the active-hours timezone, a schedule on the copy could run against the wrong clock.
 - **Blank or over-long profile names returned a server error** ([#467](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/467)) on rename and import, where creating a profile already explained the problem properly.

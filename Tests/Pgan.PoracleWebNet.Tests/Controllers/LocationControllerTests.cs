@@ -93,7 +93,7 @@ public class LocationControllerTests : ControllerTestBase
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
         this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
-        var result = await this._sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" });
+        var result = await this.LanguageSut().UpdateLanguage(new NotificationLanguageController.LanguageUpdateRequest { Language = "de" });
 
         Assert.IsType<OkObjectResult>(result);
         Assert.Equal("de", human.Language);
@@ -104,7 +104,7 @@ public class LocationControllerTests : ControllerTestBase
     {
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
         Assert.IsType<NotFoundResult>(
-            await this._sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" }));
+            await this.LanguageSut().UpdateLanguage(new NotificationLanguageController.LanguageUpdateRequest { Language = "de" }));
     }
 
     // --- Geocode ---
@@ -186,5 +186,13 @@ public class LocationControllerTests : ControllerTestBase
         this._proxy.Setup(p => p.GetDistanceMapUrlAsync(It.IsAny<double>(), It.IsAny<double>(), It.IsAny<int>()))
             .ThrowsAsync(new InvalidOperationException());
         Assert.IsType<NotFoundResult>(await this._sut.GetDistanceMap(0, 0, 0));
+    }
+
+    /// <summary>Language moved to its own controller so disable_location stops blocking it (#479).</summary>
+    private NotificationLanguageController LanguageSut()
+    {
+        var c = new NotificationLanguageController(this._humanService.Object);
+        SetupUser(c);
+        return c;
     }
 }

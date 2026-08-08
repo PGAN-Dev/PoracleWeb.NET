@@ -71,45 +71,6 @@ public class LocationController(
         });
     }
 
-    [HttpGet("language")]
-    public async Task<IActionResult> GetLanguage()
-    {
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
-        {
-            return this.NotFound();
-        }
-
-        return this.Ok(new
-        {
-            language = human.Language
-        });
-    }
-
-    [HttpPut("language")]
-    public async Task<IActionResult> UpdateLanguage([FromBody] LanguageUpdateRequest request)
-    {
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
-        {
-            return this.NotFound();
-        }
-
-        // humans.language is varchar(255); a longer value used to overflow on write.
-        if (request.Language is { Length: > 255 })
-        {
-            return this.BadRequest(new { error = "Language must be 255 characters or fewer." });
-        }
-
-        human.Language = request.Language;
-        await this._humanService.UpdateAsync(human);
-
-        return this.Ok(new
-        {
-            language = human.Language
-        });
-    }
-
     [RequireFeatureEnabled(DisableFeatureKeys.Geocoding)]
     [HttpGet("geocode")]
     public async Task<IActionResult> Geocode([FromQuery] string q)
@@ -305,8 +266,5 @@ public class LocationController(
         }
     }
 
-    public class LanguageUpdateRequest
-    {
-        public string Language { get; set; } = string.Empty;
-    }
+
 }
