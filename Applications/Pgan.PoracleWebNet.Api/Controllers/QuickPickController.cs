@@ -92,15 +92,66 @@ public class QuickPickController(IQuickPickService quickPickService) : BaseApiCo
     [HttpPost("{id}/apply")]
     public async Task<IActionResult> Apply(string id, [FromBody] QuickPickApplyRequest request)
     {
-        var state = await this._quickPickService.ApplyAsync(this.UserId, this.ProfileNo, id, request);
-        return this.Ok(state);
+        var invalid = this.ValidateApplyRequest(request);
+        if (invalid is not null)
+        {
+            return invalid;
+        }
+
+        try
+        {
+            var state = await this._quickPickService.ApplyAsync(this.UserId, this.ProfileNo, id, request);
+            return this.Ok(state);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Unknown id, or a definition carrying an alarm type the applier cannot handle. The sibling
+            // GET and DELETE already 404 on an unknown id; this used to be an unhandled 500.
+            return this.NotFound(new { error = ex.Message });
+        }
     }
 
     [HttpPost("{id}/reapply")]
     public async Task<IActionResult> Reapply(string id, [FromBody] QuickPickApplyRequest request)
     {
-        var state = await this._quickPickService.ReapplyAsync(this.UserId, this.ProfileNo, id, request);
-        return this.Ok(state);
+        var invalid = this.ValidateApplyRequest(request);
+        if (invalid is not null)
+        {
+            return invalid;
+        }
+
+        try
+        {
+            var state = await this._quickPickService.ReapplyAsync(this.UserId, this.ProfileNo, id, request);
+            return this.Ok(state);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.NotFound(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Rejects override values the alarm endpoints would refuse anyway. Previously the throw happened
+    /// after the alarms were created but before the applied-state write, leaving the pick un-applied
+    /// with no cleanup path.
+    /// </summary>
+    private BadRequestObjectResult? ValidateApplyRequest(QuickPickApplyRequest? request)
+    {
+        if (request?.Clean is { } clean && clean is < 0 or > 7)
+        {
+            return this.BadRequest(new
+            {
+                error = "clean must be between 0 and 7 (a 3-bit mask: 1 auto-delete, 2 edit, 4 summary)."
+            });
+        }
+
+        if (request?.Distance is { } distance && distance < 0)
+        {
+            return this.BadRequest(new { error = "distance cannot be negative." });
+        }
+
+        return null;
     }
 
     [HttpDelete("{id}/remove")]

@@ -428,6 +428,11 @@ public partial class AdminController(
             return this.Forbid();
         }
 
+        if (string.IsNullOrWhiteSpace(request.WebhookId) || request.WebhookId.Length > 500)
+        {
+            return this.BadRequest(new { error = "webhookId is required and must be 500 characters or fewer." });
+        }
+
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);
         return this.Ok(delegates);
     }

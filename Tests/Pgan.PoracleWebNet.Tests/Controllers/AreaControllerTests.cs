@@ -218,4 +218,16 @@ public class AreaControllerTests : ControllerTestBase
         this._proxy.Setup(p => p.GetAreaMapUrlAsync(It.IsAny<string>())).ThrowsAsync(new InvalidOperationException());
         Assert.IsType<NotFoundResult>(await this._sut.GetAreaMap("bad"));
     }
+
+    // --- Client input must not 500 (#418) ---
+
+    [Fact]
+    public async Task UpdateAreasRejectsNullEntriesInsteadOfThrowing()
+    {
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = ["west", null!] });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+    }
+
 }

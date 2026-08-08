@@ -38,6 +38,14 @@ public class ProfileController(
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] Profile profile)
     {
+        if (string.IsNullOrWhiteSpace(profile.Name))
+        {
+            return this.BadRequest(new
+            {
+                error = "Profile name is required."
+            });
+        }
+
         profile.Id = this.UserId;
 
         // Assign next available profile number

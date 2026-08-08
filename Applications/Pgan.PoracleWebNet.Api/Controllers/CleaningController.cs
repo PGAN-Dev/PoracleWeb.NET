@@ -50,12 +50,27 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
             "gyms" => await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled),
             "fortchanges" => await this._cleaningService.ToggleCleanFortChangesAsync(this.UserId, this.ProfileNo, enabled),
             "maxbattles" => await this._cleaningService.ToggleCleanMaxBattlesAsync(this.UserId, this.ProfileNo, enabled),
-            _ => throw new ArgumentException($"Unknown alarm type: {alarmType}")
+            // Unknown types are client input, not a fault. "pokemon" is a natural guess for "monsters".
+            _ => (int?)null
         };
+
+        if (count is null)
+        {
+            return this.BadRequest(new
+            {
+                error = $"Unknown alarm type '{alarmType}'. Expected one of: {string.Join(", ", ValidAlarmTypes)}."
+            });
+        }
 
         return this.Ok(new
         {
-            updated = count
+            updated = count.Value
         });
     }
+
+    private static readonly string[] ValidAlarmTypes =
+    [
+        "monsters", "raids", "eggs", "quests", "invasions",
+        "lures", "nests", "gyms", "fortchanges", "maxbattles",
+    ];
 }

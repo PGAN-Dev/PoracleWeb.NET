@@ -62,6 +62,15 @@ public partial class AreaController(
     public async Task<IActionResult> UpdateAreas([FromBody] UpdateAreasRequest request)
     {
         // Lowercase area names to match Poracle's expected format (PHP PoracleWeb does strtolower)
+        // A null entry used to throw an NRE here and surface as a 500.
+        if (request.Areas is not null && Array.Exists(request.Areas, a => a is null))
+        {
+            return this.BadRequest(new
+            {
+                error = "Area names cannot be null."
+            });
+        }
+
         var normalizedAreas = request.Areas != null && request.Areas.Length > 0
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
