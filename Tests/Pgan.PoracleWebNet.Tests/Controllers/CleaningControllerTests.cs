@@ -101,4 +101,38 @@ public class CleaningControllerTests : ControllerTestBase
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
+    // enabled is a flag, not a bitmask. CleanFlags.Preserve masks with bit 1, so an even value such
+    // as 2 silently DISABLED cleaning while reporting rows updated -- and the write rotates every uid,
+    // deleting and reinserting for max battles. See #472.
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(-1)]
+    [InlineData(99)]
+    public async Task ToggleCleanRejectsAnEnabledValueThatIsNotAFlag(int enabled)
+    {
+        var result = await this._sut.ToggleClean("monsters", enabled);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(-1)]
+    public async Task ToggleAllRejectsAnEnabledValueThatIsNotAFlag(int enabled)
+    {
+        var result = await this._sut.ToggleAll(enabled);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public async Task ToggleCleanStillAcceptsBothFlagValues(int enabled)
+    {
+        var result = await this._sut.ToggleClean("monsters", enabled);
+
+        Assert.IsNotType<BadRequestObjectResult>(result);
+    }
 }

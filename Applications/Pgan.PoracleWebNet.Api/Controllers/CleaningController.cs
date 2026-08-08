@@ -20,6 +20,16 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
     [HttpPut("all/{enabled:int}")]
     public async Task<IActionResult> ToggleAll(int enabled)
     {
+        // enabled is a flag, not a bitmask. CleanFlags.Preserve masks with bit 1, so an even value
+        // such as 2 silently DISABLED cleaning while reporting the rows updated -- and the write is not
+        // free: it rotates every uid, and for max battles it deletes and reinserts every row. See #472.
+        if (enabled is not (0 or 1))
+        {
+            return this.BadRequest(new
+            {
+                error = "enabled must be 0 or 1."
+            });
+        }
         // Each toggle re-checks its own feature gate, so awaiting all of them unconditionally meant one
         // disabled alarm type threw partway through -- 403 to the caller, with the types processed before
         // it already written. Skip disabled types instead, and tell the caller which were skipped.
@@ -61,6 +71,16 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
     [HttpPut("{alarmType}/{enabled:int}")]
     public async Task<IActionResult> ToggleClean(string alarmType, int enabled)
     {
+        // enabled is a flag, not a bitmask. CleanFlags.Preserve masks with bit 1, so an even value
+        // such as 2 silently DISABLED cleaning while reporting the rows updated -- and the write is not
+        // free: it rotates every uid, and for max battles it deletes and reinserts every row. See #472.
+        if (enabled is not (0 or 1))
+        {
+            return this.BadRequest(new
+            {
+                error = "enabled must be 0 or 1."
+            });
+        }
         var count = alarmType.ToLowerInvariant() switch
         {
             "monsters" => await this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, enabled),

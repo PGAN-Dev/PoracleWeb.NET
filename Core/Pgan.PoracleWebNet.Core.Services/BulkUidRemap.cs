@@ -29,9 +29,12 @@ public static partial class BulkUidRemap
     /// Fields that differ between the two snapshots by definition, so they cannot identify a row.
     /// <c>profile_no</c> is here because outgoing payloads no longer carry it (#411) while rows read back
     /// from PoracleNG do - without this the two signatures never match and nothing is ever remapped.
+    /// <c>description</c> is PoracleNG&apos;s rendered summary of the row, not part of its identity: it embeds
+    /// the distance AND the clean flags, so it changes whenever either does. Leaving it in meant the
+    /// cleaning toggle could never pair a row with its replacement.
     /// </summary>
     private static readonly HashSet<string> IgnoredForIdentity =
-        new(StringComparer.Ordinal) { "uid", "distance", "profile_no" };
+        new(StringComparer.Ordinal) { "uid", "distance", "profile_no", "description" };
 
     /// <summary>
     /// Re-reads the tracking rows and moves any quick-pick tracked uid onto its replacement.
@@ -44,11 +47,15 @@ public static partial class BulkUidRemap
         string userId,
         JsonElement submitted,
         ITrackedUidRemapper uidRemapper,
-        ILogger logger)
+        ILogger logger,
+        IReadOnlyCollection<string>? mutatedFields = null)
     {
         try
         {
-            var identityKeys = IdentityKeys(submitted);
+            // Whatever the caller just changed cannot take part in identity, or the before and after
+            // snapshots never match. Distance is always excluded because that is what the distance
+            // endpoints change; cleaning passes "clean" for the same reason.
+            var identityKeys = IdentityKeys(submitted, mutatedFields);
             if (identityKeys.Count == 0)
             {
                 return;
@@ -132,7 +139,7 @@ public static partial class BulkUidRemap
     /// (#411). Comparing full property sets therefore never matched anything, which is how the first
     /// version of this shipped green unit tests and did nothing at all in practice.
     /// </remarks>
-    private static IReadOnlyCollection<string> IdentityKeys(JsonElement rows)
+    private static IReadOnlyCollection<string> IdentityKeys(JsonElement rows, IReadOnlyCollection<string>? mutatedFields)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
 
@@ -150,7 +157,7 @@ public static partial class BulkUidRemap
 
             foreach (var prop in row.EnumerateObject())
             {
-                if (!IgnoredForIdentity.Contains(prop.Name))
+                if (!IgnoredForIdentity.Contains(prop.Name) && mutatedFields?.Contains(prop.Name) != true)
                 {
                     keys.Add(prop.Name);
                 }
