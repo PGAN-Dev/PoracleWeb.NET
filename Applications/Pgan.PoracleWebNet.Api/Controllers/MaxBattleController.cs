@@ -95,6 +95,12 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
+        var invalid = this.RejectInvalidDistance(distance);
+        if (invalid != null)
+        {
+            return invalid;
+        }
+
         var count = await this._maxBattleService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
         return this.Ok(new
         {

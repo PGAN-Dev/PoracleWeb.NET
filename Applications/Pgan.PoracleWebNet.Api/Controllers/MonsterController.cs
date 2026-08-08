@@ -95,6 +95,12 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
+        var invalid = this.RejectInvalidDistance(distance);
+        if (invalid != null)
+        {
+            return invalid;
+        }
+
         var count = await this._monsterService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
         return this.Ok(new
         {

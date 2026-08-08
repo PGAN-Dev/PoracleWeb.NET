@@ -1367,6 +1367,7 @@
     "DISTANCE_TITLE": "Update All Distance",
     "DISTANCE_DESC": "Set the location mode for all alarms of this type.",
     "DISTANCE_UPDATE_ALL": "Update All",
+    "DISTANCE_MUST_BE_POSITIVE": "Distance must be greater than zero.",
     "LOCATION_SAVE_ERROR": "Failed to update location",
     "LOCATION_SAVE_SUCCESS": "Location updated successfully",
     "LOCATION_GEO_UNSUPPORTED": "Geolocation is not supported by your browser",

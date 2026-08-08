@@ -1360,6 +1360,7 @@
     "DISTANCE_TITLE": "Alle Afstanden Bijwerken",
     "DISTANCE_DESC": "Stel de locatiemodus in voor alle alarmen van dit type.",
     "DISTANCE_UPDATE_ALL": "Alles Bijwerken",
+    "DISTANCE_MUST_BE_POSITIVE": "Distance must be greater than zero.",
     "LOCATION_SAVE_ERROR": "Locatie bijwerken mislukt",
     "LOCATION_SAVE_SUCCESS": "Locatie succesvol bijgewerkt",
     "LOCATION_GEO_UNSUPPORTED": "Geolocatie wordt niet ondersteund door je browser",

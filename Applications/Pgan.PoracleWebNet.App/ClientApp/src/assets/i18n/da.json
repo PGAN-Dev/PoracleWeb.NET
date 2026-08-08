@@ -1360,6 +1360,7 @@
     "DISTANCE_TITLE": "Opdater alle afstande",
     "DISTANCE_DESC": "Angiv placeringstilstand for alle alarmer af denne type.",
     "DISTANCE_UPDATE_ALL": "Opdater alle",
+    "DISTANCE_MUST_BE_POSITIVE": "Distance must be greater than zero.",
     "LOCATION_SAVE_ERROR": "Kunne ikke opdatere placering",
     "LOCATION_SAVE_SUCCESS": "Placering opdateret",
     "LOCATION_GEO_UNSUPPORTED": "Geolokation understøttes ikke af din browser",

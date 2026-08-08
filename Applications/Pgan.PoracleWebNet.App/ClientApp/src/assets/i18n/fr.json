@@ -1360,6 +1360,7 @@
     "DISTANCE_TITLE": "Mettre à jour toutes les distances",
     "DISTANCE_DESC": "Définis le mode de localisation pour toutes les alarmes de ce type.",
     "DISTANCE_UPDATE_ALL": "Tout mettre à jour",
+    "DISTANCE_MUST_BE_POSITIVE": "Distance must be greater than zero.",
     "LOCATION_SAVE_ERROR": "Échec de la mise à jour de la localisation",
     "LOCATION_SAVE_SUCCESS": "Localisation mise à jour avec succès",
     "LOCATION_GEO_UNSUPPORTED": "La géolocalisation n'est pas supportée par ton navigateur",
