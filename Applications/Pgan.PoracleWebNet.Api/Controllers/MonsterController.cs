@@ -69,7 +69,15 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
             return this.NotFound();
         }
 
-        model.ApplyUpdate(existing);
+        // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
+        if (LeavesAlarmUnchanged(existing, () =>
+        {
+            model.ApplyUpdate(existing);
+            return existing;
+        }))
+        {
+            return this.Ok(existing);
+        }
 
         // Checked after the merge, not on the request: a PUT carrying only minIv inverts the window
         // against the value already stored, which validating the DTO alone cannot see. See #461.

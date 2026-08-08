@@ -74,6 +74,93 @@ public class CreateResultSemanticsTests
         Assert.Equal(140, result.Uid);
     }
 
+    // ── #498, #499, #501: a row colliding with ITSELF is a no-op, not a conflict ────
+
+    /// <summary>
+    /// PoracleNG answers {alreadyPresent:1, insert:0, updates:0} both when the edit collides with a
+    /// different alarm and when it collides with the row being edited. Every edit dialog resubmits the
+    /// whole form, so pressing Save with nothing changed hit the second case and was told a non-existent
+    /// alarm was in the way.
+    /// </summary>
+    [Fact]
+    public async Task ResubmittingAnUnchangedRowIsNotAConflict()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0));
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 134, id = "u1", team = 2, distance = 500, template = "1" }));
+
+        var result = await sut.UpdateAsync("u1", new Gym
+        {
+            Id = "u1",
+            Uid = 134,
+            Team = 2,
+            Distance = 500,
+            Template = "1",
+        });
+
+        Assert.Equal(134, result.Uid);
+    }
+
+    /// <summary>
+    /// ping is never persisted on any tracking type, so an edit changing only that leaves the row
+    /// untouched. It must not read as a collision with another alarm.
+    /// </summary>
+    [Fact]
+    public async Task APingOnlyEditIsNotAConflict()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0));
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 134, id = "u1", team = 2, distance = 500, ping = "" }));
+
+        var result = await sut.UpdateAsync("u1", new Gym
+        {
+            Id = "u1",
+            Uid = 134,
+            Team = 2,
+            Distance = 500,
+            Ping = "<@&999>",
+        });
+
+        Assert.Equal(134, result.Uid);
+    }
+
+    /// <summary>A real collision with a different alarm still has to be reported.</summary>
+    [Fact]
+    public async Task AnEditOntoAnotherAlarmsSettingsIsStillAConflict()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0));
+        // The row being edited still holds team 2; the submission moves it onto uid 135's team 4.
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 134, id = "u1", team = 2, distance = 500 },
+            new { uid = 135, id = "u1", team = 4, distance = 500 }));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => sut.UpdateAsync("u1", new Gym { Id = "u1", Uid = 134, Team = 4, Distance = 500 }));
+    }
+
+    /// <summary>A vanished row is not a no-op: report the conflict rather than claim success.</summary>
+    [Fact]
+    public async Task AConflictIsStillReportedWhenTheEditedRowIsGone()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 1, 0, 0));
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 135, id = "u1", team = 4, distance = 500 }));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => sut.UpdateAsync("u1", new Gym { Id = "u1", Uid = 134, Team = 4, Distance = 500 }));
+    }
     // ── #462: a colliding natural-key edit must not destroy either alarm ─────
 
     [Fact]

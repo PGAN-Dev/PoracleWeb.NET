@@ -62,7 +62,16 @@ public class FortChangeController(IFortChangeService fortChangeService) : BaseAp
             return this.NotFound();
         }
 
-        model.ApplyUpdate(existing);
+        // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
+        if (LeavesAlarmUnchanged(existing, () =>
+        {
+            model.ApplyUpdate(existing);
+            return existing;
+        }))
+        {
+            return this.Ok(existing);
+        }
+
         var result = await this._fortChangeService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

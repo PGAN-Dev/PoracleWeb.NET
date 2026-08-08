@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -31,6 +32,7 @@ internal static partial class TrackingUpdateReconciler
         int oldUid,
         TrackingCreateResult result,
         ILogger logger,
+        JsonElement submitted,
         ITrackedUidRemapper? uidRemapper = null)
     {
         // oldUid <= 0 means this was not an edit, so there is nothing to reconcile.
@@ -42,8 +44,20 @@ internal static partial class TrackingUpdateReconciler
         // PoracleNG declined to write because the edited values collide with an alarm the user
         // already has. Nothing changed, so reporting success while echoing the requested values back
         // told the user their edit applied when it had not. See #463.
+        //
+        // But it reports the same {alreadyPresent:1, insert:0, updates:0} when the collision is with the
+        // row being edited -- pressing Save with nothing changed, which every edit dialog does by
+        // resubmitting the whole form. Reading that as a conflict told the user another alarm was in the
+        // way when the only candidate was itself. The two are told apart by asking whether the row at
+        // oldUid already holds what was submitted: if it does, the edit is a no-op and there is nothing
+        // to report. See #495.
         if (result.AlreadyPresent > 0 && result.Inserts == 0 && result.Updates == 0)
         {
+            if (await IsNoOpEditAsync(proxy, trackingType, userId, oldUid, submitted))
+            {
+                return oldUid;
+            }
+
             throw new TrackingConflictException(
                 trackingType,
                 "Another alarm of this type already uses those settings. Edit or remove that one instead.");
@@ -86,6 +100,137 @@ internal static partial class TrackingUpdateReconciler
         }
 
         return newUid;
+    }
+
+    /// <summary>
+    /// True when the row being edited already holds every value the update submitted, so PoracleNG's
+    /// "already present" was the row colliding with itself rather than with a different alarm.
+    /// </summary>
+    /// <remarks>
+    /// A missing row is not a no-op: something else removed it, and the caller should hear about the
+    /// conflict rather than be told the edit applied. Fields PoracleNG does not persist are excluded --
+    /// otherwise a ping-only edit, which PoracleNG drops on every tracking type, looks like a change and
+    /// reads as a conflict.
+    /// </remarks>
+    private static async Task<bool> IsNoOpEditAsync(
+        IPoracleTrackingProxy proxy,
+        string trackingType,
+        string userId,
+        int oldUid,
+        JsonElement submitted)
+    {
+        if (submitted.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        JsonElement rows;
+        try
+        {
+            rows = await proxy.GetByUserAsync(trackingType, userId);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // Cannot tell the two cases apart, so keep the conservative answer: report the conflict.
+            return false;
+        }
+
+        if (rows.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        foreach (var row in rows.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object
+                || !row.TryGetProperty("uid", out var uid)
+                || uid.ValueKind != JsonValueKind.Number
+                || uid.GetInt32() != oldUid)
+            {
+                continue;
+            }
+
+            return MatchesStoredRow(submitted, row);
+        }
+
+        return false;
+    }
+
+    /// <summary>Fields the comparison ignores, because the stored row never reflects them.</summary>
+    private static readonly HashSet<string> IgnoredForNoOp = new(StringComparer.Ordinal)
+    {
+        // Assigned by PoracleNG, or rendered by it from the other fields.
+        "uid", "profile_no", "description",
+        // Never persisted, on any tracking type -- verified directly against PoracleNG. An edit that
+        // changes only this therefore leaves the row untouched, which is a no-op, not a conflict.
+        "ping",
+    };
+
+    private static bool MatchesStoredRow(JsonElement submitted, JsonElement stored)
+    {
+        foreach (var field in submitted.EnumerateObject())
+        {
+            if (IgnoredForNoOp.Contains(field.Name))
+            {
+                continue;
+            }
+
+            // A field the stored row does not carry cannot have changed it.
+            if (!stored.TryGetProperty(field.Name, out var storedValue))
+            {
+                continue;
+            }
+
+            if (!SameValue(field.Value, storedValue))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Equality that tolerates the shapes PoracleNG stores a value in.
+    /// </summary>
+    /// <remarks>
+    /// A list is written as an array and stored as its JSON text -- fort-change <c>change_types</c> comes
+    /// back as the string <c>["name"]</c> -- which is why the models carry StringOrArrayConverter. A byte
+    /// comparison would call that unchanged list a change.
+    /// </remarks>
+    private static bool SameValue(JsonElement submitted, JsonElement stored)
+    {
+        if (JsonElement.DeepEquals(submitted, stored))
+        {
+            return true;
+        }
+
+        if (stored.ValueKind == JsonValueKind.String && TryParse(stored.GetString(), out var reparsed))
+        {
+            return JsonElement.DeepEquals(submitted, reparsed);
+        }
+
+        return false;
+    }
+
+    private static bool TryParse(string? text, out JsonElement parsed)
+    {
+        parsed = default;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        try
+        {
+            parsed = JsonDocument.Parse(text).RootElement.Clone();
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     [LoggerMessage(
