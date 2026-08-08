@@ -290,7 +290,7 @@ Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** contro
 
 | Mode (`clean` bit) | Applies to | What it does |
 |---|---|---|
-| **Auto-delete** (bit 1) | all alarm types | Deletes the Discord notification after the event expires (e.g. a Pokemon despawns or a raid ends). Toggle per-alarm in the dialog, or in bulk from the **Cleaning** page. |
+| **Auto-delete** (bit 1) | all alarm types except Fort Changes | Deletes the Discord notification after the event expires (e.g. a Pokemon despawns or a raid ends). Toggle per-alarm in the dialog, or in bulk from the **Cleaning** page. PoracleNG has no `clean` column for fort changes, so the setting does not exist for that type. |
 | **Edit message in place** (bit 2) | Lures; Raids/Eggs (via RSVP mode) | Updates the existing Discord message when the event changes instead of sending a new one. For lures, enable the **"Edit message in place"** toggle in the lure dialog; for raids/eggs it is set automatically when you choose an RSVP mode (see the `rsvpChanges` rows above). |
 | **Daily summary** (bit 4) | Quests | Collects matching quests into a single summary message instead of one notification each. Enable the **"Daily summary"** toggle in the quest dialog. Requires a configured summary schedule on the bot. |
 
