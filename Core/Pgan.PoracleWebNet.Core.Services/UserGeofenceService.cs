@@ -45,6 +45,9 @@ public partial class UserGeofenceService(
                 try
                 {
                     g.Polygon = JsonSerializer.Deserialize<double[][]>(g.PolygonJson);
+                    // The admin listing set this and the user listing did not, so every geofence on
+                    // the user page reported 0 points. See #477.
+                    g.PointCount = g.Polygon?.Length ?? 0;
                 }
                 catch (JsonException ex)
                 {
@@ -94,17 +97,23 @@ public partial class UserGeofenceService(
         // and humans.area stores names in lowercase
         var kojiName = model.DisplayName.Trim().ToLowerInvariant();
 
-        // Check for collision with existing geofences (our DB + Koji)
-        var existing = await this._repository.GetByKojiNameAsync(kojiName);
-        if (existing != null)
+        // Collisions are checked against BOTH sources, which is what the original comment claimed
+        // and what the code did not do: only user_geofences was consulted, so a user could take a
+        // name an admin area already held. Both then reach PoracleJS through the same feed under one
+        // name, and approving the private one pushes to Koji keyed on __name - an upsert that
+        // overwrites the real area's polygon and flags. Matching is case-insensitive because Poracle
+        // area matching is, in practice, and lowercasing alone does not separate "Nyack" from
+        // "nyack". See #475.
+        var takenNames = await this.ReservedGeofenceNamesAsync();
+
+        if (takenNames.Contains(kojiName))
         {
             var baseName = kojiName;
             var found = false;
             for (var i = 2; i <= 10; i++)
             {
                 kojiName = $"{baseName} {i}";
-                existing = await this._repository.GetByKojiNameAsync(kojiName);
-                if (existing == null)
+                if (!takenNames.Contains(kojiName))
                 {
                     found = true;
                     break;
@@ -146,6 +155,45 @@ public partial class UserGeofenceService(
         LogGeofenceCreated(this._logger, kojiName, humanId);
 
         return geofence;
+    }
+
+    /// <summary>
+    /// Every geofence name already in use, from both sources that feed the geofence feed.
+    /// </summary>
+    /// <remarks>
+    /// A Koji outage must not block geofence creation, so an unreachable Koji degrades to checking
+    /// PoracleWeb only - the same graceful-degradation rule the feed endpoint follows.
+    /// </remarks>
+    private async Task<HashSet<string>> ReservedGeofenceNamesAsync()
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var g in await this._repository.GetAllAsync() ?? [])
+        {
+            names.Add(g.KojiName);
+
+            if (!string.IsNullOrEmpty(g.PromotedName))
+            {
+                names.Add(g.PromotedName);
+            }
+        }
+
+        try
+        {
+            foreach (var admin in await this._kojiService.GetAdminGeofencesAsync() ?? [])
+            {
+                if (!string.IsNullOrEmpty(admin.Name))
+                {
+                    names.Add(admin.Name);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogReservedNameLookupFailed(this._logger, ex);
+        }
+
+        return names;
     }
 
     public async Task DeleteAsync(string humanId, int profileNo, int id)
@@ -806,6 +854,9 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not fetch Koji regions to validate parent {ParentId}; letting Koji decide")]
     private static partial void LogRegionLookupFailed(ILogger logger, Exception ex, int parentId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read Koji areas while checking a geofence name for collisions; checked PoracleWeb only")]
+    private static partial void LogReservedNameLookupFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
     private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);

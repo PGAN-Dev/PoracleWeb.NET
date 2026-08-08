@@ -93,6 +93,15 @@ public partial class AreaController(
         // needed. The discard is intentional.
         _ = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
 
+        // Read back rather than echo. PoracleNG silently drops any name whose fence is not
+        // userSelectable, so returning the submitted list asserted subscriptions the user does not have
+        // - a typo or a stale area name looked accepted until the next page load. See #476.
+        var stored = await this._humanProxy.GetAreasAsync(this.UserId);
+        if (stored is not null && stored.Value.TryGetProperty("area", out var storedAreas))
+        {
+            return this.Ok(ParseAreaJson(storedAreas.GetString()));
+        }
+
         return this.Ok(normalizedAreas);
     }
 

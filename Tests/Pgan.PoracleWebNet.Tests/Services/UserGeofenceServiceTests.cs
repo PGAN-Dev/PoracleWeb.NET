@@ -1499,4 +1499,66 @@ public class UserGeofenceServiceTests
         // The submission must be left alone so the admin can retry once Koji is back.
         this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
     }
+
+    // ── Name collisions across both geofence sources (#475) ─────────────────
+    // The comment claimed "our DB + Koji"; only user_geofences was ever consulted, so a user could
+    // take a name an admin area already held. Both then reach PoracleJS through one feed under one
+    // name, and approving the private one upserts Koji by __name - overwriting the real area.
+
+    [Fact]
+    public async Task CreateAsyncSuffixesAroundAnExistingKojiAreaName()
+    {
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync())
+            .ReturnsAsync([new AdminGeofence { Id = 1, Name = "nyack" }]);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        var result = await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "Nyack",
+            Polygon = [[40, -73], [41, -73], [41, -74]],
+        });
+
+        Assert.NotEqual("nyack", result.KojiName);
+    }
+
+    [Fact]
+    public async Task CreateAsyncMatchesKojiNamesCaseInsensitively()
+    {
+        // Poracle area matching is case-insensitive in practice, so lowercasing alone does not
+        // separate "Nyack" from "nyack".
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync())
+            .ReturnsAsync([new AdminGeofence { Id = 1, Name = "NYACK" }]);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        var result = await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "nyack",
+            Polygon = [[40, -73], [41, -73], [41, -74]],
+        });
+
+        Assert.NotEqual("nyack", result.KojiName);
+    }
+
+    [Fact]
+    public async Task CreateAsyncStillWorksWhenKojiIsUnreachable()
+    {
+        // A Koji outage must not block geofence creation - the feed degrades the same way.
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync())
+            .ThrowsAsync(new HttpRequestException("koji down"));
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        var result = await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "Somewhere New",
+            Polygon = [[40, -73], [41, -73], [41, -74]],
+        });
+
+        Assert.Equal("somewhere new", result.KojiName);
+    }
 }
