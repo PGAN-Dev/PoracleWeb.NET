@@ -268,4 +268,59 @@ public class GeofenceFeedControllerTests
         Assert.Equal("A test area", item.GetProperty("description").GetString());
         Assert.Equal("#ff0000", item.GetProperty("color").GetString());
     }
+
+    // ── Malformed polygons must not reach the shared feed (#410) ────────────────
+    // This endpoint is anonymous and is the single geofence source for PoracleJS, so one user's bad
+    // polygon is every user's problem.
+
+    private static List<UserGeofence> FeedRows(params double[][][] polygons)
+    {
+        var rows = new List<UserGeofence>();
+        for (var i = 0; i < polygons.Length; i++)
+        {
+            rows.Add(new UserGeofence
+            {
+                Id = i + 1,
+                KojiName = $"fence{i}",
+                PolygonJson = JsonSerializer.Serialize(polygons[i])
+            });
+        }
+
+        return rows;
+    }
+
+    private async Task<int> FeedCountAsync()
+    {
+        var result = await this._sut.GetPoracleFeed();
+        var json = JsonSerializer.Serialize(Assert.IsType<OkObjectResult>(result).Value);
+        return JsonDocument.Parse(json).RootElement.GetProperty("data").GetArrayLength();
+    }
+
+    [Fact]
+    public async Task FeedSkipsPolygonsWhosePointsAreNotPairs()
+    {
+        double[][] good = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]];
+        double[][] bad = [[1.0], [2.0], [3.0]];
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(FeedRows(good, bad));
+
+        Assert.Equal(1, await this.FeedCountAsync());
+    }
+
+    [Fact]
+    public async Task FeedSkipsPolygonsWithCoordinatesOffTheGlobe()
+    {
+        double[][] bad = [[999, -999], [998, -998], [997, -997]];
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(FeedRows(bad));
+
+        Assert.Equal(0, await this.FeedCountAsync());
+    }
+
+    [Fact]
+    public async Task FeedStillServesWellFormedPolygons()
+    {
+        double[][] good = [[40.0, -75.0], [40.01, -75.0], [40.01, -74.99]];
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(FeedRows(good, good));
+
+        Assert.Equal(2, await this.FeedCountAsync());
+    }
 }

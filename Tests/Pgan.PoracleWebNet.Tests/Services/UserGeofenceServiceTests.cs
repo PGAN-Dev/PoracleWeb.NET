@@ -1334,4 +1334,47 @@ public class UserGeofenceServiceTests
 
         this._repository.Verify(r => r.DeleteAsync(7), Times.Once);
     }
+
+    // ── Polygon validation on create (#410) ─────────────────────────────────────
+    // Only the point count was checked, so malformed points reached the anonymous geofence feed —
+    // the single geofence source for PoracleJS — and crashed the owner's GeoJSON export.
+
+    [Fact]
+    public async Task CreateAsyncRejectsPointsThatAreNotLatLonPairs()
+    {
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+            {
+                DisplayName = "ZZ Arity Chk",
+                Polygon = [[1.0], [2.0], [3.0]]
+            }));
+
+        Assert.Contains("[latitude, longitude] pair", ex.Message, StringComparison.Ordinal);
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsyncRejectsOutOfRangeCoordinates()
+    {
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+            {
+                DisplayName = "ZZ Range Chk",
+                Polygon = [[999, -999], [998, -998], [997, -997]]
+            }));
+
+        Assert.Contains("out of valid range", ex.Message, StringComparison.Ordinal);
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsyncStillEnforcesThePointCount()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+            {
+                DisplayName = "ZZ Too Few",
+                Polygon = [[40, -75], [41, -75]]
+            }));
+    }
 }

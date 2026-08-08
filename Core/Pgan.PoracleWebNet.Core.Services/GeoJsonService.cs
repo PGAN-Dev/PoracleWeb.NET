@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -226,7 +227,10 @@ public partial class GeoJsonService(
 
     private static GeoJsonFeature? BuildFeature(double[][] path, string name, string group, string source, string displayName)
     {
-        if (path.Length == 0)
+        // Rows written before create validated point arity can still be in the database. Projecting one
+        // used to throw IndexOutOfRangeException and 500 the caller's entire export until they worked out
+        // which geofence to delete. Skip it instead. See #410.
+        if (!PolygonValidation.IsWellFormed(path))
         {
             return null;
         }

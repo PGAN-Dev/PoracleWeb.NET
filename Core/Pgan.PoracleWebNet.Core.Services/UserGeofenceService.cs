@@ -81,15 +81,12 @@ public partial class UserGeofenceService(
             throw new InvalidOperationException("Display name contains invalid characters.");
         }
 
-        // Validate polygon point count
-        if (model.Polygon.Length > 500)
+        // Point count was the only thing checked here, so a polygon of [[1],[2],[3]] or one with
+        // coordinates outside the globe was stored verbatim and then served by the anonymous geofence
+        // feed. Import already validated arity and range; this is the same rule, applied once. See #410.
+        if (!PolygonValidation.TryValidate(model.Polygon, out var polygonError))
         {
-            throw new InvalidOperationException("Polygon cannot exceed 500 points.");
-        }
-
-        if (model.Polygon.Length < 3)
-        {
-            throw new InvalidOperationException("Polygon must have at least 3 points.");
+            throw new InvalidOperationException(polygonError);
         }
 
         // Use lowercase display name as the Koji geofence name
