@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -8,10 +9,16 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <summary>
 /// Manages the "clean" flag on tracking alarms via the PoracleNG REST API proxy.
 /// </summary>
-public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate featureGate) : ICleaningService
+public class CleaningService(
+    IPoracleTrackingProxy trackingProxy,
+    IFeatureGate featureGate,
+    ITrackedUidRemapper uidRemapper,
+    ILogger<CleaningService> logger) : ICleaningService
 {
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly ILogger<CleaningService> _logger = logger;
 
     /// <summary>
     /// Tracking types whose PoracleNG create only ever inserts, so a re-POST duplicates rather than
@@ -132,10 +139,26 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate f
                 throw;
             }
 
+        // Every non-monster type comes back under a new uid, so any quick pick tracking these rows
+        // would be left pointing at dead uids -- Remove then deletes nothing and the next page load
+        // wipes the applied state. This was the one bulk-repost path that never got the remapper the
+        // distance endpoints already use. "clean" is the field being mutated, so it cannot take part
+        // in row identity. See #471.
+        await BulkUidRemap.ApplyAsync(
+            this._trackingProxy, type, userId, body, this._uidRemapper, this._logger, ["clean"]);
+
             return count;
         }
 
         await this._trackingProxy.CreateAsync(type, userId, body);
+
+        // Every non-monster type comes back under a new uid, so any quick pick tracking these rows
+        // would be left pointing at dead uids -- Remove then deletes nothing and the next page load
+        // wipes the applied state. This was the one bulk-repost path that never got the remapper the
+        // distance endpoints already use. "clean" is the field being mutated, so it cannot take part
+        // in row identity. See #471.
+        await BulkUidRemap.ApplyAsync(
+            this._trackingProxy, type, userId, body, this._uidRemapper, this._logger, ["clean"]);
 
         return count;
     }

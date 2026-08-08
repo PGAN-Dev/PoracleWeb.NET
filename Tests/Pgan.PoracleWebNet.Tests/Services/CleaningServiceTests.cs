@@ -10,12 +10,13 @@ public class CleaningServiceTests
 {
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly CleaningService _sut;
 
     public CleaningServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new CleaningService(this._proxy.Object, this._featureGate.Object);
+        this._sut = new CleaningService(this._proxy.Object, this._featureGate.Object, this._uidRemapper.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<CleaningService>.Instance);
     }
 
     [Fact]
