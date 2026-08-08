@@ -53,7 +53,7 @@ public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
         // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
         // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
         model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger, this._uidRemapper);
+            this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
 
         return model;
     }

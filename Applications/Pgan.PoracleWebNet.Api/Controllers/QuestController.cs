@@ -62,7 +62,16 @@ public class QuestController(IQuestService questService) : BaseApiController
             return this.NotFound();
         }
 
-        model.ApplyUpdate(existing);
+        // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
+        if (LeavesAlarmUnchanged(existing, () =>
+        {
+            model.ApplyUpdate(existing);
+            return existing;
+        }))
+        {
+            return this.Ok(existing);
+        }
+
         var result = await this._questService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

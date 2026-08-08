@@ -62,7 +62,16 @@ public class EggController(IEggService eggService) : BaseApiController
             return this.NotFound();
         }
 
-        model.ApplyUpdate(existing);
+        // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
+        if (LeavesAlarmUnchanged(existing, () =>
+        {
+            model.ApplyUpdate(existing);
+            return existing;
+        }))
+        {
+            return this.Ok(existing);
+        }
+
         var result = await this._eggService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

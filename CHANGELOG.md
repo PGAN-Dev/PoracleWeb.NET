@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Saving a raid, egg, quest, gym, nest or fort-change edit without changing anything was refused** ([#498](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/498), [#499](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/499), [#501](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/501)). Pressing Save with nothing edited, or changing only the ping, reported that another alarm already used those settings — the alarm it meant was the one being edited. Introduced by the duplicate detection added in v2.12.1.
+### Fixed
 - **The quest summary editor said an empty schedule meant a manual profile start** ([#457](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/457)). The schedule editor is shared with profiles, and its empty-state line contradicted the sentence directly above it about quests being delivered individually.
 ### Fixed
 - **A Pokemon alarm could be saved with a filter nothing can match** ([#461](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/461)). Transposing a pair — minimum IV 90 with maximum 10, say — saved without complaint and then went silent, with nothing to explain why the alerts stopped. Each bound was checked against the game's limits but never against its partner. Such a filter is now refused, including when the edit only changes one side of a pair.
