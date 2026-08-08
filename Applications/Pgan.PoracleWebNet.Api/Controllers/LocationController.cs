@@ -61,13 +61,17 @@ public class LocationController(
             return this.NotFound();
         }
 
+        // [Required] on nullable doubles already rejects an absent coordinate, so by here both have values.
+        var latitude = request.Latitude!.Value;
+        var longitude = request.Longitude!.Value;
+
         // Single atomic call — PoracleNG handles writing to both humans and profiles tables
-        await this._humanProxy.SetLocationAsync(this.UserId, request.Latitude, request.Longitude);
+        await this._humanProxy.SetLocationAsync(this.UserId, latitude, longitude);
 
         return this.Ok(new
         {
-            latitude = request.Latitude,
-            longitude = request.Longitude
+            latitude,
+            longitude
         });
     }
 
@@ -253,14 +257,22 @@ public class LocationController(
         /// exist, and the active-hours scheduler's timezone lookup was meaningless. 1e308 additionally
         /// produced a 500 rather than a 400. See #423.
         /// </remarks>
+        /// <remarks>
+        /// Nullable so that "absent" is distinguishable from "zero". As non-nullable doubles both members
+        /// bound to 0.0 when the request omitted them, [Range] passed, and 0,0 was written over the real
+        /// location -- exactly the outcome the remarks above describe as the harm this validation exists to
+        /// prevent, reached by the one path the validation could not see. See #480.
+        /// </remarks>
+        [Required(ErrorMessage = "Latitude is required.")]
         [Range(-90.0, 90.0, ErrorMessage = "Latitude must be between -90 and 90.")]
-        public double Latitude
+        public double? Latitude
         {
             get; set;
         }
 
+        [Required(ErrorMessage = "Longitude is required.")]
         [Range(-180.0, 180.0, ErrorMessage = "Longitude must be between -180 and 180.")]
-        public double Longitude
+        public double? Longitude
         {
             get; set;
         }

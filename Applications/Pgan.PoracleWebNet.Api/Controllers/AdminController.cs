@@ -255,9 +255,27 @@ public partial class AdminController(
             AdminDisable = 0,
         };
 
-        var created = await this._humanService.CreateAsync(human);
-        LogWebhookCreated(this._logger, this.UserId, request.Url);
-        return this.Ok(created);
+        try
+        {
+            var created = await this._humanService.CreateAsync(human);
+            LogWebhookCreated(this._logger, this.UserId, request.Url);
+            return this.Ok(created);
+        }
+        catch (HttpRequestException)
+        {
+            // PoracleNG commits the human and can still fail on the rest of its create, leaving a row the
+            // admin was told was never written -- and a retry that answers 409 for a webhook the UI does
+            // not show. Undo the half-write so the reported failure is the truth. See #482.
+            if (await this._humanService.ExistsAsync(request.Url))
+            {
+                await this._humanService.DeleteUserAsync(request.Url);
+            }
+
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "Poracle rejected the webhook. Nothing was created.",
+            });
+        }
     }
 
     public record CreateWebhookRequest(string Name, string Url);
@@ -431,6 +449,14 @@ public partial class AdminController(
         if (string.IsNullOrWhiteSpace(request.WebhookId) || request.WebhookId.Length > 500)
         {
             return this.BadRequest(new { error = "webhookId is required and must be 500 characters or fewer." });
+        }
+
+        // userId had neither check, though its column is half the width: over 100 characters surfaced as an
+        // unhandled DbUpdateException, and an empty string persisted a delegate granting nothing to nobody
+        // that then appeared in the admin view. Same shape as the guard above. See #483.
+        if (string.IsNullOrWhiteSpace(request.UserId) || request.UserId.Length > 100)
+        {
+            return this.BadRequest(new { error = "userId is required and must be 100 characters or fewer." });
         }
 
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);

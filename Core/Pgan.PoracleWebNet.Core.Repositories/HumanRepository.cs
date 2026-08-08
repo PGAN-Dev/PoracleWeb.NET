@@ -95,7 +95,12 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
             return false;
         }
 
+        // The profiles rows outlived the human: invisible to every API surface, but re-creating the same
+        // id adopted them verbatim -- old areas, old coordinates, old active_hours -- and PoracleNG's
+        // human-create then collided on the surviving (id, profile_no) and errored after committing the
+        // human (#482). Removed in the same SaveChangesAsync so the two cannot part company. See #481.
         this._context.Humans.Remove(entity);
+        this._context.Profiles.RemoveRange(this._context.Profiles.Where(p => p.Id == userId));
         await this._context.SaveChangesAsync();
         return true;
     }

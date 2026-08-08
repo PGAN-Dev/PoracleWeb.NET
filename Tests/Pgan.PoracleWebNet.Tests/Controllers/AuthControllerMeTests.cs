@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,8 @@ public class AuthControllerMeTests : ControllerTestBase
     public AuthControllerMeTests()
     {
         this._jwtService.Setup(j => j.GenerateToken(It.IsAny<UserInfo>()))
+            .Returns("refreshed-jwt-token");
+        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>()))
             .Returns("refreshed-jwt-token");
 
         var config = new ConfigurationBuilder().Build();
@@ -55,7 +58,8 @@ public class AuthControllerMeTests : ControllerTestBase
         var userInfo = Assert.IsType<UserInfo>(ok.Value);
         Assert.Equal(1, userInfo.ProfileNo);
         Assert.Equal("refreshed-jwt-token", userInfo.Token);
-        this._jwtService.Verify(j => j.GenerateToken(It.Is<UserInfo>(u => u.ProfileNo == 1)), Times.Once);
+        this._jwtService.Verify(
+            j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), 1), Times.Once);
     }
 
     [Fact]
@@ -102,6 +106,31 @@ public class AuthControllerMeTests : ControllerTestBase
         var userInfo = Assert.IsType<UserInfo>(ok.Value);
         Assert.Equal(2, userInfo.ProfileNo);
         Assert.Null(userInfo.Token);
-        this._jwtService.Verify(j => j.GenerateToken(It.IsAny<UserInfo>()), Times.Never);
+        this._jwtService.Verify(
+            j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>()), Times.Never);
+    }
+
+    /// <summary>
+    /// The resync used to rebuild the token from UserInfo, which has no impersonatedBy field, so an admin
+    /// impersonation session lost the only record of what it was - on exactly the out-of-band profile
+    /// changes this branch exists to absorb. See #484.
+    /// </summary>
+    [Fact]
+    public async Task MeResyncPreservesTheImpersonationClaim()
+    {
+        SetupUser(this._sut, profileNo: 2);
+        ((ClaimsIdentity)this._sut.User.Identity!).AddClaim(new Claim("impersonatedBy", "999"));
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { CurrentProfileNo = 1, Enabled = 1 });
+
+        ClaimsPrincipal? seen = null;
+        this._jwtService
+            .Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>()))
+            .Callback<ClaimsPrincipal, int>((p, _) => seen = p)
+            .Returns("refreshed-jwt-token");
+
+        await this._sut.Me();
+
+        Assert.Equal("999", seen?.FindFirst("impersonatedBy")?.Value);
     }
 }
