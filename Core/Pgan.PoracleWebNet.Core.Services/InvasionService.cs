@@ -5,12 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger) : IInvasionService
+public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<InvasionService> logger, ITrackedUidRemapper uidRemapper) : IInvasionService
 {
     private const string TrackingType = "invasion";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<InvasionService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
     public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo)
     {
@@ -58,7 +59,8 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             oldUid,
             original is null ? null : SerializeToElement(original),
             SerializeToElement(model),
-            this._logger);
+            this._logger,
+            this._uidRemapper);
 
         return model;
     }

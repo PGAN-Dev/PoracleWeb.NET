@@ -5,12 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<NestService> logger) : INestService
+public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<NestService> logger, ITrackedUidRemapper uidRemapper) : INestService
 {
     private const string TrackingType = "nest";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<NestService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
     public async Task<IEnumerable<Nest>> GetByUserAsync(string userId, int profileNo)
     {
@@ -50,7 +51,7 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
         // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
         model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+            this._proxy, TrackingType, userId, oldUid, result, this._logger, this._uidRemapper);
 
         return model;
     }

@@ -16,12 +16,13 @@ public class MaxBattleServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly MaxBattleService _sut;
 
     public MaxBattleServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new MaxBattleService(this._proxy.Object, this._featureGate.Object, Mock.Of<ILogger<MaxBattleService>>());
+        this._sut = new MaxBattleService(this._proxy.Object, this._featureGate.Object, Mock.Of<ILogger<MaxBattleService>>(), this._uidRemapper.Object);
     }
 
     [Fact]
@@ -321,5 +322,20 @@ public class MaxBattleServiceTests
         var jsonStr = JsonSerializer.Serialize(items, SnakeCaseOptions);
         using var doc = JsonDocument.Parse(jsonStr);
         return doc.RootElement.Clone();
+    }
+
+    // MaxBattle is insert-only upstream, so every edit rotates the uid and orphans any quick pick
+    // that created the alarm. See #403.
+    [Fact]
+    public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheReplacementRow()
+    {
+        this._proxy.Setup(p => p.DeleteByUidAsync("maxbattle", "user1", 82)).Returns(Task.CompletedTask);
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([83], 0, 0, 1));
+
+        var result = await this._sut.UpdateAsync("user1", new MaxBattle { Uid = 82 });
+
+        Assert.Equal(83, result.Uid);
+        this._uidRemapper.Verify(r => r.RemapAsync("user1", "maxbattle", 82, 83), Times.Once);
     }
 }

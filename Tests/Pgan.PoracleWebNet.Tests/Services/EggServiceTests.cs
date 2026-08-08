@@ -18,11 +18,12 @@ public class EggServiceTests
     private readonly EggService _sut;
 
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
 
     public EggServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new EggService(this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance);
+        this._sut = new EggService(this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._uidRemapper.Object);
     }
 
     [Fact]

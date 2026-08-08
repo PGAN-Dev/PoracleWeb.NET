@@ -16,12 +16,13 @@ public class RaidServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly RaidService _sut;
 
     public RaidServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new RaidService(this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance);
+        this._sut = new RaidService(this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._uidRemapper.Object);
     }
 
     [Fact]
@@ -242,6 +243,32 @@ public class RaidServiceTests
 
         this._proxy.Verify(p => p.DeleteByUidAsync("raid", "user1", 41), Times.Once);
         Assert.Equal(42, result.Uid);
+    }
+
+    // A rotated uid orphans any quick pick that created the alarm: removal deletes by the stored uid,
+    // finds nothing, reports success, and the alarm keeps firing. See #403.
+
+    [Fact]
+    public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheNewRow()
+    {
+        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([42], 0, 0, 1));
+
+        await this._sut.UpdateAsync("user1", new Raid { Uid = 41 });
+
+        this._uidRemapper.Verify(r => r.RemapAsync("user1", "raid", 41, 42), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncDoesNotRemapWhenTheUidSurvivesTheUpsert()
+    {
+        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        await this._sut.UpdateAsync("user1", new Raid { Uid = 41 });
+
+        this._uidRemapper.Verify(
+            r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]

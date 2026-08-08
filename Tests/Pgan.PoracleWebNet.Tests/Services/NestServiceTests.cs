@@ -16,12 +16,13 @@ public class NestServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly NestService _sut;
 
     public NestServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new NestService(this._proxy.Object, this._featureGate.Object, NullLogger<NestService>.Instance);
+        this._sut = new NestService(this._proxy.Object, this._featureGate.Object, NullLogger<NestService>.Instance, this._uidRemapper.Object);
     }
 
     [Fact]

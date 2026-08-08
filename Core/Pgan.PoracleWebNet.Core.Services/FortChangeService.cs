@@ -5,12 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<FortChangeService> logger) : IFortChangeService
+public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<FortChangeService> logger, ITrackedUidRemapper uidRemapper) : IFortChangeService
 {
     private const string TrackingType = "fort";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<FortChangeService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
     public async Task<IEnumerable<FortChange>> GetByUserAsync(string userId, int profileNo)
     {
@@ -50,7 +51,7 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
         // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
         // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
         model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+            this._proxy, TrackingType, userId, oldUid, result, this._logger, this._uidRemapper);
 
         return model;
     }
