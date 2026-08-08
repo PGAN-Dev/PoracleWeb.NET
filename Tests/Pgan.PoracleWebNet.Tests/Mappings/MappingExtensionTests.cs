@@ -512,7 +512,6 @@ public class MappingExtensionTests
             FortType = "pokestop",
             IncludeEmpty = 1,
             ChangeTypes = ["name", "location"],
-            Clean = 1,
             Template = "fortTemplate",
         };
 
@@ -523,7 +522,6 @@ public class MappingExtensionTests
         Assert.Equal("pokestop", model.FortType);
         Assert.Equal(1, model.IncludeEmpty);
         Assert.Equal(["name", "location"], model.ChangeTypes);
-        Assert.Equal(1, model.Clean);
         Assert.Equal("fortTemplate", model.Template);
     }
 
@@ -1205,7 +1203,6 @@ public class MappingExtensionTests
             FortType = "pokestop",
             IncludeEmpty = 1,
             ChangeTypes = ["name", "location"],
-            Clean = 1,
             Template = "origTemplate",
         };
 
@@ -1219,7 +1216,6 @@ public class MappingExtensionTests
         Assert.Equal("pokestop", existing.FortType);
         Assert.Equal(1, existing.IncludeEmpty);
         Assert.Equal(["name", "location"], existing.ChangeTypes);
-        Assert.Equal(1, existing.Clean);
         Assert.Equal("origTemplate", existing.Template);
     }
 
@@ -1234,7 +1230,6 @@ public class MappingExtensionTests
             FortType = "pokestop",
             IncludeEmpty = 1,
             ChangeTypes = ["name", "location"],
-            Clean = 1,
             Template = "origTemplate",
         };
 
@@ -1254,7 +1249,6 @@ public class MappingExtensionTests
         Assert.Equal(60, existing.Uid);
         Assert.Equal("<@orig>", existing.Ping);
         Assert.Equal(150, existing.Distance);
-        Assert.Equal(1, existing.Clean);
         Assert.Equal("origTemplate", existing.Template);
     }
 

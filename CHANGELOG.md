@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Creating a profile with a name you already use did nothing at all** ([#427](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/427)). The dialog detected the clash and set an error message, but Angular Material only renders that slot when the field is in a validation error state, which this one never was — so pressing Create produced no message, no toast and no request, and the only visible change was the character counter disappearing. The clash is now flagged as you type and the Create button disables, so the dead click cannot happen.
+
+### Removed
+- **The auto-delete setting on Fort Change alarms** ([#437](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/437)). PoracleNG has no such field for fort changes, so the toggle was discarded on every save and the badge on the card could never be true. Split out of [#402](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/402), which removed the same dead setting from the Cleaning page.
+
+### Fixed
 - **"Disable Geocoding" did not disable geocoding** ([#420](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/420)). The toggle was stored and shown in admin settings but nothing read it, so an operator who switched it off for privacy or OpenStreetMap terms-of-use reasons was still making outbound Nominatim requests on every address search. It now genuinely stops them: the search and reverse-lookup endpoints refuse, and the location dialog hides its search box rather than showing one that fails. Setting a location by coordinates or on the map still works.
 
 ### Removed

@@ -41,11 +41,6 @@ public class FortChangeUpdate
     }
 
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
-    [Range(0, 7)]
-    public int? Clean
-    {
-        get; set;
-    }
 
     [StringLength(256)]
     public string? Template

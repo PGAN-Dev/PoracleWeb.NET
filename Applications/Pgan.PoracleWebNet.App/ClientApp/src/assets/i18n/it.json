@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Elimina automaticamente la notifica da Discord dopo che l'esca scade",
     "CLEAN_HINT_NEST": "Elimina automaticamente la notifica da Discord quando i nidi migrano",
     "CLEAN_HINT_GYM": "Elimina automaticamente la notifica da Discord dopo che l'attività della palestra cambia",
-    "CLEAN_HINT_FORT": "Elimina automaticamente la notifica da Discord dopo la scadenza",
     "CLEAN_HINT_MAX_BATTLE": "Elimina automaticamente la notifica da Discord dopo che la battaglia max finisce",
     "SAVING": "Salvataggio...",
     "SAVE": "Salva",

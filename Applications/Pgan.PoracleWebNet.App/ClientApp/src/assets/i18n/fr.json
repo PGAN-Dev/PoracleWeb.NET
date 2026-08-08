@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Supprime automatiquement la notification de Discord quand le leurre expire",
     "CLEAN_HINT_NEST": "Supprime automatiquement la notification de Discord quand les nids migrent",
     "CLEAN_HINT_GYM": "Supprime automatiquement la notification de Discord quand l'activité d'arène change",
-    "CLEAN_HINT_FORT": "Supprime automatiquement la notification de Discord après expiration",
     "CLEAN_HINT_MAX_BATTLE": "Supprime automatiquement la notification de Discord quand le combat max se termine",
     "SAVING": "Enregistrement...",
     "SAVE": "Enregistrer",

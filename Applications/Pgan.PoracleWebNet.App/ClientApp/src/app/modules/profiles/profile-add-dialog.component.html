@@ -11,8 +11,8 @@
       [placeholder]="'PROFILES.PROFILE_NAME_PLACEHOLDER' | translate"
       maxlength="32"
       (keyup.enter)="save()" />
-    @if (nameError()) {
-      <mat-error>{{ nameError() }}</mat-error>
+    @if (hasNameConflict()) {
+      <mat-hint class="name-conflict">{{ 'DIALOG.PROMPT_CONFLICT' | translate }}</mat-hint>
     } @else {
       <mat-hint>{{ profileName.length }}/32</mat-hint>
     }
@@ -20,7 +20,7 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim()">
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !profileName.trim() || hasNameConflict()">
     <mat-icon>add</mat-icon> {{ 'PROFILES.CREATE' | translate }}
   </button>
 </mat-dialog-actions>
