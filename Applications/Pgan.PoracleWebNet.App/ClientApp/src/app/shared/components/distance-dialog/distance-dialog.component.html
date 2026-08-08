@@ -27,6 +27,9 @@
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
       <input matInput type="number" [(ngModel)]="distanceKm" min="0.1" step="0.1" />
+      @if (!isValid) {
+        <mat-error>{{ 'DIALOG.DISTANCE_MUST_BE_POSITIVE' | translate }}</mat-error>
+      }
       <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
     </mat-form-field>
   }
@@ -36,5 +39,5 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="apply()">{{ 'DIALOG.DISTANCE_UPDATE_ALL' | translate }}</button>
+  <button mat-raised-button color="primary" [disabled]="!isValid" (click)="apply()">{{ 'DIALOG.DISTANCE_UPDATE_ALL' | translate }}</button>
 </mat-dialog-actions>

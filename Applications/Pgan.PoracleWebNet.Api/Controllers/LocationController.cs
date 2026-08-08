@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -282,10 +283,20 @@ public class LocationController(
 
     public class LocationUpdateRequest
     {
+        /// <remarks>
+        /// Unbounded doubles were written straight to humans.latitude/longitude and the active profile, so
+        /// a location off the globe persisted and then failed silently downstream: weather returned 204 and
+        /// the static map 404 with no explanation, distance matching ran against a point that does not
+        /// exist, and the active-hours scheduler's timezone lookup was meaningless. 1e308 additionally
+        /// produced a 500 rather than a 400. See #423.
+        /// </remarks>
+        [Range(-90.0, 90.0, ErrorMessage = "Latitude must be between -90 and 90.")]
         public double Latitude
         {
             get; set;
         }
+
+        [Range(-180.0, 180.0, ErrorMessage = "Longitude must be between -180 and 180.")]
         public double Longitude
         {
             get; set;

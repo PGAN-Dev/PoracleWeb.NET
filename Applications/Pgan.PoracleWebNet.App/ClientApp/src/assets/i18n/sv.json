@@ -1360,6 +1360,7 @@
     "DISTANCE_TITLE": "Uppdatera alla avstånd",
     "DISTANCE_DESC": "Ange platsläge för alla larm av denna typ.",
     "DISTANCE_UPDATE_ALL": "Uppdatera alla",
+    "DISTANCE_MUST_BE_POSITIVE": "Distance must be greater than zero.",
     "LOCATION_SAVE_ERROR": "Kunde inte uppdatera plats",
     "LOCATION_SAVE_SUCCESS": "Plats uppdaterad",
     "LOCATION_GEO_UNSUPPORTED": "Geolokalisering stöds inte av din webbläsare",

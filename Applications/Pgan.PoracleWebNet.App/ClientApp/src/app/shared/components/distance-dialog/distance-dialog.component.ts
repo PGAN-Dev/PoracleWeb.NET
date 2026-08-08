@@ -33,7 +33,18 @@ export class DistanceDialogComponent {
   distanceKm = 1;
   mode = signal<'areas' | 'distance'>('areas');
 
+  /**
+   * The input carried `min="0.1"` but nothing enforced it -- no validator, no form, no disabled binding --
+   * so typing -5 and pressing Update All sent -5000. PoracleNG clamps the upper bound but not the lower,
+   * and it treats distance > 0 as "use a radius", so a negative silently switched every selected alarm to
+   * area-based delivery while the cards went on showing a negative radius. See #417.
+   */
+  get isValid(): boolean {
+    return this.mode() === 'areas' || (Number.isFinite(this.distanceKm) && this.distanceKm > 0);
+  }
+
   apply(): void {
+    if (!this.isValid) return;
     const meters = this.mode() === 'areas' ? 0 : Math.round(this.distanceKm * 1000);
     this.dialogRef.close(meters);
   }
