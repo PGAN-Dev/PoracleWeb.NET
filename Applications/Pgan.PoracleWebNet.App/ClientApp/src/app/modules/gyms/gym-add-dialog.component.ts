@@ -63,7 +63,6 @@ export class GymAddDialogComponent {
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
-    ping: [''],
     slotChanges: [false],
     template: [''],
   });
@@ -100,7 +99,6 @@ export class GymAddDialogComponent {
         clean: compose(!!v.clean, false, false),
         distance: dist,
         gymId: this.selectedGymId() || null,
-        ping: v.ping || null,
         slotChanges: v.slotChanges ? 1 : 0,
         team,
         template: v.template || null,

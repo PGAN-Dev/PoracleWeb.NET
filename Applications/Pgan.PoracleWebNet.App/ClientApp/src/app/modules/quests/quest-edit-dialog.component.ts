@@ -59,7 +59,6 @@ export class QuestEditDialogComponent {
     clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
-    ping: [this.data.ping ?? ''],
     summary: [isSummary(this.data.clean)],
     template: [this.data.template ?? ''],
   });
@@ -156,7 +155,6 @@ export class QuestEditDialogComponent {
     const update: QuestUpdate = {
       clean: preserve(this.data.clean, AUTO_DELETE | SUMMARY, compose(!!values.clean, false, !!values.summary)),
       distance: distanceMeters,
-      ping: values.ping || null,
       pokemonId: this.data.pokemonId,
       reward: this.data.reward,
       rewardType: this.data.rewardType,

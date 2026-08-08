@@ -119,7 +119,7 @@
               <span class="filter-pill form-pill">{{ getFormName(mb.pokemonId, mb.form) }}</span>
             }
           </div>
-          <app-alarm-info [distance]="mb.distance" [clean]="mb.clean" [template]="mb.template" [ping]="mb.ping" />
+          <app-alarm-info [distance]="mb.distance" [clean]="mb.clean" [template]="mb.template" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button mat-icon-button (click)="editMaxBattle(mb)" [matTooltip]="'COMMON.EDIT' | translate">

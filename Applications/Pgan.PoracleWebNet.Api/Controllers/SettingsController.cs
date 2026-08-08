@@ -29,6 +29,10 @@ public class SettingsController(
     {
         "allowed_languages", "custom_title", "favicon_url", "header_logo_url",
         "hide_header_logo", "signup_url", "site_name",
+        // The custom nav link is public branding, not a credential. Left off this list it reached admins
+        // only -- the one group that least needs it -- so an admin configuring it saw it work and had no
+        // way to tell it was invisible to everyone else. See #513.
+        "custom_page_name", "custom_page_url", "custom_page_icon",
     };
 
     /// <summary>

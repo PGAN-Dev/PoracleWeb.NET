@@ -122,7 +122,6 @@ export class InvasionAddDialogComponent implements OnInit {
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     gender: [0],
-    ping: [''],
     template: [''],
   });
 
@@ -200,7 +199,6 @@ export class InvasionAddDialogComponent implements OnInit {
         // fall back to the user's dropdown choice; fixed-gender rows force 0.
         gender: g.gender ?? (isGenderFixed(g.gruntType) ? 0 : (v.gender ?? 0)),
         gruntType: g.gruntType,
-        ping: v.ping || null,
         template: v.template || null,
       }),
     );

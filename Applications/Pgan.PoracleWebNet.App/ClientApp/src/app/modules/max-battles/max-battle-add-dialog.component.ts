@@ -72,7 +72,6 @@ export class MaxBattleAddDialogComponent {
     distanceMode: [this.alertDefaults.defaultMode()],
     form: [0],
     gmaxOnly: [false],
-    ping: [''],
     template: [''],
   });
 
@@ -145,7 +144,6 @@ export class MaxBattleAddDialogComponent {
           gmax: levelDef?.gmax ? 1 : 0,
           level: levelVal,
           move: 9000,
-          ping: common.ping || '',
           pokemonId: 9000,
           stationId: null,
           template: common.template || '',
@@ -163,7 +161,6 @@ export class MaxBattleAddDialogComponent {
           gmax: common.gmaxOnly ? 1 : 0,
           level: 9000,
           move: 9000,
-          ping: common.ping || '',
           pokemonId,
           stationId: null,
           template: common.template || '',

@@ -17,6 +17,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [EnableRateLimiting("auth")]
 public partial class AuthController(
     IHumanService humanService,
+    IProfileService profileService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
     ISiteSettingService siteSettingService,
@@ -42,6 +43,7 @@ public partial class AuthController(
         ['"', '\'', '«', '»', '“', '”', '„', '‘', '’', ' ', '\t'];
 
     private readonly IHumanService _humanService = humanService;
+    private readonly IProfileService _profileService = profileService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
@@ -716,6 +718,27 @@ public partial class AuthController(
         });
     }
 
+    /// <summary>
+    /// The active profile's name, or null when it cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// Never fails the call: the menu label is cosmetic, and /api/auth/me also carries the enabled flag and
+    /// the profile resync, which matter a great deal more than a name. See #520.
+    /// </remarks>
+    private async Task<string?> ActiveProfileNameAsync(int profileNo)
+    {
+        try
+        {
+            var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
+            return profile?.Name;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            LogProfileNameLookupFailed(this._logger, ex, profileNo);
+            return null;
+        }
+    }
+
     [EnableRateLimiting("auth-read")]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
@@ -736,7 +759,8 @@ public partial class AuthController(
             Enabled = enabled,
             ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null
+            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null,
+            ProfileName = await this.ActiveProfileNameAsync(dbProfileNo),
         };
 
         // Detect JWT/DB profile desync — PoracleNG can change current_profile_no
@@ -1199,6 +1223,11 @@ public partial class AuthController(
 
         return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(baseUrl, present);
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Could not read the name of active profile {ProfileNo}; the user menu falls back to the number.")]
+    private static partial void LogProfileNameLookupFailed(ILogger logger, Exception exception, int profileNo);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Role-based access enabled but Discord BotToken or GuildId not configured.")]
     private static partial void LogRoleMisconfigured(ILogger logger);

@@ -54,7 +54,6 @@ export class NestAddDialogComponent {
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     minSpawnAvg: [0],
-    ping: [''],
     template: [''],
   });
 
@@ -81,7 +80,6 @@ export class NestAddDialogComponent {
         clean: v.clean ? 1 : 0,
         distance: dist,
         minSpawnAvg: v.minSpawnAvg ?? 0,
-        ping: v.ping || null,
         pokemonId,
         template: v.template || null,
       }),

@@ -61,7 +61,6 @@ export class LureAddDialogComponent {
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     editInPlace: [false],
-    ping: [''],
     template: [''],
   });
 
@@ -98,7 +97,6 @@ export class LureAddDialogComponent {
         clean: compose(!!v.clean, !!v.editInPlace, false),
         distance: dist,
         lureId,
-        ping: v.ping || null,
         template: v.template || null,
       }),
     );

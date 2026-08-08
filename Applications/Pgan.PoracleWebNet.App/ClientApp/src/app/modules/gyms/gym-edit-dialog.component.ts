@@ -54,7 +54,6 @@ export class GymEditDialogComponent {
     clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
-    ping: [this.data.ping ?? ''],
     slotChanges: [this.data.slotChanges === 1],
     template: [this.data.template ?? ''],
   });
@@ -97,7 +96,6 @@ export class GymEditDialogComponent {
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
         gymId: this.selectedGymId() || null,
-        ping: v.ping || null,
         slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,
         template: v.template || null,

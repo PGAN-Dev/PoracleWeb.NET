@@ -58,7 +58,6 @@ export class InvasionEditDialogComponent {
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gender: [this.data.gender],
-    ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
 
@@ -117,7 +116,6 @@ export class InvasionEditDialogComponent {
         // also match female Mixed grunts.
         gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
         gruntType: this.data.gruntType ?? '',
-        ping: v.ping || null,
         template: v.template || null,
       } as InvasionUpdate)
       .subscribe({

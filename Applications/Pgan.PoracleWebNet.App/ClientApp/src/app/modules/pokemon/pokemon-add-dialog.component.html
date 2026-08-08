@@ -302,13 +302,6 @@
         </app-delivery-preview>
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
-        @if (isWebhook) {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'ALARM.PING_ROLE' | translate }}</mat-label>
-            <input matInput [formControl]="notifForm.controls.ping" [placeholder]="'ALARM.PING_PLACEHOLDER' | translate" />
-            <mat-hint>{{ 'ALARM.PING_HINT' | translate }}</mat-hint>
-          </mat-form-field>
-        }
 
         <app-template-selector
           [alarmType]="'monster'"

@@ -86,11 +86,6 @@
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(item.distance) }}</span>
             }
           </div>
-          @if (item.ping) {
-            <div class="ping-info">
-              <mat-icon>notifications</mat-icon><span>{{ item.ping }}</span>
-            </div>
-          }
         </mat-card-content>
         <mat-card-actions align="end">
           <button mat-icon-button (click)="editItem(item)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>

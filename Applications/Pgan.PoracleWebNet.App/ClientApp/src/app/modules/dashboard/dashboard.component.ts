@@ -100,18 +100,15 @@ export class DashboardComponent implements OnInit {
 
   private readonly snackBar = inject(MatSnackBar);
 
-  // The dashboard used to load every one of these regardless, so with any of the three switches on it
-  // opened with an error toast for a feature the user had not touched -- and kept rendering buttons that
-  // bounced straight back with the same toast. A disabled feature is simply absent here. See #516.
-  readonly areasEnabled = computed(() => !this.settingsService.isDisabled('disable_areas'));
-  readonly profilesEnabled = computed(() => !this.settingsService.isDisabled('disable_profiles'));
-  readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
-
   readonly alertsPaused = computed(() => {
     const user = this.authService.user();
     return user ? !user.enabled : false;
   });
 
+  // The dashboard used to load every one of these regardless, so with any of the three switches on it
+  // opened with an error toast for a feature the user had not touched -- and kept rendering buttons that
+  // bounced straight back with the same toast. A disabled feature is simply absent here. See #516.
+  readonly areasEnabled = computed(() => !this.settingsService.isDisabled('disable_areas'));
   readonly areaWeather = signal<Record<string, WeatherData>>({});
 
   readonly cards: DashboardCard[] = [
@@ -200,13 +197,16 @@ export class DashboardComponent implements OnInit {
   readonly counts = signal<DashboardCounts | null>(null);
 
   readonly dismissedTips = signal<string[]>(JSON.parse(sessionStorage.getItem('dismissed-tips') || '[]'));
+
   readonly geofencePolygons = signal<GeofenceData[]>([]);
+
   readonly location = signal<Location | null>(null);
   readonly locationAddress = signal<string>('');
-
+  readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
   readonly locationMapUrl = signal<string>('');
 
   readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
+
   readonly profiles = signal<Profile[]>([]);
   readonly profileName = computed(() => {
     const profiles = this.profiles();
@@ -215,6 +215,8 @@ export class DashboardComponent implements OnInit {
     const match = profiles.find(p => p.profileNo === no);
     return match?.name ?? this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
   });
+
+  readonly profilesEnabled = computed(() => !this.settingsService.isDisabled('disable_profiles'));
 
   readonly selectedAreas = signal<string[]>([]);
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));

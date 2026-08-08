@@ -101,7 +101,6 @@ export class PokemonAddDialogComponent implements OnInit {
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
-    ping: [''],
     template: [''],
   });
 
@@ -185,7 +184,6 @@ export class PokemonAddDialogComponent implements OnInit {
           minIv: filters.minIv ?? 0,
           minLevel: filters.minLevel ?? 0,
           minWeight: filters.minWeight ?? 0,
-          ping: notif.ping || null,
           pokemonId,
           pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
           pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
@@ -201,8 +199,12 @@ export class PokemonAddDialogComponent implements OnInit {
     );
 
     forkJoin(creates).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_CREATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      // The server explains exactly what is wrong with a filter it refuses -- which min/max pair is
+      // inverted, say. That message never reached anyone: this handler showed a fixed string, so a
+      // transposed pair produced "failed" with no clue which field to fix. See #496.
+      error: (err: { error?: { error?: string } }) => {
+        const message = err?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_CREATE');
+        this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },
       next: () => {

@@ -17,6 +17,7 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class AuthControllerMeTests : ControllerTestBase
 {
     private readonly Mock<IHumanService> _humanService = new();
+    private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly AuthController _sut;
 
@@ -29,7 +30,7 @@ public class AuthControllerMeTests : ControllerTestBase
 
         var config = new ConfigurationBuilder().Build();
         this._sut = new AuthController(
-            this._humanService.Object,
+            this._humanService.Object, this._profileService.Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
             new Mock<ISiteSettingService>().Object,
@@ -43,6 +44,41 @@ public class AuthControllerMeTests : ControllerTestBase
             Options.Create(new PoracleSettings()),
             config,
             new Mock<ILogger<AuthController>>().Object);
+    }
+
+    /// <summary>
+    /// The SPA renders this in the user menu with a "Profile {n}" fallback and the property did not exist,
+    /// so the fallback fired every time. See #520.
+    /// </summary>
+    [Fact]
+    public async Task MeCarriesTheActiveProfileName()
+    {
+        SetupUser(this._sut, profileNo: 2);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { CurrentProfileNo = 2, Enabled = 1 });
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2))
+            .ReturnsAsync(new Profile { ProfileNo = 2, Name = "Work Profile" });
+
+        var result = await this._sut.Me();
+
+        var userInfo = Assert.IsType<UserInfo>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal("Work Profile", userInfo.ProfileName);
+    }
+
+    /// <summary>The label is cosmetic; the enabled flag and the profile resync are not.</summary>
+    [Fact]
+    public async Task MeStillAnswersWhenTheProfileNameCannotBeRead()
+    {
+        SetupUser(this._sut, profileNo: 2);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { CurrentProfileNo = 2, Enabled = 1 });
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2))
+            .ThrowsAsync(new HttpRequestException("PoracleNG is down"));
+
+        var result = await this._sut.Me();
+
+        var userInfo = Assert.IsType<UserInfo>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Null(userInfo.ProfileName);
     }
 
     [Fact]

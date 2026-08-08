@@ -63,7 +63,6 @@ export class QuestAddDialogComponent {
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
-    ping: [''],
     summary: [false],
     template: [''],
   });
@@ -161,7 +160,6 @@ export class QuestAddDialogComponent {
             this.questService.create({
               clean: cleanValue,
               distance: distanceMeters,
-              ping: common.ping || null,
               pokemonId,
               reward: pokemonId,
               rewardType: 7,
@@ -176,7 +174,6 @@ export class QuestAddDialogComponent {
           this.questService.create({
             clean: cleanValue,
             distance: distanceMeters,
-            ping: common.ping || null,
             pokemonId: 0,
             reward: this.itemForm.controls.reward.value ?? 0,
             rewardType: 2,
@@ -191,7 +188,6 @@ export class QuestAddDialogComponent {
             this.questService.create({
               clean: cleanValue,
               distance: distanceMeters,
-              ping: common.ping || null,
               pokemonId,
               reward: pokemonId,
               rewardType: 12,
@@ -207,7 +203,6 @@ export class QuestAddDialogComponent {
             this.questService.create({
               clean: cleanValue,
               distance: distanceMeters,
-              ping: common.ping || null,
               pokemonId,
               reward: pokemonId,
               rewardType: 4,
