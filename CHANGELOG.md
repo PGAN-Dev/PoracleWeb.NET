@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Editing a Max Battle alarm destroyed its move and evolution filters** ([#412](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/412)). The edit dialog hardcoded `move: 9000` and `evolution: 9000` — the "any" sentinel — while reading every neighbouring field off the existing alarm. Changing the distance, or anything else, therefore reset both filters and widened what the user got alerted on. Neither dialog can set those filters (they come from the bot), so once wiped they could only be restored through the bot or a direct API call, and the card's move pill simply vanished. Both values are now carried through from the existing alarm. The backend was never at fault: `MaxBattleUpdate` treats null as "leave alone", and an update omitting the two fields always preserved them.
+
+### Fixed
 - **"Track all invasions" failed every single time, and so did the "All Invasions" quick pick** ([#416](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/416)). Both asked PoracleNG to track invasions with no grunt type — the toggle posted `gruntType: null` and the quick pick shipped with empty filters — and both were coalesced to an empty string on the way out. PoracleNG has no catch-all: it rejects an empty `grunt_type` with `400 Grunt type mandatory`, which PoracleWeb turned into a generic 500 and a "failed to create" toast. The save button was never disabled, so the feature looked available and was not. Both now fan out over the Team Rocket grunt types, which is what the toggle's own hint already promised ("Creates a single alarm for every grunt type, leader, and Giovanni"). Pokestop event types are excluded — they are not Rocket invasions and have their own section. A missing grunt type is now rejected at the API edge with a 400 that says so, instead of being forwarded upstream to fail.
 
 ### Fixed
