@@ -161,6 +161,75 @@ public class CreateResultSemanticsTests
         await Assert.ThrowsAsync<TrackingConflictException>(
             () => sut.UpdateAsync("u1", new Gym { Id = "u1", Uid = 134, Team = 4, Distance = 500 }));
     }
+    // ── #531: an edit must never be satisfied by merging into a DIFFERENT alarm ────
+
+    /// <summary>
+    /// PoracleNG updates an existing row in place when the submission differs from it only in fields it
+    /// tags updatable -- distance, template, clean, and slot/battle changes on gyms. If that row is not the
+    /// one being edited, the edit overwrites somebody else's alarm and the reconciler then deletes the
+    /// original as superseded: two alarms become one, reported as a clean 200.
+    /// </summary>
+    [Fact]
+    public async Task AnEditThatWouldMergeIntoAnotherAlarmIsRefusedBeforeAnythingIsWritten()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 189, id = "u1", team = 4, gym_id = "", distance = 1500 },
+            new { uid = 190, id = "u1", team = 2, gym_id = "", distance = 8001 }));
+
+        // Moving 189 onto team 2 leaves only distance differing from 190, so PoracleNG would merge them.
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => sut.UpdateAsync("u1", new Gym { Id = "u1", Uid = 189, Team = 2, Distance = 1500 }));
+
+        this._proxy.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+        this._proxy.Verify(
+            p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    /// <summary>
+    /// slot_changes and battle_changes are updatable for gyms, so two alarms differing only there would
+    /// merge as well -- the case the sweep reproduced from the gym edit dialog.
+    /// </summary>
+    [Fact]
+    public async Task AGymEditDifferingOnlyInItsToggleFieldsIsAlsoRefused()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 189, id = "u1", team = 4, slot_changes = 1, battle_changes = 0, distance = 1500 },
+            new { uid = 190, id = "u1", team = 4, slot_changes = 0, battle_changes = 1, distance = 8001 }));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => sut.UpdateAsync("u1", new Gym
+            {
+                Id = "u1",
+                Uid = 189,
+                Team = 4,
+                SlotChanges = 0,
+                BattleChanges = 1,
+                Distance = 1500,
+            }));
+    }
+
+    /// <summary>An edit that collides with nothing must still go through untouched.</summary>
+    [Fact]
+    public async Task AnEditThatCollidesWithNothingIsUnaffected()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 189, id = "u1", team = 4, distance = 1500 },
+            new { uid = 190, id = "u1", team = 2, distance = 8001 }));
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([191], 0, 1, 0));
+
+        var result = await sut.UpdateAsync("u1", new Gym { Id = "u1", Uid = 189, Team = 3, Distance = 1500 });
+
+        Assert.Equal(191, result.Uid);
+    }
+
     // ── #462: a colliding natural-key edit must not destroy either alarm ─────
 
     [Fact]

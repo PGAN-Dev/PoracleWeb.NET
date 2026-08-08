@@ -103,6 +103,119 @@ internal static partial class TrackingUpdateReconciler
     }
 
     /// <summary>
+    /// Refuses an edit that PoracleNG would satisfy by merging into a DIFFERENT alarm.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG decides what to do with a submitted row by diffing it against the existing ones
+    /// (diffTracking in processor/internal/api/tracking.go). When the only differences are in fields it
+    /// tags <c>diff:"update"</c>, it updates that existing row in place and re-keys it -- answering
+    /// {insert:0, updates:1, newUids:[new]}. If the row it picked is not the one being edited, the edit
+    /// has just overwritten somebody else's alarm, and the reconciler below then deleted the original as
+    /// "superseded": two alarms became one, the victim's radius replaced by the editor's, reported as a
+    /// clean 200. Reachable from the ordinary edit dialogs -- changing a raid's team, a gym's slot or
+    /// battle toggles, an egg's level, a fort-change's change types. Lures and invasions were never
+    /// exposed because they carry their own pre-flight checks from #462.
+    /// <para>
+    /// The updatable set is uniform upstream -- template, distance and clean, plus slot_changes and
+    /// battle_changes on gyms -- so the collision test is the same for every type: equal on everything
+    /// else means PoracleNG will merge them.
+    /// </para>
+    /// </remarks>
+    public static async Task EnsureNoMergeIntoAnotherAlarmAsync(
+        IPoracleTrackingProxy proxy,
+        string trackingType,
+        string userId,
+        int oldUid,
+        JsonElement submitted)
+    {
+        if (oldUid <= 0 || submitted.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        JsonElement rows;
+        try
+        {
+            rows = await proxy.GetByUserAsync(trackingType, userId);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // Cannot see the siblings, so cannot rule a collision in or out. Let the edit through rather
+            // than refuse a legitimate one on a transport error; the pre-existing behaviour applies.
+            return;
+        }
+
+        if (rows.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var row in rows.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object
+                || !row.TryGetProperty("uid", out var uid)
+                || uid.ValueKind != JsonValueKind.Number
+                || uid.GetInt32() == oldUid)
+            {
+                continue;
+            }
+
+            if (WouldMergeInto(submitted, row, trackingType))
+            {
+                throw new TrackingConflictException(
+                    trackingType,
+                    "Another alarm of this type already uses those settings. Edit or remove that one instead.");
+            }
+        }
+    }
+
+    /// <summary>Fields whose value never distinguishes two alarms.</summary>
+    private static readonly HashSet<string> NotPartOfIdentity = new(StringComparer.Ordinal)
+    {
+        // Assigned by PoracleNG, or rendered by it from the rest.
+        "uid", "id", "profile_no", "description",
+        // Never persisted (see #494).
+        "ping",
+        // diff:"update" upstream -- differing here is what makes PoracleNG merge rather than insert.
+        "distance", "template", "clean",
+    };
+
+    /// <summary>Gyms additionally treat these two as updatable.</summary>
+    private static readonly HashSet<string> GymUpdatableFields = new(StringComparer.Ordinal)
+    {
+        "slot_changes", "battle_changes",
+    };
+
+    private static bool WouldMergeInto(JsonElement submitted, JsonElement existing, string trackingType)
+    {
+        var isGym = string.Equals(trackingType, "gym", StringComparison.Ordinal);
+
+        foreach (var field in submitted.EnumerateObject())
+        {
+            if (NotPartOfIdentity.Contains(field.Name)
+                || (isGym && GymUpdatableFields.Contains(field.Name)))
+            {
+                continue;
+            }
+
+            // A field the stored row does not carry cannot tell the two apart.
+            if (!existing.TryGetProperty(field.Name, out var storedValue))
+            {
+                continue;
+            }
+
+            // Compare what PoracleNG will STORE, not what was sent: it rewrites some values on the way
+            // in, and it diffs the rewritten row. Comparing the raw submission made every collision
+            // look like a difference, which is exactly how the destructive merge got through.
+            if (!SameValue(NormalizeForStorage(field, submitted, trackingType), storedValue))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    /// <summary>
     /// True when the row being edited already holds every value the update submitted, so PoracleNG's
     /// "already present" was the row colliding with itself rather than with a different alarm.
     /// </summary>
@@ -198,9 +311,40 @@ internal static partial class TrackingUpdateReconciler
     /// back as the string <c>["name"]</c> -- which is why the models carry StringOrArrayConverter. A byte
     /// comparison would call that unchanged list a change.
     /// </remarks>
+    /// <summary>
+    /// Applies the rewrites PoracleNG performs before it stores a submitted field.
+    /// </summary>
+    /// <remarks>
+    /// Raids and max battles force <c>level</c> to 9000 unless the alarm tracks any boss
+    /// (trackingRaid.go:217-219, trackingMaxbattle.go:137-139). Nothing else in the identity set is
+    /// rewritten -- the updatable fields are excluded from the comparison already.
+    /// </remarks>
+    private static JsonElement NormalizeForStorage(JsonProperty field, JsonElement submitted, string trackingType)
+    {
+        var levelIsForced = string.Equals(field.Name, "level", StringComparison.Ordinal)
+            && (string.Equals(trackingType, "raid", StringComparison.Ordinal)
+                || string.Equals(trackingType, "maxbattle", StringComparison.Ordinal))
+            && submitted.TryGetProperty("pokemon_id", out var pokemonId)
+            && pokemonId.ValueKind == JsonValueKind.Number
+            && pokemonId.GetInt32() != AnyPokemonId;
+
+        return levelIsForced ? AnyLevelElement : field.Value;
+    }
+
+    private const int AnyPokemonId = 9000;
+
+    private static readonly JsonElement AnyLevelElement =
+        JsonDocument.Parse("9000").RootElement.Clone();
+
     private static bool SameValue(JsonElement submitted, JsonElement stored)
     {
         if (JsonElement.DeepEquals(submitted, stored))
+        {
+            return true;
+        }
+
+        // null and "" are the same absence: the models use null for "any gym", PoracleNG stores "".
+        if (IsBlank(submitted) && IsBlank(stored))
         {
             return true;
         }
@@ -212,6 +356,10 @@ internal static partial class TrackingUpdateReconciler
 
         return false;
     }
+
+    private static bool IsBlank(JsonElement value) =>
+        value.ValueKind == JsonValueKind.Null
+        || (value.ValueKind == JsonValueKind.String && string.IsNullOrEmpty(value.GetString()));
 
     private static bool TryParse(string? text, out JsonElement parsed)
     {

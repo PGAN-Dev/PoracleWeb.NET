@@ -60,6 +60,12 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.FortChanges);
         var oldUid = model.Uid;
         var body = SerializeToElement(model);
+
+        // Refuse before writing: PoracleNG would satisfy this by merging into the other alarm and
+        // the reconciler would then delete this one, losing a row the user never touched. See #531.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, oldUid, body);
+
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,

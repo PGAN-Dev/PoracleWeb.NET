@@ -21,10 +21,15 @@ public class QuickPickServiceSecurityTests
     private readonly Mock<IGymService> _gymService = new();
     private readonly Mock<IMaxBattleService> _maxBattleService = new();
     private readonly Mock<IMasterDataService> _masterDataService = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly Mock<ILogger<QuickPickService>> _logger = new();
     private readonly QuickPickService _sut;
 
-    public QuickPickServiceSecurityTests() => this._sut = new QuickPickService(
+    public QuickPickServiceSecurityTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        this._sut = new QuickPickService(
             this._definitionRepository.Object,
             this._appliedStateRepository.Object,
             this._monsterService.Object,
@@ -37,7 +42,9 @@ public class QuickPickServiceSecurityTests
             this._gymService.Object,
             this._maxBattleService.Object,
             this._masterDataService.Object,
+            this._featureGate.Object,
             this._logger.Object);
+    }
 
     // --- Ownership on the write path ---
     // CreateOrUpdateAsync upserts on Id alone and the Id comes from the request body, so without an

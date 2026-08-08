@@ -36,7 +36,17 @@ public class QuickPickDefaultsTests
             new Mock<IGymService>().Object,
             new Mock<IMaxBattleService>().Object,
             new Mock<IMasterDataService>().Object,
+            FeatureGateAlwaysOn(),
             new Mock<ILogger<QuickPickService>>().Object);
+
+    /// <summary>A gate with every feature on, so these tests exercise the pick logic itself.</summary>
+    private static IFeatureGate FeatureGateAlwaysOn()
+    {
+        var gate = new Mock<IFeatureGate>();
+        gate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        gate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        return gate.Object;
+    }
 
     [Fact]
     public async Task DefaultInvasionPicksUseValidGruntTypes()
