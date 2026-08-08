@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **"Disable Geocoding" did not disable geocoding** ([#420](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/420)). The toggle was stored and shown in admin settings but nothing read it, so an operator who switched it off for privacy or OpenStreetMap terms-of-use reasons was still making outbound Nominatim requests on every address search. It now genuinely stops them: the search and reverse-lookup endpoints refuse, and the location dialog hides its search box rather than showing one that fails. Setting a location by coordinates or on the map still works.
+
+### Removed
+- **Two admin toggles that never did anything** ([#420](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/420)). "Disable Map View" and "Disable Map Area Selection" describe a PoracleJS map picker that PoracleWeb does not have, so there was nothing to connect them to. Guessing at a meaning would have been worse than removing them. Any values already saved are ignored and harmless.
+
+### Fixed
 - **A geofence approval that Koji rejected returned an unexplained 500** ([#422](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/422)). Approving with a region Koji does not recognise — or approving at all while Koji is unreachable, or after a region was deleted since the picker loaded — produced "An unexpected error occurred." with nothing to act on. The region is now checked before anything is sent, and a bad one is named in a 400. Any other Koji failure returns 502 saying the geofence server rejected the request, rather than looking like a bug in PoracleWeb. The submission is left untouched either way, so it can be retried.
 
 ### Fixed

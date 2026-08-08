@@ -17,6 +17,7 @@ import { debounceTime, switchMap, takeUntil, filter, distinctUntilChanged } from
 import { Location, GeocodingResult } from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
+import { SettingsService } from '../../../core/services/settings.service';
 
 @Component({
   imports: [
@@ -49,17 +50,25 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   });
 
   private readonly locationService = inject(LocationService);
-
   private map: L.Map | null = null;
 
   private readonly mapContainerRef = viewChild<ElementRef<HTMLElement>>('mapContainer');
-  private marker: L.Marker | null = null;
-  private readonly search$ = new Subject<string>();
 
+  private marker: L.Marker | null = null;
+
+  private readonly search$ = new Subject<string>();
+  private readonly settingsService = inject(SettingsService);
   private skipNextReverse = false;
+
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Location | null>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<LocationDialogComponent>);
+  /**
+   * When the operator has switched off geocoding, hide the address search rather than let it 403.
+   * A feature-disabled 403 makes the error interceptor navigate to /dashboard, which would throw the
+   * user out of this dialog mid-edit. Coordinates and the map still work. See #420.
+   */
+  readonly geocodingDisabled = this.settingsService.isDisabled('disable_nominatim');
   latitude = this.data?.latitude ?? 0;
   readonly locating = signal(false);
 

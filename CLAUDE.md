@@ -224,7 +224,9 @@ Non-alarm features follow the same rules, minus the tracking-type dictionary: ad
 
 Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT profile resync keeps working and PoracleNG's active-hours scheduler can still move a user between profiles.
 
-Four keys exist in the admin UI that PoracleWeb never implemented — `disable_nominatim`, `disable_geomap`, `disable_geomap_select`, `disable_userlist`. They are legacy PoracleJS `pweb_settings` keys carried over by `SettingsMigrationService` and are read by nothing in this codebase, front or back. They are inert toggles that mislead operators (notably `disable_nominatim`, which does **not** stop third-party geocoding), and should be removed from the admin settings UI rather than given invented server-side semantics.
+`disable_nominatim` **is** implemented (#420): it gates the two geocode actions on `LocationController`, so switching it off genuinely stops the outbound Nominatim/OpenStreetMap calls, and the location dialog hides its address search rather than firing a request that would 403 and bounce the user to the dashboard. It is gated per-action rather than per-controller because the controller itself is already gated by `disable_location`.
+
+`disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (the migration carries `admin_disable_userlist` as a legacy key only).
 
 **Adding a new alarm type? Wire it through all four layers:**
 

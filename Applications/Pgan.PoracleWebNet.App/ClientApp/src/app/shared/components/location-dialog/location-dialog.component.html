@@ -3,38 +3,40 @@
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
 <mat-dialog-content>
-  <!-- Address Search -->
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>{{ 'DIALOG.LOCATION_SEARCH' | translate }}</mat-label>
-    <mat-icon matPrefix>search</mat-icon>
-    <input
-      matInput
-      [matAutocomplete]="auto"
-      [(ngModel)]="searchQuery"
-      (ngModelChange)="onSearchChange($event)"
-      [placeholder]="'DIALOG.LOCATION_SEARCH_PLACEHOLDER' | translate" />
-    @if (searching()) {
-      <mat-icon matSuffix class="spin">sync</mat-icon>
-    }
-    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="selectResult($event.option.value)" class="address-autocomplete">
-      @for (result of searchResults(); track $index) {
-        <mat-option [value]="result" class="address-option">
-          <div class="address-option-content">
-            <mat-icon class="address-option-icon">{{ getPlaceIcon(result) }}</mat-icon>
-            <div class="address-option-text">
-              <span class="address-primary">{{ getAddressPrimary(result) }}</span>
-              <span class="address-secondary">{{ getAddressSecondary(result) }}</span>
+  @if (!geocodingDisabled) {
+    <!-- Address Search -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'DIALOG.LOCATION_SEARCH' | translate }}</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        [matAutocomplete]="auto"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange($event)"
+        [placeholder]="'DIALOG.LOCATION_SEARCH_PLACEHOLDER' | translate" />
+      @if (searching()) {
+        <mat-icon matSuffix class="spin">sync</mat-icon>
+      }
+      <mat-autocomplete #auto="matAutocomplete" (optionSelected)="selectResult($event.option.value)" class="address-autocomplete">
+        @for (result of searchResults(); track $index) {
+          <mat-option [value]="result" class="address-option">
+            <div class="address-option-content">
+              <mat-icon class="address-option-icon">{{ getPlaceIcon(result) }}</mat-icon>
+              <div class="address-option-text">
+                <span class="address-primary">{{ getAddressPrimary(result) }}</span>
+                <span class="address-secondary">{{ getAddressSecondary(result) }}</span>
+              </div>
             </div>
-          </div>
-        </mat-option>
-      }
-      @if (searchResults().length === 0 && searching()) {
-        <mat-option disabled>
-          <span class="autocomplete-option">{{ 'DIALOG.LOCATION_SEARCHING' | translate }}</span>
-        </mat-option>
-      }
-    </mat-autocomplete>
-  </mat-form-field>
+          </mat-option>
+        }
+        @if (searchResults().length === 0 && searching()) {
+          <mat-option disabled>
+            <span class="autocomplete-option">{{ 'DIALOG.LOCATION_SEARCHING' | translate }}</span>
+          </mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+  }
 
   <!-- Lat/Lng Fields -->
   <div class="location-form">
