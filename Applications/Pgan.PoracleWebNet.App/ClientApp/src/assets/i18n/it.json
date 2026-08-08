@@ -259,6 +259,7 @@
     "PVP_MIN_CP_HINT": "Avvisa solo se i CP da evoluto raggiungono questo minimo",
     "PVP_DISABLED_HINT": "Seleziona una lega per filtrare per rango PVP.",
     "SNACK_CREATED": "{{count}} allarme/i Pokemon creato/i",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} allarme/i Pokemon creato/i, {{duplicates}} gia tracciato/i",
     "SNACK_UPDATED": "Allarme Pokemon aggiornato",
     "SNACK_DELETED": "Allarme Pokemon eliminato",
     "SNACK_DELETED_ALL": "Tutti gli allarmi Pokemon eliminati",

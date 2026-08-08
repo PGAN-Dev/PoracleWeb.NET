@@ -207,9 +207,18 @@ export class PokemonAddDialogComponent implements OnInit {
         this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_CREATED', { count: creates.length }), this.i18n.instant('COMMON.OK'), {
-          duration: 3000,
+      // Poracle answers 200 with uid 0 for a submission that duplicates an alarm the user already has,
+      // so nothing was created. Counting the submissions claimed every selected Pokemon was added while
+      // the list grew by fewer, or by none. Count what came back instead. See #495.
+      next: (results: { uid: number }[]) => {
+        const created = results.filter(r => r?.uid > 0).length;
+        const duplicates = results.length - created;
+        const message =
+          duplicates > 0
+            ? this.i18n.instant('POKEMON.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
+            : this.i18n.instant('POKEMON.SNACK_CREATED', { count: created });
+        this.snackBar.open(message, this.i18n.instant('COMMON.OK'), {
+          duration: 4000,
         });
         this.dialogRef.close(true);
       },

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
@@ -66,12 +67,18 @@ public partial class QuickPickService(
 
         foreach (var definition in allDefinitions)
         {
-            if (!definition.Enabled)
+            var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, definition.Id);
+
+            // A disabled pick used to be skipped before the applied state was even looked up, so a pick
+            // the caller had already applied vanished from the list the moment it was disabled -- while
+            // its alarms stayed. This page is the only place Remove exists, so the user was left with
+            // alarms they could not un-apply and nothing to say where they came from; an admin disabling
+            // a global pick did that to everyone who had applied it. Disabled means "cannot be applied",
+            // not "cannot be undone", so it stays listed while it still owns something. See #508.
+            if (!definition.Enabled && appliedState is null)
             {
                 continue;
             }
-
-            var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, definition.Id);
 
             // Verify tracked alarms still exist — if all deleted manually, clear applied state
             if (appliedState?.TrackedUids is { Count: > 0 })
@@ -241,6 +248,13 @@ public partial class QuickPickService(
         string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
     {
         var definition = await this.LoadDefinitionAsync(userId, quickPickId) ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
+
+        // A disabled pick now stays listed while it still owns alarms, so that Remove remains reachable
+        // (#508). It must not be appliable from there.
+        if (!definition.Enabled)
+        {
+            throw new AlarmValidationException("That quick pick is disabled and cannot be applied.");
+        }
 
         // Snapshot first: the tracked set is what this apply ADDED, not what the create calls
         // reported. PoracleNG hands back the existing row's uid when a pick matches an alarm the
@@ -466,6 +480,35 @@ public partial class QuickPickService(
         }
     }
 
+    /// <summary>
+    /// Runs the checks a model-bound POST would have run on an alarm built from quick-pick filters.
+    /// </summary>
+    /// <remarks>
+    /// Applying a pick builds the alarm in code and hands it straight to the alarm service, so none of the
+    /// DataAnnotations that ASP.NET applies to a bound request ever ran: values POST /api/monsters refuses
+    /// with a 400 -- minIv 500, say -- were persisted verbatim, producing an alarm that can never match
+    /// anything and notifies nothing, with no error anywhere. A quick pick is not a side door around the
+    /// model's own rules. See #507.
+    /// </remarks>
+    private static void EnsureValidAlarm(object alarm)
+    {
+        var results = new List<ValidationResult>();
+        if (!Validator.TryValidateObject(alarm, new ValidationContext(alarm), results, validateAllProperties: true))
+        {
+            throw new AlarmValidationException(
+                "This quick pick holds a filter value the alarm does not accept: "
+                + (results[0].ErrorMessage ?? "value out of range"));
+        }
+
+        if (alarm is Monster monster)
+        {
+            var inverted = MonsterRangeValidator.Validate(monster);
+            if (inverted is not null)
+            {
+                throw new AlarmValidationException($"This quick pick holds an impossible filter: {inverted}");
+            }
+        }
+    }
     private static Monster BuildMonster(Dictionary<string, object?> filters, int pokemonId, int profileNo, QuickPickApplyRequest request)
     {
         // Start with sensible defaults (matching the add dialog defaults)
@@ -528,6 +571,8 @@ public partial class QuickPickService(
             monster.Template = request.Template;
         }
 
+        EnsureValidAlarm(monster);
+
         return monster;
     }
 
@@ -571,6 +616,8 @@ public partial class QuickPickService(
             raid.Template = request.Template;
         }
 
+        EnsureValidAlarm(raid);
+
         return raid;
     }
 
@@ -581,6 +628,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var egg = JsonSerializer.Deserialize<Egg>(json, JsonOptions) ?? new Egg();
+        EnsureValidAlarm(egg);
 
         egg.ProfileNo = profileNo;
 
@@ -610,6 +658,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var quest = JsonSerializer.Deserialize<Quest>(json, JsonOptions) ?? new Quest();
+        EnsureValidAlarm(quest);
 
         quest.ProfileNo = profileNo;
 
@@ -693,6 +742,8 @@ public partial class QuickPickService(
             invasion.Template = request.Template;
         }
 
+        EnsureValidAlarm(invasion);
+
         return invasion;
     }
 
@@ -703,6 +754,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var lure = JsonSerializer.Deserialize<Lure>(json, JsonOptions) ?? new Lure();
+        EnsureValidAlarm(lure);
 
         lure.ProfileNo = profileNo;
 
@@ -732,6 +784,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var nest = JsonSerializer.Deserialize<Nest>(json, JsonOptions) ?? new Nest();
+        EnsureValidAlarm(nest);
 
         nest.ProfileNo = profileNo;
 
@@ -761,6 +814,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var gym = JsonSerializer.Deserialize<Gym>(json, JsonOptions) ?? new Gym();
+        EnsureValidAlarm(gym);
 
         gym.ProfileNo = profileNo;
 
@@ -837,6 +891,8 @@ public partial class QuickPickService(
         {
             maxBattle.Template = request.Template;
         }
+
+        EnsureValidAlarm(maxBattle);
 
         return maxBattle;
     }
