@@ -311,4 +311,42 @@ public class RaidServiceTests
         this._proxy.Verify(p => p.DeleteByUidAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 
+    // PoracleNG re-keys a row on edit while reporting insert:0 / updates:1 and putting the new uid in
+    // newUids -- verified against it directly. The reconciler used to gate on Inserts > 0, so it
+    // returned the DEAD uid and skipped the remap. See #460, #464.
+
+    [Fact]
+    public async Task UpdateAsyncReportsTheNewUidWhenPoracleNgReKeysWithoutReportingAnInsert()
+    {
+        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([418], 0, 1, 0));
+
+        var result = await this._sut.UpdateAsync("user1", new Raid { Uid = 417 });
+
+        Assert.Equal(418, result.Uid);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncRemapsQuickPickUidsWhenPoracleNgReKeysWithoutReportingAnInsert()
+    {
+        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([418], 0, 1, 0));
+
+        await this._sut.UpdateAsync("user1", new Raid { Uid = 417 });
+
+        this._uidRemapper.Verify(r => r.RemapAsync("user1", "raid", 417, 418), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncStillLeavesTheUidAloneWhenPoracleNgReturnsNoNewUid()
+    {
+        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        var result = await this._sut.UpdateAsync("user1", new Raid { Uid = 417 });
+
+        Assert.Equal(417, result.Uid);
+        this._uidRemapper.Verify(
+            r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+    }
 }
