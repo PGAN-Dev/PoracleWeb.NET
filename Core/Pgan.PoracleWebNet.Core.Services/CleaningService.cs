@@ -13,6 +13,12 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate f
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
     private readonly IFeatureGate _featureGate = featureGate;
 
+    /// <summary>
+    /// Tracking types whose PoracleNG create only ever inserts, so a re-POST duplicates rather than
+    /// updates. Everything else upserts on <c>uid</c>.
+    /// </summary>
+    private static readonly HashSet<string> InsertOnlyTypes = new(StringComparer.Ordinal) { "maxbattle" };
+
     public async Task<Dictionary<string, bool>> GetCleanStatusAsync(string userId, int profileNo)
     {
         var allTracking = await this._trackingProxy.GetAllTrackingAsync(userId);
@@ -27,7 +33,6 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate f
             ["lures"] = AllClean(allTracking, "lure"),
             ["nests"] = AllClean(allTracking, "nest"),
             ["gyms"] = AllClean(allTracking, "gym"),
-            ["fortChanges"] = AllClean(allTracking, "fort"),
             ["maxbattles"] = AllClean(allTracking, "maxbattle"),
         };
     }
@@ -59,8 +64,6 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate f
     public async Task<int> ToggleCleanMaxBattlesAsync(string userId, int profileNo, int clean) =>
         await this.ToggleCleanAsync("maxbattle", userId, clean);
 
-    public async Task<int> ToggleCleanFortChangesAsync(string userId, int profileNo, int clean) =>
-        await this.ToggleCleanAsync("fort", userId, clean);
 
     /// <summary>
     /// Workaround: PoracleNG has no bulk clean toggle endpoint. We fetch all alarms of the type,
@@ -104,6 +107,34 @@ public class CleaningService(IPoracleTrackingProxy trackingProxy, IFeatureGate f
         }
 
         var body = JsonSerializer.SerializeToElement(updatedAlarms);
+
+        // PoracleNG's maxbattle create is insert-only -- it has no upsert path -- so re-POSTing the
+        // modified set inserted a full duplicate of every alarm and left the originals untouched.
+        // One click per duplicate set, unbounded. Free the rows first for that type only; the others
+        // upsert on uid and must not be deleted.
+        if (InsertOnlyTypes.Contains(type))
+        {
+            var uids = trackingJson.EnumerateArray()
+                .Where(a => a.TryGetProperty("uid", out var u) && u.ValueKind == JsonValueKind.Number)
+                .Select(a => a.GetProperty("uid").GetInt32())
+                .ToList();
+
+            await this._trackingProxy.BulkDeleteByUidsAsync(type, userId, uids);
+
+            try
+            {
+                await this._trackingProxy.CreateAsync(type, userId, body);
+            }
+            catch
+            {
+                // Put the originals back rather than leaving the user with no alarms at all.
+                await this._trackingProxy.CreateAsync(type, userId, trackingJson);
+                throw;
+            }
+
+            return count;
+        }
+
         await this._trackingProxy.CreateAsync(type, userId, body);
 
         return count;

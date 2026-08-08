@@ -2,17 +2,21 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
 public class CleaningControllerTests : ControllerTestBase
 {
     private readonly Mock<ICleaningService> _service = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly CleaningController _sut;
 
     public CleaningControllerTests()
     {
-        this._sut = new CleaningController(this._service.Object);
+        // Everything enabled unless a test says otherwise.
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        this._sut = new CleaningController(this._service.Object, this._featureGate.Object);
         SetupUser(this._sut);
     }
 
@@ -65,6 +69,36 @@ public class CleaningControllerTests : ControllerTestBase
 
         var bad = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Contains("Unknown alarm type", System.Text.Json.JsonSerializer.Serialize(bad.Value), StringComparison.Ordinal);
+    }
+
+
+    // --- Bulk toggle applied partially then 403'd (#402) ---
+
+    [Fact]
+    public async Task ToggleAllSkipsDisabledTypesInsteadOfFailingMidway()
+    {
+        SetupUser(this._sut);
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.Lures)).ReturnsAsync(false);
+        this._service.Setup(s => s.ToggleCleanMonstersAsync(It.IsAny<string>(), It.IsAny<int>(), 1)).ReturnsAsync(3);
+
+        var result = await this._sut.ToggleAll(1);
+
+        Assert.IsType<OkObjectResult>(result);
+        // The disabled type is skipped, not thrown on, so the rest still apply.
+        this._service.Verify(s => s.ToggleCleanLuresAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        this._service.Verify(s => s.ToggleCleanMonstersAsync(It.IsAny<string>(), It.IsAny<int>(), 1), Times.Once);
+        this._service.Verify(s => s.ToggleCleanGymsAsync(It.IsAny<string>(), It.IsAny<int>(), 1), Times.Once);
+    }
+
+    [Fact]
+    public async Task ToggleCleanRejectsFortChangesWhichCannotStoreTheFlag()
+    {
+        SetupUser(this._sut);
+
+        var result = await this._sut.ToggleClean("fortchanges", 1);
+
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
 }
