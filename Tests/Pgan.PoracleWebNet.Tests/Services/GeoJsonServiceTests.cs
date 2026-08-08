@@ -411,4 +411,37 @@ public class GeoJsonServiceTests
         Assert.Single(result.Errors);
         Assert.Contains("Maximum 10", result.Errors[0].Reason);
     }
+
+    // ── Malformed stored polygons (#410) ────────────────────────────────────────
+    // Rows written before create validated point arity are still in the database. Projecting one threw
+    // IndexOutOfRangeException and 500'd the caller's entire export until they worked out which geofence
+    // to delete.
+
+    [Fact]
+    public async Task ExportAsyncSkipsAMalformedPolygonInsteadOfThrowing()
+    {
+        this._userGeofenceService.Setup(u => u.GetByUserAsync("u1")).ReturnsAsync(
+        [
+            new UserGeofence { KojiName = "good", DisplayName = "Good", GroupName = "g", Polygon = TriangleLatLon() },
+            new UserGeofence { KojiName = "bad", DisplayName = "Bad", GroupName = "g", Polygon = [[1.0], [2.0], [3.0]] }
+        ]);
+
+        var result = await this._sut.ExportAsync("u1");
+
+        Assert.Single(result.Features);
+        Assert.Equal("good", result.Features[0].Properties!["name"].GetString());
+    }
+
+    [Fact]
+    public async Task ExportAsyncSkipsOutOfRangeCoordinates()
+    {
+        this._userGeofenceService.Setup(u => u.GetByUserAsync("u1")).ReturnsAsync(
+        [
+            new UserGeofence { KojiName = "bad", DisplayName = "Bad", GroupName = "g", Polygon = [[999, -999], [998, -998], [997, -997]] }
+        ]);
+
+        var result = await this._sut.ExportAsync("u1");
+
+        Assert.Empty(result.Features);
+    }
 }
