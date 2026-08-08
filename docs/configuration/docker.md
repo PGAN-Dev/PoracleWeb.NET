@@ -84,4 +84,4 @@ docker build --no-cache -t poracleweb.net:latest .
 ```
 
 !!! warning "Building from source builds whatever is checked out"
-    These commands build your working tree. On a fresh clone that is `main` — the beta channel, which carries merged-but-unreleased work. Check out a release tag first (`git checkout "$(git describe --tags --abbrev=0)"`), or skip the build entirely and use the published `ghcr.io/pgan-dev/poracleweb.net:latest` image, which only moves when a release is published.
+    These commands build your working tree. On a fresh clone that is `main`, which tracks releases; on `develop` it is unreleased work. Check out a release tag first (`git checkout "$(git describe --tags --abbrev=0)"`), or skip the build entirely and use the published `ghcr.io/pgan-dev/poracleweb.net:latest` image, which only moves when a release is published.

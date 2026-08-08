@@ -38,7 +38,7 @@ You'll configure everything in a single `.env` file at the project root and run 
     git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git
     cd PoracleWeb.NET
 
-    # Check out the newest release. `main` is the beta channel and carries
+    # Check out the newest release. `develop` is the beta channel and carries
     # merged-but-unreleased work.
     git checkout "$(git describe --tags --abbrev=0)"
 

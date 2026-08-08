@@ -375,6 +375,17 @@ PoracleNG can change `current_profile_no` outside of PoracleWeb — the active-h
 ### JWT Generation (IJwtService)
 JWT token generation is centralized in `IJwtService` / `JwtService` (singleton). Three methods: `GenerateToken(UserInfo)` for fresh tokens, `GenerateImpersonationToken(UserInfo, impersonatedBy)` for admin impersonation, and `GenerateTokenWithReplacedProfile(ClaimsPrincipal, profileNo)` for profile switches. The latter filters out registered JWT claims (`exp`, `nbf`, `iat`, `iss`, `aud`) before copying to prevent stale claim duplication. All controllers (`AuthController`, `ProfileController`, `ProfileOverviewController`, `AdminController`) use this service — no inline JWT generation.
 
+## Branching
+
+| Branch | Purpose |
+|---|---|
+| `main` | Released code. Only moves when a release is merged. Publishes `:latest`, which prod's watchtower auto-deploys. A plain `git clone` lands here, so self-hosters get released code. |
+| `develop` | Integration. **Open pull requests against this.** Publishes `:beta` on every merge, which the dev instance auto-deploys. |
+
+Cutting a release: merge `develop` into `main`, then publish a GitHub release. `release-changelog.yml` opens a PR promoting `[Unreleased]` to the new version section, and `docker-publish.yml` pushes `:latest`.
+
+`ci.yml` and `changelog.yml` run for pushes and PRs on **both** branches -- a workflow filtered to one branch means PRs into the other run with no checks at all and merge looking green (this happened to #394 while it was stacked on another branch).
+
 ## Build & Run
 
 ### Using convenience scripts (recommended)

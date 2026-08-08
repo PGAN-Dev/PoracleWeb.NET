@@ -56,12 +56,12 @@ jobs:
               }
             }
 
-  prune-main-shas:
+  prune-develop-shas:
     runs-on: ubuntu-latest
     permissions:
       packages: write
     steps:
-      - name: Keep only last 10 main-<sha> images
+      - name: Keep only last 10 develop-<sha> images
         uses: actions/delete-package-versions@v5
         with:
           package-name: poracleweb.net
