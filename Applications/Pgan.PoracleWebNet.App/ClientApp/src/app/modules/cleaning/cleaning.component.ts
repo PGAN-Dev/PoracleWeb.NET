@@ -121,15 +121,6 @@ export class CleaningComponent implements OnInit {
       type: 'gyms',
     },
     {
-      color: '#795548',
-      descriptionKey: 'CLEANING.FORT_CHANGES_DESC',
-      enabled: signal(false),
-      hasAlarms: signal(false),
-      icon: 'domain',
-      labelKey: 'NAV.FORT_CHANGES',
-      type: 'fortchanges',
-    },
-    {
       color: '#d500f9',
       descriptionKey: 'CLEANING.MAX_BATTLES_DESC',
       enabled: signal(false),
@@ -205,7 +196,7 @@ export class CleaningComponent implements OnInit {
         error: () => this.loading.set(false),
         next: counts => {
           for (const item of this.cleaningItems) {
-            const key = item.type === 'monsters' ? 'pokemon' : item.type === 'fortchanges' ? 'fortChanges' : item.type;
+            const key = item.type === 'monsters' ? 'pokemon' : item.type;
             const count = (counts as unknown as Record<string, number>)[key] ?? 0;
             item.hasAlarms.set(count > 0);
           }

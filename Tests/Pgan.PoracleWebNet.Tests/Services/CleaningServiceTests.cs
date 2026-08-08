@@ -443,7 +443,6 @@ public class CleaningServiceTests
     [InlineData("nest", DisableFeatureKeys.Nests)]
     [InlineData("gym", DisableFeatureKeys.Gyms)]
     [InlineData("maxbattle", DisableFeatureKeys.MaxBattles)]
-    [InlineData("fort", DisableFeatureKeys.FortChanges)]
     public async Task ToggleCleanThrowsFeatureDisabledExceptionPerType(string trackingType, string disableKey)
     {
         // Iteration 2 review surfaced that CleaningService bypassed the alarm-service gates by writing
@@ -463,7 +462,6 @@ public class CleaningServiceTests
             "nest" => this._sut.ToggleCleanNestsAsync("u1", 1, 1),
             "gym" => this._sut.ToggleCleanGymsAsync("u1", 1, 1),
             "maxbattle" => this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1),
-            "fort" => this._sut.ToggleCleanFortChangesAsync("u1", 1, 1),
             _ => throw new InvalidOperationException(trackingType),
         };
 
@@ -474,4 +472,72 @@ public class CleaningServiceTests
         this._proxy.Verify(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
+
+    // --- Max Battles duplicated on every toggle (#402) ---
+    // PoracleNG's maxbattle create is insert-only, so the fetch-modify-POST inserted a full duplicate
+    // set per click and left the originals at clean=0. Unbounded growth.
+
+    [Fact]
+    public async Task ToggleCleanMaxBattlesFreesTheRowsBeforeRecreatingThem()
+    {
+        var json = JsonSerializer.SerializeToElement(new[]
+        {
+            new { uid = 82, id = "u1", clean = 0 },
+            new { uid = 83, id = "u1", clean = 0 },
+        });
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u1", It.IsAny<IEnumerable<int>>())).Returns(Task.CompletedTask);
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([84, 85], 0, 0, 2));
+
+        var count = await this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1);
+
+        Assert.Equal(2, count);
+        this._proxy.Verify(p => p.BulkDeleteByUidsAsync("maxbattle", "u1",
+            It.Is<IEnumerable<int>>(u => u.OrderBy(x => x).SequenceEqual(new[] { 82, 83 }))), Times.Once);
+        this._proxy.Verify(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ToggleCleanMaxBattlesRestoresTheOriginalsWhenRecreatingFails()
+    {
+        var json = JsonSerializer.SerializeToElement(new[] { new { uid = 82, id = "u1", clean = 0 } });
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.BulkDeleteByUidsAsync("maxbattle", "u1", It.IsAny<IEnumerable<int>>())).Returns(Task.CompletedTask);
+        this._proxy.SetupSequence(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()))
+            .ThrowsAsync(new HttpRequestException("upstream"))
+            .ReturnsAsync(new TrackingCreateResult([86], 0, 0, 1));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.ToggleCleanMaxBattlesAsync("u1", 1, 1));
+
+        // Second create is the restore: a failed toggle must not leave the user with nothing.
+        this._proxy.Verify(p => p.CreateAsync("maxbattle", "u1", It.IsAny<JsonElement>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ToggleCleanMonstersStillUpsertsWithoutDeleting()
+    {
+        var json = JsonSerializer.SerializeToElement(new[] { new { uid = 5, id = "u1", clean = 0 } });
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(json);
+        this._proxy.Setup(p => p.CreateAsync("pokemon", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        await this._sut.ToggleCleanMonstersAsync("u1", 1, 1);
+
+        this._proxy.Verify(p => p.BulkDeleteByUidsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StatusNoLongerReportsFortChanges()
+    {
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1"))
+            .ReturnsAsync(JsonSerializer.SerializeToElement(new { }));
+
+        var status = await this._sut.GetCleanStatusAsync("u1", 1);
+
+        // forts carry no clean column in PoracleNG, so the entry was always a meaningless false.
+        Assert.DoesNotContain("fortChanges", status.Keys);
+        Assert.DoesNotContain("fortchanges", status.Keys);
+    }
+
 }

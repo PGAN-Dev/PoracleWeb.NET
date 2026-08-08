@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The Cleaning page was broken three separate ways** ([#402](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/402)). **Max Battles duplicated every alarm on each click**: cleaning is a fetch-modify-POST that assumes PoracleNG upserts on `uid`, but its maxbattle create is insert-only, so each toggle inserted a full duplicate set while the originals kept `clean=0` — unbounded growth, one set per click. That type now frees its rows before re-creating them, and restores the originals if the re-create fails; the other types still upsert untouched. **Fort changes silently did nothing**: PoracleNG's `FortTracking` has no clean column at all (confirmed in its schema and its struct), yet the toggle returned `{"updated":N}` with a success message and wrote nothing. Fort changes are removed from the cleaning page, the status response and the API, which now returns 400 rather than faking success. **The bulk toggle applied partially and then failed**: every per-type toggle re-checks its own feature gate, so one admin-disabled alarm type threw partway through — a 403 to the caller with the types processed before it already written. It now skips disabled types and reports which were skipped, so the operation is all-or-nothing per type instead of silently half-applied.
+
 ## [2.13.0] - 2026-08-08
 
 ### Changed
