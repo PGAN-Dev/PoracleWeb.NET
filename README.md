@@ -115,6 +115,15 @@ Three Docker channels are published to GHCR — see [TESTING.md](TESTING.md) for
 | Beta | `:beta`, `:main-<sha>` | Every push to `main` |
 | PR preview | `:pr-<number>` | PRs with the `preview` label |
 
+The same split applies when you **build from source** — and it is easy to miss, because a fresh clone puts you on `main`:
+
+| You check out | You get |
+|---|---|
+| A release tag (`git checkout "$(git describe --tags --abbrev=0)"`) | Stable — the same code as `:latest` |
+| `main` | Beta — every merged PR, including work that has never been in a release |
+
+If you are self-hosting, use a release tag or the published `:latest` image. `main` is where changes soak before a release; running it means running code that has not shipped yet.
+
 ## CI/CD
 
 - **ci.yml** — Builds backend, runs tests, builds frontend, runs lint/prettier/jest
