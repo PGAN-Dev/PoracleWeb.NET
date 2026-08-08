@@ -297,7 +297,11 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normale",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "PVP_CAP": "Limite di livello",
+    "PVP_CAP_ALL": "Tutti",
+    "PVP_CAP_LEVEL": "L{{level}}",
+    "PVP_CAP_HINT_DEFAULT": "Predefinito — dalla configurazione di Poracle"
   },
   "ALARM": {
     "LOCATION_MODE": "Modalità Posizione",
@@ -975,7 +979,8 @@
     "SELECT_REGION": "Seleziona Regione",
     "SEARCH_REGIONS": "Cerca regioni...",
     "TOGGLE_TOOLTIP": "Attiva/disattiva notifiche per questo geofence sul profilo corrente",
-    "CREATED_PREFIX": "Creato"
+    "CREATED_PREFIX": "Creato",
+    "REGION_OPTIONAL_HINT": "Facoltativo. Scegli una regione se il tuo geofence ne fa parte."
   },
   "CLEANING": {
     "PAGE_TITLE": "Modalità Pulizia",
@@ -1180,16 +1185,11 @@
     "ERR_OIDC_DISABLED": "L'accesso esterno è attualmente disabilitato.",
     "ERR_OIDC_NO_IDENTITY": "Il tuo provider di accesso esterno non ha restituito un account che possiamo associare. Assicurati che il tuo account Discord sia collegato.",
     "ERR_OIDC_TOKEN_EXCHANGE": "Accesso esterno non riuscito. Riprova.",
-    "ERR_OIDC_USERINFO": "Impossibile recuperare il tuo profilo dal provider di accesso esterno. Riprova."
+    "ERR_OIDC_USERINFO": "Impossibile recuperare il tuo profilo dal provider di accesso esterno. Riprova.",
+    "SIGN_IN_AGAIN": "Accedi di nuovo"
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "Questa funzione è stata disattivata dall'amministratore."
   },
   "ADMIN": {
     "USERS_TITLE": "Gestione Utenti",
@@ -1341,7 +1341,8 @@
     "SNACK_FAILED_APPROVE": "Approvazione invio fallita",
     "SNACK_APPROVED": "\"{{name}}\" approvata",
     "SNACK_FAILED_REJECT": "Rifiuto invio fallito",
-    "SNACK_REJECTED": "\"{{name}}\" rifiutata"
+    "SNACK_REJECTED": "\"{{name}}\" rifiutata",
+    "APPROVAL_REGION_HINT": "Scegli la regione sotto cui apparirà questo geofence."
   },
   "DIALOG": {
     "CANCEL": "Annulla",
@@ -1612,7 +1613,12 @@
     "DISCARD_CHANGES": "Annulla",
     "COLLAPSE_SECTION": "Comprimi sezione",
     "EXPAND_SECTION": "Espandi sezione",
-    "SUMMARY_ENABLED": "{{count}} di {{total}} attive"
+    "SUMMARY_ENABLED": "{{count}} di {{total}} attive",
+    "GROUP_AUTH": "Autenticazione",
+    "AUTH_MODE_LABEL": "Modalità di accesso",
+    "AUTH_MODE_LOCAL": "Locale",
+    "AUTH_MODE_LOCAL_DESC": "Accedi direttamente con Discord o Telegram.",
+    "AUTH_FORCE_LOCAL_ACTIVE": "L'accesso locale è imposto dalla configurazione del server."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -1682,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Distanza predefinita",
     "DEFAULT_DISTANCE_HINT": "Usata per precompilare il raggio dei nuovi avvisi basati sulla distanza.",
     "FOOTNOTE": "Si applica solo agli avvisi appena creati: quelli esistenti restano invariati."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Elementi per pagina:",
+    "RANGE": "{{start}} - {{end}} di {{total}}",
+    "RANGE_EMPTY": "0 di {{total}}",
+    "NEXT_PAGE": "Pagina successiva",
+    "PREVIOUS_PAGE": "Pagina precedente",
+    "FIRST_PAGE": "Prima pagina",
+    "LAST_PAGE": "Ultima pagina"
   }
 }

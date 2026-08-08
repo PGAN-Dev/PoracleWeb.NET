@@ -1,17 +1,22 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { MatPaginatorIntl } from '@angular/material/paginator';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader, provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 
 import { routes } from './app.routes';
+import { TranslatedPaginatorIntl } from './core/i18n/translated-paginator-intl';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { oidcRefreshInterceptor } from './core/interceptors/oidc-refresh.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Material ships English paginator labels; without this the admin tables stay partly
+    // English in every other locale. See #425.
+    { provide: MatPaginatorIntl, useClass: TranslatedPaginatorIntl },
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     // oidcRefreshInterceptor sits closest to the backend so it catches a 401 (and can silently

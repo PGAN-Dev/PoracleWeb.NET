@@ -297,7 +297,11 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normal",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "PVP_CAP": "Level-Cap",
+    "PVP_CAP_ALL": "Alle",
+    "PVP_CAP_LEVEL": "L{{level}}",
+    "PVP_CAP_HINT_DEFAULT": "Standard — aus der Poracle-Konfiguration"
   },
   "ALARM": {
     "LOCATION_MODE": "Standortmodus",
@@ -975,7 +979,8 @@
     "SELECT_REGION": "Region auswählen",
     "SEARCH_REGIONS": "Regionen suchen...",
     "TOGGLE_TOOLTIP": "Benachrichtigungen für dieses Geofence im aktuellen Profil umschalten",
-    "CREATED_PREFIX": "Erstellt"
+    "CREATED_PREFIX": "Erstellt",
+    "REGION_OPTIONAL_HINT": "Optional. Wähle eine Region, falls dein Geofence zu einer gehört."
   },
   "CLEANING": {
     "PAGE_TITLE": "Aufräummodus",
@@ -1180,16 +1185,11 @@
     "ERR_GENERIC": "Authentifizierungsfehler: {{error}}",
     "ERR_NO_TOKEN": "Kein Authentifizierungstoken erhalten.",
     "SIGN_UP": "Sign Up",
-    "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
+    "SIGN_UP_DESC": "Don't have an account? Sign up to get started.",
+    "SIGN_IN_AGAIN": "Erneut anmelden"
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "Diese Funktion wurde vom Administrator deaktiviert."
   },
   "ADMIN": {
     "USERS_TITLE": "Benutzerverwaltung",
@@ -1341,7 +1341,8 @@
     "SNACK_FAILED_APPROVE": "Einreichung konnte nicht genehmigt werden",
     "SNACK_APPROVED": "\"{{name}}\" genehmigt",
     "SNACK_FAILED_REJECT": "Einreichung konnte nicht abgelehnt werden",
-    "SNACK_REJECTED": "\"{{name}}\" abgelehnt"
+    "SNACK_REJECTED": "\"{{name}}\" abgelehnt",
+    "APPROVAL_REGION_HINT": "Wähle die Region, unter der dieses Geofence erscheinen soll."
   },
   "DIALOG": {
     "CANCEL": "Abbrechen",
@@ -1612,7 +1613,12 @@
     "DISCARD_CHANGES": "Verwerfen",
     "COLLAPSE_SECTION": "Abschnitt einklappen",
     "EXPAND_SECTION": "Abschnitt ausklappen",
-    "SUMMARY_ENABLED": "{{count}} von {{total}} aktiviert"
+    "SUMMARY_ENABLED": "{{count}} von {{total}} aktiviert",
+    "GROUP_AUTH": "Authentifizierung",
+    "AUTH_MODE_LABEL": "Anmeldemodus",
+    "AUTH_MODE_LOCAL": "Lokal",
+    "AUTH_MODE_LOCAL_DESC": "Direkt mit Discord oder Telegram anmelden.",
+    "AUTH_FORCE_LOCAL_ACTIVE": "Die lokale Anmeldung wird durch die Serverkonfiguration erzwungen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",
@@ -1682,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Standard-Entfernung",
     "DEFAULT_DISTANCE_HINT": "Wird verwendet, um den Radius für neue entfernungsbasierte Benachrichtigungen vorzubelegen.",
     "FOOTNOTE": "Gilt nur für neu erstellte Benachrichtigungen – bestehende bleiben unverändert."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Einträge pro Seite:",
+    "RANGE": "{{start}} - {{end}} von {{total}}",
+    "RANGE_EMPTY": "0 von {{total}}",
+    "NEXT_PAGE": "Nächste Seite",
+    "PREVIOUS_PAGE": "Vorherige Seite",
+    "FIRST_PAGE": "Erste Seite",
+    "LAST_PAGE": "Letzte Seite"
   }
 }

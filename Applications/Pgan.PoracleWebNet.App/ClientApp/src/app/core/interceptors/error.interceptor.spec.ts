@@ -46,7 +46,7 @@ describe('errorInterceptor', () => {
 
     expect(localStorage.getItem('poracle_token')).toBeNull();
     expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
-    expect(toast.error).toHaveBeenCalledWith('ERROR.SESSION_EXPIRED');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
   });
 
   it('should show permission toast for 403 without disableKey', () => {
@@ -57,7 +57,7 @@ describe('errorInterceptor', () => {
       statusText: 'Forbidden',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.PERMISSION_DENIED');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.FORBIDDEN');
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
@@ -86,7 +86,7 @@ describe('errorInterceptor', () => {
       statusText: 'Not Found',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.NOT_FOUND');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.NOT_FOUND');
   });
 
   it('should show server error toast for 500', () => {
@@ -97,7 +97,7 @@ describe('errorInterceptor', () => {
       statusText: 'Error',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.GENERIC');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.SERVER_ERROR');
   });
 
   it('should show unavailable toast for 502/503/504', () => {
@@ -110,7 +110,7 @@ describe('errorInterceptor', () => {
         statusText: 'Unavailable',
       });
 
-      expect(toast.error).toHaveBeenCalledWith('ERROR.SERVER_UNAVAILABLE');
+      expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.UNAVAILABLE');
     }
   });
 
@@ -119,7 +119,7 @@ describe('errorInterceptor', () => {
 
     httpMock.expectOne('/api/dashboard').error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.NETWORK');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.NETWORK');
   });
 
   describe('silent endpoints', () => {

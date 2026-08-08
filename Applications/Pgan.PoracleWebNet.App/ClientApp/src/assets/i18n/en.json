@@ -1189,13 +1189,7 @@
     "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "This feature has been disabled by the administrator."
   },
   "ADMIN": {
     "USERS_TITLE": "User Management",
@@ -1694,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Default distance",
     "DEFAULT_DISTANCE_HINT": "Used to pre-fill the radius for new distance-based alerts.",
     "FOOTNOTE": "Applies to newly created alerts only — existing alerts are unchanged."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Items per page:",
+    "RANGE": "{{start}} - {{end}} of {{total}}",
+    "RANGE_EMPTY": "0 of {{total}}",
+    "NEXT_PAGE": "Next page",
+    "PREVIOUS_PAGE": "Previous page",
+    "FIRST_PAGE": "First page",
+    "LAST_PAGE": "Last page"
   }
 }

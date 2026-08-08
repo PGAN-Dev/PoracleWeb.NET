@@ -297,7 +297,11 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normal",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "PVP_CAP": "Limite de nível",
+    "PVP_CAP_ALL": "Todos",
+    "PVP_CAP_LEVEL": "L{{level}}",
+    "PVP_CAP_HINT_DEFAULT": "Padrão — da configuração do Poracle"
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de Localização",
@@ -975,7 +979,8 @@
     "SELECT_REGION": "Selecionar Região",
     "SEARCH_REGIONS": "Buscar regiões...",
     "TOGGLE_TOOLTIP": "Ativar/desativar notificações para este geofence no perfil atual",
-    "CREATED_PREFIX": "Criado"
+    "CREATED_PREFIX": "Criado",
+    "REGION_OPTIONAL_HINT": "Opcional. Escolha uma região se sua geocerca pertencer a uma."
   },
   "CLEANING": {
     "PAGE_TITLE": "Modo de Limpeza",
@@ -1180,16 +1185,11 @@
     "ERR_GENERIC": "Erro de autenticação: {{error}}",
     "ERR_NO_TOKEN": "Nenhum token de autenticação recebido.",
     "SIGN_UP": "Sign Up",
-    "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
+    "SIGN_UP_DESC": "Don't have an account? Sign up to get started.",
+    "SIGN_IN_AGAIN": "Entrar novamente"
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "Este recurso foi desativado pelo administrador."
   },
   "ADMIN": {
     "USERS_TITLE": "Gerenciamento de Usuários",
@@ -1341,7 +1341,8 @@
     "SNACK_FAILED_APPROVE": "Falha ao aprovar envio",
     "SNACK_APPROVED": "\"{{name}}\" aprovada",
     "SNACK_FAILED_REJECT": "Falha ao rejeitar envio",
-    "SNACK_REJECTED": "\"{{name}}\" rejeitada"
+    "SNACK_REJECTED": "\"{{name}}\" rejeitada",
+    "APPROVAL_REGION_HINT": "Escolha a região sob a qual esta geocerca aparecerá."
   },
   "DIALOG": {
     "CANCEL": "Cancelar",
@@ -1612,7 +1613,12 @@
     "DISCARD_CHANGES": "Descartar",
     "COLLAPSE_SECTION": "Recolher seção",
     "EXPAND_SECTION": "Expandir seção",
-    "SUMMARY_ENABLED": "{{count}} de {{total}} ativadas"
+    "SUMMARY_ENABLED": "{{count}} de {{total}} ativadas",
+    "GROUP_AUTH": "Autenticação",
+    "AUTH_MODE_LABEL": "Modo de login",
+    "AUTH_MODE_LOCAL": "Local",
+    "AUTH_MODE_LOCAL_DESC": "Faça login diretamente com Discord ou Telegram.",
+    "AUTH_FORCE_LOCAL_ACTIVE": "O login local é forçado pela configuração do servidor."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -1682,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Distância padrão",
     "DEFAULT_DISTANCE_HINT": "Usada para preencher previamente o raio de novos alertas baseados em distância.",
     "FOOTNOTE": "Aplica-se apenas a alertas recém-criados — os existentes não são alterados."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Itens por página:",
+    "RANGE": "{{start}} - {{end}} de {{total}}",
+    "RANGE_EMPTY": "0 de {{total}}",
+    "NEXT_PAGE": "Próxima página",
+    "PREVIOUS_PAGE": "Página anterior",
+    "FIRST_PAGE": "Primeira página",
+    "LAST_PAGE": "Última página"
   }
 }

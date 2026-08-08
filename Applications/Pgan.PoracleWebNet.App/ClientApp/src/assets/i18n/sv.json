@@ -297,7 +297,11 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normal",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "PVP_CAP": "Nivågräns",
+    "PVP_CAP_ALL": "Alla",
+    "PVP_CAP_LEVEL": "L{{level}}",
+    "PVP_CAP_HINT_DEFAULT": "Standard — från Poracle-konfigurationen"
   },
   "ALARM": {
     "LOCATION_MODE": "Platsläge",
@@ -975,7 +979,8 @@
     "SELECT_REGION": "Välj region",
     "SEARCH_REGIONS": "Sök regioner...",
     "TOGGLE_TOOLTIP": "Aktivera/inaktivera aviseringar för denna geofence i aktuell profil",
-    "CREATED_PREFIX": "Skapad"
+    "CREATED_PREFIX": "Skapad",
+    "REGION_OPTIONAL_HINT": "Valfritt. Välj en region om ditt geostängsel hör till en."
   },
   "CLEANING": {
     "PAGE_TITLE": "Städningsläge",
@@ -1180,16 +1185,11 @@
     "ERR_OIDC_TOKEN_EXCHANGE": "Extern inloggning misslyckades. Försök igen.",
     "ERR_OIDC_USERINFO": "Kunde inte hämta din profil från den externa inloggningsleverantören. Försök igen.",
     "SIGN_UP": "Sign Up",
-    "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
+    "SIGN_UP_DESC": "Don't have an account? Sign up to get started.",
+    "SIGN_IN_AGAIN": "Logga in igen"
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "Den här funktionen har inaktiverats av administratören."
   },
   "ADMIN": {
     "USERS_TITLE": "Användarhantering",
@@ -1341,7 +1341,8 @@
     "SNACK_FAILED_APPROVE": "Kunde inte godkänna inskickning",
     "SNACK_APPROVED": "\"{{name}}\" godkänd",
     "SNACK_FAILED_REJECT": "Kunde inte avvisa inskickning",
-    "SNACK_REJECTED": "\"{{name}}\" avvisad"
+    "SNACK_REJECTED": "\"{{name}}\" avvisad",
+    "APPROVAL_REGION_HINT": "Välj den region som detta geostängsel ska visas under."
   },
   "DIALOG": {
     "CANCEL": "Avbryt",
@@ -1612,7 +1613,12 @@
     "DISCARD_CHANGES": "Ångra",
     "COLLAPSE_SECTION": "Fäll ihop sektion",
     "EXPAND_SECTION": "Expandera sektion",
-    "SUMMARY_ENABLED": "{{count}} av {{total}} aktiverade"
+    "SUMMARY_ENABLED": "{{count}} av {{total}} aktiverade",
+    "GROUP_AUTH": "Autentisering",
+    "AUTH_MODE_LABEL": "Inloggningsläge",
+    "AUTH_MODE_LOCAL": "Lokal",
+    "AUTH_MODE_LOCAL_DESC": "Logga in direkt med Discord eller Telegram.",
+    "AUTH_FORCE_LOCAL_ACTIVE": "Lokal inloggning tvingas av serverkonfigurationen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",
@@ -1682,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Standardavstånd",
     "DEFAULT_DISTANCE_HINT": "Används för att förifylla radien för nya avståndsbaserade aviseringar.",
     "FOOTNOTE": "Gäller endast nyskapade aviseringar — befintliga ändras inte."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Objekt per sida:",
+    "RANGE": "{{start}} - {{end}} av {{total}}",
+    "RANGE_EMPTY": "0 av {{total}}",
+    "NEXT_PAGE": "Nästa sida",
+    "PREVIOUS_PAGE": "Föregående sida",
+    "FIRST_PAGE": "Första sidan",
+    "LAST_PAGE": "Sista sidan"
   }
 }

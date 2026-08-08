@@ -44,11 +44,14 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         router.navigate(['/login'], { queryParams: Object.fromEntries(params) });
       }
 
+      // Messages come from HTTP_ERROR.*, which ToastService already uses and which is translated in
+      // every locale. This interceptor used a parallel ERROR.* table carrying verbatim English in all
+      // ten locales, so a German user saw an English toast for the same status. See #425.
       // Don't show toasts for silent endpoints
       if (!silent) {
         switch (error.status) {
           case 401:
-            toast.error(translate.instant('ERROR.SESSION_EXPIRED'));
+            toast.error(translate.instant('HTTP_ERROR.UNAUTHORIZED'));
             break;
           case 403:
             // The backend tags "feature disabled" 403s by including a `disableKey` in the body
@@ -58,22 +61,22 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
               toast.error(translate.instant('ERROR.FEATURE_DISABLED'));
               router.navigate(['/dashboard']);
             } else {
-              toast.error(translate.instant('ERROR.PERMISSION_DENIED'));
+              toast.error(translate.instant('HTTP_ERROR.FORBIDDEN'));
             }
             break;
           case 404:
-            toast.error(translate.instant('ERROR.NOT_FOUND'));
+            toast.error(translate.instant('HTTP_ERROR.NOT_FOUND'));
             break;
           case 0:
-            toast.error(translate.instant('ERROR.NETWORK'));
+            toast.error(translate.instant('HTTP_ERROR.NETWORK'));
             break;
           case 500:
-            toast.error(translate.instant('ERROR.GENERIC'));
+            toast.error(translate.instant('HTTP_ERROR.SERVER_ERROR'));
             break;
           case 502:
           case 503:
           case 504:
-            toast.error(translate.instant('ERROR.SERVER_UNAVAILABLE'));
+            toast.error(translate.instant('HTTP_ERROR.UNAVAILABLE'));
             break;
         }
       }

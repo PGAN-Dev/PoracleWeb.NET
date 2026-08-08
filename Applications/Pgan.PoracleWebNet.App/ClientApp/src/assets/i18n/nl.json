@@ -297,7 +297,11 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normaal",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "PVP_CAP": "Levellimiet",
+    "PVP_CAP_ALL": "Alle",
+    "PVP_CAP_LEVEL": "L{{level}}",
+    "PVP_CAP_HINT_DEFAULT": "Standaard — uit de Poracle-configuratie"
   },
   "ALARM": {
     "LOCATION_MODE": "Locatiemodus",
@@ -975,7 +979,8 @@
     "SELECT_REGION": "Regio Selecteren",
     "SEARCH_REGIONS": "Regio's zoeken...",
     "TOGGLE_TOOLTIP": "Meldingen voor deze geofence op het huidige profiel in-/uitschakelen",
-    "CREATED_PREFIX": "Gemaakt"
+    "CREATED_PREFIX": "Gemaakt",
+    "REGION_OPTIONAL_HINT": "Optioneel. Kies een regio als je geofence bij een regio hoort."
   },
   "CLEANING": {
     "PAGE_TITLE": "Opschoonmodus",
@@ -1180,16 +1185,11 @@
     "ERR_OIDC_DISABLED": "Externe login is momenteel uitgeschakeld.",
     "ERR_OIDC_NO_IDENTITY": "Je externe loginprovider heeft geen account teruggegeven dat we kunnen koppelen. Zorg ervoor dat je Discord-account is gekoppeld.",
     "ERR_OIDC_TOKEN_EXCHANGE": "Externe login mislukt. Probeer het opnieuw.",
-    "ERR_OIDC_USERINFO": "Kon je profiel niet ophalen van de externe loginprovider. Probeer het opnieuw."
+    "ERR_OIDC_USERINFO": "Kon je profiel niet ophalen van de externe loginprovider. Probeer het opnieuw.",
+    "SIGN_IN_AGAIN": "Opnieuw aanmelden"
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "Deze functie is uitgeschakeld door de beheerder."
   },
   "ADMIN": {
     "USERS_TITLE": "Gebruikersbeheer",
@@ -1341,7 +1341,8 @@
     "SNACK_FAILED_APPROVE": "Inzending goedkeuren mislukt",
     "SNACK_APPROVED": "\"{{name}}\" goedgekeurd",
     "SNACK_FAILED_REJECT": "Inzending afwijzen mislukt",
-    "SNACK_REJECTED": "\"{{name}}\" afgewezen"
+    "SNACK_REJECTED": "\"{{name}}\" afgewezen",
+    "APPROVAL_REGION_HINT": "Kies de regio waaronder deze geofence verschijnt."
   },
   "DIALOG": {
     "CANCEL": "Annuleren",
@@ -1612,7 +1613,12 @@
     "DISCARD_CHANGES": "Verwerpen",
     "COLLAPSE_SECTION": "Sectie inklappen",
     "EXPAND_SECTION": "Sectie uitklappen",
-    "SUMMARY_ENABLED": "{{count}} van {{total}} ingeschakeld"
+    "SUMMARY_ENABLED": "{{count}} van {{total}} ingeschakeld",
+    "GROUP_AUTH": "Authenticatie",
+    "AUTH_MODE_LABEL": "Aanmeldmodus",
+    "AUTH_MODE_LOCAL": "Lokaal",
+    "AUTH_MODE_LOCAL_DESC": "Meld je rechtstreeks aan met Discord of Telegram.",
+    "AUTH_FORCE_LOCAL_ACTIVE": "Lokaal aanmelden wordt afgedwongen door de serverconfiguratie."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",
@@ -1682,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Standaardafstand",
     "DEFAULT_DISTANCE_HINT": "Wordt gebruikt om de straal voor nieuwe afstandsmeldingen vooraf in te vullen.",
     "FOOTNOTE": "Geldt alleen voor nieuw aangemaakte meldingen — bestaande meldingen blijven ongewijzigd."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Items per pagina:",
+    "RANGE": "{{start}} - {{end}} van {{total}}",
+    "RANGE_EMPTY": "0 van {{total}}",
+    "NEXT_PAGE": "Volgende pagina",
+    "PREVIOUS_PAGE": "Vorige pagina",
+    "FIRST_PAGE": "Eerste pagina",
+    "LAST_PAGE": "Laatste pagina"
   }
 }
