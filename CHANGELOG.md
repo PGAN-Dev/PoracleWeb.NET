@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **A bulk distance change still made a quick pick impossible to remove** ([#443](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/443)). The single-edit case was fixed in [#403](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/403), but the Update All and bulk-distance actions rewrite every row too, so the same stale-uid failure came back through them: Remove reported success, deleted nothing, and the next page load cleared the applied state so there was no way to try again. The replacement rows are now matched by their contents rather than their position, because the batch response comes back in a different order than it was sent — matching by position would have repointed a quick pick at somebody else's alarm and deleted the wrong one. Where two alarms are genuinely indistinguishable, nothing is moved rather than guessed.
+
+### Fixed
 - **Creating a profile with a name you already use did nothing at all** ([#427](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/427)). The dialog detected the clash and set an error message, but Angular Material only renders that slot when the field is in a validation error state, which this one never was — so pressing Create produced no message, no toast and no request, and the only visible change was the character counter disappearing. The clash is now flagged as you type and the Create button disables, so the dead click cannot happen.
 
 ### Removed

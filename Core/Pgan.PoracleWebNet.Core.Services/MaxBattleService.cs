@@ -109,6 +109,11 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         {
             var body = SerializeToElement(itemList);
             await this._proxy.CreateAsync(TrackingType, userId, body);
+
+            // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
+            // tracks them, pairing on content because the batch response is reordered. See #443.
+            await BulkUidRemap.ApplyAsync(
+                this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
         }
         catch (Exception ex)
         {
@@ -144,6 +149,11 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         {
             var body = SerializeToElement(matching);
             await this._proxy.CreateAsync(TrackingType, userId, body);
+
+            // The rows were deleted and re-made, so every uid changed. Follow any quick pick that
+            // tracks them, pairing on content because the batch response is reordered. See #443.
+            await BulkUidRemap.ApplyAsync(
+                this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
         }
         catch (Exception ex)
         {
