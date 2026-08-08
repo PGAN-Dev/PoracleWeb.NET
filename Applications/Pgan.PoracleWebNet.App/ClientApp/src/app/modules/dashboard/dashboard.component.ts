@@ -20,6 +20,7 @@ import { DashboardService } from '../../core/services/dashboard.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
 import { ProfileService } from '../../core/services/profile.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { AreaOverviewMapComponent } from '../../shared/components/area-overview-map/area-overview-map.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
@@ -95,8 +96,16 @@ export class DashboardComponent implements OnInit {
   private readonly locationService = inject(LocationService);
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
+  private readonly settingsService = inject(SettingsService);
 
   private readonly snackBar = inject(MatSnackBar);
+
+  // The dashboard used to load every one of these regardless, so with any of the three switches on it
+  // opened with an error toast for a feature the user had not touched -- and kept rendering buttons that
+  // bounced straight back with the same toast. A disabled feature is simply absent here. See #516.
+  readonly areasEnabled = computed(() => !this.settingsService.isDisabled('disable_areas'));
+  readonly profilesEnabled = computed(() => !this.settingsService.isDisabled('disable_profiles'));
+  readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
 
   readonly alertsPaused = computed(() => {
     const user = this.authService.user();
@@ -436,20 +445,26 @@ export class DashboardComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(c => this.counts.set(c));
 
-    forkJoin([this.areaService.getSelected(), this.areaService.getGeofencePolygons()])
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(([areas, geofences]) => {
-        this.selectedAreas.set(areas);
-        this.geofencePolygons.set(geofences);
-        this.loadAreaWeather(areas, geofences);
-      });
+    if (this.areasEnabled()) {
+      forkJoin([this.areaService.getSelected(), this.areaService.getGeofencePolygons()])
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(([areas, geofences]) => {
+          this.selectedAreas.set(areas);
+          this.geofencePolygons.set(geofences);
+          this.loadAreaWeather(areas, geofences);
+        });
+    }
 
-    this.profileService
-      .getAll()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(p => this.profiles.set(p));
+    if (this.profilesEnabled()) {
+      this.profileService
+        .getAll()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(p => this.profiles.set(p));
+    }
 
-    this.loadLocation();
+    if (this.locationEnabled()) {
+      this.loadLocation();
+    }
   }
 
   private loadLocation(): void {

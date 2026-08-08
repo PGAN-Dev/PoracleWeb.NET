@@ -7,8 +7,14 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
+// Gated per-action, not per-controller: the reads stay open, the same way UserGeofenceController
+// keeps its reads open. The class-level gate 403d every area lookup, including the ones nobody asked
+// for -- the delivery preview embedded in every add-alarm dialog, the geofence page's map overlay, the
+// dashboard's map card -- and the error interceptor read those as "this page is dead" and bounced the
+// user to the dashboard. Turning off area editing took the separately-toggled geofence page with it.
+// disable_areas means area subscriptions cannot be CHANGED; it never meant they cannot be seen.
+// See #506, #515, #516.
 [Route("api/areas")]
-[RequireFeatureEnabled(DisableFeatureKeys.Areas)]
 public partial class AreaController(
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
@@ -59,6 +65,7 @@ public partial class AreaController(
     }
 
     [HttpPut]
+    [RequireFeatureEnabled(DisableFeatureKeys.Areas)]
     public async Task<IActionResult> UpdateAreas([FromBody] UpdateAreasRequest request)
     {
         // Lowercase area names to match Poracle's expected format (PHP PoracleWeb does strtolower)
