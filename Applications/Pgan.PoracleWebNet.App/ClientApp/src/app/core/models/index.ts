@@ -188,7 +188,6 @@ export type NestUpdate = Partial<NestCreate>;
 
 export interface FortChange {
   changeTypes: string[];
-  clean: number;
   distance: number;
   fortType: string | null;
   id: string;

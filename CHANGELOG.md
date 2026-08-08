@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **A custom geofence could take a name a public area already had** ([#475](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/475)). Only your own geofences were checked, so a private one could be created under a public area name. Both then reach Poracle under the same name, and approving the private one overwrote the public area. Names are now checked against both, ignoring case.
+- **Importing GeoJSON stopped part-way through on a bad coordinate** ([#473](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/473)). One malformed number ended the whole import with a server error, keeping whatever had already been imported and reporting nothing about the rest. Each shape is now reported on its own and the import finishes.
+- **Importing GeoJSON could quietly change the shape you gave it** ([#474](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/474)). Points it could not read were dropped and the result reported as a clean success, so the stored area covered somewhere other than the file described. Such a shape is now refused, and a file holding more than one area says so instead of silently keeping the first.
+- **Custom geofences all showed 0 points** ([#477](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/477)) on the geofences page, though the admin list showed the real count.
+- **Saving areas could show a different list than was saved** ([#476](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/476)). The page echoed back what you submitted rather than what was stored, so an area Poracle declined still appeared selected until a refresh.
+### Fixed
 - **Turning off areas or custom geofences did not stop geofences being switched on and off** ([#478](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/478)). Those two buttons wrote area subscriptions without checking either switch, so the Areas page refused while the same change went through elsewhere. Both are now enforced, at the endpoint and in the service.
 - **Turning off locations broke the notification language selector** ([#479](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/479)). The language endpoints sat behind the location switch despite having nothing to do with a location, and the Areas page loads the selector on open — so with locations off, opening Areas bounced you to the dashboard. Language is now independent of it.
 
