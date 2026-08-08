@@ -68,14 +68,14 @@ public class InvasionServiceTests
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 
-        var result = await this._sut.CreateAsync("user1", new Invasion());
+        var result = await this._sut.CreateAsync("user1", new Invasion { GruntType = "fire" });
         Assert.Equal("user1", result.Id);
     }
 
     [Fact]
     public async Task UpdateAsyncDelegates()
     {
-        var i = new Invasion { Uid = 1 };
+        var i = new Invasion { Uid = 1, GruntType = "fire" };
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
@@ -175,26 +175,45 @@ public class InvasionServiceTests
         Assert.Equal(12, await this._sut.CountByUserAsync("u", 1));
     }
 
-    [Fact]
-    public async Task CreateAsyncNormalizesNullGruntType()
+    // These two used to assert that a missing grunt type is coalesced to "". That was the bug:
+    // PoracleNG rejects an empty grunt_type with 400 "Grunt type mandatory" and has no catch-all,
+    // so the coalesce guaranteed a failure that reached the user as a generic 500. See #416.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CreateAsyncRejectsMissingGruntTypeInsteadOfSendingItUpstream(string? gruntType)
     {
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 
-        var model = new Invasion { GruntType = null };
-        var result = await this._sut.CreateAsync("u1", model);
-        Assert.Equal("", result.GruntType);
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => this._sut.CreateAsync("u1", new Invasion { GruntType = gruntType }));
+
+        this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task UpdateAsyncRejectsMissingGruntType(string? gruntType)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => this._sut.UpdateAsync("u1", new Invasion { Uid = 1, GruntType = gruntType }));
     }
 
     [Fact]
-    public async Task UpdateAsyncNormalizesNullGruntType()
+    public async Task BulkCreateAsyncRejectsMissingGruntTypeWithoutPartiallyCreating()
     {
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+        var models = new List<Invasion>
+        {
+            new() { GruntType = "fire" },
+            new() { GruntType = null },
+        };
 
-        var model = new Invasion { Uid = 1, GruntType = null };
-        var result = await this._sut.UpdateAsync("u1", model);
-        Assert.Equal("", result.GruntType);
+        await Assert.ThrowsAsync<ArgumentException>(() => this._sut.BulkCreateAsync("u1", models));
+
+        this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -204,7 +223,7 @@ public class InvasionServiceTests
         {
             new() { GruntType = "mixed" },
             new() { GruntType = "dark" },
-            new() { GruntType = null },
+            new() { GruntType = "giovanni" },
         };
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([10, 11, 12], 0, 0, 3));
