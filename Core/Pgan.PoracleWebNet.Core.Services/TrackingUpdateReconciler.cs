@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -33,7 +34,22 @@ internal static partial class TrackingUpdateReconciler
         ITrackedUidRemapper? uidRemapper = null)
     {
         // oldUid <= 0 means this was not an edit, so there is nothing to reconcile.
-        if (oldUid <= 0 || result.NewUids.Count == 0)
+        if (oldUid <= 0)
+        {
+            return oldUid;
+        }
+
+        // PoracleNG declined to write because the edited values collide with an alarm the user
+        // already has. Nothing changed, so reporting success while echoing the requested values back
+        // told the user their edit applied when it had not. See #463.
+        if (result.AlreadyPresent > 0 && result.Inserts == 0 && result.Updates == 0)
+        {
+            throw new TrackingConflictException(
+                trackingType,
+                "Another alarm of this type already uses those settings. Edit or remove that one instead.");
+        }
+
+        if (result.NewUids.Count == 0)
         {
             return oldUid;
         }

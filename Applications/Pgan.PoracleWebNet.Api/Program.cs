@@ -179,6 +179,7 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.FeatureDisabledExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.SummaryBackendUnavailableExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingConflictExceptionFilter>();
 });
 
 // Add Poracle services (DbContext, repositories, services, settings)

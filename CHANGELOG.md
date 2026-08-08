@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Editing an alarm onto settings another alarm already used destroyed one of them** ([#462](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/462)). Lures and invasions are replaced rather than updated, so changing one onto a combination another alarm already held — flipping an invasion's gender dropdown was enough — deleted the alarm being edited and silently overwrote the other one. The clash is now detected before anything is removed and the edit is refused with an explanation.
+- **Edits that clashed were reported as successful** ([#463](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/463)). For gyms, fort changes and the other types, an edit onto settings another alarm already used was declined upstream, but the response echoed the requested values back so it could never disagree with the request. The clash is now reported.
+- **Applying a quick pick could delete an alarm you built yourself** ([#469](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/469), [#468](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/468)). If a pick matched an alarm you already had, the pick claimed it as its own — so removing the pick deleted your alarm. It also recorded an unusable reference when the match was exact, which wiped the pick's applied state on the next page load and left no way to remove it. A pick now claims only alarms it actually created.
+- **Creating an alarm that already exists no longer reports it as newly created** ([#459](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/459)). The response claimed a created resource and pointed at an address that did not exist.
+
+### Fixed
 - **Editing a raid, egg, quest, gym, fort change or nest returned an alarm ID that no longer existed** ([#460](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/460), [#464](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/464)). PoracleNG re-creates the row under a new ID when you edit one of these, while reporting zero inserts. PoracleWeb keyed off that count rather than the ID it was handed, so the response advertised the old ID — which then failed on the next read, edit or delete — and any quick pick tracking the alarm was left pointing at it. Pokemon alarms were unaffected, because PoracleNG genuinely updates those in place.
 
 ### Fixed

@@ -39,6 +39,14 @@ public class RaidController(IRaidService raidService) : BaseApiController
         // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
         // claim back would assert a profile the row was never written to. See #411.
         var result = await this._raidService.CreateAsync(this.UserId, raid);
+
+        // PoracleNG assigns no uid when the submission duplicates an alarm the user already has, so
+        // nothing was created. Answering 201 with a Location of /0 advertised a resource that 404s.
+        // 200 keeps multi-select creates working while no longer claiming a creation. See #459.
+        if (result.Uid <= 0)
+        {
+            return this.Ok(result);
+        }
         return this.CreatedAtAction(nameof(GetByUid), new
         {
             uid = result.Uid

@@ -48,6 +48,20 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
 
         // PoracleNG guards this type with a natural unique key and its create has no upsert path, so
         // changing a field outside that key collides (Error 1062) and returns 500. Replace the row instead.
+        // Refuse a collision BEFORE the delete. PoracleNG dedups lures on (id, profile_no, lure_id),
+        // so editing one onto a lure_id another alarm already holds made the replace merge into that
+        // alarm - this one deleted, the other one silently overwritten. See #462.
+        if (oldUid > 0)
+        {
+            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+            if (siblings.Any(x => x.Uid != oldUid && x.LureId == model.LureId))
+            {
+                throw new TrackingConflictException(
+                    TrackingType,
+                    "You already have a lure alarm for that lure type. Edit or remove that one instead.");
+            }
+        }
+
         var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
 
         model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
