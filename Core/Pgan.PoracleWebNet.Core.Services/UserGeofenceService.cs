@@ -459,6 +459,22 @@ public partial class UserGeofenceService(
         var geofence = await this._repository.GetByIdAsync(id)
             ?? throw new GeofenceNotFoundException(id);
 
+        // Approve accepted any status, the same gap #409 fixed on reject.
+        //
+        //   pending_review  the normal path
+        //   rejected        allowed: an admin reconsidering a call they already made. Nothing is in Koji
+        //                   yet, so this is a plain promotion.
+        //   active          refused: never submitted. Approving it skips the submission flow entirely, so
+        //                   there is no review thread and the owner never asked for it to be public.
+        //   approved        refused: already public in Koji. Re-approving under a different promoted name
+        //                   would push a second entry and strand the first — the exact leak #409 closed.
+        //                   Renaming a live public area is a different operation from approving one.
+        if (!ApprovableStatuses.Contains(geofence.Status))
+        {
+            throw new InvalidOperationException(
+                $"Geofence must be awaiting review to be approved. Current status: '{geofence.Status}'.");
+        }
+
         // Parse polygon from local DB
         if (string.IsNullOrEmpty(geofence.PolygonJson))
         {
@@ -666,6 +682,13 @@ public partial class UserGeofenceService(
 
         return toRestore;
     }
+
+    /// <summary>
+    /// Statuses an admin may approve from. See the comment in <see cref="ApproveSubmissionAsync"/> for why
+    /// <c>active</c> and <c>approved</c> are not among them.
+    /// </summary>
+    private static readonly HashSet<string> ApprovableStatuses =
+        new(StringComparer.Ordinal) { "pending_review", "rejected" };
 
     /// <summary>
     /// Whether this geofence was ever pushed into the shared Koji project. <c>PromotedName</c> is written
