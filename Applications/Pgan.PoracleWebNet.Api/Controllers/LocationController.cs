@@ -73,7 +73,7 @@ public class LocationController(
     [HttpGet("language")]
     public async Task<IActionResult> GetLanguage()
     {
-        var human = await this._humanService.GetByIdAndProfileAsync(this.UserId, this.ProfileNo);
+        var human = await this._humanService.GetByIdAsync(this.UserId);
         if (human == null)
         {
             return this.NotFound();
@@ -88,7 +88,7 @@ public class LocationController(
     [HttpPut("language")]
     public async Task<IActionResult> UpdateLanguage([FromBody] LanguageUpdateRequest request)
     {
-        var human = await this._humanService.GetByIdAndProfileAsync(this.UserId, this.ProfileNo);
+        var human = await this._humanService.GetByIdAsync(this.UserId);
         if (human == null)
         {
             return this.NotFound();

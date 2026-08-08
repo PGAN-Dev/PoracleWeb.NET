@@ -59,25 +59,6 @@ public class HumanServiceTests
         await Assert.ThrowsAsync<HttpRequestException>(() => this._sut.GetByIdAsync("u1"));
     }
 
-    [Fact]
-    public async Task GetByIdAndProfileAsyncReturnsHumanWhenProfileMatches()
-    {
-        var json = CreateHumanJson("u1", "User1", currentProfileNo: 1);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(json);
-
-        var result = await this._sut.GetByIdAndProfileAsync("u1", 1);
-        Assert.NotNull(result);
-    }
-
-    [Fact]
-    public async Task GetByIdAndProfileAsyncReturnsNullWhenProfileDoesNotMatch()
-    {
-        var json = CreateHumanJson("u1", "User1", currentProfileNo: 1);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(json);
-
-        var result = await this._sut.GetByIdAndProfileAsync("u1", 99);
-        Assert.Null(result);
-    }
 
     [Fact]
     public async Task CreateAsyncUsesProxy()
@@ -238,4 +219,28 @@ public class HumanServiceTests
         using var doc = JsonDocument.Parse(json);
         return doc.RootElement.Clone();
     }
+
+    /// <summary>
+    /// <c>humans</c> is keyed on <c>id</c> alone, so a lookup that also filtered on
+    /// <c>current_profile_no</c> could only ever return a spurious null when the JWT's profile claim was
+    /// stale — which PoracleNG's active-hours scheduler and the bot's <c>!profile</c> command both cause
+    /// routinely. That method produced three separate user-visible bugs (a raw Discord ID on the geofence
+    /// review card, a 404 on the language endpoints, and a silent no-op in the geofence approval area swap)
+    /// and has been removed. This test fails the build if it is reintroduced.
+    /// </summary>
+    [Fact]
+    public void NoProfileFilteredHumanLookupExists()
+    {
+        var offenders = new[] { typeof(IHumanService), typeof(IHumanRepository) }
+            .SelectMany(t => t.GetMethods())
+            .Where(m => m.Name.Contains("AndProfile", StringComparison.Ordinal))
+            .Select(m => $"{m.DeclaringType!.Name}.{m.Name}")
+            .ToList();
+
+        Assert.True(
+            offenders.Count == 0,
+            "A human lookup filtered by profile number is back: " + string.Join(", ", offenders)
+            + ". humans has one row per id — use GetByIdAsync.");
+    }
+
 }

@@ -494,7 +494,7 @@ public partial class UserGeofenceService(
                 // Fallback to direct DB for the area swap
                 try
                 {
-                    var human = await this._humanRepository.GetByIdAndProfileAsync(geofence.HumanId, 1);
+                    var human = await this._humanRepository.GetByIdAsync(geofence.HumanId);
                     if (human != null)
                     {
                         var areas = AreaListJson.Parse(human.Area);

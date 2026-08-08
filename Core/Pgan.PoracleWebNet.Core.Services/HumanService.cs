@@ -32,17 +32,6 @@ public class HumanService(
         return json is not null ? DeserializeHuman(json.Value) : null;
     }
 
-    public async Task<Human?> GetByIdAndProfileAsync(string id, int profileNo)
-    {
-        var json = await this._humanProxy.GetHumanAsync(id);
-        if (json is null)
-        {
-            return null;
-        }
-
-        var human = DeserializeHuman(json.Value);
-        return human.CurrentProfileNo == profileNo ? human : null;
-    }
 
     public async Task<Human> CreateAsync(Human human)
     {
