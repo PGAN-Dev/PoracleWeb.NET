@@ -6,7 +6,6 @@ import { ConfigService } from './config.service';
 import { PoracleServerConfig } from '../models';
 
 const FALLBACK: PoracleServerConfig = {
-  providerURL: '',
   defaultPvpCap: 0,
   defaultTemplateName: 'default',
   everythingFlagPermissions: '',
@@ -19,7 +18,6 @@ const FALLBACK: PoracleServerConfig = {
   pvpFilterMaxRank: 100,
   pvpFilterUltraMinCp: 0,
   pvpLittleLeagueAllowed: true,
-  staticKey: '',
 };
 
 @Injectable({ providedIn: 'root' })

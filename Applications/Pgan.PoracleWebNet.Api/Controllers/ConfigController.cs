@@ -53,7 +53,12 @@ public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<
         return this.Ok(Array.Empty<object>());
     }
 
-    [AllowAnonymous]
+    /// <summary>
+    /// Poracle's client-facing configuration. Authenticated: the only consumers are the Pokemon
+    /// add/edit dialogs, which sit behind the auth guard, and the payload is projected through
+    /// <see cref="PublicPoracleConfig"/> so the admin id lists, the delegation map, the provider URL
+    /// and the static key never reach a browser at all.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetConfig()
     {
@@ -62,7 +67,7 @@ public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<
             var config = await this._poracleApiProxy.GetConfigAsync();
             if (config != null)
             {
-                return this.Ok(config);
+                return this.Ok(PublicPoracleConfig.From(config));
             }
         }
         catch (Exception ex)
@@ -70,11 +75,9 @@ public partial class ConfigController(IPoracleApiProxy poracleApiProxy, ILogger<
             LogFetchConfigFailed(this._logger, ex);
         }
 
-        return this.Ok(new PoracleConfig
+        return this.Ok(new PublicPoracleConfig
         {
             Locale = "en",
-            ProviderUrl = "",
-            StaticKey = "",
             PoracleVersion = "unknown",
             PvpFilterMaxRank = 100,
             PvpFilterLittleMinCp = 0,
