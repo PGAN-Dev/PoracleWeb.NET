@@ -182,38 +182,17 @@ export class InvasionAddDialogComponent implements OnInit {
   save(): void {
     if (!this.canSave()) return;
 
-    if (this.trackAll()) {
-      this.saving.set(true);
-      const v = this.form.getRawValue();
-      const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
-      this.invasionService
-        .create({
-          clean: v.clean ? 1 : 0,
-          distance: dist,
-          gender: v.gender ?? 0,
-          gruntType: null,
-          ping: v.ping || null,
-          template: v.template || null,
-        })
-        .subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-            this.saving.set(false);
-          },
-          next: () => {
-            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_ALL_CREATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-            this.dialogRef.close(true);
-          },
-        });
-      return;
-    }
+    // "Track all" used to post a single alarm with gruntType: null. PoracleNG has no catch-all --
+    // it rejects an empty grunt_type with "Grunt type mandatory" -- so that call failed every time.
+    // The toggle now means what its hint always claimed: one alarm per Team Rocket grunt type.
+    // Pokestop events are excluded; they are not Rocket invasions and have their own section.
+    const targets = this.trackAll() ? this.rocketGrunts() : this.gruntOptions().filter(o => o.selected);
+    if (targets.length === 0) return;
 
-    const selected = this.gruntOptions().filter(o => o.selected);
-    if (selected.length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
-    const creates = selected.map(g =>
+    const creates = targets.map(g =>
       this.invasionService.create({
         clean: v.clean ? 1 : 0,
         distance: dist,

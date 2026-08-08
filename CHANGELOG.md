@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **"Track all invasions" failed every single time, and so did the "All Invasions" quick pick** ([#416](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/416)). Both asked PoracleNG to track invasions with no grunt type — the toggle posted `gruntType: null` and the quick pick shipped with empty filters — and both were coalesced to an empty string on the way out. PoracleNG has no catch-all: it rejects an empty `grunt_type` with `400 Grunt type mandatory`, which PoracleWeb turned into a generic 500 and a "failed to create" toast. The save button was never disabled, so the feature looked available and was not. Both now fan out over the Team Rocket grunt types, which is what the toggle's own hint already promised ("Creates a single alarm for every grunt type, leader, and Giovanni"). Pokestop event types are excluded — they are not Rocket invasions and have their own section. A missing grunt type is now rejected at the API edge with a 400 that says so, instead of being forwarded upstream to fail.
+
+### Fixed
 - **`GET /api/masterdata/grunts` returned 500 to every caller** ([#419](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/419)). The proxy requested `/api/config/grunts`, a path neither supported backend serves, so the call always 404'd upstream and `EnsureSuccessStatusCode()` turned that into an unhandled exception — which also left the controller's own "Grunt data not available" branch permanently unreachable. Corrected to `/api/masterdata/grunts`, which PoracleNG does serve; the route now returns the full grunt table. Upstream failures return `null` rather than throwing, matching the sibling calls in the same file, so a real outage produces the intended 404 instead of a 500.
 
 ### Security

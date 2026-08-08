@@ -29,7 +29,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         model.Id = userId;
-        model.GruntType ??= "";
+        RequireGruntType(model);
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -44,7 +44,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     public async Task<Invasion> UpdateAsync(string userId, Invasion model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
-        model.GruntType ??= "";
+        RequireGruntType(model);
         var oldUid = model.Uid;
 
         // PoracleNG guards this type with a natural unique key and its create has no upsert path, so
@@ -141,7 +141,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         foreach (var model in modelList)
         {
             model.Id = userId;
-            model.GruntType ??= "";
+            RequireGruntType(model);
         }
 
         var body = SerializeToElement(modelList);
@@ -153,6 +153,23 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         }
 
         return modelList;
+    }
+
+    /// <summary>
+    /// PoracleNG rejects an empty <c>grunt_type</c> with <c>400 "Grunt type mandatory"</c> and has no
+    /// catch-all keyword, so coalescing a missing value to <c>""</c> guaranteed a failure that surfaced
+    /// as a generic 500. Fail here instead, where the message says what is actually wrong. Callers that
+    /// want "everything" must fan out over <see cref="InvasionGruntTypes.All"/>. See #416.
+    /// </summary>
+    private static void RequireGruntType(Invasion model)
+    {
+        if (string.IsNullOrWhiteSpace(model.GruntType))
+        {
+            throw new ArgumentException(
+                "grunt_type is required — PoracleNG has no catch-all value. To track everything, "
+                + "create one alarm per InvasionGruntTypes.All entry.",
+                nameof(model));
+        }
     }
 
     private static List<Invasion> DeserializeItems(JsonElement json) =>

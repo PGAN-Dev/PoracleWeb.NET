@@ -588,14 +588,23 @@ public partial class QuickPickService(
     // one alarm per leader rather than complicating the QuickPick schema. Giovanni is
     // deliberately excluded (separate `invasion-giovanni` pick, since he spawns from the
     // Super Rocket Radar only).
-    private static readonly string[] LeaderFanOutGruntTypes = ["cliff", "arlo", "sierra"];
+    private static readonly IReadOnlyList<string> LeaderFanOutGruntTypes = InvasionGruntTypes.Leaders;
 
     private async Task<List<int>> ApplyInvasionAsync(
         string userId, int profileNo, QuickPickDefinition definition, QuickPickApplyRequest request)
     {
-        if (definition.Id == "invasion-leader")
+        // "All Invasions" shipped with empty filters, so BuildInvasion produced grunt_type "" and every
+        // apply failed with a 500. PoracleNG has no catch-all, so "all" has to be a fan-out too. See #416.
+        var fanOut = definition.Id switch
         {
-            var invasions = LeaderFanOutGruntTypes.Select(gt => BuildInvasion(definition.Filters, profileNo, request, gt)).ToList();
+            "all-invasions" => InvasionGruntTypes.All,
+            "invasion-leader" => LeaderFanOutGruntTypes,
+            _ => null
+        };
+
+        if (fanOut != null)
+        {
+            var invasions = fanOut.Select(gt => BuildInvasion(definition.Filters, profileNo, request, gt)).ToList();
             var created = await this._invasionService.BulkCreateAsync(userId, invasions);
             return [.. created.Select(i => i.Uid)];
         }
@@ -617,8 +626,6 @@ public partial class QuickPickService(
         {
             invasion.GruntType = gruntTypeOverride;
         }
-
-        invasion.GruntType ??= "";
 
         if (request.Distance.HasValue)
         {
