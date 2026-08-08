@@ -35,7 +35,9 @@ public class EggController(IEggService eggService) : BaseApiController
     public async Task<IActionResult> Create([FromBody] EggCreate model)
     {
         var egg = model.ToEgg();
-        egg.ProfileNo = this.ProfileNo;
+        // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
+        // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
+        // claim back would assert a profile the row was never written to. See #411.
         var result = await this._eggService.CreateAsync(this.UserId, egg);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

@@ -35,7 +35,9 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
     public async Task<IActionResult> Create([FromBody] InvasionCreate model)
     {
         var invasion = model.ToInvasion();
-        invasion.ProfileNo = this.ProfileNo;
+        // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
+        // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
+        // claim back would assert a profile the row was never written to. See #411.
         var result = await this._invasionService.CreateAsync(this.UserId, invasion);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

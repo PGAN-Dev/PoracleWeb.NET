@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Alarms created while your session's profile claim was stale landed on the wrong profile, invisible and undeletable** ([#411](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/411)). Alarm writes carried a profile number stamped from the login token, and that token lives four hours — long enough for the active profile to move underneath it via the active-hours scheduler, the bot's `!profile` command, or a second tab. PoracleNG took the submitted number at face value for Pokemon alarms while scoping every read to the live profile, so the alarm saved successfully and then could not be seen, edited or deleted. Writes no longer send a profile number at all: PoracleNG files each alarm under the profile you are actually on, which is what it already did for the other nine alarm types.
+
+### Fixed
 - **Approving a geofence accepted any status**, the same gap [#409](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/409) closed on reject. A geofence the owner had never submitted could be approved and made public, and an already-approved one could be approved again under a different name — pushing a second entry into Koji and stranding the first, which is exactly the leak #409 fixed. Approve now accepts only a submission awaiting review, or one previously rejected and being reconsidered.
 
 ### Fixed

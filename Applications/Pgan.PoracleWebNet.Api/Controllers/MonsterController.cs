@@ -35,7 +35,9 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
     public async Task<IActionResult> Create([FromBody] MonsterCreate model)
     {
         var monster = model.ToMonster();
-        monster.ProfileNo = this.ProfileNo;
+        // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
+        // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
+        // claim back would assert a profile the row was never written to. See #411.
         var result = await this._monsterService.CreateAsync(this.UserId, monster);
         return this.CreatedAtAction(nameof(GetByUid), new
         {

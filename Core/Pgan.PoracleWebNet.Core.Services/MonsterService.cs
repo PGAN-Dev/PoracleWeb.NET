@@ -10,9 +10,11 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
 
-    // Note: profileNo is kept for interface compatibility but PoracleNG scopes to the user's
-    // active profile (humans.current_profile_no) automatically. The JWT profileNo and the
-    // active profile should always match because SwitchProfile updates both.
+    // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
+    // profile (humans.current_profile_no), and writes no longer carry profile_no at all — see
+    // PoracleJsonHelper.SerializeToElement. The previous claim here, that the JWT profileNo and the
+    // active profile can never diverge, was wrong: the active-hours scheduler and the bot's !profile
+    // command both move it out of band, and JWTs live four hours. See #411.
     public async Task<IEnumerable<Monster>> GetByUserAsync(string userId, int profileNo)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
