@@ -68,12 +68,6 @@
           [distanceKm]="form.controls.distanceKm.value ?? 0">
         </app-delivery-preview>
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
-        @if (isWebhook) {
-          <mat-form-field appearance="outline" class="full-width"
-            ><mat-label>{{ 'ALARM.PING_ROLE' | translate }}</mat-label
-            ><input matInput [formControl]="form.controls.ping" [placeholder]="'ALARM.PING_PLACEHOLDER' | translate"
-          /></mat-form-field>
-        }
         <app-template-selector
           [alarmType]="'gym'"
           [value]="form.controls.template.value ?? ''"

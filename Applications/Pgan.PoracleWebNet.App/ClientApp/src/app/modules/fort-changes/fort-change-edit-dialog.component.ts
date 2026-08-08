@@ -60,7 +60,6 @@ export class FortChangeEditDialogComponent {
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     fortType: [this.data.fortType ?? 'everything'],
     includeEmpty: [this.data.includeEmpty === 1],
-    ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
 
@@ -90,7 +89,6 @@ export class FortChangeEditDialogComponent {
         distance: dist,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,
-        ping: v.ping || null,
         template: v.template || null,
       } as FortChangeUpdate)
       .subscribe({

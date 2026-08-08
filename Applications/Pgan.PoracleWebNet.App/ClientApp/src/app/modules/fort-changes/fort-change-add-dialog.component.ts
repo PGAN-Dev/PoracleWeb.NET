@@ -60,7 +60,6 @@ export class FortChangeAddDialogComponent {
     distanceMode: [this.alertDefaults.defaultMode()],
     fortType: ['everything'],
     includeEmpty: [false],
-    ping: [''],
     template: [''],
   });
 
@@ -90,7 +89,6 @@ export class FortChangeAddDialogComponent {
         distance: dist,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,
-        ping: v.ping || null,
         template: v.template || null,
       })
       .subscribe({

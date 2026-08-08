@@ -52,7 +52,6 @@ export class LureEditDialogComponent {
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     editInPlace: [isEdit(this.data.clean)],
-    ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
 
@@ -98,7 +97,6 @@ export class LureEditDialogComponent {
         clean: preserve(this.data.clean, AUTO_DELETE | EDIT, compose(!!v.clean, !!v.editInPlace, false)),
         distance: dist,
         lureId: this.data.lureId,
-        ping: v.ping || null,
         template: v.template || null,
       } as LureUpdate)
       .subscribe({

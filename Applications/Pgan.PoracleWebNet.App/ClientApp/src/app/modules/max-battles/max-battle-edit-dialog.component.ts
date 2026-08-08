@@ -83,7 +83,6 @@ export class MaxBattleEditDialogComponent {
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
-    ping: [this.data.item.ping ?? ''],
     template: [this.data.item.template ?? ''],
   });
 
@@ -162,7 +161,6 @@ export class MaxBattleEditDialogComponent {
       gmax: gmaxVal,
       level: levelVal,
       move: item.move,
-      ping: values.ping || '',
       pokemonId: item.pokemonId,
       stationId: null,
       template: values.template || '',

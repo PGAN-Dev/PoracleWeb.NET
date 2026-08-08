@@ -24,7 +24,7 @@ export interface Monster {
   minIv: number;
   minLevel: number;
   minWeight: number;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   pvpRankingBest: number;
@@ -54,7 +54,7 @@ export interface Raid {
   id: string;
   level: number;
   move: number;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   rsvpChanges: number;
@@ -78,7 +78,7 @@ export interface MaxBattle {
   id: string;
   level: number;
   move: number;
-  ping: string;
+  ping?: string;
   pokemonId: number;
   profileNo: number;
   stationId: string | null;
@@ -99,7 +99,7 @@ export interface Egg {
   gymId: string | null;
   id: string;
   level: number;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   rsvpChanges: number;
   team: number;
@@ -117,7 +117,7 @@ export interface Quest {
   clean: number;
   distance: number;
   id: string;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   reward: number;
@@ -139,7 +139,7 @@ export interface Invasion {
   gender: number;
   gruntType: string | null;
   id: string;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
@@ -156,7 +156,7 @@ export interface Lure {
   distance: number;
   id: string;
   lureId: number;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
@@ -173,7 +173,7 @@ export interface Nest {
   distance: number;
   id: string;
   minSpawnAvg: number;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   template: string | null;
@@ -192,7 +192,7 @@ export interface FortChange {
   fortType: string | null;
   id: string;
   includeEmpty: number;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
@@ -210,7 +210,7 @@ export interface Gym {
   distance: number;
   gymId: string | null;
   id: string;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   slotChanges: number;
   team: number;

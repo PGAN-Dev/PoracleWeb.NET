@@ -16,6 +16,5 @@ import { DistanceDisplayPipe } from '../../pipes/distance-display.pipe';
 export class AlarmInfoComponent {
   clean = input(0);
   distance = input(0);
-  ping = input<string | null>(null);
   template = input<string | null>(null);
 }

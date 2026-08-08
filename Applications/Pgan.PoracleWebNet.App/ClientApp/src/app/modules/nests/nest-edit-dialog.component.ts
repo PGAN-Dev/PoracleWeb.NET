@@ -56,7 +56,6 @@ export class NestEditDialogComponent {
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     minSpawnAvg: [this.data.minSpawnAvg],
-    ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
 
@@ -86,7 +85,6 @@ export class NestEditDialogComponent {
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
         minSpawnAvg: v.minSpawnAvg ?? 0,
-        ping: v.ping || null,
         pokemonId: this.data.pokemonId,
         template: v.template || null,
       } as NestUpdate)

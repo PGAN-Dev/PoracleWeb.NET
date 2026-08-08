@@ -100,6 +100,7 @@ public class AuthControllerLoginOriginTests
 
         var controller = new AuthController(
             new Mock<IHumanService>().Object,
+            new Mock<IProfileService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
             new Mock<ISiteSettingService>().Object,
