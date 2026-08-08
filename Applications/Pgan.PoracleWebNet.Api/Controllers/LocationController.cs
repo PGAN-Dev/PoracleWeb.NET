@@ -94,6 +94,12 @@ public class LocationController(
             return this.NotFound();
         }
 
+        // humans.language is varchar(255); a longer value used to overflow on write.
+        if (request.Language is { Length: > 255 })
+        {
+            return this.BadRequest(new { error = "Language must be 255 characters or fewer." });
+        }
+
         human.Language = request.Language;
         await this._humanService.UpdateAsync(human);
 

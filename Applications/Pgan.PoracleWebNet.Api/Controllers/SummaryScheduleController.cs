@@ -76,6 +76,11 @@ public class SummaryScheduleController(
             });
         }
 
+        // Accepted case-insensitively, but the backend matches case-sensitively. Forwarding "QUEST"
+        // made PUT/DELETE/trigger 500, and made GET report an empty schedule for a user who had one --
+        // a read-modify-write client would then wipe it.
+        alertType = alertType.ToLowerInvariant();
+
         var scheduleJson = await this._summaryProxy.GetScheduleAsync(this.UserId, alertType);
         if (scheduleJson is not { ValueKind: JsonValueKind.Object } element)
         {
@@ -102,6 +107,11 @@ public class SummaryScheduleController(
                 error = $"Invalid alarm type: {alertType}"
             });
         }
+
+        // Accepted case-insensitively, but the backend matches case-sensitively. Forwarding "QUEST"
+        // made PUT/DELETE/trigger 500, and made GET report an empty schedule for a user who had one --
+        // a read-modify-write client would then wipe it.
+        alertType = alertType.ToLowerInvariant();
 
         var (isValid, error) = ActiveHoursValidator.Validate(request.ActiveHours);
         if (!isValid)
@@ -130,6 +140,11 @@ public class SummaryScheduleController(
             });
         }
 
+        // Accepted case-insensitively, but the backend matches case-sensitively. Forwarding "QUEST"
+        // made PUT/DELETE/trigger 500, and made GET report an empty schedule for a user who had one --
+        // a read-modify-write client would then wipe it.
+        alertType = alertType.ToLowerInvariant();
+
         await this._summaryProxy.DeleteScheduleAsync(this.UserId, alertType);
         return this.NoContent();
     }
@@ -150,6 +165,11 @@ public class SummaryScheduleController(
                 error = $"Invalid alarm type: {alertType}"
             });
         }
+
+        // Accepted case-insensitively, but the backend matches case-sensitively. Forwarding "QUEST"
+        // made PUT/DELETE/trigger 500, and made GET report an empty schedule for a user who had one --
+        // a read-modify-write client would then wipe it.
+        alertType = alertType.ToLowerInvariant();
 
         await this._summaryProxy.TriggerAsync(this.UserId, alertType);
         return this.NoContent();

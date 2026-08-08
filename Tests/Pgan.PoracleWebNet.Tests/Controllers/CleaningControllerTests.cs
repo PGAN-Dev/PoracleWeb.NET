@@ -41,8 +41,6 @@ public class CleaningControllerTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(result);
     }
 
-    [Fact]
-    public async Task ToggleCleanThrowsForUnknownAlarmType() => await Assert.ThrowsAsync<ArgumentException>(() => this._sut.ToggleClean("unknown", 1));
 
     [Fact]
     public async Task ToggleCleanIsCaseInsensitive()
@@ -53,4 +51,20 @@ public class CleaningControllerTests : ControllerTestBase
 
         Assert.IsType<OkObjectResult>(result);
     }
+
+    // --- Client input must not 500 (#418) ---
+
+    [Theory]
+    [InlineData("pokemon")]   // a natural guess for "monsters"
+    [InlineData("monster")]
+    [InlineData("")]
+    [InlineData("nonsense")]
+    public async Task ToggleCleanRejectsAnUnknownAlarmTypeWithBadRequest(string alarmType)
+    {
+        var result = await this._sut.ToggleClean(alarmType, 1);
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("Unknown alarm type", System.Text.Json.JsonSerializer.Serialize(bad.Value), StringComparison.Ordinal);
+    }
+
 }
