@@ -141,10 +141,18 @@ public partial class UserGeofenceService(
             Status = "active",
         });
 
-        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Atomic direct-DB dual-write of humans.area + current profiles.area. Revert to
-        // IPoracleHumanProxy.SetAreasAsync once PoracleNG ships a trusted setAreas variant.
-        await this._areaWriter.AddAreaToActiveProfileAsync(humanId, kojiName);
+        // Creating a geofence subscribes the current profile to it -- an area write, and one that ran
+        // straight past disable_areas while every documented area path was refused. Drawing and
+        // deleting fences was a way to edit area subscriptions with the switch on, and a GeoJSON import
+        // could write up to 50 of them in one request. With areas frozen the fence is still created;
+        // it just arrives inactive, and the user can turn it on when areas are re-enabled. See #505.
+        if (await this._featureGate.IsEnabledAsync(DisableFeatureKeys.Areas))
+        {
+            // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+            // Atomic direct-DB dual-write of humans.area + current profiles.area. Revert to
+            // IPoracleHumanProxy.SetAreasAsync once PoracleNG ships a trusted setAreas variant.
+            await this._areaWriter.AddAreaToActiveProfileAsync(humanId, kojiName);
+        }
 
         // Reload Poracle geofences (Poracle reads from our feed + Koji)
         await this.ReloadGeofencesSafeAsync();
@@ -220,6 +228,10 @@ public partial class UserGeofenceService(
             }
         }
 
+        // Deliberately not gated on disable_areas, unlike the subscribe on create: this is cleanup, not
+        // editing. The polygon is about to stop existing, and leaving its name in every profile's area
+        // list would subscribe those profiles to something Poracle can no longer resolve. See #505.
+        //
         // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
         // Atomic direct-DB removal from humans.area + every profiles.area row. Uses the promoted name
         // when there is one — that is what the owner is actually subscribed to after an approval.

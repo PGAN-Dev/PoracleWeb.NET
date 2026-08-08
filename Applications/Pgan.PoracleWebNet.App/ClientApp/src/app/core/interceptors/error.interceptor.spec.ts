@@ -61,10 +61,11 @@ describe('errorInterceptor', () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  it('should show feature-disabled toast and redirect to /dashboard for 403 with disableKey', () => {
-    // Backend tags "feature disabled" 403s by including disableKey in the body so the
-    // SPA can distinguish them from generic permission denials and bounce the user off
-    // the now-broken page. (#236)
+  it('should show the feature-disabled toast, without moving the user, for 403 with disableKey', () => {
+    // Backend tags "feature disabled" 403s by including disableKey in the body so the SPA can tell them
+    // from generic permission denials. It must NOT redirect: these mostly come from shared components
+    // asking for something incidental, and the redirect moved the route out from under open dialogs and
+    // off pages whose own feature was enabled. disabledFeatureGuard owns navigation. See #515, #516.
     http.get('/api/monsters').subscribe({ error: () => {} });
 
     httpMock
@@ -75,7 +76,7 @@ describe('errorInterceptor', () => {
       );
 
     expect(toast.error).toHaveBeenCalledWith('ERROR.FEATURE_DISABLED');
-    expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('should show not found toast for 404', () => {

@@ -23,7 +23,12 @@ public class UserGeofenceServiceTests
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
 
-    public UserGeofenceServiceTests() => this._sut = new UserGeofenceService(
+    public UserGeofenceServiceTests()
+    {
+        // Features are on unless a test says otherwise.
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+
+        this._sut = new UserGeofenceService(
             this._repository.Object,
             this._kojiService.Object,
             this._poracleApiProxy.Object,
@@ -34,6 +39,7 @@ public class UserGeofenceServiceTests
             this._featureGate.Object,
             this._configuration,
             this._logger.Object);
+    }
 
     /// <summary>
     /// Helper: creates a JsonElement matching what IPoracleHumanProxy.GetHumanAsync returns.
@@ -71,6 +77,31 @@ public class UserGeofenceServiceTests
     }
 
     // --- Feature gate (#214 disable_user_geofences) ---
+
+    /// <summary>
+    /// Creating a geofence subscribes the current profile to it, which is an area write -- and it ran
+    /// straight past disable_areas while every documented area path was refused, so drawing and deleting
+    /// fences was a way to edit area subscriptions with the switch on. See #505.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncDoesNotSubscribeTheProfileWhileAreasAreDisabled()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.Areas)).ReturnsAsync(false);
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "Test",
+            Polygon = [[37.66, -77.60], [37.67, -77.60], [37.67, -77.59]],
+        });
+
+        this._areaWriter.Verify(
+            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        // The geofence itself is not the gated feature -- it still gets created, just inactive.
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Once);
+    }
 
     [Fact]
     public async Task CreateAsyncThrowsFeatureDisabledWhenGateDisabled()

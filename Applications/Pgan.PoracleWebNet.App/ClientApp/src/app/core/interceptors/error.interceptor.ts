@@ -56,10 +56,15 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           case 403:
             // The backend tags "feature disabled" 403s by including a `disableKey` in the body
             // (RequireFeatureEnabledAttribute, FeatureDisabledExceptionFilter, TestAlertController).
-            // Toast a clearer message and redirect off the now-broken page so the user lands somewhere usable. (#236)
+            //
+            // It used to redirect to /dashboard as well, on the assumption that such a 403 meant the page
+            // itself was dead. Most of them mean nothing of the sort: they come from shared components
+            // asking for something incidental -- the delivery preview inside every add-alarm dialog, a map
+            // overlay -- and the redirect then moved the route out from under an open dialog, or bounced
+            // the user off a page whose own feature was perfectly enabled. Navigation belongs to
+            // disabledFeatureGuard, which knows which feature the route is for. See #515, #516.
             if (error.error?.disableKey) {
               toast.error(translate.instant('ERROR.FEATURE_DISABLED'));
-              router.navigate(['/dashboard']);
             } else {
               toast.error(translate.instant('HTTP_ERROR.FORBIDDEN'));
             }
