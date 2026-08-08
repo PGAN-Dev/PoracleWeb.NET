@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **The quest summary editor said an empty schedule meant a manual profile start** ([#457](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/457)). The schedule editor is shared with profiles, and its empty-state line contradicted the sentence directly above it about quests being delivered individually.
+### Fixed
 - **A Pokemon alarm could be saved with a filter nothing can match** ([#461](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/461)). Transposing a pair — minimum IV 90 with maximum 10, say — saved without complaint and then went silent, with nothing to explain why the alerts stopped. Each bound was checked against the game's limits but never against its partner. Such a filter is now refused, including when the edit only changes one side of a pair.
 - **Deleting a quick pick left a record of it behind** ([#470](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/470)). The definition went and its applied state stayed, unreachable, so a new pick created with the same name inherited an "applied" badge pointing at the old pick's alarms. The delete confirmation now also says that the alarms it created stay, and that Remove is what deletes those.
 ### Fixed

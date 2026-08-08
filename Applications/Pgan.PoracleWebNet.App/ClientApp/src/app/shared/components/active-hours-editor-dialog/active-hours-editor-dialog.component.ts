@@ -19,6 +19,12 @@ import {
 
 export interface ActiveHoursEditorData {
   activeHours: ActiveHourEntry[];
+  /**
+   * Translation key for the line shown when there are no rules. The editor serves two contexts that mean
+   * different things by a schedule: profile rules drive PoracleNG's profile scheduler, quest rules drive
+   * summary delivery. The default keeps the profile wording, so profile callers need no change. See #457.
+   */
+  emptyStateKey?: string;
   profileColor?: string;
   profileName: string;
 }
