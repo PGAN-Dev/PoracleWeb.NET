@@ -95,7 +95,7 @@ export class GymEditDialogComponent {
         battleChanges: v.battleChanges ? 1 : 0,
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
-        gymId: this.selectedGymId() || null,
+        gymId: this.selectedGymId() ?? '',
         slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,
         template: v.template || null,

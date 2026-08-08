@@ -75,10 +75,53 @@ public class RaidServiceTests
         var raid = new Raid { PokemonId = 150 };
         this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "user1")).ReturnsAsync(CreateJsonArray(new
+        {
+            uid = 1,
+            id = "user1",
+            pokemon_id = 150,
+            level = 9000,
+        }));
 
         var result = await this._sut.CreateAsync("user1", raid);
 
         Assert.Equal("user1", result.Id);
+    }
+
+    /// <summary>
+    /// PoracleNG rewrites level to 9000 when the alarm names a specific boss, so echoing the submitted
+    /// model advertised a level the stored row does not have. See #523.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncReportsTheStoredRowRatherThanTheRequest()
+    {
+        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "user1")).ReturnsAsync(CreateJsonArray(new
+        {
+            uid = 7,
+            id = "user1",
+            pokemon_id = 150,
+            level = 9000,
+        }));
+
+        var result = await this._sut.CreateAsync("user1", new Raid { PokemonId = 150, Level = 5 });
+
+        Assert.Equal(9000, result.Level);
+        Assert.Equal(7, result.Uid);
+    }
+
+    /// <summary>A read-back that fails must not fail the create, which already succeeded.</summary>
+    [Fact]
+    public async Task CreateAsyncStillAnswersWhenTheReadBackFindsNothing()
+    {
+        this._proxy.Setup(p => p.CreateAsync("raid", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "user1")).ReturnsAsync(CreateJsonArray());
+
+        var result = await this._sut.CreateAsync("user1", new Raid { PokemonId = 150, Level = 5 });
+
+        Assert.Equal(7, result.Uid);
     }
 
     [Fact]

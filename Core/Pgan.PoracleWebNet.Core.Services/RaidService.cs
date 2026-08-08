@@ -33,12 +33,18 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
-        if (result.NewUids.Count > 0)
+        if (result.NewUids.Count == 0)
         {
-            model.Uid = (int)result.NewUids[0];
+            return model;
         }
 
-        return model;
+        model.Uid = (int)result.NewUids[0];
+
+        // Read back rather than echo. PoracleNG rewrites level to 9000 when the alarm names a specific
+        // boss, so the response advertised a level the stored row does not have -- and the card the SPA
+        // renders from it disagreed with the same alarm after a refresh. Same rule PUT /api/areas was
+        // given in #476. See #523.
+        return await this.GetByUidAsync(userId, model.Uid) ?? model;
     }
 
     public async Task<Raid> UpdateAsync(string userId, Raid model)

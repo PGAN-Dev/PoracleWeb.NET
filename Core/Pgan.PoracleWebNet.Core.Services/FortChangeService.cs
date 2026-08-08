@@ -30,6 +30,20 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.FortChanges);
         model.Id = userId;
+
+        // PoracleNG's dedup key for this type ignores distance, so a create matching an existing alarm's
+        // fort type, include-empty flag and change types OVERWRITES that alarm's radius instead of adding a
+        // second one -- while PoracleWeb answered 201 with a fresh uid, so the user believed they had two
+        // alarms and the configured radius was gone. Refuse it and say which alarm is in the way, the same
+        // way the natural-key types do. See #502.
+        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+        if (siblings.Any(x => SameDedupKey(x, model)))
+        {
+            throw new TrackingConflictException(
+                TrackingType,
+                "You already have a fort-change alarm for those settings. Edit its radius instead of adding another.");
+        }
+
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -156,6 +170,18 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
 
         return modelList;
     }
+
+    /// <summary>
+    /// Whether two fort-change alarms occupy the same slot as far as PoracleNG is concerned.
+    /// </summary>
+    /// <remarks>Distance is excluded deliberately: upstream ignores it when deduping. See #502.</remarks>
+    private static bool SameDedupKey(FortChange existing, FortChange candidate) =>
+        string.Equals(existing.FortType, candidate.FortType, StringComparison.OrdinalIgnoreCase)
+        && existing.IncludeEmpty == candidate.IncludeEmpty
+        && existing.ChangeTypes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .SequenceEqual(
+                candidate.ChangeTypes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase);
 
     private static List<FortChange> DeserializeItems(JsonElement json) =>
         PoracleJsonHelper.DeserializeList<FortChange>(json);

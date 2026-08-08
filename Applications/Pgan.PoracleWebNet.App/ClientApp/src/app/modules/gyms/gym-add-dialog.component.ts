@@ -98,7 +98,7 @@ export class GymAddDialogComponent {
         battleChanges: v.battleChanges ? 1 : 0,
         clean: compose(!!v.clean, false, false),
         distance: dist,
-        gymId: this.selectedGymId() || null,
+        gymId: this.selectedGymId() ?? '',
         slotChanges: v.slotChanges ? 1 : 0,
         team,
         template: v.template || null,

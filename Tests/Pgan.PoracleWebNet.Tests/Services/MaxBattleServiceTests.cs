@@ -73,10 +73,57 @@ public class MaxBattleServiceTests
         Assert.Null(await this._sut.GetByUidAsync("user1", 999));
     }
 
+    /// <summary>
+    /// Max battles are the one type PoracleNG does not dedup, so pressing Add twice stacked identical
+    /// alarms forever and the user got two of every notification. See #521.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncRefusesAnExactDuplicate()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray(new
+        {
+            uid = 5,
+            id = "user1",
+            pokemon_id = 150,
+            distance = 500,
+            level = 3,
+        }));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 500, Level = 3 }));
+
+        this._proxy.Verify(
+            p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    /// <summary>
+    /// Upstream has no key that would merge two alarms differing by radius, so refusing those would block
+    /// something that genuinely works.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncStillAllowsTheSameBossAtADifferentRadius()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray(new
+        {
+            uid = 5,
+            id = "user1",
+            pokemon_id = 150,
+            distance = 500,
+            level = 3,
+        }));
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([6], 0, 0, 1));
+
+        var result = await this._sut.CreateAsync("user1", new MaxBattle { PokemonId = 150, Distance = 900, Level = 3 });
+
+        Assert.Equal(6, result.Uid);
+    }
+
     [Fact]
     public async Task CreateAsyncSetsUserId()
     {
         var maxBattle = new MaxBattle { PokemonId = 9000, Gmax = 1, StationId = "station123", Level = 3 };
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 
