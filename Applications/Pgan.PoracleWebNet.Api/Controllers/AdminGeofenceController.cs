@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -57,10 +58,21 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             await this._userGeofenceService.AdminDeleteAsync(this.UserId, id);
             return this.NoContent();
         }
-        catch (InvalidOperationException ex)
+        catch (GeofenceNotFoundException ex)
         {
             LogAdminDeleteFailed(this._logger, ex, id);
             return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Validation and state-machine failures are the caller's input, not a missing record. These
+            // all used to come back as 404 carrying a validation message, so the SPA toasted
+            // "Not found" for a submission sitting visible in the admin list. See #421.
+            LogAdminDeleteFailed(this._logger, ex, id);
+            return this.BadRequest(new
             {
                 error = ex.Message
             });
@@ -81,10 +93,21 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
                 this.UserId, id, request?.PromotedName, request?.ParentId, request?.GroupName);
             return this.Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (GeofenceNotFoundException ex)
         {
             LogApproveSubmissionFailed(this._logger, ex, id);
             return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Validation and state-machine failures are the caller's input, not a missing record. These
+            // all used to come back as 404 carrying a validation message, so the SPA toasted
+            // "Not found" for a submission sitting visible in the admin list. See #421.
+            LogApproveSubmissionFailed(this._logger, ex, id);
+            return this.BadRequest(new
             {
                 error = ex.Message
             });
@@ -104,10 +127,21 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             var result = await this._userGeofenceService.RejectSubmissionAsync(this.UserId, id, request.ReviewNotes);
             return this.Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (GeofenceNotFoundException ex)
         {
             LogRejectSubmissionFailed(this._logger, ex, id);
             return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Validation and state-machine failures are the caller's input, not a missing record. These
+            // all used to come back as 404 carrying a validation message, so the SPA toasted
+            // "Not found" for a submission sitting visible in the admin list. See #421.
+            LogRejectSubmissionFailed(this._logger, ex, id);
+            return this.BadRequest(new
             {
                 error = ex.Message
             });

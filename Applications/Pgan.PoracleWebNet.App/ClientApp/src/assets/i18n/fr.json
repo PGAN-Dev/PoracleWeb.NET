@@ -1245,6 +1245,8 @@
     "APPROVAL_PROMOTED_NAME": "Nom promu",
     "APPROVAL_PROMOTED_NAME_PLACEHOLDER": "Nom pour la geofence promue",
     "APPROVAL_PROMOTED_NAME_HINT": "Optionnel. Par défaut le nom d'affichage actuel.",
+    "APPROVAL_PROMOTED_NAME_TOO_LONG": "Must be 50 characters or fewer.",
+    "APPROVAL_PROMOTED_NAME_INVALID": "Only letters, numbers, spaces and - ' . ( ) & are allowed.",
     "APPROVAL_REJECT_REASON": "Raison du rejet",
     "APPROVAL_REJECT_PLACEHOLDER": "Explique pourquoi cette geofence est rejetée...",
     "USERS_DESC_FULL": "Gérer les utilisateurs Discord inscrits. <strong>Arrêté</strong> = l'utilisateur a mis en pause les alertes ou atteint la limite de débit. <strong>Bloqué</strong> = bloqué par l'admin.",

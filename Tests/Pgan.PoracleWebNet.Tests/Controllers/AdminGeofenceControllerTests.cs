@@ -139,7 +139,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     public async Task AdminDeleteReturnsNotFoundWhenNotExists()
     {
         this._service.Setup(s => s.AdminDeleteAsync("123456789", 99))
-            .ThrowsAsync(new InvalidOperationException("Geofence with ID 99 not found."));
+            .ThrowsAsync(new GeofenceNotFoundException(99));
 
         var result = await this._sut.AdminDelete(99);
 
@@ -210,7 +210,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     public async Task ApproveSubmissionReturnsNotFoundWhenNotFound()
     {
         this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 99, null, null, null))
-            .ThrowsAsync(new InvalidOperationException("Submission not found."));
+            .ThrowsAsync(new GeofenceNotFoundException(99));
 
         var result = await this._sut.ApproveSubmission(99, null);
 
@@ -281,7 +281,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     public async Task RejectSubmissionReturnsNotFoundWhenNotFound()
     {
         this._service.Setup(s => s.RejectSubmissionAsync("123456789", 99, "Not needed"))
-            .ThrowsAsync(new InvalidOperationException("Submission not found."));
+            .ThrowsAsync(new GeofenceNotFoundException(99));
 
         var result = await this._sut.RejectSubmission(99, new AdminGeofenceController.RejectRequest { ReviewNotes = "Not needed" });
 
@@ -297,5 +297,47 @@ public class AdminGeofenceControllerTests : ControllerTestBase
         var result = await this._sut.RejectSubmission(1, new AdminGeofenceController.RejectRequest { ReviewNotes = "No" });
 
         Assert.IsType<ForbidResult>(result);
+    }
+
+    // ── 400 vs 404 on the review endpoints (#421) ───────────────────────────────
+    // Every InvalidOperationException became a 404, so an admin whose promoted name contained a slash
+    // was told the submission did not exist while it sat visible in the list. Status and body disagreed
+    // and no client could tell bad input from a deleted record.
+
+    [Fact]
+    public async Task ApproveSubmissionReturnsBadRequestForAValidationFailure()
+    {
+        this._service
+            .Setup(s => s.ApproveSubmissionAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("Promoted name contains invalid characters."));
+
+        var result = await this._sut.ApproveSubmission(1, new AdminGeofenceController.ApproveRequest { PromotedName = "Downtown / Uptown" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Contains("invalid characters", badRequest.Value!.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RejectSubmissionReturnsBadRequestForAWrongStateTransition()
+    {
+        this._service
+            .Setup(s => s.RejectSubmissionAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("Geofence must be awaiting review to be rejected. Current status: 'approved'."));
+
+        var result = await this._sut.RejectSubmission(1, new AdminGeofenceController.RejectRequest { ReviewNotes = "x" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task AdminDeleteReturnsBadRequestForAValidationFailure()
+    {
+        this._service
+            .Setup(s => s.AdminDeleteAsync(It.IsAny<string>(), It.IsAny<int>()))
+            .ThrowsAsync(new InvalidOperationException("something invalid"));
+
+        var result = await this._sut.AdminDelete(1);
+
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 }

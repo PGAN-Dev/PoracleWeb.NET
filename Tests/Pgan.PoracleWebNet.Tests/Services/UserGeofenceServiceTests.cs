@@ -262,7 +262,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.DeleteAsync("u1", 1, 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.DeleteAsync("u1", 1, 99));
     }
 
     // --- SubmitForReviewAsync ---
@@ -306,7 +306,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByKojiNameAsync("missing")).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.SubmitForReviewAsync("u1", "missing"));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.SubmitForReviewAsync("u1", "missing"));
     }
 
     [Fact]
@@ -558,7 +558,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.ApproveSubmissionAsync("admin1", 99, null));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.ApproveSubmissionAsync("admin1", 99, null));
     }
 
     [Fact]
@@ -617,7 +617,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.RejectSubmissionAsync("admin1", 99, "Reason"));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.RejectSubmissionAsync("admin1", 99, "Reason"));
     }
 
     [Fact]
@@ -699,7 +699,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.AdminDeleteAsync("admin1", 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminDeleteAsync("admin1", 99));
     }
 
     // --- GetAllAsync ---
@@ -1098,7 +1098,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(
             () => this._sut.AddToProfileAsync("u1", 1, 99));
     }
 
@@ -1225,5 +1225,113 @@ public class UserGeofenceServiceTests
         this._areaWriter.Verify(
             w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
             Times.Never);
+    }
+
+    // ── Orphaned Koji geofences (#409) ──────────────────────────────────────────
+    // Approve pushes the polygon into the shared Koji project. Reject never undid that and accepted any
+    // status, and admin delete only cleaned Koji when status was exactly "approved" — so
+    // approve → reject → delete removed the local row and left a public, userSelectable fence in Koji
+    // that nothing could manage. Recovery meant hand-editing Koji.
+
+    private UserGeofence SeedGeofence(string status, string? promotedName = null, string kojiName = "downtown")
+    {
+        var geofence = new UserGeofence
+        {
+            Id = 7,
+            HumanId = "u1",
+            KojiName = kojiName,
+            DisplayName = "Downtown",
+            Status = status,
+            PromotedName = promotedName,
+            PolygonJson = JsonSerializer.Serialize(new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] })
+        };
+        this._repository.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        return geofence;
+    }
+
+    [Theory]
+    [InlineData("active")]
+    [InlineData("approved")]
+    [InlineData("rejected")]
+    public async Task RejectSubmissionAsyncRefusesAnythingNotAwaitingReview(string status)
+    {
+        this.SeedGeofence(status);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.RejectSubmissionAsync("admin1", 7, "no"));
+
+        Assert.Contains(status, ex.Message, StringComparison.Ordinal);
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RejectSubmissionAsyncStillWorksForAPendingSubmission()
+    {
+        this.SeedGeofence("pending_review");
+
+        var result = await this._sut.RejectSubmissionAsync("admin1", 7, "too small");
+
+        Assert.Equal("rejected", result.Status);
+        Assert.Equal("too small", result.ReviewNotes);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncCleansKojiForAGeofenceThatWasApprovedThenRejected()
+    {
+        // The orphan case: status is no longer "approved" but the fence is still public in Koji.
+        this.SeedGeofence("rejected", promotedName: "Downtown Official");
+
+        await this._sut.AdminDeleteAsync("admin1", 7);
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncRemovesThePromotedNameFromTheOwnersAreas()
+    {
+        // After approval the owner is subscribed under the promoted name, so removing the original
+        // left them subscribed to a fence that no longer exists.
+        this.SeedGeofence("rejected", promotedName: "Downtown Official");
+
+        await this._sut.AdminDeleteAsync("admin1", 7);
+
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncTouchesKojiForANeverPromotedGeofence()
+    {
+        this.SeedGeofence("active");
+
+        await this._sut.AdminDeleteAsync("admin1", 7);
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown"), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncCleansKojiWhenTheOwnerDeletesAPromotedGeofence()
+    {
+        // The owner's own delete had the identical hole.
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+
+        await this._sut.DeleteAsync("u1", 1, 7);
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncStillDeletesLocallyWhenKojiCleanupFails()
+    {
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+        this._kojiService
+            .Setup(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()))
+            .ThrowsAsync(new HttpRequestException("koji down"));
+
+        await this._sut.DeleteAsync("u1", 1, 7);
+
+        this._repository.Verify(r => r.DeleteAsync(7), Times.Once);
     }
 }

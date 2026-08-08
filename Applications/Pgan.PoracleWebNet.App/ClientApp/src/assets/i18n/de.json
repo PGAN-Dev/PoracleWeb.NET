@@ -1245,6 +1245,8 @@
     "APPROVAL_PROMOTED_NAME": "Beworbener Name",
     "APPROVAL_PROMOTED_NAME_PLACEHOLDER": "Name für den beworbenen Geofence",
     "APPROVAL_PROMOTED_NAME_HINT": "Optional. Standardmäßig der aktuelle Anzeigename.",
+    "APPROVAL_PROMOTED_NAME_TOO_LONG": "Must be 50 characters or fewer.",
+    "APPROVAL_PROMOTED_NAME_INVALID": "Only letters, numbers, spaces and - ' . ( ) & are allowed.",
     "APPROVAL_REJECT_REASON": "Ablehnungsgrund",
     "APPROVAL_REJECT_PLACEHOLDER": "Erkläre, warum dieser Geofence abgelehnt wird...",
     "USERS_DESC_FULL": "Registrierte Discord-Benutzer verwalten. <strong>Gestoppt</strong> = Benutzer hat Alarme pausiert oder Ratenbegrenzung erreicht. <strong>Gesperrt</strong> = vom Admin blockiert.",

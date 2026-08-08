@@ -154,16 +154,31 @@ public partial class UserGeofenceService(
     public async Task DeleteAsync(string humanId, int profileNo, int id)
     {
         var geofence = await this._repository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
+            ?? throw new GeofenceNotFoundException(id);
 
         if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
+        // Same orphan risk as the admin path: if this fence was ever promoted it exists in Koji under the
+        // public name, and deleting only the local row leaves it there forever. See #409.
+        if (WasPromotedToKoji(geofence))
+        {
+            try
+            {
+                await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
+            }
+            catch (Exception ex)
+            {
+                LogKojiRemovalFailed(this._logger, ex, geofence.KojiName);
+            }
+        }
+
         // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
-        // Atomic direct-DB removal from humans.area + every profiles.area row.
-        await this._areaWriter.RemoveAreaFromAllProfilesAsync(humanId, geofence.KojiName);
+        // Atomic direct-DB removal from humans.area + every profiles.area row. Uses the promoted name
+        // when there is one — that is what the owner is actually subscribed to after an approval.
+        await this._areaWriter.RemoveAreaFromAllProfilesAsync(humanId, PublicAreaName(geofence).ToLowerInvariant());
 
         // Delete from local DB
         await this._repository.DeleteAsync(id);
@@ -231,15 +246,17 @@ public partial class UserGeofenceService(
     public async Task AdminDeleteAsync(string adminId, int id)
     {
         var geofence = await this._repository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
+            ?? throw new GeofenceNotFoundException(id);
 
-        // If approved (promoted to Koji), remove from Koji too
-        if (geofence.Status == "approved")
+        // Keyed on "was this ever pushed to Koji?", not on the current status. Gating on
+        // status == "approved" meant a reject-then-delete left a public, userSelectable fence in the
+        // shared Koji project that no PoracleWeb record could manage — recoverable only by hand-editing
+        // Koji. PromotedName is set by approval and never cleared, so it is the durable marker. See #409.
+        if (WasPromotedToKoji(geofence))
         {
             try
             {
-                var name = geofence.PromotedName ?? geofence.KojiName;
-                await this._kojiService.RemoveGeofenceFromProjectAsync(name);
+                await this._kojiService.RemoveGeofenceFromProjectAsync(PublicAreaName(geofence));
             }
             catch (Exception ex)
             {
@@ -250,9 +267,7 @@ public partial class UserGeofenceService(
         // Remove from user's area across all profiles
         try
         {
-            var areaName = geofence.Status == "approved" && geofence.PromotedName != null
-                ? geofence.PromotedName.ToLowerInvariant()
-                : geofence.KojiName;
+            var areaName = PublicAreaName(geofence).ToLowerInvariant();
             // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
             await this._areaWriter.RemoveAreaFromAllProfilesAsync(geofence.HumanId, areaName);
         }
@@ -272,7 +287,7 @@ public partial class UserGeofenceService(
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
 
         var geofence = await this._repository.GetByKojiNameAsync(kojiName)
-            ?? throw new InvalidOperationException($"Geofence '{kojiName}' not found.");
+            ?? throw new GeofenceNotFoundException(kojiName);
 
         if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
         {
@@ -445,7 +460,7 @@ public partial class UserGeofenceService(
         }
 
         var geofence = await this._repository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
+            ?? throw new GeofenceNotFoundException(id);
 
         // Parse polygon from local DB
         if (string.IsNullOrEmpty(geofence.PolygonJson))
@@ -530,7 +545,19 @@ public partial class UserGeofenceService(
     public async Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes)
     {
         var geofence = await this._repository.GetByIdAsync(id)
-            ?? throw new InvalidOperationException($"Geofence with ID {id} not found.");
+            ?? throw new GeofenceNotFoundException(id);
+
+        // Without this, reject accepted any status. Rejecting an already-approved fence flipped the row to
+        // "rejected" while leaving it public in Koji, and admin delete then skipped the Koji cleanup
+        // because that was gated on status == "approved" — orphaning a public, userSelectable fence in the
+        // shared project with no local record able to manage it. It would also silently "reject" a
+        // geofence the owner had never submitted. SubmitForReviewAsync has always enforced the state
+        // machine; the review endpoints did not. See #409.
+        if (!string.Equals(geofence.Status, "pending_review", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Geofence must be awaiting review to be rejected. Current status: '{geofence.Status}'.");
+        }
 
         geofence.Status = "rejected";
         geofence.ReviewedBy = adminId;
@@ -561,7 +588,7 @@ public partial class UserGeofenceService(
     public async Task AddToProfileAsync(string humanId, int profileNo, int geofenceId)
     {
         var geofence = await this._repository.GetByIdAsync(geofenceId)
-            ?? throw new InvalidOperationException($"Geofence with ID {geofenceId} not found.");
+            ?? throw new GeofenceNotFoundException(geofenceId);
 
         if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
         {
@@ -584,7 +611,7 @@ public partial class UserGeofenceService(
     public async Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId)
     {
         var geofence = await this._repository.GetByIdAsync(geofenceId)
-            ?? throw new InvalidOperationException($"Geofence with ID {geofenceId} not found.");
+            ?? throw new GeofenceNotFoundException(geofenceId);
 
         if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
         {
@@ -642,6 +669,20 @@ public partial class UserGeofenceService(
 
         return toRestore;
     }
+
+    /// <summary>
+    /// Whether this geofence was ever pushed into the shared Koji project. <c>PromotedName</c> is written
+    /// by approval and never cleared, so it stays true through a later rejection — which is the point.
+    /// </summary>
+    private static bool WasPromotedToKoji(UserGeofence geofence) =>
+        !string.IsNullOrEmpty(geofence.PromotedName) || string.Equals(geofence.Status, "approved", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The name this geofence is known by outside PoracleWeb: the promoted name once approved under one,
+    /// otherwise the original. This is the name in Koji and in the owner's area list.
+    /// </summary>
+    private static string PublicAreaName(UserGeofence geofence) =>
+        string.IsNullOrEmpty(geofence.PromotedName) ? geofence.KojiName : geofence.PromotedName;
 
     private async Task ReloadGeofencesSafeAsync()
     {

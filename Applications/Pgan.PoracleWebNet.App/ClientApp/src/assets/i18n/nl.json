@@ -1245,6 +1245,8 @@
     "APPROVAL_PROMOTED_NAME": "Gepromoveerde naam",
     "APPROVAL_PROMOTED_NAME_PLACEHOLDER": "Naam voor de gepromoveerde geofence",
     "APPROVAL_PROMOTED_NAME_HINT": "Optioneel. Standaard de huidige weergavenaam.",
+    "APPROVAL_PROMOTED_NAME_TOO_LONG": "Must be 50 characters or fewer.",
+    "APPROVAL_PROMOTED_NAME_INVALID": "Only letters, numbers, spaces and - ' . ( ) & are allowed.",
     "APPROVAL_REJECT_REASON": "Reden voor afwijzing",
     "APPROVAL_REJECT_PLACEHOLDER": "Leg uit waarom deze geofence wordt afgewezen...",
     "USERS_DESC_FULL": "Beheer geregistreerde Discord gebruikers. <strong>Gestopt</strong> = gebruiker heeft meldingen gepauzeerd of snelheidslimiet bereikt. <strong>Geblokkeerd</strong> = geblokkeerd door beheerder.",

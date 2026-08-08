@@ -34,8 +34,12 @@
   @if (mode === 'approve') {
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>{{ 'ADMIN.APPROVAL_PROMOTED_NAME' | translate }}</mat-label>
-      <input matInput [(ngModel)]="promotedName" [placeholder]="'ADMIN.APPROVAL_PROMOTED_NAME_PLACEHOLDER' | translate" />
-      <mat-hint>{{ 'ADMIN.APPROVAL_PROMOTED_NAME_HINT' | translate }}</mat-hint>
+      <input matInput [(ngModel)]="promotedName" [maxlength]="50" [placeholder]="'ADMIN.APPROVAL_PROMOTED_NAME_PLACEHOLDER' | translate" />
+      @if (promotedNameError) {
+        <mat-error>{{ promotedNameError | translate }}</mat-error>
+      } @else {
+        <mat-hint>{{ 'ADMIN.APPROVAL_PROMOTED_NAME_HINT' | translate }}</mat-hint>
+      }
     </mat-form-field>
 
     @if (hasRegions) {
@@ -62,7 +66,7 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()">{{ 'COMMON.CANCEL' | translate }}</button>
   @if (mode === 'approve') {
-    <button mat-raised-button color="primary" (click)="onApprove()">
+    <button mat-raised-button color="primary" [disabled]="!canApprove" (click)="onApprove()">
       <mat-icon>check_circle</mat-icon>
       {{ 'ADMIN.APPROVAL_APPROVE' | translate }}
     </button>
