@@ -336,8 +336,9 @@ export interface AuthProviders {
 // ─── Poracle Config ────────────────────────────────────────────────────────────
 
 /**
- * Server-side Poracle config surfaced via GET /api/config.
- * Mirrors the .NET PoracleConfig model.
+ * Server-side Poracle config surfaced via GET /api/config (authenticated).
+ * Mirrors the .NET PublicPoracleConfig projection, which deliberately omits the Poracle admin id
+ * lists, the webhook delegation map, providerURL and staticKey -- none of which a browser needs.
  */
 export interface PoracleServerConfig {
   defaultPvpCap: number;
@@ -346,14 +347,12 @@ export interface PoracleServerConfig {
   locale: string;
   maxDistance: number;
   poracleVersion: string;
-  providerURL: string;
   pvpCaps: number[];
   pvpFilterGreatMinCp: number;
   pvpFilterLittleMinCp: number;
   pvpFilterMaxRank: number;
   pvpFilterUltraMinCp: number;
   pvpLittleLeagueAllowed: boolean;
-  staticKey: string;
 }
 
 export interface AreaDefinition {

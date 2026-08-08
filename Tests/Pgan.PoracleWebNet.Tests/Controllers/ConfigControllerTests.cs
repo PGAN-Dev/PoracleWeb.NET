@@ -63,7 +63,7 @@ public class ConfigControllerTests : ControllerTestBase
         var result = await this._sut.GetConfig();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var returned = Assert.IsType<PoracleConfig>(ok.Value);
+        var returned = Assert.IsType<PublicPoracleConfig>(ok.Value);
         Assert.Equal("en", returned.Locale);
         Assert.Equal(5000, returned.MaxDistance);
     }
@@ -82,7 +82,7 @@ public class ConfigControllerTests : ControllerTestBase
         var result = await this._sut.GetConfig();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var returned = Assert.IsType<PoracleConfig>(ok.Value);
+        var returned = Assert.IsType<PublicPoracleConfig>(ok.Value);
         Assert.Equal(new[] { 50, 51 }, returned.PvpCaps);
         Assert.Equal(50, returned.DefaultPvpCap);
     }
@@ -95,7 +95,7 @@ public class ConfigControllerTests : ControllerTestBase
         var result = await this._sut.GetConfig();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var config = Assert.IsType<PoracleConfig>(ok.Value);
+        var config = Assert.IsType<PublicPoracleConfig>(ok.Value);
         Assert.Equal("en", config.Locale);
         Assert.Equal("unknown", config.PoracleVersion);
         Assert.Equal(10726000, config.MaxDistance);
@@ -109,8 +109,91 @@ public class ConfigControllerTests : ControllerTestBase
         var result = await this._sut.GetConfig();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var config = Assert.IsType<PoracleConfig>(ok.Value);
+        var config = Assert.IsType<PublicPoracleConfig>(ok.Value);
         Assert.Equal("en", config.Locale);
+    }
+
+    // --- GetConfig: disclosure guards (#415) ---
+
+    [Fact]
+    public async Task GetConfigDoesNotExposeAdminIdsOrDelegationOrKeys()
+    {
+        // The proxy hands back everything upstream sends. The controller must project it down --
+        // these four fields used to be served to anonymous callers verbatim.
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            Locale = "en",
+            ProviderUrl = "http://internal-host:4000",
+            StaticKey = "secret-static-key",
+            Admins = new PoracleAdmins { Discord = ["111", "222"], Telegram = ["333"] },
+            DelegateAdministration = [new PoracleDelegateEntry { WebhookId = "http://hook", DiscordIds = ["444"] }]
+        });
+
+        var result = await this._sut.GetConfig();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<PublicPoracleConfig>(ok.Value);
+
+        // Assert on the serialized payload, because that is what actually reaches the browser.
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        Assert.DoesNotContain("111", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("222", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("333", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("444", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret-static-key", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal-host", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("admins", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("delegate", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GetConfigRequiresAuthenticationWhileTemplatesAndDtsStayAnonymous()
+    {
+        // GetConfig inherits [Authorize] from BaseApiController; the regression is someone
+        // re-adding [AllowAnonymous] to it. The sibling routes are genuinely pre-auth.
+        static bool Anonymous(string method) => typeof(ConfigController)
+            .GetMethod(method)!
+            .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), inherit: true)
+            .Length > 0;
+
+        Assert.False(Anonymous(nameof(ConfigController.GetConfig)));
+        Assert.True(Anonymous(nameof(ConfigController.GetTemplates)));
+        Assert.True(Anonymous(nameof(ConfigController.GetDts)));
+    }
+
+    [Fact]
+    public void PublicProjectionCopiesEveryFieldTheBrowserUses()
+    {
+        var full = new PoracleConfig
+        {
+            Locale = "de",
+            PoracleVersion = "1.2.3",
+            PvpFilterMaxRank = 42,
+            PvpFilterLittleMinCp = 1,
+            PvpFilterGreatMinCp = 2,
+            PvpFilterUltraMinCp = 3,
+            PvpLittleLeagueAllowed = false,
+            PvpCaps = [50, 51],
+            DefaultPvpCap = 51,
+            DefaultTemplateName = "custom",
+            EverythingFlagPermissions = "everyone",
+            MaxDistance = 1234
+        };
+
+        var projected = PublicPoracleConfig.From(full);
+
+        Assert.Equal("de", projected.Locale);
+        Assert.Equal("1.2.3", projected.PoracleVersion);
+        Assert.Equal(42, projected.PvpFilterMaxRank);
+        Assert.Equal(1, projected.PvpFilterLittleMinCp);
+        Assert.Equal(2, projected.PvpFilterGreatMinCp);
+        Assert.Equal(3, projected.PvpFilterUltraMinCp);
+        Assert.False(projected.PvpLittleLeagueAllowed);
+        Assert.Equal(new[] { 50, 51 }, projected.PvpCaps);
+        Assert.Equal(51, projected.DefaultPvpCap);
+        Assert.Equal("custom", projected.DefaultTemplateName);
+        Assert.Equal("everyone", projected.EverythingFlagPermissions);
+        Assert.Equal(1234, projected.MaxDistance);
     }
 
     // --- GetDts ---
