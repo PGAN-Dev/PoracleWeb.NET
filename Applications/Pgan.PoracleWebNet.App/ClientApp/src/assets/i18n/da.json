@@ -259,6 +259,7 @@
     "PVP_MIN_CP_HINT": "Giv kun besked, hvis udviklet CP opfylder dette minimum",
     "PVP_DISABLED_HINT": "Vælg en liga for at filtrere efter PVP-rang.",
     "SNACK_CREATED": "{{count}} Pokemon-alarm(er) oprettet",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} Pokemon-alarm(er) oprettet, {{duplicates}} spores allerede",
     "SNACK_UPDATED": "Pokemon-alarm opdateret",
     "SNACK_DELETED": "Pokemon-alarm slettet",
     "SNACK_DELETED_ALL": "Alle Pokemon-alarmer slettet",

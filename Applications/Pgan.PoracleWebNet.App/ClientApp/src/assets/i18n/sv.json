@@ -259,6 +259,7 @@
     "PVP_MIN_CP_HINT": "Notifiera bara om utvecklad CP uppfyller detta minimum",
     "PVP_DISABLED_HINT": "Välj en liga för att filtrera efter PVP-rang.",
     "SNACK_CREATED": "{{count}} Pokemon-larm skapade",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} Pokemon-larm skapade, {{duplicates}} bevakas redan",
     "SNACK_UPDATED": "Pokemon-larm uppdaterat",
     "SNACK_DELETED": "Pokemon-larm raderat",
     "SNACK_DELETED_ALL": "Alla Pokemon-larm raderade",

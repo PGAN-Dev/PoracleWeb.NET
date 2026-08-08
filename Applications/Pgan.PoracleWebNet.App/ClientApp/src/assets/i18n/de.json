@@ -259,6 +259,7 @@
     "PVP_MIN_CP_HINT": "Nur benachrichtigen, wenn entwickelter CP dieses Minimum erreicht",
     "PVP_DISABLED_HINT": "Wähle eine Liga, um nach PVP-Rang zu filtern.",
     "SNACK_CREATED": "{{count}} Pokemon-Alarm(e) erstellt",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} Pokemon-Alarm(e) erstellt, {{duplicates}} bereits verfolgt",
     "SNACK_UPDATED": "Pokemon-Alarm aktualisiert",
     "SNACK_DELETED": "Pokemon-Alarm gelöscht",
     "SNACK_DELETED_ALL": "Alle Pokemon-Alarme gelöscht",

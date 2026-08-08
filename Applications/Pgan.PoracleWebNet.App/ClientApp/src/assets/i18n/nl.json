@@ -259,6 +259,7 @@
     "PVP_MIN_CP_HINT": "Alleen melden als de geëvolueerde CP aan dit minimum voldoet",
     "PVP_DISABLED_HINT": "Selecteer een league om op PVP rang te filteren.",
     "SNACK_CREATED": "{{count}} Pokemon alarm(en) aangemaakt",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} Pokemon-alarm(en) aangemaakt, {{duplicates}} al gevolgd",
     "SNACK_UPDATED": "Pokemon alarm bijgewerkt",
     "SNACK_DELETED": "Pokemon alarm verwijderd",
     "SNACK_DELETED_ALL": "Alle Pokemon alarmen verwijderd",

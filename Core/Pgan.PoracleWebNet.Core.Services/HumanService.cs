@@ -89,6 +89,13 @@ public class HumanService(
         Fails = json.GetIntProp("fails"),
         Language = json.GetStringPropOrNull("language"),
         AdminDisable = json.GetIntProp("admin_disable"),
+        // Read back because the record is written back whole: EntityMappingExtensions.ApplyTo copies every
+        // column, so leaving these unmapped stamped default(DateTime) over the real values on any
+        // direct-DB write -- changing the notification language marked the account as never seen, and
+        // last_checked is what Poracle and the admin user list use to judge whether it is still alive.
+        // See #517.
+        LastChecked = json.GetDateTimePropOrNull("last_checked") ?? default,
+        DisabledDate = json.GetDateTimePropOrNull("disabled_date"),
         CurrentProfileNo = json.GetIntProp("current_profile_no"),
         CommunityMembership = json.GetStringPropOrNull("community_membership"),
         Notes = json.GetStringPropOrNull("notes"),

@@ -263,6 +263,7 @@
     "PVP_CAP_LEVEL": "L{{level}}",
     "PVP_CAP_HINT_DEFAULT": "Default · from Poracle config",
     "SNACK_CREATED": "{{count}} Pokemon alarm(s) created",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} Pokemon alarm(s) created, {{duplicates}} already tracked",
     "SNACK_UPDATED": "Pokemon alarm updated",
     "SNACK_DELETED": "Pokemon alarm deleted",
     "SNACK_DELETED_ALL": "All Pokemon alarms deleted",

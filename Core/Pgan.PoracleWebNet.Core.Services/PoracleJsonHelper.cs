@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Pgan.PoracleWebNet.Core.Services;
@@ -164,4 +165,17 @@ internal static class JsonElementExtensions
 
     public static double GetDoubleProp(this JsonElement el, string name) =>
         el.TryGetProperty(name, out var prop) && prop.TryGetDouble(out var val) ? val : 0.0;
+
+    /// <summary>
+    /// Reads a timestamp PoracleNG may send as null, as an empty string, or not at all.
+    /// </summary>
+    public static DateTime? GetDateTimePropOrNull(this JsonElement el, string name) =>
+        el.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String
+        && DateTime.TryParse(
+            prop.GetString(),
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
+            out var parsed)
+            ? parsed
+            : null;
 }

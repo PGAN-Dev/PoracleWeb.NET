@@ -259,6 +259,7 @@
     "PVP_MIN_CP_HINT": "Solo alertar si el CP evolucionado alcanza este mínimo",
     "PVP_DISABLED_HINT": "Selecciona una liga para filtrar por rango PVP.",
     "SNACK_CREATED": "{{count}} alarma(s) Pokemon creada(s)",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} alarma(s) de Pokemon creada(s), {{duplicates}} ya rastreada(s)",
     "SNACK_UPDATED": "Alarma Pokemon actualizada",
     "SNACK_DELETED": "Alarma Pokemon eliminada",
     "SNACK_DELETED_ALL": "Todas las alarmas Pokemon eliminadas",

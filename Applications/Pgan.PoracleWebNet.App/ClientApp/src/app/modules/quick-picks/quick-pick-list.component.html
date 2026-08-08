@@ -95,7 +95,13 @@
                   {{ 'QUICK_PICKS.REMOVING' | translate }}
                 </span>
               } @else if (pick.appliedState) {
-                <button mat-button (click)="onApply(pick)" [matTooltip]="'QUICK_PICKS.REAPPLY_TOOLTIP' | translate">
+                <!-- A disabled pick stays listed while it still owns alarms so Remove is reachable, but it
+                     cannot be applied again; the server refuses it too. See #508. -->
+                <button
+                  mat-button
+                  [disabled]="!pick.definition.enabled"
+                  (click)="onApply(pick)"
+                  [matTooltip]="'QUICK_PICKS.REAPPLY_TOOLTIP' | translate">
                   <mat-icon>refresh</mat-icon>
                   {{ 'QUICK_PICKS.REAPPLY' | translate }}
                 </button>
