@@ -35,7 +35,9 @@ public class LureController(ILureService lureService) : BaseApiController
     public async Task<IActionResult> Create([FromBody] LureCreate model)
     {
         var lure = model.ToLure();
-        lure.ProfileNo = this.ProfileNo;
+        // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
+        // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
+        // claim back would assert a profile the row was never written to. See #411.
         var result = await this._lureService.CreateAsync(this.UserId, lure);
         return this.CreatedAtAction(nameof(GetByUid), new
         {
