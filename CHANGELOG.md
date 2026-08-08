@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Duplicating a profile from the Profiles page copied the wrong areas and location** ([#503](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/503)). The copy inherited whichever profile was active rather than the one being duplicated, so you got the right alarms over the wrong map — the same defect fixed for the other duplicate button in v2.12.1.
+- **An imported profile arrived subscribed to areas the file never mentioned** ([#522](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/522)). Copying the alarms carried the active profile's area list and location onto the new profile, so the import delivered notifications for areas you never chose for it.
+- **Duplicating a profile with a long or empty name returned a server error** ([#504](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/504), [#519](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/519)) instead of explaining the problem, as creating a profile already did. The duplicate prompt is prefilled with "<name> (Copy)" and has no length limit, so a long name is easy to reach.
+### Fixed
 - **Adding a fort-change alarm could silently replace an existing one** ([#502](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/502)). If the settings matched an alarm you already had, Poracle overwrote that alarm's radius rather than adding a second one, while the app reported a new alarm created. The clash is now refused with an explanation.
 - **Adding the same max battle twice stacked duplicate alarms** ([#521](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/521)), producing two of every notification with no way to tell the rows apart. Max battles are the one type Poracle does not de-duplicate.
 - **Clearing the gym on a raid, egg or gym alarm reported success and kept the old gym** ([#497](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/497)). The alarm went on firing for that one gym while the card and the dialog both showed none.
