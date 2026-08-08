@@ -32,12 +32,18 @@ internal static partial class TrackingUpdateReconciler
         ILogger logger,
         ITrackedUidRemapper? uidRemapper = null)
     {
-        // oldUid <= 0 means this was not an edit. No insert, or the same uid back, means the upsert worked.
-        if (oldUid <= 0 || result.Inserts <= 0 || result.NewUids.Count == 0)
+        // oldUid <= 0 means this was not an edit, so there is nothing to reconcile.
+        if (oldUid <= 0 || result.NewUids.Count == 0)
         {
             return oldUid;
         }
 
+        // Trust newUids, not the insert counter. PoracleNG re-keys a row on edit while reporting
+        // {"insert":0,"updates":1,"newUids":[<new>]} -- verified directly against it. Gating on
+        // Inserts > 0 therefore skipped both the uid correction and the remap for raids, eggs,
+        // quests, gyms, fort changes and nests: the PUT answered 200 with a uid that 404s on the very
+        // next GET, and any quick pick tracking the row kept pointing at the dead uid. Monsters were
+        // unaffected because PoracleNG genuinely updates that type in place. See #460, #464.
         var newUid = (int)result.NewUids[0];
         if (newUid == oldUid)
         {
@@ -46,6 +52,8 @@ internal static partial class TrackingUpdateReconciler
 
         try
         {
+            // Idempotent: when PoracleNG replaced the row in place rather than inserting a duplicate,
+            // the old uid is already gone and the proxy swallows the resulting 404.
             await proxy.DeleteByUidAsync(trackingType, userId, oldUid);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

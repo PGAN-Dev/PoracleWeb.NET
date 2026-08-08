@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Editing a raid, egg, quest, gym, fort change or nest returned an alarm ID that no longer existed** ([#460](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/460), [#464](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/464)). PoracleNG re-creates the row under a new ID when you edit one of these, while reporting zero inserts. PoracleWeb keyed off that count rather than the ID it was handed, so the response advertised the old ID — which then failed on the next read, edit or delete — and any quick pick tracking the alarm was left pointing at it. Pokemon alarms were unaffected, because PoracleNG genuinely updates those in place.
+
+### Fixed
 - **A batch of interface defects** ([#426](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/426)). Deleting a Gym, Lure or Nest alarm asked "Edit … Alarm?" instead of a delete confirmation. A quest tracking any item showed as "Item #0". Hovering a toolbar button silently disabled every keyboard shortcut, because the tooltip counted as a blocking overlay. The Alert Defaults dialog accepted 200 km, showed "200 km" in its preview, then quietly saved 100 — and 0 or a negative saved as 1; it now says what the limits are and refuses instead. The "Set up areas" link inside an add-alarm dialog reloaded the whole page and threw away everything typed. The Cleaning page always greyed out the Max Battles row even when alarms existed. Searching admin settings never filtered the Authentication section. And the login page made a signed-in-only request on every visit, failing with an error in the console.
 
 ### Fixed
