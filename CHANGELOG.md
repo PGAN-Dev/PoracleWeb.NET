@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Importing a profile accepted values every other path refuses** ([#548](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/548)). A hand-edited backup could store a negative radius, an IV window of -999 to 500, or a cleaning value outside its range, and the alarm then matched nothing. Imports are now checked the same way the add form is, and a file that fails is refused whole rather than half-applied.
+- **The area list showed other people's private geofence names** ([#544](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/544)). Any signed-in user could read the names everyone else had given their own geofences — "home", "work area" and so on. The page hid them, but the data was being sent. Your own geofences are still listed.
+- **A deleted account stayed signed in to an app where nothing worked** ([#545](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/545)). The session kept reporting itself healthy while every page failed with a generic error, for up to a day, with no way out but clearing browser storage. It now signs out.
+### Fixed
 - **Editing an alarm could silently delete a different one** ([#531](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/531)). Changing a raid's team, an egg's level, a gym's slot or battle toggles, or a fort-change's change types onto settings another alarm already had merged the two: one alarm vanished, the survivor took the edited alarm's radius, and the app reported a successful update. The clash is now refused and both alarms are left alone.
 - **Re-applying a quick pick could destroy its alarms** ([#532](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/532)). Re-apply deleted the existing alarms first and only then checked whether the pick could be applied, so a pick that had been disabled or edited into an impossible filter lost its alarms and reported only that it had been refused. Everything that can refuse a re-apply is now checked before anything is deleted.
 ### Fixed

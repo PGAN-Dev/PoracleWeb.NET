@@ -745,9 +745,20 @@ public partial class AuthController(
     {
         // Read enabled status from DB (not JWT) so it reflects real-time changes
         var human = await this._humanService.GetByIdAsync(this.UserId);
-        var adminDisable = human != null && human.AdminDisable == 1;
-        var enabled = human == null || (human.Enabled == 1 && human.AdminDisable == 0);
-        var dbProfileNo = human?.CurrentProfileNo ?? this.ProfileNo;
+
+        // A missing row used to read as healthy, so a deleted account kept answering 200 with
+        // enabled:true while every other endpoint threw. The SPA only signs out on 401, so the user sat
+        // in a fully rendered app where nothing worked, for up to the token lifetime, with no way out but
+        // clearing storage by hand. The account is gone; say so, and let the interceptor sign them out.
+        // See #545.
+        if (human is null)
+        {
+            return this.Unauthorized(new { error = "This account no longer exists." });
+        }
+
+        var adminDisable = human.AdminDisable == 1;
+        var enabled = human.Enabled == 1 && human.AdminDisable == 0;
+        var dbProfileNo = human.CurrentProfileNo;
 
         var userInfo = new UserInfo
         {
@@ -767,7 +778,7 @@ public partial class AuthController(
         // out-of-band via the active_hours scheduler or bot !profile commands.
         // When mismatched, issue a refreshed JWT so subsequent API calls use the
         // correct profile and alarms don't land on the wrong profile.
-        if (human != null && dbProfileNo != this.ProfileNo)
+        if (dbProfileNo != this.ProfileNo)
         {
             LogProfileResync(this._logger, this.UserId, this.ProfileNo, dbProfileNo);
             // GenerateToken builds from UserInfo, which has no impersonatedBy field, so an admin
