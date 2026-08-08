@@ -124,7 +124,7 @@ export class NestListComponent implements OnInit {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
           message: this.i18n.instant('POKEMON.CONFIRM_DELETE_MSG', { name: this.getPokemonName(nest.pokemonId) }),
-          title: this.i18n.instant('NESTS.EDIT_DIALOG_TITLE'),
+          title: this.i18n.instant('NESTS.CONFIRM_DELETE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })

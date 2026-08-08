@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Lure #{{id}}",
     "EDIT_MODE": "Edit message in place",
     "EDIT_HINT": "Update the existing Discord message when the lure changes instead of sending a new one.",
-    "EDIT_BADGE": "Edit"
+    "EDIT_BADGE": "Edit",
+    "CONFIRM_DELETE_TITLE": "Delete Lure Alarm?"
   },
   "NESTS": {
     "PAGE_TITLE": "Nest Alarms",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Nest alarm deleted",
     "SNACK_FAILED_CREATE": "Failed to create alarm",
     "SNACK_FAILED_UPDATE": "Failed to update alarm",
-    "SNACK_FAILED_DELETE": "Failed to delete alarm"
+    "SNACK_FAILED_DELETE": "Failed to delete alarm",
+    "CONFIRM_DELETE_TITLE": "Delete Nest Alarm?"
   },
   "GYMS": {
     "PAGE_TITLE": "Gym Alarms",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Mystic",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
-    "TEAM_UNKNOWN": "Team {{id}}"
+    "TEAM_UNKNOWN": "Team {{id}}",
+    "CONFIRM_DELETE_TITLE": "Delete Gym Alarm?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort Change Alarms",
@@ -1687,7 +1690,9 @@
     "DESC": "Choose how new alerts are delivered by default. You can still change this for each alert when you create it.",
     "DEFAULT_DISTANCE": "Default distance",
     "DEFAULT_DISTANCE_HINT": "Used to pre-fill the radius for new distance-based alerts.",
-    "FOOTNOTE": "Applies to newly created alerts only — existing alerts are unchanged."
+    "FOOTNOTE": "Applies to newly created alerts only — existing alerts are unchanged.",
+    "DISTANCE_TOO_SMALL": "Must be at least 0.1 km.",
+    "DISTANCE_TOO_LARGE": "Must be 100 km or less."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Items per page:",

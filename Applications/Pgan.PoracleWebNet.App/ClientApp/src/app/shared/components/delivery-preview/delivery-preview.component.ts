@@ -2,13 +2,14 @@ import { Component, Input, OnChanges, SimpleChanges, inject, signal } from '@ang
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AreaService } from '../../../core/services/area.service';
 import { LocationService } from '../../../core/services/location.service';
 
 @Component({
-  imports: [MatChipsModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
+  imports: [RouterLink, MatChipsModule, MatIconModule, MatProgressSpinnerModule, TranslatePipe],
   selector: 'app-delivery-preview',
   standalone: true,
   styleUrl: './delivery-preview.component.scss',

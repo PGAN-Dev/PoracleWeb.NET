@@ -23,6 +23,12 @@ interface CleaningItem {
   type: CleanAlarmType;
 }
 
+/** Cleaning row type -> the matching field on the dashboard counts payload. */
+const DASHBOARD_COUNT_KEYS: Record<string, string> = {
+  maxbattles: 'maxBattles',
+  monsters: 'pokemon',
+};
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -196,7 +202,9 @@ export class CleaningComponent implements OnInit {
         error: () => this.loading.set(false),
         next: counts => {
           for (const item of this.cleaningItems) {
-            const key = item.type === 'monsters' ? 'pokemon' : item.type;
+            // The dashboard counts are camelCase; the cleaning rows use the API route names. Without
+            // this map, 'maxbattles' never matched 'maxBattles' and the row was permanently greyed out.
+            const key = DASHBOARD_COUNT_KEYS[item.type] ?? item.type;
             const count = (counts as unknown as Record<string, number>)[key] ?? 0;
             item.hasAlarms.set(count > 0);
           }

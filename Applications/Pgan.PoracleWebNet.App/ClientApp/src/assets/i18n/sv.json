@@ -472,7 +472,7 @@
     "TAB_MEGA_ENERGY": "Mega-energi",
     "TAB_CANDY": "Godis",
     "ITEM_REWARD": "Föremålsbelöning",
-    "ANY_ITEM": "Alla föremål",
+    "ANY_ITEM": "Valfritt föremål",
     "QUEST_TYPE_LABEL": "Quest-typ:",
     "SNACK_CREATED": "Quest-larm skapat",
     "SNACK_UPDATED": "Quest-larm uppdaterat",
@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Lockbete #{{id}}",
     "EDIT_MODE": "Redigera meddelandet på plats",
     "EDIT_HINT": "Uppdaterar det befintliga Discord-meddelandet när betet ändras i stället för att skicka ett nytt.",
-    "EDIT_BADGE": "Redigera"
+    "EDIT_BADGE": "Redigera",
+    "CONFIRM_DELETE_TITLE": "Ta bort lockbete-larm?"
   },
   "NESTS": {
     "PAGE_TITLE": "Nästlarm",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Nästlarm raderat",
     "SNACK_FAILED_CREATE": "Kunde inte skapa larm",
     "SNACK_FAILED_UPDATE": "Kunde inte uppdatera larm",
-    "SNACK_FAILED_DELETE": "Kunde inte radera larm"
+    "SNACK_FAILED_DELETE": "Kunde inte radera larm",
+    "CONFIRM_DELETE_TITLE": "Ta bort bo-larm?"
   },
   "GYMS": {
     "PAGE_TITLE": "Gymlarm",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Mystic",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
-    "TEAM_UNKNOWN": "Lag {{id}}"
+    "TEAM_UNKNOWN": "Lag {{id}}",
+    "CONFIRM_DELETE_TITLE": "Ta bort gym-larm?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort-ändringslarm",
@@ -1687,7 +1690,9 @@
     "DESC": "Välj hur nya aviseringar levereras som standard. Du kan fortfarande ändra detta för varje avisering när du skapar den.",
     "DEFAULT_DISTANCE": "Standardavstånd",
     "DEFAULT_DISTANCE_HINT": "Används för att förifylla radien för nya avståndsbaserade aviseringar.",
-    "FOOTNOTE": "Gäller endast nyskapade aviseringar — befintliga ändras inte."
+    "FOOTNOTE": "Gäller endast nyskapade aviseringar — befintliga ändras inte.",
+    "DISTANCE_TOO_SMALL": "Måste vara minst 0,1 km.",
+    "DISTANCE_TOO_LARGE": "Får vara högst 100 km."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Objekt per sida:",

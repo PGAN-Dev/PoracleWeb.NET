@@ -208,7 +208,9 @@ export class QuestListComponent implements OnInit {
       return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
     }
     if (quest.rewardType === 2) {
-      return this.masterData.getItemName(quest.reward);
+      // reward 0 is the dialog default, meaning any item. getItemName has no id 0, so this used to
+      // render as "Item #0" -- the Pokemon branch above already has the equivalent "any" case.
+      return quest.reward > 0 ? this.masterData.getItemName(quest.reward) : this.i18n.instant('QUESTS.ANY_ITEM');
     }
     if (quest.rewardType === 3) {
       return quest.reward > 0

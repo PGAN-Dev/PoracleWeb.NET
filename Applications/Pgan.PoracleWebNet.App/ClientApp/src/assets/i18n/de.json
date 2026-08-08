@@ -472,7 +472,7 @@
     "TAB_MEGA_ENERGY": "Mega-Energie",
     "TAB_CANDY": "Bonbons",
     "ITEM_REWARD": "Item-Belohnung",
-    "ANY_ITEM": "Beliebiges Item",
+    "ANY_ITEM": "Beliebiger Gegenstand",
     "QUEST_TYPE_LABEL": "Quest-Typ:",
     "SNACK_CREATED": "Quest-Alarm erstellt",
     "SNACK_UPDATED": "Quest-Alarm aktualisiert",
@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Modul #{{id}}",
     "EDIT_MODE": "Nachricht direkt bearbeiten",
     "EDIT_HINT": "Aktualisiert die vorhandene Discord-Nachricht bei Änderungen am Lockmodul, statt eine neue zu senden.",
-    "EDIT_BADGE": "Bearbeiten"
+    "EDIT_BADGE": "Bearbeiten",
+    "CONFIRM_DELETE_TITLE": "Lockmodul-Alarm löschen?"
   },
   "NESTS": {
     "PAGE_TITLE": "Nest-Alarme",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Nest-Alarm gelöscht",
     "SNACK_FAILED_CREATE": "Alarm konnte nicht erstellt werden",
     "SNACK_FAILED_UPDATE": "Alarm konnte nicht aktualisiert werden",
-    "SNACK_FAILED_DELETE": "Alarm konnte nicht gelöscht werden"
+    "SNACK_FAILED_DELETE": "Alarm konnte nicht gelöscht werden",
+    "CONFIRM_DELETE_TITLE": "Nest-Alarm löschen?"
   },
   "GYMS": {
     "PAGE_TITLE": "Arena-Alarme",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Weisheit",
     "TEAM_VALOR": "Wagemut",
     "TEAM_INSTINCT": "Intuition",
-    "TEAM_UNKNOWN": "Team {{id}}"
+    "TEAM_UNKNOWN": "Team {{id}}",
+    "CONFIRM_DELETE_TITLE": "Arena-Alarm löschen?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort-Änderungs-Alarme",
@@ -1687,7 +1690,9 @@
     "DESC": "Lege fest, wie neue Benachrichtigungen standardmäßig zugestellt werden. Beim Erstellen jeder Benachrichtigung kannst du dies weiterhin ändern.",
     "DEFAULT_DISTANCE": "Standard-Entfernung",
     "DEFAULT_DISTANCE_HINT": "Wird verwendet, um den Radius für neue entfernungsbasierte Benachrichtigungen vorzubelegen.",
-    "FOOTNOTE": "Gilt nur für neu erstellte Benachrichtigungen – bestehende bleiben unverändert."
+    "FOOTNOTE": "Gilt nur für neu erstellte Benachrichtigungen – bestehende bleiben unverändert.",
+    "DISTANCE_TOO_SMALL": "Muss mindestens 0,1 km sein.",
+    "DISTANCE_TOO_LARGE": "Darf höchstens 100 km sein."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Einträge pro Seite:",

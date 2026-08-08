@@ -472,7 +472,7 @@
     "TAB_MEGA_ENERGY": "Mega Energia",
     "TAB_CANDY": "Caramelle",
     "ITEM_REWARD": "Ricompensa Oggetto",
-    "ANY_ITEM": "Qualsiasi Oggetto",
+    "ANY_ITEM": "Qualsiasi oggetto",
     "QUEST_TYPE_LABEL": "Tipo Missione:",
     "SNACK_CREATED": "Allarme missione creato",
     "SNACK_UPDATED": "Allarme missione aggiornato",
@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Esca #{{id}}",
     "EDIT_MODE": "Modifica il messaggio sul posto",
     "EDIT_HINT": "Aggiorna il messaggio Discord esistente quando il modulo esca cambia invece di inviarne uno nuovo.",
-    "EDIT_BADGE": "Modifica"
+    "EDIT_BADGE": "Modifica",
+    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso esca?"
   },
   "NESTS": {
     "PAGE_TITLE": "Allarmi Nidi",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Allarme nido eliminato",
     "SNACK_FAILED_CREATE": "Creazione allarme fallita",
     "SNACK_FAILED_UPDATE": "Aggiornamento allarme fallito",
-    "SNACK_FAILED_DELETE": "Eliminazione allarme fallita"
+    "SNACK_FAILED_DELETE": "Eliminazione allarme fallita",
+    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso nido?"
   },
   "GYMS": {
     "PAGE_TITLE": "Allarmi Palestre",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Saggezza",
     "TEAM_VALOR": "Coraggio",
     "TEAM_INSTINCT": "Istinto",
-    "TEAM_UNKNOWN": "Squadra {{id}}"
+    "TEAM_UNKNOWN": "Squadra {{id}}",
+    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso palestra?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Allarmi Modifiche Forte",
@@ -1687,7 +1690,9 @@
     "DESC": "Scegli come vengono recapitati i nuovi avvisi per impostazione predefinita. Potrai comunque modificarlo per ogni avviso al momento della creazione.",
     "DEFAULT_DISTANCE": "Distanza predefinita",
     "DEFAULT_DISTANCE_HINT": "Usata per precompilare il raggio dei nuovi avvisi basati sulla distanza.",
-    "FOOTNOTE": "Si applica solo agli avvisi appena creati: quelli esistenti restano invariati."
+    "FOOTNOTE": "Si applica solo agli avvisi appena creati: quelli esistenti restano invariati.",
+    "DISTANCE_TOO_SMALL": "Deve essere almeno 0,1 km.",
+    "DISTANCE_TOO_LARGE": "Deve essere al massimo 100 km."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Elementi per pagina:",

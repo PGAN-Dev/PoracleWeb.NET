@@ -119,7 +119,7 @@ export class LureListComponent implements OnInit {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
           message: `${this.i18n.instant('COMMON.DELETE')} ${this.getLureName(lure.lureId)} ${this.i18n.instant('LURES.LURE_SUFFIX')}?`,
-          title: this.i18n.instant('LURES.EDIT_DIALOG_TITLE'),
+          title: this.i18n.instant('LURES.CONFIRM_DELETE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })

@@ -412,9 +412,27 @@ export class AdminSettingsComponent implements OnInit {
   /** Current sign-in mode, derived from enable_oidc (opt-in; absent/false = local). */
   readonly authMode = computed<'local' | 'oidc'>(() => (this.getBool('enable_oidc') ? 'oidc' : 'local'));
 
+  readonly searchQuery = signal('');
+  /**
+   * The Authentication section is hand-written rather than driven by SETTING_GROUPS, so the search
+   * box never touched it and a nonsense query still left it on screen. See #426.
+   */
+  readonly authSectionVisible = computed(() => {
+    const query = this.searchQuery().trim().toLowerCase();
+    if (!query) return true;
+    return [
+      'ADMIN_SETTINGS.GROUP_AUTH',
+      'ADMIN_SETTINGS.AUTH_MODE_LABEL',
+      'ADMIN_SETTINGS.AUTH_MODE_LOCAL',
+      'ADMIN_SETTINGS.AUTH_MODE_OIDC',
+    ].some(key => this.i18n.instant(key).toLowerCase().includes(query));
+  });
+
   readonly bulkSaving = signal(false);
   readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
+
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
+
   readonly iconRepos = [
     {
       name: 'Whitewillem (Ingame)',
@@ -487,10 +505,8 @@ export class AdminSettingsComponent implements OnInit {
   readonly oidcSloEnabled = computed(() => (this.getSettingValue('enable_oidc_slo') ?? '').toLowerCase() !== 'false');
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
-
-  readonly searchQuery = signal('');
-
   readonly settingsLoading = signal(true);
+
   readonly telegramConfig = signal<TelegramServerConfig | null>(null);
 
   readonly unknownSettings = computed(() =>
