@@ -15,7 +15,7 @@ name: Changelog Check
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
-    branches: [main]
+    branches: [main, develop]
   merge_group:
 
 permissions:

@@ -4,7 +4,7 @@ on:
   release:
     types: [published]
   push:
-    branches: [main]
+    branches: [develop]
   workflow_dispatch:
 
 env:
@@ -41,8 +41,8 @@ jobs:
             type=raw,value=latest,enable=${{ github.event_name == 'release' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=beta,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-            type=sha,prefix=main-,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+            type=raw,value=beta,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+            type=sha,prefix=develop-,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
             type=sha,prefix=,enable=${{ github.event_name == 'release' }}
 
       # Computed here rather than pulled out of the metadata-action JSON, so the value passed

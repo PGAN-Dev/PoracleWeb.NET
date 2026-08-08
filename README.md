@@ -112,24 +112,33 @@ Three Docker channels are published to GHCR — see [TESTING.md](TESTING.md) for
 | Channel | Tag | Trigger |
 |---|---|---|
 | Stable | `:latest`, `:vX.Y.Z` | Release tag |
-| Beta | `:beta`, `:main-<sha>` | Every push to `main` |
+| Beta | `:beta`, `:develop-<sha>` | Every push to `develop` |
 | PR preview | `:pr-<number>` | PRs with the `preview` label |
 
-The same split applies when you **build from source** — and it is easy to miss, because a fresh clone puts you on `main`:
+The same split applies when you **build from source**:
 
 | You check out | You get |
 |---|---|
-| A release tag (`git checkout "$(git describe --tags --abbrev=0)"`) | Stable — the same code as `:latest` |
-| `main` | Beta — every merged PR, including work that has never been in a release |
+| `main`, or a release tag | Stable — the same code as `:latest` |
+| `develop` | Beta — every merged PR, including work that has never been in a release |
 
-If you are self-hosting, use a release tag or the published `:latest` image. `main` is where changes soak before a release; running it means running code that has not shipped yet.
+`main` only moves when a release is published, so a plain `git clone` gives you released code. `develop` is where changes soak first; running it means running code that has not shipped yet.
+
+## Branches
+
+| Branch | Purpose |
+|---|---|
+| `main` | Released code. Only moves on a release. Publishes `:latest`. |
+| `develop` | Integration. **Pull requests target this.** Publishes `:beta` on every merge. |
+
+Cutting a release means merging `develop` into `main` and publishing a GitHub release; the changelog is promoted from `[Unreleased]` automatically.
 
 ## CI/CD
 
 - **ci.yml** — Builds backend, runs tests, builds frontend, runs lint/prettier/jest
-- **docker-publish.yml** — Builds and publishes Docker image to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net) (`:latest` on release, `:beta` on main)
+- **docker-publish.yml** — Builds and publishes Docker image to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net) (`:latest` on release, `:beta` on `develop`)
 - **docker-preview.yml** — Builds `:pr-<number>` images on PRs labeled `preview`
-- **docker-prune.yml** — Nightly cleanup of stale `pr-*` and `main-<sha>` tags
+- **docker-prune.yml** — Nightly cleanup of stale `pr-*` and `develop-<sha>` tags
 - **pr-labeler.yml** — Auto-labels PRs from branch prefix / PR title for release-note grouping
 - **release.yml** (config) — Groups PRs by label when generating GitHub release notes
 

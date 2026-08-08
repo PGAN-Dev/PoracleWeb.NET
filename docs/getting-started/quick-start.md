@@ -11,15 +11,15 @@ This is the recommended way to run PoracleWeb.NET in production.
 git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git
 cd PoracleWeb.NET
 
-# Check out the newest release. Without this you are on `main`, which is the
-# beta channel — it carries merged-but-unreleased work.
+# Check out the newest release. Without this you are on whatever the default
+# branch resolves to; a tag pins you to a released version.
 git checkout "$(git describe --tags --abbrev=0)"
 ```
 
 Or download and extract a release. Everything below runs from this root directory.
 
-!!! warning "`main` is the beta channel"
-    `main` receives every merged pull request and is published as the `:beta` Docker image. It is where changes soak before a release, so it can contain work that has never been in a released version. Build from a release tag unless you specifically want to test unreleased changes — and if you do, prefer the `:beta` image over building from source so you get the exact artifact that was tested.
+!!! warning "`develop` is the beta channel"
+    `develop` receives every merged pull request and is published as the `:beta` Docker image. `main` only moves when a release is published. It is where changes soak before a release, so it can contain work that has never been in a released version. Build from a release tag unless you specifically want to test unreleased changes — and if you do, prefer the `:beta` image over building from source so you get the exact artifact that was tested.
 
 ## 2. Create your `.env` and `docker-compose.yml`
 
@@ -198,7 +198,7 @@ The app will now be available at `http://your-server:9090`. Remember to update y
     Or without the script: `docker build -t poracleweb.net:latest . && docker compose up -d --force-recreate`
 
     !!! note "A plain `git pull` tracks the beta channel"
-        `git pull` on `main` moves you to the newest merged commit, not the newest release. Fetch tags and check the newest one out to stay on released code.
+        `git pull` moves you to the newest commit on your current branch. On `develop` that is the beta channel. Fetch tags and check the newest one out to stay on released code.
 
 ## Common issues
 

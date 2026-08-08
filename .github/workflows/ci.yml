@@ -6,9 +6,9 @@ name: CI
 # every queued PR stalls until it times out.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
   merge_group:
 
 jobs:
