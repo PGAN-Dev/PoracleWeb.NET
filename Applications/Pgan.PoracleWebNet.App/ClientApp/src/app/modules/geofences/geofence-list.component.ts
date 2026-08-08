@@ -161,37 +161,26 @@ export class GeofenceListComponent implements OnInit {
     ref.afterClosed().subscribe((result: GeofenceNameDialogResult | null) => {
       if (!result) return;
 
-      // Edit = delete + recreate
+      // A rename, not a delete and a recreate: recreating re-subscribed only the active profile, so
+      // renaming from profile 0 quietly switched the geofence off everywhere else while the page still
+      // showed it on. See #543.
       this.savingGeofence.set(true);
       this.userGeofenceService
-        .deleteGeofence(geofence.id)
+        .renameGeofence(geofence.id, {
+          displayName: result.displayName,
+          groupName: result.groupName,
+          parentId: result.parentId,
+        })
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           error: () => {
             this.savingGeofence.set(false);
             this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
-          next: () => {
-            this.userGeofenceService
-              .createGeofence({
-                displayName: result.displayName,
-                groupName: result.groupName,
-                parentId: result.parentId,
-                polygon: geofence.polygon ?? [],
-              })
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe({
-                error: () => {
-                  this.savingGeofence.set(false);
-                  this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-                },
-                next: created => {
-                  this.savingGeofence.set(false);
-                  this.customGeofences.update(list => [...list.filter(g => g.id !== geofence.id), created]);
-                  this.activeAreas.update(areas => [...areas.filter(a => a !== geofence.kojiName), created.kojiName]);
-                  this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-                },
-              });
+          next: updated => {
+            this.savingGeofence.set(false);
+            this.customGeofences.update(list => list.map(g => (g.id === updated.id ? updated : g)));
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
     });

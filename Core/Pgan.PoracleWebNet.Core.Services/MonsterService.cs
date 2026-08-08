@@ -49,6 +49,14 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         // PoracleNG's POST endpoint handles updates when the body includes a uid field.
         var body = SerializeToElement(model);
+
+        // Pokemon is the one type with no collision guard: PoracleNG updates it in place rather than
+        // merging, so an edit onto another alarm's exact settings wrote a byte-identical twin -- two rows
+        // on the page that cannot be told apart and must each be deleted. Creating that state directly is
+        // refused, so the edit path was the only way to reach it. See #537.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, model.Uid, body);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
     }

@@ -46,6 +46,14 @@ export class UserGeofenceService {
     return this.http.post<GeoJsonImportResult>(`${this.config.apiHost}/api/geofences/import/geojson`, formData);
   }
 
+  /**
+   * Renames a geofence in place. Editing used to be delete-then-recreate, and the recreate re-subscribed
+   * only the active profile — silently switching the geofence off for every other profile. See #543.
+   */
+  renameGeofence(id: number, data: { displayName: string; groupName?: string | null; parentId?: number | null }): Observable<UserGeofence> {
+    return this.http.put<UserGeofence>(`${this.config.apiHost}/api/geofences/custom/${id}`, data);
+  }
+
   submitForReview(kojiName: string): Observable<UserGeofence> {
     return this.http.post<UserGeofence>(`${this.config.apiHost}/api/geofences/custom/${encodeURIComponent(kojiName)}/submit`, {});
   }

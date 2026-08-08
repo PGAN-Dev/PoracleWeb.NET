@@ -66,11 +66,15 @@ export class RaidListComponent implements OnInit {
   readonly gymNames = signal<Record<string, string>>({});
   readonly loading = signal(true);
   readonly raids = signal<Raid[]>([]);
-  readonly selectedIds = signal(new Set<number>());
+  // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
+  // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
+  // one card ticked the other, and the bulk actions sent both to the raid endpoint -- deleting or
+  // resizing the raid twice and leaving the egg alone. See #540.
+  readonly selectedIds = signal(new Set<string>());
+
   readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
   readonly testAlertService = inject(TestAlertService);
-
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
@@ -82,19 +86,17 @@ export class RaidListComponent implements OnInit {
     });
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
-      const ids = [...this.selectedIds()];
-      const raidUids = new Set(this.raids().map(r => r.uid));
-      for (const uid of ids) {
-        if (raidUids.has(uid)) {
-          await firstValueFrom(this.raidService.delete(uid));
-        } else {
-          await firstValueFrom(this.eggService.delete(uid));
-        }
+      const keys = [...this.selectedIds()];
+      for (const uid of this.uidsOfKind(keys, 'raid')) {
+        await firstValueFrom(this.raidService.delete(uid));
+      }
+      for (const uid of this.uidsOfKind(keys, 'egg')) {
+        await firstValueFrom(this.eggService.delete(uid));
       }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DELETED', { count: keys.length }), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
@@ -104,16 +106,15 @@ export class RaidListComponent implements OnInit {
     const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
-      const ids = [...this.selectedIds()];
-      const raidUids = this.raids().map(r => r.uid);
-      const selectedRaidUids = ids.filter(id => raidUids.includes(id));
-      const selectedEggUids = ids.filter(id => !raidUids.includes(id));
+      const keys = [...this.selectedIds()];
+      const selectedRaidUids = this.uidsOfKind(keys, 'raid');
+      const selectedEggUids = this.uidsOfKind(keys, 'egg');
       if (selectedRaidUids.length > 0) await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
       if (selectedEggUids.length > 0) await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DISTANCE', { count: ids.length }), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DISTANCE', { count: keys.length }), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }
@@ -360,22 +361,26 @@ export class RaidListComponent implements OnInit {
   }
 
   selectAll(): void {
-    const ids = new Set<number>();
-    this.raids().forEach(r => ids.add(r.uid));
-    this.eggs().forEach(e => ids.add(e.uid));
-    this.selectedIds.set(ids);
+    const keys = new Set<string>();
+    this.raids().forEach(r => keys.add(this.selectionKey('raid', r.uid)));
+    this.eggs().forEach(e => keys.add(this.selectionKey('egg', e.uid)));
+    this.selectedIds.set(keys);
+  }
+
+  selectionKey(kind: 'raid' | 'egg', uid: number): string {
+    return `${kind}:${uid}`;
   }
 
   sendTestAlert(type: string, alarm: { uid: number }): void {
     this.testAlertService.sendTestAlert(type, alarm.uid);
   }
 
-  toggleSelect(uid: number): void {
+  toggleSelect(key: string): void {
     const current = new Set(this.selectedIds());
-    if (current.has(uid)) {
-      current.delete(uid);
+    if (current.has(key)) {
+      current.delete(key);
     } else {
-      current.add(uid);
+      current.add(key);
     }
     this.selectedIds.set(current);
   }
@@ -415,5 +420,9 @@ export class RaidListComponent implements OnInit {
       }
       this.gymNames.set(names);
     });
+  }
+
+  private uidsOfKind(keys: string[], kind: 'raid' | 'egg'): number[] {
+    return keys.filter(k => k.startsWith(`${kind}:`)).map(k => Number(k.slice(kind.length + 1)));
   }
 }

@@ -61,9 +61,20 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         // MaxBattle is insert-only in PoracleNG (no dedup/upsert).
         // Delete the old alarm first, then create a replacement.
         var oldUid = model.Uid;
-        await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
-
         var body = SerializeToElement(model);
+
+        // Create refuses an exact duplicate (#521) and this path did not, so editing one max battle onto
+        // another's settings left two identical rows -- and it is checked BEFORE the delete, because the
+        // delete is what makes this path destructive. See #538.
+        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+        if (siblings.Any(x => x.Uid != oldUid && IsSameAlarm(x, model)))
+        {
+            throw new TrackingConflictException(
+                TrackingType,
+                "You already have an identical max battle alarm.");
+        }
+
+        await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         if (result.NewUids.Count > 0)

@@ -135,6 +135,7 @@ public class MaxBattleServiceTests
     [Fact]
     public async Task UpdateAsyncUsesDeleteThenCreate()
     {
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
         var maxBattle = new MaxBattle { Uid = 1, PokemonId = 9000, Gmax = 1 };
         var callOrder = new List<string>();
 
@@ -376,6 +377,7 @@ public class MaxBattleServiceTests
     [Fact]
     public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheReplacementRow()
     {
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(CreateJsonArray());
         this._proxy.Setup(p => p.DeleteByUidAsync("maxbattle", "user1", 82)).Returns(Task.CompletedTask);
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([83], 0, 0, 1));
