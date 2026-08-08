@@ -1035,7 +1035,7 @@
     "DELETE_PICK": "Delete",
     "SNACK_FAILED_LOAD": "Failed to load quick picks",
     "CONFIRM_DELETE_TITLE": "Delete Quick Pick",
-    "CONFIRM_DELETE_MSG": "Permanently delete \"{{name}}\"?",
+    "CONFIRM_DELETE_MSG": "Permanently delete \"{{name}}\"? Any alarms it created stay — use Remove to delete those.",
     "SNACK_FAILED_DELETE": "Failed to delete",
     "SNACK_DELETED": "Quick pick deleted",
     "CONFIRM_REMOVE_TITLE": "Remove Quick Pick",

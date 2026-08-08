@@ -35,6 +35,13 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
     public async Task<IActionResult> Create([FromBody] MonsterCreate model)
     {
         var monster = model.ToMonster();
+
+        var inverted = MonsterRangeValidator.Validate(monster);
+        if (inverted != null)
+        {
+            return this.BadRequest(new { error = inverted });
+        }
+
         // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
         // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
         // claim back would assert a profile the row was never written to. See #411.
@@ -63,6 +70,15 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
         }
 
         model.ApplyUpdate(existing);
+
+        // Checked after the merge, not on the request: a PUT carrying only minIv inverts the window
+        // against the value already stored, which validating the DTO alone cannot see. See #461.
+        var inverted = MonsterRangeValidator.Validate(existing);
+        if (inverted != null)
+        {
+            return this.BadRequest(new { error = inverted });
+        }
+
         var result = await this._monsterService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }

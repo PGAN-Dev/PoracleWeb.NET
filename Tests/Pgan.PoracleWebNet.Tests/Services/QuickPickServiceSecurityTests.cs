@@ -252,6 +252,48 @@ public class QuickPickServiceSecurityTests
         this._definitionRepository.Verify(r => r.DeleteByIdAndOwnerAsync("pick1", "owner1"), Times.Once);
     }
 
+    /// <summary>
+    /// Deleting a definition left its applied state behind, and nothing could reach it: the listing walks
+    /// definitions. It leaked, and a pick re-created under the same id inherited a stale "applied" badge
+    /// pointing at the old alarm uids. See #470.
+    /// </summary>
+    [Fact]
+    public async Task DeleteUserPickAsyncClearsTheOwnersAppliedState()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("pick1", "owner1"))
+            .ReturnsAsync(new QuickPickDefinition
+            {
+                Id = "pick1",
+                Name = "My Pick",
+                AlarmType = "monster",
+                Scope = "user",
+                OwnerUserId = "owner1",
+            });
+
+        await this._sut.DeleteUserPickAsync("owner1", "pick1");
+
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("pick1", "owner1"), Times.Once);
+    }
+
+    /// <summary>
+    /// A global pick can be applied by anyone, so every user's state for it goes with the definition.
+    /// </summary>
+    [Fact]
+    public async Task DeleteAdminPickAsyncClearsAppliedStateForEveryUser()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("global1"))
+            .ReturnsAsync(new QuickPickDefinition
+            {
+                Id = "global1",
+                Name = "Global Pick",
+                AlarmType = "monster",
+                Scope = "global",
+            });
+
+        await this._sut.DeleteAdminPickAsync("global1");
+
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("global1", null), Times.Once);
+    }
     [Fact]
     public async Task RemoveAsyncPassesCallerUserIdForRaidDeletes()
     {

@@ -86,6 +86,28 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context) : IQuick
         }
     }
 
+    public async Task DeleteByQuickPickIdAsync(string quickPickId, string? userId = null)
+    {
+        var query = this._context.QuickPickAppliedStates.Where(s => s.QuickPickId == quickPickId);
+
+        if (userId is not null)
+        {
+            query = query.Where(s => s.UserId == userId);
+        }
+
+        // Loaded and removed rather than ExecuteDeleteAsync: the provider emits an aliased
+        // DELETE ... AS `q`, which MariaDB rejects outright.
+        var rows = await query.ToListAsync();
+
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        this._context.QuickPickAppliedStates.RemoveRange(rows);
+        await this._context.SaveChangesAsync();
+    }
+
     private static QuickPickAppliedState MapToModel(QuickPickAppliedStateEntity entity) => new()
     {
         UserId = entity.UserId,
