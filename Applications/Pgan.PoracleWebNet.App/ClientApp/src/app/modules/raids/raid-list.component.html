@@ -75,11 +75,11 @@
       </ng-template>
       <div class="alarm-grid">
         @for (raid of raids(); track raid.uid) {
-          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(raid.uid)">
+          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(selectionKey('raid', raid.uid))">
             @if (selectMode()) {
               <mat-checkbox
-                [checked]="selectedIds().has(raid.uid)"
-                (change)="toggleSelect(raid.uid)"
+                [checked]="selectedIds().has(selectionKey('raid', raid.uid))"
+                (change)="toggleSelect(selectionKey('raid', raid.uid))"
                 (click)="$event.stopPropagation()"
                 class="card-checkbox">
               </mat-checkbox>
@@ -177,11 +177,11 @@
       </ng-template>
       <div class="alarm-grid">
         @for (egg of eggs(); track egg.uid) {
-          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(egg.uid)">
+          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(selectionKey('egg', egg.uid))">
             @if (selectMode()) {
               <mat-checkbox
-                [checked]="selectedIds().has(egg.uid)"
-                (change)="toggleSelect(egg.uid)"
+                [checked]="selectedIds().has(selectionKey('egg', egg.uid))"
+                (change)="toggleSelect(selectionKey('egg', egg.uid))"
                 (click)="$event.stopPropagation()"
                 class="card-checkbox">
               </mat-checkbox>

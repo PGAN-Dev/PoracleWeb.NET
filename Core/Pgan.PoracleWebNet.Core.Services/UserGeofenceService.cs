@@ -204,6 +204,55 @@ public partial class UserGeofenceService(
         return names;
     }
 
+    public async Task<UserGeofence> RenameAsync(
+        string humanId, int id, string displayName, string? groupName, int? parentId)
+    {
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
+
+        var geofence = await this._repository.GetByIdAsync(id)
+            ?? throw new GeofenceNotFoundException(id);
+
+        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Geofence does not belong to this user.");
+        }
+
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            throw new ArgumentException("A name is required.", nameof(displayName));
+        }
+
+        var oldKojiName = geofence.KojiName;
+        var newKojiName = displayName.Trim().ToLowerInvariant();
+
+        if (!string.Equals(oldKojiName, newKojiName, StringComparison.OrdinalIgnoreCase))
+        {
+            var takenNames = await this.ReservedGeofenceNamesAsync();
+            if (takenNames.Contains(newKojiName))
+            {
+                throw new TrackingConflictException(
+                    "geofence",
+                    "Another area already uses that name. Choose a different one.");
+            }
+        }
+
+        geofence.DisplayName = displayName.Trim();
+        geofence.KojiName = newKojiName;
+        // group_name is NOT NULL, and the rename dialog does not always send one -- keep what is there rather than clearing it.
+        geofence.GroupName = string.IsNullOrWhiteSpace(groupName) ? geofence.GroupName : groupName;
+        geofence.ParentId = parentId ?? geofence.ParentId;
+        var updated = await this._repository.UpdateAsync(geofence);
+
+        // Every profile that was subscribed stays subscribed, under the new name. This is the whole
+        // point of renaming in place rather than delete-then-recreate. See #543.
+        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+        await this._areaWriter.RenameAreaInAllProfilesAsync(humanId, oldKojiName, newKojiName);
+
+        await this.ReloadGeofencesSafeAsync();
+
+        updated.Polygon = geofence.Polygon;
+        return updated;
+    }
     public async Task DeleteAsync(string humanId, int profileNo, int id)
     {
         var geofence = await this._repository.GetByIdAsync(id)

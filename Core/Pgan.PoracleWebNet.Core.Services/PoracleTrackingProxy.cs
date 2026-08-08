@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Core.Models;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -44,6 +45,16 @@ public partial class PoracleTrackingProxy(
         request.Content = new StringContent(bodyText, Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.SendAsync(request);
+
+        // A 400 from PoracleNG is the caller's problem, not the server's. EnsureSuccessStatusCode threw
+        // an HttpRequestException that the global handler flattened into 500 "An unexpected error
+        // occurred", so the user was told the server broke instead of what was wrong with their input,
+        // and it was logged as a fault. Pass the explanation through as a 400. See #539.
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            throw new AlarmValidationException(await ExtractMessageAsync(response));
+        }
+
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -126,6 +137,34 @@ public partial class PoracleTrackingProxy(
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/reload");
         var response = await this._httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>Reads whatever explanation PoracleNG returned, falling back to something honest.</summary>
+    private static async Task<string> ExtractMessageAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+
+        try
+        {
+            var root = JsonDocument.Parse(body).RootElement;
+            foreach (var name in new[] { "message", "error", "status" })
+            {
+                if (root.TryGetProperty(name, out var value)
+                    && value.ValueKind == JsonValueKind.String
+                    && !string.IsNullOrWhiteSpace(value.GetString()))
+                {
+                    return value.GetString()!;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // Not JSON; the raw body is still better than nothing, as long as it is short.
+        }
+
+        return string.IsNullOrWhiteSpace(body) || body.Length > 300
+            ? "Poracle rejected the alarm."
+            : body;
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)

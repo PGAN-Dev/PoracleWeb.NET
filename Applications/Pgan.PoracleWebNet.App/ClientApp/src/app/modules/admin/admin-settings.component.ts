@@ -270,33 +270,13 @@ const SETTING_GROUPS: SettingGroup[] = [
     color: '#607d8b',
     icon: 'terminal',
     labelKey: 'ADMIN_SETTINGS.GROUP_COMMANDS',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.REGISTER_COMMAND_DESC',
-        key: 'register_command',
-        labelKey: 'ADMIN_SETTINGS.REGISTER_COMMAND_LABEL',
-        type: 'text',
-      },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.LOCATION_COMMAND_DESC',
-        key: 'location_command',
-        labelKey: 'ADMIN_SETTINGS.LOCATION_COMMAND_LABEL',
-        type: 'text',
-      },
-    ],
+    settings: [],
   },
   {
     color: '#2e7d32',
     icon: 'map',
     labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.PROVIDER_URL_DESC',
-        key: 'provider_url',
-        labelKey: 'ADMIN_SETTINGS.PROVIDER_URL_LABEL',
-        type: 'url',
-      },
-    ],
+    settings: [],
   },
   {
     color: '#7b1fa2',
@@ -309,29 +289,13 @@ const SETTING_GROUPS: SettingGroup[] = [
         labelKey: 'ADMIN_SETTINGS.SIGNUP_URL_LABEL',
         type: 'url',
       },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.GANALYTICSID_DESC',
-        key: 'gAnalyticsId',
-        labelKey: 'ADMIN_SETTINGS.GANALYTICSID_LABEL',
-        type: 'text',
-      },
-      { descriptionKey: 'ADMIN_SETTINGS.PATREONURL_DESC', key: 'patreonUrl', labelKey: 'ADMIN_SETTINGS.PATREONURL_LABEL', type: 'url' },
-      { descriptionKey: 'ADMIN_SETTINGS.PAYPALURL_DESC', key: 'paypalUrl', labelKey: 'ADMIN_SETTINGS.PAYPALURL_LABEL', type: 'url' },
     ],
   },
   {
     color: '#ff5722',
     icon: 'bug_report',
     labelKey: 'ADMIN_SETTINGS.GROUP_DEBUG',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.SITE_IS_HTTPS_DESC',
-        key: 'site_is_https',
-        labelKey: 'ADMIN_SETTINGS.SITE_IS_HTTPS_LABEL',
-        type: 'boolean',
-      },
-      { descriptionKey: 'ADMIN_SETTINGS.DEBUG_DESC', key: 'debug', labelKey: 'ADMIN_SETTINGS.DEBUG_LABEL', type: 'boolean' },
-    ],
+    settings: [],
   },
 ];
 

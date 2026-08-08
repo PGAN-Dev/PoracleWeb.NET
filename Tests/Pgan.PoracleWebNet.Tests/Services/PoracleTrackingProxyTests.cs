@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Core.Models;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -187,11 +188,31 @@ public class PoracleTrackingProxyTests
     [Fact]
     public async Task CreateAsyncThrowsOnNon2xx()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.BadRequest, "{}");
+        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
 
         var body = JsonDocument.Parse("{}").RootElement;
         await Assert.ThrowsAsync<HttpRequestException>(() => sut.CreateAsync("pokemon", "user1", body));
+    }
+
+    /// <summary>
+    /// A 400 is the caller's problem. It used to throw HttpRequestException, which the global handler
+    /// flattened into 500 "An unexpected error occurred", so the user was told the server broke instead of
+    /// what was wrong with their input. See #539.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncSurfacesPoracleNgsOwnExplanationForABadRequest()
+    {
+        var handler = new MockHttpMessageHandler(
+            HttpStatusCode.BadRequest,
+            /*lang=json,strict*/ "{\"message\":\"Invalid level (must be specified if no pokemon_id)\"}");
+        var sut = CreateSut(handler);
+
+        var body = JsonDocument.Parse("{}").RootElement;
+
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => sut.CreateAsync("raid", "user1", body));
+        Assert.Contains("Invalid level", ex.Message, StringComparison.Ordinal);
     }
 
     // ──────────────────────────────────────────────────────────────

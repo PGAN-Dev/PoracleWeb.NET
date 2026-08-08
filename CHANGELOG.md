@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Renaming a custom geofence switched it off for your other profiles** ([#543](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/543)). Editing was implemented as delete-and-recreate, and the recreate only re-subscribed the profile you were on. The page still showed it as on, so nothing said those profiles had stopped receiving alerts. Renaming now keeps every subscription.
+- **Poracle's explanation of a rejected alarm was replaced with "an unexpected error"** ([#539](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/539)), so you were told the server had broken rather than what was wrong with the alarm.
+- **Selecting a raid could select an egg as well** ([#540](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/540)). The two lists shared one set of selections keyed by ID, and raid and egg IDs can be the same number — so a bulk delete or radius change hit the raid twice and left the egg untouched.
+- **Editing an alarm onto another one's exact settings could leave two identical alarms** ([#537](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/537), [#538](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/538)) that cannot be told apart on the page, for Pokemon and Max Battles. Adding that same alarm is refused, so editing was the only way to reach it.
+- **Too many logins from one network left the browser hanging** ([#546](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/546)) instead of saying so. On a shared connection the 31st person to sign in within a minute waited on a request that was parked rather than refused.
+
+### Removed
+- **Eight admin settings that saved but did nothing** ([#547](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/547)): the Patreon and PayPal links, the analytics ID, the map provider URL, the register and location commands, the HTTPS marker and the debug flag. Each described behaviour the app does not have — the HTTPS one in particular reads as a security control and changed nothing. They are legacy Poracle keys that were never wired to anything; existing values are left in the database, unread.
+### Fixed
 - **Applying a quick pick twice made it forget the alarms it had created** ([#542](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/542)). The second apply adds nothing, and the pick recorded that as owning nothing — so Remove reported success while deleting nothing and the alarms were left with no way to identify them.
 - **Changing an applied quick pick's alarm type orphaned its alarms** ([#541](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/541)). The pick went looking for its Pokemon alarms among the raids, concluded they had all been deleted, and dropped its record of them — alarms left behind with no Remove button and nothing saying where they came from.
 - **Quick picks accepted names and other fields longer than they can store** ([#549](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/549)), returning a server error instead of saying so. Neither dialog limits the length, so a preset named with a sentence was enough.

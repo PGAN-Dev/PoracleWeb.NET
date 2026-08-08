@@ -55,6 +55,7 @@ public interface IUserAreaDualWriter
     /// <returns><c>true</c> if at least one row was actually modified.</returns>
     public Task<bool> RemoveAreaFromAllProfilesAsync(string humanId, string areaName);
 
+
     /// <summary>
     /// Replaces <paramref name="oldName"/> with <paramref name="newName"/> in <c>humans.area</c> and in
     /// every row of <c>profiles.area</c> for <paramref name="humanId"/>, committed in a single

@@ -223,7 +223,11 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 30,
                 Window = TimeSpan.FromSeconds(60),
-                QueueLimit = 2,
+                // Zero, like every other policy here. A queue of 2 did not reject requests 31 and 32 --
+                // it parked them until the window rolled over, up to a minute later, so on a shared
+                // egress IP the 31st person to log in got a spinner instead of "too many requests",
+                // and an intermediate proxy could time the request out entirely. See #546.
+                QueueLimit = 0,
                 AutoReplenishment = true,
             }));
     options.AddPolicy("auth-read", httpContext =>
