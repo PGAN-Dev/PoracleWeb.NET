@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Señuelo #{{id}}",
     "EDIT_MODE": "Editar el mensaje en su lugar",
     "EDIT_HINT": "Actualiza el mensaje de Discord existente cuando cambia el cebo en lugar de enviar uno nuevo.",
-    "EDIT_BADGE": "Editar"
+    "EDIT_BADGE": "Editar",
+    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de cebo?"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmas de Nido",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Alarma de Nido eliminada",
     "SNACK_FAILED_CREATE": "Error al crear la alarma",
     "SNACK_FAILED_UPDATE": "Error al actualizar la alarma",
-    "SNACK_FAILED_DELETE": "Error al eliminar la alarma"
+    "SNACK_FAILED_DELETE": "Error al eliminar la alarma",
+    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de nido?"
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmas de Gimnasio",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Sabiduría",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinto",
-    "TEAM_UNKNOWN": "Equipo {{id}}"
+    "TEAM_UNKNOWN": "Equipo {{id}}",
+    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de gimnasio?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmas de Cambio de Fort",
@@ -1687,7 +1690,9 @@
     "DESC": "Elige cómo se entregan las nuevas alertas de forma predeterminada. Podrás cambiarlo para cada alerta al crearla.",
     "DEFAULT_DISTANCE": "Distancia predeterminada",
     "DEFAULT_DISTANCE_HINT": "Se usa para rellenar el radio de las nuevas alertas basadas en distancia.",
-    "FOOTNOTE": "Solo se aplica a las alertas nuevas; las existentes no se modifican."
+    "FOOTNOTE": "Solo se aplica a las alertas nuevas; las existentes no se modifican.",
+    "DISTANCE_TOO_SMALL": "Debe ser al menos 0,1 km.",
+    "DISTANCE_TOO_LARGE": "Debe ser 100 km o menos."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Elementos por página:",

@@ -53,12 +53,47 @@ describe('AlertDefaultsDialogComponent', () => {
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
-  it('clamps an out-of-range distance before persisting', () => {
+  // This used to assert the silent clamp: the dialog accepted 200 km, echoed "200 km" in the live
+  // preview, then stored 100. That WAS the bug -- the user was shown one number and given another.
+  // Out-of-range input is now refused instead. See #426.
+  it('refuses to save a distance above the maximum', () => {
     const component = create();
     component.mode.set('distance');
     component.distanceKm = 99999;
+
+    expect(component.distanceError).toBe('ALERT_DEFAULTS.DISTANCE_TOO_LARGE');
+    expect(component.canSave).toBe(false);
+
     component.save();
 
-    expect(localStorage.getItem('poracle-default-alert-distance-km')).toBe(String(component.maxKm));
+    expect(localStorage.getItem('poracle-default-alert-distance-km')).toBeNull();
+  });
+
+  it.each([0, -5, 0.05])('refuses %p, which used to be silently saved as 1', km => {
+    const component = create();
+    component.mode.set('distance');
+    component.distanceKm = km;
+
+    expect(component.distanceError).toBe('ALERT_DEFAULTS.DISTANCE_TOO_SMALL');
+    expect(component.canSave).toBe(false);
+  });
+
+  it('saves a valid distance', () => {
+    const component = create();
+    component.mode.set('distance');
+    component.distanceKm = 5;
+
+    expect(component.canSave).toBe(true);
+    component.save();
+
+    expect(localStorage.getItem('poracle-default-alert-distance-km')).toBe('5');
+  });
+
+  it('does not block saving in areas mode', () => {
+    const component = create();
+    component.mode.set('areas');
+    component.distanceKm = 99999;
+
+    expect(component.canSave).toBe(true);
   });
 });

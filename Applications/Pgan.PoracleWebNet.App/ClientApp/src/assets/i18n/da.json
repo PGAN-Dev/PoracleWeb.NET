@@ -472,7 +472,7 @@
     "TAB_MEGA_ENERGY": "Mega-energi",
     "TAB_CANDY": "Slik",
     "ITEM_REWARD": "Genstandsbelønning",
-    "ANY_ITEM": "Alle genstande",
+    "ANY_ITEM": "Enhver genstand",
     "QUEST_TYPE_LABEL": "Quest-type:",
     "SNACK_CREATED": "Quest-alarm oprettet",
     "SNACK_UPDATED": "Quest-alarm opdateret",
@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Lokke #{{id}}",
     "EDIT_MODE": "Rediger beskeden på stedet",
     "EDIT_HINT": "Opdaterer den eksisterende Discord-besked, når lokkemodulet ændres, i stedet for at sende en ny.",
-    "EDIT_BADGE": "Rediger"
+    "EDIT_BADGE": "Rediger",
+    "CONFIRM_DELETE_TITLE": "Slet lokkemodul-alarm?"
   },
   "NESTS": {
     "PAGE_TITLE": "Rede-alarmer",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Rede-alarm slettet",
     "SNACK_FAILED_CREATE": "Kunne ikke oprette alarm",
     "SNACK_FAILED_UPDATE": "Kunne ikke opdatere alarm",
-    "SNACK_FAILED_DELETE": "Kunne ikke slette alarm"
+    "SNACK_FAILED_DELETE": "Kunne ikke slette alarm",
+    "CONFIRM_DELETE_TITLE": "Slet rede-alarm?"
   },
   "GYMS": {
     "PAGE_TITLE": "Gym-alarmer",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Mystic",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
-    "TEAM_UNKNOWN": "Hold {{id}}"
+    "TEAM_UNKNOWN": "Hold {{id}}",
+    "CONFIRM_DELETE_TITLE": "Slet gym-alarm?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort-ændringsalarmer",
@@ -1687,7 +1690,9 @@
     "DESC": "Vælg, hvordan nye advarsler leveres som standard. Du kan stadig ændre dette for hver advarsel, når du opretter den.",
     "DEFAULT_DISTANCE": "Standardafstand",
     "DEFAULT_DISTANCE_HINT": "Bruges til at udfylde radius for nye afstandsbaserede advarsler på forhånd.",
-    "FOOTNOTE": "Gælder kun for nyoprettede advarsler — eksisterende ændres ikke."
+    "FOOTNOTE": "Gælder kun for nyoprettede advarsler — eksisterende ændres ikke.",
+    "DISTANCE_TOO_SMALL": "Skal være mindst 0,1 km.",
+    "DISTANCE_TOO_LARGE": "Må højst være 100 km."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Elementer pr. side:",

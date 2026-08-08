@@ -472,7 +472,7 @@
     "TAB_MEGA_ENERGY": "Mega Energia",
     "TAB_CANDY": "Doce",
     "ITEM_REWARD": "Recompensa de Item",
-    "ANY_ITEM": "Qualquer Item",
+    "ANY_ITEM": "Qualquer item",
     "QUEST_TYPE_LABEL": "Tipo de Quest:",
     "SNACK_CREATED": "Alarme de quest criado",
     "SNACK_UPDATED": "Alarme de quest atualizado",
@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Módulo #{{id}}",
     "EDIT_MODE": "Editar a mensagem no local",
     "EDIT_HINT": "Atualiza a mensagem existente do Discord quando a isca muda em vez de enviar uma nova.",
-    "EDIT_BADGE": "Editar"
+    "EDIT_BADGE": "Editar",
+    "CONFIRM_DELETE_TITLE": "Excluir alarme de isca?"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmes de Ninho",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Alarme de ninho excluído",
     "SNACK_FAILED_CREATE": "Falha ao criar alarme",
     "SNACK_FAILED_UPDATE": "Falha ao atualizar alarme",
-    "SNACK_FAILED_DELETE": "Falha ao excluir alarme"
+    "SNACK_FAILED_DELETE": "Falha ao excluir alarme",
+    "CONFIRM_DELETE_TITLE": "Excluir alarme de ninho?"
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmes de Ginásio",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Sabedoria",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinto",
-    "TEAM_UNKNOWN": "Time {{id}}"
+    "TEAM_UNKNOWN": "Time {{id}}",
+    "CONFIRM_DELETE_TITLE": "Excluir alarme de ginásio?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmes de Mudança de Forte",
@@ -1687,7 +1690,9 @@
     "DESC": "Escolha como os novos alertas são entregues por padrão. Você ainda pode alterar isso para cada alerta ao criá-lo.",
     "DEFAULT_DISTANCE": "Distância padrão",
     "DEFAULT_DISTANCE_HINT": "Usada para preencher previamente o raio de novos alertas baseados em distância.",
-    "FOOTNOTE": "Aplica-se apenas a alertas recém-criados — os existentes não são alterados."
+    "FOOTNOTE": "Aplica-se apenas a alertas recém-criados — os existentes não são alterados.",
+    "DISTANCE_TOO_SMALL": "Deve ser pelo menos 0,1 km.",
+    "DISTANCE_TOO_LARGE": "Deve ser 100 km ou menos."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Itens por página:",

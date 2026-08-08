@@ -81,3 +81,9 @@ mat-dialog-content {
   height: 16px;
   font-size: 16px;
 }
+
+// Rides in the hint slot because <mat-error> only renders when the control reports an
+// error state, which a bare ngModel never does. See #426 / #427.
+.distance-error {
+  color: var(--mat-sys-error, #b3261e);
+}

@@ -299,7 +299,12 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
-    this.settingsService.loadOnce().subscribe({
+    // Signed-out visitors get the public subset. loadOnce() hits the authenticated endpoint, so
+    // calling it on the login page produced a 401 and an uncaught HttpErrorResponse on every visit.
+    // AuthService re-runs loadOnce() once a token exists, so nothing is lost by deferring. See #426.
+    const settings$ = this.auth.isAuthenticated() ? this.settingsService.loadOnce() : this.settingsService.loadPublic();
+    settings$.subscribe({
+      error: () => this.i18n.init(undefined),
       next: () => {
         const allowed = this.settingsService.siteSettings()['allowed_languages'];
         this.i18n.init(allowed);
@@ -317,7 +322,14 @@ export class App implements OnInit {
   onKeydown(event: KeyboardEvent): void {
     const tag = (event.target as HTMLElement)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-    if (document.querySelector('.cdk-overlay-pane')) {
+    // Tooltips and snackbars are also .cdk-overlay-pane, so keying off that alone meant hovering a
+    // toolbar button silently swallowed [, ] and ?. Only overlays that take focus - dialogs, menus,
+    // selects, autocompletes - should suppress shortcuts.
+    if (
+      document.querySelector(
+        '.cdk-overlay-pane .mat-mdc-dialog-container, .cdk-overlay-pane .mat-mdc-menu-panel, .cdk-overlay-pane .mat-mdc-select-panel, .cdk-overlay-pane .mat-mdc-autocomplete-panel',
+      )
+    ) {
       if (event.key === 'Escape') {
         this.showShortcutHelp.set(false);
       }

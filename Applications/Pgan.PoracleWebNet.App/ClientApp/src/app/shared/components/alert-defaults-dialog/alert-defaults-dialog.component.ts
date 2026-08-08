@@ -44,7 +44,24 @@ export class AlertDefaultsDialogComponent {
   readonly minKm = MIN_DEFAULT_DISTANCE_KM;
   mode = signal<AlertLocationMode>(this.alertDefaults.defaultMode());
 
+  get canSave(): boolean {
+    return this.distanceError === null;
+  }
+
+  /**
+   * The service clamps to 0.1-100 on save. Without surfacing that, the dialog accepted 200, showed
+   * "200 km" in the live preview, then stored 100 - and 0 or -5 silently became 1. See #426.
+   */
+  get distanceError(): string | null {
+    if (this.mode() !== 'distance') return null;
+    const km = this.distanceKm;
+    if (!Number.isFinite(km) || km < 0.1) return 'ALERT_DEFAULTS.DISTANCE_TOO_SMALL';
+    if (km > 100) return 'ALERT_DEFAULTS.DISTANCE_TOO_LARGE';
+    return null;
+  }
+
   save(): void {
+    if (!this.canSave) return;
     this.alertDefaults.save(this.mode(), this.distanceKm);
     this.dialogRef.close(true);
   }

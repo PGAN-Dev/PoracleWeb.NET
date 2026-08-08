@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Wabik #{{id}}",
     "EDIT_MODE": "Edytuj wiadomość w miejscu",
     "EDIT_HINT": "Aktualizuje istniejącą wiadomość na Discordzie przy zmianie wabika zamiast wysyłać nową.",
-    "EDIT_BADGE": "Edycja"
+    "EDIT_BADGE": "Edycja",
+    "CONFIRM_DELETE_TITLE": "Usunąć alarm wabika?"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmy gniazd",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Alarm gniazda usunięty",
     "SNACK_FAILED_CREATE": "Nie udało się utworzyć alarmu",
     "SNACK_FAILED_UPDATE": "Nie udało się zaktualizować alarmu",
-    "SNACK_FAILED_DELETE": "Nie udało się usunąć alarmu"
+    "SNACK_FAILED_DELETE": "Nie udało się usunąć alarmu",
+    "CONFIRM_DELETE_TITLE": "Usunąć alarm gniazda?"
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmy aren",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Mystic",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
-    "TEAM_UNKNOWN": "Drużyna {{id}}"
+    "TEAM_UNKNOWN": "Drużyna {{id}}",
+    "CONFIRM_DELETE_TITLE": "Usunąć alarm areny?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmy zmian fortów",
@@ -1687,7 +1690,9 @@
     "DESC": "Wybierz, jak domyślnie dostarczane są nowe alerty. Nadal możesz to zmienić dla każdego alertu podczas jego tworzenia.",
     "DEFAULT_DISTANCE": "Domyślna odległość",
     "DEFAULT_DISTANCE_HINT": "Używana do wstępnego wypełnienia promienia dla nowych alertów opartych na odległości.",
-    "FOOTNOTE": "Dotyczy tylko nowo utworzonych alertów — istniejące pozostają bez zmian."
+    "FOOTNOTE": "Dotyczy tylko nowo utworzonych alertów — istniejące pozostają bez zmian.",
+    "DISTANCE_TOO_SMALL": "Musi wynosić co najmniej 0,1 km.",
+    "DISTANCE_TOO_LARGE": "Musi wynosić maksymalnie 100 km."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Elementów na stronę:",

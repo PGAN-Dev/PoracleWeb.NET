@@ -472,7 +472,7 @@
     "TAB_MEGA_ENERGY": "Mega Energie",
     "TAB_CANDY": "Snoep",
     "ITEM_REWARD": "Itembeloning",
-    "ANY_ITEM": "Elk Item",
+    "ANY_ITEM": "Elk voorwerp",
     "QUEST_TYPE_LABEL": "Questtype:",
     "SNACK_CREATED": "Quest alarm aangemaakt",
     "SNACK_UPDATED": "Quest alarm bijgewerkt",
@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Lokmodule #{{id}}",
     "EDIT_MODE": "Bericht ter plekke bewerken",
     "EDIT_HINT": "Werk het bestaande Discord-bericht bij wanneer de lokmodule verandert in plaats van een nieuw bericht te sturen.",
-    "EDIT_BADGE": "Bewerken"
+    "EDIT_BADGE": "Bewerken",
+    "CONFIRM_DELETE_TITLE": "Lokmodule-alarm verwijderen?"
   },
   "NESTS": {
     "PAGE_TITLE": "Nest Alarmen",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Nest alarm verwijderd",
     "SNACK_FAILED_CREATE": "Alarm aanmaken mislukt",
     "SNACK_FAILED_UPDATE": "Alarm bijwerken mislukt",
-    "SNACK_FAILED_DELETE": "Alarm verwijderen mislukt"
+    "SNACK_FAILED_DELETE": "Alarm verwijderen mislukt",
+    "CONFIRM_DELETE_TITLE": "Nest-alarm verwijderen?"
   },
   "GYMS": {
     "PAGE_TITLE": "Gym Alarmen",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Mystic",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
-    "TEAM_UNKNOWN": "Team {{id}}"
+    "TEAM_UNKNOWN": "Team {{id}}",
+    "CONFIRM_DELETE_TITLE": "Gym-alarm verwijderen?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fortwijziging Alarmen",
@@ -1687,7 +1690,9 @@
     "DESC": "Kies hoe nieuwe meldingen standaard worden bezorgd. Je kunt dit nog steeds per melding aanpassen bij het aanmaken.",
     "DEFAULT_DISTANCE": "Standaardafstand",
     "DEFAULT_DISTANCE_HINT": "Wordt gebruikt om de straal voor nieuwe afstandsmeldingen vooraf in te vullen.",
-    "FOOTNOTE": "Geldt alleen voor nieuw aangemaakte meldingen — bestaande meldingen blijven ongewijzigd."
+    "FOOTNOTE": "Geldt alleen voor nieuw aangemaakte meldingen — bestaande meldingen blijven ongewijzigd.",
+    "DISTANCE_TOO_SMALL": "Moet minimaal 0,1 km zijn.",
+    "DISTANCE_TOO_LARGE": "Mag maximaal 100 km zijn."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Items per pagina:",

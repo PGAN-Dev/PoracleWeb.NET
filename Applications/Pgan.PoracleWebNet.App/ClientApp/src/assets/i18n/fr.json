@@ -472,7 +472,7 @@
     "TAB_MEGA_ENERGY": "Méga-Énergie",
     "TAB_CANDY": "Bonbons",
     "ITEM_REWARD": "Récompense objet",
-    "ANY_ITEM": "Tout objet",
+    "ANY_ITEM": "Objet quelconque",
     "QUEST_TYPE_LABEL": "Type de quête :",
     "SNACK_CREATED": "Alarme Quête créée",
     "SNACK_UPDATED": "Alarme Quête mise à jour",
@@ -635,7 +635,8 @@
     "TYPE_UNKNOWN": "Module #{{id}}",
     "EDIT_MODE": "Modifier le message sur place",
     "EDIT_HINT": "Met à jour le message Discord existant lorsque le leurre change au lieu d’en envoyer un nouveau.",
-    "EDIT_BADGE": "Modifier"
+    "EDIT_BADGE": "Modifier",
+    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte de module leurre ?"
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmes Nid",
@@ -652,7 +653,8 @@
     "SNACK_DELETED": "Alarme Nid supprimée",
     "SNACK_FAILED_CREATE": "Échec de la création de l'alarme",
     "SNACK_FAILED_UPDATE": "Échec de la mise à jour de l'alarme",
-    "SNACK_FAILED_DELETE": "Échec de la suppression de l'alarme"
+    "SNACK_FAILED_DELETE": "Échec de la suppression de l'alarme",
+    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte de nid ?"
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmes Arène",
@@ -677,7 +679,8 @@
     "TEAM_MYSTIC": "Sagesse",
     "TEAM_VALOR": "Bravoure",
     "TEAM_INSTINCT": "Intuition",
-    "TEAM_UNKNOWN": "Équipe {{id}}"
+    "TEAM_UNKNOWN": "Équipe {{id}}",
+    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte d'arène ?"
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmes Changement de fort",
@@ -1687,7 +1690,9 @@
     "DESC": "Choisissez le mode de diffusion par défaut des nouvelles alertes. Vous pourrez toujours le modifier pour chaque alerte lors de sa création.",
     "DEFAULT_DISTANCE": "Distance par défaut",
     "DEFAULT_DISTANCE_HINT": "Utilisée pour préremplir le rayon des nouvelles alertes basées sur la distance.",
-    "FOOTNOTE": "S'applique uniquement aux nouvelles alertes — les alertes existantes ne sont pas modifiées."
+    "FOOTNOTE": "S'applique uniquement aux nouvelles alertes — les alertes existantes ne sont pas modifiées.",
+    "DISTANCE_TOO_SMALL": "Doit être d’au moins 0,1 km.",
+    "DISTANCE_TOO_LARGE": "Doit être de 100 km au maximum."
   },
   "PAGINATOR": {
     "ITEMS_PER_PAGE": "Éléments par page :",

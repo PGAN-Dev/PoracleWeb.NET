@@ -122,7 +122,7 @@ export class GymListComponent implements OnInit {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
           message: `${this.i18n.instant('COMMON.DELETE')} ${this.getTeamName(gym.team)}?`,
-          title: this.i18n.instant('GYMS.EDIT_DIALOG_TITLE'),
+          title: this.i18n.instant('GYMS.CONFIRM_DELETE_TITLE'),
           warn: true,
         } as ConfirmDialogData,
       })

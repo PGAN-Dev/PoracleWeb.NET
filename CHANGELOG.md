@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **A batch of interface defects** ([#426](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/426)). Deleting a Gym, Lure or Nest alarm asked "Edit … Alarm?" instead of a delete confirmation. A quest tracking any item showed as "Item #0". Hovering a toolbar button silently disabled every keyboard shortcut, because the tooltip counted as a blocking overlay. The Alert Defaults dialog accepted 200 km, showed "200 km" in its preview, then quietly saved 100 — and 0 or a negative saved as 1; it now says what the limits are and refuses instead. The "Set up areas" link inside an add-alarm dialog reloaded the whole page and threw away everything typed. The Cleaning page always greyed out the Max Battles row even when alarms existed. Searching admin settings never filtered the Authentication section. And the login page made a signed-in-only request on every visit, failing with an error in the console.
+
+### Fixed
 - **Error messages, admin settings and table pagination stayed in English regardless of your language** ([#425](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/425)). Three separate gaps. Every error toast came from a message table that was never translated, even though a fully translated one sat beside it doing the same job for a different part of the app — both now use the translated one. Twelve strings were missing from every non-English locale, so the Authentication settings group, the PvP level-cap labels and a few hints rendered in English inside otherwise-translated pages; the English fallback made this invisible rather than obviously broken. And the table paginator on the admin pages kept Material's built-in English wording. A test now fails the build if any locale drifts from English again, or if the error toasts go untranslated.
 
 ### Fixed
