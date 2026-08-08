@@ -625,6 +625,13 @@ public partial class UserGeofenceService(
 
     public async Task AddToProfileAsync(string humanId, int profileNo, int geofenceId)
     {
+        // Activating or deactivating writes an area subscription, so it must answer to
+        // disable_areas as well as disable_user_geofences. Enforced here rather than as a second
+        // attribute (the filter disallows two), which also covers service-to-service callers.
+        // See #478.
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Areas);
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
+
         var geofence = await this._repository.GetByIdAsync(geofenceId)
             ?? throw new GeofenceNotFoundException(geofenceId);
 
@@ -648,6 +655,13 @@ public partial class UserGeofenceService(
 
     public async Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId)
     {
+        // Activating or deactivating writes an area subscription, so it must answer to
+        // disable_areas as well as disable_user_geofences. Enforced here rather than as a second
+        // attribute (the filter disallows two), which also covers service-to-service callers.
+        // See #478.
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Areas);
+        await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.UserGeofences);
+
         var geofence = await this._repository.GetByIdAsync(geofenceId)
             ?? throw new GeofenceNotFoundException(geofenceId);
 

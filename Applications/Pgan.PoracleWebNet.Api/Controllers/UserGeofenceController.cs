@@ -94,6 +94,10 @@ public partial class UserGeofenceController(
         }
     }
 
+    // These write area subscriptions, so they answer to the same switch the Areas page does.
+    // Gated per-action because the reads on this controller stay open; disable_areas is
+    // enforced in the service, since the attribute does not allow two keys. See #478.
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     [HttpPost("custom/{id:int}/activate")]
     public async Task<IActionResult> ActivateGeofence(int id)
     {
@@ -116,6 +120,10 @@ public partial class UserGeofenceController(
         }
     }
 
+    // These write area subscriptions, so they answer to the same switch the Areas page does.
+    // Gated per-action because the reads on this controller stay open; disable_areas is
+    // enforced in the service, since the attribute does not allow two keys. See #478.
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     [HttpPost("custom/{id:int}/deactivate")]
     public async Task<IActionResult> DeactivateGeofence(int id)
     {
