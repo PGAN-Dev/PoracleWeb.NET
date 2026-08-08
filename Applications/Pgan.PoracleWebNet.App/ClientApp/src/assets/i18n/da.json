@@ -297,7 +297,11 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normal",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "PVP_CAP": "Niveaugrænse",
+    "PVP_CAP_ALL": "Alle",
+    "PVP_CAP_LEVEL": "L{{level}}",
+    "PVP_CAP_HINT_DEFAULT": "Standard — fra Poracle-konfigurationen"
   },
   "ALARM": {
     "LOCATION_MODE": "Placeringstilstand",
@@ -975,7 +979,8 @@
     "SELECT_REGION": "Vælg region",
     "SEARCH_REGIONS": "Søg regioner...",
     "TOGGLE_TOOLTIP": "Slå notifikationer til/fra for dette geofence i nuværende profil",
-    "CREATED_PREFIX": "Oprettet"
+    "CREATED_PREFIX": "Oprettet",
+    "REGION_OPTIONAL_HINT": "Valgfrit. Vælg en region, hvis dit geofence hører til en."
   },
   "CLEANING": {
     "PAGE_TITLE": "Oprydningstilstand",
@@ -1180,16 +1185,11 @@
     "ERR_GENERIC": "Godkendelsesfejl: {{error}}",
     "ERR_NO_TOKEN": "Intet godkendelsestoken modtaget.",
     "SIGN_UP": "Sign Up",
-    "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
+    "SIGN_UP_DESC": "Don't have an account? Sign up to get started.",
+    "SIGN_IN_AGAIN": "Log ind igen"
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "Denne funktion er deaktiveret af administratoren."
   },
   "ADMIN": {
     "USERS_TITLE": "Brugeradministration",
@@ -1341,7 +1341,8 @@
     "SNACK_FAILED_APPROVE": "Kunne ikke godkende indsendelse",
     "SNACK_APPROVED": "\"{{name}}\" godkendt",
     "SNACK_FAILED_REJECT": "Kunne ikke afvise indsendelse",
-    "SNACK_REJECTED": "\"{{name}}\" afvist"
+    "SNACK_REJECTED": "\"{{name}}\" afvist",
+    "APPROVAL_REGION_HINT": "Vælg den region, dette geofence skal vises under."
   },
   "DIALOG": {
     "CANCEL": "Annuller",
@@ -1612,7 +1613,12 @@
     "DISCORD_ADMIN_IDS_LABEL": "Admin-ID'er",
     "DISCORD_ADMIN_IDS_DESC": "Discord-bruger-ID'er med admin-adgang (maskeret).",
     "DISCORD_GEOFENCE_FORUM_LABEL": "Geofence-forumkanal",
-    "DISCORD_GEOFENCE_FORUM_DESC": "Discord-forumkanal til geofence-indsendelsestråde."
+    "DISCORD_GEOFENCE_FORUM_DESC": "Discord-forumkanal til geofence-indsendelsestråde.",
+    "GROUP_AUTH": "Godkendelse",
+    "AUTH_MODE_LABEL": "Loginmetode",
+    "AUTH_MODE_LOCAL": "Lokal",
+    "AUTH_MODE_LOCAL_DESC": "Log ind direkte med Discord eller Telegram.",
+    "AUTH_FORCE_LOCAL_ACTIVE": "Lokalt login er gennemtvunget af serverkonfigurationen."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",
@@ -1682,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Standardafstand",
     "DEFAULT_DISTANCE_HINT": "Bruges til at udfylde radius for nye afstandsbaserede advarsler på forhånd.",
     "FOOTNOTE": "Gælder kun for nyoprettede advarsler — eksisterende ændres ikke."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Elementer pr. side:",
+    "RANGE": "{{start}} - {{end}} af {{total}}",
+    "RANGE_EMPTY": "0 af {{total}}",
+    "NEXT_PAGE": "Næste side",
+    "PREVIOUS_PAGE": "Forrige side",
+    "FIRST_PAGE": "Første side",
+    "LAST_PAGE": "Sidste side"
   }
 }

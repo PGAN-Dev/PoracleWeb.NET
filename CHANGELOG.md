@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Error messages, admin settings and table pagination stayed in English regardless of your language** ([#425](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/425)). Three separate gaps. Every error toast came from a message table that was never translated, even though a fully translated one sat beside it doing the same job for a different part of the app — both now use the translated one. Twelve strings were missing from every non-English locale, so the Authentication settings group, the PvP level-cap labels and a few hints rendered in English inside otherwise-translated pages; the English fallback made this invisible rather than obviously broken. And the table paginator on the admin pages kept Material's built-in English wording. A test now fails the build if any locale drifts from English again, or if the error toasts go untranslated.
+
+### Fixed
 - **A bulk distance change still made a quick pick impossible to remove** ([#443](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/443)). The single-edit case was fixed in [#403](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/403), but the Update All and bulk-distance actions rewrite every row too, so the same stale-uid failure came back through them: Remove reported success, deleted nothing, and the next page load cleared the applied state so there was no way to try again. The replacement rows are now matched by their contents rather than their position, because the batch response comes back in a different order than it was sent — matching by position would have repointed a quick pick at somebody else's alarm and deleted the wrong one. Where two alarms are genuinely indistinguishable, nothing is moved rather than guessed.
 
 ### Fixed

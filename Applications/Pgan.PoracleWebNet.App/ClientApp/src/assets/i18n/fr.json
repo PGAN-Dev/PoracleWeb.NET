@@ -297,7 +297,11 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normale",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "PVP_CAP": "Plafond de niveau",
+    "PVP_CAP_ALL": "Tous",
+    "PVP_CAP_LEVEL": "L{{level}}",
+    "PVP_CAP_HINT_DEFAULT": "Par défaut — depuis la configuration Poracle"
   },
   "ALARM": {
     "LOCATION_MODE": "Mode de localisation",
@@ -975,7 +979,8 @@
     "SELECT_REGION": "Sélectionner la région",
     "SEARCH_REGIONS": "Rechercher des régions...",
     "TOGGLE_TOOLTIP": "Activer/désactiver les notifications pour ce geofence sur le profil actuel",
-    "CREATED_PREFIX": "Créé"
+    "CREATED_PREFIX": "Créé",
+    "REGION_OPTIONAL_HINT": "Facultatif. Choisissez une région si votre géorepère appartient à l’une d’elles."
   },
   "CLEANING": {
     "PAGE_TITLE": "Mode nettoyage",
@@ -1180,16 +1185,11 @@
     "ERR_GENERIC": "Erreur d'authentification : {{error}}",
     "ERR_NO_TOKEN": "Aucun jeton d'authentification reçu.",
     "SIGN_UP": "Sign Up",
-    "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
+    "SIGN_UP_DESC": "Don't have an account? Sign up to get started.",
+    "SIGN_IN_AGAIN": "Se reconnecter"
   },
   "ERROR": {
-    "SESSION_EXPIRED": "Session expired. Please log in again.",
-    "PERMISSION_DENIED": "You don't have permission for this action.",
-    "FEATURE_DISABLED": "This feature has been disabled by the administrator.",
-    "NOT_FOUND": "The requested resource was not found.",
-    "NETWORK": "Network error. Check your connection.",
-    "GENERIC": "Something went wrong. Please try again.",
-    "SERVER_UNAVAILABLE": "Server is temporarily unavailable."
+    "FEATURE_DISABLED": "Cette fonctionnalité a été désactivée par l’administrateur."
   },
   "ADMIN": {
     "USERS_TITLE": "Gestion des utilisateurs",
@@ -1341,7 +1341,8 @@
     "SNACK_FAILED_APPROVE": "Échec de l'approbation de la soumission",
     "SNACK_APPROVED": "\"{{name}}\" approuvée",
     "SNACK_FAILED_REJECT": "Échec du rejet de la soumission",
-    "SNACK_REJECTED": "\"{{name}}\" rejetée"
+    "SNACK_REJECTED": "\"{{name}}\" rejetée",
+    "APPROVAL_REGION_HINT": "Choisissez la région sous laquelle ce géorepère apparaîtra."
   },
   "DIALOG": {
     "CANCEL": "Annuler",
@@ -1612,7 +1613,12 @@
     "DISCARD_CHANGES": "Annuler",
     "COLLAPSE_SECTION": "Réduire la section",
     "EXPAND_SECTION": "Développer la section",
-    "SUMMARY_ENABLED": "{{count}} sur {{total}} activé(s)"
+    "SUMMARY_ENABLED": "{{count}} sur {{total}} activé(s)",
+    "GROUP_AUTH": "Authentification",
+    "AUTH_MODE_LABEL": "Mode de connexion",
+    "AUTH_MODE_LOCAL": "Local",
+    "AUTH_MODE_LOCAL_DESC": "Connexion directe avec Discord ou Telegram.",
+    "AUTH_FORCE_LOCAL_ACTIVE": "La connexion locale est imposée par la configuration du serveur."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nom",
@@ -1682,5 +1688,14 @@
     "DEFAULT_DISTANCE": "Distance par défaut",
     "DEFAULT_DISTANCE_HINT": "Utilisée pour préremplir le rayon des nouvelles alertes basées sur la distance.",
     "FOOTNOTE": "S'applique uniquement aux nouvelles alertes — les alertes existantes ne sont pas modifiées."
+  },
+  "PAGINATOR": {
+    "ITEMS_PER_PAGE": "Éléments par page :",
+    "RANGE": "{{start}} - {{end}} sur {{total}}",
+    "RANGE_EMPTY": "0 sur {{total}}",
+    "NEXT_PAGE": "Page suivante",
+    "PREVIOUS_PAGE": "Page précédente",
+    "FIRST_PAGE": "Première page",
+    "LAST_PAGE": "Dernière page"
   }
 }
