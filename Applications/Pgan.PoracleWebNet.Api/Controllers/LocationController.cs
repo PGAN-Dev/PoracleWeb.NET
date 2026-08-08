@@ -110,6 +110,7 @@ public class LocationController(
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Geocoding)]
     [HttpGet("geocode")]
     public async Task<IActionResult> Geocode([FromQuery] string q)
     {
@@ -138,6 +139,7 @@ public class LocationController(
         }
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Geocoding)]
     [HttpGet("reverse")]
     public async Task<IActionResult> ReverseGeocode([FromQuery] double lat, [FromQuery] double lon)
     {

@@ -227,18 +227,6 @@ const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
-        descriptionKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_DESC',
-        key: 'disable_geomap',
-        labelKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_LABEL',
-        type: 'boolean',
-      },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_SELECT_DESC',
-        key: 'disable_geomap_select',
-        labelKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_SELECT_LABEL',
-        type: 'boolean',
-      },
-      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_DESC',
         key: 'disable_user_geofences',
         labelKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_LABEL',

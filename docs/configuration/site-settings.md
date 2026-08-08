@@ -65,9 +65,7 @@ Toggle user-facing features on or off.
 | `disable_areas` | Disable Areas | boolean | Prevent users from managing their area subscriptions. |
 | `disable_profiles` | Disable Profiles | boolean | Prevent users from creating and switching alarm profiles. |
 | `disable_location` | Disable Location | boolean | Prevent users from setting a home location. |
-| `disable_nominatim` | Disable Geocoding | boolean | Disable Nominatim address search for location picking. |
-| `disable_geomap` | Disable Map View | boolean | Hide the interactive geofence map entirely. |
-| `disable_geomap_select` | Disable Map Area Selection | boolean | Prevent users from selecting areas by clicking the map. Independent of `disable_geomap`. |
+| `disable_nominatim` | Disable Geocoding | boolean | Stops all outbound geocoding. The address search and reverse lookup return 403, and the location dialog hides its search box. Users can still set a location by coordinates or on the map. Turn this on if you do not want your instance making requests to a third-party geocoder. |
 | `enable_templates` | Enable Templates | boolean | Allow users to choose notification message templates. |
 
 ---
