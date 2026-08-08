@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Importing a profile put the alarms on whatever profile the file named** ([#465](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/465)). A backup carrying a profile number wrote its alarms there instead of into the profile just created, leaving them orphaned on a profile that might not exist — and inherited by a future profile created at that number. The file no longer chooses the profile or the owner.
+- **Duplicating a profile copied the wrong areas and location** ([#466](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/466)). The copy silently inherited whichever profile was active rather than the one being duplicated, so you got the right alarms over the wrong map — and since the coordinates also drive the active-hours timezone, a schedule on the copy could run against the wrong clock.
+- **Blank or over-long profile names returned a server error** ([#467](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/467)) on rename and import, where creating a profile already explained the problem properly.
+
+### Fixed
 - **A cleaning toggle broke any quick pick covering those alarms** ([#471](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/471)). Toggling auto-delete rewrites every alarm of that type under a new identifier, and the quick pick that created them kept pointing at the old ones — so the pick showed as never applied, Remove deleted nothing, and re-applying failed because the leftover alarms were still there. Cleaning was the one bulk operation that never followed the rewrite.
 - **The cleaning endpoints accepted values that are not on or off** ([#472](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/472)). Any even number silently switched cleaning *off* while reporting the alarms updated, and the write is not free — it rewrites every alarm, and for Max Battles deletes and recreates them.
 

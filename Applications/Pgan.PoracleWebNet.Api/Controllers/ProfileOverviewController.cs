@@ -101,6 +101,23 @@ public partial class ProfileOverviewController(
     [HttpPost("import")]
     public async Task<IActionResult> ImportProfile([FromBody] ProfileOverviewImportRequest request)
     {
+        // Import used to 500 on a blank or over-long name, where create answers a clean 400. See #467.
+        if (string.IsNullOrWhiteSpace(request.ProfileName))
+        {
+            return this.BadRequest(new
+            {
+                error = "Profile name is required."
+            });
+        }
+
+        if (request.ProfileName.Trim().Length > 255)
+        {
+            return this.BadRequest(new
+            {
+                error = "Profile name must be 255 characters or fewer."
+            });
+        }
+
         var existing = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
         var existingNames = existing.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var profileName = request.ProfileName;

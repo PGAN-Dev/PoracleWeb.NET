@@ -69,6 +69,12 @@ public class ProfileOverviewService(
         return totalCreated;
     }
 
+    /// <summary>
+    /// Fields an imported alarm may not dictate: they identify the owner and the profile, which are
+    /// determined by who is importing and where. See #465.
+    /// </summary>
+    private static readonly string[] ImportIgnoredFields = ["uid", "profile_no", "id"];
+
     public async Task<int> ImportAlarmsAsync(string userId, int targetProfileNo, JsonElement alarms)
     {
         // Pre-validate the import payload before any state mutation. See DuplicateProfileAsync above
@@ -93,10 +99,19 @@ public class ProfileOverviewService(
 
                 foreach (var alarm in alarmsArray.EnumerateArray())
                 {
-                    // Strip uid defensively — export removes it client-side but manually edited backups may include it
-                    var cleaned = alarm.TryGetProperty("uid", out _)
-                        ? PoracleJsonHelper.StripProperty(alarm, "uid")
-                        : alarm;
+                    // The file decides none of these. PoracleNG takes a submitted profile_no at face
+                    // value (#411), so an alarm carrying profile_no: 7 landed on profile 7 instead of
+                    // the profile just created -- an orphan that a future profile 7 would inherit. id
+                    // is stripped for the same reason: it names the owner, and the URL already does
+                    // that. uid is stripped because a hand-edited backup may still carry one. See #465.
+                    var cleaned = alarm;
+                    foreach (var owned in ImportIgnoredFields)
+                    {
+                        if (cleaned.TryGetProperty(owned, out _))
+                        {
+                            cleaned = PoracleJsonHelper.StripProperty(cleaned, owned);
+                        }
+                    }
                     await this._trackingProxy.CreateAsync(type, userId, cleaned);
                     totalCreated++;
                 }
