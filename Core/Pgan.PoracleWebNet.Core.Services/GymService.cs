@@ -95,6 +95,11 @@ public class GymService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
 
         var body = SerializeToElement(itemList);
         await this._proxy.CreateAsync(TrackingType, userId, body);
+        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
+        // tracks them, pairing on content because the batch response is reordered. See #443.
+        await BulkUidRemap.ApplyAsync(
+            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
+
         return itemList.Count;
     }
 
@@ -116,6 +121,11 @@ public class GymService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
 
         var body = SerializeToElement(matching);
         await this._proxy.CreateAsync(TrackingType, userId, body);
+        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
+        // tracks them, pairing on content because the batch response is reordered. See #443.
+        await BulkUidRemap.ApplyAsync(
+            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
+
         return matching.Count;
     }
 
