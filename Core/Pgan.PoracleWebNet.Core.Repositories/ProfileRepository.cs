@@ -49,6 +49,21 @@ public class ProfileRepository(PoracleContext context) : IProfileRepository
         return entity.ToModel();
     }
 
+    public async Task<bool> RenameAsync(string userId, int profileNo, string name)
+    {
+        var entity = await this._context.Profiles
+            .FirstOrDefaultAsync(p => p.Id == userId && p.ProfileNo == profileNo);
+
+        if (entity is null)
+        {
+            return false;
+        }
+
+        entity.Name = name;
+        await this._context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<bool> DeleteAsync(string userId, int profileNo)
     {
         var entity = await this._context.Profiles

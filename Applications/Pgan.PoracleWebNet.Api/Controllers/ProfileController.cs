@@ -2,8 +2,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -13,11 +15,13 @@ public class ProfileController(
     IProfileService profileService,
     IHumanService humanService,
     IPoracleHumanProxy humanProxy,
+    IProfileRepository profileRepository,
     IJwtService jwtService) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
+    private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IJwtService _jwtService = jwtService;
 
     [HttpGet]
@@ -48,21 +52,19 @@ public class ProfileController(
 
         profile.Id = this.UserId;
 
-        // Assign next available profile number
-        var existing = await this._profileService.GetByUserAsync(this.UserId);
-        var maxNo = existing.Any() ? existing.Max(p => p.ProfileNo) : 0;
-        profile.ProfileNo = maxNo + 1;
-
         var (isValid, validationError) = ActiveHoursValidator.Validate(profile.ActiveHours);
         if (!isValid)
         {
             return this.BadRequest(validationError);
         }
 
+        // PoracleNG assigns the lowest free number, not max+1, so the number cannot be predicted for a
+        // user who has ever deleted a non-last profile. Ask what it chose. See #407.
+        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
+
         var body = JsonSerializer.SerializeToElement(new
         {
             name = profile.Name,
-            profileNo = profile.ProfileNo,
             area = profile.Area ?? "[]",
             latitude = profile.Latitude,
             longitude = profile.Longitude,
@@ -70,8 +72,17 @@ public class ProfileController(
         });
         await this._humanProxy.AddProfileAsync(this.UserId, body);
 
-        // Re-read the created profile from the DB so we return the full model
-        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profile.ProfileNo);
+        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
+        var createdNo = ProfileNumbering.ResolveCreated(before, after, profile.Name);
+        if (createdNo is null)
+        {
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The profile was not created."
+            });
+        }
+
+        var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo.Value);
         return this.CreatedAtAction(nameof(GetAll), result);
     }
 
@@ -98,7 +109,20 @@ public class ProfileController(
         });
         await this._humanProxy.UpdateProfileAsync(this.UserId, body);
 
-        // Re-read from proxy to return the updated model
+        // PoracleNG's update handler answers ok and silently drops the name, while honouring active_hours
+        // on the very same request -- so rename has to be written directly. The response used to be
+        // re-read and returned as a 200 carrying the OLD name, and the SPA built a success toast from it.
+        // See #406.
+        var newName = profile.Name?.Trim();
+        if (!string.IsNullOrEmpty(newName) && !string.Equals(newName, existing.Name, StringComparison.Ordinal))
+        {
+            var renamed = await this._profileRepository.RenameAsync(this.UserId, profileNo, newName);
+            if (!renamed)
+            {
+                return this.NotFound();
+            }
+        }
+
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
         return this.Ok(result);
     }
@@ -141,21 +165,32 @@ public class ProfileController(
             return this.NotFound();
         }
 
-        // Assign next available profile number
-        var existing = await this._profileService.GetByUserAsync(this.UserId);
-        var newProfileNo = existing.Any() ? existing.Max(p => p.ProfileNo) + 1 : 1;
+        // See #407: PoracleNG picks the number, so create first and then ask which one it used. Copying
+        // to a predicted max+1 wrote the alarms to a profile_no with no profile row, and those orphans
+        // later attached themselves to whatever profile was eventually created at that number.
+        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
 
-        // Create the new profile
         var body = JsonSerializer.SerializeToElement(new
         {
             name = request.Name.Trim(),
-            profileNo = newProfileNo,
             area = sourceProfile.Area ?? "[]",
             latitude = sourceProfile.Latitude,
             longitude = sourceProfile.Longitude,
             active_hours = sourceProfile.ActiveHours
         });
         await this._humanProxy.AddProfileAsync(this.UserId, body);
+
+        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
+        var resolved = ProfileNumbering.ResolveCreated(before, after, request.Name.Trim());
+        if (resolved is null)
+        {
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The profile was not created."
+            });
+        }
+
+        var newProfileNo = resolved.Value;
 
         // Copy all alarms from source to new profile; clean up on failure
         try
