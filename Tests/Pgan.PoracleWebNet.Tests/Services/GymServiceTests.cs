@@ -16,12 +16,13 @@ public class GymServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly GymService _sut;
 
     public GymServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new GymService(this._proxy.Object, this._featureGate.Object, NullLogger<GymService>.Instance);
+        this._sut = new GymService(this._proxy.Object, this._featureGate.Object, NullLogger<GymService>.Instance, this._uidRemapper.Object);
     }
 
     [Fact]

@@ -17,12 +17,13 @@ public class InvasionServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly InvasionService _sut;
 
     public InvasionServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance);
+        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object);
         // The natural-key replace strategy reads the original row and frees the key first.
         this._proxy.Setup(p => p.GetByUserAsync("invasion", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));

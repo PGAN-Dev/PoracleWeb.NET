@@ -5,12 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<EggService> logger) : IEggService
+public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<EggService> logger, ITrackedUidRemapper uidRemapper) : IEggService
 {
     private const string TrackingType = "egg";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<EggService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
     public async Task<IEnumerable<Egg>> GetByUserAsync(string userId, int profileNo)
     {
@@ -52,7 +53,7 @@ public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
         // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
         // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
         model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+            this._proxy, TrackingType, userId, oldUid, result, this._logger, this._uidRemapper);
 
         return model;
     }

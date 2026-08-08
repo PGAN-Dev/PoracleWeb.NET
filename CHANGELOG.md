@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Editing a quick-pick alarm made that quick pick impossible to remove** ([#403](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/403)). PoracleNG rewrites a tracking row on edit for every alarm type except monsters, so the row comes back with a new uid. Quick-pick applied state stores the uids captured at apply time, so after any edit the stored uid pointed at a row that no longer existed: **Remove** deleted nothing and still reported success, and the next page load — seeing none of the tracked uids alive — decided the user had deleted the alarms by hand and cleared the applied state, so the UI stopped offering to remove it at all. The alarm kept firing with no way to get rid of it short of deleting it manually. Alarm edits now move the stored uid with the row. A regression test fails the build if a new alarm service rotates uids without wiring this up.
+
+### Fixed
 - **Editing a Max Battle alarm destroyed its move and evolution filters** ([#412](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/412)). The edit dialog hardcoded `move: 9000` and `evolution: 9000` — the "any" sentinel — while reading every neighbouring field off the existing alarm. Changing the distance, or anything else, therefore reset both filters and widened what the user got alerted on. Neither dialog can set those filters (they come from the bot), so once wiped they could only be restored through the bot or a direct API call, and the card's move pill simply vanished. Both values are now carried through from the existing alarm. The backend was never at fault: `MaxBattleUpdate` treats null as "leave alone", and an update omitting the two fields always preserved them.
 
 ### Fixed

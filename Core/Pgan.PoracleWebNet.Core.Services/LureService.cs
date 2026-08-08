@@ -5,12 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<LureService> logger) : ILureService
+public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<LureService> logger, ITrackedUidRemapper uidRemapper) : ILureService
 {
     private const string TrackingType = "lure";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<LureService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
     public async Task<IEnumerable<Lure>> GetByUserAsync(string userId, int profileNo)
     {
@@ -56,7 +57,8 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
             oldUid,
             original is null ? null : SerializeToElement(original),
             SerializeToElement(model),
-            this._logger);
+            this._logger,
+            this._uidRemapper);
 
         return model;
     }

@@ -35,6 +35,16 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context) : IQuick
         return [.. entities.Select(MapToModel)];
     }
 
+    public async Task<List<QuickPickAppliedState>> GetByUserAsync(string userId)
+    {
+        var entities = await this._context.QuickPickAppliedStates
+            .AsNoTracking()
+            .Where(s => s.UserId == userId)
+            .ToListAsync();
+
+        return [.. entities.Select(MapToModel)];
+    }
+
     public async Task CreateOrUpdateAsync(QuickPickAppliedState state)
     {
         var entity = await this._context.QuickPickAppliedStates

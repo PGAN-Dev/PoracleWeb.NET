@@ -38,7 +38,8 @@ internal static partial class NaturalKeyTrackingUpdate
         int oldUid,
         JsonElement? original,
         JsonElement updated,
-        ILogger logger)
+        ILogger logger,
+        ITrackedUidRemapper? uidRemapper = null)
     {
         // Not an edit: nothing to free up, so this is an ordinary create.
         if (oldUid <= 0)
@@ -52,7 +53,15 @@ internal static partial class NaturalKeyTrackingUpdate
         try
         {
             var result = await proxy.CreateAsync(trackingType, userId, updated);
-            return result.NewUids.Count > 0 ? (int)result.NewUids[0] : oldUid;
+            var newUid = result.NewUids.Count > 0 ? (int)result.NewUids[0] : oldUid;
+
+            // Quick-pick applied state stores uids captured at apply time; follow the row. See #403.
+            if (uidRemapper != null)
+            {
+                await uidRemapper.RemapAsync(userId, trackingType, oldUid, newUid);
+            }
+
+            return newUid;
         }
         catch (Exception ex)
         {

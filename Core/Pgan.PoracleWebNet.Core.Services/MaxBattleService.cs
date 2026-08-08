@@ -5,10 +5,11 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<MaxBattleService> logger) : IMaxBattleService
+public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<MaxBattleService> logger, ITrackedUidRemapper uidRemapper) : IMaxBattleService
 {
     private const string TrackingType = "maxbattle";
     private readonly ILogger<MaxBattleService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
 
@@ -45,7 +46,8 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
         // MaxBattle is insert-only in PoracleNG (no dedup/upsert).
         // Delete the old alarm first, then create a replacement.
-        await this._proxy.DeleteByUidAsync(TrackingType, userId, model.Uid);
+        var oldUid = model.Uid;
+        await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
 
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -54,6 +56,9 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         {
             model.Uid = (int)result.NewUids[0];
         }
+
+        // Quick-pick applied state stores uids captured at apply time; follow the row. See #403.
+        await this._uidRemapper.RemapAsync(userId, TrackingType, oldUid, model.Uid);
 
         return model;
     }

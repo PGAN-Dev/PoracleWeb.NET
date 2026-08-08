@@ -29,7 +29,8 @@ internal static partial class TrackingUpdateReconciler
         string userId,
         int oldUid,
         TrackingCreateResult result,
-        ILogger logger)
+        ILogger logger,
+        ITrackedUidRemapper? uidRemapper = null)
     {
         // oldUid <= 0 means this was not an edit. No insert, or the same uid back, means the upsert worked.
         if (oldUid <= 0 || result.Inserts <= 0 || result.NewUids.Count == 0)
@@ -52,6 +53,12 @@ internal static partial class TrackingUpdateReconciler
             // The new row already carries the user's intended settings, so the edit succeeded. Surface the
             // leftover duplicate for triage rather than failing an update that actually applied.
             LogStaleDeleteFailed(logger, ex, trackingType, oldUid, newUid);
+        }
+
+        // Quick-pick applied state stores uids captured at apply time; follow the row. See #403.
+        if (uidRemapper != null)
+        {
+            await uidRemapper.RemapAsync(userId, trackingType, oldUid, newUid);
         }
 
         return newUid;
