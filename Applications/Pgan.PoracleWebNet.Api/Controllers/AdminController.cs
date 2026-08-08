@@ -9,6 +9,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [Route("api/admin")]
 public partial class AdminController(
     IHumanService humanService,
+    IUserPurgeService userPurgeService,
     IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
@@ -17,6 +18,7 @@ public partial class AdminController(
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IUserPurgeService _userPurgeService = userPurgeService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
@@ -459,6 +461,20 @@ public partial class AdminController(
             return this.BadRequest(new { error = "userId is required and must be 100 characters or fewer." });
         }
 
+        // Neither id was checked against anything, so a typo created a grant over a webhook that does not
+        // exist, for a user who does not exist, and the admin delegates view then listed it as real. A
+        // grant is only meaningful between two accounts that exist. See #514.
+        var webhook = await this._humanService.GetByIdAsync(request.WebhookId);
+        if (webhook is null || !string.Equals(webhook.Type, "webhook", StringComparison.OrdinalIgnoreCase))
+        {
+            return this.BadRequest(new { error = "webhookId does not name an existing webhook." });
+        }
+
+        if (!await this._humanService.ExistsAsync(request.UserId))
+        {
+            return this.BadRequest(new { error = "userId does not name an existing user." });
+        }
+
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);
         return this.Ok(delegates);
     }
@@ -524,7 +540,11 @@ public partial class AdminController(
             return this.Forbid();
         }
 
-        var deleted = await this._humanService.DeleteUserAsync(id);
+        // Everything the account owns goes with it: alarms, geofences, delegate grants, quick picks and
+        // their applied state. Removing the humans row alone left all of it behind, unreachable but
+        // intact, and re-creating the same id adopted the lot -- including impersonation rights over a
+        // recreated webhook URL. See #510, #511, #512.
+        var deleted = await this._userPurgeService.PurgeAsync(id);
         if (!deleted)
         {
             return this.NotFound();

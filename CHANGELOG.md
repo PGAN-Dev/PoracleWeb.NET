@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Deleting a user left almost everything they owned behind** ([#510](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/510), [#511](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/511), [#512](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/512)). Alarms, custom geofences, quick picks and webhook delegate grants all survived the delete. Nothing could reach them, so the account looked gone — until the same ID was created again and inherited the lot, including delegate rights over a recreated webhook URL. A deleted user's geofences also kept being published to Poracle.
+- **Webhook delegation accepted IDs that name nothing** ([#514](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/514)). A typo created a grant over a webhook that does not exist, for a user who does not exist, and the admin list then showed it as real.
+- **"Delete all alarms" skipped fort changes and max battles** ([#510](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/510)), leaving those two types behind on every path that clears a user's alarms.
+### Fixed
 - **Saving a raid, egg, quest, gym, nest or fort-change edit without changing anything was refused** ([#498](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/498), [#499](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/499), [#501](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/501)). Pressing Save with nothing edited, or changing only the ping, reported that another alarm already used those settings — the alarm it meant was the one being edited. Introduced by the duplicate detection added in v2.12.1.
 ### Fixed
 - **The quest summary editor said an empty schedule meant a manual profile start** ([#457](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/457)). The schedule editor is shared with profiles, and its empty-state line contradicted the sentence directly above it about quests being delivered individually.
