@@ -24,6 +24,9 @@ public class ProfileController(
     private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IJwtService _jwtService = jwtService;
 
+    /// <summary>Matches the profiles.name column, so an over-long name is refused rather than 500ing.</summary>
+    private const int MaxProfileNameLength = 255;
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -47,6 +50,16 @@ public class ProfileController(
             return this.BadRequest(new
             {
                 error = "Profile name is required."
+            });
+        }
+
+        // profiles.name is varchar(255); anything longer reached the database and came back as an
+        // opaque 500. See #467.
+        if (profile.Name.Trim().Length > MaxProfileNameLength)
+        {
+            return this.BadRequest(new
+            {
+                error = $"Profile name must be {MaxProfileNameLength} characters or fewer."
             });
         }
 
@@ -93,6 +106,14 @@ public class ProfileController(
         if (existing == null)
         {
             return this.NotFound();
+        }
+
+        if (profile.Name is not null && profile.Name.Trim().Length > MaxProfileNameLength)
+        {
+            return this.BadRequest(new
+            {
+                error = $"Profile name must be {MaxProfileNameLength} characters or fewer."
+            });
         }
 
         var (isValid, validationError) = ActiveHoursValidator.Validate(profile.ActiveHours);
@@ -191,6 +212,29 @@ public class ProfileController(
         }
 
         var newProfileNo = resolved.Value;
+
+        // PoracleNG's addProfile ignores area, latitude and longitude while honouring active_hours
+        // from the same payload, so a duplicate silently inherited the ACTIVE profile's geography
+        // instead of the source's: the right alarms over the wrong map, and a location that also
+        // feeds the active-hours timezone. Write them directly, the same way rename has to (#406).
+        // See #466.
+        try
+        {
+            await this._profileRepository.UpdateAsync(new Profile
+            {
+                Id = this.UserId,
+                ProfileNo = newProfileNo,
+                Name = request.Name.Trim(),
+                Area = sourceProfile.Area ?? "[]",
+                Latitude = sourceProfile.Latitude,
+                Longitude = sourceProfile.Longitude,
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            // The row is not there yet in some PoracleNG timings; the profile still exists and the
+            // alarms still copy, so this must not fail the duplicate.
+        }
 
         // Copy all alarms from source to new profile; clean up on failure
         try

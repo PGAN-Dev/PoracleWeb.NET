@@ -351,4 +351,58 @@ public class ProfileControllerTests : ControllerTestBase
         this._profileRepository.Verify(
             r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
     }
+
+    // ── Name length and duplicate geography (#466, #467) ────────────────────
+
+    [Fact]
+    public async Task CreateRejectsANameLongerThanTheColumn()
+    {
+        // 256 chars reached the database and came back as an opaque 500.
+        var result = await this._sut.Create(new Profile { Name = new string('a', 256) });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task CreateStillAcceptsANameAtTheLimit()
+    {
+        this.SetupCreateAssigns(1, new string('a', 255));
+
+        var result = await this._sut.Create(new Profile { Name = new string('a', 255) });
+
+        Assert.IsType<CreatedAtActionResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateRejectsANameLongerThanTheColumn()
+    {
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1))
+            .ReturnsAsync(P(1, "Old"));
+
+        var result = await this._sut.Update(1, new Profile { Name = new string('a', 256) });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DuplicateCarriesTheSourceProfilesAreasAndLocation()
+    {
+        // PoracleNG drops area/latitude/longitude from addProfile, so the copy silently inherited the
+        // ACTIVE profile's geography: the right alarms over the wrong map. See #466.
+        var source = new Profile
+        {
+            Id = "123456789", ProfileNo = 1, Name = "Work",
+            Area = "[\"downtown\",\"fan\"]", Latitude = 37.5, Longitude = -77.4,
+        };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(source);
+        this.SetupCreateAssigns(2, "Copy", source);
+
+        await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" });
+
+        this._profileRepository.Verify(r => r.UpdateAsync(It.Is<Profile>(x =>
+            x.ProfileNo == 2
+            && x.Area == source.Area
+            && x.Latitude == source.Latitude
+            && x.Longitude == source.Longitude)), Times.Once);
+    }
 }
