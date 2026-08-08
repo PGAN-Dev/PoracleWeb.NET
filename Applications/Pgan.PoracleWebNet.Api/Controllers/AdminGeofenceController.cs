@@ -58,6 +58,16 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             await this._userGeofenceService.AdminDeleteAsync(this.UserId, id);
             return this.NoContent();
         }
+        catch (KojiOperationException ex)
+        {
+            // Koji down, or a region deleted between the region list loading and the approve click. This
+            // used to reach the admin as 500 "An unexpected error occurred." See #422.
+            LogKojiFailure(this._logger, ex, id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The geofence server rejected the request. It may be unavailable, or the region may no longer exist."
+            });
+        }
         catch (GeofenceNotFoundException ex)
         {
             LogAdminDeleteFailed(this._logger, ex, id);
@@ -93,6 +103,16 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
                 this.UserId, id, request?.PromotedName, request?.ParentId, request?.GroupName);
             return this.Ok(result);
         }
+        catch (KojiOperationException ex)
+        {
+            // Koji down, or a region deleted between the region list loading and the approve click. This
+            // used to reach the admin as 500 "An unexpected error occurred." See #422.
+            LogKojiFailure(this._logger, ex, id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The geofence server rejected the request. It may be unavailable, or the region may no longer exist."
+            });
+        }
         catch (GeofenceNotFoundException ex)
         {
             LogApproveSubmissionFailed(this._logger, ex, id);
@@ -126,6 +146,16 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         {
             var result = await this._userGeofenceService.RejectSubmissionAsync(this.UserId, id, request.ReviewNotes);
             return this.Ok(result);
+        }
+        catch (KojiOperationException ex)
+        {
+            // Koji down, or a region deleted between the region list loading and the approve click. This
+            // used to reach the admin as 500 "An unexpected error occurred." See #422.
+            LogKojiFailure(this._logger, ex, id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The geofence server rejected the request. It may be unavailable, or the region may no longer exist."
+            });
         }
         catch (GeofenceNotFoundException ex)
         {
@@ -181,4 +211,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reject geofence submission {Id}")]
     private static partial void LogRejectSubmissionFailed(ILogger logger, Exception ex, int id);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Koji rejected an operation while handling geofence {GeofenceId}")]
+    private static partial void LogKojiFailure(ILogger logger, Exception ex, int geofenceId);
 }

@@ -381,6 +381,8 @@ public class UserGeofenceServiceTests
             return g;
         });
 
+        this._kojiService.Setup(k => k.GetRegionsAsync()).ReturnsAsync([new GeofenceRegion { Id = 42, Name = "city" }]);
+
         await this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: 42, groupName: "City");
 
         // Override is sent to Koji and persisted on the record.
@@ -1435,5 +1437,66 @@ public class UserGeofenceServiceTests
         this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
         this._areaWriter.Verify(
             w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    // ── Koji failures during approve (#422) ─────────────────────────────────────
+    // EnsureSuccessStatusCode threw a bare HttpRequestException that no controller caught, so an unknown
+    // parent id -- or Koji simply being down -- reached the admin as an opaque 500.
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRejectsAParentRegionKojiDoesNotKnow()
+    {
+        this.SeedPendingGeofence();
+        this._kojiService.Setup(k => k.GetRegionsAsync())
+            .ReturnsAsync([new GeofenceRegion { Id = 5, Name = "city" }]);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: 999999999));
+
+        Assert.Contains("999999999", ex.Message, StringComparison.Ordinal);
+        this._kojiService.Verify(
+            k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncAcceptsAParentRegionKojiKnows()
+    {
+        this.SeedPendingGeofence();
+        this._kojiService.Setup(k => k.GetRegionsAsync())
+            .ReturnsAsync([new GeofenceRegion { Id = 42, Name = "city" }]);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: 42);
+
+        Assert.Equal("approved", result.Status);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task ApproveSubmissionAsyncTreatsNonPositiveParentsAsNoRegion(int parentId)
+    {
+        // Documented behaviour from #314: a region-less geofence sends null to Koji. -5 is not a new case.
+        this.SeedPendingGeofence();
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: parentId);
+
+        Assert.Equal("approved", result.Status);
+        this._kojiService.Verify(k => k.GetRegionsAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncSurfacesAKojiFailureAsATypedError()
+    {
+        this.SeedPendingGeofence();
+        this._kojiService
+            .Setup(k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()))
+            .ThrowsAsync(new KojiOperationException("geofence save", System.Net.HttpStatusCode.InternalServerError, "boom"));
+
+        await Assert.ThrowsAsync<KojiOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 1, null));
+
+        // The submission must be left alone so the admin can retry once Koji is back.
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
     }
 }

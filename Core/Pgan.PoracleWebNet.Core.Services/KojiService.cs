@@ -64,7 +64,7 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
-        response.EnsureSuccessStatusCode();
+        await EnsureKojiSucceededAsync(response, "geofence save");
 
         LogGeofenceSaved(this._logger, geofenceName, this._projectId);
     }
@@ -112,7 +112,7 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
-        response.EnsureSuccessStatusCode();
+        await EnsureKojiSucceededAsync(response, "geofence save");
 
         LogGeofenceRemoved(this._logger, geofenceName);
     }
@@ -321,7 +321,7 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await this._httpClient.PostAsync($"{this._apiAddress}/api/v1/geofence/save-koji", content);
-        response.EnsureSuccessStatusCode();
+        await EnsureKojiSucceededAsync(response, "geofence save");
 
         // If renaming, remove the old geofence from the project
         if (newName != null && !string.Equals(newName, currentName, StringComparison.Ordinal))
@@ -591,4 +591,32 @@ public partial class KojiService(HttpClient httpClient, IConfiguration configura
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Koji Poracle endpoint returned no data array for project '{ProjectName}'")]
     private static partial void LogPoracleEndpointNoData(ILogger logger, string projectName);
+
+    /// <summary>
+    /// Turns a failed Koji response into a typed error carrying the status and body.
+    /// </summary>
+    /// <remarks>
+    /// <c>EnsureSuccessStatusCode()</c> threw a bare <see cref="HttpRequestException"/> that no caller
+    /// caught, so a Koji failure during approve reached the admin as an opaque 500. See #422.
+    /// </remarks>
+    private static async Task EnsureKojiSucceededAsync(HttpResponseMessage response, string operation)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        string? body = null;
+        try
+        {
+            body = await response.Content.ReadAsStringAsync();
+        }
+        catch (Exception)
+        {
+            // The status code is the useful part; a body we cannot read must not mask it.
+        }
+
+        throw new KojiOperationException(operation, response.StatusCode, body);
+    }
+
 }

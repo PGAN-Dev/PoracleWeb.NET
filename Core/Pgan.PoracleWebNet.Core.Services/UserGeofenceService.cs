@@ -489,6 +489,31 @@ public partial class UserGeofenceService(
         // approving admin set/override it here. Null args mean "keep whatever the submission already had".
         if (parentId.HasValue)
         {
+            // Koji resolves __parent as a geofence id and rejects one it does not know. That rejection used
+            // to surface as an opaque 500, so check it here where the id can be named. Values <= 0 are the
+            // documented "no region" case (#314) and are left alone.
+            if (parentId.Value > 0)
+            {
+                // Best-effort: if the region list itself cannot be fetched we let Koji decide rather than
+                // blocking an approval that would have worked. Koji's own rejection is now typed and
+                // surfaces as a 502 either way, so nothing becomes opaque again.
+                List<GeofenceRegion>? regions = null;
+                try
+                {
+                    regions = await this._kojiService.GetRegionsAsync();
+                }
+                catch (Exception ex)
+                {
+                    LogRegionLookupFailed(this._logger, ex, parentId.Value);
+                }
+
+                if (regions is { Count: > 0 } && !regions.Any(r => r.Id == parentId.Value))
+                {
+                    throw new InvalidOperationException(
+                        $"Region {parentId.Value} does not exist in Koji. Pick a region from the list.");
+                }
+            }
+
             geofence.ParentId = parentId.Value;
         }
 
@@ -764,6 +789,9 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} rejected geofence '{KojiName}' (ID {Id})")]
     private static partial void LogGeofenceRejected(ILogger logger, string adminId, string kojiName, int id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not fetch Koji regions to validate parent {ParentId}; letting Koji decide")]
+    private static partial void LogRegionLookupFailed(ILogger logger, Exception ex, int parentId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
     private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);
