@@ -108,6 +108,19 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context) : IQuick
         await this._context.SaveChangesAsync();
     }
 
+    public async Task DeleteByUserAsync(string userId)
+    {
+        var rows = await this._context.QuickPickAppliedStates.Where(s => s.UserId == userId).ToListAsync();
+
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        this._context.QuickPickAppliedStates.RemoveRange(rows);
+        await this._context.SaveChangesAsync();
+    }
+
     private static QuickPickAppliedState MapToModel(QuickPickAppliedStateEntity entity) => new()
     {
         UserId = entity.UserId,

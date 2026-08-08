@@ -24,4 +24,7 @@ public interface IQuickPickAppliedStateRepository
     /// badge pointing at alarm uids from the old one. See #470.
     /// </remarks>
     public Task DeleteByQuickPickIdAsync(string quickPickId, string? userId = null);
+
+    /// <summary>Removes every applied-state row belonging to a user. See #510.</summary>
+    public Task DeleteByUserAsync(string userId);
 }

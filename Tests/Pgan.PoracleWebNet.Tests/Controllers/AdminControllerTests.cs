@@ -12,6 +12,7 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class AdminControllerTests : ControllerTestBase
 {
     private readonly Mock<IHumanService> _humanService = new();
+    private readonly Mock<IUserPurgeService> _userPurgeService = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
@@ -26,12 +27,21 @@ public class AdminControllerTests : ControllerTestBase
             .Returns("test-impersonation-jwt");
         this._sut = new AdminController(
             this._humanService.Object,
+            this._userPurgeService.Object,
             this._webhookDelegateService.Object,
             this._proxy.Object,
             this._humanProxy.Object,
             poracleSettings,
             this._jwtService.Object,
             this._logger.Object);
+    }
+
+    /// <summary>Both ids must name real accounts before a grant is meaningful. See #514.</summary>
+    private void GivenWebhookAndUserExist(string webhookId = "wh1", string userId = "u2")
+    {
+        this._humanService.Setup(s => s.GetByIdAsync(webhookId))
+            .ReturnsAsync(new Human { Id = webhookId, Type = "webhook" });
+        this._humanService.Setup(s => s.ExistsAsync(userId)).ReturnsAsync(true);
     }
 
     // --- GetUserAvatars (#395) ---
@@ -290,7 +300,9 @@ public class AdminControllerTests : ControllerTestBase
     public async Task DeleteUserReturnsNotFoundWhenMissing()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(false);
+        // The delete goes through the purge service now, so everything the account owns goes with it.
+        // See #510, #511, #512.
+        this._userPurgeService.Setup(s => s.PurgeAsync("u1")).ReturnsAsync(false);
         Assert.IsType<NotFoundResult>(await this._sut.DeleteUser("u1"));
     }
 
@@ -298,8 +310,11 @@ public class AdminControllerTests : ControllerTestBase
     public async Task DeleteUserReturnsNoContentWhenDeleted()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._humanService.Setup(s => s.DeleteUserAsync("u1")).ReturnsAsync(true);
+        this._userPurgeService.Setup(s => s.PurgeAsync("u1")).ReturnsAsync(true);
+
         Assert.IsType<NoContentResult>(await this._sut.DeleteUser("u1"));
+
+        this._userPurgeService.Verify(s => s.PurgeAsync("u1"), Times.Once);
     }
 
     // --- ImpersonateUser ---
@@ -417,6 +432,7 @@ public class AdminControllerTests : ControllerTestBase
     {
         SetupUser(this._sut, isAdmin: true);
         var userId = new string('9', 100);
+        this.GivenWebhookAndUserExist(userId: userId);
         this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", userId))
             .ReturnsAsync([userId]);
 
@@ -425,9 +441,51 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(result);
     }
     [Fact]
+    public async Task AddWebhookDelegateRejectsAWebhookThatDoesNotExist()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("wh-ghost")).ReturnsAsync((Human?)null);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh-ghost", "u2"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>A grant may only name a webhook, not an ordinary user account.</summary>
+    [Fact]
+    public async Task AddWebhookDelegateRejectsAnIdThatIsNotAWebhook()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("someone"))
+            .ReturnsAsync(new Human { Id = "someone", Type = "discord:user" });
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("someone", "u2"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task AddWebhookDelegateRejectsAUserThatDoesNotExist()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("wh1"))
+            .ReturnsAsync(new Human { Id = "wh1", Type = "webhook" });
+        this._humanService.Setup(s => s.ExistsAsync("ghost")).ReturnsAsync(false);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "ghost"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task AddWebhookDelegateAddsNewDelegate()
     {
         SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
         this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2"))
             .ReturnsAsync(["u1", "u2"]);
 

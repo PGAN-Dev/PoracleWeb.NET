@@ -20,7 +20,10 @@ public class HumanService(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleTrackingProxy _trackingProxy = trackingProxy;
 
-    private static readonly string[] AlarmTypes = ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym"];
+    // fort and maxbattle were missing, so "delete all alarms" left those two types behind and a deleted
+    // account kept them. Every tracking type PoracleWeb can create belongs here. See #510.
+    private static readonly string[] AlarmTypes =
+        ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym", "fort", "maxbattle"];
 
     // TODO: Migrate once PoracleNG adds a "get all humans" endpoint.
     // See: docs/poracleng-enhancement-requests.md
