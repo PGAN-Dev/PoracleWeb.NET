@@ -380,6 +380,50 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<OkObjectResult>(result);
     }
 
+    /// <summary>
+    /// webhookId was length-checked and userId was not, though its column is half the width: over 100
+    /// characters surfaced as an unhandled DbUpdateException, and an empty string persisted a delegate
+    /// granting nothing to nobody that then appeared in the admin view. See #483.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task AddWebhookDelegateRejectsAnEmptyUserId(string userId)
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", userId));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddWebhookDelegateRejectsAUserIdLongerThanItsColumn()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.AddWebhookDelegate(
+            new AdminController.WebhookDelegateRequest("wh1", new string('9', 101)));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._webhookDelegateService.Verify(
+            s => s.AddDelegateAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddWebhookDelegateAcceptsAUserIdExactlyAtTheLimit()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var userId = new string('9', 100);
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", userId))
+            .ReturnsAsync([userId]);
+
+        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", userId));
+
+        Assert.IsType<OkObjectResult>(result);
+    }
     [Fact]
     public async Task AddWebhookDelegateAddsNewDelegate()
     {

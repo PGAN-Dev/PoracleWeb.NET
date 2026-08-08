@@ -746,7 +746,12 @@ public partial class AuthController(
         if (human != null && dbProfileNo != this.ProfileNo)
         {
             LogProfileResync(this._logger, this.UserId, this.ProfileNo, dbProfileNo);
-            userInfo.Token = this._jwtService.GenerateToken(userInfo);
+            // GenerateToken builds from UserInfo, which has no impersonatedBy field, so an admin
+            // impersonation session lost the only server-side record of what it was -- on precisely the
+            // out-of-band profile changes this branch exists to absorb. Replace the profile on the
+            // current principal instead, which is what every other profile-replacement site does and
+            // which copies every non-registered claim. See #484.
+            userInfo.Token = this._jwtService.GenerateTokenWithReplacedProfile(this.User, dbProfileNo);
         }
 
         return this.Ok(userInfo);
