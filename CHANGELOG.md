@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`GET /api/masterdata/grunts` returned 500 to every caller** ([#419](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/419)). The proxy requested `/api/config/grunts`, a path neither supported backend serves, so the call always 404'd upstream and `EnsureSuccessStatusCode()` turned that into an unhandled exception — which also left the controller's own "Grunt data not available" branch permanently unreachable. Corrected to `/api/masterdata/grunts`, which PoracleNG does serve; the route now returns the full grunt table. Upstream failures return `null` rather than throwing, matching the sibling calls in the same file, so a real outage produces the intended 404 instead of a 500.
+
 ### Security
 - **`GET /api/config` published the Poracle admin id list to anonymous callers** ([#415](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/415)). The route was `[AllowAnonymous]` and returned the upstream config object whole, so an unauthenticated request to an internet-facing host returned the Discord and Telegram admin ids, the webhook delegation map, the internal provider URL and the static map key. The same admin list is `[Authorize]`-and-admin-gated on `GET /api/admin/poracle-admins`, and PoracleNG gates its own copy behind `X-Poracle-Secret` — PoracleWeb was the one place it was public. The route now requires authentication and returns a `PublicPoracleConfig` projection instead of the raw object. The projection is an allowlist, so a field added upstream is not exposed until someone adds it deliberately. Nothing needed the old payload: the only browser consumers are the Pokemon add and edit dialogs, both behind the auth guard, and both read only the PvP cap fields. `GET /api/config/templates` and `GET /api/config/dts` stay anonymous. If your instance has been reachable from the internet, treat the admin ids and the static key as disclosed.
 

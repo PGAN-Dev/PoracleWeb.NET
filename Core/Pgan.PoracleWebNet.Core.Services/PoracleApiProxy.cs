@@ -252,11 +252,21 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         return await response.Content.ReadAsStringAsync();
     }
 
+    /// <summary>
+    /// Invasion grunt master data. The path is <c>/api/masterdata/grunts</c> — <c>/api/config/grunts</c>
+    /// exists in neither supported backend, so this call could only ever 404 and throw.
+    /// </summary>
+    /// <returns>The raw JSON, or <c>null</c> when upstream is unreachable or does not serve it.</returns>
     public async Task<string?> GetGruntsAsync()
     {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/grunts");
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/masterdata/grunts");
         var response = await this._httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
         return await response.Content.ReadAsStringAsync();
     }
 
