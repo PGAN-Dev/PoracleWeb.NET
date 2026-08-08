@@ -216,6 +216,9 @@ public partial class QuickPickService(
         }
 
         await this._definitionRepository.DeleteAsync(id);
+
+        // A global pick can be applied by anyone, so every user's state for it goes with it. See #470.
+        await this._appliedStateRepository.DeleteByQuickPickIdAsync(id);
         return true;
     }
 
@@ -228,6 +231,9 @@ public partial class QuickPickService(
         }
 
         await this._definitionRepository.DeleteByIdAndOwnerAsync(id, userId);
+
+        // Only the owner can apply a user-scoped pick, so only their state exists to clear. See #470.
+        await this._appliedStateRepository.DeleteByQuickPickIdAsync(id, userId);
         return true;
     }
 
