@@ -1377,4 +1377,63 @@ public class UserGeofenceServiceTests
                 Polygon = [[40, -75], [41, -75]]
             }));
     }
+
+    // ── Approve state machine ───────────────────────────────────────────────────
+    // Approve accepted any status, the same gap #409 closed on reject.
+
+    [Theory]
+    [InlineData("pending_review")]
+    [InlineData("rejected")]
+    public async Task ApproveSubmissionAsyncAllowsAwaitingReviewAndReconsideredRejections(string status)
+    {
+        this.SeedGeofence(status);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 7, null);
+
+        Assert.Equal("approved", result.Status);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRefusesAGeofenceThatWasNeverSubmitted()
+    {
+        // No review thread, and the owner never asked for it to be public.
+        this.SeedGeofence("active");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 7, null));
+
+        Assert.Contains("active", ex.Message, StringComparison.Ordinal);
+        this._kojiService.Verify(
+            k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRefusesAnAlreadyApprovedGeofence()
+    {
+        // Re-approving under a different promoted name would push a second Koji entry and strand the
+        // first — the exact leak #409 closed.
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 7, "Downtown Renamed"));
+
+        this._kojiService.Verify(
+            k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncChecksTheStatusBeforeTouchingKoji()
+    {
+        // The guard has to run before SaveGeofenceAsync, or a refused approval still publishes the fence.
+        this.SeedGeofence("active");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 7, null));
+
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
+        this._areaWriter.Verify(
+            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
 }

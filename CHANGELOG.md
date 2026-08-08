@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Approving a geofence accepted any status**, the same gap [#409](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/409) closed on reject. A geofence the owner had never submitted could be approved and made public, and an already-approved one could be approved again under a different name — pushing a second entry into Koji and stranding the first, which is exactly the leak #409 fixed. Approve now accepts only a submission awaiting review, or one previously rejected and being reconsidered.
+
+### Fixed
 - **Creating a geofence accepted malformed polygons, which then poisoned the shared geofence feed** ([#410](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/410)). The create endpoint checked only how many points a polygon had, so `[[1],[2],[3]]` and coordinates nowhere on Earth were stored as-is. Those rows were then served by `GET /api/geofence-feed` — the anonymous endpoint that is the single geofence source for PoracleJS — and crashed the owner's GeoJSON export with a 500 that persisted until they worked out which geofence to delete. GeoJSON import had always validated point shape and coordinate range properly; the two write paths into the same table simply disagreed. Both now share one rule, and the read paths skip anything malformed rather than trusting it, so a row written before this existed cannot break a feed everyone depends on.
 
 ### Fixed
