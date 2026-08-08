@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Core.Models;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -87,6 +88,40 @@ public class AreaControllerTests : ControllerTestBase
         this._proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ReturnsAsync(/*lang=json,strict*/ "[{\"name\":\"area1\"}]");
         var result = await this._sut.GetAvailableAreas();
         Assert.IsType<ContentResult>(result);
+    }
+
+    /// <summary>
+    /// PoracleNG returns its whole fence set regardless of userSelectable, and PoracleWeb feeds every
+    /// user-drawn geofence into it, so streaming the response through handed any signed-in user the names
+    /// of every private geofence anyone had drawn. See #544.
+    /// </summary>
+    [Fact]
+    public async Task GetAvailableAreasHidesOtherUsersPrivateGeofences()
+    {
+        this._proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ReturnsAsync(
+            /*lang=json,strict*/
+            "[{\"name\":\"downtown\",\"userSelectable\":true},{\"name\":\"someone elses home\",\"userSelectable\":false}]");
+
+        var result = Assert.IsType<ContentResult>(await this._sut.GetAvailableAreas());
+
+        Assert.Contains("downtown", result.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("someone elses home", result.Content, StringComparison.Ordinal);
+    }
+
+    /// <summary>The caller's own fences are theirs to see, even though they are not selectable.</summary>
+    [Fact]
+    public async Task GetAvailableAreasKeepsTheCallersOwnGeofences()
+    {
+        this._proxy.Setup(p => p.GetAreasWithGroupsAsync("123456789")).ReturnsAsync(
+            /*lang=json,strict*/
+            "[{\"name\":\"my garden\",\"userSelectable\":false},{\"name\":\"someone elses home\",\"userSelectable\":false}]");
+        this._userGeofenceService.Setup(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new UserGeofence { Id = 1, HumanId = "123456789", KojiName = "my garden" }]);
+
+        var result = Assert.IsType<ContentResult>(await this._sut.GetAvailableAreas());
+
+        Assert.Contains("my garden", result.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("someone elses home", result.Content, StringComparison.Ordinal);
     }
 
     [Fact]

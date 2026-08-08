@@ -179,6 +179,14 @@ public partial class ProfileOverviewController(
             await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
             throw;
         }
+        catch (AlarmValidationException)
+        {
+            // Roll back the shell profile, then let it reach the global filter: the message names the
+            // alarm and the field, which is a great deal more use than "check that the file is valid".
+            // See #548.
+            await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);
+            throw;
+        }
         catch (Exception ex)
         {
             await this._humanProxy.DeleteProfileAsync(this.UserId, newProfileNo);

@@ -129,8 +129,13 @@ public class AuthControllerMeTests : ControllerTestBase
         Assert.NotNull(userInfo.Token);
     }
 
+    /// <summary>
+    /// A missing row used to read as healthy, so a deleted account kept answering 200 with enabled:true
+    /// while every other endpoint threw -- and the SPA, which only signs out on 401, left the user in a
+    /// fully rendered app where nothing worked. See #545.
+    /// </summary>
     [Fact]
-    public async Task MeFallsBackToJwtProfileNoWhenHumanNotFound()
+    public async Task MeSignsOutAnAccountThatNoLongerExists()
     {
         SetupUser(this._sut, profileNo: 2);
         this._humanService.Setup(s => s.GetByIdAsync("123456789"))
@@ -138,10 +143,7 @@ public class AuthControllerMeTests : ControllerTestBase
 
         var result = await this._sut.Me();
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var userInfo = Assert.IsType<UserInfo>(ok.Value);
-        Assert.Equal(2, userInfo.ProfileNo);
-        Assert.Null(userInfo.Token);
+        Assert.IsType<UnauthorizedObjectResult>(result);
         this._jwtService.Verify(
             j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>()), Times.Never);
     }

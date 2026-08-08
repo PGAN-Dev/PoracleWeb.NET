@@ -53,7 +53,13 @@ public partial class AreaController(
             var areasJson = await this._poracleApiProxy.GetAreasWithGroupsAsync(this.UserId);
             if (areasJson != null)
             {
-                return this.Content(areasJson, "application/json");
+                // PoracleNG returns its whole fence set regardless of userSelectable, and PoracleWeb feeds
+                // every user-drawn geofence into that set (userSelectable:false, to keep them off the bot's
+                // area picker). Streaming the response through therefore handed any signed-in user the names
+                // of every private geofence anyone had drawn -- "home", "work area", and worse. The Areas
+                // page filtered them out client-side, so nothing looked wrong. Filter server-side, where it
+                // counts, and keep the user's OWN fences: those are theirs to see. See #544.
+                return this.Content(await this.RemoveOtherUsersPrivateAreasAsync(areasJson), "application/json");
             }
         }
         catch (Exception ex)
@@ -64,6 +70,54 @@ public partial class AreaController(
         return this.Ok(Array.Empty<object>());
     }
 
+
+    /// <summary>
+    /// Drops areas marked <c>userSelectable:false</c> unless the caller owns them.
+    /// </summary>
+    /// <remarks>
+    /// A malformed payload is passed through untouched rather than emptied: the page is more useful with
+    /// an unfiltered list than with none, and the names are not a secret worth failing closed over -- but
+    /// anything we can parse, we filter. See #544.
+    /// </remarks>
+    private async Task<string> RemoveOtherUsersPrivateAreasAsync(string areasJson)
+    {
+        JsonElement parsed;
+        try
+        {
+            parsed = JsonDocument.Parse(areasJson).RootElement;
+        }
+        catch (JsonException)
+        {
+            return areasJson;
+        }
+
+        if (parsed.ValueKind != JsonValueKind.Array)
+        {
+            return areasJson;
+        }
+
+        var ownNames = (await this._userGeofenceService.GetByUserAsync(this.UserId) ?? [])
+            .SelectMany(g => new[] { g.KojiName, g.PromotedName })
+            .Where(n => !string.IsNullOrEmpty(n))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var kept = parsed.EnumerateArray()
+            .Where(area => IsSelectable(area) || OwnedByCaller(area, ownNames))
+            .ToList();
+
+        return JsonSerializer.Serialize(kept);
+    }
+
+    private static bool IsSelectable(JsonElement area) =>
+        area.ValueKind != JsonValueKind.Object
+        || !area.TryGetProperty("userSelectable", out var selectable)
+        || selectable.ValueKind != JsonValueKind.False;
+
+    private static bool OwnedByCaller(JsonElement area, HashSet<string> ownNames) =>
+        area.ValueKind == JsonValueKind.Object
+        && area.TryGetProperty("name", out var name)
+        && name.ValueKind == JsonValueKind.String
+        && ownNames.Contains(name.GetString() ?? string.Empty);
     [HttpPut]
     [RequireFeatureEnabled(DisableFeatureKeys.Areas)]
     public async Task<IActionResult> UpdateAreas([FromBody] UpdateAreasRequest request)
