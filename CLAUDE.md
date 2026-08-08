@@ -197,6 +197,16 @@ Pgan.PoracleWebNet.slnx
   - **Location warning**: `LocationWarningComponent` shows an inline red warning when active hours are set but the profile has 0,0 coordinates, since PoracleNG uses the profile's location for timezone calculations and 0,0 defaults to UTC.
 - **JWT profile resync**: PoracleNG can change `current_profile_no` out-of-band (active-hours scheduler, bot `!profile` command). `GET /api/auth/me` detects when the JWT's `profileNo` claim differs from the DB value and returns a refreshed JWT with the corrected profile number, preventing alarm CRUD from targeting a stale profile. The dashboard shows a snackbar notification when this resync occurs.
 
+### Profile Numbering and Rename (PoracleNG quirks)
+
+Two upstream behaviours that PoracleWeb has to work around. Both verified directly against PoracleNG.
+
+**PoracleNG assigns the lowest free profile number, not `max + 1`.** With profiles 0, 1, 3 a new profile is created at **2**. Its `/add` endpoint returns only `{"status":"ok"}` -- no number -- so the assigned number cannot be predicted and must be discovered. `ProfileController.Create`/`Duplicate` and `ProfileOverviewController.DuplicateProfile`/`ImportProfile` snapshot the profile list, create, re-read, and diff (`ProfileNumbering.ResolveCreated`). Diffing rather than matching on name, because profile names are not unique. Predicting `max + 1` produced empty create responses and copied duplicate alarms to a `profile_no` with no profile row -- orphans that later attached themselves to whatever profile was eventually created at that number. See #407.
+
+**PoracleNG's profile update silently ignores `name`.** `POST /api/profiles/{id}/update` answers `{"status":"ok"}` and writes nothing for a rename, while honouring `active_hours` on the same request. Rename therefore goes through `IProfileRepository.RenameAsync`, a direct DB write scoped to `profiles.name` only. Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. This is the same class of workaround as `HACK: trusted-set-areas`. See #406.
+
+**Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
+
 ### Rate Limiting
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
 - `auth` policy: 30 requests per 60s per IP (login, callback, token exchange).
