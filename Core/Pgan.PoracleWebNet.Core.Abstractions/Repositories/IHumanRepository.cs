@@ -6,7 +6,6 @@ public interface IHumanRepository
 {
     public Task<IEnumerable<Human>> GetAllAsync();
     public Task<Human?> GetByIdAsync(string id);
-    public Task<Human?> GetByIdAndProfileAsync(string id, int profileNo);
     public Task<Human> CreateAsync(Human human);
     public Task<Human> UpdateAsync(Human human);
     public Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids);

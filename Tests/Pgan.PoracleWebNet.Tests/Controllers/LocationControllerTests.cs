@@ -90,7 +90,7 @@ public class LocationControllerTests : ControllerTestBase
     public async Task UpdateLanguageSetsLanguage()
     {
         var human = new Human { Id = "123456789", Language = "en" };
-        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync(human);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
         this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
         var result = await this._sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" });
@@ -102,7 +102,7 @@ public class LocationControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateLanguageReturnsNotFoundWhenHumanMissing()
     {
-        this._humanService.Setup(s => s.GetByIdAndProfileAsync("123456789", 1)).ReturnsAsync((Human?)null);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync((Human?)null);
         Assert.IsType<NotFoundResult>(
             await this._sut.UpdateLanguage(new LocationController.LanguageUpdateRequest { Language = "de" }));
     }

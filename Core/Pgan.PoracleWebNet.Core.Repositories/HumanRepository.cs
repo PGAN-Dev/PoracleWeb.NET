@@ -51,13 +51,6 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
         return results.Select(e => e.ToModel());
     }
 
-    public async Task<Human?> GetByIdAndProfileAsync(string id, int profileNo)
-    {
-        var entity = await this._context.Humans
-            .FirstOrDefaultAsync(h => h.Id == id && h.CurrentProfileNo == profileNo);
-        return entity is null ? null : entity.ToModel();
-    }
-
     public async Task<Human> CreateAsync(Human human)
     {
         var entity = human.ToEntity();
