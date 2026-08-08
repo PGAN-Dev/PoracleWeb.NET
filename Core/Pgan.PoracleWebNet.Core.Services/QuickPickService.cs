@@ -85,7 +85,17 @@ public partial class QuickPickService(
             // Verify tracked alarms still exist — if all deleted manually, clear applied state
             if (appliedState?.TrackedUids is { Count: > 0 })
             {
-                var remaining = await this.CountRemainingUidsAsync(userId, definition.AlarmType, appliedState.TrackedUids);
+                // Against the type the alarms were CREATED as, not the definition's current one. Editing
+                // an applied pick's alarm type -- a plain dropdown in the edit dialog -- made this look
+                // the monster uids up among the raids, find none, conclude the user had deleted them all
+                // and drop the applied state. The alarms stayed behind with nothing owning them and no
+                // Remove button, because the card then read as never applied. RemoveAsync already keys
+                // off the stored type for exactly this reason. See #541.
+                var trackedType = string.IsNullOrEmpty(appliedState.AlarmType)
+                    ? definition.AlarmType
+                    : appliedState.AlarmType;
+
+                var remaining = await this.CountRemainingUidsAsync(userId, trackedType, appliedState.TrackedUids);
                 if (remaining == 0)
                 {
                     // All alarms were deleted manually — clean up stale applied state
@@ -95,7 +105,7 @@ public partial class QuickPickService(
                 else if (remaining < appliedState.TrackedUids.Count)
                 {
                     // Some alarms were deleted — update the tracked UIDs to only valid ones
-                    appliedState.TrackedUids = await this.GetValidUidsAsync(userId, definition.AlarmType, appliedState.TrackedUids);
+                    appliedState.TrackedUids = await this.GetValidUidsAsync(userId, trackedType, appliedState.TrackedUids);
                     await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
                 }
             }
@@ -298,6 +308,14 @@ public partial class QuickPickService(
 
         LogQuickPickTracking(this._logger, quickPickId, reportedUids.Count, trackedUids.Count);
 
+        // Applying an already-applied pick adds nothing, because PoracleNG dedups -- so the diff is
+        // empty and writing it verbatim handed the pick an empty tracked list while its alarms were
+        // still there. Remove then answered 204 and deleted nothing, and the alarms were left with no
+        // way to attribute them. Keep what the pick already owned and add whatever this run created.
+        // See #542.
+        var previouslyTracked = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        var stillOwned = previouslyTracked?.TrackedUids?.Where(afterUids.Contains) ?? [];
+
         var appliedState = new QuickPickAppliedState
         {
             UserId = userId,
@@ -306,7 +324,7 @@ public partial class QuickPickService(
             AlarmType = definition.AlarmType,
             AppliedAt = DateTime.UtcNow,
             ExcludePokemonIds = request.ExcludePokemonIds,
-            TrackedUids = trackedUids
+            TrackedUids = [.. stillOwned.Union(trackedUids)],
         };
 
         await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
