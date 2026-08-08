@@ -190,7 +190,7 @@ public class InvasionServiceTests
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 
-        await Assert.ThrowsAsync<ArgumentException>(
+        await Assert.ThrowsAsync<AlarmValidationException>(
             () => this._sut.CreateAsync("u1", new Invasion { GruntType = gruntType }));
 
         this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
@@ -201,7 +201,7 @@ public class InvasionServiceTests
     [InlineData("")]
     public async Task UpdateAsyncRejectsMissingGruntType(string? gruntType)
     {
-        await Assert.ThrowsAsync<ArgumentException>(
+        await Assert.ThrowsAsync<AlarmValidationException>(
             () => this._sut.UpdateAsync("u1", new Invasion { Uid = 1, GruntType = gruntType }));
     }
 
@@ -214,7 +214,7 @@ public class InvasionServiceTests
             new() { GruntType = null },
         };
 
-        await Assert.ThrowsAsync<ArgumentException>(() => this._sut.BulkCreateAsync("u1", models));
+        await Assert.ThrowsAsync<AlarmValidationException>(() => this._sut.BulkCreateAsync("u1", models));
 
         this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
     }

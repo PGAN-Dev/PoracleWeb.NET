@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Adding a fort-change alarm could silently replace an existing one** ([#502](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/502)). If the settings matched an alarm you already had, Poracle overwrote that alarm's radius rather than adding a second one, while the app reported a new alarm created. The clash is now refused with an explanation.
+- **Adding the same max battle twice stacked duplicate alarms** ([#521](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/521)), producing two of every notification with no way to tell the rows apart. Max battles are the one type Poracle does not de-duplicate.
+- **Clearing the gym on a raid, egg or gym alarm reported success and kept the old gym** ([#497](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/497)). The alarm went on firing for that one gym while the card and the dialog both showed none.
+- **Creating an invasion alarm whose grunt type differed only in capitalisation returned a server error** ([#500](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/500)), and **clearing the grunt type on an edit did too** ([#518](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/518)) — the explanation the check was written to give never arrived. Both now say what is wrong.
+- **A new raid alarm reported a raid level it had not saved** ([#523](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/523)) when the alarm named a specific boss, so the card disagreed with the same alarm after a refresh.
+### Fixed
 - **The ping field was accepted everywhere and stored nowhere** ([#494](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/494)). Typing a role to ping saved without complaint and was blank again on reload, on every alarm type. Poracle discards it on write, so the controls have been removed rather than left pretending.
 - **A refused Pokemon filter said only "failed"** ([#496](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/496)). The server names the pair that is inverted; the dialogs threw that away and showed a fixed message, so a transposed minimum and maximum gave no clue which field to fix.
 - **The custom navigation link was visible only to admins** ([#513](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/513)) — the one group that least needs it. An admin setting it up saw it work and had no way to tell it was missing for everyone else.

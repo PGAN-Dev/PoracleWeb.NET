@@ -30,6 +30,20 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles);
         model.Id = userId;
+
+        // Max battles are insert-only upstream: PoracleNG dedups every other type and this one not at all,
+        // so pressing Add twice stacked identical alarms forever and the user got two of every
+        // notification, with no way to tell the rows apart in the list. An exact duplicate is refused
+        // rather than filed again. Alarms that differ in any field -- including radius -- still stack,
+        // because upstream has no key that would merge them. See #521.
+        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+        if (siblings.Any(x => IsSameAlarm(x, model)))
+        {
+            throw new TrackingConflictException(
+                TrackingType,
+                "You already have an identical max battle alarm.");
+        }
+
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -192,6 +206,33 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
 
         return modelList;
     }
+
+    /// <summary>
+    /// Whether two max battle alarms are the same alarm: every field a user can set, radius included.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately strict. Upstream has no key that would merge two alarms differing by radius, so
+    /// refusing those would block something that does work. Only an exact repeat is refused. See #521.
+    /// </remarks>
+    private static bool IsSameAlarm(MaxBattle existing, MaxBattle candidate) =>
+        existing.PokemonId == candidate.PokemonId
+        && existing.Form == candidate.Form
+        && StoredLevel(existing) == StoredLevel(candidate)
+        && existing.Move == candidate.Move
+        && existing.Gmax == candidate.Gmax
+        && existing.Evolution == candidate.Evolution
+        && existing.Distance == candidate.Distance
+        && string.Equals(existing.StationId ?? string.Empty, candidate.StationId ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The level PoracleNG will actually store: it forces 9000 unless the alarm tracks any boss.
+    /// </summary>
+    /// <remarks>
+    /// Comparing the submitted level instead made every duplicate look different, because the stored row
+    /// already carried the rewritten value. Mirrors trackingMaxbattle.go, which sets level = 9000 whenever
+    /// pokemon_id names a specific boss.
+    /// </remarks>
+    private static int StoredLevel(MaxBattle alarm) => alarm.PokemonId == 9000 ? alarm.Level : 9000;
 
     private static List<MaxBattle> DeserializeItems(JsonElement json) =>
         PoracleJsonHelper.DeserializeList<MaxBattle>(json);

@@ -31,6 +31,19 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Invasions);
         model.Id = userId;
         RequireGruntType(model);
+
+        // PoracleNG's natural key on (id, profile_no, gender, grunt_type) is case-insensitive at the
+        // database, so creating "Water" alongside an existing "water" hit a duplicate-key error and came
+        // back as a 500. The update path already refuses this; the create path did not. See #500.
+        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+        if (siblings.Any(x => x.Gender == model.Gender
+            && string.Equals(x.GruntType, model.GruntType, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new TrackingConflictException(
+                TrackingType,
+                "You already have an invasion alarm for that grunt type and gender. Edit or remove that one instead.");
+        }
+
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -194,10 +207,12 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     {
         if (string.IsNullOrWhiteSpace(model.GruntType))
         {
-            throw new ArgumentException(
+            // AlarmValidationException rather than ArgumentException: nothing maps the latter, so this
+            // message -- written precisely to explain the problem -- came back as a bare 500 on the
+            // update path while the create path answered 400. See #518.
+            throw new AlarmValidationException(
                 "grunt_type is required — PoracleNG has no catch-all value. To track everything, "
-                + "create one alarm per InvasionGruntTypes.All entry.",
-                nameof(model));
+                + "create one alarm per InvasionGruntTypes.All entry.");
         }
     }
 
