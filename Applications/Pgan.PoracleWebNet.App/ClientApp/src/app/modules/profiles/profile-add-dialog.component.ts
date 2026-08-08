@@ -51,11 +51,20 @@ export class ProfileAddDialogComponent {
       });
   }
 
+  /**
+   * Checked as the user types so the Create button disables before the click, rather than the click
+   * silently doing nothing.
+   */
+  hasNameConflict(): boolean {
+    const name = this.profileName.trim().toLowerCase();
+    return name.length > 0 && this.existingNames().has(name);
+  }
+
   save(): void {
     const name = this.profileName.trim();
     if (!name) return;
 
-    if (this.existingNames().has(name.toLowerCase())) {
+    if (this.hasNameConflict()) {
       this.nameError.set(this.i18n.instant('DIALOG.PROMPT_CONFLICT'));
       return;
     }

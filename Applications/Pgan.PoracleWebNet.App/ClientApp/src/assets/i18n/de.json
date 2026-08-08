@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Löscht die Benachrichtigung automatisch aus Discord, wenn das Lockmodul abläuft",
     "CLEAN_HINT_NEST": "Löscht die Benachrichtigung automatisch aus Discord, wenn Nester wechseln",
     "CLEAN_HINT_GYM": "Löscht die Benachrichtigung automatisch aus Discord, wenn sich die Arena-Aktivität ändert",
-    "CLEAN_HINT_FORT": "Löscht die Benachrichtigung automatisch aus Discord, wenn sie abläuft",
     "CLEAN_HINT_MAX_BATTLE": "Löscht die Benachrichtigung automatisch aus Discord, wenn der Max-Kampf endet",
     "SAVING": "Wird gespeichert...",
     "SAVE": "Speichern",

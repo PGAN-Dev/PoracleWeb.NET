@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Raderar automatiskt notisen från Discord när lockmodulen går ut",
     "CLEAN_HINT_NEST": "Raderar automatiskt notisen från Discord när nästen migrerar",
     "CLEAN_HINT_GYM": "Raderar automatiskt notisen från Discord när gym-aktiviteten ändras",
-    "CLEAN_HINT_FORT": "Raderar automatiskt notisen från Discord när den går ut",
     "CLEAN_HINT_MAX_BATTLE": "Raderar automatiskt notisen från Discord när max-striden är slut",
     "SAVING": "Sparar...",
     "SAVE": "Spara",

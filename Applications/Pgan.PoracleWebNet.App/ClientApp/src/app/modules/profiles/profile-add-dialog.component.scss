@@ -1,3 +1,9 @@
 .full-width {
   width: 100%;
 }
+
+// The conflict message rides in the hint slot because <mat-error> only renders when the form
+// field control reports errorState, which a bare ngModel never does. See #427.
+.name-conflict {
+  color: var(--mat-sys-error, #b3261e);
+}

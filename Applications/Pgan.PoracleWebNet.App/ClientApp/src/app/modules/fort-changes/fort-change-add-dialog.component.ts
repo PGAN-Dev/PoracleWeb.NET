@@ -19,7 +19,6 @@ import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { compose } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -57,7 +56,6 @@ export class FortChangeAddDialogComponent {
     changeTypeName: [true],
     changeTypeNew: [true],
     changeTypeRemoval: [true],
-    clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     fortType: ['everything'],
@@ -89,7 +87,6 @@ export class FortChangeAddDialogComponent {
     this.fortChangeService
       .create({
         changeTypes,
-        clean: compose(!!v.clean, false, false),
         distance: dist,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,

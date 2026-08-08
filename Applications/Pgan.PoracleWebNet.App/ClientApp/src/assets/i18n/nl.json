@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Verwijdert de melding automatisch uit Discord nadat het lokmiddel verloopt",
     "CLEAN_HINT_NEST": "Verwijdert de melding automatisch uit Discord wanneer nesten roteren",
     "CLEAN_HINT_GYM": "Verwijdert de melding automatisch uit Discord wanneer gymactiviteit verandert",
-    "CLEAN_HINT_FORT": "Verwijdert de melding automatisch uit Discord nadat het verloopt",
     "CLEAN_HINT_MAX_BATTLE": "Verwijdert de melding automatisch uit Discord nadat het max gevecht eindigt",
     "SAVING": "Opslaan...",
     "SAVE": "Opslaan",

@@ -324,7 +324,6 @@
     "CLEAN_HINT_LURE": "Automatically deletes the notification from Discord after the lure expires",
     "CLEAN_HINT_NEST": "Automatically deletes the notification from Discord when nests migrate",
     "CLEAN_HINT_GYM": "Automatically deletes the notification from Discord after gym activity changes",
-    "CLEAN_HINT_FORT": "Automatically deletes the notification from Discord after it expires",
     "CLEAN_HINT_MAX_BATTLE": "Automatically deletes the notification from Discord after the max battle ends",
     "SAVING": "Saving...",
     "SAVE": "Save",

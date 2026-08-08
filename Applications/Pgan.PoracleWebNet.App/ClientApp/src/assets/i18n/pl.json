@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Automatycznie usuwa powiadomienie z Discord po wygaśnięciu przynęty",
     "CLEAN_HINT_NEST": "Automatycznie usuwa powiadomienie z Discord przy migracji gniazd",
     "CLEAN_HINT_GYM": "Automatycznie usuwa powiadomienie z Discord po zmianie aktywności areny",
-    "CLEAN_HINT_FORT": "Automatycznie usuwa powiadomienie z Discord po wygaśnięciu",
     "CLEAN_HINT_MAX_BATTLE": "Automatycznie usuwa powiadomienie z Discord po zakończeniu bitwy max",
     "SAVING": "Zapisywanie...",
     "SAVE": "Zapisz",

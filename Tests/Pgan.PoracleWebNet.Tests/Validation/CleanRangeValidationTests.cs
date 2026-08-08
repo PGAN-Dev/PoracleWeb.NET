@@ -83,14 +83,6 @@ public class CleanRangeValidationTests
     [MemberData(nameof(RejectedValues))]
     public void MaxBattleCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new MaxBattleCreate(), value));
 
-    [Theory]
-    [MemberData(nameof(AcceptedValues))]
-    public void FortChangeCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new FortChangeCreate(), value));
-
-    [Theory]
-    [MemberData(nameof(RejectedValues))]
-    public void FortChangeCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new FortChangeCreate(), value));
-
     // ── Update types ────────────────────────────────────────
 
     [Theory]
@@ -149,14 +141,6 @@ public class CleanRangeValidationTests
     [MemberData(nameof(RejectedValues))]
     public void MaxBattleUpdateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new MaxBattleUpdate(), value));
 
-    [Theory]
-    [MemberData(nameof(AcceptedValues))]
-    public void FortChangeUpdateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new FortChangeUpdate(), value));
-
-    [Theory]
-    [MemberData(nameof(RejectedValues))]
-    public void FortChangeUpdateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new FortChangeUpdate(), value));
-
     // Update types allow null (null-skip merge semantics) — null must always validate.
 
     [Fact]
@@ -180,6 +164,6 @@ public class CleanRangeValidationTests
     [Fact]
     public void MaxBattleUpdateCleanAcceptsNull() => Assert.True(ValidateClean(new MaxBattleUpdate(), null));
 
-    [Fact]
-    public void FortChangeUpdateCleanAcceptsNull() => Assert.True(ValidateClean(new FortChangeUpdate(), null));
+    // FortChange has no Clean property: PoracleNG has no clean column for forts and its
+    // FortTracking struct has no Clean field, so the setting was discarded on save. Removed in #437.
 }

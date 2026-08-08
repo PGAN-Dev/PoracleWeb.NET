@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Elimina automaticamente a notificação do Discord após o isco expirar",
     "CLEAN_HINT_NEST": "Elimina automaticamente a notificação do Discord quando os ninhos migram",
     "CLEAN_HINT_GYM": "Elimina automaticamente a notificação do Discord quando a atividade do ginásio muda",
-    "CLEAN_HINT_FORT": "Elimina automaticamente a notificação do Discord após expirar",
     "CLEAN_HINT_MAX_BATTLE": "Elimina automaticamente a notificação do Discord após a batalha max terminar",
     "SAVING": "A guardar...",
     "SAVE": "Guardar",

@@ -320,7 +320,6 @@
     "CLEAN_HINT_LURE": "Sletter automatisk notifikationen fra Discord, når lokkemodulet udløber",
     "CLEAN_HINT_NEST": "Sletter automatisk notifikationen fra Discord, når reder migrerer",
     "CLEAN_HINT_GYM": "Sletter automatisk notifikationen fra Discord, når gym-aktiviteten ændres",
-    "CLEAN_HINT_FORT": "Sletter automatisk notifikationen fra Discord, når den udløber",
     "CLEAN_HINT_MAX_BATTLE": "Sletter automatisk notifikationen fra Discord, når max-kampen slutter",
     "SAVING": "Gemmer...",
     "SAVE": "Gem",
