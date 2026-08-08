@@ -439,15 +439,20 @@ public class UserGeofenceServiceTests
         this._kojiService.Verify(k => k.SaveGeofenceAsync("Downtown Official", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
     }
 
-    [Fact]
-    public async Task ApproveSubmissionAsyncSwapsAreaNameWhenPromotedNameDiffers()
+    // This used to assert that approve calls SetAreasAsync with a swapped list. That WAS the bug:
+    // PoracleNG intersects the submitted list against userSelectable=true fences for non-admins, so it
+    // stripped both the old name (user geofences are served userSelectable=false) and the promoted one
+    // (not yet in PoracleNG's fence list — the reload runs afterwards). The owner lost their whole
+    // custom-geofence subscription set and approve still returned 200. See #408.
+
+    private UserGeofence SeedPendingGeofence(string kojiName = "downtown")
     {
         var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofence = new UserGeofence
         {
             Id = 1,
             HumanId = "u1",
-            KojiName = "downtown",
+            KojiName = kojiName,
             DisplayName = "Downtown",
             GroupName = "City",
             ParentId = 5,
@@ -456,13 +461,54 @@ public class UserGeofenceServiceTests
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\",\"other\"]"));
+        return geofence;
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncMovesTheOwnerSubscriptionToThePromotedName()
+    {
+        this.SeedPendingGeofence();
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        // Verify proxy was called with swapped area names
-        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
-            !a.Contains("downtown") && a.Contains("new downtown") && a.Contains("other"))), Times.Once);
+        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "New Downtown"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncNeverGoesThroughSetAreas()
+    {
+        this.SeedPendingGeofence();
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncTouchesNoAreasWhenTheNameIsUnchanged()
+    {
+        this.SeedPendingGeofence();
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, null);
+
+        this._areaWriter.Verify(
+            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncStillApprovesWhenTheSubscriptionMoveFails()
+    {
+        // The fence is already public in Koji by this point, so the approval stands; the owner losing
+        // their subscription is logged rather than rolled back into a failed approve.
+        this.SeedPendingGeofence();
+        this._areaWriter
+            .Setup(w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("db down"));
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.Equal("approved", result.Status);
     }
 
     [Fact]

@@ -442,4 +442,114 @@ public partial class UserAreaDualWriterTests : IDisposable
 
     [System.Text.RegularExpressions.GeneratedRegex("my park")]
     private static partial System.Text.RegularExpressions.Regex MyRegex();
+
+    // ── RenameAreaInAllProfilesAsync ────────────────────────────────────────────
+    // Approving a custom geofence under a new public name used to run through SetAreasAsync, which
+    // PoracleNG filters to userSelectable=true fences — stripping the owner's whole custom-geofence
+    // subscription set, not just the one being renamed. See #408.
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesRenamesInHumanAndEveryProfileThatHadIt()
+    {
+        await this.SeedHumanAsync(area: """["academia","zq iso one"]""");
+        await this.SeedProfileAsync("u1", 1, """["academia","zq iso one"]""");
+        await this.SeedProfileAsync("u1", 2, """["zq iso one"]""");
+
+        var changed = await this._sut.RenameAreaInAllProfilesAsync("u1", "zq iso one", "ZQ Iso One Promoted");
+
+        Assert.True(changed);
+        Assert.Equal(["academia", "zq iso one promoted"], await this.HumanAreasAsync());
+        Assert.Equal(["academia", "zq iso one promoted"], await this.ProfileAreasAsync(1));
+        Assert.Equal(["zq iso one promoted"], await this.ProfileAreasAsync(2));
+    }
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesLeavesUnrelatedAreasAlone()
+    {
+        // The original bug's worst symptom: unrelated subscriptions disappeared too.
+        await this.SeedHumanAsync(area: """["academia","other custom","zq iso one"]""");
+        await this.SeedProfileAsync("u1", 1, """["academia","other custom","zq iso one"]""");
+
+        await this._sut.RenameAreaInAllProfilesAsync("u1", "zq iso one", "promoted");
+
+        Assert.Equal(["academia", "other custom", "promoted"], await this.HumanAreasAsync());
+        Assert.Equal(["academia", "other custom", "promoted"], await this.ProfileAreasAsync(1));
+    }
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesDoesNotSubscribeProfilesThatDidNotHaveIt()
+    {
+        // Per-profile activation has to survive the rename: profile 2 had it switched off.
+        await this.SeedHumanAsync(area: """["zq iso one"]""");
+        await this.SeedProfileAsync("u1", 1, """["zq iso one"]""");
+        await this.SeedProfileAsync("u1", 2, """["academia"]""");
+
+        await this._sut.RenameAreaInAllProfilesAsync("u1", "zq iso one", "promoted");
+
+        Assert.Equal(["promoted"], await this.ProfileAreasAsync(1));
+        Assert.Equal(["academia"], await this.ProfileAreasAsync(2));
+    }
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesLowercasesThePromotedName()
+    {
+        // Poracle matches areas case-sensitively and stores them lowercase.
+        await this.SeedHumanAsync(area: """["zq iso one"]""");
+
+        await this._sut.RenameAreaInAllProfilesAsync("u1", "ZQ Iso One", "ZQ Iso One Promoted");
+
+        Assert.Equal(["zq iso one promoted"], await this.HumanAreasAsync());
+    }
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesDoesNotDuplicateWhenTheNewNameIsAlreadyPresent()
+    {
+        await this.SeedHumanAsync(area: """["promoted","zq iso one"]""");
+
+        await this._sut.RenameAreaInAllProfilesAsync("u1", "zq iso one", "promoted");
+
+        Assert.Equal(["promoted"], await this.HumanAreasAsync());
+    }
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesIsANoOpWhenTheNameIsNotSubscribed()
+    {
+        await this.SeedHumanAsync(area: """["academia"]""");
+
+        var changed = await this._sut.RenameAreaInAllProfilesAsync("u1", "not subscribed", "promoted");
+
+        Assert.False(changed);
+        Assert.Equal(["academia"], await this.HumanAreasAsync());
+    }
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesIsANoOpWhenTheNameIsUnchanged()
+    {
+        await this.SeedHumanAsync(area: """["zq iso one"]""");
+
+        var changed = await this._sut.RenameAreaInAllProfilesAsync("u1", "ZQ Iso One", "zq iso one");
+
+        Assert.False(changed);
+        Assert.Equal(["zq iso one"], await this.HumanAreasAsync());
+    }
+
+    [Fact]
+    public async Task RenameAreaInAllProfilesToleratesAMissingHuman()
+    {
+        var changed = await this._sut.RenameAreaInAllProfilesAsync("ghost", "a", "b");
+
+        Assert.False(changed);
+    }
+
+    private async Task<List<string>> HumanAreasAsync()
+    {
+        var human = await this._context.Humans.AsNoTracking().FirstAsync(h => h.Id == "u1");
+        return Pgan.PoracleWebNet.Core.Models.Helpers.AreaListJson.Parse(human.Area);
+    }
+
+    private async Task<List<string>> ProfileAreasAsync(int profileNo)
+    {
+        var profile = await this._context.Profiles.AsNoTracking().FirstAsync(p => p.Id == "u1" && p.ProfileNo == profileNo);
+        return Pgan.PoracleWebNet.Core.Models.Helpers.AreaListJson.Parse(profile.Area);
+    }
 }
