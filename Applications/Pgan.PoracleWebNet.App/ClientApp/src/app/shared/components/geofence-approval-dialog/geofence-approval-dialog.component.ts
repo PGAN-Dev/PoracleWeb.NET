@@ -44,9 +44,17 @@ export interface GeofenceApprovalDialogResult {
   templateUrl: './geofence-approval-dialog.component.html',
 })
 export class GeofenceApprovalDialogComponent {
-  readonly data = inject<GeofenceApprovalDialogData>(MAT_DIALOG_DATA);
-  readonly dialogRef = inject(MatDialogRef<GeofenceApprovalDialogComponent>);
+  static readonly PROMOTED_NAME_MAX = 50;
+  /**
+   * Mirrors the server's promoted-name rules so the admin is told before the round-trip rather than
+   * after it. The server rejects anything outside this set, and used to answer 404 for it, so the
+   * SPA reported the submission as missing while it sat visible in the list. See #421.
+   */
+  static readonly PROMOTED_NAME_PATTERN = /^[a-zA-Z0-9 \-'.()&]+$/;
 
+  readonly data = inject<GeofenceApprovalDialogData>(MAT_DIALOG_DATA);
+
+  readonly dialogRef = inject(MatDialogRef<GeofenceApprovalDialogComponent>);
   // Region (Koji parent) the geofence will be filed under once public. Defaults to the submission's
   // existing region (which may be none — see issue #314), and the admin can change it here.
   readonly regionOptions: RegionOption[] = this.data.regions.map(r => ({
@@ -58,16 +66,29 @@ export class GeofenceApprovalDialogComponent {
   // Hide the region picker when Koji defines no regions (flat project) — there is nothing to choose
   // from, so promotion just keeps whatever the submission had (issue #314).
   readonly hasRegions = this.regionOptions.length > 0;
+
   mode: 'approve' | 'reject' = 'approve';
 
   promotedName = '';
-
   reviewNotes = '';
 
   selectedRegionId: number | null = this.data.geofence.parentId > 0 ? this.data.geofence.parentId : null;
 
   constructor() {
     this.promotedName = this.data.geofence.displayName;
+  }
+
+  get canApprove(): boolean {
+    return this.mode !== 'approve' || this.promotedNameError === null;
+  }
+
+  /** Empty is allowed — it means "keep the current display name". */
+  get promotedNameError(): string | null {
+    const value = this.promotedName.trim();
+    if (!value) return null;
+    if (value.length > GeofenceApprovalDialogComponent.PROMOTED_NAME_MAX) return 'ADMIN.APPROVAL_PROMOTED_NAME_TOO_LONG';
+    if (!GeofenceApprovalDialogComponent.PROMOTED_NAME_PATTERN.test(value)) return 'ADMIN.APPROVAL_PROMOTED_NAME_INVALID';
+    return null;
   }
 
   onApprove(): void {

@@ -1245,6 +1245,8 @@
     "APPROVAL_PROMOTED_NAME": "Forfremmet navn",
     "APPROVAL_PROMOTED_NAME_PLACEHOLDER": "Navn til den forfremmede geofence",
     "APPROVAL_PROMOTED_NAME_HINT": "Valgfrit. Bruger det nuværende visningsnavn som standard.",
+    "APPROVAL_PROMOTED_NAME_TOO_LONG": "Must be 50 characters or fewer.",
+    "APPROVAL_PROMOTED_NAME_INVALID": "Only letters, numbers, spaces and - ' . ( ) & are allowed.",
     "APPROVAL_REJECT_REASON": "Årsag til afvisning",
     "APPROVAL_REJECT_PLACEHOLDER": "Forklar hvorfor denne geofence afvises...",
     "USERS_DESC_FULL": "Administrer registrerede Discord-brugere. <strong>Stoppet</strong> = brugeren pausede alarmer eller ramte hastighedsbegrænsninger. <strong>Blokeret</strong> = hårdt blokeret af admin.",

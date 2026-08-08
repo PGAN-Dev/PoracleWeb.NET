@@ -1251,6 +1251,8 @@
     "APPROVAL_PROMOTED_NAME": "Promoted name",
     "APPROVAL_PROMOTED_NAME_PLACEHOLDER": "Name for the promoted geofence",
     "APPROVAL_PROMOTED_NAME_HINT": "Optional. Defaults to the current display name.",
+    "APPROVAL_PROMOTED_NAME_TOO_LONG": "Must be 50 characters or fewer.",
+    "APPROVAL_PROMOTED_NAME_INVALID": "Only letters, numbers, spaces and - ' . ( ) & are allowed.",
     "APPROVAL_REGION_HINT": "Region this geofence is filed under once public. Leave as-is to keep the submitter's choice.",
     "APPROVAL_REJECT_REASON": "Reason for rejection",
     "APPROVAL_REJECT_PLACEHOLDER": "Explain why this geofence is being rejected...",

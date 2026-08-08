@@ -1245,6 +1245,8 @@
     "APPROVAL_PROMOTED_NAME": "Befordrat namn",
     "APPROVAL_PROMOTED_NAME_PLACEHOLDER": "Namn för den befordrade geofencen",
     "APPROVAL_PROMOTED_NAME_HINT": "Valfritt. Använder det nuvarande visningsnamnet som standard.",
+    "APPROVAL_PROMOTED_NAME_TOO_LONG": "Must be 50 characters or fewer.",
+    "APPROVAL_PROMOTED_NAME_INVALID": "Only letters, numbers, spaces and - ' . ( ) & are allowed.",
     "APPROVAL_REJECT_REASON": "Anledning till avvisning",
     "APPROVAL_REJECT_PLACEHOLDER": "Förklara varför denna geofence avvisas...",
     "USERS_DESC_FULL": "Hantera registrerade Discord-användare. <strong>Stoppad</strong> = användaren pausade larm eller nådde hastighetsgränser. <strong>Blockerad</strong> = hårdblockerad av admin.",
