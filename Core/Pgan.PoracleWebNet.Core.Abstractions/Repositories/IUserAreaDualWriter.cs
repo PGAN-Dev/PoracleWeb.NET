@@ -54,4 +54,19 @@ public interface IUserAreaDualWriter
     /// </summary>
     /// <returns><c>true</c> if at least one row was actually modified.</returns>
     public Task<bool> RemoveAreaFromAllProfilesAsync(string humanId, string areaName);
+
+    /// <summary>
+    /// Replaces <paramref name="oldName"/> with <paramref name="newName"/> in <c>humans.area</c> and in
+    /// every row of <c>profiles.area</c> for <paramref name="humanId"/>, committed in a single
+    /// <c>SaveChangesAsync</c>. Only rows that actually held the old name are touched, so per-profile
+    /// activation survives the rename: a geofence active on profile 2 but not profile 3 stays that way.
+    /// </summary>
+    /// <remarks>
+    /// Used when an admin approves a custom geofence under a different public name. Going through
+    /// <c>SetAreasAsync</c> there loses the subscription entirely — the old name is
+    /// <c>userSelectable=false</c> so PoracleNG strips it, and the promoted name is not yet in
+    /// PoracleNG's fence list because the reload happens afterwards, so it is stripped too. See #408.
+    /// </remarks>
+    /// <returns><c>true</c> if at least one row was actually modified.</returns>
+    public Task<bool> RenameAreaInAllProfilesAsync(string humanId, string oldName, string newName);
 }

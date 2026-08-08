@@ -474,44 +474,26 @@ public partial class UserGeofenceService(
         await this._kojiService.SaveGeofenceAsync(
             targetName, geofence.DisplayName, geofence.GroupName, geofence.ParentId, polygon, isPublic: true);
 
-        // If the name changed, update the user's area list via proxy
+        // Move the owner's subscription to the promoted name.
+        //
+        // HACK: trusted-set-areas — this must not go through SetAreasAsync. PoracleNG intersects the
+        // submitted list against userSelectable=true fences for non-admins, and at this point BOTH names
+        // fail that test: the old one because user geofences are served userSelectable=false, and the
+        // promoted one because PoracleNG has not reloaded its fence list yet (that happens below). The
+        // result was a silent wipe of the owner's entire custom-geofence subscription set — not just this
+        // fence — while approve still returned 200. See #408.
         if (promotedName != null && !string.Equals(promotedName, geofence.KojiName, StringComparison.Ordinal))
         {
             try
             {
-                var currentAreas = await this.GetCurrentAreasAsync(geofence.HumanId);
-                var oldLower = geofence.KojiName.ToLowerInvariant();
-                var newLower = promotedName.ToLowerInvariant();
-                if (currentAreas.Remove(oldLower))
-                {
-                    currentAreas.Add(newLower);
-                    await this._humanProxy.SetAreasAsync(geofence.HumanId, [.. currentAreas]);
-                }
+                await this._areaWriter.RenameAreaInAllProfilesAsync(
+                    geofence.HumanId, geofence.KojiName, promotedName);
             }
             catch (Exception ex)
             {
-                LogProxyAreaSwapFailed(this._logger, ex, geofence.KojiName, promotedName);
-                // Fallback to direct DB for the area swap
-                try
-                {
-                    var human = await this._humanRepository.GetByIdAsync(geofence.HumanId);
-                    if (human != null)
-                    {
-                        var areas = AreaListJson.Parse(human.Area);
-                        var oldLower = geofence.KojiName.ToLowerInvariant();
-                        var newLower = promotedName.ToLowerInvariant();
-                        if (areas.Remove(oldLower))
-                        {
-                            areas.Add(newLower);
-                            human.Area = AreaListJson.Serialize(areas);
-                            await this._humanRepository.UpdateAsync(human);
-                        }
-                    }
-                }
-                catch (Exception innerEx)
-                {
-                    LogAreaSwapFallbackFailed(this._logger, innerEx, geofence.KojiName);
-                }
+                // The geofence is public in Koji by now, so the approval itself stands. Surface the
+                // subscription loss instead of failing an approval that already took effect upstream.
+                LogAreaSwapFallbackFailed(this._logger, ex, geofence.KojiName);
             }
         }
 
@@ -661,22 +643,6 @@ public partial class UserGeofenceService(
         return toRestore;
     }
 
-    /// <summary>
-    /// Gets the current area list from <c>humans.area</c> via the PoracleNG proxy. Used by
-    /// <see cref="ApproveSubmissionAsync"/> for name-swap bookkeeping.
-    /// </summary>
-    private async Task<List<string>> GetCurrentAreasAsync(string humanId)
-    {
-        var humanJson = await this._humanProxy.GetHumanAsync(humanId);
-        if (humanJson is not null)
-        {
-            var areaStr = humanJson.Value.GetStringPropOrNull("area");
-            return AreaListJson.Parse(areaStr);
-        }
-
-        return [];
-    }
-
     private async Task ReloadGeofencesSafeAsync()
     {
         try
@@ -741,9 +707,6 @@ public partial class UserGeofenceService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reload Poracle geofences after custom geofence change")]
     private static partial void LogGeofenceReloadFailed(ILogger logger, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Proxy area swap failed for geofence '{KojiName}' → '{PromotedName}', trying direct DB fallback")]
-    private static partial void LogProxyAreaSwapFailed(ILogger logger, Exception ex, string kojiName, string promotedName);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Direct DB fallback also failed for area swap on geofence '{KojiName}'")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not move the owner's subscription to the promoted name for geofence '{KojiName}'; they are no longer subscribed to it")]
     private static partial void LogAreaSwapFallbackFailed(ILogger logger, Exception ex, string kojiName);
 }
