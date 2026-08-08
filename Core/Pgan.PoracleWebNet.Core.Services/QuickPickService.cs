@@ -236,7 +236,15 @@ public partial class QuickPickService(
     {
         var definition = await this.LoadDefinitionAsync(userId, quickPickId) ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
 
-        var trackedUids = definition.AlarmType switch
+        // Snapshot first: the tracked set is what this apply ADDED, not what the create calls
+        // reported. PoracleNG hands back the existing row's uid when a pick matches an alarm the
+        // user built by hand, so trusting the reported uid made the pick adopt that alarm - and
+        // Remove then deleted it. It also reports no uid at all for an exact duplicate, which
+        // recorded a tracked uid of 0 that no lookup could resolve, so the applied state was wiped
+        // on the next page load. Diffing sidesteps both. See #468, #469.
+        var existingUids = await this.ExistingUidsAsync(userId, profileNo, definition.AlarmType);
+
+        var reportedUids = definition.AlarmType switch
         {
             "monster" => await this.ApplyMonsterAsync(userId, profileNo, definition, request),
             "raid" => await this.ApplyRaidAsync(userId, profileNo, definition, request),
@@ -249,6 +257,25 @@ public partial class QuickPickService(
             "maxbattle" => await this.ApplyMaxBattleAsync(userId, profileNo, definition, request),
             _ => throw new InvalidOperationException($"Unknown alarm type '{definition.AlarmType}'."),
         };
+
+        var afterUids = await this.ExistingUidsAsync(userId, profileNo, definition.AlarmType);
+        var addedUids = afterUids.Except(existingUids).ToList();
+        var displacedUids = existingUids.Except(afterUids).ToList();
+
+        // A uid that appeared is not automatically ours. When a pick matches an alarm the user built by
+        // hand, PoracleNG does not add a row - it RE-KEYS theirs, so the old uid disappears and a new one
+        // appears and the diff looks identical to a creation. Removing the pick then deleted the user's
+        // alarm. If anything was displaced we claim nothing: an untracked leftover is recoverable by
+        // hand, a deleted alarm is not. See #469.
+        var trackedUids = displacedUids.Count == 0 ? addedUids : [];
+
+        if (displacedUids.Count > 0)
+        {
+            LogQuickPickDisplaced(this._logger, quickPickId, displacedUids.Count, addedUids.Count);
+        }
+
+        LogQuickPickTracking(this._logger, quickPickId, reportedUids.Count, trackedUids.Count);
+
         var appliedState = new QuickPickAppliedState
         {
             UserId = userId,
@@ -266,6 +293,24 @@ public partial class QuickPickService(
 
         return appliedState;
     }
+
+    /// <summary>
+    /// The uids the user currently holds for an alarm type. Used either side of an apply so the
+    /// pick claims only the rows it actually created.
+    /// </summary>
+    private async Task<List<int>> ExistingUidsAsync(string userId, int profileNo, string alarmType) => alarmType switch
+    {
+        "monster" => [.. (await this._monsterService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "raid" => [.. (await this._raidService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "egg" => [.. (await this._eggService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "quest" => [.. (await this._questService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "invasion" => [.. (await this._invasionService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "lure" => [.. (await this._lureService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "nest" => [.. (await this._nestService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "gym" => [.. (await this._gymService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "maxbattle" => [.. (await this._maxBattleService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        _ => [],
+    };
 
     public async Task<QuickPickAppliedState> ReapplyAsync(
         string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
@@ -930,6 +975,11 @@ public partial class QuickPickService(
         new() { Id = "lure-golden", Name = "Golden Lures", Description = "Track Golden Lure Modules at PokeStops", Icon = "stars", Category = "Lures", AlarmType = "lure", SortOrder = 64, Filters = new() { ["lureId"] = 505 } },
     ];
 
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Quick pick {QuickPickId} matched {DisplacedCount} alarm(s) the user already had; claiming none of the {AddedCount} resulting row(s) so removing the pick cannot delete them.")]
+    private static partial void LogQuickPickDisplaced(ILogger logger, string quickPickId, int displacedCount, int addedCount);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Applied quick pick '{QuickPickId}' for user {UserId} profile {ProfileNo}, created {Count} alarm(s).")]
     private static partial void LogQuickPickApplied(ILogger logger, string quickPickId, string userId, int profileNo, int count);
 
@@ -938,4 +988,9 @@ public partial class QuickPickService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Seeding {Count} default quick picks (replaced {Existing} existing).")]
     private static partial void LogSeedingDefaults(ILogger logger, int count, int existing);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Quick pick {QuickPickId}: PoracleNG named {ReportedCount} uid(s), {TrackedCount} of which are new rows this apply created.")]
+    private static partial void LogQuickPickTracking(ILogger logger, string quickPickId, int reportedCount, int trackedCount);
 }

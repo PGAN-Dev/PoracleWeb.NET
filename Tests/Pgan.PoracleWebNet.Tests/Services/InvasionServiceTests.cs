@@ -77,8 +77,10 @@ public class InvasionServiceTests
     public async Task UpdateAsyncDelegates()
     {
         var i = new Invasion { Uid = 1, GruntType = "fire" };
+        // A real replace frees the natural key then inserts, so insert=1. A response of insert=0 now
+        // means PoracleNG merged into a DIFFERENT alarm, which is a conflict rather than success (#462).
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+            .ReturnsAsync(new TrackingCreateResult([2], 0, 0, 1));
 
         await this._sut.UpdateAsync("user1", i);
         this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Once);

@@ -50,6 +50,23 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
         // PoracleNG guards this type with a natural unique key and its create has no upsert path, so
         // changing a field outside that key collides (Error 1062) and returns 500. Replace the row instead.
+        // Refuse a collision BEFORE the delete. PoracleNG dedups invasions on
+        // (id, profile_no, gender, grunt_type), so editing one onto a pair another alarm already
+        // holds made the replace merge into that alarm - this one deleted, the other one silently
+        // overwritten. Changing the gender dropdown is enough to trigger it. See #462.
+        if (oldUid > 0)
+        {
+            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+            if (siblings.Any(x => x.Uid != oldUid
+                && x.Gender == model.Gender
+                && string.Equals(x.GruntType, model.GruntType, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new TrackingConflictException(
+                    TrackingType,
+                    "You already have an invasion alarm for that grunt type and gender. Edit or remove that one instead.");
+            }
+        }
+
         var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
 
         model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
