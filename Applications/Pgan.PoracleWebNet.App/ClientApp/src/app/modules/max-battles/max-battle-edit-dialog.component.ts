@@ -153,11 +153,15 @@ export class MaxBattleEditDialogComponent {
     const update: MaxBattleUpdate = {
       clean: preserve(item.clean, AUTO_DELETE, values.clean ? 1 : 0),
       distance: distanceMeters,
-      evolution: 9000,
+      // Carried through from the existing alarm, not reset to the 9000 "any" sentinel. Neither
+      // dialog can set these -- they come from the bot -- so hardcoding 9000 here meant any
+      // unrelated edit, a distance change included, silently destroyed the user's filter and
+      // widened what they get alerted on. See #412.
+      evolution: item.evolution,
       form: item.form,
       gmax: gmaxVal,
       level: levelVal,
-      move: 9000,
+      move: item.move,
       ping: values.ping || '',
       pokemonId: item.pokemonId,
       stationId: null,
