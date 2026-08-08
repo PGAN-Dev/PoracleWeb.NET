@@ -62,7 +62,7 @@
   <section class="section">
     <label class="section-label">{{ 'PROFILES.ACTIVE_HOURS_RULES' | translate }} ({{ groups().length }})</label>
     @if (groups().length === 0) {
-      <div class="empty-rules">{{ 'PROFILES.ACTIVE_HOURS_NO_RULES' | translate }}</div>
+      <div class="empty-rules">{{ data.emptyStateKey ?? 'PROFILES.ACTIVE_HOURS_NO_RULES' | translate }}</div>
     } @else {
       <div class="rules-list">
         @for (group of groups(); track formatGroupLabel(group)) {

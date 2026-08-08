@@ -118,6 +118,16 @@ describe('SummaryScheduleDialogComponent', () => {
   });
 
   describe('editor reuse', () => {
+    // The editor's default empty state says the profile will need a manual start, which contradicts this
+    // dialog's own line about quests being delivered individually. See #457.
+    it('passes the quest empty-state line to the shared editor', () => {
+      setup();
+      component.editSchedule();
+
+      const [, openConfig] = matDialog.open.mock.calls[0];
+      expect(openConfig.data.emptyStateKey).toBe('QUESTS.SUMMARY_SCHEDULE_EMPTY');
+    });
+
     it('opens ActiveHoursEditorDialogComponent seeded with the current entries and a profileName label', () => {
       setup();
       component.editSchedule();

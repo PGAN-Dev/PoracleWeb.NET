@@ -111,6 +111,9 @@ export class SummaryScheduleDialogComponent {
       width: '560px',
       data: {
         activeHours: this.entries(),
+        // Without this the editor said the profile would need a manual start, directly beneath this
+        // dialog's own line about quests being delivered individually. See #457.
+        emptyStateKey: 'QUESTS.SUMMARY_SCHEDULE_EMPTY',
         profileName: this.i18n.instant('QUESTS.SUMMARY_SCHEDULE_ALERT_LABEL'),
       } as ActiveHoursEditorData,
     });
