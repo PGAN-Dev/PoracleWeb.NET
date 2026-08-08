@@ -175,9 +175,12 @@ public class ProfileController(
     [HttpPost("duplicate")]
     public async Task<IActionResult> Duplicate([FromBody] DuplicateProfileRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
+        // Duplicate skipped the length check create has had since #467, so a long name reached the
+        // varchar(255) column and came back as an opaque 500. See #519.
+        var nameError = ProfileNameRules.Validate(request.Name);
+        if (nameError is not null)
         {
-            return this.BadRequest("Profile name is required.");
+            return this.BadRequest(new { error = nameError });
         }
 
         var sourceProfile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, request.FromProfileNo);

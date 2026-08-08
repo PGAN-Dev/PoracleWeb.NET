@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -12,6 +13,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
 {
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IProfileService> _profileService = new();
+    private readonly Mock<IProfileRepository> _profileRepository = new();
     private readonly Mock<IProfileOverviewService> _service = new();
     private readonly ProfileOverviewController _sut;
 
@@ -24,6 +26,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         this._sut = new ProfileOverviewController(
             this._service.Object,
             this._profileService.Object,
+            this._profileRepository.Object,
             this._humanProxy.Object,
             this._jwtService.Object,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileOverviewController>.Instance);

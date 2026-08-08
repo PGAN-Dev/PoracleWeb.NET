@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
@@ -14,6 +15,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public partial class ProfileOverviewController(
     IProfileOverviewService profileOverviewService,
     IProfileService profileService,
+    IProfileRepository profileRepository,
     IPoracleHumanProxy humanProxy,
     IJwtService jwtService,
     ILogger<ProfileOverviewController> logger) : BaseApiController
@@ -22,6 +24,7 @@ public partial class ProfileOverviewController(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IProfileService _profileService = profileService;
+    private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly ILogger<ProfileOverviewController> _logger = logger;
 
     [HttpGet]
@@ -34,6 +37,15 @@ public partial class ProfileOverviewController(
     [HttpPost("duplicate/{profileNo:int}")]
     public async Task<IActionResult> DuplicateProfile(int profileNo, [FromBody] ProfileOverviewDuplicateRequest request)
     {
+        // This endpoint had no name check at all, so an empty or over-long name reached the varchar(255)
+        // column and came back as an opaque 500 -- and this page prompts for the name with a free-text
+        // input that has no maxlength, prefilled "<source> (Copy)". See #504, #519.
+        var nameError = ProfileNameRules.Validate(request.Name);
+        if (nameError is not null)
+        {
+            return this.BadRequest(new { error = nameError });
+        }
+
         // Verify source profile exists
         var source = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
         if (source == null)
@@ -87,6 +99,14 @@ public partial class ProfileOverviewController(
             throw;
         }
 
+        // PoracleNG's addProfile ignores area, latitude and longitude, so the copy silently inherited
+        // whichever profile happened to be active: the right alarms over the wrong map, and a location
+        // that also drives the active-hours timezone. Written AFTER the alarm copy, because copying
+        // switches profiles and back and the switch rewrites the geography again. This is #466, fixed on
+        // /api/profiles/duplicate and left open here. See #503.
+        await this.WriteGeographyAsync(
+            newProfileNo, request.Name.Trim(), source.Area ?? "[]", source.Latitude, source.Longitude);
+
         // Issue a new JWT so the current profile stays correct
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo);
 
@@ -102,20 +122,10 @@ public partial class ProfileOverviewController(
     public async Task<IActionResult> ImportProfile([FromBody] ProfileOverviewImportRequest request)
     {
         // Import used to 500 on a blank or over-long name, where create answers a clean 400. See #467.
-        if (string.IsNullOrWhiteSpace(request.ProfileName))
+        var nameError = ProfileNameRules.Validate(request.ProfileName);
+        if (nameError is not null)
         {
-            return this.BadRequest(new
-            {
-                error = "Profile name is required."
-            });
-        }
-
-        if (request.ProfileName.Trim().Length > 255)
-        {
-            return this.BadRequest(new
-            {
-                error = "Profile name must be 255 characters or fewer."
-            });
+            return this.BadRequest(new { error = nameError });
         }
 
         var existing = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
@@ -179,6 +189,12 @@ public partial class ProfileOverviewController(
             });
         }
 
+        // The shell profile is created empty on purpose, but copying the alarms switches PoracleNG onto
+        // it and back, and that switch carries the active profile's areas and location across -- so an
+        // import ended up subscribed to every area the user currently had, delivering notifications they
+        // never chose for it. Restore what the file actually declared. See #522.
+        await this.WriteGeographyAsync(newProfileNo, profileName, "[]", 0.0, 0.0);
+
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo);
 
         return this.Ok(new
@@ -188,6 +204,38 @@ public partial class ProfileOverviewController(
             token = newToken
         });
     }
+
+    /// <summary>
+    /// Writes a profile's name, areas and location directly.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG has no endpoint that sets these on an existing profile -- its update ignores name (#406)
+    /// and addProfile ignores the geography -- so this is a direct write, the same workaround rename uses.
+    /// Never fails the request: the alarms are already copied, and a wrong area list is recoverable from
+    /// the Areas page while a failed duplicate is not.
+    /// </remarks>
+    private async Task WriteGeographyAsync(int profileNo, string name, string area, double latitude, double longitude)
+    {
+        try
+        {
+            await this._profileRepository.UpdateAsync(new Profile
+            {
+                Id = this.UserId,
+                ProfileNo = profileNo,
+                Name = name,
+                Area = area,
+                Latitude = latitude,
+                Longitude = longitude,
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogGeographyWriteFailed(this._logger, ex, profileNo);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not write areas and location onto profile {ProfileNo}; it may have inherited them from the active profile")]
+    private static partial void LogGeographyWriteFailed(ILogger logger, Exception ex, int profileNo);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Profile import failed for profile {ProfileNo}; the partially created profile was rolled back")]
     private static partial void LogImportFailed(ILogger logger, Exception ex, int profileNo);
