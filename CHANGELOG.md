@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Editing an alarm could silently delete a different one** ([#531](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/531)). Changing a raid's team, an egg's level, a gym's slot or battle toggles, or a fort-change's change types onto settings another alarm already had merged the two: one alarm vanished, the survivor took the edited alarm's radius, and the app reported a successful update. The clash is now refused and both alarms are left alone.
+- **Re-applying a quick pick could destroy its alarms** ([#532](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/532)). Re-apply deleted the existing alarms first and only then checked whether the pick could be applied, so a pick that had been disabled or edited into an impossible filter lost its alarms and reported only that it had been refused. Everything that can refuse a re-apply is now checked before anything is deleted.
+### Fixed
 - **Changing the notification language marked your account as never seen** ([#517](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/517)). The write blanked the last-seen timestamp Poracle and the admin user list use to judge whether an account is still alive, and reported success without a hint that anything else had changed.
 - **A quick pick could create an alarm that can never match anything** ([#507](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/507)). Filter values the alarm form rejects were saved through a pick and notified nothing, silently. Quick picks are now held to the same rules as the form.
 - **Disabling a quick pick stranded the alarms it had created** ([#508](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/508)). The pick vanished from the list along with its Remove button, leaving alarms with no way to un-apply them and nothing to say where they came from — and an admin disabling a shared pick did that to everyone who had applied it.

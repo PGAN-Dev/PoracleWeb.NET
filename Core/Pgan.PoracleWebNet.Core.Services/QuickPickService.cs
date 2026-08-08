@@ -20,9 +20,11 @@ public partial class QuickPickService(
     IGymService gymService,
     IMaxBattleService maxBattleService,
     IMasterDataService masterDataService,
+    IFeatureGate featureGate,
     ILogger<QuickPickService> logger) : IQuickPickService
 {
     private readonly IQuickPickDefinitionRepository _definitionRepository = definitionRepository;
+    private readonly IFeatureGate _featureGate = featureGate;
     private readonly IQuickPickAppliedStateRepository _appliedStateRepository = appliedStateRepository;
     private readonly IMonsterService _monsterService = monsterService;
     private readonly IRaidService _raidService = raidService;
@@ -335,8 +337,69 @@ public partial class QuickPickService(
     public async Task<QuickPickAppliedState> ReapplyAsync(
         string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
     {
+        // Remove used to run first unconditionally. Once apply grew guards -- a disabled pick, a filter
+        // the alarm model refuses, an alarm type an admin has switched off -- a refused re-apply
+        // destroyed the alarms and created nothing in their place, while the error read as "nothing
+        // happened". The pick also dropped off the list, taking the Remove button with it. Everything
+        // that can refuse this is checked BEFORE anything is deleted. See #531.
+        await this.EnsureApplicableAsync(userId, profileNo, quickPickId, request);
+
         await this.RemoveAsync(userId, profileNo, quickPickId);
         return await this.ApplyAsync(userId, profileNo, quickPickId, request);
+    }
+
+    /// <summary>
+    /// Runs everything that can refuse an apply, without writing anything.
+    /// </summary>
+    /// <remarks>
+    /// Builds the alarms the apply would build and validates them, which is where an impossible filter
+    /// surfaces. Building is side-effect free, so this is a genuine dry run rather than a partial apply.
+    /// </remarks>
+    private async Task EnsureApplicableAsync(
+        string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
+    {
+        var definition = await this.LoadDefinitionAsync(userId, quickPickId)
+            ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
+
+        if (!definition.Enabled)
+        {
+            throw new AlarmValidationException("That quick pick is disabled and cannot be applied.");
+        }
+
+        // The same gate the alarm services apply, so a type an admin has switched off refuses here
+        // rather than half-way through, after the deletes.
+        var disableKey = DisableFeatureKeys.ByTrackingType.TryGetValue(definition.AlarmType, out var key)
+            ? key
+            : null;
+        if (disableKey is not null)
+        {
+            await this._featureGate.EnsureEnabledAsync(disableKey);
+        }
+
+        // Building throws for a filter the alarm model refuses. Nothing is sent anywhere.
+        BuildSampleAlarm(definition, profileNo, request);
+    }
+
+    /// <summary>Builds one alarm of the definition's type purely to run its validation.</summary>
+    private static void BuildSampleAlarm(
+        QuickPickDefinition definition, int profileNo, QuickPickApplyRequest request)
+    {
+        switch (definition.AlarmType)
+        {
+            case "monster":
+                BuildMonster(definition.Filters, 1, profileNo, request);
+                break;
+            case "raid":
+                BuildRaid(definition.Filters, profileNo, request);
+                break;
+            case "maxbattle":
+                BuildMaxBattle(definition.Filters, profileNo, request);
+                break;
+            default:
+                // The remaining types deserialize their filters straight onto the model, which the
+                // apply path validates on the way through; there is nothing extra to check here.
+                break;
+        }
     }
 
     public async Task<bool> RemoveAsync(string userId, int profileNo, string quickPickId)
