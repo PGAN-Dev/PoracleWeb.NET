@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Applying a quick pick twice made it forget the alarms it had created** ([#542](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/542)). The second apply adds nothing, and the pick recorded that as owning nothing — so Remove reported success while deleting nothing and the alarms were left with no way to identify them.
+- **Changing an applied quick pick's alarm type orphaned its alarms** ([#541](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/541)). The pick went looking for its Pokemon alarms among the raids, concluded they had all been deleted, and dropped its record of them — alarms left behind with no Remove button and nothing saying where they came from.
+- **Quick picks accepted names and other fields longer than they can store** ([#549](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/549)), returning a server error instead of saying so. Neither dialog limits the length, so a preset named with a sentence was enough.
+### Fixed
 - **Importing a profile accepted values every other path refuses** ([#548](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/548)). A hand-edited backup could store a negative radius, an IV window of -999 to 500, or a cleaning value outside its range, and the alarm then matched nothing. Imports are now checked the same way the add form is, and a file that fails is refused whole rather than half-applied.
 - **The area list showed other people's private geofence names** ([#544](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/544)). Any signed-in user could read the names everyone else had given their own geofences — "home", "work area" and so on. The page hid them, but the data was being sent. Your own geofences are still listed.
 - **A deleted account stayed signed in to an app where nothing worked** ([#545](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/545)). The session kept reporting itself healthy while every page failed with a generic error, for up to a day, with no way out but clearing browser storage. It now signs out.
