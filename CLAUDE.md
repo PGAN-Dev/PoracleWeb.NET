@@ -489,7 +489,7 @@ JWT token generation is centralized in `IJwtService` / `JwtService` (singleton).
 
 | Branch | Purpose |
 |---|---|
-| `main` | Released code. Only moves when a release is merged. Publishing the release builds `:latest` **and** SSHes to `DEPLOY_HOST` to redeploy prod directly -- not watchtower, and not the merge itself. A plain `git clone` lands here, so self-hosters get released code. |
+| `main` | Released code. Only moves when a release is merged. Publishing the release builds `:latest`, which prod's watchtower auto-deploys within its 60s poll -- the merge itself ships nothing. `docker-publish.yml` also has an SSH deploy step, but it is inert here: it exits early unless `DEPLOY_HOST` and `DEPLOY_SSH_KEY` are set, and this repo has neither. A plain `git clone` lands here, so self-hosters get released code. |
 | `develop` | Integration. **Open pull requests against this.** Publishes `:beta` on every merge, which the dev instance auto-deploys. |
 
 Cutting a release: merge `develop` into `main`, then publish a GitHub release. `release-changelog.yml` opens a PR promoting `[Unreleased]` to the new version section, and `docker-publish.yml` pushes `:latest`.
