@@ -32,6 +32,11 @@ public class EggService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, I
         // (eggs and raids share UI in the SPA). See DisableFeatureKeys.Raids comment.
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
         model.Id = userId;
+
+        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
+        // 201 Created, and the user quietly loses the one they had. See #561.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 

@@ -31,6 +31,11 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.FortChanges);
         model.Id = userId;
 
+        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
+        // 201 Created, and the user quietly loses the one they had. See #561.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
+
         // PoracleNG's dedup key for this type ignores distance, so a create matching an existing alarm's
         // fort type, include-empty flag and change types OVERWRITES that alarm's radius instead of adding a
         // second one -- while PoracleWeb answered 201 with a fresh uid, so the user believed they had two

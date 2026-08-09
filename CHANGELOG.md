@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Adding an alarm could silently take over one you already had** ([#561](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/561), [#569](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/569)). Adding an alarm that matched an existing one except for its radius reported a new alarm created, and quietly moved the old one instead — leaving one alarm where there had been two. It is now refused, while adding a genuinely new alarm, or re-adding one you already have, behave as before.
+### Fixed
 - **A quick pick with a long name failed with a server error** ([#555](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/555)). The identifier generated from the name could be longer than the column that stores it.
 - **A profile backup containing a fort-change alarm would not import** ([#556](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/556)) — an unmodified export produced by this app, refused by the validation added in v2.12.2.
 - **A renamed geofence disappeared from the map and reported no points** ([#559](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/559), [#566](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/566)) until the page was reloaded, because the rename response left the shape out.

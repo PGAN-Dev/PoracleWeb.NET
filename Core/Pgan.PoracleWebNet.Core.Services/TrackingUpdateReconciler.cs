@@ -128,11 +128,10 @@ internal static partial class TrackingUpdateReconciler
         int oldUid,
         JsonElement submitted)
     {
-        // Updates only. The create path has the same exposure (#561) but the same comparison does not
-        // work there: a create carries model defaults where the stored row carries PoracleNG's, so
-        // more than one updatable field reads as different and the collision is missed. Left open
-        // rather than shipped as a guard that quietly does nothing.
-        if (oldUid <= 0 || submitted.ValueKind != JsonValueKind.Object)
+        // Creates as well as edits. PoracleNG resolves an Add that differs from an existing alarm by one
+        // updatable field into an UPDATE of that alarm, so the user pressed Add, got a 201, and quietly
+        // lost the alarm they had. oldUid 0 means there is no row of ours to exclude. See #561, #569.
+        if (submitted.ValueKind != JsonValueKind.Object)
         {
             return;
         }
@@ -188,14 +187,16 @@ internal static partial class TrackingUpdateReconciler
         "distance", "template", "clean",
     };
 
-    // slot_changes and battle_changes were treated as updatable for gyms, on the strength of the tags in
-    // the PoracleNG checkout. The running binary keeps two gyms that differ only in those toggles as
-    // separate rows -- so they identify an alarm, and calling them updatable refused every edit on both.
-    // They are compared like any other field now. See #553.
+    /// <summary>Gyms tag these two diff:"update" as well.</summary>
+    private static readonly HashSet<string> GymUpdatableFields = new(StringComparer.Ordinal)
+    {
+        "slot_changes", "battle_changes",
+    };
 
     private static bool WouldMergeInto(
         JsonElement submitted, JsonElement existing, string trackingType, bool isCreate)
     {
+        var isGym = string.Equals(trackingType, "gym", StringComparison.Ordinal);
         var updatableDifferences = 0;
 
         foreach (var field in submitted.EnumerateObject())
@@ -211,12 +212,22 @@ internal static partial class TrackingUpdateReconciler
                 continue;
             }
 
+            // Nor can a field we are not supplying: PoracleNG fills it with its own default (template
+            // becomes the configured default name, "1" when unset), so a null here says nothing about
+            // what will be stored. Counting it as a difference is what made the create-path check miss
+            // every collision -- the model sends template null where the stored row holds "1", which
+            // read as a second difference and took the pair over the one-difference threshold. See #561.
+            if (IsBlank(field.Value))
+            {
+                continue;
+            }
+
             // Compare what PoracleNG will STORE, not what was sent: it rewrites some values on the way
             // in, and it diffs the rewritten row. Comparing the raw submission made every collision
             // look like a difference, which is exactly how the destructive merge got through.
             var same = SameValue(NormalizeForStorage(field, submitted, trackingType), storedValue);
 
-            if (IsUpdatable(field.Name))
+            if (IsUpdatable(field.Name, isGym))
             {
                 if (!same)
                 {
@@ -232,11 +243,15 @@ internal static partial class TrackingUpdateReconciler
             }
         }
 
-        // Counted, not ignored. The running PoracleNG merges two rows only when EXACTLY ONE updatable
-        // field differs; with two or more it inserts a separate row, so those alarms genuinely coexist.
-        // Ignoring the fields wholesale called every such pair a collision and refused every ordinary edit
-        // on both -- radius, template, auto-delete, clearing the gym -- leaving them uneditable. That is a
-        // worse defect than the merge this check exists to prevent. See #553.
+        // This mirrors DiffTracking in PoracleNG's processor/internal/db/diff.go, at the commit prod runs:
+        //
+        //     if totalDiffs == 0                            -> duplicate (nothing written)
+        //     if totalDiffs == 1 && nonUpdatableDiffs == 0  -> UPDATE of that existing row
+        //     otherwise                                     -> new insert
+        //
+        // Counted, not ignored. Ignoring the updatable fields wholesale called every pair that differs in
+        // two of them a collision, and refused every ordinary edit on both -- radius, template,
+        // auto-delete, clearing the gym -- leaving them uneditable (#553).
         //
         // Zero differences on an EDIT means the submission matches another row outright, which is a
         // collision worth refusing. On a CREATE it means an exact duplicate, and PoracleNG already
@@ -245,7 +260,8 @@ internal static partial class TrackingUpdateReconciler
         return isCreate ? updatableDifferences == 1 : updatableDifferences <= 1;
     }
 
-    private static bool IsUpdatable(string fieldName) => UpdatableFields.Contains(fieldName);
+    private static bool IsUpdatable(string fieldName, bool isGym) =>
+        UpdatableFields.Contains(fieldName) || (isGym && GymUpdatableFields.Contains(fieldName));
     /// <summary>
     /// True when the row being edited already holds every value the update submitted, so PoracleNG's
     /// "already present" was the row colliding with itself rather than with a different alarm.
