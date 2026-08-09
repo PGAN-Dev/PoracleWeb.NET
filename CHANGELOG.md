@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Some alarms became impossible to edit** ([#553](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/553)). The check added to stop an edit overwriting a different alarm was too broad: two alarms that differ in both radius and template are genuinely separate, but every edit on either was refused — radius, template, auto-delete and clearing the gym — with a message about an alarm that was not in the way. Gyms differing only in their slot and battle toggles had the same problem. Both are editable again, and an edit that really would overwrite another alarm is still refused.
+### Fixed
 - **Renaming a custom geofence switched it off for your other profiles** ([#543](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/543)). Editing was implemented as delete-and-recreate, and the recreate only re-subscribed the profile you were on. The page still showed it as on, so nothing said those profiles had stopped receiving alerts. Renaming now keeps every subscription.
 - **Poracle's explanation of a rejected alarm was replaced with "an unexpected error"** ([#539](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/539)), so you were told the server had broken rather than what was wrong with the alarm.
 - **Selecting a raid could select an egg as well** ([#540](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/540)). The two lists shared one set of selections keyed by ID, and raid and egg IDs can be the same number — so a bulk delete or radius change hit the raid twice and left the egg untouched.
