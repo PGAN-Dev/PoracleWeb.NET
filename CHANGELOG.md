@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Editing a quick pick no longer drops filters whose value is 0: the built-in Nundo preset is `minIv: 0, maxIv: 0`, so changing its description silently turned "0% IV only" into "any IV" for everyone who applied it afterwards (#654)
 - Rejecting a geofence submission no longer silently stops the owner's alerts: a rejected fence stays in the feed, as "remains private with review notes" always intended (#645)
 - An approved or under-review geofence can no longer be renamed, which used to move the area subscription to a name neither Koji nor the feed serves (#646)
 - Renaming a geofence keeps its region instead of clearing the Koji parent, and the rename dialog now pre-selects the region it already has (#648)
