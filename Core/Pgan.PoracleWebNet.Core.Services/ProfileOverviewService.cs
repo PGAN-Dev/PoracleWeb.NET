@@ -55,8 +55,20 @@ public class ProfileOverviewService(
                         continue;
                     }
 
-                    // Strip uid so PoracleNG creates a new alarm instead of updating
-                    var cleaned = PoracleJsonHelper.StripProperty(alarm, "uid");
+                    // Strip uid so PoracleNG creates a new alarm instead of updating -- and profile_no
+                    // with it. PoracleNG takes a submitted profile_no at face value (#411), and the
+                    // copy carries the SOURCE profile's, so every pokemon alarm was written back onto
+                    // the profile being copied FROM: the new profile came up with no Pokemon tracking
+                    // and the source quietly gained a duplicate on every run. Import has stripped these
+                    // since #465; duplicate never did. See #576.
+                    var cleaned = alarm;
+                    foreach (var owned in ImportIgnoredFields)
+                    {
+                        if (cleaned.TryGetProperty(owned, out _))
+                        {
+                            cleaned = PoracleJsonHelper.StripProperty(cleaned, owned);
+                        }
+                    }
                     await this._trackingProxy.CreateAsync(type, userId, cleaned);
                     totalCreated++;
                 }

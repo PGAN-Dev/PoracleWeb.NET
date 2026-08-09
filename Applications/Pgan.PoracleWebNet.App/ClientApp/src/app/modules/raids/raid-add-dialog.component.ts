@@ -12,9 +12,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, Observable, of } from 'rxjs';
 
-import { RaidCreate, EggCreate } from '../../core/models';
+import { Egg, EggCreate, Raid, RaidCreate } from '../../core/models';
 import { ANY_LEVEL_VALUE } from '../../core/models/raid-level.models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -125,7 +125,9 @@ export class RaidAddDialogComponent {
     // New alarms have no prior bits, so there is nothing to preserve here.
     const clean = (common.clean ? AUTO_DELETE : 0) | ((common.rsvpChanges ?? 0) >= 1 ? EDIT : 0);
 
-    const creates: ReturnType<typeof this.raidService.create | typeof this.eggService.create>[] = [];
+    // A union of the two return types confuses .pipe(); both are Observable of an alarm, and the batch
+    // only needs to know whether each one landed. See #577.
+    const creates: Observable<Raid | Egg>[] = [];
 
     if (this.tabIndex === 0) {
       // By Level
@@ -181,19 +183,32 @@ export class RaidAddDialogComponent {
       }
     }
 
-    forkJoin(creates).subscribe({
+    // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
+    // succeeded were never reported, the dialog stayed open and the list never reloaded. Each request
+    // settles on its own now, and the toast says how many landed. See #577.
+    forkJoin(creates.map(c => c.pipe(catchError((err: { error?: { error?: string } }) => of({ failed: err }))))).subscribe({
       // The server names what is wrong -- which alarm already uses these settings, which
       // field a file got wrong. A fixed string threw that away. See #567, #568.
-      error: (err: { error?: { error?: string } }) => {
-        this.snackBar.open(err?.error?.error ?? this.i18n.instant('RAIDS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), {
-          duration: 6000,
-        });
+      // Each create settles on its own, so a refused one no longer hides the ones that landed.
+      // The first refusal's message is shown, because it names what is in the way. See #577.
+      next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
+        const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
+        const created = results.length - refused.length;
         this.saving.set(false);
-      },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('RAIDS.SNACK_CREATED_COUNT', { count: creates.length }), this.i18n.instant('TOAST.OK'), {
-          duration: 3000,
-        });
+
+        if (refused.length > 0) {
+          this.snackBar.open(
+            refused[0].failed?.error?.error ?? this.i18n.instant('RAIDS.SNACK_FAILED_CREATE'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 6000 },
+          );
+        } else {
+          this.snackBar.open(this.i18n.instant('COMMON.SAVED', { count: created }), this.i18n.instant('COMMON.OK'), {
+            duration: 4000,
+          });
+        }
+
+        // Close either way: whatever was created is real, and the list must reload to show it.
         this.dialogRef.close(true);
       },
     });

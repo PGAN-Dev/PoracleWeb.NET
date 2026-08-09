@@ -14,7 +14,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import { MonsterCreate } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
@@ -198,28 +198,36 @@ export class PokemonAddDialogComponent implements OnInit {
       }),
     );
 
-    forkJoin(creates).subscribe({
-      // The server explains exactly what is wrong with a filter it refuses -- which min/max pair is
-      // inverted, say. That message never reached anyone: this handler showed a fixed string, so a
-      // transposed pair produced "failed" with no clue which field to fix. See #496.
-      error: (err: { error?: { error?: string } }) => {
-        const message = err?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_CREATE');
-        this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
+    // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
+    // succeeded were never reported, the dialog stayed open and the list never reloaded. Each request
+    // settles on its own now, and the toast says how many landed. See #577.
+    forkJoin(creates.map(c => c.pipe(catchError((err: { error?: { error?: string } }) => of({ failed: err }))))).subscribe({
+      // Each create settles on its own, so a refused one no longer hides the ones that landed.
+      // The first refusal's message is shown, because it names what is in the way. See #577.
+      next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
+        const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
+        // Three outcomes, not two: a refusal (409), an alarm already tracked (200 with no uid, see #495),
+        // and a genuine creation. Counting the first two together would misreport both.
+        const landed = results.filter((r): r is { uid?: number } => !('failed' in r));
+        const created = landed.filter(r => (r.uid ?? 0) > 0).length;
+        const duplicates = landed.length - created;
         this.saving.set(false);
-      },
-      // Poracle answers 200 with uid 0 for a submission that duplicates an alarm the user already has,
-      // so nothing was created. Counting the submissions claimed every selected Pokemon was added while
-      // the list grew by fewer, or by none. Count what came back instead. See #495.
-      next: (results: { uid: number }[]) => {
-        const created = results.filter(r => r?.uid > 0).length;
-        const duplicates = results.length - created;
-        const message =
-          duplicates > 0
-            ? this.i18n.instant('POKEMON.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-            : this.i18n.instant('POKEMON.SNACK_CREATED', { count: created });
-        this.snackBar.open(message, this.i18n.instant('COMMON.OK'), {
-          duration: 4000,
-        });
+
+        if (refused.length > 0) {
+          this.snackBar.open(
+            refused[0].failed?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_CREATE'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 6000 },
+          );
+        } else {
+          const message =
+            duplicates > 0
+              ? this.i18n.instant('POKEMON.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
+              : this.i18n.instant('POKEMON.SNACK_CREATED', { count: created });
+          this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
+        }
+
+        // Close either way: whatever was created is real, and the list must reload to show it.
         this.dialogRef.close(true);
       },
     });

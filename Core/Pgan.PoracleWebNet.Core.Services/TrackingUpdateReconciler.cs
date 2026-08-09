@@ -181,22 +181,45 @@ internal static partial class TrackingUpdateReconciler
         "ping",
     };
 
-    /// <summary>diff:"update" upstream: a difference here can make PoracleNG merge rather than insert.</summary>
-    private static readonly HashSet<string> UpdatableFields = new(StringComparer.Ordinal)
+    /// <summary>
+    /// The <c>diff:"update"</c> fields, per tracking type, transcribed from the structs in
+    /// <c>processor/internal/db/tracking_queries.go</c> at the commit prod runs.
+    /// </summary>
+    /// <remarks>
+    /// Per type, not a shared set with exceptions. Assuming a common {distance, template, clean} missed
+    /// that monsters also tag <c>min_iv</c>, so adding the same Pokemon at a tighter IV floor was let
+    /// through and PoracleNG took the existing alarm over -- 201 Created over the row it had just
+    /// destroyed. Forts have no clean column at all. When PoracleNG is upgraded, re-read those tags
+    /// before assuming this still holds. See #574.
+    /// </remarks>
+    private static readonly Dictionary<string, HashSet<string>> UpdatableFieldsByType =
+        new(StringComparer.Ordinal)
+        {
+            ["pokemon"] = new(StringComparer.Ordinal) { "clean", "distance", "min_iv", "template" },
+            ["gym"] = new(StringComparer.Ordinal)
+            {
+                "battle_changes", "clean", "distance", "slot_changes", "template",
+            },
+            ["fort"] = new(StringComparer.Ordinal) { "distance", "template" },
+            ["raid"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
+            ["egg"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
+            ["quest"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
+            ["invasion"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
+            ["lure"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
+            ["nest"] = new(StringComparer.Ordinal) { "clean", "distance", "template" },
+        };
+
+    /// <summary>Types PoracleNG does not diff at all fall back to the common three.</summary>
+    private static readonly HashSet<string> DefaultUpdatableFields = new(StringComparer.Ordinal)
     {
-        "distance", "template", "clean",
+        "clean", "distance", "template",
     };
 
-    /// <summary>Gyms tag these two diff:"update" as well.</summary>
-    private static readonly HashSet<string> GymUpdatableFields = new(StringComparer.Ordinal)
-    {
-        "slot_changes", "battle_changes",
-    };
+
 
     private static bool WouldMergeInto(
         JsonElement submitted, JsonElement existing, string trackingType, bool isCreate)
     {
-        var isGym = string.Equals(trackingType, "gym", StringComparison.Ordinal);
         var updatableDifferences = 0;
 
         foreach (var field in submitted.EnumerateObject())
@@ -212,12 +235,15 @@ internal static partial class TrackingUpdateReconciler
                 continue;
             }
 
-            // Nor can a field we are not supplying: PoracleNG fills it with its own default (template
-            // becomes the configured default name, "1" when unset), so a null here says nothing about
-            // what will be stored. Counting it as a difference is what made the create-path check miss
-            // every collision -- the model sends template null where the stored row holds "1", which
-            // read as a second difference and took the pair over the one-difference threshold. See #561.
-            if (IsBlank(field.Value))
+            // template is the one field we may leave unset and PoracleNG will fill in (the configured
+            // default name, "1" when unset), so a null there says nothing about what gets stored --
+            // counting it as a difference made the create-path check miss every collision (#561).
+            //
+            // Scoped to that one field deliberately. Applied to everything, it swallowed gym_id, which is
+            // blank precisely when the user means "any gym" -- so an any-gym alarm read as identical to a
+            // gym-specific one and a legitimate add was refused, with the outcome depending on which order
+            // the two were created in. See #575.
+            if (string.Equals(field.Name, "template", StringComparison.Ordinal) && IsBlank(field.Value))
             {
                 continue;
             }
@@ -227,7 +253,7 @@ internal static partial class TrackingUpdateReconciler
             // look like a difference, which is exactly how the destructive merge got through.
             var same = SameValue(NormalizeForStorage(field, submitted, trackingType), storedValue);
 
-            if (IsUpdatable(field.Name, isGym))
+            if (IsUpdatable(field.Name, trackingType))
             {
                 if (!same)
                 {
@@ -260,8 +286,9 @@ internal static partial class TrackingUpdateReconciler
         return isCreate ? updatableDifferences == 1 : updatableDifferences <= 1;
     }
 
-    private static bool IsUpdatable(string fieldName, bool isGym) =>
-        UpdatableFields.Contains(fieldName) || (isGym && GymUpdatableFields.Contains(fieldName));
+    private static bool IsUpdatable(string fieldName, string trackingType) =>
+        (UpdatableFieldsByType.TryGetValue(trackingType, out var fields) ? fields : DefaultUpdatableFields)
+            .Contains(fieldName);
     /// <summary>
     /// True when the row being edited already holds every value the update submitted, so PoracleNG's
     /// "already present" was the row colliding with itself rather than with a different alarm.
