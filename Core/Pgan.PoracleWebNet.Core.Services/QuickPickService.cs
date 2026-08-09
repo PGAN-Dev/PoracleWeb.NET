@@ -282,6 +282,19 @@ public partial class QuickPickService(
             throw new AlarmValidationException("That quick pick is disabled and cannot be applied.");
         }
 
+        // Applying a pick whose alarm type changed since it was applied would strand the alarms it made
+        // under the old type: the new applied state records the new type, and Remove -- which keys off
+        // the stored type -- can never reach them again. Refuse rather than strand, and say what to do.
+        // Re-apply is the supported way through, because it removes the old alarms first. See #557.
+        var existingState = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        if (existingState is not null
+            && existingState.TrackedUids.Count > 0
+            && !string.Equals(existingState.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AlarmValidationException(
+                "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+        }
+
         // Snapshot first: the tracked set is what this apply ADDED, not what the create calls
         // reported. PoracleNG hands back the existing row's uid when a pick matches an alarm the
         // user built by hand, so trusting the reported uid made the pick adopt that alarm - and
@@ -587,8 +600,14 @@ public partial class QuickPickService(
     /// </remarks>
     private static void EnsureValidAlarm(object alarm)
     {
+        // Against the *Create DTO, because that is where the [Range] and [StringLength] attributes live --
+        // the domain models carry none, so validating those found nothing and a pick holding minIv 500 was
+        // applied verbatim. Same trap as #548. See #565.
+        var validationTarget = AsCreateDto(alarm) ?? alarm;
+
         var results = new List<ValidationResult>();
-        if (!Validator.TryValidateObject(alarm, new ValidationContext(alarm), results, validateAllProperties: true))
+        if (!Validator.TryValidateObject(
+                validationTarget, new ValidationContext(validationTarget), results, validateAllProperties: true))
         {
             throw new AlarmValidationException(
                 "This quick pick holds a filter value the alarm does not accept: "
@@ -604,6 +623,31 @@ public partial class QuickPickService(
             }
         }
     }
+    /// <summary>Re-reads a built alarm as the DTO the POST endpoints bind, which carries the rules.</summary>
+    private static object? AsCreateDto(object alarm)
+    {
+        var json = JsonSerializer.Serialize(alarm, alarm.GetType(), SnakeCaseOptions);
+
+        return alarm switch
+        {
+            Monster => JsonSerializer.Deserialize<MonsterCreate>(json, SnakeCaseOptions),
+            Raid => JsonSerializer.Deserialize<RaidCreate>(json, SnakeCaseOptions),
+            Egg => JsonSerializer.Deserialize<EggCreate>(json, SnakeCaseOptions),
+            Quest => JsonSerializer.Deserialize<QuestCreate>(json, SnakeCaseOptions),
+            Invasion => JsonSerializer.Deserialize<InvasionCreate>(json, SnakeCaseOptions),
+            Lure => JsonSerializer.Deserialize<LureCreate>(json, SnakeCaseOptions),
+            Nest => JsonSerializer.Deserialize<NestCreate>(json, SnakeCaseOptions),
+            Gym => JsonSerializer.Deserialize<GymCreate>(json, SnakeCaseOptions),
+            MaxBattle => JsonSerializer.Deserialize<MaxBattleCreate>(json, SnakeCaseOptions),
+            _ => null,
+        };
+    }
+
+    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
+
     private static Monster BuildMonster(Dictionary<string, object?> filters, int pokemonId, int profileNo, QuickPickApplyRequest request)
     {
         // Start with sensible defaults (matching the add dialog defaults)

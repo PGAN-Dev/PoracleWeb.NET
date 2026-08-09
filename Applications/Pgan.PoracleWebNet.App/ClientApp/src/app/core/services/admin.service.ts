@@ -45,6 +45,14 @@ export class AdminService {
     return this.http.get<Record<string, string[]>>(`${this.config.apiHost}/api/admin/webhook-delegates/all`);
   }
 
+  /**
+   * The webhooks the signed-in delegate manages. /my-webhooks used to call getUsers(), which is
+   * admin-only — so the one page built for delegates 403'd for every delegate. See #564.
+   */
+  getManagedWebhooks(): Observable<AdminUser[]> {
+    return this.http.get<AdminUser[]>(`${this.config.apiHost}/api/admin/my-webhooks`);
+  }
+
   getPoracleAdmins(): Observable<string[]> {
     return this.http.get<string[]>(`${this.config.apiHost}/api/admin/poracle-admins`);
   }

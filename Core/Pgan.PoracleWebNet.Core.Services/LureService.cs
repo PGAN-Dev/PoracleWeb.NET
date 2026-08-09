@@ -30,6 +30,20 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Lures);
         model.Id = userId;
+
+        // PoracleNG guards this type with a unique key on (id, profile_no, lure_id), so adding a lure
+        // type already tracked hit a duplicate-key error and surfaced as a 500 -- for a submission the
+        // lure picker actively invites, and which the frontend then reported as a generic "failed to
+        // create" with no clue which lure caused it. The update path has refused this since #462.
+        // See #562.
+        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+        if (siblings.Any(x => x.LureId == model.LureId))
+        {
+            throw new TrackingConflictException(
+                TrackingType,
+                "You already have a lure alarm for that lure type. Edit or remove that one instead.");
+        }
+
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
