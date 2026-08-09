@@ -194,13 +194,29 @@ export class QuickPickAdminDialogComponent implements OnInit {
 
     const main = this.mainForm.getRawValue();
     const filterForm = this.getFilterForm(main.alarmType ?? 'monster');
-    const filters: Record<string, unknown> = {};
+    // Start from what is stored rather than rebuilding: any key the dialog has no control for used to be
+    // dropped on save, and quick-pick-apply reads filters['clean'] as its base bitmask while no form
+    // exposes it. See #654.
+    const stored: Record<string, unknown> = { ...(this.data?.filters ?? {}) };
+    const filters: Record<string, unknown> = stored;
     if (filterForm) {
       const raw = filterForm.getRawValue();
       Object.entries(raw).forEach(([key, value]) => {
-        if (value !== 0 && value !== '' && value !== null) {
-          filters[key] = value;
+        if (value === null || value === '' || value === undefined) {
+          delete filters[key];
+          return;
         }
+
+        // A stored 0 is kept, because 0 is a real filter value: the built-in nundo preset is
+        // { minIv: 0, maxIv: 0 }, and dropping those turned "0% IV only" into "any IV" for everyone who
+        // applied it afterwards. A 0 that was never stored is still skipped, because most of these
+        // controls default to 0 meaning "not set" -- writing them out would put an explicit minIv,
+        // pokemonId and pvpRankingLeague of 0 on every newly created pick.
+        if (value === 0 && !(key in stored)) {
+          return;
+        }
+
+        filters[key] = value;
       });
     }
 
