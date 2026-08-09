@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Pinned `SQLitePCLRaw.bundle_e_sqlite3` forward to 2.1.12 in the test project, clearing the high-severity GHSA-2m69-gcr7-jv3q advisory the build reported
 - **Blocking a user was not enforced by the API** ([#609](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/609)). The earlier fix only signed the browser out; the API kept serving a blocked account, and anything not using the web app was unaffected entirely. Blocking now refuses immediately, and unblocking restores access at once.
 - **Blocking a user did not block them** ([#597](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/597)). Blocking stopped notifications being delivered and left the web session untouched, so a blocked account kept full access for up to a day, and signing in again issued a fresh token.
 - **Rate limits could be bypassed by forging a header** ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)). `X-Forwarded-For` was believed from any caller, so a client could name a different address on each request and hand itself a fresh allowance — including on the sign-in endpoints the limit exists to protect. It is now honoured only from proxies the deployment declares, via `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS`.
