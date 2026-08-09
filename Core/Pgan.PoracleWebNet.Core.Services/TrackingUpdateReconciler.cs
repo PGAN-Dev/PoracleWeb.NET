@@ -128,6 +128,10 @@ internal static partial class TrackingUpdateReconciler
         int oldUid,
         JsonElement submitted)
     {
+        // Updates only. The create path has the same exposure (#561) but the same comparison does not
+        // work there: a create carries model defaults where the stored row carries PoracleNG's, so
+        // more than one updatable field reads as different and the collision is missed. Left open
+        // rather than shipped as a guard that quietly does nothing.
         if (oldUid <= 0 || submitted.ValueKind != JsonValueKind.Object)
         {
             return;
@@ -160,7 +164,7 @@ internal static partial class TrackingUpdateReconciler
                 continue;
             }
 
-            if (WouldMergeInto(submitted, row, trackingType))
+            if (WouldMergeInto(submitted, row, trackingType, isCreate: oldUid <= 0))
             {
                 throw new TrackingConflictException(
                     trackingType,
@@ -189,7 +193,8 @@ internal static partial class TrackingUpdateReconciler
     // separate rows -- so they identify an alarm, and calling them updatable refused every edit on both.
     // They are compared like any other field now. See #553.
 
-    private static bool WouldMergeInto(JsonElement submitted, JsonElement existing, string trackingType)
+    private static bool WouldMergeInto(
+        JsonElement submitted, JsonElement existing, string trackingType, bool isCreate)
     {
         var updatableDifferences = 0;
 
@@ -233,9 +238,11 @@ internal static partial class TrackingUpdateReconciler
         // on both -- radius, template, auto-delete, clearing the gym -- leaving them uneditable. That is a
         // worse defect than the merge this check exists to prevent. See #553.
         //
-        // Zero differences is the row colliding with itself, which IsNoOpEditAsync handles; only the
-        // one-difference case is a genuine merge into someone else.
-        return updatableDifferences <= 1;
+        // Zero differences on an EDIT means the submission matches another row outright, which is a
+        // collision worth refusing. On a CREATE it means an exact duplicate, and PoracleNG already
+        // reports that as "already present" -- answered with 200 and no new uid since #459, which is
+        // what multi-select add relies on. Only the one-difference case takes an existing alarm over.
+        return isCreate ? updatableDifferences == 1 : updatableDifferences <= 1;
     }
 
     private static bool IsUpdatable(string fieldName) => UpdatableFields.Contains(fieldName);

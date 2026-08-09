@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **A quick pick with a long name failed with a server error** ([#555](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/555)). The identifier generated from the name could be longer than the column that stores it.
+- **A profile backup containing a fort-change alarm would not import** ([#556](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/556)) — an unmodified export produced by this app, refused by the validation added in v2.12.2.
+- **A renamed geofence disappeared from the map and reported no points** ([#559](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/559), [#566](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/566)) until the page was reloaded, because the rename response left the shape out.
+- **A renamed geofence showed as "Inactive" while still active** ([#558](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/558)), so it looked as though renaming had switched your alerts off.
+### Fixed
 - **Some alarms became impossible to edit** ([#553](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/553)). The check added to stop an edit overwriting a different alarm was too broad: two alarms that differ in both radius and template are genuinely separate, but every edit on either was refused — radius, template, auto-delete and clearing the gym — with a message about an alarm that was not in the way. Gyms differing only in their slot and battle toggles had the same problem. Both are editable again, and an edit that really would overwrite another alarm is still refused.
 ### Fixed
 - **Renaming a custom geofence switched it off for your other profiles** ([#543](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/543)). Editing was implemented as delete-and-recreate, and the recreate only re-subscribed the profile you were on. The page still showed it as on, so nothing said those profiles had stopped receiving alerts. Renaming now keeps every subscription.

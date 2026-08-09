@@ -161,6 +161,11 @@ public partial class QuickPickService(
             slug = "quick-pick";
         }
 
+        // The id column is 50 characters and the name column is 200, so a perfectly legal name produced
+        // an id that could not be stored and the create came back as an opaque 500. Room is left for the
+        // longest suffix the collision loop can append. See #555.
+        slug = Truncate(slug, MaxIdLength - SuffixAllowance);
+
         // Names are not unique, so settle collisions with a counter before falling back to a guid.
         var candidate = slug;
         for (var attempt = 2; attempt <= 50; attempt++)
@@ -173,8 +178,17 @@ public partial class QuickPickService(
             candidate = $"{slug}-{attempt}";
         }
 
-        return $"{slug}-{Guid.NewGuid():N}";
+        return Truncate($"{slug}-{Guid.NewGuid():N}", MaxIdLength);
     }
+
+    /// <summary>The quick_pick_definitions.id column width.</summary>
+    private const int MaxIdLength = 50;
+
+    /// <summary>Room for the "-2".."-50" the collision loop appends, and for a guid tail if it gets there.</summary>
+    private const int SuffixAllowance = 4;
+
+    private static string Truncate(string value, int maxLength) =>
+        value.Length <= maxLength ? value : value[..maxLength].TrimEnd('-');
 
     private static string Slugify(string? name)
     {

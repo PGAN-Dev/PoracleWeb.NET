@@ -250,9 +250,32 @@ public partial class UserGeofenceService(
 
         await this.ReloadGeofencesSafeAsync();
 
-        updated.Polygon = geofence.Polygon;
+        // The repository round-trip returns the row without its parsed polygon, and the page renders the
+        // map straight from this response -- so a renamed geofence vanished from the map and reported 0
+        // points until a reload. Carry both across, exactly as the listing does. See #559, #566.
+        updated.Polygon = geofence.Polygon ?? ParsePolygonSafe(updated.PolygonJson, updated.KojiName);
+        updated.PointCount = updated.Polygon?.Length ?? 0;
         return updated;
     }
+    /// <summary>Parses a stored polygon, returning null rather than throwing on a malformed one.</summary>
+    private double[][]? ParsePolygonSafe(string? polygonJson, string kojiName)
+    {
+        if (string.IsNullOrEmpty(polygonJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<double[][]>(polygonJson);
+        }
+        catch (JsonException ex)
+        {
+            LogPolygonDeserializationFailed(this._logger, ex, kojiName);
+            return null;
+        }
+    }
+
     public async Task DeleteAsync(string humanId, int profileNo, int id)
     {
         var geofence = await this._repository.GetByIdAsync(id)
