@@ -56,7 +56,11 @@ export class AdminUsersComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
-  private readonly discordUsers = computed(() => this.allUsers().filter(u => u.type?.startsWith('discord')));
+  // Everything that is not a webhook, so this tab and the Webhooks tab together account for every
+  // account. Filtering to discord* meant a Telegram user appeared in neither list, and every admin
+  // action here is list-driven -- so they could not be blocked, paused, purged or impersonated at all.
+  // See #632.
+  private readonly discordUsers = computed(() => this.allUsers().filter(u => u.type !== 'webhook'));
 
   private readonly i18n = inject(I18nService);
 

@@ -15,6 +15,9 @@ import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
+/** Marks that the built-in presets have been seeded once, so an empty list stays empty. See #634. */
+const SEEDED_KEY = 'poracle-quick-picks-seeded';
+
 @Component({
   imports: [
     MatCardModule,
@@ -94,8 +97,11 @@ export class QuickPickListComponent implements OnInit {
         this.loading.set(false);
       },
       next: picks => {
-        if (picks.length === 0 && autoSeed && this.isAdmin()) {
-          // First visit with no picks — seed defaults and reload
+        if (picks.length === 0 && autoSeed && this.isAdmin() && !localStorage.getItem(SEEDED_KEY)) {
+          // First visit with no picks — seed defaults and reload. Guarded by a marker because this ran
+          // on *every* empty read: an admin who deleted the presets on purpose got all thirty back on
+          // their next visit, with no prompt and no way to keep an empty list. See #634.
+          localStorage.setItem(SEEDED_KEY, '1');
           this.quickPickService.seed().subscribe({
             error: () => this.loading.set(false),
             next: () => this.loadPicks(false),
