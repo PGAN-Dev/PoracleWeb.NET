@@ -46,9 +46,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // the refresh token and its expiry, so the next load tried to refresh a session the server had
         // already rejected. Navigation is deliberately left alone: routing through AuthService.logout()
         // would append loggedout=1 and suppress the OIDC auto-redirect. See #616.
-        localStorage.removeItem('poracle_token');
-        localStorage.removeItem('poracle_admin_token');
-        tokenStore.clear();
+        tokenStore.clearAll();
         // Preserve any existing query params (e.g. ?error=missing_required_role)
         const params = new URLSearchParams(window.location.search);
         router.navigate(['/login'], { queryParams: Object.fromEntries(params) });

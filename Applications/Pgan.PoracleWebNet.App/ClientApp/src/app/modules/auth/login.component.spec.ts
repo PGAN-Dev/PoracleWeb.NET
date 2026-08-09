@@ -48,6 +48,7 @@ describe('LoginComponent', () => {
             getProviders: jest.fn(() => (opts?.providersError ? throwError(() => new Error('fail')) : of(providers))),
             loginWithOidc: jest.fn(),
             getTelegramConfig: jest.fn(() => of({ botUsername: '', enabled: false })),
+            isAuthenticated: jest.fn(() => false),
             isLoggedIn: jest.fn(() => false),
             loginWithDiscord: jest.fn(),
             loginWithTelegram: jest.fn(),

@@ -7,6 +7,8 @@ import { ConfigService } from './config.service';
 const TOKEN_KEY = 'poracle_token';
 const REFRESH_KEY = 'poracle_refresh_token';
 const EXPIRES_KEY = 'poracle_token_expires_at';
+// Owned by AuthService, cleared here so the 401 path can end a session without constructing it.
+const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 
 /** Refresh proactively this many ms before the access token's `exp`. */
 const EXPIRY_SKEW_MS = 60_000;
@@ -34,10 +36,27 @@ export class TokenStoreService {
   /** Emits when a refresh definitively fails — AuthService subscribes and logs the user out. */
   readonly forceLogout$ = new Subject<void>();
 
+  /** Emits when the session was discarded from under the app — AuthService resets its own state. */
+  readonly sessionCleared$ = new Subject<void>();
+
   /** Clears the refresh token + expiry (the main JWT is owned by AuthService). */
   clear(): void {
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(EXPIRES_KEY);
+  }
+
+  /**
+   * Discards every key a session consists of, and tells AuthService to forget the user.
+   */
+  /* The 401 path used to remove poracle_token by hand, leaving the admin impersonation token, the
+   * refresh token and the expiry behind, and leaving AuthService still holding a user. It lives here
+   * rather than on AuthService because an interceptor that injects AuthService constructs it, and
+   * constructing it fires a /api/auth/me request. See #616, #627, #628. */
+  clearAll(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    this.clear();
+    this.sessionCleared$.next();
   }
 
   getAccessToken(): string | null {
@@ -110,8 +129,15 @@ export class TokenStoreService {
   storeTokens(token: string, refreshToken: string | null, expiresInSeconds?: number): void {
     localStorage.setItem(TOKEN_KEY, token);
 
+    // Cleared, not left alone, when the new login has no refresh token of its own. A Discord or
+    // Telegram login on a browser that previously held an OIDC session used to inherit that session's
+    // refresh token: the refresh interceptor then saw hasRefreshToken() true, posted the stale token,
+    // and replaced the JWT with one minted for the previous user. See #625.
     if (refreshToken) {
       localStorage.setItem(REFRESH_KEY, refreshToken);
+    } else {
+      localStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(EXPIRES_KEY);
     }
 
     const expiresAt = expiresInSeconds ? Date.now() + expiresInSeconds * 1000 : this.decodeExpiry(token);

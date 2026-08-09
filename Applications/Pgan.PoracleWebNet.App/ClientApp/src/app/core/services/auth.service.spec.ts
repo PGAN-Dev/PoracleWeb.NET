@@ -288,9 +288,13 @@ describe('AuthService', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/admin']);
     });
 
-    it('should do nothing when no admin token exists', async () => {
+    it('logs out when there is no admin token to go back to', async () => {
+      // Returning silently left a visible Stop impersonating button that did nothing at all -- reachable
+      // whenever a 401 discarded the admin token while the banner was still up. See #627.
       await service.stopImpersonating();
-      expect(router.navigate).not.toHaveBeenCalled();
+
+      expect(service.isImpersonating()).toBe(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { loggedout: 1 } });
     });
   });
 
@@ -341,6 +345,22 @@ describe('AuthService', () => {
     it('should resolve with null when no token exists', async () => {
       const result = await service.waitForUser();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('a session discarded by a 401', () => {
+    it('forgets the user and the impersonation state, not just the tokens', () => {
+      // Left set, currentUser rendered the login page inside the signed-in shell and bounced the user
+      // to /dashboard on the next navigation; _isImpersonating kept a banner whose button did nothing.
+      // See #627, #628.
+      localStorage.setItem('poracle_admin_token', 'admin-jwt');
+
+      service.clearSession();
+
+      expect(service.isLoggedIn()).toBe(false);
+      expect(service.isAuthenticated()).toBe(false);
+      expect(service.isImpersonating()).toBe(false);
+      expect(localStorage.getItem('poracle_admin_token')).toBeNull();
     });
   });
 });
