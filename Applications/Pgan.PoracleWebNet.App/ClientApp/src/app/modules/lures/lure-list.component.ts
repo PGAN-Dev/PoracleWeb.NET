@@ -90,7 +90,18 @@ export class LureListComponent implements OnInit {
     const distance = await firstValueFrom(ref.afterClosed());
     if (distance !== null && distance !== undefined) {
       const uids = [...this.selectedIds()];
-      await firstValueFrom(this.lureService.updateBulkDistance(uids, distance));
+      // The server refuses a radius that would take over an alarm the user did not select, and names
+      // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
+      // nothing -- indistinguishable from a successful no-op. See #641.
+      try {
+        await firstValueFrom(this.lureService.updateBulkDistance(uids, distance));
+      } catch (err) {
+        const message = (err as { error?: { error?: string } })?.error?.error;
+        this.snackBar.open(message ?? this.i18n.instant('LURES.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+          duration: 5000,
+        });
+        return;
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadLures();

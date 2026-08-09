@@ -638,7 +638,8 @@
     "EDIT_MODE": "Editar a mensagem no local",
     "EDIT_HINT": "Atualiza a mensagem existente do Discord quando o engodo muda em vez de enviar uma nova.",
     "EDIT_BADGE": "Editar",
-    "CONFIRM_DELETE_TITLE": "Eliminar alerta de isco?"
+    "CONFIRM_DELETE_TITLE": "Eliminar alerta de isco?",
+    "SNACK_FAILED_DISTANCE": "Não foi possível atualizar a distância."
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmes de Ninhos",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Falha ao criar alarme",
     "SNACK_FAILED_UPDATE": "Falha ao atualizar alarme",
     "SNACK_FAILED_DELETE": "Falha ao eliminar alarme",
-    "CONFIRM_DELETE_TITLE": "Eliminar alerta de ninho?"
+    "CONFIRM_DELETE_TITLE": "Eliminar alerta de ninho?",
+    "SNACK_FAILED_DISTANCE": "Não foi possível atualizar a distância."
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmes de Ginásios",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinto",
     "TEAM_UNKNOWN": "Equipa {{id}}",
-    "CONFIRM_DELETE_TITLE": "Eliminar alerta de ginásio?"
+    "CONFIRM_DELETE_TITLE": "Eliminar alerta de ginásio?",
+    "SNACK_FAILED_DISTANCE": "Não foi possível atualizar a distância."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmes de Alterações de Forte",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Falha ao atualizar localização",
     "SEARCH_AREAS": "Pesquisar áreas",
     "MANUAL_ADD_PLACEHOLDER": "Escreve um nome de área e prime Enter",
-    "FILTER_PLACEHOLDER": "Filtrar por nome..."
+    "FILTER_PLACEHOLDER": "Filtrar por nome...",
+    "SNACK_LOAD_SELECTED_FAILED": "Não foi possível carregar as tuas áreas atuais. Recarrega antes de as alterares.",
+    "SELECTION_UNKNOWN": "As tuas áreas atuais não foram carregadas — recarrega a página antes de guardar."
   },
   "PROFILES": {
     "PAGE_TITLE": "Perfis",

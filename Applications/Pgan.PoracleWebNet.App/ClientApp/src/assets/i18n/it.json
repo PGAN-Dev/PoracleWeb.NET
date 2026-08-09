@@ -638,7 +638,8 @@
     "EDIT_MODE": "Modifica il messaggio sul posto",
     "EDIT_HINT": "Aggiorna il messaggio Discord esistente quando il modulo esca cambia invece di inviarne uno nuovo.",
     "EDIT_BADGE": "Modifica",
-    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso esca?"
+    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso esca?",
+    "SNACK_FAILED_DISTANCE": "Impossibile aggiornare la distanza."
   },
   "NESTS": {
     "PAGE_TITLE": "Allarmi Nidi",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Creazione allarme fallita",
     "SNACK_FAILED_UPDATE": "Aggiornamento allarme fallito",
     "SNACK_FAILED_DELETE": "Eliminazione allarme fallita",
-    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso nido?"
+    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso nido?",
+    "SNACK_FAILED_DISTANCE": "Impossibile aggiornare la distanza."
   },
   "GYMS": {
     "PAGE_TITLE": "Allarmi Palestre",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Coraggio",
     "TEAM_INSTINCT": "Istinto",
     "TEAM_UNKNOWN": "Squadra {{id}}",
-    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso palestra?"
+    "CONFIRM_DELETE_TITLE": "Eliminare l'avviso palestra?",
+    "SNACK_FAILED_DISTANCE": "Impossibile aggiornare la distanza."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Allarmi Modifiche Forte",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Aggiornamento posizione fallito",
     "SEARCH_AREAS": "Cerca aree",
     "MANUAL_ADD_PLACEHOLDER": "Digita un nome di area e premi Invio",
-    "FILTER_PLACEHOLDER": "Filtra per nome..."
+    "FILTER_PLACEHOLDER": "Filtra per nome...",
+    "SNACK_LOAD_SELECTED_FAILED": "Impossibile caricare le tue aree attuali. Ricarica prima di modificarle.",
+    "SELECTION_UNKNOWN": "Le tue aree attuali non sono state caricate: ricarica la pagina prima di salvare."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profili",

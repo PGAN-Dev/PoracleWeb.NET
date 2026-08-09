@@ -638,7 +638,8 @@
     "EDIT_MODE": "Editar el mensaje en su lugar",
     "EDIT_HINT": "Actualiza el mensaje de Discord existente cuando cambia el cebo en lugar de enviar uno nuevo.",
     "EDIT_BADGE": "Editar",
-    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de cebo?"
+    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de cebo?",
+    "SNACK_FAILED_DISTANCE": "No se pudo actualizar la distancia."
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmas de Nido",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Error al crear la alarma",
     "SNACK_FAILED_UPDATE": "Error al actualizar la alarma",
     "SNACK_FAILED_DELETE": "Error al eliminar la alarma",
-    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de nido?"
+    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de nido?",
+    "SNACK_FAILED_DISTANCE": "No se pudo actualizar la distancia."
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmas de Gimnasio",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinto",
     "TEAM_UNKNOWN": "Equipo {{id}}",
-    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de gimnasio?"
+    "CONFIRM_DELETE_TITLE": "¿Eliminar alarma de gimnasio?",
+    "SNACK_FAILED_DISTANCE": "No se pudo actualizar la distancia."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmas de Cambio de Fort",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Error al actualizar la ubicación",
     "SEARCH_AREAS": "Buscar zonas",
     "MANUAL_ADD_PLACEHOLDER": "Escribe un nombre de área y pulsa Intro",
-    "FILTER_PLACEHOLDER": "Filtrar por nombre..."
+    "FILTER_PLACEHOLDER": "Filtrar por nombre...",
+    "SNACK_LOAD_SELECTED_FAILED": "No se pudieron cargar tus áreas actuales. Recarga antes de cambiarlas.",
+    "SELECTION_UNKNOWN": "No se pudieron cargar tus áreas actuales: recarga la página antes de guardar."
   },
   "PROFILES": {
     "PAGE_TITLE": "Perfiles",

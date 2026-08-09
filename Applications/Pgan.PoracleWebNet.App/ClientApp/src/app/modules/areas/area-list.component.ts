@@ -139,6 +139,9 @@ export class AreaListComponent implements OnInit {
 
   searchText = '';
 
+  /** True when the saved selection could not be read, which makes saving unsafe. See #643. */
+  readonly selectionUnknown = signal(false);
+
   readonly userLocationForMap = computed(() => {
     const loc = this.location();
     if (loc && loc.latitude && loc.longitude) {
@@ -333,8 +336,19 @@ export class AreaListComponent implements OnInit {
       .getSelected()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        error: () => check(),
+        // A page that could not read the current subscriptions must not offer to overwrite them. This
+        // arm used to advance the counter and nothing else, so a single failed GET /api/areas rendered
+        // every checkbox unticked and "0 areas selected" with no error -- and saving then posted only
+        // whatever the user ticked next, destroying every other subscription they had. See #643.
+        error: () => {
+          this.selectionUnknown.set(true);
+          this.snackBar.open(this.i18n.instant('AREAS.SNACK_LOAD_SELECTED_FAILED'), this.i18n.instant('TOAST.OK'), {
+            duration: 6000,
+          });
+          check();
+        },
         next: areas => {
+          this.selectionUnknown.set(false);
           this.savedSelection = [...areas];
           this.selectedAreas.set(areas);
           check();

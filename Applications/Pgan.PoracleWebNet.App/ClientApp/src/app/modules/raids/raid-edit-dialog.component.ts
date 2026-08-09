@@ -140,7 +140,7 @@ export class RaidEditDialogComponent {
         pokemonId: raid.pokemonId,
         rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
-        template: values.template || null,
+        template: values.template || '',
       };
       this.raidService.update(this.data.item.uid, update).subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
@@ -166,7 +166,7 @@ export class RaidEditDialogComponent {
         level: egg.level,
         rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
-        template: values.template || null,
+        template: values.template || '',
       };
       this.eggService.update(this.data.item.uid, update).subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which

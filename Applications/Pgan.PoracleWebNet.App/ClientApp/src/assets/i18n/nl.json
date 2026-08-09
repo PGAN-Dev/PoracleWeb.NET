@@ -638,7 +638,8 @@
     "EDIT_MODE": "Bericht ter plekke bewerken",
     "EDIT_HINT": "Werk het bestaande Discord-bericht bij wanneer de lokmodule verandert in plaats van een nieuw bericht te sturen.",
     "EDIT_BADGE": "Bewerken",
-    "CONFIRM_DELETE_TITLE": "Lokmodule-alarm verwijderen?"
+    "CONFIRM_DELETE_TITLE": "Lokmodule-alarm verwijderen?",
+    "SNACK_FAILED_DISTANCE": "De afstand kon niet worden bijgewerkt."
   },
   "NESTS": {
     "PAGE_TITLE": "Nest Alarmen",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Alarm aanmaken mislukt",
     "SNACK_FAILED_UPDATE": "Alarm bijwerken mislukt",
     "SNACK_FAILED_DELETE": "Alarm verwijderen mislukt",
-    "CONFIRM_DELETE_TITLE": "Nest-alarm verwijderen?"
+    "CONFIRM_DELETE_TITLE": "Nest-alarm verwijderen?",
+    "SNACK_FAILED_DISTANCE": "De afstand kon niet worden bijgewerkt."
   },
   "GYMS": {
     "PAGE_TITLE": "Gym Alarmen",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
     "TEAM_UNKNOWN": "Team {{id}}",
-    "CONFIRM_DELETE_TITLE": "Gym-alarm verwijderen?"
+    "CONFIRM_DELETE_TITLE": "Gym-alarm verwijderen?",
+    "SNACK_FAILED_DISTANCE": "De afstand kon niet worden bijgewerkt."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fortwijziging Alarmen",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Locatie bijwerken mislukt",
     "SEARCH_AREAS": "Gebieden zoeken",
     "MANUAL_ADD_PLACEHOLDER": "Typ een gebiedsnaam en druk op Enter",
-    "FILTER_PLACEHOLDER": "Filter op naam..."
+    "FILTER_PLACEHOLDER": "Filter op naam...",
+    "SNACK_LOAD_SELECTED_FAILED": "Je huidige gebieden konden niet worden geladen. Herlaad voordat je ze wijzigt.",
+    "SELECTION_UNKNOWN": "Je huidige gebieden konden niet worden geladen — herlaad de pagina voordat je opslaat."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profielen",

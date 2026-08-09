@@ -98,7 +98,7 @@ export class GymEditDialogComponent {
         gymId: this.selectedGymId() ?? '',
         slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,
-        template: v.template || null,
+        template: v.template || '',
       } as GymUpdate)
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which

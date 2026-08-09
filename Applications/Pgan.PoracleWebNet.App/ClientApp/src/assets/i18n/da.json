@@ -638,7 +638,8 @@
     "EDIT_MODE": "Rediger beskeden på stedet",
     "EDIT_HINT": "Opdaterer den eksisterende Discord-besked, når lokkemodulet ændres, i stedet for at sende en ny.",
     "EDIT_BADGE": "Rediger",
-    "CONFIRM_DELETE_TITLE": "Slet lokkemodul-alarm?"
+    "CONFIRM_DELETE_TITLE": "Slet lokkemodul-alarm?",
+    "SNACK_FAILED_DISTANCE": "Afstanden kunne ikke opdateres."
   },
   "NESTS": {
     "PAGE_TITLE": "Rede-alarmer",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Kunne ikke oprette alarm",
     "SNACK_FAILED_UPDATE": "Kunne ikke opdatere alarm",
     "SNACK_FAILED_DELETE": "Kunne ikke slette alarm",
-    "CONFIRM_DELETE_TITLE": "Slet rede-alarm?"
+    "CONFIRM_DELETE_TITLE": "Slet rede-alarm?",
+    "SNACK_FAILED_DISTANCE": "Afstanden kunne ikke opdateres."
   },
   "GYMS": {
     "PAGE_TITLE": "Gym-alarmer",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
     "TEAM_UNKNOWN": "Hold {{id}}",
-    "CONFIRM_DELETE_TITLE": "Slet gym-alarm?"
+    "CONFIRM_DELETE_TITLE": "Slet gym-alarm?",
+    "SNACK_FAILED_DISTANCE": "Afstanden kunne ikke opdateres."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort-ændringsalarmer",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Kunne ikke opdatere placering",
     "SEARCH_AREAS": "Søg områder",
     "MANUAL_ADD_PLACEHOLDER": "Indtast et områdenavn og tryk Enter",
-    "FILTER_PLACEHOLDER": "Filtrer efter navn..."
+    "FILTER_PLACEHOLDER": "Filtrer efter navn...",
+    "SNACK_LOAD_SELECTED_FAILED": "Dine nuværende områder kunne ikke indlæses. Genindlæs, før du ændrer dem.",
+    "SELECTION_UNKNOWN": "Dine nuværende områder kunne ikke indlæses — genindlæs siden før du gemmer."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profiler",

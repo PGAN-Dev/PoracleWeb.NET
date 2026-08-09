@@ -211,9 +211,13 @@
     <!-- Floating Save Bar -->
     @if (hasChanges()) {
       <div class="save-bar">
-        <span class="save-info">{{ 'AREAS.SELECTION_SUMMARY' | translate: { count: selectedAreas().length } }}</span>
+        @if (selectionUnknown()) {
+          <span class="save-info">{{ 'AREAS.SELECTION_UNKNOWN' | translate }}</span>
+        } @else {
+          <span class="save-info">{{ 'AREAS.SELECTION_SUMMARY' | translate: { count: selectedAreas().length } }}</span>
+        }
         <button mat-button (click)="cancelChanges()">{{ 'AREAS.CANCEL_CHANGES' | translate }}</button>
-        <button mat-raised-button color="primary" (click)="saveAreas()" [disabled]="saving()">
+        <button mat-raised-button color="primary" (click)="saveAreas()" [disabled]="saving() || selectionUnknown()">
           @if (saving()) {
             <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
           } @else {

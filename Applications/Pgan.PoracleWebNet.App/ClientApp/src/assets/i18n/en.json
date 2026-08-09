@@ -638,7 +638,8 @@
     "EDIT_MODE": "Edit message in place",
     "EDIT_HINT": "Update the existing Discord message when the lure changes instead of sending a new one.",
     "EDIT_BADGE": "Edit",
-    "CONFIRM_DELETE_TITLE": "Delete Lure Alarm?"
+    "CONFIRM_DELETE_TITLE": "Delete Lure Alarm?",
+    "SNACK_FAILED_DISTANCE": "Could not update the distance."
   },
   "NESTS": {
     "PAGE_TITLE": "Nest Alarms",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Failed to create alarm",
     "SNACK_FAILED_UPDATE": "Failed to update alarm",
     "SNACK_FAILED_DELETE": "Failed to delete alarm",
-    "CONFIRM_DELETE_TITLE": "Delete Nest Alarm?"
+    "CONFIRM_DELETE_TITLE": "Delete Nest Alarm?",
+    "SNACK_FAILED_DISTANCE": "Could not update the distance."
   },
   "GYMS": {
     "PAGE_TITLE": "Gym Alarms",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
     "TEAM_UNKNOWN": "Team {{id}}",
-    "CONFIRM_DELETE_TITLE": "Delete Gym Alarm?"
+    "CONFIRM_DELETE_TITLE": "Delete Gym Alarm?",
+    "SNACK_FAILED_DISTANCE": "Could not update the distance."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort Change Alarms",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_CLEARED": "Location cleared",
     "SNACK_LOCATION_FAILED": "Failed to update location",
     "SEARCH_AREAS": "Search areas",
-    "FILTER_PLACEHOLDER": "Filter by name..."
+    "FILTER_PLACEHOLDER": "Filter by name...",
+    "SNACK_LOAD_SELECTED_FAILED": "Could not load your current areas. Reload before changing them.",
+    "SELECTION_UNKNOWN": "Your current areas could not be loaded — reload the page before saving."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profiles",

@@ -89,7 +89,7 @@ export class FortChangeEditDialogComponent {
         distance: dist,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,
-        template: v.template || null,
+        template: v.template || '',
       } as FortChangeUpdate)
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which

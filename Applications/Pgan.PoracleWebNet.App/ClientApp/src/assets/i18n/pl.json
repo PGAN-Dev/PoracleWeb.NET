@@ -638,7 +638,8 @@
     "EDIT_MODE": "Edytuj wiadomość w miejscu",
     "EDIT_HINT": "Aktualizuje istniejącą wiadomość na Discordzie przy zmianie wabika zamiast wysyłać nową.",
     "EDIT_BADGE": "Edycja",
-    "CONFIRM_DELETE_TITLE": "Usunąć alarm wabika?"
+    "CONFIRM_DELETE_TITLE": "Usunąć alarm wabika?",
+    "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości."
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmy gniazd",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Nie udało się utworzyć alarmu",
     "SNACK_FAILED_UPDATE": "Nie udało się zaktualizować alarmu",
     "SNACK_FAILED_DELETE": "Nie udało się usunąć alarmu",
-    "CONFIRM_DELETE_TITLE": "Usunąć alarm gniazda?"
+    "CONFIRM_DELETE_TITLE": "Usunąć alarm gniazda?",
+    "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości."
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmy aren",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
     "TEAM_UNKNOWN": "Drużyna {{id}}",
-    "CONFIRM_DELETE_TITLE": "Usunąć alarm areny?"
+    "CONFIRM_DELETE_TITLE": "Usunąć alarm areny?",
+    "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmy zmian fortów",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Nie udało się zaktualizować lokalizacji",
     "SEARCH_AREAS": "Szukaj obszarów",
     "MANUAL_ADD_PLACEHOLDER": "Wpisz nazwę obszaru i naciśnij Enter",
-    "FILTER_PLACEHOLDER": "Filtruj według nazwy..."
+    "FILTER_PLACEHOLDER": "Filtruj według nazwy...",
+    "SNACK_LOAD_SELECTED_FAILED": "Nie udało się wczytać twoich obszarów. Odśwież przed ich zmianą.",
+    "SELECTION_UNKNOWN": "Nie udało się wczytać twoich obszarów — odśwież stronę przed zapisaniem."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profile",

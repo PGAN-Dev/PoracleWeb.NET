@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resetting an alarm's template to Default now sticks; nine of the ten edit dialogs sent a null the mapper skipped, so the choice was accepted and discarded (#639)
+- "Update Distance (all)" works on the Pokemon page: it was sending an object to an endpoint that binds a bare number, so it failed every time (#640)
+- Bulk "Update Distance" now reports failures instead of doing nothing visible, and shows the server's explanation of which alarm is in the way (#641)
+- Select All on the Raids page no longer selects hidden Eggs, which Delete then removed along with the raids (#642)
+- The Areas page no longer offers to save when it could not read your current areas, which turned one failed request into the loss of every subscription (#643)
 - Seeding the built-in quick picks no longer aborts partway: two invasion presets carry empty filters on purpose and were rejected by the save-time validation added in #604, so both the first-visit auto-seed and Reset to Defaults left a partial preset list (#637)
 - The admin Settings page shows every group on a fresh install; Alarm Types, Features, Administration and Analytics were hidden until their rows existed, and this page is the only thing that creates them (#629)
 - Resetting quick picks to defaults now clears the applied state of the picks it removes, instead of orphaning a row per user and profile (#630)

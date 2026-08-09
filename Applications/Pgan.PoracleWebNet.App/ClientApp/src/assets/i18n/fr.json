@@ -638,7 +638,8 @@
     "EDIT_MODE": "Modifier le message sur place",
     "EDIT_HINT": "Met à jour le message Discord existant lorsque le leurre change au lieu d’en envoyer un nouveau.",
     "EDIT_BADGE": "Modifier",
-    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte de module leurre ?"
+    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte de module leurre ?",
+    "SNACK_FAILED_DISTANCE": "Impossible de mettre à jour la distance."
   },
   "NESTS": {
     "PAGE_TITLE": "Alarmes Nid",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Échec de la création de l'alarme",
     "SNACK_FAILED_UPDATE": "Échec de la mise à jour de l'alarme",
     "SNACK_FAILED_DELETE": "Échec de la suppression de l'alarme",
-    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte de nid ?"
+    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte de nid ?",
+    "SNACK_FAILED_DISTANCE": "Impossible de mettre à jour la distance."
   },
   "GYMS": {
     "PAGE_TITLE": "Alarmes Arène",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Bravoure",
     "TEAM_INSTINCT": "Intuition",
     "TEAM_UNKNOWN": "Équipe {{id}}",
-    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte d'arène ?"
+    "CONFIRM_DELETE_TITLE": "Supprimer l'alerte d'arène ?",
+    "SNACK_FAILED_DISTANCE": "Impossible de mettre à jour la distance."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Alarmes Changement de fort",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Échec de la mise à jour de la localisation",
     "SEARCH_AREAS": "Rechercher des zones",
     "MANUAL_ADD_PLACEHOLDER": "Saisissez un nom de zone et appuyez sur Entrée",
-    "FILTER_PLACEHOLDER": "Filtrer par nom..."
+    "FILTER_PLACEHOLDER": "Filtrer par nom...",
+    "SNACK_LOAD_SELECTED_FAILED": "Impossible de charger vos zones actuelles. Rechargez avant de les modifier.",
+    "SELECTION_UNKNOWN": "Vos zones actuelles n’ont pas pu être chargées — rechargez la page avant d’enregistrer."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profils",

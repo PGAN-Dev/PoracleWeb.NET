@@ -116,7 +116,7 @@ export class InvasionEditDialogComponent {
         // also match female Mixed grunts.
         gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
         gruntType: this.data.gruntType ?? '',
-        template: v.template || null,
+        template: v.template || '',
       } as InvasionUpdate)
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which

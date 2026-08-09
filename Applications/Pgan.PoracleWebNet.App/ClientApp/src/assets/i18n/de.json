@@ -638,7 +638,8 @@
     "EDIT_MODE": "Nachricht direkt bearbeiten",
     "EDIT_HINT": "Aktualisiert die vorhandene Discord-Nachricht bei Änderungen am Lockmodul, statt eine neue zu senden.",
     "EDIT_BADGE": "Bearbeiten",
-    "CONFIRM_DELETE_TITLE": "Lockmodul-Alarm löschen?"
+    "CONFIRM_DELETE_TITLE": "Lockmodul-Alarm löschen?",
+    "SNACK_FAILED_DISTANCE": "Die Entfernung konnte nicht aktualisiert werden."
   },
   "NESTS": {
     "PAGE_TITLE": "Nest-Alarme",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Alarm konnte nicht erstellt werden",
     "SNACK_FAILED_UPDATE": "Alarm konnte nicht aktualisiert werden",
     "SNACK_FAILED_DELETE": "Alarm konnte nicht gelöscht werden",
-    "CONFIRM_DELETE_TITLE": "Nest-Alarm löschen?"
+    "CONFIRM_DELETE_TITLE": "Nest-Alarm löschen?",
+    "SNACK_FAILED_DISTANCE": "Die Entfernung konnte nicht aktualisiert werden."
   },
   "GYMS": {
     "PAGE_TITLE": "Arena-Alarme",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Wagemut",
     "TEAM_INSTINCT": "Intuition",
     "TEAM_UNKNOWN": "Team {{id}}",
-    "CONFIRM_DELETE_TITLE": "Arena-Alarm löschen?"
+    "CONFIRM_DELETE_TITLE": "Arena-Alarm löschen?",
+    "SNACK_FAILED_DISTANCE": "Die Entfernung konnte nicht aktualisiert werden."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort-Änderungs-Alarme",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Standort konnte nicht aktualisiert werden",
     "SEARCH_AREAS": "Gebiete suchen",
     "MANUAL_ADD_PLACEHOLDER": "Gebietsnamen eingeben und Eingabetaste drücken",
-    "FILTER_PLACEHOLDER": "Nach Name filtern..."
+    "FILTER_PLACEHOLDER": "Nach Name filtern...",
+    "SNACK_LOAD_SELECTED_FAILED": "Deine aktuellen Gebiete konnten nicht geladen werden. Lade neu, bevor du sie änderst.",
+    "SELECTION_UNKNOWN": "Deine aktuellen Gebiete konnten nicht geladen werden — lade die Seite neu, bevor du speicherst."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profile",

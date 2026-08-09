@@ -61,20 +61,23 @@ export class RaidListComponent implements OnInit {
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
-  readonly eggs = signal<Egg[]>([]);
+  /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
+  readonly activeTab = signal(0);
 
+  readonly eggs = signal<Egg[]>([]);
   readonly gymNames = signal<Record<string, string>>({});
   readonly loading = signal(true);
   readonly raids = signal<Raid[]>([]);
+
   // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
   // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
   // one card ticked the other, and the bulk actions sent both to the raid endpoint -- deleting or
   // resizing the raid twice and leaving the egg alone. See #540.
   readonly selectedIds = signal(new Set<string>());
-
   readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
   readonly testAlertService = inject(TestAlertService);
+
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
@@ -120,8 +123,19 @@ export class RaidListComponent implements OnInit {
       const keys = [...this.selectedIds()];
       const selectedRaidUids = this.uidsOfKind(keys, 'raid');
       const selectedEggUids = this.uidsOfKind(keys, 'egg');
-      if (selectedRaidUids.length > 0) await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
-      if (selectedEggUids.length > 0) await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
+      // The server refuses a radius that would take over an alarm the user did not select, and names
+      // the one in the way. Unguarded, that rejection cleared nothing, reloaded nothing and showed
+      // nothing -- indistinguishable from a successful no-op. See #641.
+      try {
+        if (selectedRaidUids.length > 0) await firstValueFrom(this.raidService.updateBulkDistance(selectedRaidUids, distance));
+        if (selectedEggUids.length > 0) await firstValueFrom(this.eggService.updateBulkDistance(selectedEggUids, distance));
+      } catch (err) {
+        const message = (err as { error?: { error?: string } })?.error?.error;
+        this.snackBar.open(message ?? this.i18n.instant('RAIDS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), {
+          duration: 5000,
+        });
+        return;
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
@@ -372,9 +386,15 @@ export class RaidListComponent implements OnInit {
   }
 
   selectAll(): void {
+    // The visible tab only. Selecting both meant a user on the Raids tab pressed Select All, saw a
+    // count that included eggs they could not see, and Delete took those too -- reported as a plain
+    // "deleted N alarms". Every other list scopes this to what is rendered. See #642.
     const keys = new Set<string>();
-    this.raids().forEach(r => keys.add(this.selectionKey('raid', r.uid)));
-    this.eggs().forEach(e => keys.add(this.selectionKey('egg', e.uid)));
+    if (this.activeTab() === 0) {
+      this.raids().forEach(r => keys.add(this.selectionKey('raid', r.uid)));
+    } else {
+      this.eggs().forEach(e => keys.add(this.selectionKey('egg', e.uid)));
+    }
     this.selectedIds.set(keys);
   }
 
