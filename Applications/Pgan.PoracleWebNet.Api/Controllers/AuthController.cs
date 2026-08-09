@@ -34,6 +34,7 @@ public partial class AuthController(
 {
     private const string EnableDiscordKey = "enable_discord";
     private const string EnableTelegramKey = "enable_telegram";
+    private const string TelegramBotUsernameKey = "telegram_bot";
     private const string EnableOidcKey = "enable_oidc";
     private const string EnableOidcSloKey = "enable_oidc_slo";
 
@@ -635,8 +636,29 @@ public partial class AuthController(
         return this.Ok(new
         {
             enabled = this._telegramSettings.Enabled && !disabledBySetting,
-            botUsername = this._telegramSettings.BotUsername
+            botUsername = await this.ResolveTelegramBotUsernameAsync(),
         });
+    }
+
+    /// <summary>
+    /// The Telegram bot username the login widget is built with.
+    /// </summary>
+    /// <remarks>
+    /// Configuration wins; the <c>telegram_bot</c> site setting is the fallback. The admin page has
+    /// always offered that field and nothing has ever read it, so an admin filling it in to fix a dead
+    /// Telegram button saw it save and change nothing. Precedence is this way round on purpose: a
+    /// deployment whose env var is set and working must not have its widget repointed at whatever was
+    /// typed into the UI back when the field was inert. See #620.
+    /// </remarks>
+    private async Task<string> ResolveTelegramBotUsernameAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(this._telegramSettings.BotUsername))
+        {
+            return this._telegramSettings.BotUsername;
+        }
+
+        var configured = await this._siteSettingService.GetValueAsync(TelegramBotUsernameKey);
+        return configured?.Trim().TrimStart('@') ?? string.Empty;
     }
 
     /// <summary>
@@ -702,7 +724,7 @@ public partial class AuthController(
             {
                 configured = telegramConfigured,
                 enabledByAdmin = !telegramDisabledByAdmin,
-                botUsername = telegramConfigured ? this._telegramSettings.BotUsername : string.Empty,
+                botUsername = telegramConfigured ? await this.ResolveTelegramBotUsernameAsync() : string.Empty,
             },
             oidc = new
             {

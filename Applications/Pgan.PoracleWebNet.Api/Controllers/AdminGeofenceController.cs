@@ -33,6 +33,17 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         return this.Ok(geofences);
     }
 
+    /// <summary>Adds the cached Discord avatars the admin list renders. See #618.</summary>
+    private static void AddAvatars(UserGeofence geofence)
+    {
+        geofence.OwnerAvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(geofence.HumanId);
+
+        if (!string.IsNullOrEmpty(geofence.ReviewedBy))
+        {
+            geofence.ReviewedByAvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(geofence.ReviewedBy);
+        }
+    }
+
     [HttpGet("submissions")]
     public async Task<IActionResult> GetSubmissions()
     {
@@ -101,6 +112,9 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         {
             var result = await this._userGeofenceService.ApproveSubmissionAsync(
                 this.UserId, id, request?.PromotedName, request?.ParentId, request?.GroupName);
+            // The SPA swaps the list row for this response, so it needs the same avatars the list
+            // projection adds -- without them the card fell back to raw snowflakes. See #618.
+            AddAvatars(result);
             return this.Ok(result);
         }
         catch (KojiOperationException ex)
@@ -145,6 +159,9 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         try
         {
             var result = await this._userGeofenceService.RejectSubmissionAsync(this.UserId, id, request.ReviewNotes);
+            // The SPA swaps the list row for this response, so it needs the same avatars the list
+            // projection adds -- without them the card fell back to raw snowflakes. See #618.
+            AddAvatars(result);
             return this.Ok(result);
         }
         catch (KojiOperationException ex)

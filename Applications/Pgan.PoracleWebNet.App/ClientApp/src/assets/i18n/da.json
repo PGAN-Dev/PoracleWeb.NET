@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Søg efter et gym (valgfrit)",
     "SEARCH_HINT": "Skriv gym-navn...",
-    "CLEAR_ARIA": "Ryd gym-valg"
+    "CLEAR_ARIA": "Ryd gym-valg",
+    "RATE_LIMITED": "For mange scanneranmodninger — sæt farten lidt ned."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Notifikationer sendes for disse områder:",
@@ -1563,7 +1564,7 @@
     "ENABLE_TELEGRAM_LABEL": "Aktiver Telegram-login",
     "ENABLE_TELEGRAM_DESC": "Tillad Telegram-login på dette site. Kræver TELEGRAM_ENABLED=true, bot-token og bot-brugernavn i .env (servergenstart kræves efter .env-ændringer).",
     "TELEGRAM_BOT_LABEL": "Bot-brugernavn",
-    "TELEGRAM_BOT_DESC": "Telegram-bot-brugernavn (uden @).",
+    "TELEGRAM_BOT_DESC": "Telegram-bot-brugernavn (uden @). Bruges, når TELEGRAM_BOT_USERNAME ikke er konfigureret.",
     "ENABLE_DISCORD_LABEL": "Aktiver Discord-login",
     "ENABLE_DISCORD_DESC": "Tillad Discord-login på dette site. Kræver Discord Client ID og Client Secret i .env (servergenstart kræves efter .env-ændringer). Påvirker ikke PoracleNG-bot-levering.",
     "PROVIDER_URL_LABEL": "Kortflise-URL",

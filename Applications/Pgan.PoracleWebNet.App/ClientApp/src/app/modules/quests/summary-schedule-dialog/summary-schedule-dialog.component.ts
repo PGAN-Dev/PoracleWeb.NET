@@ -6,7 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
-import { finalize } from 'rxjs';
+import { catchError, finalize, of } from 'rxjs';
 
 import { ActiveHourEntry, compressDayRange, formatTime12h, groupActiveHours } from '../../../core/models/active-hours.models';
 import { I18nService } from '../../../core/services/i18n.service';
@@ -78,10 +78,15 @@ export class SummaryScheduleDialogComponent {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe(schedule => this.schedule.set(schedule));
 
-    this.locationService.getLocation().subscribe(location => {
-      this.userLat.set(location?.latitude ?? 0);
-      this.userLon.set(location?.longitude ?? 0);
-    });
+    // 0,0 is already the default, and is what a disabled or unset location should leave in place --
+    // without an error arm the same 403 threw instead. See #617.
+    this.locationService
+      .getLocation()
+      .pipe(catchError(() => of(null)))
+      .subscribe(location => {
+        this.userLat.set(location?.latitude ?? 0);
+        this.userLon.set(location?.longitude ?? 0);
+      });
   }
 
   /** Remove the schedule entirely (clear all rules). */

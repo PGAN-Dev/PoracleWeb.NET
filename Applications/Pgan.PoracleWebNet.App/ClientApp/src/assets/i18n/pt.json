@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Pesquisar ginásio (opcional)",
     "SEARCH_HINT": "Escreve o nome do ginásio...",
-    "CLEAR_ARIA": "Limpar seleção de ginásio"
+    "CLEAR_ARIA": "Limpar seleção de ginásio",
+    "RATE_LIMITED": "Demasiados pedidos ao scanner — abrande um pouco."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "As notificações serão enviadas para estas áreas:",
@@ -1576,7 +1577,7 @@
     "ENABLE_TELEGRAM_LABEL": "Ativar login do Telegram",
     "ENABLE_TELEGRAM_DESC": "Permitir login Telegram neste site. Requer TELEGRAM_ENABLED=true, bot token e bot username em .env (reinício do servidor necessário após alterações em .env).",
     "TELEGRAM_BOT_LABEL": "Nome de utilizador do bot",
-    "TELEGRAM_BOT_DESC": "Nome de utilizador do bot Telegram (sem @).",
+    "TELEGRAM_BOT_DESC": "Nome de utilizador do bot Telegram (sem @). Usado quando TELEGRAM_BOT_USERNAME não está configurado.",
     "ENABLE_DISCORD_LABEL": "Ativar login do Discord",
     "ENABLE_DISCORD_DESC": "Permitir login Discord neste site. Requer Discord Client ID e Client Secret em .env (reinício do servidor necessário após alterações em .env). Não afeta a entrega do bot PoracleNG.",
     "PROVIDER_URL_LABEL": "URL dos mosaicos do mapa",

@@ -120,6 +120,35 @@ public class AuthControllerProvidersTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task ProvidersFallsBackToTheSiteSettingBotUsername()
+    {
+        // The admin page has always offered this field and nothing ever read it. See #620.
+        this._siteSettingService.Setup(s => s.GetValueAsync("telegram_bot")).ReturnsAsync("@uibot");
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "" });
+
+        var result = await controller.Providers();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var doc = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
+        Assert.Equal("uibot", doc.RootElement.GetProperty("telegram").GetProperty("botUsername").GetString());
+    }
+
+    [Fact]
+    public async Task ProvidersPrefersTheConfiguredBotUsernameOverTheSiteSetting()
+    {
+        // A working env var must not be overridden by whatever was typed into the UI while the field
+        // was inert. See #620.
+        this._siteSettingService.Setup(s => s.GetValueAsync("telegram_bot")).ReturnsAsync("staleuibot");
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "envbot" });
+
+        var result = await controller.Providers();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var doc = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
+        Assert.Equal("envbot", doc.RootElement.GetProperty("telegram").GetProperty("botUsername").GetString());
+    }
+
+    [Fact]
     public async Task ProvidersTelegramNotConfiguredWhenDisabledInEnv()
     {
         var controller = this.CreateController(telegram: new TelegramSettings { Enabled = false });

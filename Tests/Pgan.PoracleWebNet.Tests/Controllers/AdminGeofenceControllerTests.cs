@@ -207,6 +207,51 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task ApproveSubmissionFillsInTheAvatarsTheListProjectionAdds()
+    {
+        // The SPA swaps the list row for this response, so a bare row blanked the card. See #618.
+        var approved = new UserGeofence
+        {
+            Id = 1,
+            KojiName = "pweb_111_downtown",
+            DisplayName = "Downtown",
+            HumanId = "111",
+            ReviewedBy = "123456789",
+            Status = "approved",
+        };
+        this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 1, null, null, null)).ReturnsAsync(approved);
+
+        var result = await this._sut.ApproveSubmission(1, null);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var value = Assert.IsType<UserGeofence>(ok.Value);
+        Assert.False(string.IsNullOrEmpty(value.OwnerAvatarUrl));
+        Assert.False(string.IsNullOrEmpty(value.ReviewedByAvatarUrl));
+    }
+
+    [Fact]
+    public async Task RejectSubmissionFillsInTheAvatarsTheListProjectionAdds()
+    {
+        var rejected = new UserGeofence
+        {
+            Id = 2,
+            KojiName = "pweb_111_uptown",
+            DisplayName = "Uptown",
+            HumanId = "111",
+            ReviewedBy = "123456789",
+            Status = "rejected",
+        };
+        this._service.Setup(s => s.RejectSubmissionAsync("123456789", 2, "too big")).ReturnsAsync(rejected);
+
+        var result = await this._sut.RejectSubmission(2, new AdminGeofenceController.RejectRequest { ReviewNotes = "too big" });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var value = Assert.IsType<UserGeofence>(ok.Value);
+        Assert.False(string.IsNullOrEmpty(value.OwnerAvatarUrl));
+        Assert.False(string.IsNullOrEmpty(value.ReviewedByAvatarUrl));
+    }
+
+    [Fact]
     public async Task ApproveSubmissionReturnsNotFoundWhenNotFound()
     {
         this._service.Setup(s => s.ApproveSubmissionAsync("123456789", 99, null, null, null))

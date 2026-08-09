@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Buscar un gimnasio (opcional)",
     "SEARCH_HINT": "Escribe nombre del gimnasio...",
-    "CLEAR_ARIA": "Borrar selección de gimnasio"
+    "CLEAR_ARIA": "Borrar selección de gimnasio",
+    "RATE_LIMITED": "Demasiadas solicitudes al escáner: reduce el ritmo."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Se enviarán notificaciones para estas zonas:",
@@ -1555,7 +1556,7 @@
     "ENABLE_TELEGRAM_LABEL": "Activar inicio de sesión con Telegram",
     "ENABLE_TELEGRAM_DESC": "Permite iniciar sesión con Telegram en este sitio. Requiere TELEGRAM_ENABLED=true, bot token y bot username en .env (reinicio necesario tras cambios en .env).",
     "TELEGRAM_BOT_LABEL": "Nombre de usuario del bot",
-    "TELEGRAM_BOT_DESC": "Nombre de usuario del bot de Telegram (sin @).",
+    "TELEGRAM_BOT_DESC": "Nombre de usuario del bot de Telegram (sin @). Se usa cuando TELEGRAM_BOT_USERNAME no está configurado.",
     "ENABLE_DISCORD_LABEL": "Activar inicio de sesión con Discord",
     "ENABLE_DISCORD_DESC": "Permite iniciar sesión con Discord en este sitio. Requiere Discord Client ID y Client Secret en .env (reinicio necesario tras cambios en .env). No afecta la entrega del bot PoracleNG.",
     "ENABLE_OIDC_LABEL": "Habilitar inicio de sesión SSO externo",

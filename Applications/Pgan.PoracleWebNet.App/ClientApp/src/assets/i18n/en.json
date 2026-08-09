@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Search for a gym (optional)",
     "SEARCH_HINT": "Type gym name...",
-    "CLEAR_ARIA": "Clear gym selection"
+    "CLEAR_ARIA": "Clear gym selection",
+    "RATE_LIMITED": "Too many scanner requests — please slow down."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Notifications will be sent for these areas:",
@@ -1549,7 +1550,7 @@
     "ENABLE_TELEGRAM_LABEL": "Enable Telegram Login",
     "ENABLE_TELEGRAM_DESC": "Allow Telegram login on this site. Requires TELEGRAM_ENABLED=true, bot token, and bot username in .env (server restart required for .env changes).",
     "TELEGRAM_BOT_LABEL": "Bot Username",
-    "TELEGRAM_BOT_DESC": "Telegram bot username (without @).",
+    "TELEGRAM_BOT_DESC": "Telegram bot username (without @). Used when TELEGRAM_BOT_USERNAME is not configured.",
     "ENABLE_DISCORD_LABEL": "Enable Discord Login",
     "ENABLE_DISCORD_DESC": "Allow Discord login on this site. Requires Discord Client ID and Client Secret in .env (server restart required for .env changes). Does not affect PoracleNG bot delivery.",
     "ENABLE_OIDC_LABEL": "Enable External SSO Login",

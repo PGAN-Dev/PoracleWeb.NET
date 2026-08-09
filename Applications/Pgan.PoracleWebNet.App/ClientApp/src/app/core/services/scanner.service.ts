@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslateService } from '@ngx-translate/core';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -18,6 +19,7 @@ export interface GymSearchResult {
 export class ScannerService {
   private readonly http = inject(HttpClient);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   getGymById(id: string): Observable<GymSearchResult | null> {
     return this.http
@@ -40,7 +42,10 @@ export class ScannerService {
 
   private handleError<T>(err: HttpErrorResponse, fallback: T): Observable<T> {
     if (err.status === 429) {
-      this.snackBar.open('Too many scanner requests — please slow down.', 'OK', { duration: 4000 });
+      // Raw English in all eleven locales, in a service whose neighbours all translate. See #619.
+      this.snackBar.open(this.translate.instant('GYM_PICKER.RATE_LIMITED'), this.translate.instant('TOAST.OK'), {
+        duration: 4000,
+      });
     }
     return of(fallback);
   }

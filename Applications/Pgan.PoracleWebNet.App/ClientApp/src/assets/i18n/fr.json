@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Rechercher une arène (optionnel)",
     "SEARCH_HINT": "Tape le nom de l'arène...",
-    "CLEAR_ARIA": "Effacer la sélection d'arène"
+    "CLEAR_ARIA": "Effacer la sélection d'arène",
+    "RATE_LIMITED": "Trop de requêtes au scanner — ralentissez un peu."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Les notifications seront envoyées pour ces zones :",
@@ -1555,7 +1556,7 @@
     "ENABLE_TELEGRAM_LABEL": "Activer la connexion Telegram",
     "ENABLE_TELEGRAM_DESC": "Autoriser la connexion Telegram sur ce site. Nécessite TELEGRAM_ENABLED=true, le bot token et le bot username dans .env (redémarrage du serveur requis pour les changements .env).",
     "TELEGRAM_BOT_LABEL": "Nom d'utilisateur du bot",
-    "TELEGRAM_BOT_DESC": "Nom d'utilisateur du bot Telegram (sans @).",
+    "TELEGRAM_BOT_DESC": "Nom d'utilisateur du bot Telegram (sans @). Utilisé lorsque TELEGRAM_BOT_USERNAME n’est pas configuré.",
     "ENABLE_DISCORD_LABEL": "Activer la connexion Discord",
     "ENABLE_DISCORD_DESC": "Autoriser la connexion Discord sur ce site. Nécessite le Discord Client ID et Client Secret dans .env (redémarrage du serveur requis pour les changements .env). N'affecte pas la livraison du bot PoracleNG.",
     "ENABLE_OIDC_LABEL": "Activer la connexion SSO externe",

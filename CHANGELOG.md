@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Add Raid dialog no longer offers a level picker on the By Boss tab, where PoracleNG discards the chosen level and stores "any" (#615)
+- A 401 now clears the whole session rather than the access token alone, so the admin impersonation token and a dead refresh token no longer survive it (#616)
+- The delivery preview no longer spins forever in every alarm dialog when `disable_location` is on (#617)
+- Approving or rejecting a geofence no longer blanks the admin card: the response carries the owner and reviewer names, avatars and polygon the list projection adds (#618)
+- The gym picker's rate-limit message is translated instead of hardcoded English (#619)
+- The admin "Bot Username" setting is now read as a fallback for the Telegram login widget instead of saving nowhere (#620)
 - Invasion alarms no longer accept a grunt type containing control characters, or one longer than the column, which produced an alarm that could never fire or a 500 (#611)
 - Fort change alarms now refuse a `changeTypes` list longer than the five legal values, or one that repeats a value, instead of failing in the database (#612)
 - An admin can no longer block their own account, which since #609 removed their API access immediately, including the endpoint that would restore it (#613)

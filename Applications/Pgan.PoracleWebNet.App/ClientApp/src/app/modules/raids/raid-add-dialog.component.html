@@ -55,9 +55,6 @@
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ 'RAIDS.POKEMON_SELECTED' | translate: { count: selectedPokemonIds().length } }}</p>
               }
-
-              <h4>{{ 'RAIDS.RAID_LEVEL_LABEL' | translate }}</h4>
-              <app-level-selector pickerType="boss" [value]="bossLevelArray()" (valueChange)="onBossLevelChange($event)" />
             </div>
           </mat-tab>
         </mat-tab-group>
