@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The nightly image prune no longer deletes released Docker images. `ignore-versions` matches a container version's digest rather than its tags, so it protected nothing and `:latest` and the version tags were swept away a few days after each release — leaving every documented `docker compose up` unable to pull (#677)
 - Changing a quick pick's alarm type no longer drops its ping target, template or distance either (#674)
 - Changing a quick pick's alarm type no longer resets its auto-delete, edit-in-place and summary bits (#671)
 - Creating a profile validates the location and area list before the profile is created, instead of leaving an orphan profile behind a 400 (#665)
