@@ -1,13 +1,16 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
+import { of } from 'rxjs';
 
 import { QuickPickListComponent } from './quick-pick-list.component';
 import { QuickPickSummary } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 describe('QuickPickListComponent', () => {
   let component: QuickPickListComponent;
@@ -194,5 +197,58 @@ describe('QuickPickListComponent', () => {
   it('should set selectedCategory when selecting a specific category', () => {
     component.selectCategory('PvP');
     expect(component.selectedCategory()).toBe('PvP');
+  });
+
+  describe('auto-seeding the built-in presets', () => {
+    // The guard exists so an admin who deletes the presets on purpose keeps an empty list (#634). It
+    // moved from a localStorage flag to a site setting (#662), and the local signal is only refreshed
+    // at app init -- so without updating it after a seed, deleting the last pick in the same session
+    // restored all thirty. See #666.
+    function setupAdmin(siteSettings: Record<string, string>, picks: QuickPickSummary[]) {
+      const seed = jest.fn(() => of(undefined));
+      const settings = { siteSettings: signal(siteSettings) };
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideTranslateService(),
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: ConfigService, useValue: { apiHost: API } },
+          { provide: AuthService, useValue: { currentUser: () => null, isAdmin: () => true } },
+          { provide: SettingsService, useValue: settings },
+          { provide: QuickPickService, useValue: { getAll: jest.fn(() => of(picks)), seed } },
+        ],
+        imports: [QuickPickListComponent],
+      });
+
+      const fixture = TestBed.createComponent(QuickPickListComponent);
+      return { component: fixture.componentInstance, seed, settings };
+    }
+
+    it('seeds when the list is empty and the installation has never been seeded', () => {
+      const { component: sut, seed } = setupAdmin({}, []);
+
+      sut.loadPicks();
+
+      expect(seed).toHaveBeenCalled();
+    });
+
+    it('does not seed again after seeding once in the same session', () => {
+      const { component: sut, seed } = setupAdmin({}, []);
+
+      sut.loadPicks();
+      sut.loadPicks();
+
+      expect(seed).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not seed an installation that has already been seeded', () => {
+      const { component: sut, seed } = setupAdmin({ quick_picks_seeded: 'true' }, []);
+
+      sut.loadPicks();
+
+      expect(seed).not.toHaveBeenCalled();
+    });
   });
 });

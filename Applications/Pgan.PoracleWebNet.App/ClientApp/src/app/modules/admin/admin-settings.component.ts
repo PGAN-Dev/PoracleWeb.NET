@@ -383,6 +383,10 @@ export class AdminSettingsComponent implements OnInit {
     'admin_disable_userlist',
     'admin_channel_id',
     'migration_completed',
+    // Installation sentinel, like migration_completed above. Listed in SettingsController's
+    // InternalKeys equivalent would hide it from admins too, and the quick-picks guard needs to read
+    // it -- so it is hidden here instead of there. See #668.
+    'quick_picks_seeded',
   ];
 
   private readonly originalSnapshot = signal<AnySettingItem[]>([]);
