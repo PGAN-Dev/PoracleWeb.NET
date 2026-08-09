@@ -111,7 +111,7 @@
                   <td class="col-status">
                     <span
                       class="status-chip"
-                      [class.status-pending]="geofence.status === 'pending_review'"
+                      [class.status-pending]="canReview(geofence)"
                       [class.status-active]="geofence.status === 'active'"
                       [class.status-approved]="geofence.status === 'approved'"
                       [class.status-rejected]="geofence.status === 'rejected'">
@@ -151,7 +151,7 @@
                       <button mat-icon-button (click)="openDetailDialog(geofence)" [matTooltip]="'ADMIN.VIEW_DETAILS' | translate">
                         <mat-icon>visibility</mat-icon>
                       </button>
-                      @if (geofence.status === 'pending_review') {
+                      @if (canReview(geofence)) {
                         <button
                           mat-icon-button
                           color="primary"
@@ -202,7 +202,7 @@
                     </div>
                     <div
                       class="submission-card-accent"
-                      [class.accent-pending]="geofence.status === 'pending_review'"
+                      [class.accent-pending]="canReview(geofence)"
                       [class.accent-active]="geofence.status === 'active'"
                       [class.accent-approved]="geofence.status === 'approved'"
                       [class.accent-rejected]="geofence.status === 'rejected'"></div>
@@ -285,7 +285,7 @@
                           [matTooltip]="'ADMIN.VIEW_GEOFENCE_DETAILS' | translate">
                           <mat-icon>visibility</mat-icon>
                         </button>
-                        @if (geofence.status === 'pending_review') {
+                        @if (canReview(geofence)) {
                           <button
                             mat-raised-button
                             color="primary"
@@ -336,7 +336,7 @@
                         <td class="col-status">
                           <span
                             class="status-chip"
-                            [class.status-pending]="geofence.status === 'pending_review'"
+                            [class.status-pending]="canReview(geofence)"
                             [class.status-active]="geofence.status === 'active'"
                             [class.status-approved]="geofence.status === 'approved'"
                             [class.status-rejected]="geofence.status === 'rejected'">
@@ -363,7 +363,7 @@
                             <button mat-icon-button (click)="openDetailDialog(geofence)" [matTooltip]="'ADMIN.VIEW_DETAILS' | translate">
                               <mat-icon>visibility</mat-icon>
                             </button>
-                            @if (geofence.status === 'pending_review') {
+                            @if (canReview(geofence)) {
                               <button
                                 mat-icon-button
                                 color="primary"

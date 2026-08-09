@@ -18,7 +18,8 @@ public class ProfileController(
     IPoracleHumanProxy humanProxy,
     IProfileRepository profileRepository,
     IJwtService jwtService,
-    IUserRoleResolver roleResolver) : BaseApiController
+    IUserRoleResolver roleResolver,
+    IUserGeofenceRepository userGeofenceRepository) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
@@ -26,6 +27,7 @@ public class ProfileController(
     private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IJwtService _jwtService = jwtService;
     private readonly IUserRoleResolver _roleResolver = roleResolver;
+    private readonly IUserGeofenceRepository _userGeofenceRepository = userGeofenceRepository;
 
     /// <summary>Matches the profiles.name column, so an over-long name is refused rather than 500ing.</summary>
     private const int MaxProfileNameLength = 255;
@@ -43,6 +45,48 @@ public class ProfileController(
         }
 
         return this.Ok(profiles);
+    }
+
+    /// <summary>
+    /// Drops any private geofence name from a submitted area list that the caller does not own.
+    /// </summary>
+    /// <remarks>
+    /// Public and admin areas are anyone's to select, so they pass through. What does not is another
+    /// user's private fence: PoracleNG's setAreas intersects against userSelectable fences and would
+    /// have stripped it, but this path writes the profile row directly. See #647.
+    /// </remarks>
+    private async Task<string> RemoveAreasTheCallerMayNotSelectAsync(string? area)
+    {
+        if (string.IsNullOrWhiteSpace(area))
+        {
+            return "[]";
+        }
+
+        List<string>? requested;
+        try
+        {
+            requested = JsonSerializer.Deserialize<List<string>>(area);
+        }
+        catch (JsonException)
+        {
+            return "[]";
+        }
+
+        if (requested is null || requested.Count == 0)
+        {
+            return "[]";
+        }
+
+        var privateNames = (await this._userGeofenceRepository.GetAllAsync())
+            .Where(g => !string.Equals(g.HumanId, this.UserId, StringComparison.OrdinalIgnoreCase))
+            .Select(g => g.KojiName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var allowed = requested
+            .Where(name => !string.IsNullOrWhiteSpace(name) && !privateNames.Contains(name))
+            .ToList();
+
+        return JsonSerializer.Serialize(allowed);
     }
 
     [HttpPost]
@@ -98,6 +142,20 @@ public class ProfileController(
             });
         }
 
+        // The request supplies its own geography, and nothing bounded it. Coordinates out of range reach
+        // the active-hours scheduler, which reads them as a timezone; an area list could name another
+        // user's private geofence, which PoracleNG's own setAreas filter would have stripped but a direct
+        // write does not. See #647.
+        if (profile.Latitude is < -90 or > 90 || profile.Longitude is < -180 or > 180)
+        {
+            return this.BadRequest(new
+            {
+                error = "Latitude must be between -90 and 90, and longitude between -180 and 180.",
+            });
+        }
+
+        var requestedAreas = await this.RemoveAreasTheCallerMayNotSelectAsync(profile.Area);
+
         // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the
         // ACTIVE profile had -- every area subscription the user held, and a location that also drives the
         // active-hours timezone. Duplicate and import already write the geography directly after creating;
@@ -109,7 +167,7 @@ public class ProfileController(
                 Id = this.UserId,
                 ProfileNo = createdNo.Value,
                 Name = profile.Name.Trim(),
-                Area = profile.Area ?? "[]",
+                Area = requestedAreas,
                 Latitude = profile.Latitude,
                 Longitude = profile.Longitude,
             });

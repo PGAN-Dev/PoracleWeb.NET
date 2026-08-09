@@ -221,6 +221,18 @@ public partial class UserGeofenceService(
         // over 50 characters, or carrying characters outside the allowlist -- could be applied by editing
         // an existing geofence instead. The polygon-side validation on this feature is thorough, which
         // made the gap look like an oversight rather than a decision. See #585.
+        // Once a fence is approved, Koji owns it under PromotedName and the area lists hold that name,
+        // not KojiName. Renaming then rewrote the subscription to a name neither Koji nor the feed
+        // serves, silently unsubscribing the owner from a live public area -- and PublicAreaName still
+        // returned the promoted name, so a later admin delete cleaned the wrong entry. A submission
+        // under review is frozen for the same reason: the admin is looking at the name as submitted.
+        // See #646.
+        if (!RenameableStatuses.Contains(geofence.Status))
+        {
+            throw new InvalidOperationException(
+                $"A geofence cannot be renamed while its status is '{geofence.Status}'.");
+        }
+
         var trimmedName = displayName?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(trimmedName) || trimmedName.Length > 50)
         {
@@ -250,7 +262,10 @@ public partial class UserGeofenceService(
         geofence.KojiName = newKojiName;
         // group_name is NOT NULL, and the rename dialog does not always send one -- keep what is there rather than clearing it.
         geofence.GroupName = string.IsNullOrWhiteSpace(groupName) ? geofence.GroupName : groupName;
-        geofence.ParentId = parentId ?? geofence.ParentId;
+        // Same treatment as group_name above: 0 is the dialog's "nothing selected", not a request to
+        // clear the parent. Taken literally it wiped the region of every renamed geofence, and a later
+        // approval then sent __parent: null to Koji and landed the area ungrouped. See #648.
+        geofence.ParentId = parentId is > 0 ? parentId.Value : geofence.ParentId;
         var updated = await this._repository.UpdateAsync(geofence);
 
         // Every profile that was subscribed stays subscribed, under the new name. This is the whole
@@ -887,6 +902,10 @@ public partial class UserGeofenceService(
     /// Statuses an admin may approve from. See the comment in <see cref="ApproveSubmissionAsync"/> for why
     /// <c>active</c> and <c>approved</c> are not among them.
     /// </summary>
+    /// <summary>Statuses a geofence may still be renamed in. See #646.</summary>
+    private static readonly HashSet<string> RenameableStatuses =
+        new(StringComparer.OrdinalIgnoreCase) { "active", "rejected" };
+
     private static readonly HashSet<string> ApprovableStatuses =
         new(StringComparer.Ordinal) { "pending_review", "rejected" };
 

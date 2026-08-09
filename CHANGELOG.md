@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Creating a profile no longer accepts an unbounded location or an area list naming another user's private geofence, both of which were written straight to the database (#647)
 - A login that carries no refresh token now clears any refresh token left behind by a previous session, instead of inheriting it and letting the refresh interceptor swap in a JWT minted for the previous user (#625)
 - A token re-issue no longer restarts the session clock: profile switches and profile resyncs keep the original expiry instead of applying the 24-hour default, so a short OIDC access token stays short and revocation propagates as documented (#624)
 - `isAdmin` is resolved live on every token re-issue rather than copied forward, so removing someone's admin rights takes effect instead of surviving indefinitely while they switch profile (#624)
@@ -22,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rejecting a geofence submission no longer silently stops the owner's alerts: a rejected fence stays in the feed, as "remains private with review notes" always intended (#645)
+- An approved or under-review geofence can no longer be renamed, which used to move the area subscription to a name neither Koji nor the feed serves (#646)
+- Renaming a geofence keeps its region instead of clearing the Koji parent, and the rename dialog now pre-selects the region it already has (#648)
+- Admins can review a rejected geofence submission again, which the API has always allowed (#649)
+- The region picker shows the region that is already selected instead of an empty box (#650)
+- Deleting a profile refreshes the session, so the JWT stops naming a profile that no longer exists (#651)
 - Resetting an alarm's template to Default now sticks; nine of the ten edit dialogs sent a null the mapper skipped, so the choice was accepted and discarded (#639)
 - "Update Distance (all)" works on the Pokemon page: it was sending an object to an endpoint that binds a bare number, so it failed every time (#640)
 - Bulk "Update Distance" now reports failures instead of doing nothing visible, and shows the server's explanation of which alarm is in the way (#641)

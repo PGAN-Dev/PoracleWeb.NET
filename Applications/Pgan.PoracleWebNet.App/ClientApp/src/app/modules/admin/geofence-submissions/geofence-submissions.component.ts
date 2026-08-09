@@ -202,6 +202,16 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
     }
   }
 
+  /**
+   * Whether the Review action applies, matching what the API will accept.
+   */
+  /* UserGeofenceService.ApprovableStatuses is { pending_review, rejected } -- an admin reconsidering a
+   * rejection is the intended case. All three view modes gated on pending_review alone, so a
+   * mistaken rejection was irreversible from the SPA while the endpoint would have taken it. See #649. */
+  canReview(geofence: { status: string }): boolean {
+    return geofence.status === 'pending_review' || geofence.status === 'rejected';
+  }
+
   getPointCount(geofence: UserGeofence): number {
     return geofence.pointCount ?? geofence.polygon?.length ?? 0;
   }
