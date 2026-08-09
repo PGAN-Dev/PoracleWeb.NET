@@ -35,13 +35,17 @@ alone ships nothing.
 
 Images go to [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net).
 
-!!! warning "Publishing a release also deploys to production"
-    On a `release` event only, the workflow's final step SSHes to the host in the `DEPLOY_HOST` secret and
-    runs `docker compose pull && docker compose up -d --force-recreate`. If `DEPLOY_HOST` or
-    `DEPLOY_SSH_KEY` is unset the step logs and exits 0, so forks are unaffected.
+!!! info "How a release reaches production"
+    Publishing the GitHub release is the moment production changes — merging `develop` into `main` on its
+    own does nothing, because the image build is triggered by the `release` event.
 
-    This is a direct push deploy, not watchtower. Publishing the GitHub release is therefore the moment
-    production changes — merging `develop` into `main` on its own does nothing.
+    Deployment itself is by **watchtower**, which polls `:latest` every 60 seconds. The same applies to
+    the dev instance, which polls `:beta` and therefore updates on every merge to `develop`.
+
+    The workflow does contain an SSH deploy step (`docker compose pull && up -d --force-recreate` against
+    the `DEPLOY_HOST` secret), but it is an **opt-in hook that is inert on this repository**: it exits 0
+    early unless both `DEPLOY_HOST` and `DEPLOY_SSH_KEY` are set, and neither is. Self-hosters who prefer
+    a push deploy to a polling agent can set them.
 
 ## changelog.yml
 
