@@ -100,11 +100,13 @@ public class AuthControllerLoginOriginTests
 
         var controller = new AuthController(
             new Mock<IHumanService>().Object,
+            new Mock<IProfileService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
             new Mock<ISiteSettingService>().Object,
             new Mock<IWebhookDelegateService>().Object,
             new Mock<IJwtService>().Object,
+            new Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver>().Object,
             new Mock<IOidcClient>().Object,
             new Mock<IOidcSessionService>().Object,
             Options.Create(new DiscordSettings { ClientId = "test-id", ClientSecret = "test-secret" }),

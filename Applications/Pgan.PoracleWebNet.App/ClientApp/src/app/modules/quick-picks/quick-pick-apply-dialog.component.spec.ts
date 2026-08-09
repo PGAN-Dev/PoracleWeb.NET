@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 
 import { QuickPickApplyDialogComponent } from './quick-pick-apply-dialog.component';
@@ -35,6 +36,8 @@ describe('QuickPickApplyDialogComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
+        // delivery-preview links to /areas with routerLink, so a router is required.
+        provideRouter([]),
         provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),

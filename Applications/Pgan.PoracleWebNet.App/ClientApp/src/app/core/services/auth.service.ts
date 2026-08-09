@@ -36,6 +36,10 @@ export class AuthService {
     // A definitively failed silent refresh ends the session.
     this.tokenStore.forceLogout$.subscribe(() => this.logout());
 
+    // The 401 path discards the session from under us; without this the app kept rendering the
+    // signed-in shell and an impersonation banner around the login page. See #627, #628.
+    this.tokenStore.sessionCleared$.subscribe(() => this.clearSession());
+
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       this.loadCurrentUser();
@@ -46,6 +50,22 @@ export class AuthService {
 
   clearProfileResynced(): void {
     this._profileResynced.set(false);
+  }
+
+  /**
+   * Discards every trace of the session without navigating.
+   */
+  /* The 401 path used to remove token keys by hand, which left `currentUser` and `_isImpersonating`
+   * set -- so the login page rendered inside the signed-in shell, complete with an impersonation
+   * banner whose Stop button did nothing, and bounced back to /dashboard on the next navigation.
+   * Deliberately does not navigate: the interceptor preserves the current query params, and going
+   * through logout() would append loggedout=1 and suppress the OIDC auto-redirect. See #627, #628. */
+  clearSession(): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    this._isImpersonating.set(false);
+    this.currentUser.set(null);
+    this.userLoaded$.next(null);
   }
 
   getProviders(): Observable<AuthProviders> {
@@ -163,7 +183,14 @@ export class AuthService {
   /** Restore the admin's original token. */
   async stopImpersonating(): Promise<void> {
     const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);
-    if (adminToken) {
+    if (!adminToken) {
+      // Nothing to go back to -- the admin token was discarded with the rest of the session. Silently
+      // returning left a visible button that did nothing at all. See #627.
+      this.logout();
+      return;
+    }
+
+    {
       localStorage.setItem(TOKEN_KEY, adminToken);
       localStorage.removeItem(ADMIN_TOKEN_KEY);
       this._isImpersonating.set(false);
@@ -182,7 +209,9 @@ export class AuthService {
   }
 
   private handleAuthResponse(res: LoginResponse): void {
-    localStorage.setItem(TOKEN_KEY, res.token);
+    // Through the store rather than a bare setItem, so a leftover refresh token and expiry from a
+    // previous OIDC session are cleared instead of inherited. See #625.
+    this.tokenStore.storeTokens(res.token, null);
     this.currentUser.set(res.user);
     this.userLoaded$.next(res.user);
   }

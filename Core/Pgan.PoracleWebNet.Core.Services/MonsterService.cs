@@ -10,9 +10,11 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
 
-    // Note: profileNo is kept for interface compatibility but PoracleNG scopes to the user's
-    // active profile (humans.current_profile_no) automatically. The JWT profileNo and the
-    // active profile should always match because SwitchProfile updates both.
+    // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
+    // profile (humans.current_profile_no), and writes no longer carry profile_no at all — see
+    // PoracleJsonHelper.SerializeToElement. The previous claim here, that the JWT profileNo and the
+    // active profile can never diverge, was wrong: the active-hours scheduler and the bot's !profile
+    // command both move it out of band, and JWTs live four hours. See #411.
     public async Task<IEnumerable<Monster>> GetByUserAsync(string userId, int profileNo)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
@@ -31,6 +33,11 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         model.Id = userId;
+
+        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
+        // 201 Created, and the user quietly loses the one they had. See #561.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -47,6 +54,14 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         // PoracleNG's POST endpoint handles updates when the body includes a uid field.
         var body = SerializeToElement(model);
+
+        // Pokemon is the one type with no collision guard: PoracleNG updates it in place rather than
+        // merging, so an edit onto another alarm's exact settings wrote a byte-identical twin -- two rows
+        // on the page that cannot be told apart and must each be deleted. Creating that state directly is
+        // refused, so the edit path was the only way to reach it. See #537.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, model.Uid, body);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
         return model;
     }

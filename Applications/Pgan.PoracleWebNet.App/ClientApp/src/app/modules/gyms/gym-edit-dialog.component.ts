@@ -54,7 +54,6 @@ export class GymEditDialogComponent {
     clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
-    ping: [this.data.ping ?? ''],
     slotChanges: [this.data.slotChanges === 1],
     template: [this.data.template ?? ''],
   });
@@ -96,15 +95,18 @@ export class GymEditDialogComponent {
         battleChanges: v.battleChanges ? 1 : 0,
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
-        gymId: this.selectedGymId() || null,
-        ping: v.ping || null,
+        gymId: this.selectedGymId() ?? '',
         slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,
-        template: v.template || null,
+        template: v.template || '',
       } as GymUpdate)
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('GYMS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        // The server names what is wrong -- which alarm already uses these settings, which
+        // field a file got wrong. A fixed string threw that away. See #567, #568.
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(err?.error?.error ?? this.i18n.instant('GYMS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+            duration: 6000,
+          });
           this.saving.set(false);
         },
         next: () => {

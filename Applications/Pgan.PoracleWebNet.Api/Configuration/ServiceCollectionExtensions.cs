@@ -63,6 +63,9 @@ public static class ServiceCollectionExtensions
 
         // Register Services
         services.AddScoped<IMonsterService, MonsterService>();
+        // Keeps quick-pick tracked uids pointing at live rows when an edit rotates them (#403).
+        // Registered before the alarm services, which all depend on it.
+        services.AddScoped<ITrackedUidRemapper, TrackedUidRemapper>();
         services.AddScoped<IRaidService, RaidService>();
         services.AddScoped<IEggService, EggService>();
         services.AddScoped<IQuestService, QuestService>();
@@ -73,6 +76,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFortChangeService, FortChangeService>();
         services.AddScoped<IMaxBattleService, MaxBattleService>();
         services.AddScoped<IHumanService, HumanService>();
+        services.AddScoped<IUserPurgeService, UserPurgeService>();
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<ICleaningService, CleaningService>();
@@ -164,6 +168,10 @@ public static class ServiceCollectionExtensions
 
         // Register JWT service (shared token generation across controllers)
         services.AddSingleton<IJwtService, JwtService>();
+
+        // Admin status and delegated webhooks, resolved live rather than trusted from a claim minted
+        // at login. See #624 and #626.
+        services.AddScoped<Services.IUserRoleResolver, Services.UserRoleResolver>();
 
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));

@@ -46,7 +46,24 @@ describe('errorInterceptor', () => {
 
     expect(localStorage.getItem('poracle_token')).toBeNull();
     expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: {} });
-    expect(toast.error).toHaveBeenCalledWith('ERROR.SESSION_EXPIRED');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
+  });
+
+  it('clears the whole session on a 401, not just the access token', () => {
+    // The admin token is the higher-privilege credential an impersonating admin leaves behind, and
+    // stopImpersonating() would install it as the active token. See #616.
+    localStorage.setItem('poracle_token', 'expired-token');
+    localStorage.setItem('poracle_admin_token', 'admin-token');
+    localStorage.setItem('poracle_refresh_token', 'refresh-token');
+    localStorage.setItem('poracle_token_expires_at', '1');
+
+    http.get('/api/dashboard').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/dashboard').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(localStorage.getItem('poracle_token')).toBeNull();
+    expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+    expect(localStorage.getItem('poracle_refresh_token')).toBeNull();
+    expect(localStorage.getItem('poracle_token_expires_at')).toBeNull();
   });
 
   it('should show permission toast for 403 without disableKey', () => {
@@ -57,14 +74,15 @@ describe('errorInterceptor', () => {
       statusText: 'Forbidden',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.PERMISSION_DENIED');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.FORBIDDEN');
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  it('should show feature-disabled toast and redirect to /dashboard for 403 with disableKey', () => {
-    // Backend tags "feature disabled" 403s by including disableKey in the body so the
-    // SPA can distinguish them from generic permission denials and bounce the user off
-    // the now-broken page. (#236)
+  it('should show the feature-disabled toast, without moving the user, for 403 with disableKey', () => {
+    // Backend tags "feature disabled" 403s by including disableKey in the body so the SPA can tell them
+    // from generic permission denials. It must NOT redirect: these mostly come from shared components
+    // asking for something incidental, and the redirect moved the route out from under open dialogs and
+    // off pages whose own feature was enabled. disabledFeatureGuard owns navigation. See #515, #516.
     http.get('/api/monsters').subscribe({ error: () => {} });
 
     httpMock
@@ -75,7 +93,7 @@ describe('errorInterceptor', () => {
       );
 
     expect(toast.error).toHaveBeenCalledWith('ERROR.FEATURE_DISABLED');
-    expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('should show not found toast for 404', () => {
@@ -86,7 +104,7 @@ describe('errorInterceptor', () => {
       statusText: 'Not Found',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.NOT_FOUND');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.NOT_FOUND');
   });
 
   it('should show server error toast for 500', () => {
@@ -97,7 +115,7 @@ describe('errorInterceptor', () => {
       statusText: 'Error',
     });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.GENERIC');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.SERVER_ERROR');
   });
 
   it('should show unavailable toast for 502/503/504', () => {
@@ -110,7 +128,7 @@ describe('errorInterceptor', () => {
         statusText: 'Unavailable',
       });
 
-      expect(toast.error).toHaveBeenCalledWith('ERROR.SERVER_UNAVAILABLE');
+      expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.UNAVAILABLE');
     }
   });
 
@@ -119,7 +137,7 @@ describe('errorInterceptor', () => {
 
     httpMock.expectOne('/api/dashboard').error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
 
-    expect(toast.error).toHaveBeenCalledWith('ERROR.NETWORK');
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.NETWORK');
   });
 
   describe('silent endpoints', () => {

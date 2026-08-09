@@ -70,7 +70,6 @@ export class RaidEditDialogComponent {
     clean: [isAutoDelete(this.data.item.clean)],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
-    ping: [this.data.item.ping ?? ''],
     rsvpChanges: [this.data.item.rsvpChanges],
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
@@ -135,18 +134,21 @@ export class RaidEditDialogComponent {
         evolution: raid.evolution,
         exclusive: raid.exclusive,
         form: raid.form,
-        gymId: this.selectedGymId() || null,
+        gymId: this.selectedGymId() ?? '',
         level: raid.level,
         move: raid.move,
-        ping: values.ping || null,
         pokemonId: raid.pokemonId,
         rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
-        template: values.template || null,
+        template: values.template || '',
       };
       this.raidService.update(this.data.item.uid, update).subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        // The server names what is wrong -- which alarm already uses these settings, which
+        // field a file got wrong. A fixed string threw that away. See #567, #568.
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(err?.error?.error ?? this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+            duration: 6000,
+          });
           this.saving.set(false);
         },
         next: () => {
@@ -160,16 +162,19 @@ export class RaidEditDialogComponent {
         clean,
         distance: distanceMeters,
         exclusive: egg.exclusive,
-        gymId: this.selectedGymId() || null,
+        gymId: this.selectedGymId() ?? '',
         level: egg.level,
-        ping: values.ping || null,
         rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
-        template: values.template || null,
+        template: values.template || '',
       };
       this.eggService.update(this.data.item.uid, update).subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        // The server names what is wrong -- which alarm already uses these settings, which
+        // field a file got wrong. A fixed string threw that away. See #567, #568.
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(err?.error?.error ?? this.i18n.instant('RAIDS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+            duration: 6000,
+          });
           this.saving.set(false);
         },
         next: () => {

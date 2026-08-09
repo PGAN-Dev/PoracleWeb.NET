@@ -66,7 +66,7 @@
     }
   </div>
 } @else {
-  <mat-tab-group>
+  <mat-tab-group [selectedIndex]="activeTab()" (selectedIndexChange)="activeTab.set($event)">
     <!-- Raids Tab -->
     <mat-tab>
       <ng-template mat-tab-label>
@@ -75,11 +75,11 @@
       </ng-template>
       <div class="alarm-grid">
         @for (raid of raids(); track raid.uid) {
-          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(raid.uid)">
+          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(selectionKey('raid', raid.uid))">
             @if (selectMode()) {
               <mat-checkbox
-                [checked]="selectedIds().has(raid.uid)"
-                (change)="toggleSelect(raid.uid)"
+                [checked]="selectedIds().has(selectionKey('raid', raid.uid))"
+                (change)="toggleSelect(selectionKey('raid', raid.uid))"
                 (click)="$event.stopPropagation()"
                 class="card-checkbox">
               </mat-checkbox>
@@ -117,7 +117,7 @@
                   >
                 </div>
               </div>
-              <app-alarm-info [distance]="raid.distance" [clean]="raid.clean" [template]="raid.template" [ping]="raid.ping" />
+              <app-alarm-info [distance]="raid.distance" [clean]="raid.clean" [template]="raid.template" />
             </mat-card-content>
             <mat-card-actions align="end">
               <button
@@ -177,11 +177,11 @@
       </ng-template>
       <div class="alarm-grid">
         @for (egg of eggs(); track egg.uid) {
-          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(egg.uid)">
+          <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(selectionKey('egg', egg.uid))">
             @if (selectMode()) {
               <mat-checkbox
-                [checked]="selectedIds().has(egg.uid)"
-                (change)="toggleSelect(egg.uid)"
+                [checked]="selectedIds().has(selectionKey('egg', egg.uid))"
+                (change)="toggleSelect(selectionKey('egg', egg.uid))"
                 (click)="$event.stopPropagation()"
                 class="card-checkbox">
               </mat-checkbox>
@@ -221,7 +221,7 @@
                   <span class="stat-value"><img [src]="getGymIcon(egg.team)" class="team-icon-inline" /> {{ getTeamName(egg.team) }}</span>
                 </div>
               </div>
-              <app-alarm-info [distance]="egg.distance" [clean]="egg.clean" [template]="egg.template" [ping]="egg.ping" />
+              <app-alarm-info [distance]="egg.distance" [clean]="egg.clean" [template]="egg.template" />
             </mat-card-content>
             <mat-card-actions align="end">
               <button

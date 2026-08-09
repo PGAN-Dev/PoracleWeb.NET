@@ -6,6 +6,16 @@ public interface IUserGeofenceService
 {
     public Task<List<UserGeofence>> GetByUserAsync(string humanId);
     public Task<UserGeofence> CreateAsync(string humanId, int profileNo, UserGeofenceCreate model);
+    /// <summary>
+    /// Renames a geofence and moves its area subscriptions with it.
+    /// </summary>
+    /// <remarks>
+    /// The Geofences page used to implement editing as delete-then-recreate, and the recreate
+    /// re-subscribed only the ACTIVE profile — so renaming from profile 0 quietly switched the geofence
+    /// off everywhere else, while the page still showed it on. See #543.
+    /// </remarks>
+    public Task<UserGeofence> RenameAsync(string humanId, int id, string displayName, string? groupName, int? parentId);
+
     public Task DeleteAsync(string humanId, int profileNo, int id);
     public Task<UserGeofence> SubmitForReviewAsync(string humanId, string kojiName);
     public Task<List<UserGeofence>> GetAllAsync();

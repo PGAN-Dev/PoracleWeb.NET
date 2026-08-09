@@ -102,11 +102,6 @@
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(invasion.distance) }}</span>
             }
           </div>
-          @if (invasion.ping) {
-            <div class="ping-info">
-              <mat-icon>notifications</mat-icon><span>{{ invasion.ping }}</span>
-            </div>
-          }
         </mat-card-content>
         <mat-card-actions align="end">
           <button

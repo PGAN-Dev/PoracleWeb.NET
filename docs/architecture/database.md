@@ -10,7 +10,7 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 
 - Connection string: `ConnectionStrings:PoracleDb`
 - Contains: `humans`, `profiles` tables (direct access), plus alarm tables (read-only for legacy/fallback)
-- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct DB access is only used for admin bulk human operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`).
+- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct DB access is used for admin bulk human operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`), for profile **rename** (`ProfileRepository.RenameAsync` — PoracleNG's profile update silently ignores `name`), and for user-geofence area writes (`IUserAreaDualWriter` — PoracleNG's `setAreas` strips fences that are not user-selectable). The last two are tagged in code and documented in [Backend](backend.md#areas).
 
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
@@ -54,6 +54,7 @@ A separate EF Core context for **application-owned data**.
 | `webhook_delegates` | Relational webhook-to-user delegation mappings |
 | `quick_pick_definitions` | Quick pick alarm presets (global and user-scoped) |
 | `quick_pick_applied_states` | Tracks which quick picks users have applied per profile |
+| `oidc_sessions` | Refresh-token families for OIDC silent refresh, with rotation and replay detection |
 
 !!! info "MariaDB compatibility"
     `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK(-1)` which returns NULL on MariaDB. The `MariaDbHistoryRepository` class overrides the lock to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
@@ -174,7 +175,7 @@ Stores alarm presets (both admin-global and user-scoped):
 |---|---|---|
 | `id` | varchar(50) (PK) | Unique pick ID |
 | `name` | varchar(200) | Display name |
-| `alarm_type` | varchar(20) | `monster`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym` |
+| `alarm_type` | varchar(20) | `monster`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`, `maxbattle` |
 | `scope` | varchar(10) | `global` (admin) or `user` |
 | `owner_user_id` | varchar(100) | NULL for global, user ID for user-scoped |
 | `filters_json` | JSON | Alarm filter parameters |

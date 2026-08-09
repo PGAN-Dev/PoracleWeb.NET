@@ -85,11 +85,6 @@
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(gym.distance) }}</span>
             }
           </div>
-          @if (gym.ping) {
-            <div class="ping-info">
-              <mat-icon>notifications</mat-icon><span>{{ gym.ping }}</span>
-            </div>
-          }
         </mat-card-content>
         <mat-card-actions align="end">
           <button

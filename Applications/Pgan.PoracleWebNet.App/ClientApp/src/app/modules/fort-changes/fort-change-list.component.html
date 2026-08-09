@@ -67,9 +67,6 @@
             <span class="fort-subtitle">Fort Change Tracking</span>
           </div>
           <div class="card-top-actions">
-            @if (isAutoDelete(item.clean)) {
-              <span class="clean-tag" [matTooltip]="'ALARM.CLEAN_HINT_FORT' | translate">clean</span>
-            }
             @if (item.includeEmpty === 1) {
               <span class="include-empty-tag" [matTooltip]="'FORT_CHANGES.INCLUDE_EMPTY' | translate">incl. empty</span>
             }
@@ -89,11 +86,6 @@
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(item.distance) }}</span>
             }
           </div>
-          @if (item.ping) {
-            <div class="ping-info">
-              <mat-icon>notifications</mat-icon><span>{{ item.ping }}</span>
-            </div>
-          }
         </mat-card-content>
         <mat-card-actions align="end">
           <button mat-icon-button (click)="editItem(item)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>

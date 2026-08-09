@@ -13,7 +13,11 @@ import { QuickPickSummary } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+
+/** Site setting marking that the built-in presets have been seeded once. See #634, #662. */
+const SEEDED_KEY = 'quick_picks_seeded';
 
 @Component({
   imports: [
@@ -37,6 +41,7 @@ export class QuickPickListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly quickPickService = inject(QuickPickService);
+  private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly alarmTypeColors: Record<string, string> = {
@@ -94,11 +99,23 @@ export class QuickPickListComponent implements OnInit {
         this.loading.set(false);
       },
       next: picks => {
-        if (picks.length === 0 && autoSeed && this.isAdmin()) {
-          // First visit with no picks — seed defaults and reload
+        if (picks.length === 0 && autoSeed && this.isAdmin() && this.settingsService.siteSettings()[SEEDED_KEY] !== 'true') {
+          // First visit with no picks — seed defaults and reload. Guarded because this ran on *every*
+          // empty read: an admin who deleted the presets on purpose got all thirty back on their next
+          // visit (#634). The marker is a site setting, not localStorage: whether an installation has
+          // been seeded is a property of the installation, and a per-browser flag meant a second admin
+          // reseeded anyway, while a failed seed latched the flag and never retried. See #662.
           this.quickPickService.seed().subscribe({
             error: () => this.loading.set(false),
-            next: () => this.loadPicks(false),
+            next: () => {
+              // The marker is written server-side by the seed endpoint, atomically with the seed it
+              // describes (#662). The local signal is only refreshed at app init, so without this the
+              // key stayed absent for the rest of the session: deleting the last pick called loadPicks
+              // with autoSeed, saw an empty list and an absent marker, and restored all thirty. That is
+              // #634 again, minus the synchronous localStorage write that used to mask it. See #666.
+              this.settingsService.siteSettings.update(current => ({ ...current, [SEEDED_KEY]: 'true' }));
+              this.loadPicks(false);
+            },
           });
           return;
         }

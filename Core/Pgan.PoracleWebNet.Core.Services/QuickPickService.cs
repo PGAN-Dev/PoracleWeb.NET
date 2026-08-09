@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
@@ -19,9 +20,11 @@ public partial class QuickPickService(
     IGymService gymService,
     IMaxBattleService maxBattleService,
     IMasterDataService masterDataService,
+    IFeatureGate featureGate,
     ILogger<QuickPickService> logger) : IQuickPickService
 {
     private readonly IQuickPickDefinitionRepository _definitionRepository = definitionRepository;
+    private readonly IFeatureGate _featureGate = featureGate;
     private readonly IQuickPickAppliedStateRepository _appliedStateRepository = appliedStateRepository;
     private readonly IMonsterService _monsterService = monsterService;
     private readonly IRaidService _raidService = raidService;
@@ -66,17 +69,33 @@ public partial class QuickPickService(
 
         foreach (var definition in allDefinitions)
         {
-            if (!definition.Enabled)
+            var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, definition.Id);
+
+            // A disabled pick used to be skipped before the applied state was even looked up, so a pick
+            // the caller had already applied vanished from the list the moment it was disabled -- while
+            // its alarms stayed. This page is the only place Remove exists, so the user was left with
+            // alarms they could not un-apply and nothing to say where they came from; an admin disabling
+            // a global pick did that to everyone who had applied it. Disabled means "cannot be applied",
+            // not "cannot be undone", so it stays listed while it still owns something. See #508.
+            if (!definition.Enabled && appliedState is null)
             {
                 continue;
             }
 
-            var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, definition.Id);
-
             // Verify tracked alarms still exist — if all deleted manually, clear applied state
             if (appliedState?.TrackedUids is { Count: > 0 })
             {
-                var remaining = await this.CountRemainingUidsAsync(userId, definition.AlarmType, appliedState.TrackedUids);
+                // Against the type the alarms were CREATED as, not the definition's current one. Editing
+                // an applied pick's alarm type -- a plain dropdown in the edit dialog -- made this look
+                // the monster uids up among the raids, find none, conclude the user had deleted them all
+                // and drop the applied state. The alarms stayed behind with nothing owning them and no
+                // Remove button, because the card then read as never applied. RemoveAsync already keys
+                // off the stored type for exactly this reason. See #541.
+                var trackedType = string.IsNullOrEmpty(appliedState.AlarmType)
+                    ? definition.AlarmType
+                    : appliedState.AlarmType;
+
+                var remaining = await this.CountRemainingUidsAsync(userId, trackedType, appliedState.TrackedUids);
                 if (remaining == 0)
                 {
                     // All alarms were deleted manually — clean up stale applied state
@@ -86,7 +105,7 @@ public partial class QuickPickService(
                 else if (remaining < appliedState.TrackedUids.Count)
                 {
                     // Some alarms were deleted — update the tracked UIDs to only valid ones
-                    appliedState.TrackedUids = await this.GetValidUidsAsync(userId, definition.AlarmType, appliedState.TrackedUids);
+                    appliedState.TrackedUids = await this.GetValidUidsAsync(userId, trackedType, appliedState.TrackedUids);
                     await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
                 }
             }
@@ -104,15 +123,68 @@ public partial class QuickPickService(
     public async Task<QuickPickDefinition?> GetByIdAsync(string id) => await this._definitionRepository.GetByIdAsync(id);
 
     /// <summary>
+    /// Refuses a definition whose filters the alarm endpoints would reject.
+    /// </summary>
+    /// <remarks>
+    /// Apply validates the alarm it builds (#565), but the definition itself was never checked, so an
+    /// admin could save a global pick holding a value no alarm accepts -- a PVP league of 1000, say -- and
+    /// every user who applied it got the refusal instead. Failing at save time puts the error in front of
+    /// the person who can fix it. See #604.
+    /// </remarks>
+    private static void EnsureFiltersAreUsable(QuickPickDefinition definition)
+    {
+        // Nothing to check, and checking anyway broke seeding. Two built-ins -- all-invasions and
+        // invasion-leader -- carry no filters on purpose because ApplyInvasionAsync fans them out across
+        // grunt types at apply time, so the sample alarm built here has no grunt_type and the Create DTO
+        // requires one. SeedDefaultsAsync goes through this method, so it threw partway and left a
+        // partial preset list behind both entry points that call it. Apply-time validation (#565) still
+        // covers the alarm that actually gets built. See #637.
+        if (definition.Filters is null || definition.Filters.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            BuildSampleAlarm(definition, 0, new QuickPickApplyRequest());
+        }
+        catch (AlarmValidationException ex)
+        {
+            throw new AlarmValidationException(
+                $"This quick pick cannot be saved: {ex.Message}");
+        }
+    }
+    /// <summary>
     /// Returns the pick only if <paramref name="userId"/> is allowed to see it: global picks are public,
     /// user picks are visible to their owner alone.
     /// </summary>
     public async Task<QuickPickDefinition?> GetVisibleByIdAsync(string userId, string id) =>
         await this.LoadDefinitionAsync(userId, id);
 
-    public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition)
+    public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition, bool isSeeding = false)
     {
+        EnsureFiltersAreUsable(definition);
+
         definition.Id = await this.EnsureIdAsync(definition);
+
+        // Given an id, this used to convert whatever it found into a global pick -- including a private
+        // one belonging to somebody else, which then appeared for every user and vanished from its
+        // owner's list. SaveUserPickAsync has always had this guard. See #631.
+        //
+        // Skipped when seeding. SeedDefaultsAsync creates the built-ins through this method, so a
+        // user-scoped pick that happens to hold a built-in id aborted the seed partway -- the same
+        // partial-preset-list failure #637 fixed, reintroduced by the guard in the same commit. See #659.
+        if (!isSeeding)
+        {
+            var existing = await this._definitionRepository.GetByIdAsync(definition.Id);
+            if (existing is not null
+                && !string.Equals(existing.Scope, "global", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AlarmValidationException(
+                    "That quick pick belongs to a user. Publish a copy instead of converting theirs.");
+            }
+        }
+
         definition.Scope = "global";
         definition.OwnerUserId = null;
 
@@ -142,6 +214,11 @@ public partial class QuickPickService(
             slug = "quick-pick";
         }
 
+        // The id column is 50 characters and the name column is 200, so a perfectly legal name produced
+        // an id that could not be stored and the create came back as an opaque 500. Room is left for the
+        // longest suffix the collision loop can append. See #555.
+        slug = Truncate(slug, MaxIdLength - SuffixAllowance);
+
         // Names are not unique, so settle collisions with a counter before falling back to a guid.
         var candidate = slug;
         for (var attempt = 2; attempt <= 50; attempt++)
@@ -154,8 +231,17 @@ public partial class QuickPickService(
             candidate = $"{slug}-{attempt}";
         }
 
-        return $"{slug}-{Guid.NewGuid():N}";
+        return Truncate($"{slug}-{Guid.NewGuid():N}", MaxIdLength);
     }
+
+    /// <summary>The quick_pick_definitions.id column width.</summary>
+    private const int MaxIdLength = 50;
+
+    /// <summary>Room for the "-2".."-50" the collision loop appends, and for a guid tail if it gets there.</summary>
+    private const int SuffixAllowance = 4;
+
+    private static string Truncate(string value, int maxLength) =>
+        value.Length <= maxLength ? value : value[..maxLength].TrimEnd('-');
 
     private static string Slugify(string? name)
     {
@@ -179,6 +265,8 @@ public partial class QuickPickService(
 
     public async Task<QuickPickDefinition> SaveUserPickAsync(string userId, QuickPickDefinition definition)
     {
+        EnsureFiltersAreUsable(definition);
+
         // CreateOrUpdateAsync upserts on Id alone, and the Id arrives from the request body. Without this
         // check a user could post a global pick's well-known Id (hundo, nundo, raid-5star, ...) and the
         // upsert would rewrite that row -- flipping it to scope=user under their ownership and removing it
@@ -216,6 +304,9 @@ public partial class QuickPickService(
         }
 
         await this._definitionRepository.DeleteAsync(id);
+
+        // A global pick can be applied by anyone, so every user's state for it goes with it. See #470.
+        await this._appliedStateRepository.DeleteByQuickPickIdAsync(id);
         return true;
     }
 
@@ -228,6 +319,9 @@ public partial class QuickPickService(
         }
 
         await this._definitionRepository.DeleteByIdAndOwnerAsync(id, userId);
+
+        // Only the owner can apply a user-scoped pick, so only their state exists to clear. See #470.
+        await this._appliedStateRepository.DeleteByQuickPickIdAsync(id, userId);
         return true;
     }
 
@@ -236,7 +330,35 @@ public partial class QuickPickService(
     {
         var definition = await this.LoadDefinitionAsync(userId, quickPickId) ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
 
-        var trackedUids = definition.AlarmType switch
+        // A disabled pick now stays listed while it still owns alarms, so that Remove remains reachable
+        // (#508). It must not be appliable from there.
+        if (!definition.Enabled)
+        {
+            throw new AlarmValidationException("That quick pick is disabled and cannot be applied.");
+        }
+
+        // Applying a pick whose alarm type changed since it was applied would strand the alarms it made
+        // under the old type: the new applied state records the new type, and Remove -- which keys off
+        // the stored type -- can never reach them again. Refuse rather than strand, and say what to do.
+        // Re-apply is the supported way through, because it removes the old alarms first. See #557.
+        var existingState = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        if (existingState is not null
+            && existingState.TrackedUids.Count > 0
+            && !string.Equals(existingState.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AlarmValidationException(
+                "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+        }
+
+        // Snapshot first: the tracked set is what this apply ADDED, not what the create calls
+        // reported. PoracleNG hands back the existing row's uid when a pick matches an alarm the
+        // user built by hand, so trusting the reported uid made the pick adopt that alarm - and
+        // Remove then deleted it. It also reports no uid at all for an exact duplicate, which
+        // recorded a tracked uid of 0 that no lookup could resolve, so the applied state was wiped
+        // on the next page load. Diffing sidesteps both. See #468, #469.
+        var existingUids = await this.ExistingUidsAsync(userId, profileNo, definition.AlarmType);
+
+        var reportedUids = definition.AlarmType switch
         {
             "monster" => await this.ApplyMonsterAsync(userId, profileNo, definition, request),
             "raid" => await this.ApplyRaidAsync(userId, profileNo, definition, request),
@@ -249,6 +371,33 @@ public partial class QuickPickService(
             "maxbattle" => await this.ApplyMaxBattleAsync(userId, profileNo, definition, request),
             _ => throw new InvalidOperationException($"Unknown alarm type '{definition.AlarmType}'."),
         };
+
+        var afterUids = await this.ExistingUidsAsync(userId, profileNo, definition.AlarmType);
+        var addedUids = afterUids.Except(existingUids).ToList();
+        var displacedUids = existingUids.Except(afterUids).ToList();
+
+        // A uid that appeared is not automatically ours. When a pick matches an alarm the user built by
+        // hand, PoracleNG does not add a row - it RE-KEYS theirs, so the old uid disappears and a new one
+        // appears and the diff looks identical to a creation. Removing the pick then deleted the user's
+        // alarm. If anything was displaced we claim nothing: an untracked leftover is recoverable by
+        // hand, a deleted alarm is not. See #469.
+        var trackedUids = displacedUids.Count == 0 ? addedUids : [];
+
+        if (displacedUids.Count > 0)
+        {
+            LogQuickPickDisplaced(this._logger, quickPickId, displacedUids.Count, addedUids.Count);
+        }
+
+        LogQuickPickTracking(this._logger, quickPickId, reportedUids.Count, trackedUids.Count);
+
+        // Applying an already-applied pick adds nothing, because PoracleNG dedups -- so the diff is
+        // empty and writing it verbatim handed the pick an empty tracked list while its alarms were
+        // still there. Remove then answered 204 and deleted nothing, and the alarms were left with no
+        // way to attribute them. Keep what the pick already owned and add whatever this run created.
+        // See #542.
+        var previouslyTracked = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        var stillOwned = previouslyTracked?.TrackedUids?.Where(afterUids.Contains) ?? [];
+
         var appliedState = new QuickPickAppliedState
         {
             UserId = userId,
@@ -257,7 +406,7 @@ public partial class QuickPickService(
             AlarmType = definition.AlarmType,
             AppliedAt = DateTime.UtcNow,
             ExcludePokemonIds = request.ExcludePokemonIds,
-            TrackedUids = trackedUids
+            TrackedUids = [.. stillOwned.Union(trackedUids)],
         };
 
         await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
@@ -267,11 +416,134 @@ public partial class QuickPickService(
         return appliedState;
     }
 
+    /// <summary>
+    /// The uids the user currently holds for an alarm type. Used either side of an apply so the
+    /// pick claims only the rows it actually created.
+    /// </summary>
+    private async Task<List<int>> ExistingUidsAsync(string userId, int profileNo, string alarmType) => alarmType switch
+    {
+        "monster" => [.. (await this._monsterService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "raid" => [.. (await this._raidService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "egg" => [.. (await this._eggService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "quest" => [.. (await this._questService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "invasion" => [.. (await this._invasionService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "lure" => [.. (await this._lureService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "nest" => [.. (await this._nestService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "gym" => [.. (await this._gymService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        "maxbattle" => [.. (await this._maxBattleService.GetByUserAsync(userId, profileNo)).Select(x => x.Uid)],
+        _ => [],
+    };
+
     public async Task<QuickPickAppliedState> ReapplyAsync(
         string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
     {
+        // Remove used to run first unconditionally. Once apply grew guards -- a disabled pick, a filter
+        // the alarm model refuses, an alarm type an admin has switched off -- a refused re-apply
+        // destroyed the alarms and created nothing in their place, while the error read as "nothing
+        // happened". The pick also dropped off the list, taking the Remove button with it. Everything
+        // that can refuse this is checked BEFORE anything is deleted. See #531.
+        await this.EnsureApplicableAsync(userId, profileNo, quickPickId, request);
+
         await this.RemoveAsync(userId, profileNo, quickPickId);
         return await this.ApplyAsync(userId, profileNo, quickPickId, request);
+    }
+
+    /// <summary>
+    /// Runs everything that can refuse an apply, without writing anything.
+    /// </summary>
+    /// <remarks>
+    /// Builds the alarms the apply would build and validates them, which is where an impossible filter
+    /// surfaces. Building is side-effect free, so this is a genuine dry run rather than a partial apply.
+    /// </remarks>
+    private async Task EnsureApplicableAsync(
+        string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
+    {
+        var definition = await this.LoadDefinitionAsync(userId, quickPickId)
+            ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
+
+        if (!definition.Enabled)
+        {
+            throw new AlarmValidationException("That quick pick is disabled and cannot be applied.");
+        }
+
+        // The same gate the alarm services apply, so a type an admin has switched off refuses here
+        // rather than half-way through, after the deletes.
+        var disableKey = DisableFeatureKeys.ByTrackingType.TryGetValue(definition.AlarmType, out var key)
+            ? key
+            : null;
+        if (disableKey is not null)
+        {
+            await this._featureGate.EnsureEnabledAsync(disableKey);
+        }
+
+        // The alarm-type guard runs here too, not just in ApplyAsync. Re-apply deletes before it applies,
+        // so a pick whose type changed since it was applied lost its alarms AND its applied state before
+        // the refusal ever fired -- the deletes are committed and the error reads as "nothing happened".
+        // See #579.
+        var applied = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        if (applied is not null
+            && applied.TrackedUids.Count > 0
+            && !string.Equals(applied.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AlarmValidationException(
+                "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+        }
+
+        // Building throws for a filter the alarm model refuses. Nothing is sent anywhere.
+        BuildSampleAlarm(definition, profileNo, request);
+    }
+
+    /// <summary>Builds one alarm of the definition's type purely to run its validation.</summary>
+    /// <summary>Deserializes a definition's filters onto its model and validates them, writing nothing.</summary>
+    private static void BuildFromFilters<T>(Dictionary<string, object?> filters)
+        where T : new()
+    {
+        var json = JsonSerializer.Serialize(filters, JsonOptions);
+        var alarm = JsonSerializer.Deserialize<T>(json, JsonOptions) ?? new T();
+        EnsureValidAlarm(alarm!);
+    }
+
+    private static void BuildSampleAlarm(
+        QuickPickDefinition definition, int profileNo, QuickPickApplyRequest request)
+    {
+        switch (definition.AlarmType)
+        {
+            case "monster":
+                BuildMonster(definition.Filters, 1, profileNo, request);
+                break;
+            case "raid":
+                BuildRaid(definition.Filters, profileNo, request);
+                break;
+            case "maxbattle":
+                BuildMaxBattle(definition.Filters, profileNo, request);
+                break;
+            // The rest deserialize their filters straight onto the model. That IS validated on the way
+            // through -- but only after RemoveAsync has already deleted the alarms, so a re-apply of a pick
+            // with a bad filter destroyed them and created nothing. And a definition holding such a filter
+            // could still be SAVED, because the save check runs the same dry run. Six of the nine types
+            // fell through here. See #607, #608.
+            case "egg":
+                BuildFromFilters<Egg>(definition.Filters);
+                break;
+            case "quest":
+                BuildFromFilters<Quest>(definition.Filters);
+                break;
+            case "invasion":
+                BuildFromFilters<Invasion>(definition.Filters);
+                break;
+            case "lure":
+                BuildFromFilters<Lure>(definition.Filters);
+                break;
+            case "nest":
+                BuildFromFilters<Nest>(definition.Filters);
+                break;
+            case "gym":
+                BuildFromFilters<Gym>(definition.Filters);
+                break;
+            default:
+                // An alarm type this build does not know. Apply will fail on it anyway.
+                break;
+        }
     }
 
     public async Task<bool> RemoveAsync(string userId, int profileNo, string quickPickId)
@@ -339,13 +611,23 @@ public partial class QuickPickService(
         var existingGlobal = await this._definitionRepository.GetAllGlobalAsync();
         var existingCount = existingGlobal.Count;
 
+        // Applied state goes with the definitions it belongs to, exactly as DeleteAdminPickAsync does
+        // (#470). Without this, every user kept a row pointing at a definition that no longer exists:
+        // GetAllAsync iterates definitions, so the state was never listed and never cleaned, and the
+        // alarms it owned lost their Remove button for good. Worse, a later pick generating a colliding
+        // slug re-attached that state, and its trackedUids then named unrelated alarms. See #630.
+        foreach (var stale in existingGlobal)
+        {
+            await this._appliedStateRepository.DeleteByQuickPickIdAsync(stale.Id);
+        }
+
         await this._definitionRepository.DeleteAllGlobalAsync();
 
         LogSeedingDefaults(this._logger, Defaults.Count, existingCount);
 
         foreach (var definition in Defaults)
         {
-            await this.SaveAdminPickAsync(definition);
+            await this.SaveAdminPickAsync(definition, isSeeding: true);
         }
     }
 
@@ -415,6 +697,66 @@ public partial class QuickPickService(
         }
     }
 
+    /// <summary>
+    /// Runs the checks a model-bound POST would have run on an alarm built from quick-pick filters.
+    /// </summary>
+    /// <remarks>
+    /// Applying a pick builds the alarm in code and hands it straight to the alarm service, so none of the
+    /// DataAnnotations that ASP.NET applies to a bound request ever ran: values POST /api/monsters refuses
+    /// with a 400 -- minIv 500, say -- were persisted verbatim, producing an alarm that can never match
+    /// anything and notifies nothing, with no error anywhere. A quick pick is not a side door around the
+    /// model's own rules. See #507.
+    /// </remarks>
+    private static void EnsureValidAlarm(object alarm)
+    {
+        // Against the *Create DTO, because that is where the [Range] and [StringLength] attributes live --
+        // the domain models carry none, so validating those found nothing and a pick holding minIv 500 was
+        // applied verbatim. Same trap as #548. See #565.
+        var validationTarget = AsCreateDto(alarm) ?? alarm;
+
+        var results = new List<ValidationResult>();
+        if (!Validator.TryValidateObject(
+                validationTarget, new ValidationContext(validationTarget), results, validateAllProperties: true))
+        {
+            throw new AlarmValidationException(
+                "This quick pick holds a filter value the alarm does not accept: "
+                + (results[0].ErrorMessage ?? "value out of range"));
+        }
+
+        if (alarm is Monster monster)
+        {
+            var inverted = MonsterRangeValidator.Validate(monster);
+            if (inverted is not null)
+            {
+                throw new AlarmValidationException($"This quick pick holds an impossible filter: {inverted}");
+            }
+        }
+    }
+    /// <summary>Re-reads a built alarm as the DTO the POST endpoints bind, which carries the rules.</summary>
+    private static object? AsCreateDto(object alarm)
+    {
+        var json = JsonSerializer.Serialize(alarm, alarm.GetType(), SnakeCaseOptions);
+
+        return alarm switch
+        {
+            Monster => JsonSerializer.Deserialize<MonsterCreate>(json, SnakeCaseOptions),
+            Raid => JsonSerializer.Deserialize<RaidCreate>(json, SnakeCaseOptions),
+            Egg => JsonSerializer.Deserialize<EggCreate>(json, SnakeCaseOptions),
+            Quest => JsonSerializer.Deserialize<QuestCreate>(json, SnakeCaseOptions),
+            Invasion => JsonSerializer.Deserialize<InvasionCreate>(json, SnakeCaseOptions),
+            Lure => JsonSerializer.Deserialize<LureCreate>(json, SnakeCaseOptions),
+            Nest => JsonSerializer.Deserialize<NestCreate>(json, SnakeCaseOptions),
+            Gym => JsonSerializer.Deserialize<GymCreate>(json, SnakeCaseOptions),
+            MaxBattle => JsonSerializer.Deserialize<MaxBattleCreate>(json, SnakeCaseOptions),
+            _ => null,
+        };
+    }
+
+    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    };
+
     private static Monster BuildMonster(Dictionary<string, object?> filters, int pokemonId, int profileNo, QuickPickApplyRequest request)
     {
         // Start with sensible defaults (matching the add dialog defaults)
@@ -477,6 +819,8 @@ public partial class QuickPickService(
             monster.Template = request.Template;
         }
 
+        EnsureValidAlarm(monster);
+
         return monster;
     }
 
@@ -520,6 +864,8 @@ public partial class QuickPickService(
             raid.Template = request.Template;
         }
 
+        EnsureValidAlarm(raid);
+
         return raid;
     }
 
@@ -530,6 +876,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var egg = JsonSerializer.Deserialize<Egg>(json, JsonOptions) ?? new Egg();
+        EnsureValidAlarm(egg);
 
         egg.ProfileNo = profileNo;
 
@@ -559,6 +906,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var quest = JsonSerializer.Deserialize<Quest>(json, JsonOptions) ?? new Quest();
+        EnsureValidAlarm(quest);
 
         quest.ProfileNo = profileNo;
 
@@ -588,14 +936,23 @@ public partial class QuickPickService(
     // one alarm per leader rather than complicating the QuickPick schema. Giovanni is
     // deliberately excluded (separate `invasion-giovanni` pick, since he spawns from the
     // Super Rocket Radar only).
-    private static readonly string[] LeaderFanOutGruntTypes = ["cliff", "arlo", "sierra"];
+    private static readonly IReadOnlyList<string> LeaderFanOutGruntTypes = InvasionGruntTypes.Leaders;
 
     private async Task<List<int>> ApplyInvasionAsync(
         string userId, int profileNo, QuickPickDefinition definition, QuickPickApplyRequest request)
     {
-        if (definition.Id == "invasion-leader")
+        // "All Invasions" shipped with empty filters, so BuildInvasion produced grunt_type "" and every
+        // apply failed with a 500. PoracleNG has no catch-all, so "all" has to be a fan-out too. See #416.
+        var fanOut = definition.Id switch
         {
-            var invasions = LeaderFanOutGruntTypes.Select(gt => BuildInvasion(definition.Filters, profileNo, request, gt)).ToList();
+            "all-invasions" => InvasionGruntTypes.All,
+            "invasion-leader" => LeaderFanOutGruntTypes,
+            _ => null
+        };
+
+        if (fanOut != null)
+        {
+            var invasions = fanOut.Select(gt => BuildInvasion(definition.Filters, profileNo, request, gt)).ToList();
             var created = await this._invasionService.BulkCreateAsync(userId, invasions);
             return [.. created.Select(i => i.Uid)];
         }
@@ -618,8 +975,6 @@ public partial class QuickPickService(
             invasion.GruntType = gruntTypeOverride;
         }
 
-        invasion.GruntType ??= "";
-
         if (request.Distance.HasValue)
         {
             invasion.Distance = request.Distance.Value;
@@ -635,6 +990,8 @@ public partial class QuickPickService(
             invasion.Template = request.Template;
         }
 
+        EnsureValidAlarm(invasion);
+
         return invasion;
     }
 
@@ -645,6 +1002,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var lure = JsonSerializer.Deserialize<Lure>(json, JsonOptions) ?? new Lure();
+        EnsureValidAlarm(lure);
 
         lure.ProfileNo = profileNo;
 
@@ -674,6 +1032,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var nest = JsonSerializer.Deserialize<Nest>(json, JsonOptions) ?? new Nest();
+        EnsureValidAlarm(nest);
 
         nest.ProfileNo = profileNo;
 
@@ -703,6 +1062,7 @@ public partial class QuickPickService(
     {
         var json = JsonSerializer.Serialize(definition.Filters, JsonOptions);
         var gym = JsonSerializer.Deserialize<Gym>(json, JsonOptions) ?? new Gym();
+        EnsureValidAlarm(gym);
 
         gym.ProfileNo = profileNo;
 
@@ -779,6 +1139,8 @@ public partial class QuickPickService(
         {
             maxBattle.Template = request.Template;
         }
+
+        EnsureValidAlarm(maxBattle);
 
         return maxBattle;
     }
@@ -923,6 +1285,11 @@ public partial class QuickPickService(
         new() { Id = "lure-golden", Name = "Golden Lures", Description = "Track Golden Lure Modules at PokeStops", Icon = "stars", Category = "Lures", AlarmType = "lure", SortOrder = 64, Filters = new() { ["lureId"] = 505 } },
     ];
 
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Quick pick {QuickPickId} matched {DisplacedCount} alarm(s) the user already had; claiming none of the {AddedCount} resulting row(s) so removing the pick cannot delete them.")]
+    private static partial void LogQuickPickDisplaced(ILogger logger, string quickPickId, int displacedCount, int addedCount);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Applied quick pick '{QuickPickId}' for user {UserId} profile {ProfileNo}, created {Count} alarm(s).")]
     private static partial void LogQuickPickApplied(ILogger logger, string quickPickId, string userId, int profileNo, int count);
 
@@ -931,4 +1298,9 @@ public partial class QuickPickService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Seeding {Count} default quick picks (replaced {Existing} existing).")]
     private static partial void LogSeedingDefaults(ILogger logger, int count, int existing);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Quick pick {QuickPickId}: PoracleNG named {ReportedCount} uid(s), {TrackedCount} of which are new rows this apply created.")]
+    private static partial void LogQuickPickTracking(ILogger logger, string quickPickId, int reportedCount, int trackedCount);
 }

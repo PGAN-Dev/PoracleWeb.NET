@@ -86,11 +86,6 @@
               <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(nest.distance) }}</span>
             }
           </div>
-          @if (nest.ping) {
-            <div class="ping-info">
-              <mat-icon>notifications</mat-icon><span>{{ nest.ping }}</span>
-            </div>
-          }
         </mat-card-content>
         <mat-card-actions align="end">
           <button

@@ -56,7 +56,6 @@ export class NestEditDialogComponent {
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     minSpawnAvg: [this.data.minSpawnAvg],
-    ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
 
@@ -86,13 +85,16 @@ export class NestEditDialogComponent {
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
         minSpawnAvg: v.minSpawnAvg ?? 0,
-        ping: v.ping || null,
         pokemonId: this.data.pokemonId,
-        template: v.template || null,
+        template: v.template || '',
       } as NestUpdate)
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('NESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        // The server names what is wrong -- which alarm already uses these settings, which
+        // field a file got wrong. A fixed string threw that away. See #567, #568.
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(err?.error?.error ?? this.i18n.instant('NESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+            duration: 6000,
+          });
           this.saving.set(false);
         },
         next: () => {

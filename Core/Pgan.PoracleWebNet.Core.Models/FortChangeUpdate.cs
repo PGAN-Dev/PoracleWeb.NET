@@ -29,6 +29,10 @@ public class FortChangeUpdate
         get; set;
     }
 
+    // The same two bounds the create DTO carries (#612). Left off here, an update could still push an
+    // unbounded or repeating list into the JSON text column. See #660.
+    [MaxLength(5, ErrorMessage = "changeTypes may contain at most 5 entries.")]
+    [DistinctValues(ErrorMessage = "changeTypes must not repeat a value.")]
     [AllowedStringValues(
         FortChangeOptions.ChangeTypeName,
         FortChangeOptions.ChangeTypeLocation,
@@ -41,11 +45,6 @@ public class FortChangeUpdate
     }
 
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
-    [Range(0, 7)]
-    public int? Clean
-    {
-        get; set;
-    }
 
     [StringLength(256)]
     public string? Template

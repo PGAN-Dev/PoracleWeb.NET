@@ -22,6 +22,12 @@ public class InvasionCreate
         get; set;
     }
 
+    /// <summary>
+    /// Required. PoracleNG has no catch-all — an empty value is rejected upstream, so accepting one
+    /// here only converted a clear 400 into an opaque 500. Track everything by posting one alarm per
+    /// grunt type. See #416.
+    /// </summary>
+    [Required(AllowEmptyStrings = false)]
     [StringLength(256)]
     public string? GruntType
     {

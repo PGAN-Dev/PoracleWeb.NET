@@ -35,8 +35,18 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
     public async Task<IActionResult> Create([FromBody] MaxBattleCreate model)
     {
         var maxBattle = model.ToMaxBattle();
-        maxBattle.ProfileNo = this.ProfileNo;
+        // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
+        // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
+        // claim back would assert a profile the row was never written to. See #411.
         var result = await this._maxBattleService.CreateAsync(this.UserId, maxBattle);
+
+        // PoracleNG assigns no uid when the submission duplicates an alarm the user already has, so
+        // nothing was created. Answering 201 with a Location of /0 advertised a resource that 404s.
+        // 200 keeps multi-select creates working while no longer claiming a creation. See #459.
+        if (result.Uid <= 0)
+        {
+            return this.Ok(result);
+        }
         return this.CreatedAtAction(nameof(GetByUid), new
         {
             uid = result.Uid
@@ -52,7 +62,16 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
             return this.NotFound();
         }
 
-        model.ApplyUpdate(existing);
+        // Nothing to write means nothing to send: see LeavesAlarmUnchanged.
+        if (LeavesAlarmUnchanged(existing, () =>
+        {
+            model.ApplyUpdate(existing);
+            return existing;
+        }))
+        {
+            return this.Ok(existing);
+        }
+
         var result = await this._maxBattleService.UpdateAsync(this.UserId, existing);
         return this.Ok(result);
     }
@@ -93,6 +112,12 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
+        var invalid = this.RejectInvalidDistance(distance);
+        if (invalid != null)
+        {
+            return invalid;
+        }
+
         var count = await this._maxBattleService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
         return this.Ok(new
         {

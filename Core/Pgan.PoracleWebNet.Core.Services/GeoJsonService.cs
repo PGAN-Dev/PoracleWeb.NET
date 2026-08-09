@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -121,6 +122,19 @@ public partial class GeoJsonService(
                         break;
                     case "MultiPolygon":
                         ring = ExtractMultiPolygonRing(coordinates);
+
+                        // A geofence is one ring, so only the first polygon can be kept. Saying so
+                        // beats discarding the rest in silence: the stored shape is what PoracleJS
+                        // matches against. See #474.
+                        if (coordinates.ValueKind == JsonValueKind.Array && coordinates.GetArrayLength() > 1)
+                        {
+                            result.Warnings.Add(new GeoJsonImportError
+                            {
+                                FeatureName = featureName,
+                                Reason = $"Only the first of {coordinates.GetArrayLength()} polygons was imported; a geofence is a single shape."
+                            });
+                        }
+
                         break;
                     default:
                         result.Errors.Add(new GeoJsonImportError
@@ -226,7 +240,10 @@ public partial class GeoJsonService(
 
     private static GeoJsonFeature? BuildFeature(double[][] path, string name, string group, string source, string displayName)
     {
-        if (path.Length == 0)
+        // Rows written before create validated point arity can still be in the database. Projecting one
+        // used to throw IndexOutOfRangeException and 500 the caller's entire export until they worked out
+        // which geofence to delete. Skip it instead. See #410.
+        if (!PolygonValidation.IsWellFormed(path))
         {
             return null;
         }
@@ -358,9 +375,20 @@ public partial class GeoJsonService(
         var points = new List<double[]>();
         foreach (var point in ringElement.EnumerateArray())
         {
+            // Skipping a malformed point stored a DIFFERENT shape than the file described, reported
+            // as a clean success - and that shape is then served to PoracleJS for real alert
+            // matching. Refuse the ring so the feature is reported as an error instead. See #474.
             if (point.ValueKind != JsonValueKind.Array || point.GetArrayLength() < 2)
             {
-                continue;
+                return null;
+            }
+
+            // A non-numeric coordinate used to throw straight out of the import loop, past the
+            // per-feature error collection, keeping whatever had already been committed and leaking
+            // the .NET exception text. Treat it as a malformed ring instead. See #473.
+            if (point[0].ValueKind != JsonValueKind.Number || point[1].ValueKind != JsonValueKind.Number)
+            {
+                return null;
             }
 
             var lon = point[0].GetDouble();

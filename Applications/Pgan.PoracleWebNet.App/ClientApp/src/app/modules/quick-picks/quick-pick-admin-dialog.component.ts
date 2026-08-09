@@ -16,6 +16,19 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 
+/**
+ * Filter keys that belong to no particular alarm type, and so survive a type change.
+ *
+ * All four are properties of every one of the ten alarm models, and none is exposed by any of the
+ * per-type forms in `getFilterForm` -- the same test that justified preserving `clean` in #671. The
+ * backend's own `QuickPickService.SafeMonsterFilterKeys` lists them alongside it. `ping` in particular
+ * is never overridden at apply time, because the apply dialog has no ping control at all.
+ *
+ * This said `clean` was the only one, which was wrong -- and wrong in the direction that silently drops
+ * a user's ping target and template on a type change. See #671, #674.
+ */
+const TYPE_AGNOSTIC_FILTER_KEYS = new Set(['clean', 'distance', 'ping', 'template']);
+
 @Component({
   imports: [
     ReactiveFormsModule,
@@ -134,6 +147,15 @@ export class QuickPickAdminDialogComponent implements OnInit {
 
   readonly saving = signal(false);
 
+  /**
+   * Where this pick belongs: an edit keeps its own scope, a new one follows who is creating it.
+   */
+  /* Deciding purely from isAdmin meant an admin editing their *own* personal pick posted scope
+   * 'global', and SaveAdminPickAsync then republished it to every user and stripped its owner. The
+   * list's delete path already branched on scope; only save did not. See #631. */
+  readonly targetScope = (): 'global' | 'user' =>
+    this.isEdit ? (this.data?.scope === 'global' ? 'global' : 'user') : this.isAdmin ? 'global' : 'user';
+
   get currentAlarmType(): string {
     return this.mainForm.controls.alarmType.value ?? 'monster';
   }
@@ -185,13 +207,38 @@ export class QuickPickAdminDialogComponent implements OnInit {
 
     const main = this.mainForm.getRawValue();
     const filterForm = this.getFilterForm(main.alarmType ?? 'monster');
-    const filters: Record<string, unknown> = {};
+    // Start from what is stored rather than rebuilding: any key the dialog has no control for used to be
+    // dropped on save, and quick-pick-apply reads filters['clean'] as its base bitmask while no form
+    // exposes it. See #654.
+    // A type change clears the old type's filters -- carrying them across stored minIv and
+    // pvpRankingLeague on a lure pick (#669) -- but keeps the keys that belong to no type. Clearing
+    // wholesale threw away `clean`, which quick-pick-apply reads as its base bitmask, so changing a
+    // pick's type silently reset its auto-delete, edit and summary bits: the preservation #654 added,
+    // undone by the fix for #669. See #671.
+    const sameType = this.data?.alarmType === (main.alarmType ?? 'monster');
+    const previous = this.data?.filters ?? {};
+    const stored: Record<string, unknown> = sameType
+      ? { ...previous }
+      : Object.fromEntries(Object.entries(previous).filter(([key]) => TYPE_AGNOSTIC_FILTER_KEYS.has(key)));
+    const filters: Record<string, unknown> = stored;
     if (filterForm) {
       const raw = filterForm.getRawValue();
       Object.entries(raw).forEach(([key, value]) => {
-        if (value !== 0 && value !== '' && value !== null) {
-          filters[key] = value;
+        if (value === null || value === '' || value === undefined) {
+          delete filters[key];
+          return;
         }
+
+        // A stored 0 is kept, because 0 is a real filter value: the built-in nundo preset is
+        // { minIv: 0, maxIv: 0 }, and dropping those turned "0% IV only" into "any IV" for everyone who
+        // applied it afterwards. A 0 that was never stored is still skipped, because most of these
+        // controls default to 0 meaning "not set" -- writing them out would put an explicit minIv,
+        // pokemonId and pvpRankingLeague of 0 on every newly created pick.
+        if (value === 0 && !(key in stored)) {
+          return;
+        }
+
+        filters[key] = value;
       });
     }
 
@@ -204,11 +251,11 @@ export class QuickPickAdminDialogComponent implements OnInit {
       enabled: main.enabled ?? true,
       filters,
       icon: main.icon ?? 'bolt',
-      scope: this.isAdmin ? 'global' : 'user',
+      scope: this.targetScope(),
       sortOrder: main.sortOrder ?? 0,
     };
 
-    const obs = this.isAdmin ? this.quickPickService.saveAdmin(definition) : this.quickPickService.saveUser(definition);
+    const obs = this.targetScope() === 'global' ? this.quickPickService.saveAdmin(definition) : this.quickPickService.saveUser(definition);
 
     obs.subscribe({
       error: () => {

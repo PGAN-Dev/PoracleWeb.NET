@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Controllers;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -12,20 +13,25 @@ public class ProfileOverviewControllerTests : ControllerTestBase
 {
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IProfileService> _profileService = new();
+    private readonly Mock<IProfileRepository> _profileRepository = new();
     private readonly Mock<IProfileOverviewService> _service = new();
     private readonly ProfileOverviewController _sut;
 
     private readonly Mock<IJwtService> _jwtService = new();
+    private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
 
     public ProfileOverviewControllerTests()
     {
-        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>()))
+        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
         this._sut = new ProfileOverviewController(
             this._service.Object,
             this._profileService.Object,
+            this._profileRepository.Object,
             this._humanProxy.Object,
-            this._jwtService.Object);
+            this._jwtService.Object,
+            this._roleResolver.Object,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileOverviewController>.Instance);
         SetupUser(this._sut);
     }
 
@@ -76,9 +82,9 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         this._profileService
             .Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1))
             .ReturnsAsync(source);
-        this._profileService
-            .Setup(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([source]);
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([source])
+            .ReturnsAsync([source, new Profile { ProfileNo = 2, Name = "created" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Returns(Task.CompletedTask);
@@ -98,9 +104,9 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     [Fact]
     public async Task ImportProfileReturnsOkWithAlarmCount()
     {
-        this._profileService
-            .Setup(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "created" }]);
         this._humanProxy
             .Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Returns(Task.CompletedTask);
@@ -161,7 +167,9 @@ public class ProfileOverviewControllerTests : ControllerTestBase
         // propagate (no try/catch swallowing it) so the global filter can map it to 403. (#236)
         var source = new Profile { ProfileNo = 1, Name = "Main", Area = "[]" };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(source);
-        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([source]);
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([source])
+            .ReturnsAsync([source, new Profile { ProfileNo = 2, Name = "created" }]);
         this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).Returns(Task.CompletedTask);
         this._humanProxy.Setup(h => h.DeleteProfileAsync("123456789", It.IsAny<int>())).Returns(Task.CompletedTask);
         this._service
@@ -177,9 +185,9 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     [Fact]
     public async Task ImportProfilePropagatesFeatureDisabledException()
     {
-        this._profileService
-            .Setup(s => s.GetByUserAsync("123456789"))
-            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }]);
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }])
+            .ReturnsAsync([new Profile { ProfileNo = 1, Name = "Main" }, new Profile { ProfileNo = 2, Name = "created" }]);
         this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>())).Returns(Task.CompletedTask);
         var alarms = CreateJsonObject(new
         {

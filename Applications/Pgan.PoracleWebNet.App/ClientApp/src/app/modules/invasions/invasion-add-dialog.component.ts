@@ -12,7 +12,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import { getGruntDisplayName, isGenderFixed, UICONS_BASE } from './invasion.constants';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
@@ -122,7 +122,6 @@ export class InvasionAddDialogComponent implements OnInit {
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     gender: [0],
-    ping: [''],
     template: [''],
   });
 
@@ -182,38 +181,17 @@ export class InvasionAddDialogComponent implements OnInit {
   save(): void {
     if (!this.canSave()) return;
 
-    if (this.trackAll()) {
-      this.saving.set(true);
-      const v = this.form.getRawValue();
-      const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
-      this.invasionService
-        .create({
-          clean: v.clean ? 1 : 0,
-          distance: dist,
-          gender: v.gender ?? 0,
-          gruntType: null,
-          ping: v.ping || null,
-          template: v.template || null,
-        })
-        .subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-            this.saving.set(false);
-          },
-          next: () => {
-            this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_ALL_CREATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-            this.dialogRef.close(true);
-          },
-        });
-      return;
-    }
+    // "Track all" used to post a single alarm with gruntType: null. PoracleNG has no catch-all --
+    // it rejects an empty grunt_type with "Grunt type mandatory" -- so that call failed every time.
+    // The toggle now means what its hint always claimed: one alarm per Team Rocket grunt type.
+    // Pokestop events are excluded; they are not Rocket invasions and have their own section.
+    const targets = this.trackAll() ? this.rocketGrunts() : this.gruntOptions().filter(o => o.selected);
+    if (targets.length === 0) return;
 
-    const selected = this.gruntOptions().filter(o => o.selected);
-    if (selected.length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
-    const creates = selected.map(g =>
+    const creates = targets.map(g =>
       this.invasionService.create({
         clean: v.clean ? 1 : 0,
         distance: dist,
@@ -221,19 +199,41 @@ export class InvasionAddDialogComponent implements OnInit {
         // fall back to the user's dropdown choice; fixed-gender rows force 0.
         gender: g.gender ?? (isGenderFixed(g.gruntType) ? 0 : (v.gender ?? 0)),
         gruntType: g.gruntType,
-        ping: v.ping || null,
         template: v.template || null,
       }),
     );
-    forkJoin(creates).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+    // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
+    // succeeded were never reported, the dialog stayed open and the list never reloaded. Each request
+    // settles on its own now, and the toast says how many landed. See #577.
+    forkJoin(creates.map(c => c.pipe(catchError((err: { error?: { error?: string } }) => of({ failed: err }))))).subscribe({
+      // The server names what is wrong -- which alarm already uses these settings, which
+      // field a file got wrong. A fixed string threw that away. See #567, #568.
+      // Each create settles on its own, so a refused one no longer hides the ones that landed.
+      // The first refusal's message is shown, because it names what is in the way. See #577.
+      next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
+        const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
+        // Three outcomes, not two: refused (409), already tracked (200 with no uid), and created. The
+        // pokemon dialog has split these since #495; the rest reported duplicates as creations. See #605.
+        const landed = results.filter((r): r is { uid?: number } => !('failed' in r));
+        const created = landed.filter(r => (r.uid ?? 0) > 0).length;
+        const duplicates = landed.length - created;
         this.saving.set(false);
-      },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_CREATED_COUNT', { count: creates.length }), this.i18n.instant('TOAST.OK'), {
-          duration: 3000,
-        });
+
+        if (refused.length > 0) {
+          this.snackBar.open(
+            refused[0].failed?.error?.error ?? this.i18n.instant('INVASIONS.SNACK_FAILED_CREATE'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 6000 },
+          );
+        } else {
+          const message =
+            duplicates > 0
+              ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
+              : this.i18n.instant('COMMON.SAVED', { count: created });
+          this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
+        }
+
+        // Close either way: whatever was created is real, and the list must reload to show it.
         this.dialogRef.close(true);
       },
     });

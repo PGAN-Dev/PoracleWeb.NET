@@ -209,4 +209,43 @@ describe('GeofenceApprovalDialogComponent', () => {
       } as GeofenceApprovalDialogResult);
     });
   });
+
+  // The server rejects names outside ^[a-zA-Z0-9 \-'.()&]+$ or over 50 chars, and used to answer 404
+  // for it — so the SPA toasted "Not found" for a submission that was plainly visible. Catching it here
+  // means the admin never makes that request. See #421.
+  describe('promoted name validation (#421)', () => {
+    it.each(['Downtown / Uptown', 'Park_West', 'North Side, East', 'bad<>name;drop'])('rejects %s, which the server would refuse', name => {
+      component.promotedName = name;
+      expect(component.promotedNameError).toBe('ADMIN.APPROVAL_PROMOTED_NAME_INVALID');
+      expect(component.canApprove).toBe(false);
+    });
+
+    it.each(['Downtown Official', "O'Fallon Park", 'Midlo - Westchester', 'Parks (North) & South', 'Area 51'])('accepts %s', name => {
+      component.promotedName = name;
+      expect(component.promotedNameError).toBeNull();
+      expect(component.canApprove).toBe(true);
+    });
+
+    it('rejects a name over 50 characters', () => {
+      component.promotedName = 'a'.repeat(51);
+      expect(component.promotedNameError).toBe('ADMIN.APPROVAL_PROMOTED_NAME_TOO_LONG');
+    });
+
+    it('accepts exactly 50 characters', () => {
+      component.promotedName = 'a'.repeat(50);
+      expect(component.promotedNameError).toBeNull();
+    });
+
+    it('allows an empty name, which means keep the current display name', () => {
+      component.promotedName = '   ';
+      expect(component.promotedNameError).toBeNull();
+      expect(component.canApprove).toBe(true);
+    });
+
+    it('does not block rejecting just because the promoted name is invalid', () => {
+      component.promotedName = 'Downtown / Uptown';
+      component.mode = 'reject';
+      expect(component.canApprove).toBe(true);
+    });
+  });
 });

@@ -57,8 +57,25 @@ public interface IPoracleTrackingProxy
 /// <summary>
 /// Result from PoracleNG's tracking create endpoint.
 /// </summary>
+/// <summary>
+/// PoracleNG's answer to a tracking create. It reports exactly what it did; PoracleWeb used to read
+/// almost none of it, which is the shared root of #459, #462, #463, #468 and #469.
+/// </summary>
 public record TrackingCreateResult(
     List<long> NewUids,
     int AlreadyPresent,
     int Updates,
-    int Inserts);
+    int Inserts)
+{
+    /// <summary>The uid the row now lives under, or <c>null</c> when PoracleNG named none.</summary>
+    public int? PrimaryUid => this.NewUids.Count > 0 ? (int)this.NewUids[0] : null;
+
+    /// <summary>
+    /// PoracleNG wrote no new row: it either matched an existing one or found the submission
+    /// already present. On a create that means the alarm was NOT created by this call.
+    /// </summary>
+    public bool InsertedNothing => this.Inserts == 0;
+
+    /// <summary>The submission duplicated an existing row exactly, so nothing was named or written.</summary>
+    public bool WasRejectedAsDuplicate => this.AlreadyPresent > 0 && this.Inserts == 0 && this.NewUids.Count == 0;
+}

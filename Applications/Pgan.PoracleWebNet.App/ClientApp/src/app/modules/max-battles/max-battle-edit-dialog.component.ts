@@ -83,7 +83,6 @@ export class MaxBattleEditDialogComponent {
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
-    ping: [this.data.item.ping ?? ''],
     template: [this.data.item.template ?? ''],
   });
 
@@ -153,19 +152,26 @@ export class MaxBattleEditDialogComponent {
     const update: MaxBattleUpdate = {
       clean: preserve(item.clean, AUTO_DELETE, values.clean ? 1 : 0),
       distance: distanceMeters,
-      evolution: 9000,
+      // Carried through from the existing alarm, not reset to the 9000 "any" sentinel. Neither
+      // dialog can set these -- they come from the bot -- so hardcoding 9000 here meant any
+      // unrelated edit, a distance change included, silently destroyed the user's filter and
+      // widened what they get alerted on. See #412.
+      evolution: item.evolution,
       form: item.form,
       gmax: gmaxVal,
       level: levelVal,
-      move: 9000,
-      ping: values.ping || '',
+      move: item.move,
       pokemonId: item.pokemonId,
       stationId: null,
       template: values.template || '',
     };
     this.maxBattleService.update(this.data.item.uid, update).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      // The server names what is wrong -- which alarm already uses these settings, which
+      // field a file got wrong. A fixed string threw that away. See #567, #568.
+      error: (err: { error?: { error?: string } }) => {
+        this.snackBar.open(err?.error?.error ?? this.i18n.instant('MAX_BATTLES.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+          duration: 6000,
+        });
         this.saving.set(false);
       },
       next: () => {

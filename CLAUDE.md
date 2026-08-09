@@ -197,6 +197,16 @@ Pgan.PoracleWebNet.slnx
   - **Location warning**: `LocationWarningComponent` shows an inline red warning when active hours are set but the profile has 0,0 coordinates, since PoracleNG uses the profile's location for timezone calculations and 0,0 defaults to UTC.
 - **JWT profile resync**: PoracleNG can change `current_profile_no` out-of-band (active-hours scheduler, bot `!profile` command). `GET /api/auth/me` detects when the JWT's `profileNo` claim differs from the DB value and returns a refreshed JWT with the corrected profile number, preventing alarm CRUD from targeting a stale profile. The dashboard shows a snackbar notification when this resync occurs.
 
+### Profile Numbering and Rename (PoracleNG quirks)
+
+Two upstream behaviours that PoracleWeb has to work around. Both verified directly against PoracleNG.
+
+**PoracleNG assigns the lowest free profile number, not `max + 1`.** With profiles 0, 1, 3 a new profile is created at **2**. Its `/add` endpoint returns only `{"status":"ok"}` -- no number -- so the assigned number cannot be predicted and must be discovered. `ProfileController.Create`/`Duplicate` and `ProfileOverviewController.DuplicateProfile`/`ImportProfile` snapshot the profile list, create, re-read, and diff (`ProfileNumbering.ResolveCreated`). Diffing rather than matching on name, because profile names are not unique. Predicting `max + 1` produced empty create responses and copied duplicate alarms to a `profile_no` with no profile row -- orphans that later attached themselves to whatever profile was eventually created at that number. See #407.
+
+**PoracleNG's profile update silently ignores `name`.** `POST /api/profiles/{id}/update` answers `{"status":"ok"}` and writes nothing for a rename, while honouring `active_hours` on the same request. Rename therefore goes through `IProfileRepository.RenameAsync`, a direct DB write scoped to `profiles.name` only. Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. This is the same class of workaround as `HACK: trusted-set-areas`. See #406.
+
+**Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
+
 ### Rate Limiting
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
 - `auth` policy: 30 requests per 60s per IP (login, callback, token exchange).
@@ -214,7 +224,9 @@ Non-alarm features follow the same rules, minus the tracking-type dictionary: ad
 
 Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT profile resync keeps working and PoracleNG's active-hours scheduler can still move a user between profiles.
 
-Four keys exist in the admin UI that PoracleWeb never implemented — `disable_nominatim`, `disable_geomap`, `disable_geomap_select`, `disable_userlist`. They are legacy PoracleJS `pweb_settings` keys carried over by `SettingsMigrationService` and are read by nothing in this codebase, front or back. They are inert toggles that mislead operators (notably `disable_nominatim`, which does **not** stop third-party geocoding), and should be removed from the admin settings UI rather than given invented server-side semantics.
+`disable_nominatim` **is** implemented (#420): it gates the two geocode actions on `LocationController`, so switching it off genuinely stops the outbound Nominatim/OpenStreetMap calls, and the location dialog hides its address search rather than firing a request that would 403 and bounce the user to the dashboard. It is gated per-action rather than per-controller because the controller itself is already gated by `disable_location`.
+
+`disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (the migration carries `admin_disable_userlist` as a legacy key only).
 
 **Adding a new alarm type? Wire it through all four layers:**
 
@@ -295,6 +307,73 @@ Four keys exist in the admin UI that PoracleWeb never implemented — `disable_n
 - **DataProtection**: Keys are persisted to `DATA_DIR/dataprotection-keys` (Docker: `/app/data/dataprotection-keys`, standalone: `./data/dataprotection-keys`). Configured in `ServiceCollectionExtensions.cs` via `AddDataProtection().PersistKeysToFileSystem().SetApplicationName("Pgan.PoracleWebNet.Api")`. Uses the existing `DATA_DIR` env var (set in Dockerfile, read via `configuration["DATA_DIR"]`) with a fallback to `Path.Combine(Directory.GetCurrentDirectory(), "data")` for local dev. No additional env vars or NuGet packages needed.
 - **PoracleJS config**: `geofence.path` in PoracleJS config is a single URL pointing to the PoracleWeb unified feed endpoint (e.g., `"http://poracleweb:8082/api/geofence-feed"`). PoracleWeb fetches admin geofences from Koji internally and merges them with user geofences.
 
+## Fixing Defects Without Causing Them
+
+About one in five defects found in this codebase's audit sweeps was caused by an earlier fix in the
+same campaign. They are not random -- they cluster into two shapes, and both are cheap to prevent.
+
+### Shape 1: tightening a rule without enumerating who depended on the loose one
+
+The repeated failure. A constraint gets added, the bad case is verified refused, and nobody checks
+which legitimate cases are now refused too.
+
+| The fix | What it broke |
+|---|---|
+| #601 resolved delegated webhooks live | delegates configured in PoracleJS got an empty page and a 403 (#626) |
+| #604 validated quick-pick filters at save time | seeding died on two built-ins that carry empty filters on purpose (#637) |
+| #616 cleared the admin token on a 401 | left an impersonation banner whose Stop button did nothing (#627) |
+| #531 guarded alarm-edit collisions | refused uneditable alarms (#553), then swallowed `gym_id` (#575), then ignored first-match ordering (#606) |
+
+**Before adding any validation, allowlist, guard or refusal:**
+
+1. **Query production for what currently satisfies the loose rule.** An invasion `gruntType` allowlist
+   built from `InvasionGruntTypes.All` would have refused `blanche`, `candela`, `spark`, `npc 0`-`npc 10`
+   and `player team leader` -- every one of them live. Connection details are in `.env`; query with
+   `docker run --rm mariadb:latest mariadb --skip-ssl -h HOST -P PORT -u USER -pPASS DB -e "SQL"`.
+   If you cannot enumerate what the loose rule permits, you cannot safely tighten it.
+2. **Prefer refusing the impossible over allowing only the known.** "No control characters, no more than
+   the column holds" ages well. "One of these thirty values" does not.
+3. **Find the other callers.** `SeedDefaultsAsync` reaches `SaveAdminPickAsync`; quick-pick apply reaches
+   `BulkCreateAsync`. A guard added for the interactive path fires on every internal path too.
+
+### Shape 2: fixing one path and leaving its siblings
+
+`bulkDelete` was hardened in #603 and `bulkUpdateDistance` was not (#641). The single-pick delete cleared
+applied state and the reseed did not (#630). One edit dialog sent `''` and nine sent `null` (#639).
+
+**Before committing, grep for the shape you just fixed.** There are ten alarm types, ten list components,
+ten edit dialogs, eleven locale files. A fix that touches one of a set of ten is incomplete until you have
+looked at the other nine and can say in the PR why they are fine, or fixed them too.
+
+### Tests: assert what must still work, not only what must now fail
+
+A test written alongside a fix encodes the fix's own model of the world, so it passes whether or not the
+fix is right. Three fixes validated the domain model instead of the `*Create` DTO the controller binds,
+passed their tests, and did nothing (#548, #555, #565). `monster.service.spec.ts` went further and
+**asserted the broken request shape**, so the suite was actively defending the bug (#640).
+
+- Every guard needs a **legitimate-case-still-passes** test alongside the refusal test. The grunt-type
+  theory names five values found in live data; the seeding test names the two presets that were being
+  dropped. Those are the tests that catch shape 1.
+- **Watch a new test fail before you fix the code.** A test that has never been red proves nothing.
+- When an existing test contradicts a fix, work out which one is wrong before changing either. Sometimes
+  the test is enshrining the defect.
+
+### Verify upstream behaviour by calling it, not by reading it
+
+Three fixes were derived from a PoracleNG checkout four months adrift from production (#521, #531, #553).
+Pin the checkout first -- see the memory note `project_poracleng_checkout_must_match_prod` -- and then,
+where it is cheap, confirm by POSTing to the running instance rather than trusting the source read.
+Reading `DiffAndClassify` incrementally produced a guard that was right about the part just read and wrong
+about the part not yet read, twice.
+
+### What "clean" means
+
+A sweep returning nothing does not mean the code is defect-free -- it means that set of lenses is
+exhausted. Every sweep should include a **regression lens**: an agent that reads the diffs merged since
+the last sweep and asks only "what did these fixes break, and which siblings did they miss?" That is the
+lens which catches the one-in-five, and it is the one most easily forgotten.
+
 ## Common Issues
 
 ### MySQL Provider
@@ -351,6 +430,37 @@ The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` str
 ### Clean Field Bitmask
 The alarm `clean` field is a **3-bit bitmask** in PoracleNG, not a boolean: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary (`db.IsClean/IsEdit/IsSummary` in PoracleNG; quest summary is gated by `summary_schedules`). Use `CleanFlags` (`Core.Models/CleanFlags.cs`) and the frontend twin `shared/utils/clean-flags.ts` (`AUTO_DELETE`/`EDIT`/`SUMMARY`, `isAutoDelete/isEdit/isSummary`, `compose`, `preserve(existing, mask, changes)`) for all reads/writes so bits set elsewhere (e.g. via the bot) survive a web edit. Models cap `Clean` at `[Range(0, 7)]`. UI controls exist only where PoracleNG acts on the bit: auto-delete (all types), edit-in-place (lures + raids/eggs via RSVP `rsvpChanges`), and daily summary (quests). **Angular templates can't parse bitwise `&`** — gate card badges via a component method (e.g. `isAutoDelete(clean)`), not inline `clean & 1`. See #292.
 
+### PoracleNG Decides Insert vs Update vs Duplicate — And PoracleWeb Must Mirror It
+
+Every alarm write is a POST. PoracleNG diffs the submitted row against the existing ones (`DiffTracking`, `processor/internal/db/diff.go`) using `diff` struct tags, and the outcome is not obvious:
+
+```go
+totalDiffs == 0                            -> duplicate: nothing written, "alreadyPresent"
+totalDiffs == 1 && nonUpdatableDiffs == 0  -> UPDATE of that existing row, re-keyed to a new uid
+otherwise                                  -> new insert
+```
+
+`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm.
+
+The consequence that keeps biting: **an Add or an Edit that differs from a *different* alarm by exactly one updatable field takes that alarm over.** The user gets 201/200, and one alarm exists where there were two. `TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync` mirrors the rule and refuses before the write — on create and update alike. Two or more updatable differences genuinely coexist and must stay editable; refusing those made alarms permanently uneditable (#553).
+
+When comparing, **a field PoracleWeb does not supply cannot be compared** — PoracleNG fills it with its own default (`template` becomes the configured name, `"1"` when unset), so a null here says nothing about what will be stored. Counting it as a difference is what made the create-path check miss every collision (#561). Some values are also rewritten on the way in: raids and max battles force `level` to 9000 unless `pokemon_id` is 9000, so compare the value that will be **stored**, not the one sent (#521, #531).
+
+See #462, #463, #531, #553, #561.
+
+### Keep the PoracleNG Checkout Pinned To What Prod Runs
+
+`E:/PGAN/pogogit/PoracleNG` drifts. On 2026-08-08 it was four months behind prod, and its `DiffTracking` lacked the `totalDiffs == 1` clause entirely — reading it produced three wrong fixes in one day.
+
+PoracleNG has no version endpoint (`/health` only). To establish what prod runs: `ss -lntp | grep 3030` for the pid, `/proc/<pid>/exe` for the binary, and `git -C /source/PoracleNG rev-parse HEAD`; compare the binary mtime against the commit date. Then check out that commit locally.
+
+**Even then, verify against the live instance.** POST directly to `/api/tracking/<type>/<id>?silent=true` with the `X-Poracle-Secret` header and read the row back. Source and running binary have disagreed before, and a unit test cannot tell you which is right.
+
+### Validation Attributes Live On The `*Create` DTOs, Not The Domain Models
+
+`Monster`, `Raid`, `Gym` and friends carry **no** `[Range]` or `[StringLength]` attributes; `MonsterCreate` and its siblings do. Anything that validates an alarm outside the normal model-binding path must bind or deserialize into the `*Create` DTO, or it will validate nothing and pass silently.
+
+This has cost three separate fixes: profile import (#548), quick-pick apply (#565), and the quick-pick id length check that bounded the name but not the id generated from it (#555). All three passed their unit tests while doing nothing, because the tests asserted the code ran rather than that it rejected anything.
 ### Monster Filter Defaults
 PoracleNG applies `cleanRow` defaults (template, PVP ranking, size, max values, etc.) on every create/update, so PoracleWeb no longer needs to maintain its own set of `*Create` model defaults for alarm filter fields. The `*Create` models still exist for DTO mapping (via `AlarmMappingExtensions.To*()` methods) but their field defaults are no longer critical -- PoracleNG is the authoritative source for filter defaults.
 
@@ -379,7 +489,7 @@ JWT token generation is centralized in `IJwtService` / `JwtService` (singleton).
 
 | Branch | Purpose |
 |---|---|
-| `main` | Released code. Only moves when a release is merged. Publishes `:latest`, which prod's watchtower auto-deploys. A plain `git clone` lands here, so self-hosters get released code. |
+| `main` | Released code. Only moves when a release is merged. Publishing the release builds `:latest`, which prod's watchtower auto-deploys within its 60s poll -- the merge itself ships nothing. `docker-publish.yml` also has an SSH deploy step, but it is inert here: it exits early unless `DEPLOY_HOST` and `DEPLOY_SSH_KEY` are set, and this repo has neither. A plain `git clone` lands here, so self-hosters get released code. |
 | `develop` | Integration. **Open pull requests against this.** Publishes `:beta` on every merge, which the dev instance auto-deploys. |
 
 Cutting a release: merge `develop` into `main`, then publish a GitHub release. `release-changelog.yml` opens a PR promoting `[Unreleased]` to the new version section, and `docker-publish.yml` pushes `:latest`.

@@ -24,7 +24,7 @@ export interface Monster {
   minIv: number;
   minLevel: number;
   minWeight: number;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   pvpRankingBest: number;
@@ -54,7 +54,7 @@ export interface Raid {
   id: string;
   level: number;
   move: number;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   rsvpChanges: number;
@@ -78,7 +78,7 @@ export interface MaxBattle {
   id: string;
   level: number;
   move: number;
-  ping: string;
+  ping?: string;
   pokemonId: number;
   profileNo: number;
   stationId: string | null;
@@ -99,7 +99,7 @@ export interface Egg {
   gymId: string | null;
   id: string;
   level: number;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   rsvpChanges: number;
   team: number;
@@ -117,7 +117,7 @@ export interface Quest {
   clean: number;
   distance: number;
   id: string;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   reward: number;
@@ -139,7 +139,7 @@ export interface Invasion {
   gender: number;
   gruntType: string | null;
   id: string;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
@@ -156,7 +156,7 @@ export interface Lure {
   distance: number;
   id: string;
   lureId: number;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
@@ -173,7 +173,7 @@ export interface Nest {
   distance: number;
   id: string;
   minSpawnAvg: number;
-  ping: string | null;
+  ping?: string | null;
   pokemonId: number;
   profileNo: number;
   template: string | null;
@@ -188,12 +188,11 @@ export type NestUpdate = Partial<NestCreate>;
 
 export interface FortChange {
   changeTypes: string[];
-  clean: number;
   distance: number;
   fortType: string | null;
   id: string;
   includeEmpty: number;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   template: string | null;
   uid: number;
@@ -211,7 +210,7 @@ export interface Gym {
   distance: number;
   gymId: string | null;
   id: string;
-  ping: string | null;
+  ping?: string | null;
   profileNo: number;
   slotChanges: number;
   team: number;
@@ -336,8 +335,9 @@ export interface AuthProviders {
 // ─── Poracle Config ────────────────────────────────────────────────────────────
 
 /**
- * Server-side Poracle config surfaced via GET /api/config.
- * Mirrors the .NET PoracleConfig model.
+ * Server-side Poracle config surfaced via GET /api/config (authenticated).
+ * Mirrors the .NET PublicPoracleConfig projection, which deliberately omits the Poracle admin id
+ * lists, the webhook delegation map, providerURL and staticKey -- none of which a browser needs.
  */
 export interface PoracleServerConfig {
   defaultPvpCap: number;
@@ -346,14 +346,12 @@ export interface PoracleServerConfig {
   locale: string;
   maxDistance: number;
   poracleVersion: string;
-  providerURL: string;
   pvpCaps: number[];
   pvpFilterGreatMinCp: number;
   pvpFilterLittleMinCp: number;
   pvpFilterMaxRank: number;
   pvpFilterUltraMinCp: number;
   pvpLittleLeagueAllowed: boolean;
-  staticKey: string;
 }
 
 export interface AreaDefinition {

@@ -22,7 +22,55 @@ public class ProfileService(
     public async Task<IEnumerable<Profile>> GetByUserAsync(string userId)
     {
         var json = await this._humanProxy.GetProfilesAsync(userId);
-        return DeserializeProfiles(json);
+        var profiles = DeserializeProfiles(json);
+
+        return await this.WithActiveProfileAsync(userId, profiles);
+    }
+
+    /// <summary>
+    /// Guarantees the profile the user is actually on appears in the list.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG only materialises a <c>profiles</c> row when something writes one, so an account that has
+    /// never renamed or added a profile has none -- while <c>humans.current_profile_no</c> still points at
+    /// one and alarms hang off it. The Profiles and Profile Overview pages then rendered "no alarms across
+    /// any profiles" over a full set of alarms. Synthesised rather than written, so this stays a read.
+    /// See #582.
+    /// </remarks>
+    private async Task<IEnumerable<Profile>> WithActiveProfileAsync(string userId, List<Profile> profiles)
+    {
+        JsonElement? human;
+        try
+        {
+            human = await this._humanProxy.GetHumanAsync(userId);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return profiles;
+        }
+
+        if (human is not { } record)
+        {
+            return profiles;
+        }
+
+        var activeProfileNo = record.GetIntProp("current_profile_no");
+        if (profiles.Exists(p => p.ProfileNo == activeProfileNo))
+        {
+            return profiles;
+        }
+
+        profiles.Add(new Profile
+        {
+            Id = userId,
+            ProfileNo = activeProfileNo,
+            Name = "Default",
+            Area = record.GetStringPropOrNull("area") ?? "[]",
+            Latitude = record.GetDoubleProp("latitude"),
+            Longitude = record.GetDoubleProp("longitude"),
+        });
+
+        return [.. profiles.OrderBy(p => p.ProfileNo)];
     }
 
     public async Task<Profile?> GetByUserAndProfileNoAsync(string userId, int profileNo)

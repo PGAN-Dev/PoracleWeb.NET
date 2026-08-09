@@ -97,4 +97,44 @@ describe('TokenStoreService', () => {
     service.revoke();
     httpMock.expectNone('/api/auth/oidc/refresh/revoke');
   });
+
+  describe('a login that carries no refresh token', () => {
+    it('clears a refresh token left behind by a previous session', () => {
+      // A Discord or Telegram login on a browser that had held an OIDC session used to inherit that
+      // session's refresh token, and the refresh interceptor then swapped in a JWT minted for the
+      // previous user. See #625.
+      localStorage.setItem('poracle_refresh_token', 'previous-users-token');
+      localStorage.setItem('poracle_token_expires_at', '1');
+
+      service.storeTokens('new-jwt', null);
+
+      expect(localStorage.getItem('poracle_refresh_token')).toBeNull();
+      expect(service.hasRefreshToken()).toBe(false);
+    });
+
+    it('still keeps a refresh token the new login supplies', () => {
+      service.storeTokens('new-jwt', 'new-refresh', 1800);
+
+      expect(localStorage.getItem('poracle_refresh_token')).toBe('new-refresh');
+    });
+  });
+
+  describe('clearAll', () => {
+    it('discards every key a session consists of and announces it', () => {
+      localStorage.setItem('poracle_token', 'jwt');
+      localStorage.setItem('poracle_admin_token', 'admin-jwt');
+      localStorage.setItem('poracle_refresh_token', 'refresh');
+      localStorage.setItem('poracle_token_expires_at', '1');
+      let announced = false;
+      service.sessionCleared$.subscribe(() => (announced = true));
+
+      service.clearAll();
+
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+      expect(localStorage.getItem('poracle_refresh_token')).toBeNull();
+      expect(localStorage.getItem('poracle_token_expires_at')).toBeNull();
+      expect(announced).toBe(true);
+    });
+  });
 });

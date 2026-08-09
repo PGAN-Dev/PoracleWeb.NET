@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -9,19 +11,25 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [Route("api/admin")]
 public partial class AdminController(
     IHumanService humanService,
+    IMemoryCache cache,
+    IUserPurgeService userPurgeService,
     IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
     IOptions<PoracleSettings> poracleSettings,
     IJwtService jwtService,
+    IUserRoleResolver roleResolver,
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IMemoryCache _cache = cache;
+    private readonly IUserPurgeService _userPurgeService = userPurgeService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly ILogger<AdminController> _logger = logger;
 
     /// <summary>Caps one avatar batch. The admin user list is the only caller and batches per viewport.</summary>
@@ -54,6 +62,53 @@ public partial class AdminController(
         });
 
         return this.Ok(userList);
+    }
+
+    /// <summary>
+    /// The webhooks a delegate manages.
+    /// </summary>
+    /// <remarks>
+    /// /my-webhooks renders only when the session carries managedWebhooks, which happens only for
+    /// NON-admins -- and it loaded its rows from the admin user list, which rejects exactly those people.
+    /// The only users who could see the page were the only users the endpoint refused: a 403, an empty
+    /// table and a failure toast. Scoped to the caller's own grants instead. See #564.
+    /// </remarks>
+    [HttpGet("my-webhooks")]
+    public async Task<IActionResult> GetManagedWebhooks()
+    {
+        // Resolved live rather than read from the JWT claim. The claim is minted at login and lives 24
+        // hours, so revoking a delegate left them managing the webhook until they happened to sign in
+        // again -- and impersonation authorises off the same claim. See #601.
+        // The union the JWT claim is built from, not the local table alone. Resolving from
+        // poracle_web.webhook_delegates only meant a delegate configured in PoracleJS -- the
+        // delegateAdministration mechanism -- saw the nav item, got an empty page here, and a 403 from
+        // impersonate. See #626.
+        var managed = (await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [];
+        if (managed.Length == 0)
+        {
+            return this.Ok(Array.Empty<object>());
+        }
+
+        var humans = await this._humanService.GetAllAsync();
+
+        var webhooks = humans
+            .Where(h => managed.Contains(h.Id, StringComparer.Ordinal))
+            .Select(h => new
+            {
+                h.Id,
+                h.Name,
+                h.Type,
+                h.Enabled,
+                h.AdminDisable,
+                h.LastChecked,
+                h.DisabledDate,
+                h.CurrentProfileNo,
+                h.Language,
+                h.Notes,
+                AvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(h.Id, h.Type),
+            });
+
+        return this.Ok(webhooks);
     }
 
     /// <summary>
@@ -132,6 +187,11 @@ public partial class AdminController(
 
         await this._humanProxy.AdminDisabledAsync(id, false);
 
+        // Evict the block cache so this takes effect on the next request rather than up to a
+        // minute later. Without it the filter kept serving the value it had already cached, which
+        // is how the first live check of this fix appeared to fail. See #609.
+        this._cache.Remove($"blocked:{id}");
+
         // Re-fetch to return the updated state
         var updated = await this._humanService.GetByIdAsync(id) ?? human;
         return this.Ok(updated);
@@ -145,6 +205,17 @@ public partial class AdminController(
             return this.Forbid();
         }
 
+        // Now that a block is actually enforced (#609), an admin blocking their own account loses the
+        // API immediately -- including the endpoint that would unblock it. The list shows every account,
+        // their own included, one row among many. See #613.
+        if (string.Equals(id, this.UserId, StringComparison.Ordinal))
+        {
+            return this.BadRequest(new
+            {
+                error = "You cannot block your own account.",
+            });
+        }
+
         var human = await this._humanService.GetByIdAsync(id);
         if (human is null)
         {
@@ -152,6 +223,11 @@ public partial class AdminController(
         }
 
         await this._humanProxy.AdminDisabledAsync(id, true);
+
+        // Evict the block cache so this takes effect on the next request rather than up to a
+        // minute later. Without it the filter kept serving the value it had already cached, which
+        // is how the first live check of this fix appeared to fail. See #609.
+        this._cache.Remove($"blocked:{id}");
 
         // Re-fetch to return the updated state
         var updated = await this._humanService.GetByIdAsync(id) ?? human;
@@ -255,9 +331,27 @@ public partial class AdminController(
             AdminDisable = 0,
         };
 
-        var created = await this._humanService.CreateAsync(human);
-        LogWebhookCreated(this._logger, this.UserId, request.Url);
-        return this.Ok(created);
+        try
+        {
+            var created = await this._humanService.CreateAsync(human);
+            LogWebhookCreated(this._logger, this.UserId, request.Url);
+            return this.Ok(created);
+        }
+        catch (HttpRequestException)
+        {
+            // PoracleNG commits the human and can still fail on the rest of its create, leaving a row the
+            // admin was told was never written -- and a retry that answers 409 for a webhook the UI does
+            // not show. Undo the half-write so the reported failure is the truth. See #482.
+            if (await this._humanService.ExistsAsync(request.Url))
+            {
+                await this._humanService.DeleteUserAsync(request.Url);
+            }
+
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "Poracle rejected the webhook. Nothing was created.",
+            });
+        }
     }
 
     public record CreateWebhookRequest(string Name, string Url);
@@ -433,6 +527,28 @@ public partial class AdminController(
             return this.BadRequest(new { error = "webhookId is required and must be 500 characters or fewer." });
         }
 
+        // userId had neither check, though its column is half the width: over 100 characters surfaced as an
+        // unhandled DbUpdateException, and an empty string persisted a delegate granting nothing to nobody
+        // that then appeared in the admin view. Same shape as the guard above. See #483.
+        if (string.IsNullOrWhiteSpace(request.UserId) || request.UserId.Length > 100)
+        {
+            return this.BadRequest(new { error = "userId is required and must be 100 characters or fewer." });
+        }
+
+        // Neither id was checked against anything, so a typo created a grant over a webhook that does not
+        // exist, for a user who does not exist, and the admin delegates view then listed it as real. A
+        // grant is only meaningful between two accounts that exist. See #514.
+        var webhook = await this._humanService.GetByIdAsync(request.WebhookId);
+        if (webhook is null || !string.Equals(webhook.Type, "webhook", StringComparison.OrdinalIgnoreCase))
+        {
+            return this.BadRequest(new { error = "webhookId does not name an existing webhook." });
+        }
+
+        if (!await this._humanService.ExistsAsync(request.UserId))
+        {
+            return this.BadRequest(new { error = "userId does not name an existing user." });
+        }
+
         var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);
         return this.Ok(delegates);
     }
@@ -454,8 +570,14 @@ public partial class AdminController(
     [HttpPost("impersonate")]
     public async Task<IActionResult> ImpersonateById([FromBody] ImpersonateRequest request)
     {
-        // Allow admins or delegates who manage this specific webhook
-        var isDelegate = this.ManagedWebhooks.Contains(request.UserId);
+        // Allow admins or delegates who manage this specific webhook. Resolved live rather than read from
+        // the JWT claim: the claim is minted at login and lives 24 hours, so a revoked delegate could keep
+        // impersonating the webhook until they next signed in. See #601.
+        // Same union as the claim and as my-webhooks, so a PoracleJS-configured delegate is not refused
+        // by an endpoint the nav item just offered them. See #626.
+        var isDelegate = !this.IsAdmin
+            && ((await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [])
+                .Contains(request.UserId, StringComparer.Ordinal);
         if (!this.IsAdmin && !isDelegate)
         {
             return this.Forbid();
@@ -498,7 +620,11 @@ public partial class AdminController(
             return this.Forbid();
         }
 
-        var deleted = await this._humanService.DeleteUserAsync(id);
+        // Everything the account owns goes with it: alarms, geofences, delegate grants, quick picks and
+        // their applied state. Removing the humans row alone left all of it behind, unreachable but
+        // intact, and re-creating the same id adopted the lot -- including impersonation rights over a
+        // recreated webhook URL. See #510, #511, #512.
+        var deleted = await this._userPurgeService.PurgeAsync(id);
         if (!deleted)
         {
             return this.NotFound();

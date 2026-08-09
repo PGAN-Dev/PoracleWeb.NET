@@ -5,12 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<LureService> logger) : ILureService
+public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<LureService> logger, ITrackedUidRemapper uidRemapper) : ILureService
 {
     private const string TrackingType = "lure";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<LureService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
     public async Task<IEnumerable<Lure>> GetByUserAsync(string userId, int profileNo)
     {
@@ -29,6 +30,20 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Lures);
         model.Id = userId;
+
+        // PoracleNG guards this type with a unique key on (id, profile_no, lure_id), so adding a lure
+        // type already tracked hit a duplicate-key error and surfaced as a 500 -- for a submission the
+        // lure picker actively invites, and which the frontend then reported as a generic "failed to
+        // create" with no clue which lure caused it. The update path has refused this since #462.
+        // See #562.
+        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+        if (siblings.Any(x => x.LureId == model.LureId))
+        {
+            throw new TrackingConflictException(
+                TrackingType,
+                "You already have a lure alarm for that lure type. Edit or remove that one instead.");
+        }
+
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -47,6 +62,20 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
 
         // PoracleNG guards this type with a natural unique key and its create has no upsert path, so
         // changing a field outside that key collides (Error 1062) and returns 500. Replace the row instead.
+        // Refuse a collision BEFORE the delete. PoracleNG dedups lures on (id, profile_no, lure_id),
+        // so editing one onto a lure_id another alarm already holds made the replace merge into that
+        // alarm - this one deleted, the other one silently overwritten. See #462.
+        if (oldUid > 0)
+        {
+            var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
+            if (siblings.Any(x => x.Uid != oldUid && x.LureId == model.LureId))
+            {
+                throw new TrackingConflictException(
+                    TrackingType,
+                    "You already have a lure alarm for that lure type. Edit or remove that one instead.");
+            }
+        }
+
         var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
 
         model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
@@ -56,7 +85,8 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
             oldUid,
             original is null ? null : SerializeToElement(original),
             SerializeToElement(model),
-            this._logger);
+            this._logger,
+            this._uidRemapper);
 
         return model;
     }
@@ -99,7 +129,24 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         }
 
         var body = SerializeToElement(itemList);
+        // Two selected rows that differed only by radius become the same alarm once both are set to
+        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
+        // one left at its old radius, and a response claiming all were updated. See #580.
+        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+
+        // And against the rows NOT selected: at the new radius a selected row can differ from an
+        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
+        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
+        // response claims it was updated. See #598.
+        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
+            this._proxy, TrackingType, userId, body);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
+        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
+        // tracks them, pairing on content because the batch response is reordered. See #443.
+        await BulkUidRemap.ApplyAsync(
+            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
+
         return itemList.Count;
     }
 
@@ -120,7 +167,24 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         }
 
         var body = SerializeToElement(matching);
+        // Two selected rows that differed only by radius become the same alarm once both are set to
+        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
+        // one left at its old radius, and a response claiming all were updated. See #580.
+        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+
+        // And against the rows NOT selected: at the new radius a selected row can differ from an
+        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
+        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
+        // response claims it was updated. See #598.
+        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
+            this._proxy, TrackingType, userId, body);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
+        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
+        // tracks them, pairing on content because the batch response is reordered. See #443.
+        await BulkUidRemap.ApplyAsync(
+            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
+
         return matching.Count;
     }
 

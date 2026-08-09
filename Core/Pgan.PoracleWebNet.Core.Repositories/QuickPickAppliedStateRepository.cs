@@ -35,6 +35,16 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context) : IQuick
         return [.. entities.Select(MapToModel)];
     }
 
+    public async Task<List<QuickPickAppliedState>> GetByUserAsync(string userId)
+    {
+        var entities = await this._context.QuickPickAppliedStates
+            .AsNoTracking()
+            .Where(s => s.UserId == userId)
+            .ToListAsync();
+
+        return [.. entities.Select(MapToModel)];
+    }
+
     public async Task CreateOrUpdateAsync(QuickPickAppliedState state)
     {
         var entity = await this._context.QuickPickAppliedStates
@@ -74,6 +84,41 @@ public class QuickPickAppliedStateRepository(PoracleWebContext context) : IQuick
             this._context.QuickPickAppliedStates.Remove(entity);
             await this._context.SaveChangesAsync();
         }
+    }
+
+    public async Task DeleteByQuickPickIdAsync(string quickPickId, string? userId = null)
+    {
+        var query = this._context.QuickPickAppliedStates.Where(s => s.QuickPickId == quickPickId);
+
+        if (userId is not null)
+        {
+            query = query.Where(s => s.UserId == userId);
+        }
+
+        // Loaded and removed rather than ExecuteDeleteAsync: the provider emits an aliased
+        // DELETE ... AS `q`, which MariaDB rejects outright.
+        var rows = await query.ToListAsync();
+
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        this._context.QuickPickAppliedStates.RemoveRange(rows);
+        await this._context.SaveChangesAsync();
+    }
+
+    public async Task DeleteByUserAsync(string userId)
+    {
+        var rows = await this._context.QuickPickAppliedStates.Where(s => s.UserId == userId).ToListAsync();
+
+        if (rows.Count == 0)
+        {
+            return;
+        }
+
+        this._context.QuickPickAppliedStates.RemoveRange(rows);
+        await this._context.SaveChangesAsync();
     }
 
     private static QuickPickAppliedState MapToModel(QuickPickAppliedStateEntity entity) => new()

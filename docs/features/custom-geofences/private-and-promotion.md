@@ -99,7 +99,7 @@ flowchart LR
 
 If the area isn't a good fit for everyone, you click **Reject** and leave a short reason. The geofence:
 
-- Moves to **rejected** status,
+- Moves to **rejected** status (it stays in the geofence feed and keeps alerting — rejection means "not public", not "switched off"),
 - **Stays private** and keeps working for its owner,
 - Carries your note so the user understands why.
 
@@ -108,12 +108,20 @@ If the area isn't a good fit for everyone, you click **Reject** and leave a shor
 
 ## Quick reference: the four statuses
 
-| Status | What it means | Public? |
-|---|---|---|
-| `active` | Normal private geofence (the default after drawing). | No |
-| `pending_review` | The user has submitted it; waiting on an admin. | No (still private to the owner) |
-| `approved` | An admin promoted it; it's now a public Koji area. | **Yes** |
-| `rejected` | An admin declined the request; it stays private with a note. | No |
+| Status | What it means | Public? | Renameable? |
+|---|---|---|---|
+| `active` | Normal private geofence (the default after drawing). | No | Yes |
+| `pending_review` | The user has submitted it; waiting on an admin. | No (still private to the owner) | No |
+| `approved` | An admin promoted it; it's now a public Koji area. | **Yes** | No |
+| `rejected` | An admin declined the request; it stays private with a note, and keeps alerting. | No | Yes |
+
+!!! info "Why approved and pending geofences can't be renamed"
+    Once a geofence is approved, Koji owns it under its promoted name and every subscriber's area list
+    holds *that* name. Renaming locally would rewrite the subscription to a name neither Koji nor the
+    geofence feed serves, silently unsubscribing the owner from a live public area. A submission under
+    review is frozen for a simpler reason: the admin is looking at the name as submitted. The rename
+    button is hidden for both, and the API refuses with a 400. Rejected geofences are the owner's again,
+    so they can be renamed and resubmitted.
 
 ## Removing a public area later
 

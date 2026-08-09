@@ -30,7 +30,10 @@ describe('PokemonAddDialogComponent', () => {
 
   function setup() {
     dialogRef = { close: jest.fn() };
-    monsterService = { create: jest.fn().mockReturnValue(of({} as Monster)) };
+    // A create answers 200 with uid 0 when the submission duplicates an alarm the user already has, so
+    // the uid is what says whether anything was made. See #495.
+    let nextUid = 100;
+    monsterService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Monster)) };
     snackBar = { open: jest.fn() };
     masterData = {
       getFormsForPokemon: jest.fn().mockReturnValue([
@@ -121,12 +124,27 @@ describe('PokemonAddDialogComponent', () => {
     expect(createdForms()).toEqual([42, 42]);
   });
 
-  it('reports the total alarm count in the success snackbar', () => {
+  it('reports how many alarms were actually created', () => {
     component.selectedPokemonIds.set([MEOWTH]);
     component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
     component.save();
 
-    expect(snackBar.open).toHaveBeenCalledWith('POKEMON.SNACK_CREATED', 'COMMON.OK', expect.objectContaining({ duration: 3000 }));
+    expect(snackBar.open).toHaveBeenCalledWith('POKEMON.SNACK_CREATED', 'COMMON.OK', expect.objectContaining({ duration: 4000 }));
+  });
+
+  // Counting the submissions claimed every selected Pokemon was added while the list grew by fewer, or
+  // by none at all. See #495.
+  it('says how many submissions were already tracked', () => {
+    monsterService.create.mockReturnValueOnce(of({ uid: 0 } as Monster));
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
+    component.save();
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'POKEMON.SNACK_CREATED_WITH_DUPLICATES',
+      'COMMON.OK',
+      expect.objectContaining({ duration: 4000 }),
+    );
   });
 
   it('does nothing when no pokemon are selected', () => {

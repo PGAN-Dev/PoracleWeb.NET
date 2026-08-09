@@ -7,8 +7,14 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
+// Gated per-action, not per-controller: the reads stay open, the same way UserGeofenceController
+// keeps its reads open. The class-level gate 403d every area lookup, including the ones nobody asked
+// for -- the delivery preview embedded in every add-alarm dialog, the geofence page's map overlay, the
+// dashboard's map card -- and the error interceptor read those as "this page is dead" and bounced the
+// user to the dashboard. Turning off area editing took the separately-toggled geofence page with it.
+// disable_areas means area subscriptions cannot be CHANGED; it never meant they cannot be seen.
+// See #506, #515, #516.
 [Route("api/areas")]
-[RequireFeatureEnabled(DisableFeatureKeys.Areas)]
 public partial class AreaController(
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
@@ -47,7 +53,13 @@ public partial class AreaController(
             var areasJson = await this._poracleApiProxy.GetAreasWithGroupsAsync(this.UserId);
             if (areasJson != null)
             {
-                return this.Content(areasJson, "application/json");
+                // PoracleNG returns its whole fence set regardless of userSelectable, and PoracleWeb feeds
+                // every user-drawn geofence into that set (userSelectable:false, to keep them off the bot's
+                // area picker). Streaming the response through therefore handed any signed-in user the names
+                // of every private geofence anyone had drawn -- "home", "work area", and worse. The Areas
+                // page filtered them out client-side, so nothing looked wrong. Filter server-side, where it
+                // counts, and keep the user's OWN fences: those are theirs to see. See #544.
+                return this.Content(await this.RemoveOtherUsersPrivateAreasAsync(areasJson), "application/json");
             }
         }
         catch (Exception ex)
@@ -58,7 +70,56 @@ public partial class AreaController(
         return this.Ok(Array.Empty<object>());
     }
 
+
+    /// <summary>
+    /// Drops areas marked <c>userSelectable:false</c> unless the caller owns them.
+    /// </summary>
+    /// <remarks>
+    /// A malformed payload is passed through untouched rather than emptied: the page is more useful with
+    /// an unfiltered list than with none, and the names are not a secret worth failing closed over -- but
+    /// anything we can parse, we filter. See #544.
+    /// </remarks>
+    private async Task<string> RemoveOtherUsersPrivateAreasAsync(string areasJson)
+    {
+        JsonElement parsed;
+        try
+        {
+            parsed = JsonDocument.Parse(areasJson).RootElement;
+        }
+        catch (JsonException)
+        {
+            return areasJson;
+        }
+
+        if (parsed.ValueKind != JsonValueKind.Array)
+        {
+            return areasJson;
+        }
+
+        var ownNames = (await this._userGeofenceService.GetByUserAsync(this.UserId) ?? [])
+            .SelectMany(g => new[] { g.KojiName, g.PromotedName })
+            .Where(n => !string.IsNullOrEmpty(n))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var kept = parsed.EnumerateArray()
+            .Where(area => IsSelectable(area) || OwnedByCaller(area, ownNames))
+            .ToList();
+
+        return JsonSerializer.Serialize(kept);
+    }
+
+    private static bool IsSelectable(JsonElement area) =>
+        area.ValueKind != JsonValueKind.Object
+        || !area.TryGetProperty("userSelectable", out var selectable)
+        || selectable.ValueKind != JsonValueKind.False;
+
+    private static bool OwnedByCaller(JsonElement area, HashSet<string> ownNames) =>
+        area.ValueKind == JsonValueKind.Object
+        && area.TryGetProperty("name", out var name)
+        && name.ValueKind == JsonValueKind.String
+        && ownNames.Contains(name.GetString() ?? string.Empty);
     [HttpPut]
+    [RequireFeatureEnabled(DisableFeatureKeys.Areas)]
     public async Task<IActionResult> UpdateAreas([FromBody] UpdateAreasRequest request)
     {
         // Lowercase area names to match Poracle's expected format (PHP PoracleWeb does strtolower)
@@ -92,6 +153,15 @@ public partial class AreaController(
         // user-owned subset), so the effective response is just `normalizedAreas` — no Union
         // needed. The discard is intentional.
         _ = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
+
+        // Read back rather than echo. PoracleNG silently drops any name whose fence is not
+        // userSelectable, so returning the submitted list asserted subscriptions the user does not have
+        // - a typo or a stale area name looked accepted until the next page load. See #476.
+        var stored = await this._humanProxy.GetAreasAsync(this.UserId);
+        if (stored is not null && stored.Value.TryGetProperty("area", out var storedAreas))
+        {
+            return this.Ok(ParseAreaJson(storedAreas.GetString()));
+        }
 
         return this.Ok(normalizedAreas);
     }

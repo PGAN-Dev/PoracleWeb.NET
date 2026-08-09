@@ -23,7 +23,12 @@ public class UserGeofenceServiceTests
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
 
-    public UserGeofenceServiceTests() => this._sut = new UserGeofenceService(
+    public UserGeofenceServiceTests()
+    {
+        // Features are on unless a test says otherwise.
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+
+        this._sut = new UserGeofenceService(
             this._repository.Object,
             this._kojiService.Object,
             this._poracleApiProxy.Object,
@@ -34,6 +39,7 @@ public class UserGeofenceServiceTests
             this._featureGate.Object,
             this._configuration,
             this._logger.Object);
+    }
 
     /// <summary>
     /// Helper: creates a JsonElement matching what IPoracleHumanProxy.GetHumanAsync returns.
@@ -71,6 +77,31 @@ public class UserGeofenceServiceTests
     }
 
     // --- Feature gate (#214 disable_user_geofences) ---
+
+    /// <summary>
+    /// Creating a geofence subscribes the current profile to it, which is an area write -- and it ran
+    /// straight past disable_areas while every documented area path was refused, so drawing and deleting
+    /// fences was a way to edit area subscriptions with the switch on. See #505.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncDoesNotSubscribeTheProfileWhileAreasAreDisabled()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.Areas)).ReturnsAsync(false);
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "Test",
+            Polygon = [[37.66, -77.60], [37.67, -77.60], [37.67, -77.59]],
+        });
+
+        this._areaWriter.Verify(
+            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        // The geofence itself is not the gated feature -- it still gets created, just inactive.
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Once);
+    }
 
     [Fact]
     public async Task CreateAsyncThrowsFeatureDisabledWhenGateDisabled()
@@ -262,7 +293,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.DeleteAsync("u1", 1, 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.DeleteAsync("u1", 1, 99));
     }
 
     // --- SubmitForReviewAsync ---
@@ -306,7 +337,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByKojiNameAsync("missing")).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.SubmitForReviewAsync("u1", "missing"));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.SubmitForReviewAsync("u1", "missing"));
     }
 
     [Fact]
@@ -381,6 +412,8 @@ public class UserGeofenceServiceTests
             return g;
         });
 
+        this._kojiService.Setup(k => k.GetRegionsAsync()).ReturnsAsync([new GeofenceRegion { Id = 42, Name = "city" }]);
+
         await this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: 42, groupName: "City");
 
         // Override is sent to Koji and persisted on the record.
@@ -439,15 +472,20 @@ public class UserGeofenceServiceTests
         this._kojiService.Verify(k => k.SaveGeofenceAsync("Downtown Official", "Downtown", "City", 5, It.IsAny<double[][]>(), true), Times.Once);
     }
 
-    [Fact]
-    public async Task ApproveSubmissionAsyncSwapsAreaNameWhenPromotedNameDiffers()
+    // This used to assert that approve calls SetAreasAsync with a swapped list. That WAS the bug:
+    // PoracleNG intersects the submitted list against userSelectable=true fences for non-admins, so it
+    // stripped both the old name (user geofences are served userSelectable=false) and the promoted one
+    // (not yet in PoracleNG's fence list — the reload runs afterwards). The owner lost their whole
+    // custom-geofence subscription set and approve still returned 200. See #408.
+
+    private UserGeofence SeedPendingGeofence(string kojiName = "downtown")
     {
         var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofence = new UserGeofence
         {
             Id = 1,
             HumanId = "u1",
-            KojiName = "downtown",
+            KojiName = kojiName,
             DisplayName = "Downtown",
             GroupName = "City",
             ParentId = 5,
@@ -456,13 +494,54 @@ public class UserGeofenceServiceTests
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\",\"other\"]"));
+        return geofence;
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncMovesTheOwnerSubscriptionToThePromotedName()
+    {
+        this.SeedPendingGeofence();
 
         await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
 
-        // Verify proxy was called with swapped area names
-        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
-            !a.Contains("downtown") && a.Contains("new downtown") && a.Contains("other"))), Times.Once);
+        this._areaWriter.Verify(w => w.RenameAreaInAllProfilesAsync("u1", "downtown", "New Downtown"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncNeverGoesThroughSetAreas()
+    {
+        this.SeedPendingGeofence();
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncTouchesNoAreasWhenTheNameIsUnchanged()
+    {
+        this.SeedPendingGeofence();
+
+        await this._sut.ApproveSubmissionAsync("admin1", 1, null);
+
+        this._areaWriter.Verify(
+            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncStillApprovesWhenTheSubscriptionMoveFails()
+    {
+        // The fence is already public in Koji by this point, so the approval stands; the owner losing
+        // their subscription is logged rather than rolled back into a failed approve.
+        this.SeedPendingGeofence();
+        this._areaWriter
+            .Setup(w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("db down"));
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, "New Downtown");
+
+        Assert.Equal("approved", result.Status);
     }
 
     [Fact]
@@ -512,7 +591,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.ApproveSubmissionAsync("admin1", 99, null));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.ApproveSubmissionAsync("admin1", 99, null));
     }
 
     [Fact]
@@ -571,7 +650,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.RejectSubmissionAsync("admin1", 99, "Reason"));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.RejectSubmissionAsync("admin1", 99, "Reason"));
     }
 
     [Fact]
@@ -653,7 +732,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.AdminDeleteAsync("admin1", 99));
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(() => this._sut.AdminDeleteAsync("admin1", 99));
     }
 
     // --- GetAllAsync ---
@@ -808,7 +887,10 @@ public class UserGeofenceServiceTests
         var result = await this._sut.GetAllWithDetailsAsync();
 
         Assert.Empty(result);
-        this._humanRepo.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(ids => !ids.Any())), Times.Once);
+
+        // No rows, no lookup. The enrichment is shared with approve and reject now (#618) and returns
+        // early on an empty list rather than asking the humans table about nobody.
+        this._humanRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
     }
 
     [Fact]
@@ -1052,7 +1134,7 @@ public class UserGeofenceServiceTests
     {
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<GeofenceNotFoundException>(
             () => this._sut.AddToProfileAsync("u1", 1, 99));
     }
 
@@ -1179,5 +1261,411 @@ public class UserGeofenceServiceTests
         this._areaWriter.Verify(
             w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
             Times.Never);
+    }
+
+    // ── Orphaned Koji geofences (#409) ──────────────────────────────────────────
+    // Approve pushes the polygon into the shared Koji project. Reject never undid that and accepted any
+    // status, and admin delete only cleaned Koji when status was exactly "approved" — so
+    // approve → reject → delete removed the local row and left a public, userSelectable fence in Koji
+    // that nothing could manage. Recovery meant hand-editing Koji.
+
+    private UserGeofence SeedGeofence(string status, string? promotedName = null, string kojiName = "downtown")
+    {
+        var geofence = new UserGeofence
+        {
+            Id = 7,
+            HumanId = "u1",
+            KojiName = kojiName,
+            DisplayName = "Downtown",
+            Status = status,
+            PromotedName = promotedName,
+            PolygonJson = JsonSerializer.Serialize(new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] })
+        };
+        this._repository.Setup(r => r.GetByIdAsync(7)).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        return geofence;
+    }
+
+    [Theory]
+    [InlineData("active")]
+    [InlineData("approved")]
+    [InlineData("rejected")]
+    public async Task RejectSubmissionAsyncRefusesAnythingNotAwaitingReview(string status)
+    {
+        this.SeedGeofence(status);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.RejectSubmissionAsync("admin1", 7, "no"));
+
+        Assert.Contains(status, ex.Message, StringComparison.Ordinal);
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RejectSubmissionAsyncStillWorksForAPendingSubmission()
+    {
+        this.SeedGeofence("pending_review");
+
+        var result = await this._sut.RejectSubmissionAsync("admin1", 7, "too small");
+
+        Assert.Equal("rejected", result.Status);
+        Assert.Equal("too small", result.ReviewNotes);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncCleansKojiForAGeofenceThatWasApprovedThenRejected()
+    {
+        // The orphan case: status is no longer "approved" but the fence is still public in Koji.
+        this.SeedGeofence("rejected", promotedName: "Downtown Official");
+
+        await this._sut.AdminDeleteAsync("admin1", 7);
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncRemovesThePromotedNameFromTheOwnersAreas()
+    {
+        // After approval the owner is subscribed under the promoted name, so removing the original
+        // left them subscribed to a fence that no longer exists.
+        this.SeedGeofence("rejected", promotedName: "Downtown Official");
+
+        await this._sut.AdminDeleteAsync("admin1", 7);
+
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+    }
+
+    [Fact]
+    public async Task AdminDeleteAsyncTouchesKojiForANeverPromotedGeofence()
+    {
+        this.SeedGeofence("active");
+
+        await this._sut.AdminDeleteAsync("admin1", 7);
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()), Times.Never);
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown"), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncCleansKojiWhenTheOwnerDeletesAPromotedGeofence()
+    {
+        // The owner's own delete had the identical hole.
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+
+        await this._sut.DeleteAsync("u1", 1, 7);
+
+        this._kojiService.Verify(k => k.RemoveGeofenceFromProjectAsync("Downtown Official"), Times.Once);
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown official"), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsyncStillDeletesLocallyWhenKojiCleanupFails()
+    {
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+        this._kojiService
+            .Setup(k => k.RemoveGeofenceFromProjectAsync(It.IsAny<string>()))
+            .ThrowsAsync(new HttpRequestException("koji down"));
+
+        await this._sut.DeleteAsync("u1", 1, 7);
+
+        this._repository.Verify(r => r.DeleteAsync(7), Times.Once);
+    }
+
+    // ── Polygon validation on create (#410) ─────────────────────────────────────
+    // Only the point count was checked, so malformed points reached the anonymous geofence feed —
+    // the single geofence source for PoracleJS — and crashed the owner's GeoJSON export.
+
+    [Fact]
+    public async Task CreateAsyncRejectsPointsThatAreNotLatLonPairs()
+    {
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+            {
+                DisplayName = "ZZ Arity Chk",
+                Polygon = [[1.0], [2.0], [3.0]]
+            }));
+
+        Assert.Contains("[latitude, longitude] pair", ex.Message, StringComparison.Ordinal);
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsyncRejectsOutOfRangeCoordinates()
+    {
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+            {
+                DisplayName = "ZZ Range Chk",
+                Polygon = [[999, -999], [998, -998], [997, -997]]
+            }));
+
+        Assert.Contains("out of valid range", ex.Message, StringComparison.Ordinal);
+        this._repository.Verify(r => r.CreateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsyncStillEnforcesThePointCount()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+            {
+                DisplayName = "ZZ Too Few",
+                Polygon = [[40, -75], [41, -75]]
+            }));
+    }
+
+    // ── Approve state machine ───────────────────────────────────────────────────
+    // Approve accepted any status, the same gap #409 closed on reject.
+
+    [Theory]
+    [InlineData("pending_review")]
+    [InlineData("rejected")]
+    public async Task ApproveSubmissionAsyncAllowsAwaitingReviewAndReconsideredRejections(string status)
+    {
+        this.SeedGeofence(status);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 7, null);
+
+        Assert.Equal("approved", result.Status);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRefusesAGeofenceThatWasNeverSubmitted()
+    {
+        // No review thread, and the owner never asked for it to be public.
+        this.SeedGeofence("active");
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 7, null));
+
+        Assert.Contains("active", ex.Message, StringComparison.Ordinal);
+        this._kojiService.Verify(
+            k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRefusesAnAlreadyApprovedGeofence()
+    {
+        // Re-approving under a different promoted name would push a second Koji entry and strand the
+        // first — the exact leak #409 closed.
+        this.SeedGeofence("approved", promotedName: "Downtown Official");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 7, "Downtown Renamed"));
+
+        this._kojiService.Verify(
+            k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncChecksTheStatusBeforeTouchingKoji()
+    {
+        // The guard has to run before SaveGeofenceAsync, or a refused approval still publishes the fence.
+        this.SeedGeofence("active");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 7, null));
+
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
+        this._areaWriter.Verify(
+            w => w.RenameAreaInAllProfilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    // ── Koji failures during approve (#422) ─────────────────────────────────────
+    // EnsureSuccessStatusCode threw a bare HttpRequestException that no controller caught, so an unknown
+    // parent id -- or Koji simply being down -- reached the admin as an opaque 500.
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncRejectsAParentRegionKojiDoesNotKnow()
+    {
+        this.SeedPendingGeofence();
+        this._kojiService.Setup(k => k.GetRegionsAsync())
+            .ReturnsAsync([new GeofenceRegion { Id = 5, Name = "city" }]);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: 999999999));
+
+        Assert.Contains("999999999", ex.Message, StringComparison.Ordinal);
+        this._kojiService.Verify(
+            k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncAcceptsAParentRegionKojiKnows()
+    {
+        this.SeedPendingGeofence();
+        this._kojiService.Setup(k => k.GetRegionsAsync())
+            .ReturnsAsync([new GeofenceRegion { Id = 42, Name = "city" }]);
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: 42);
+
+        Assert.Equal("approved", result.Status);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task ApproveSubmissionAsyncTreatsNonPositiveParentsAsNoRegion(int parentId)
+    {
+        // Documented behaviour from #314: a region-less geofence sends null to Koji. -5 is not a new case.
+        this.SeedPendingGeofence();
+
+        var result = await this._sut.ApproveSubmissionAsync("admin1", 1, null, parentId: parentId);
+
+        Assert.Equal("approved", result.Status);
+        this._kojiService.Verify(k => k.GetRegionsAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveSubmissionAsyncSurfacesAKojiFailureAsATypedError()
+    {
+        this.SeedPendingGeofence();
+        this._kojiService
+            .Setup(k => k.SaveGeofenceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<double[][]>(), It.IsAny<bool>()))
+            .ThrowsAsync(new KojiOperationException("geofence save", System.Net.HttpStatusCode.InternalServerError, "boom"));
+
+        await Assert.ThrowsAsync<KojiOperationException>(
+            () => this._sut.ApproveSubmissionAsync("admin1", 1, null));
+
+        // The submission must be left alone so the admin can retry once Koji is back.
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    // ── Name collisions across both geofence sources (#475) ─────────────────
+    // The comment claimed "our DB + Koji"; only user_geofences was ever consulted, so a user could
+    // take a name an admin area already held. Both then reach PoracleJS through one feed under one
+    // name, and approving the private one upserts Koji by __name - overwriting the real area.
+
+    [Fact]
+    public async Task CreateAsyncSuffixesAroundAnExistingKojiAreaName()
+    {
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync())
+            .ReturnsAsync([new AdminGeofence { Id = 1, Name = "nyack" }]);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        var result = await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "Nyack",
+            Polygon = [[40, -73], [41, -73], [41, -74]],
+        });
+
+        Assert.NotEqual("nyack", result.KojiName);
+    }
+
+    [Fact]
+    public async Task CreateAsyncMatchesKojiNamesCaseInsensitively()
+    {
+        // Poracle area matching is case-insensitive in practice, so lowercasing alone does not
+        // separate "Nyack" from "nyack".
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync())
+            .ReturnsAsync([new AdminGeofence { Id = 1, Name = "NYACK" }]);
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        var result = await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "nyack",
+            Polygon = [[40, -73], [41, -73], [41, -74]],
+        });
+
+        Assert.NotEqual("nyack", result.KojiName);
+    }
+
+    [Fact]
+    public async Task CreateAsyncStillWorksWhenKojiIsUnreachable()
+    {
+        // A Koji outage must not block geofence creation - the feed degrades the same way.
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync())
+            .ThrowsAsync(new HttpRequestException("koji down"));
+        this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
+            .ReturnsAsync((UserGeofence g) => g);
+
+        var result = await this._sut.CreateAsync("u1", 1, new UserGeofenceCreate
+        {
+            DisplayName = "Somewhere New",
+            Polygon = [[40, -73], [41, -73], [41, -74]],
+        });
+
+        Assert.Equal("somewhere new", result.KojiName);
+    }
+
+    // ── Rename guards (#646, #648) ──────────────────────────────────────
+
+    [Theory]
+    [InlineData("approved")]
+    [InlineData("pending_review")]
+    public async Task RenameIsRefusedOnceTheGeofenceHasLeftTheOwnersHands(string status)
+    {
+        // Approval moves the fence to Koji under PromotedName and the area lists hold that name, so a
+        // rename rewrote the subscription to a name nothing serves. See #646.
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            Status = status,
+        });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.RenameAsync("u1", 1, "Uptown", null, null));
+
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RenameKeepsTheRegionWhenTheDialogSendsNoSelection()
+    {
+        // 0 is the dialog's "nothing selected", not a request to clear the parent. Taken literally it
+        // wiped the region of every renamed geofence. See #648.
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            Status = "active",
+            ParentId = 42,
+            GroupName = "North",
+        });
+        UserGeofence? saved = null;
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saved = g)
+            .ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.RenameAsync("u1", 1, "Uptown", null, 0);
+
+        Assert.Equal(42, saved?.ParentId);
+        Assert.Equal("North", saved?.GroupName);
+    }
+
+    [Fact]
+    public async Task RenameStillAppliesARegionThatWasActuallyChosen()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            Status = "active",
+            ParentId = 42,
+        });
+        UserGeofence? saved = null;
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saved = g)
+            .ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.RenameAsync("u1", 1, "Uptown", "South", 7);
+
+        Assert.Equal(7, saved?.ParentId);
+        Assert.Equal("South", saved?.GroupName);
     }
 }

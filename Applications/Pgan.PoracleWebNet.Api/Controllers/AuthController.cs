@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Api.Services.Oidc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -17,11 +18,13 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [EnableRateLimiting("auth")]
 public partial class AuthController(
     IHumanService humanService,
+    IProfileService profileService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
     IJwtService jwtService,
+    IUserRoleResolver roleResolver,
     IOidcClient oidcClient,
     IOidcSessionService oidcSessionService,
     IOptions<DiscordSettings> discordSettings,
@@ -33,6 +36,7 @@ public partial class AuthController(
 {
     private const string EnableDiscordKey = "enable_discord";
     private const string EnableTelegramKey = "enable_telegram";
+    private const string TelegramBotUsernameKey = "telegram_bot";
     private const string EnableOidcKey = "enable_oidc";
     private const string EnableOidcSloKey = "enable_oidc_slo";
 
@@ -42,11 +46,13 @@ public partial class AuthController(
         ['"', '\'', '«', '»', '“', '”', '„', '‘', '’', ' ', '\t'];
 
     private readonly IHumanService _humanService = humanService;
+    private readonly IProfileService _profileService = profileService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IOidcClient _oidcClient = oidcClient;
     private readonly IOidcSessionService _oidcSessionService = oidcSessionService;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
@@ -633,8 +639,29 @@ public partial class AuthController(
         return this.Ok(new
         {
             enabled = this._telegramSettings.Enabled && !disabledBySetting,
-            botUsername = this._telegramSettings.BotUsername
+            botUsername = await this.ResolveTelegramBotUsernameAsync(),
         });
+    }
+
+    /// <summary>
+    /// The Telegram bot username the login widget is built with.
+    /// </summary>
+    /// <remarks>
+    /// Configuration wins; the <c>telegram_bot</c> site setting is the fallback. The admin page has
+    /// always offered that field and nothing has ever read it, so an admin filling it in to fix a dead
+    /// Telegram button saw it save and change nothing. Precedence is this way round on purpose: a
+    /// deployment whose env var is set and working must not have its widget repointed at whatever was
+    /// typed into the UI back when the field was inert. See #620.
+    /// </remarks>
+    private async Task<string> ResolveTelegramBotUsernameAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(this._telegramSettings.BotUsername))
+        {
+            return this._telegramSettings.BotUsername;
+        }
+
+        var configured = await this._siteSettingService.GetValueAsync(TelegramBotUsernameKey);
+        return configured?.Trim().TrimStart('@') ?? string.Empty;
     }
 
     /// <summary>
@@ -700,7 +727,7 @@ public partial class AuthController(
             {
                 configured = telegramConfigured,
                 enabledByAdmin = !telegramDisabledByAdmin,
-                botUsername = telegramConfigured ? this._telegramSettings.BotUsername : string.Empty,
+                botUsername = telegramConfigured ? await this.ResolveTelegramBotUsernameAsync() : string.Empty,
             },
             oidc = new
             {
@@ -716,15 +743,56 @@ public partial class AuthController(
         });
     }
 
+    /// <summary>
+    /// The active profile's name, or null when it cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// Never fails the call: the menu label is cosmetic, and /api/auth/me also carries the enabled flag and
+    /// the profile resync, which matter a great deal more than a name. See #520.
+    /// </remarks>
+    private async Task<string?> ActiveProfileNameAsync(int profileNo)
+    {
+        try
+        {
+            var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, profileNo);
+            return profile?.Name;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            LogProfileNameLookupFailed(this._logger, ex, profileNo);
+            return null;
+        }
+    }
+
     [EnableRateLimiting("auth-read")]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
         // Read enabled status from DB (not JWT) so it reflects real-time changes
         var human = await this._humanService.GetByIdAsync(this.UserId);
-        var adminDisable = human != null && human.AdminDisable == 1;
-        var enabled = human == null || (human.Enabled == 1 && human.AdminDisable == 0);
-        var dbProfileNo = human?.CurrentProfileNo ?? this.ProfileNo;
+
+        // A missing row used to read as healthy, so a deleted account kept answering 200 with
+        // enabled:true while every other endpoint threw. The SPA only signs out on 401, so the user sat
+        // in a fully rendered app where nothing worked, for up to the token lifetime, with no way out but
+        // clearing storage by hand. The account is gone; say so, and let the interceptor sign them out.
+        // See #545.
+        if (human is null)
+        {
+            return this.Unauthorized(new { error = "This account no longer exists." });
+        }
+
+        // Blocking a user stopped Poracle delivering to them and did nothing else: no filter, controller or
+        // service looked at admin_disable, so an existing token kept full read/write access for the rest of
+        // its 24-hour life, and a fresh login minted another one. The SPA signs out on 401, so answering
+        // that here ends the session on the next poll, the same way a deleted account does. See #597.
+        if (human.AdminDisable == 1)
+        {
+            return this.Unauthorized(new { error = "This account has been blocked by an administrator." });
+        }
+
+        var adminDisable = human.AdminDisable == 1;
+        var enabled = human.Enabled == 1 && human.AdminDisable == 0;
+        var dbProfileNo = human.CurrentProfileNo;
 
         var userInfo = new UserInfo
         {
@@ -736,17 +804,35 @@ public partial class AuthController(
             Enabled = enabled,
             ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null
+            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null,
+            ProfileName = await this.ActiveProfileNameAsync(dbProfileNo),
         };
 
         // Detect JWT/DB profile desync — PoracleNG can change current_profile_no
         // out-of-band via the active_hours scheduler or bot !profile commands.
         // When mismatched, issue a refreshed JWT so subsequent API calls use the
         // correct profile and alarms don't land on the wrong profile.
-        if (human != null && dbProfileNo != this.ProfileNo)
+        if (dbProfileNo != this.ProfileNo)
         {
             LogProfileResync(this._logger, this.UserId, this.ProfileNo, dbProfileNo);
-            userInfo.Token = this._jwtService.GenerateToken(userInfo);
+            // GenerateToken builds from UserInfo, which has no impersonatedBy field, so an admin
+            // impersonation session lost the only server-side record of what it was -- on precisely the
+            // out-of-band profile changes this branch exists to absorb. Replace the profile on the
+            // current principal instead, which is what every other profile-replacement site does and
+            // which copies every non-registered claim. See #484.
+            // isAdmin resolved fresh rather than copied: this is the one place a long-lived session
+            // routinely re-mints its token, so copying the claim let revoked admin rights live on. See #624.
+            var roles = await this._roleResolver.ResolveAsync(this.UserId);
+
+            // Null means "leave the claim alone". Two cases need it: the resolver could not reach PoracleNG,
+            // where treating unknown as false stripped admin for the rest of the session (#656); and an
+            // impersonation session, which AdminController deliberately mints with IsAdmin = false and which
+            // would otherwise be re-elevated by resolving the impersonated user's own roles (#663).
+            bool? resolvedAdmin = roles.Resolved && this.User.FindFirst("impersonatedBy") is null
+                ? roles.IsAdmin
+                : null;
+            userInfo.IsAdmin = resolvedAdmin ?? this.IsAdmin;
+            userInfo.Token = this._jwtService.GenerateTokenWithReplacedProfile(this.User, dbProfileNo, resolvedAdmin);
         }
 
         return this.Ok(userInfo);
@@ -797,102 +883,17 @@ public partial class AuthController(
     /// Calls PoracleJS getAdministrationRoles once and returns (isAdmin, managedWebhooks).
     /// managedWebhooks merges: Poracle-resolved webhook delegation + our own webhook delegate service layer.
     /// </summary>
+    /// <summary>
+    /// The caller's current admin status and delegated webhooks.
+    /// </summary>
+    /// <remarks>
+    /// The body of this moved to <see cref="IUserRoleResolver"/> so the admin endpoints and the token
+    /// re-issue paths can ask the same question login asks. See #624 and #626.
+    /// </remarks>
     private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
     {
-        // Fast path: configured admin IDs
-        if (!string.IsNullOrEmpty(this._poracleSettings.AdminIds))
-        {
-            var adminIds = this._poracleSettings.AdminIds.Split(',',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (adminIds.Contains(userId))
-            {
-                return (true, null);
-            }
-        }
-
-        // Check Poracle config admins list
-        try
-        {
-            var config = await this._poracleApiProxy.GetConfigAsync();
-            if (config?.Admins != null &&
-                (config.Admins.Discord.Contains(userId) || config.Admins.Telegram.Contains(userId)))
-            {
-                return (true, null);
-            }
-        }
-        catch (Exception ex)
-        {
-            LogPoracleConfigFetchFailed(this._logger, ex, userId);
-        }
-
-        // Call getAdministrationRoles once — resolves delegation including Discord guild roles
-        var managed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var isAdmin = false;
-
-        try
-        {
-            var rolesJson = await this._poracleApiProxy.GetAdminRolesAsync(userId);
-            if (!string.IsNullOrEmpty(rolesJson))
-            {
-                using var doc = JsonDocument.Parse(rolesJson);
-                var root = doc.RootElement;
-
-                // Some versions return isAdmin at root; others wrap under admin.discord
-                if (root.TryGetProperty("isAdmin", out var isAdminProp) && isAdminProp.ValueKind == JsonValueKind.True)
-                {
-                    isAdmin = true;
-                }
-
-                // Parse admin.discord.webhooks — the authoritative delegate webhook list
-                if (root.TryGetProperty("admin", out var adminEl) &&
-                    adminEl.TryGetProperty("discord", out var discordEl))
-                {
-                    if (!isAdmin &&
-                        discordEl.TryGetProperty("isAdmin", out var discordAdmin) &&
-                        discordAdmin.ValueKind == JsonValueKind.True)
-                    {
-                        isAdmin = true;
-                    }
-
-                    if (discordEl.TryGetProperty("webhooks", out var webhooks) &&
-                        webhooks.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var wh in webhooks.EnumerateArray())
-                        {
-                            if (wh.GetString() is { } id)
-                            {
-                                managed.Add(id);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LogAdminRolesFetchFailed(this._logger, ex, userId);
-        }
-
-        if (isAdmin)
-        {
-            return (true, null);
-        }
-
-        // Also merge our own webhook delegate service layer
-        try
-        {
-            var managedWebhookIds = await this._webhookDelegateService.GetManagedWebhookIdsAsync(userId);
-            foreach (var webhookId in managedWebhookIds)
-            {
-                managed.Add(webhookId);
-            }
-        }
-        catch (Exception ex)
-        {
-            LogPwebDelegatesFetchFailed(this._logger, ex, userId);
-        }
-
-        return (false, managed.Count > 0 ? managed.ToArray() : null);
+        var roles = await this._roleResolver.ResolveAsync(userId);
+        return (roles.IsAdmin, roles.ManagedWebhooks);
     }
 
     /// <summary>
@@ -1195,6 +1196,11 @@ public partial class AuthController(
         return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(baseUrl, present);
     }
 
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Could not read the name of active profile {ProfileNo}; the user menu falls back to the number.")]
+    private static partial void LogProfileNameLookupFailed(ILogger logger, Exception exception, int profileNo);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Role-based access enabled but Discord BotToken or GuildId not configured.")]
     private static partial void LogRoleMisconfigured(ILogger logger);
 
@@ -1221,15 +1227,6 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "OIDC refresh tokens are enabled but the provider returned no refresh token (offline_access not granted?); falling back to a standard session.")]
     private static partial void LogOidcRefreshUnavailable(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
-    private static partial void LogPoracleConfigFetchFailed(ILogger logger, Exception ex, string userId);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch administration roles for {UserId}.")]
-    private static partial void LogAdminRolesFetchFailed(ILogger logger, Exception ex, string userId);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch webhook delegates for {UserId}.")]
-    private static partial void LogPwebDelegatesFetchFailed(ILogger logger, Exception ex, string userId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt blocked: {Method} login is disabled by site setting.")]
     private static partial void LogAuthMethodDisabled(ILogger logger, string method);

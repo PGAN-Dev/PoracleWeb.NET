@@ -17,13 +17,14 @@ public class FortChangeServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly FortChangeService _sut;
     private static readonly string[] stringArray = ["name", "location"];
 
     public FortChangeServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new FortChangeService(this._proxy.Object, this._featureGate.Object, NullLogger<FortChangeService>.Instance);
+        this._sut = new FortChangeService(this._proxy.Object, this._featureGate.Object, NullLogger<FortChangeService>.Instance, this._uidRemapper.Object);
     }
 
     [Fact]
@@ -71,9 +72,65 @@ public class FortChangeServiceTests
         Assert.Null(await this._sut.GetByUidAsync("u1", 99));
     }
 
+    /// <summary>
+    /// PoracleNG's dedup key for this type ignores distance, so a create matching an existing alarm's
+    /// settings overwrote that alarm's radius while PoracleWeb answered 201 with a fresh uid -- the user
+    /// believed they had two alarms and the configured radius was gone. See #502.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncRefusesAnAlarmThatWouldOverwriteAnExistingOne()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(CreateJsonArray(new
+        {
+            uid = 37,
+            id = "u1",
+            fort_type = "everything",
+            include_empty = 1,
+            change_types = "[\"new\"]",
+            distance = 700,
+        }));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => this._sut.CreateAsync("u1", new FortChange
+            {
+                FortType = "everything",
+                IncludeEmpty = 1,
+                ChangeTypes = ["new"],
+                Distance = 900,
+            }));
+
+        this._proxy.Verify(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    /// <summary>Different settings still add a second alarm.</summary>
+    [Fact]
+    public async Task CreateAsyncAllowsADifferentFortType()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(CreateJsonArray(new
+        {
+            uid = 37,
+            id = "u1",
+            fort_type = "everything",
+            include_empty = 1,
+            change_types = "[\"new\"]",
+        }));
+        this._proxy.Setup(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([38L], 0, 0, 1));
+
+        var result = await this._sut.CreateAsync("u1", new FortChange
+        {
+            FortType = "gym",
+            IncludeEmpty = 1,
+            ChangeTypes = ["new"],
+        });
+
+        Assert.Equal(38, result.Uid);
+    }
+
     [Fact]
     public async Task CreateAsyncSetsUserId()
     {
+        this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(CreateJsonArray());
         this._proxy.Setup(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([10L], 0, 0, 1));
         var model = new FortChange { FortType = "pokestop" };
@@ -122,13 +179,15 @@ public class FortChangeServiceTests
             {
                 uid = 1,
                 id = "u1",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u1",
-                distance = 0
+                distance = 0,
+                template = "ZZrow2"
             });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()))
@@ -159,6 +218,31 @@ public class FortChangeServiceTests
         Assert.Equal(expected, isValid);
     }
 
+    [Theory]
+    [InlineData(new[] { "name", "location", "image_url", "removal", "new" }, true)]
+    [InlineData(new[] { "name", "name" }, false)]
+    [InlineData(new[] { "name", "NAME" }, false)]
+    public void FortChangeCreateRefusesRepeatedAndOverLongChangeTypes(string[] changeTypes, bool expected)
+    {
+        // Five legal values, so a longer list or a repeat cannot mean anything and used to reach the
+        // database as an over-long JSON string. See #612.
+        var model = new FortChangeCreate { FortType = "everything", ChangeTypes = [.. changeTypes] };
+        var results = new List<ValidationResult>();
+        var isValid = Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true);
+        Assert.Equal(expected, isValid);
+    }
+
+    [Fact]
+    public void FortChangeCreateRefusesMoreThanFiveChangeTypes()
+    {
+        var model = new FortChangeCreate
+        {
+            FortType = "everything",
+            ChangeTypes = ["name", "location", "image_url", "removal", "new", "name2"],
+        };
+        var results = new List<ValidationResult>();
+        Assert.False(Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true));
+    }
     [Theory]
     [InlineData(new[] { "name", "location" }, true)]
     [InlineData(new[] { "image_url", "removal", "new" }, true)]

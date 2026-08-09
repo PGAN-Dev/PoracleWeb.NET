@@ -64,8 +64,6 @@ public partial class SettingsMigrationService(
         ["disable_profiles"] = "features",
         ["disable_location"] = "features",
         ["disable_nominatim"] = "features",
-        ["disable_geomap"] = "features",
-        ["disable_geomap_select"] = "features",
         ["disable_user_geofences"] = "features",
         ["enable_templates"] = "features",
 
@@ -121,7 +119,7 @@ public partial class SettingsMigrationService(
         "disable_lures", "disable_nests", "disable_gyms", "disable_maxbattles",
         "disable_fort_changes", "disable_areas",
         "disable_profiles", "disable_location", "disable_nominatim",
-        "disable_geomap", "disable_geomap_select", "disable_user_geofences",
+        "disable_user_geofences",
         "enable_templates", "enable_roles", "enable_telegram", "enable_discord",
         "enable_oidc",
         "hide_header_logo", "site_is_https", "debug",
@@ -408,6 +406,9 @@ public partial class SettingsMigrationService(
         ("custom_title", "PoracleWeb.NET", "branding", "string"),
     ];
 
+    /// <summary>Marks that the built-in quick picks have been created once. See #662, #666.</summary>
+    private const string QuickPicksSeededKey = "quick_picks_seeded";
+
     public async Task SeedDefaultsAsync()
     {
         foreach (var (key, value, category, valueType) in DefaultSettings)
@@ -428,6 +429,48 @@ public partial class SettingsMigrationService(
 
             LogDefaultSeeded(this._logger, key, value);
         }
+
+        await this.BackfillQuickPickSeedMarkerAsync();
+    }
+
+    /// <summary>
+    /// Records that the built-in quick picks exist, for installations seeded before the marker did.
+    /// </summary>
+    /// <remarks>
+    /// The marker used to be a per-browser localStorage flag and became a site setting in #662, so an
+    /// installation seeded before that has no row and would seed again on the next admin visit.
+    /// <para>
+    /// This covers installations that still hold at least one global pick, which is the common case. It
+    /// deliberately does NOT cover an admin who had already deleted every preset before upgrading: they
+    /// have no global picks, so there is nothing here to infer from, and the old marker lived in their
+    /// browser where the server cannot see it. That admin gets one reseed. Said plainly because the
+    /// first version of this comment claimed to cover it and did not. See #666, #672.
+    /// </para>
+    /// </remarks>
+    private async Task BackfillQuickPickSeedMarkerAsync()
+    {
+        if (await this._siteSettingService.GetByKeyAsync(QuickPicksSeededKey) is not null)
+        {
+            return;
+        }
+
+        var globals = await this._quickPickDefinitionRepository.GetAllGlobalAsync();
+        if (globals is not { Count: > 0 })
+        {
+            // Genuinely fresh, or deliberately emptied before the marker existed. Either way the first
+            // admin visit seeds, which is the behaviour that shipped.
+            return;
+        }
+
+        await this._siteSettingService.CreateOrUpdateAsync(new SiteSetting
+        {
+            Key = QuickPicksSeededKey,
+            Value = "true",
+            Category = "admin",
+            ValueType = "boolean",
+        });
+
+        LogDefaultSeeded(this._logger, QuickPicksSeededKey, "true");
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Settings migration completed: {SiteSettings} site settings, {WebhookDelegates} webhook delegates, {QuickPickDefinitions} quick pick definitions, {QuickPickAppliedStates} quick pick applied states, {Failed} failed")]

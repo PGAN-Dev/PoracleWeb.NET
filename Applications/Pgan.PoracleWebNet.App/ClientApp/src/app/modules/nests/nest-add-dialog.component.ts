@@ -10,7 +10,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -54,7 +54,6 @@ export class NestAddDialogComponent {
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     minSpawnAvg: [0],
-    ping: [''],
     template: [''],
   });
 
@@ -81,18 +80,42 @@ export class NestAddDialogComponent {
         clean: v.clean ? 1 : 0,
         distance: dist,
         minSpawnAvg: v.minSpawnAvg ?? 0,
-        ping: v.ping || null,
         pokemonId,
         template: v.template || null,
       }),
     );
-    forkJoin(creates).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('NESTS.SNACK_FAILED_CREATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+    // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
+    // succeeded were never reported, the dialog stayed open and the list never reloaded. Each request
+    // settles on its own now, and the toast says how many landed. See #577.
+    forkJoin(creates.map(c => c.pipe(catchError((err: { error?: { error?: string } }) => of({ failed: err }))))).subscribe({
+      // The server names what is wrong -- which alarm already uses these settings, which
+      // field a file got wrong. A fixed string threw that away. See #567, #568.
+      // Each create settles on its own, so a refused one no longer hides the ones that landed.
+      // The first refusal's message is shown, because it names what is in the way. See #577.
+      next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
+        const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
+        // Three outcomes, not two: refused (409), already tracked (200 with no uid), and created. The
+        // pokemon dialog has split these since #495; the rest reported duplicates as creations. See #605.
+        const landed = results.filter((r): r is { uid?: number } => !('failed' in r));
+        const created = landed.filter(r => (r.uid ?? 0) > 0).length;
+        const duplicates = landed.length - created;
         this.saving.set(false);
-      },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('NESTS.SNACK_CREATED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+
+        if (refused.length > 0) {
+          this.snackBar.open(
+            refused[0].failed?.error?.error ?? this.i18n.instant('NESTS.SNACK_FAILED_CREATE'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 6000 },
+          );
+        } else {
+          const message =
+            duplicates > 0
+              ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
+              : this.i18n.instant('NESTS.SNACK_CREATED', { count: created });
+          this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
+        }
+
+        // Close either way: whatever was created is real, and the list must reload to show it.
         this.dialogRef.close(true);
       },
     });

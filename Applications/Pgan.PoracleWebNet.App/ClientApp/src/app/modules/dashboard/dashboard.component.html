@@ -13,51 +13,55 @@
 <div class="dashboard-content">
   <!-- Status Overview Row -->
   <div class="status-row">
-    <!-- Location Card -->
-    <mat-card class="status-card location-card-full" (click)="openLocationDialog()">
-      @if (locationMapUrl()) {
-        <img [src]="locationMapUrl()" class="location-map-thumb" [alt]="'DASHBOARD.LOCATION' | translate" loading="lazy" />
-      }
-      <div class="location-card-body">
-        <div class="status-icon-wrap location-icon">
-          <mat-icon>my_location</mat-icon>
+    @if (locationEnabled()) {
+      <!-- Location Card -->
+      <mat-card class="status-card location-card-full" (click)="openLocationDialog()">
+        @if (locationMapUrl()) {
+          <img [src]="locationMapUrl()" class="location-map-thumb" [alt]="'DASHBOARD.LOCATION' | translate" loading="lazy" />
+        }
+        <div class="location-card-body">
+          <div class="status-icon-wrap location-icon">
+            <mat-icon>my_location</mat-icon>
+          </div>
+          <div class="status-info">
+            <span class="status-label">{{ 'DASHBOARD.LOCATION' | translate }}</span>
+            @if (location(); as loc) {
+              @if (locationAddress()) {
+                <span class="status-value status-address" [title]="loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4)">{{
+                  locationAddress()
+                }}</span>
+              } @else {
+                <span class="status-value">{{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}</span>
+              }
+            } @else {
+              <span class="status-value not-set">{{ 'DASHBOARD.LOCATION_NOT_SET' | translate }}</span>
+            }
+          </div>
+          <mat-icon class="status-arrow">chevron_right</mat-icon>
+        </div>
+      </mat-card>
+    }
+
+    @if (areasEnabled()) {
+      <!-- Areas Card -->
+      <mat-card class="status-card areas-card" (click)="navigate('/areas')">
+        <div class="status-icon-wrap areas-icon">
+          <mat-icon>map</mat-icon>
         </div>
         <div class="status-info">
-          <span class="status-label">{{ 'DASHBOARD.LOCATION' | translate }}</span>
-          @if (location(); as loc) {
-            @if (locationAddress()) {
-              <span class="status-value status-address" [title]="loc.latitude.toFixed(4) + ', ' + loc.longitude.toFixed(4)">{{
-                locationAddress()
-              }}</span>
-            } @else {
-              <span class="status-value">{{ loc.latitude.toFixed(4) }}, {{ loc.longitude.toFixed(4) }}</span>
-            }
+          <span class="status-label">{{ 'DASHBOARD.ACTIVE_AREAS' | translate }}</span>
+          @if (selectedAreas().length > 0) {
+            <span class="status-value">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
           } @else {
-            <span class="status-value not-set">{{ 'DASHBOARD.LOCATION_NOT_SET' | translate }}</span>
+            <span class="status-value not-set">{{ 'DASHBOARD.NO_AREAS' | translate }}</span>
           }
         </div>
         <mat-icon class="status-arrow">chevron_right</mat-icon>
-      </div>
-    </mat-card>
-
-    <!-- Areas Card -->
-    <mat-card class="status-card areas-card" (click)="navigate('/areas')">
-      <div class="status-icon-wrap areas-icon">
-        <mat-icon>map</mat-icon>
-      </div>
-      <div class="status-info">
-        <span class="status-label">{{ 'DASHBOARD.ACTIVE_AREAS' | translate }}</span>
-        @if (selectedAreas().length > 0) {
-          <span class="status-value">{{ 'DASHBOARD.AREAS_COUNT' | translate: { count: selectedAreas().length } }}</span>
-        } @else {
-          <span class="status-value not-set">{{ 'DASHBOARD.NO_AREAS' | translate }}</span>
-        }
-      </div>
-      <mat-icon class="status-arrow">chevron_right</mat-icon>
-    </mat-card>
+      </mat-card>
+    }
 
     <!-- Profile Card -->
-    @if (profiles().length > 1) {
+    @if (profilesEnabled() && profiles().length > 1) {
       <mat-card class="status-card profile-card" [matMenuTriggerFor]="profileMenu">
         <div class="status-icon-wrap profile-icon">
           <mat-icon>person</mat-icon>
@@ -227,9 +231,11 @@
     <button mat-flat-button (click)="navigate('/quests')" class="action-btn action-quests">
       <mat-icon>explore</mat-icon> {{ 'DASHBOARD.ADD_QUEST' | translate }}
     </button>
-    <button mat-flat-button (click)="navigate('/areas')" class="action-btn action-areas">
-      <mat-icon>map</mat-icon> {{ 'DASHBOARD.MANAGE_AREAS' | translate }}
-    </button>
+    @if (areasEnabled()) {
+      <button mat-flat-button (click)="navigate('/areas')" class="action-btn action-areas">
+        <mat-icon>map</mat-icon> {{ 'DASHBOARD.MANAGE_AREAS' | translate }}
+      </button>
+    }
     <button mat-flat-button (click)="navigate('/cleaning')" class="action-btn action-cleaning">
       <mat-icon>cleaning_services</mat-icon> {{ 'DASHBOARD.CLEANING_ACTION' | translate }}
     </button>

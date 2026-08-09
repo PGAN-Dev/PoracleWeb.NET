@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/cleaning")]
-public class CleaningController(ICleaningService cleaningService) : BaseApiController
+public class CleaningController(ICleaningService cleaningService, IFeatureGate featureGate) : BaseApiController
 {
     private readonly ICleaningService _cleaningService = cleaningService;
+    private readonly IFeatureGate _featureGate = featureGate;
 
     [HttpGet("status")]
     public async Task<IActionResult> GetStatus()
@@ -18,26 +20,67 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
     [HttpPut("all/{enabled:int}")]
     public async Task<IActionResult> ToggleAll(int enabled)
     {
+        // enabled is a flag, not a bitmask. CleanFlags.Preserve masks with bit 1, so an even value
+        // such as 2 silently DISABLED cleaning while reporting the rows updated -- and the write is not
+        // free: it rotates every uid, and for max battles it deletes and reinserts every row. See #472.
+        if (enabled is not (0 or 1))
+        {
+            return this.BadRequest(new
+            {
+                error = "enabled must be 0 or 1."
+            });
+        }
+        // Each toggle re-checks its own feature gate, so awaiting all of them unconditionally meant one
+        // disabled alarm type threw partway through -- 403 to the caller, with the types processed before
+        // it already written. Skip disabled types instead, and tell the caller which were skipped.
         var total = 0;
-        total += await this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanRaidsAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanEggsAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanQuestsAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanInvasionsAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanLuresAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanFortChangesAsync(this.UserId, this.ProfileNo, enabled);
-        total += await this._cleaningService.ToggleCleanMaxBattlesAsync(this.UserId, this.ProfileNo, enabled);
+        var skipped = new List<string>();
+
+        foreach (var (disableKey, toggle) in this.BulkToggles())
+        {
+            if (!await this._featureGate.IsEnabledAsync(disableKey))
+            {
+                skipped.Add(disableKey);
+                continue;
+            }
+
+            total += await toggle(enabled);
+        }
+
         return this.Ok(new
         {
-            updated = total
+            updated = total,
+            skipped,
         });
+    }
+
+    /// <summary>Every alarm type the bulk toggle covers, paired with the gate that can switch it off.</summary>
+    private IEnumerable<(string DisableKey, Func<int, Task<int>> Toggle)> BulkToggles()
+    {
+        yield return (DisableFeatureKeys.Pokemon, e => this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.Raids, e => this._cleaningService.ToggleCleanRaidsAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.Raids, e => this._cleaningService.ToggleCleanEggsAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.Quests, e => this._cleaningService.ToggleCleanQuestsAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.Invasions, e => this._cleaningService.ToggleCleanInvasionsAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.Lures, e => this._cleaningService.ToggleCleanLuresAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.Nests, e => this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.Gyms, e => this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, e));
+        yield return (DisableFeatureKeys.MaxBattles, e => this._cleaningService.ToggleCleanMaxBattlesAsync(this.UserId, this.ProfileNo, e));
     }
 
     [HttpPut("{alarmType}/{enabled:int}")]
     public async Task<IActionResult> ToggleClean(string alarmType, int enabled)
     {
+        // enabled is a flag, not a bitmask. CleanFlags.Preserve masks with bit 1, so an even value
+        // such as 2 silently DISABLED cleaning while reporting the rows updated -- and the write is not
+        // free: it rotates every uid, and for max battles it deletes and reinserts every row. See #472.
+        if (enabled is not (0 or 1))
+        {
+            return this.BadRequest(new
+            {
+                error = "enabled must be 0 or 1."
+            });
+        }
         var count = alarmType.ToLowerInvariant() switch
         {
             "monsters" => await this._cleaningService.ToggleCleanMonstersAsync(this.UserId, this.ProfileNo, enabled),
@@ -48,7 +91,7 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
             "lures" => await this._cleaningService.ToggleCleanLuresAsync(this.UserId, this.ProfileNo, enabled),
             "nests" => await this._cleaningService.ToggleCleanNestsAsync(this.UserId, this.ProfileNo, enabled),
             "gyms" => await this._cleaningService.ToggleCleanGymsAsync(this.UserId, this.ProfileNo, enabled),
-            "fortchanges" => await this._cleaningService.ToggleCleanFortChangesAsync(this.UserId, this.ProfileNo, enabled),
+
             "maxbattles" => await this._cleaningService.ToggleCleanMaxBattlesAsync(this.UserId, this.ProfileNo, enabled),
             // Unknown types are client input, not a fault. "pokemon" is a natural guess for "monsters".
             _ => (int?)null
@@ -71,6 +114,6 @@ public class CleaningController(ICleaningService cleaningService) : BaseApiContr
     private static readonly string[] ValidAlarmTypes =
     [
         "monsters", "raids", "eggs", "quests", "invasions",
-        "lures", "nests", "gyms", "fortchanges", "maxbattles",
+        "lures", "nests", "gyms", "maxbattles",
     ];
 }

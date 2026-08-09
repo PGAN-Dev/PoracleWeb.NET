@@ -61,7 +61,7 @@ export class MyWebhooksComponent implements OnInit {
     }
 
     this.adminService
-      .getUsers()
+      .getManagedWebhooks()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {

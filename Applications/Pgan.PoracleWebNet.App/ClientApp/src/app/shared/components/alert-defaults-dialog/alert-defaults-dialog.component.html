@@ -31,7 +31,11 @@
       <mat-label>{{ 'ALERT_DEFAULTS.DEFAULT_DISTANCE' | translate }}</mat-label>
       <input matInput type="number" [(ngModel)]="distanceKm" [min]="minKm" [max]="maxKm" step="0.1" />
       <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
-      <mat-hint>{{ 'ALERT_DEFAULTS.DEFAULT_DISTANCE_HINT' | translate }}</mat-hint>
+      @if (distanceError) {
+        <mat-hint class="distance-error">{{ distanceError | translate }}</mat-hint>
+      } @else {
+        <mat-hint>{{ 'ALERT_DEFAULTS.DEFAULT_DISTANCE_HINT' | translate }}</mat-hint>
+      }
     </mat-form-field>
   }
 
@@ -45,5 +49,5 @@
 
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-raised-button color="primary" (click)="save()">{{ 'COMMON.SAVE' | translate }}</button>
+  <button mat-raised-button color="primary" [disabled]="!canSave" (click)="save()">{{ 'COMMON.SAVE' | translate }}</button>
 </mat-dialog-actions>

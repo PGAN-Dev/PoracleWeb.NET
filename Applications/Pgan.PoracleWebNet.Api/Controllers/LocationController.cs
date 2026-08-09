@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -60,55 +61,21 @@ public class LocationController(
             return this.NotFound();
         }
 
+        // [Required] on nullable doubles already rejects an absent coordinate, so by here both have values.
+        var latitude = request.Latitude!.Value;
+        var longitude = request.Longitude!.Value;
+
         // Single atomic call — PoracleNG handles writing to both humans and profiles tables
-        await this._humanProxy.SetLocationAsync(this.UserId, request.Latitude, request.Longitude);
+        await this._humanProxy.SetLocationAsync(this.UserId, latitude, longitude);
 
         return this.Ok(new
         {
-            latitude = request.Latitude,
-            longitude = request.Longitude
+            latitude,
+            longitude
         });
     }
 
-    [HttpGet("language")]
-    public async Task<IActionResult> GetLanguage()
-    {
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
-        {
-            return this.NotFound();
-        }
-
-        return this.Ok(new
-        {
-            language = human.Language
-        });
-    }
-
-    [HttpPut("language")]
-    public async Task<IActionResult> UpdateLanguage([FromBody] LanguageUpdateRequest request)
-    {
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
-        {
-            return this.NotFound();
-        }
-
-        // humans.language is varchar(255); a longer value used to overflow on write.
-        if (request.Language is { Length: > 255 })
-        {
-            return this.BadRequest(new { error = "Language must be 255 characters or fewer." });
-        }
-
-        human.Language = request.Language;
-        await this._humanService.UpdateAsync(human);
-
-        return this.Ok(new
-        {
-            language = human.Language
-        });
-    }
-
+    [RequireFeatureEnabled(DisableFeatureKeys.Geocoding)]
     [HttpGet("geocode")]
     public async Task<IActionResult> Geocode([FromQuery] string q)
     {
@@ -137,6 +104,7 @@ public class LocationController(
         }
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Geocoding)]
     [HttpGet("reverse")]
     public async Task<IActionResult> ReverseGeocode([FromQuery] double lat, [FromQuery] double lon)
     {
@@ -282,18 +250,33 @@ public class LocationController(
 
     public class LocationUpdateRequest
     {
-        public double Latitude
+        /// <remarks>
+        /// Unbounded doubles were written straight to humans.latitude/longitude and the active profile, so
+        /// a location off the globe persisted and then failed silently downstream: weather returned 204 and
+        /// the static map 404 with no explanation, distance matching ran against a point that does not
+        /// exist, and the active-hours scheduler's timezone lookup was meaningless. 1e308 additionally
+        /// produced a 500 rather than a 400. See #423.
+        /// </remarks>
+        /// <remarks>
+        /// Nullable so that "absent" is distinguishable from "zero". As non-nullable doubles both members
+        /// bound to 0.0 when the request omitted them, [Range] passed, and 0,0 was written over the real
+        /// location -- exactly the outcome the remarks above describe as the harm this validation exists to
+        /// prevent, reached by the one path the validation could not see. See #480.
+        /// </remarks>
+        [Required(ErrorMessage = "Latitude is required.")]
+        [Range(-90.0, 90.0, ErrorMessage = "Latitude must be between -90 and 90.")]
+        public double? Latitude
         {
             get; set;
         }
-        public double Longitude
+
+        [Required(ErrorMessage = "Longitude is required.")]
+        [Range(-180.0, 180.0, ErrorMessage = "Longitude must be between -180 and 180.")]
+        public double? Longitude
         {
             get; set;
         }
     }
 
-    public class LanguageUpdateRequest
-    {
-        public string Language { get; set; } = string.Empty;
-    }
+
 }

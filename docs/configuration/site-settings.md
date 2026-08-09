@@ -65,9 +65,7 @@ Toggle user-facing features on or off.
 | `disable_areas` | Disable Areas | boolean | Prevent users from managing their area subscriptions. |
 | `disable_profiles` | Disable Profiles | boolean | Prevent users from creating and switching alarm profiles. |
 | `disable_location` | Disable Location | boolean | Prevent users from setting a home location. |
-| `disable_nominatim` | Disable Geocoding | boolean | Disable Nominatim address search for location picking. |
-| `disable_geomap` | Disable Map View | boolean | Hide the interactive geofence map entirely. |
-| `disable_geomap_select` | Disable Map Area Selection | boolean | Prevent users from selecting areas by clicking the map. Independent of `disable_geomap`. |
+| `disable_nominatim` | Disable Geocoding | boolean | Stops all outbound geocoding. The address search and reverse lookup return 403, and the location dialog hides its search box. Users can still set a location by coordinates or on the map. Turn this on if you do not want your instance making requests to a third-party geocoder. |
 | `enable_templates` | Enable Templates | boolean | Allow users to choose notification message templates. |
 
 ---
@@ -108,10 +106,16 @@ Configure Telegram authentication alongside or instead of Discord.
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `enable_telegram` | Enable Telegram | boolean | Allow users to log in and manage alarms via Telegram. |
-| `telegram_bot` | Bot Username | string | Telegram bot username (without the `@` prefix). |
+| `telegram_bot` | Bot Username | string | Telegram bot username (without the `@` prefix). Used as a **fallback** — see the note below. |
 
 !!! note "Backend configuration also required"
     Enabling Telegram in site settings also requires `Telegram:BotToken` and `Telegram:BotUsername` to be set in [appsettings](reference.md).
+
+!!! info "`telegram_bot` is a fallback, not an override"
+    The login widget takes its bot username from `Telegram:BotUsername` (`TELEGRAM_BOT_USERNAME`) when
+    that is set, and falls back to this setting when it is not. Configuration deliberately wins: before
+    v2.14.0 nothing read this field at all, so a deployment may hold a stale value someone typed in while
+    it was inert, and letting that override a working environment variable would break Telegram login.
 
 ---
 
@@ -195,11 +199,17 @@ All repositories use the [UICONS](https://github.com/UIcons/UIcons) standard for
 
 ## Internal Settings
 
-The following settings exist in the database but are **not shown** in the admin settings UI. They are managed automatically by the application and should not be modified manually. The API blocks both reads and writes for these keys.
+The following settings exist in the database but are **not shown** in the admin settings UI. They are
+managed automatically by the application and should not be modified manually.
+
+`migration_completed` is blocked by the API for both reads and writes. `quick_picks_seeded` is not: the
+SPA's auto-seed guard has to read it, so admins receive it from `GET /api/settings` and it is hidden in
+the UI layer instead. Neither is visible to non-admins.
 
 | Key | Category | Description |
 |---|---|---|
 | `migration_completed` | system | Sentinel flag indicating that the one-time data migration from `pweb_settings` to structured tables has completed. Set automatically by `SettingsMigrationStartupService`. |
+| `quick_picks_seeded` | admin | Sentinel flag indicating that the built-in quick picks have been created once. Written by `POST /api/quick-picks/seed` after a successful seed, and backfilled at startup for installations that already hold global picks. Without it an admin who deliberately deletes every preset gets them all back on their next visit. Admin-readable via the API (the SPA guard needs it) but hidden from the settings UI. |
 
 ## Sensitive Settings
 

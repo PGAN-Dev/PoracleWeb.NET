@@ -10,4 +10,7 @@ public interface IWebhookDelegateRepository
     public Task<WebhookDelegate> AddAsync(string webhookId, string userId);
     public Task<bool> RemoveAsync(string webhookId, string userId);
     public Task<bool> RemoveAllForWebhookAsync(string webhookId);
+
+    /// <summary>Removes every grant naming this id, as the webhook or as the delegate. See #512.</summary>
+    public Task<int> RemoveAllForIdAsync(string id);
 }

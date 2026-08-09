@@ -298,6 +298,11 @@ export class ProfileOverviewComponent implements OnInit {
             this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: () => {
             this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            // PoracleNG reassigns current_profile_no when the active profile goes, and /api/auth/me is the
+            // only place the refreshed token is stored. Switch, duplicate and import all do this; delete did
+            // not, so the profileNo claim kept naming a profile that no longer exists and every alarm read
+            // and write in between targeted it. See #651.
+            void this.authService.loadCurrentUser();
             this.loadAll();
           },
         });
@@ -357,8 +362,12 @@ export class ProfileOverviewComponent implements OnInit {
     ref.afterClosed().subscribe((result: ActiveHourEntry[] | null | undefined) => {
       if (result !== null && result !== undefined) {
         this.profileService.updateActiveHours(profile.profile_no, result).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_SCHEDULE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+          // The server names what is wrong -- which alarm already uses these settings, which
+          // field a file got wrong. A fixed string threw that away. See #567, #568.
+          error: (err: { error?: { error?: string } }) => {
+            this.snackBar.open(err?.error?.error ?? this.i18n.instant('PROFILES.SNACK_FAILED_SCHEDULE'), this.i18n.instant('TOAST.OK'), {
+              duration: 6000,
+            });
           },
           next: () => {
             this.snackBar.open(this.i18n.instant('PROFILES.SNACK_SCHEDULE_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
@@ -616,9 +625,15 @@ export class ProfileOverviewComponent implements OnInit {
               .importProfile({ ...backup, profileName: name })
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
-                error: () => {
+                // The server names the alarm and the field a file got wrong; a fixed string threw that
+                // away and left the user to guess which of hundreds of alarms was the problem. See #588.
+                error: (err: { error?: { error?: string } }) => {
                   this.switching.set(false);
-                  this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+                  this.snackBar.open(
+                    err?.error?.error ?? this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'),
+                    this.i18n.instant('TOAST.OK'),
+                    { duration: 6000 },
+                  );
                 },
                 next: res => {
                   this.switching.set(false);

@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TranslateService } from '@ngx-translate/core';
 
 import { ScannerService } from './scanner.service';
 
@@ -13,7 +14,12 @@ describe('ScannerService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: MatSnackBar, useValue: { open: jest.fn() } }],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: MatSnackBar, useValue: { open: jest.fn() } },
+        { provide: TranslateService, useValue: { instant: jest.fn((key: string) => key) } },
+      ],
     });
     service = TestBed.inject(ScannerService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -44,7 +50,8 @@ describe('ScannerService', () => {
     service.searchGyms('abc').subscribe(r => (result = r));
     const req = httpMock.expectOne(r => r.url === '/api/scanner/gyms');
     req.flush('rate limited', { status: 429, statusText: 'Too Many Requests' });
-    expect(snackBar.open).toHaveBeenCalledWith(expect.stringContaining('Too many scanner requests'), 'OK', { duration: 4000 });
+    // Translated now, not a raw English sentence. See #619.
+    expect(snackBar.open).toHaveBeenCalledWith('GYM_PICKER.RATE_LIMITED', 'TOAST.OK', { duration: 4000 });
     expect(result).toEqual([]);
   });
 

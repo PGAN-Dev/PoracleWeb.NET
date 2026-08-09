@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
@@ -38,7 +39,8 @@ internal static partial class NaturalKeyTrackingUpdate
         int oldUid,
         JsonElement? original,
         JsonElement updated,
-        ILogger logger)
+        ILogger logger,
+        ITrackedUidRemapper? uidRemapper = null)
     {
         // Not an edit: nothing to free up, so this is an ordinary create.
         if (oldUid <= 0)
@@ -52,7 +54,39 @@ internal static partial class NaturalKeyTrackingUpdate
         try
         {
             var result = await proxy.CreateAsync(trackingType, userId, updated);
-            return result.NewUids.Count > 0 ? (int)result.NewUids[0] : oldUid;
+
+            // The row was deleted a moment ago, so its natural key is free and a genuine replace
+            // always inserts. Inserting nothing means the edited values collide with a DIFFERENT
+            // alarm, and PoracleNG merged into that one instead - leaving this alarm deleted and the
+            // other one silently overwritten. Put ours back and refuse. The services pre-check for
+            // this so it should not be reachable; it is here because the cost of missing it is a
+            // destroyed alarm. See #462.
+            if (result.InsertedNothing)
+            {
+                if (original.HasValue)
+                {
+                    await proxy.CreateAsync(trackingType, userId, original.Value);
+                }
+
+                throw new TrackingConflictException(
+                    trackingType,
+                    "Another alarm of this type already uses those settings. Edit or remove that one instead.");
+            }
+
+            var newUid = result.NewUids.Count > 0 ? (int)result.NewUids[0] : oldUid;
+
+            // Quick-pick applied state stores uids captured at apply time; follow the row. See #403.
+            if (uidRemapper != null)
+            {
+                await uidRemapper.RemapAsync(userId, trackingType, oldUid, newUid);
+            }
+
+            return newUid;
+        }
+        catch (TrackingConflictException)
+        {
+            // Already restored above; re-restoring would duplicate the row.
+            throw;
         }
         catch (Exception ex)
         {

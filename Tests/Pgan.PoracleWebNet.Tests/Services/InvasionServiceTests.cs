@@ -17,12 +17,13 @@ public class InvasionServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly InvasionService _sut;
 
     public InvasionServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance);
+        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object);
         // The natural-key replace strategy reads the original row and frees the key first.
         this._proxy.Setup(p => p.GetByUserAsync("invasion", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
@@ -68,16 +69,18 @@ public class InvasionServiceTests
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 
-        var result = await this._sut.CreateAsync("user1", new Invasion());
+        var result = await this._sut.CreateAsync("user1", new Invasion { GruntType = "fire" });
         Assert.Equal("user1", result.Id);
     }
 
     [Fact]
     public async Task UpdateAsyncDelegates()
     {
-        var i = new Invasion { Uid = 1 };
+        var i = new Invasion { Uid = 1, GruntType = "fire" };
+        // A real replace frees the natural key then inserts, so insert=1. A response of insert=0 now
+        // means PoracleNG merged into a DIFFERENT alarm, which is a conflict rather than success (#462).
         this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+            .ReturnsAsync(new TrackingCreateResult([2], 0, 0, 1));
 
         await this._sut.UpdateAsync("user1", i);
         this._proxy.Verify(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()), Times.Once);
@@ -139,25 +142,29 @@ public class InvasionServiceTests
             {
                 uid = 1,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZsecond"
             },
             new
             {
                 uid = 3,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow3"
             },
             new
             {
                 uid = 4,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow4"
             });
         this._proxy.Setup(p => p.GetByUserAsync("invasion", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("invasion", "u", It.IsAny<JsonElement>()))
@@ -175,26 +182,45 @@ public class InvasionServiceTests
         Assert.Equal(12, await this._sut.CountByUserAsync("u", 1));
     }
 
-    [Fact]
-    public async Task CreateAsyncNormalizesNullGruntType()
+    // These two used to assert that a missing grunt type is coalesced to "". That was the bug:
+    // PoracleNG rejects an empty grunt_type with 400 "Grunt type mandatory" and has no catch-all,
+    // so the coalesce guaranteed a failure that reached the user as a generic 500. See #416.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CreateAsyncRejectsMissingGruntTypeInsteadOfSendingItUpstream(string? gruntType)
     {
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
 
-        var model = new Invasion { GruntType = null };
-        var result = await this._sut.CreateAsync("u1", model);
-        Assert.Equal("", result.GruntType);
+        await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.CreateAsync("u1", new Invasion { GruntType = gruntType }));
+
+        this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task UpdateAsyncRejectsMissingGruntType(string? gruntType)
+    {
+        await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.UpdateAsync("u1", new Invasion { Uid = 1, GruntType = gruntType }));
     }
 
     [Fact]
-    public async Task UpdateAsyncNormalizesNullGruntType()
+    public async Task BulkCreateAsyncRejectsMissingGruntTypeWithoutPartiallyCreating()
     {
-        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
-            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+        var models = new List<Invasion>
+        {
+            new() { GruntType = "fire" },
+            new() { GruntType = null },
+        };
 
-        var model = new Invasion { Uid = 1, GruntType = null };
-        var result = await this._sut.UpdateAsync("u1", model);
-        Assert.Equal("", result.GruntType);
+        await Assert.ThrowsAsync<AlarmValidationException>(() => this._sut.BulkCreateAsync("u1", models));
+
+        this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
     }
 
     [Fact]
@@ -204,7 +230,7 @@ public class InvasionServiceTests
         {
             new() { GruntType = "mixed" },
             new() { GruntType = "dark" },
-            new() { GruntType = null },
+            new() { GruntType = "giovanni" },
         };
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([10, 11, 12], 0, 0, 3));
@@ -303,4 +329,40 @@ public class InvasionServiceTests
     private static JsonElement ItemsJson(int uid) =>
         JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
 
+
+    [Theory]
+    [InlineData("fi\u0000re")]
+    [InlineData("fire\u001bx")]
+    [InlineData("fire\n")]
+    public async Task CreateAsyncRefusesControlCharactersInGruntType(string gruntType)
+    {
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.CreateAsync("user1", new Invasion { GruntType = gruntType }));
+
+        Assert.Contains("control characters", ex.Message, StringComparison.OrdinalIgnoreCase);
+        this._proxy.Verify(p => p.CreateAsync("invasion", It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsyncRefusesAGruntTypeLongerThanTheColumn()
+    {
+        // varchar(255) upstream. This asserted 35, an invented limit the fix's own rationale forbade.
+        // See #661.
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.CreateAsync("user1", new Invasion { GruntType = new string('a', 256) }));
+
+        Assert.Contains("255", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CreateAsyncAcceptsAGruntTypeTheColumnCanHold()
+    {
+        // The legitimate-case-still-passes half. See #661.
+        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([12], 0, 0, 1));
+
+        var result = await this._sut.CreateAsync("user1", new Invasion { GruntType = new string('a', 255) });
+
+        Assert.Equal(12, result.Uid);
+    }
 }

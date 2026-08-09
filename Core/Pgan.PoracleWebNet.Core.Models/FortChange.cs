@@ -38,10 +38,6 @@ public class FortChange
     /// </summary>
     [JsonConverter(typeof(StringOrArrayConverter))]
     public List<string> ChangeTypes { get; set; } = [];
-    public int Clean
-    {
-        get; set;
-    }
     public string? Template
     {
         get; set;

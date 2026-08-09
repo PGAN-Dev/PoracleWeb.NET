@@ -191,4 +191,78 @@ public class UserAreaDualWriter(PoracleContext context) : IUserAreaDualWriter
 
         return false;
     }
+
+    public async Task<bool> RenameAreaInAllProfilesAsync(string humanId, string oldName, string newName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(humanId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(oldName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newName);
+
+        var lowerOld = oldName.ToLowerInvariant();
+        var lowerNew = newName.ToLowerInvariant();
+
+        if (string.Equals(lowerOld, lowerNew, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var human = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == humanId);
+        var humanChanged = false;
+        if (human is not null)
+        {
+            var humanAreas = AreaListJson.Parse(human.Area);
+            if (RenameCaseInsensitive(humanAreas, lowerOld, lowerNew))
+            {
+                human.Area = AreaListJson.Serialize(humanAreas);
+                humanChanged = true;
+            }
+        }
+
+        var profiles = await this._context.Profiles
+            .Where(p => p.Id == humanId)
+            .ToListAsync();
+        var anyProfileChanged = false;
+        foreach (var profile in profiles)
+        {
+            var profileAreas = AreaListJson.Parse(profile.Area);
+            if (RenameCaseInsensitive(profileAreas, lowerOld, lowerNew))
+            {
+                profile.Area = AreaListJson.Serialize(profileAreas);
+                anyProfileChanged = true;
+            }
+        }
+
+        if (humanChanged || anyProfileChanged)
+        {
+            await this._context.SaveChangesAsync();
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Swaps <paramref name="lowerOld"/> for <paramref name="lowerNew"/> in place. A row that does not
+    /// hold the old name is left alone, which is what preserves per-profile activation. If the new name
+    /// is somehow already present the old one is just dropped, so the rename cannot produce a duplicate.
+    /// </summary>
+    private static bool RenameCaseInsensitive(List<string> list, string lowerOld, string lowerNew)
+    {
+        var index = list.FindIndex(a => string.Equals(a, lowerOld, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+        {
+            return false;
+        }
+
+        if (list.Any(a => string.Equals(a, lowerNew, StringComparison.OrdinalIgnoreCase)))
+        {
+            list.RemoveAt(index);
+        }
+        else
+        {
+            list[index] = lowerNew;
+        }
+
+        return true;
+    }
 }

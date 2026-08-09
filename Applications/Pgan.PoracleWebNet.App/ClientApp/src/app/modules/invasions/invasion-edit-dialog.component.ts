@@ -58,7 +58,6 @@ export class InvasionEditDialogComponent {
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gender: [this.data.gender],
-    ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
 
@@ -117,12 +116,15 @@ export class InvasionEditDialogComponent {
         // also match female Mixed grunts.
         gender: this.hideGender ? (this.data.gender ?? 0) : (v.gender ?? 0),
         gruntType: this.data.gruntType ?? '',
-        ping: v.ping || null,
-        template: v.template || null,
+        template: v.template || '',
       } as InvasionUpdate)
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('INVASIONS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+        // The server names what is wrong -- which alarm already uses these settings, which
+        // field a file got wrong. A fixed string threw that away. See #567, #568.
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(err?.error?.error ?? this.i18n.instant('INVASIONS.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), {
+            duration: 6000,
+          });
           this.saving.set(false);
         },
         next: () => {

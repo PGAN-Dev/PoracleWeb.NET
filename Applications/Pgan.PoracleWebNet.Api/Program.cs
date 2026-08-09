@@ -47,6 +47,11 @@ if (File.Exists(envFile))
 // Bridge short env var names (from .env) to .NET's __ convention.
 // Docker Compose does this translation in docker-compose.yml; this makes the same .env work standalone.
 MapEnvVar("JWT_SECRET", "Jwt__Secret");
+
+// Named in the #583 changelog entry as the way to declare trusted proxies, and never bridged -- so the
+// documented escape hatch did nothing and an instance behind a real proxy had no way to opt in. See #596.
+MapEnvVar("PROXY_KNOWN_PROXIES", "Proxy__KnownProxies");
+MapEnvVar("PROXY_KNOWN_NETWORKS", "Proxy__KnownNetworks");
 MapEnvVar("JWT_ISSUER", "Jwt__Issuer", "PoracleWeb");
 MapEnvVar("JWT_AUDIENCE", "Jwt__Audience", "PoracleWeb.App");
 MapEnvVar("DISCORD_CLIENT_ID", "Discord__ClientId");
@@ -179,6 +184,10 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.FeatureDisabledExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.SummaryBackendUnavailableExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingConflictExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmValidationExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AccountGoneExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.BlockedAccountFilter>();
 });
 
 // Add Poracle services (DbContext, repositories, services, settings)
@@ -221,7 +230,11 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 30,
                 Window = TimeSpan.FromSeconds(60),
-                QueueLimit = 2,
+                // Zero, like every other policy here. A queue of 2 did not reject requests 31 and 32 --
+                // it parked them until the window rolled over, up to a minute later, so on a shared
+                // egress IP the 31st person to log in got a spinner instead of "too many requests",
+                // and an intermediate proxy could time the request out entirely. See #546.
+                QueueLimit = 0,
                 AutoReplenishment = true,
             }));
     options.AddPolicy("auth-read", httpContext =>
@@ -365,10 +378,35 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
+// Clearing both lists tells ASP.NET to believe X-Forwarded-For from ANY peer, so a client could name its
+// own address and hand itself a fresh rate-limit bucket per request -- including on the login endpoints
+// the per-IP partitioning exists to protect. Trust only the proxies the deployment names.
+//
+// PROXY_KNOWN_PROXIES / PROXY_KNOWN_NETWORKS take comma-separated addresses and CIDR ranges. With
+// neither set the header is ignored entirely and the connection address is used, which is correct for a
+// direct-exposed instance and safe for one behind a proxy that has not been declared yet -- it means
+// everyone behind that proxy shares a bucket, rather than everyone being able to forge one. See #583.
+foreach (var proxy in SplitConfigList(builder.Configuration["Proxy:KnownProxies"]))
+{
+    if (System.Net.IPAddress.TryParse(proxy, out var address))
+    {
+        forwardedHeadersOptions.KnownProxies.Add(address);
+    }
+}
+
+foreach (var network in SplitConfigList(builder.Configuration["Proxy:KnownNetworks"]))
+{
+    var parts = network.Split('/', 2);
+    if (parts.Length == 2
+        && System.Net.IPAddress.TryParse(parts[0], out var prefix)
+        && int.TryParse(parts[1], out var length))
+    {
 #pragma warning disable ASPDEPR005
-forwardedHeadersOptions.KnownNetworks.Clear();
+        forwardedHeadersOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(prefix, length));
 #pragma warning restore ASPDEPR005
-forwardedHeadersOptions.KnownProxies.Clear();
+    }
+}
+
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Security headers -- values live in SecurityHeaders so they can be unit-tested
@@ -390,10 +428,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authentication, deliberately. Registered before it, the partition key could not see
+// User.Identity, so every "per-user" policy silently fell back to the IP -- one person behind a shared
+// egress could exhaust the allowance for everyone behind it, and the per-user policies were per-user in
+// name only. See #581.
+app.UseRateLimiter();
 
 app.MapControllers();
 
@@ -423,6 +466,12 @@ static string UserOrIpPartitionKey(HttpContext ctx)
 }
 
 // Maps a short env var name to .NET's __ convention if the target is not already set.
+/// <summary>Splits a comma-separated config value, ignoring blanks.</summary>
+static string[] SplitConfigList(string? value) =>
+    string.IsNullOrWhiteSpace(value)
+        ? []
+        : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 static void MapEnvVar(string shortName, string configName, string? defaultValue = null)
 {
     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(configName)))

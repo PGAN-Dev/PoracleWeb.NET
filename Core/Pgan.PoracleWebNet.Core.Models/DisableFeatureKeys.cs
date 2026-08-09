@@ -57,6 +57,19 @@ public static class DisableFeatureKeys
     public const string Location = "disable_location";
 
     /// <summary>
+    /// Disables outbound geocoding - the address search and reverse lookup that call the configured
+    /// Nominatim/OpenStreetMap provider. Gates the two geocode actions on <c>LocationController</c>
+    /// rather than the whole controller, which is already gated by <see cref="Location"/>.
+    /// </summary>
+    /// <remarks>
+    /// This toggle shipped in the admin UI with no consumer anywhere in the codebase, so an operator
+    /// who switched it off for privacy or OSM terms-of-use reasons was still making outbound Nominatim
+    /// calls. The most misleading of the four inert toggles: the others merely did nothing, while this
+    /// one implied a guarantee it did not provide. See #420.
+    /// </remarks>
+    public const string Geocoding = "disable_nominatim";
+
+    /// <summary>
     /// Tracking-type string (as used in PoracleNG's <c>/api/tracking/{type}</c> URLs and
     /// <c>ProfileOverviewService</c>'s alarm-type loop) → matching <c>disable_*</c> key.
     /// Lets <c>ProfileOverviewService</c>, <c>TestAlertController</c>, and any future

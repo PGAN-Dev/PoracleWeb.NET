@@ -5,12 +5,13 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<NestService> logger) : INestService
+public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<NestService> logger, ITrackedUidRemapper uidRemapper) : INestService
 {
     private const string TrackingType = "nest";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<NestService> _logger = logger;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
     public async Task<IEnumerable<Nest>> GetByUserAsync(string userId, int profileNo)
     {
@@ -29,6 +30,11 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Nests);
         model.Id = userId;
+
+        // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
+        // 201 Created, and the user quietly loses the one they had. See #561.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, 0, SerializeToElement(model));
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -45,12 +51,18 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Nests);
         var oldUid = model.Uid;
         var body = SerializeToElement(model);
+
+        // Refuse before writing: PoracleNG would satisfy this by merging into the other alarm and
+        // the reconciler would then delete this one, losing a row the user never touched. See #531.
+        await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
+            this._proxy, TrackingType, userId, oldUid, body);
+
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,
         // leaving the pre-edit row behind as a duplicate. Drop it and report the surviving uid.
         model.Uid = await TrackingUpdateReconciler.ReconcileAsync(
-            this._proxy, TrackingType, userId, oldUid, result, this._logger);
+            this._proxy, TrackingType, userId, oldUid, result, this._logger, body, this._uidRemapper);
 
         return model;
     }
@@ -93,7 +105,24 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         }
 
         var body = SerializeToElement(itemList);
+        // Two selected rows that differed only by radius become the same alarm once both are set to
+        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
+        // one left at its old radius, and a response claiming all were updated. See #580.
+        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+
+        // And against the rows NOT selected: at the new radius a selected row can differ from an
+        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
+        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
+        // response claims it was updated. See #598.
+        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
+            this._proxy, TrackingType, userId, body);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
+        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
+        // tracks them, pairing on content because the batch response is reordered. See #443.
+        await BulkUidRemap.ApplyAsync(
+            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
+
         return itemList.Count;
     }
 
@@ -114,7 +143,24 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         }
 
         var body = SerializeToElement(matching);
+        // Two selected rows that differed only by radius become the same alarm once both are set to
+        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
+        // one left at its old radius, and a response claiming all were updated. See #580.
+        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+
+        // And against the rows NOT selected: at the new radius a selected row can differ from an
+        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
+        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
+        // response claims it was updated. See #598.
+        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
+            this._proxy, TrackingType, userId, body);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
+        // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
+        // tracks them, pairing on content because the batch response is reordered. See #443.
+        await BulkUidRemap.ApplyAsync(
+            this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
+
         return matching.Count;
     }
 

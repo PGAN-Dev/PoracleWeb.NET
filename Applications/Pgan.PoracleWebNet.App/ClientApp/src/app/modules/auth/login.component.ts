@@ -198,8 +198,10 @@ export class LoginComponent implements OnInit {
       localStorage.removeItem('poracle_admin_token');
     }
 
-    // If already logged in and no error, redirect
-    if (!errorCode && this.auth.isLoggedIn()) {
+    // Keyed on the token, not on a currentUser that outlived it. After a 401 the user object was still
+    // set, so login sent the user to /dashboard, authGuard found no token and sent them back, and the
+    // OIDC auto-redirect below never ran. See #628.
+    if (!errorCode && this.auth.isAuthenticated()) {
       this.router.navigate(['/dashboard']);
       return;
     }

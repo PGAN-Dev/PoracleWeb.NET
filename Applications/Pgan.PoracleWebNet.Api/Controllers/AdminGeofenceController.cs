@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -32,6 +33,17 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         return this.Ok(geofences);
     }
 
+    /// <summary>Adds the cached Discord avatars the admin list renders. See #618.</summary>
+    private static void AddAvatars(UserGeofence geofence)
+    {
+        geofence.OwnerAvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(geofence.HumanId);
+
+        if (!string.IsNullOrEmpty(geofence.ReviewedBy))
+        {
+            geofence.ReviewedByAvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(geofence.ReviewedBy);
+        }
+    }
+
     [HttpGet("submissions")]
     public async Task<IActionResult> GetSubmissions()
     {
@@ -57,10 +69,31 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             await this._userGeofenceService.AdminDeleteAsync(this.UserId, id);
             return this.NoContent();
         }
-        catch (InvalidOperationException ex)
+        catch (KojiOperationException ex)
+        {
+            // Koji down, or a region deleted between the region list loading and the approve click. This
+            // used to reach the admin as 500 "An unexpected error occurred." See #422.
+            LogKojiFailure(this._logger, ex, id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The geofence server rejected the request. It may be unavailable, or the region may no longer exist."
+            });
+        }
+        catch (GeofenceNotFoundException ex)
         {
             LogAdminDeleteFailed(this._logger, ex, id);
             return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Validation and state-machine failures are the caller's input, not a missing record. These
+            // all used to come back as 404 carrying a validation message, so the SPA toasted
+            // "Not found" for a submission sitting visible in the admin list. See #421.
+            LogAdminDeleteFailed(this._logger, ex, id);
+            return this.BadRequest(new
             {
                 error = ex.Message
             });
@@ -79,12 +112,36 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         {
             var result = await this._userGeofenceService.ApproveSubmissionAsync(
                 this.UserId, id, request?.PromotedName, request?.ParentId, request?.GroupName);
+            // The SPA swaps the list row for this response, so it needs the same avatars the list
+            // projection adds -- without them the card fell back to raw snowflakes. See #618.
+            AddAvatars(result);
             return this.Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (KojiOperationException ex)
+        {
+            // Koji down, or a region deleted between the region list loading and the approve click. This
+            // used to reach the admin as 500 "An unexpected error occurred." See #422.
+            LogKojiFailure(this._logger, ex, id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The geofence server rejected the request. It may be unavailable, or the region may no longer exist."
+            });
+        }
+        catch (GeofenceNotFoundException ex)
         {
             LogApproveSubmissionFailed(this._logger, ex, id);
             return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Validation and state-machine failures are the caller's input, not a missing record. These
+            // all used to come back as 404 carrying a validation message, so the SPA toasted
+            // "Not found" for a submission sitting visible in the admin list. See #421.
+            LogApproveSubmissionFailed(this._logger, ex, id);
+            return this.BadRequest(new
             {
                 error = ex.Message
             });
@@ -102,12 +159,36 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
         try
         {
             var result = await this._userGeofenceService.RejectSubmissionAsync(this.UserId, id, request.ReviewNotes);
+            // The SPA swaps the list row for this response, so it needs the same avatars the list
+            // projection adds -- without them the card fell back to raw snowflakes. See #618.
+            AddAvatars(result);
             return this.Ok(result);
         }
-        catch (InvalidOperationException ex)
+        catch (KojiOperationException ex)
+        {
+            // Koji down, or a region deleted between the region list loading and the approve click. This
+            // used to reach the admin as 500 "An unexpected error occurred." See #422.
+            LogKojiFailure(this._logger, ex, id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The geofence server rejected the request. It may be unavailable, or the region may no longer exist."
+            });
+        }
+        catch (GeofenceNotFoundException ex)
         {
             LogRejectSubmissionFailed(this._logger, ex, id);
             return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Validation and state-machine failures are the caller's input, not a missing record. These
+            // all used to come back as 404 carrying a validation message, so the SPA toasted
+            // "Not found" for a submission sitting visible in the admin list. See #421.
+            LogRejectSubmissionFailed(this._logger, ex, id);
+            return this.BadRequest(new
             {
                 error = ex.Message
             });
@@ -147,4 +228,7 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to reject geofence submission {Id}")]
     private static partial void LogRejectSubmissionFailed(ILogger logger, Exception ex, int id);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Koji rejected an operation while handling geofence {GeofenceId}")]
+    private static partial void LogKojiFailure(ILogger logger, Exception ex, int geofenceId);
 }

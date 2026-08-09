@@ -21,10 +21,15 @@ public class QuickPickServiceSecurityTests
     private readonly Mock<IGymService> _gymService = new();
     private readonly Mock<IMaxBattleService> _maxBattleService = new();
     private readonly Mock<IMasterDataService> _masterDataService = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly Mock<ILogger<QuickPickService>> _logger = new();
     private readonly QuickPickService _sut;
 
-    public QuickPickServiceSecurityTests() => this._sut = new QuickPickService(
+    public QuickPickServiceSecurityTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        this._sut = new QuickPickService(
             this._definitionRepository.Object,
             this._appliedStateRepository.Object,
             this._monsterService.Object,
@@ -37,7 +42,9 @@ public class QuickPickServiceSecurityTests
             this._gymService.Object,
             this._maxBattleService.Object,
             this._masterDataService.Object,
+            this._featureGate.Object,
             this._logger.Object);
+    }
 
     // --- Ownership on the write path ---
     // CreateOrUpdateAsync upserts on Id alone and the Id comes from the request body, so without an
@@ -252,6 +259,48 @@ public class QuickPickServiceSecurityTests
         this._definitionRepository.Verify(r => r.DeleteByIdAndOwnerAsync("pick1", "owner1"), Times.Once);
     }
 
+    /// <summary>
+    /// Deleting a definition left its applied state behind, and nothing could reach it: the listing walks
+    /// definitions. It leaked, and a pick re-created under the same id inherited a stale "applied" badge
+    /// pointing at the old alarm uids. See #470.
+    /// </summary>
+    [Fact]
+    public async Task DeleteUserPickAsyncClearsTheOwnersAppliedState()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAndOwnerAsync("pick1", "owner1"))
+            .ReturnsAsync(new QuickPickDefinition
+            {
+                Id = "pick1",
+                Name = "My Pick",
+                AlarmType = "monster",
+                Scope = "user",
+                OwnerUserId = "owner1",
+            });
+
+        await this._sut.DeleteUserPickAsync("owner1", "pick1");
+
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("pick1", "owner1"), Times.Once);
+    }
+
+    /// <summary>
+    /// A global pick can be applied by anyone, so every user's state for it goes with the definition.
+    /// </summary>
+    [Fact]
+    public async Task DeleteAdminPickAsyncClearsAppliedStateForEveryUser()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("global1"))
+            .ReturnsAsync(new QuickPickDefinition
+            {
+                Id = "global1",
+                Name = "Global Pick",
+                AlarmType = "monster",
+                Scope = "global",
+            });
+
+        await this._sut.DeleteAdminPickAsync("global1");
+
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("global1", null), Times.Once);
+    }
     [Fact]
     public async Task RemoveAsyncPassesCallerUserIdForRaidDeletes()
     {
@@ -275,6 +324,91 @@ public class QuickPickServiceSecurityTests
     // --- Generated ids (#413) ---
     // The create dialog has no id field and sends "", which was stored verbatim. Every id-bearing route
     // then collapsed to /api/quick-picks/ so the pick could not be deleted or applied through any path.
+
+    [Fact]
+    public async Task SeedingIsNotBlockedByAUserPickHoldingABuiltInId()
+    {
+        // SeedDefaultsAsync creates the built-ins through SaveAdminPickAsync, so the ownership guard
+        // added alongside it ran there too: one user-scoped pick holding a built-in id aborted the seed
+        // partway -- the same partial-preset-list failure the same commit had just fixed. See #659.
+        this._definitionRepository.Setup(r => r.GetAllGlobalAsync()).ReturnsAsync([]);
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new QuickPickDefinition { Id = "nundo", Scope = "user", OwnerUserId = "u2" });
+        var created = new List<string>();
+        this._definitionRepository.Setup(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()))
+            .Callback<QuickPickDefinition>(d => created.Add(d.Id))
+            .Returns(Task.CompletedTask);
+
+        await this._sut.SeedDefaultsAsync();
+
+        var expected = (await this._sut.GetDefaultPicksAsync()).Count();
+        Assert.Equal(expected, created.Count);
+    }
+
+    [Fact]
+    public async Task SaveAdminPickRefusesToTakeOverAUsersPrivatePick()
+    {
+        // Given an id it converted whatever it found into a global pick -- so an admin editing their own
+        // personal pick republished it to everyone, and an admin could take over anybody's. See #631.
+        this._definitionRepository.Setup(r => r.GetByIdAsync("someones-pick"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "someones-pick", Scope = "user", OwnerUserId = "u2" });
+
+        await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "someones-pick", Name = "Mine now" }));
+
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveAdminPickStillUpdatesAnExistingGlobalPick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("raid-5star"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "raid-5star", Scope = "global" });
+
+        var saved = await this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "raid-5star", Name = "Five star" });
+
+        Assert.Equal("global", saved.Scope);
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SeedingDefaultsCreatesEveryBuiltInPick()
+    {
+        // Save-time filter validation (#604) rejected all-invasions and invasion-leader, whose filter
+        // sets are empty on purpose, so seeding aborted partway and left a partial preset list behind
+        // both the first-visit auto-seed and Reset to Defaults. See #637.
+        this._definitionRepository.Setup(r => r.GetAllGlobalAsync()).ReturnsAsync([]);
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);
+        var created = new List<string>();
+        this._definitionRepository.Setup(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()))
+            .Callback<QuickPickDefinition>(d => created.Add(d.Id))
+            .Returns(Task.CompletedTask);
+
+        await this._sut.SeedDefaultsAsync();
+
+        var expected = (await this._sut.GetDefaultPicksAsync()).Select(d => d.Id).ToList();
+        Assert.Equal(expected.Count, created.Count);
+        Assert.Contains("all-invasions", created);
+        Assert.Contains("invasion-leader", created);
+    }
+
+    [Fact]
+    public async Task SeedingDefaultsClearsTheAppliedStateOfEveryPickItRemoves()
+    {
+        // Left behind, that state named a definition that no longer exists: never listed, never cleaned,
+        // and the alarms it owned lost their Remove button for good. See #630.
+        this._definitionRepository.Setup(r => r.GetAllGlobalAsync())
+            .ReturnsAsync([
+                new QuickPickDefinition { Id = "old-one", Scope = "global" },
+                new QuickPickDefinition { Id = "old-two", Scope = "global" },
+            ]);
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);
+
+        await this._sut.SeedDefaultsAsync();
+
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("old-one", null), Times.Once);
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("old-two", null), Times.Once);
+    }
 
     [Fact]
     public async Task SaveAdminPickGeneratesASlugWhenNoIdIsSupplied()

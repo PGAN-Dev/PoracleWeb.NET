@@ -54,6 +54,27 @@ interface SettingGroup {
   settings: SettingMeta[];
 }
 
+/**
+ * Keys deliberately withdrawn from the admin UI: they saved, persisted and read back while nothing in
+ * the product consumed them, and their descriptions promised behaviour the app does not have. Rows are
+ * left in the database rather than deleted. See #547, #560.
+ */
+const RETIRED_KEYS = [
+  // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
+  // from SettingsMigrationService when they were retired, but rows persist in existing databases and were
+  // still rendering in the "Other" catch-all. See #589.
+  'disable_geomap',
+  'disable_geomap_select',
+  'register_command',
+  'location_command',
+  'provider_url',
+  'gAnalyticsId',
+  'patreonUrl',
+  'paypalUrl',
+  'site_is_https',
+  'debug',
+];
+
 const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#0088cc',
@@ -227,18 +248,6 @@ const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
-        descriptionKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_DESC',
-        key: 'disable_geomap',
-        labelKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_LABEL',
-        type: 'boolean',
-      },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_SELECT_DESC',
-        key: 'disable_geomap_select',
-        labelKey: 'ADMIN_SETTINGS.DISABLE_GEOMAP_SELECT_LABEL',
-        type: 'boolean',
-      },
-      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_DESC',
         key: 'disable_user_geofences',
         labelKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_LABEL',
@@ -282,33 +291,13 @@ const SETTING_GROUPS: SettingGroup[] = [
     color: '#607d8b',
     icon: 'terminal',
     labelKey: 'ADMIN_SETTINGS.GROUP_COMMANDS',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.REGISTER_COMMAND_DESC',
-        key: 'register_command',
-        labelKey: 'ADMIN_SETTINGS.REGISTER_COMMAND_LABEL',
-        type: 'text',
-      },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.LOCATION_COMMAND_DESC',
-        key: 'location_command',
-        labelKey: 'ADMIN_SETTINGS.LOCATION_COMMAND_LABEL',
-        type: 'text',
-      },
-    ],
+    settings: [],
   },
   {
     color: '#2e7d32',
     icon: 'map',
     labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.PROVIDER_URL_DESC',
-        key: 'provider_url',
-        labelKey: 'ADMIN_SETTINGS.PROVIDER_URL_LABEL',
-        type: 'url',
-      },
-    ],
+    settings: [],
   },
   {
     color: '#7b1fa2',
@@ -321,29 +310,13 @@ const SETTING_GROUPS: SettingGroup[] = [
         labelKey: 'ADMIN_SETTINGS.SIGNUP_URL_LABEL',
         type: 'url',
       },
-      {
-        descriptionKey: 'ADMIN_SETTINGS.GANALYTICSID_DESC',
-        key: 'gAnalyticsId',
-        labelKey: 'ADMIN_SETTINGS.GANALYTICSID_LABEL',
-        type: 'text',
-      },
-      { descriptionKey: 'ADMIN_SETTINGS.PATREONURL_DESC', key: 'patreonUrl', labelKey: 'ADMIN_SETTINGS.PATREONURL_LABEL', type: 'url' },
-      { descriptionKey: 'ADMIN_SETTINGS.PAYPALURL_DESC', key: 'paypalUrl', labelKey: 'ADMIN_SETTINGS.PAYPALURL_LABEL', type: 'url' },
     ],
   },
   {
     color: '#ff5722',
     icon: 'bug_report',
     labelKey: 'ADMIN_SETTINGS.GROUP_DEBUG',
-    settings: [
-      {
-        descriptionKey: 'ADMIN_SETTINGS.SITE_IS_HTTPS_DESC',
-        key: 'site_is_https',
-        labelKey: 'ADMIN_SETTINGS.SITE_IS_HTTPS_LABEL',
-        type: 'boolean',
-      },
-      { descriptionKey: 'ADMIN_SETTINGS.DEBUG_DESC', key: 'debug', labelKey: 'ADMIN_SETTINGS.DEBUG_LABEL', type: 'boolean' },
-    ],
+    settings: [],
   },
 ];
 
@@ -383,6 +356,11 @@ export class AdminSettingsComponent implements OnInit {
     'enable_oidc',
     // Single-logout toggle, surfaced as a dedicated control in the Authentication section.
     'enable_oidc_slo',
+    // Withdrawn from the UI because nothing reads them (#547). Listed here so they do not reappear
+    // in the "Other" catch-all, which is what happened when they were only removed from their groups:
+    // the same editable controls, one section lower, still promising behaviour that does not exist.
+    // Their rows stay in the database, unread. See #560.
+    ...RETIRED_KEYS,
   ]);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -405,6 +383,10 @@ export class AdminSettingsComponent implements OnInit {
     'admin_disable_userlist',
     'admin_channel_id',
     'migration_completed',
+    // Installation sentinel, like migration_completed above. Listed in SettingsController's
+    // InternalKeys equivalent would hide it from admins too, and the quick-picks guard needs to read
+    // it -- so it is hidden here instead of there. See #668.
+    'quick_picks_seeded',
   ];
 
   private readonly originalSnapshot = signal<AnySettingItem[]>([]);
@@ -424,9 +406,27 @@ export class AdminSettingsComponent implements OnInit {
   /** Current sign-in mode, derived from enable_oidc (opt-in; absent/false = local). */
   readonly authMode = computed<'local' | 'oidc'>(() => (this.getBool('enable_oidc') ? 'oidc' : 'local'));
 
+  readonly searchQuery = signal('');
+  /**
+   * The Authentication section is hand-written rather than driven by SETTING_GROUPS, so the search
+   * box never touched it and a nonsense query still left it on screen. See #426.
+   */
+  readonly authSectionVisible = computed(() => {
+    const query = this.searchQuery().trim().toLowerCase();
+    if (!query) return true;
+    return [
+      'ADMIN_SETTINGS.GROUP_AUTH',
+      'ADMIN_SETTINGS.AUTH_MODE_LABEL',
+      'ADMIN_SETTINGS.AUTH_MODE_LOCAL',
+      'ADMIN_SETTINGS.AUTH_MODE_OIDC',
+    ].some(key => this.i18n.instant(key).toLowerCase().includes(query));
+  });
+
   readonly bulkSaving = signal(false);
   readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
+
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
+
   readonly iconRepos = [
     {
       name: 'Whitewillem (Ingame)',
@@ -499,10 +499,8 @@ export class AdminSettingsComponent implements OnInit {
   readonly oidcSloEnabled = computed(() => (this.getSettingValue('enable_oidc_slo') ?? '').toLowerCase() !== 'false');
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
-
-  readonly searchQuery = signal('');
-
   readonly settingsLoading = signal(true);
+
   readonly telegramConfig = signal<TelegramServerConfig | null>(null);
 
   readonly unknownSettings = computed(() =>
@@ -520,11 +518,11 @@ export class AdminSettingsComponent implements OnInit {
     const query = this.searchQuery().trim();
     const base = SETTING_GROUPS.filter(g => {
       if (oidcMode && localProviderGroups.has(g.labelKey)) return false;
-      return (
-        g.settings.some(s => this.settingMap().has(s.key)) ||
-        (g.labelKey === 'ADMIN_SETTINGS.GROUP_DISCORD' && this.discordConfig() !== null) ||
-        (g.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && this.telegramConfig() !== null)
-      );
+      // Deliberately not gated on a key already having a row. A fresh install seeds exactly one
+      // (custom_title), so Alarm Types, Features, Administration and Analytics were filtered out of the
+      // DOM entirely -- and since this page is the only writer, the row could never appear. The
+      // row-level guard below already renders an absent key correctly. See #629.
+      return true;
     });
     if (!query) return base;
     return base.map(g => ({ ...g, settings: g.settings.filter(s => this.settingMatches(s)) })).filter(g => g.settings.length > 0);
@@ -691,7 +689,13 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   saveAllModified(): void {
-    const entries = Array.from(this.modifiedSettings().entries());
+    // Enables first. The anti-lockout guard on the server reads the *other* login key from the
+    // database, so turning Discord off and Telegram on in one batch failed on whichever request landed
+    // first: the Discord PUT still saw enable_telegram false and answered 400, leaving a partial save
+    // and a message about a state the admin was in the middle of leaving. See #633.
+    const entries = Array.from(this.modifiedSettings().entries()).sort(
+      ([, a], [, b]) => Number(this.isDisablingLogin(b)) - Number(this.isDisablingLogin(a)),
+    );
     if (!entries.length) return;
     this.bulkSaving.set(true);
     let done = 0,
@@ -817,6 +821,11 @@ export class AdminSettingsComponent implements OnInit {
           ? errorMessages.join(' ')
           : this.i18n.instant('ADMIN_SETTINGS.SAVE_PARTIAL', { done, errors });
     this.snackBar.open(msg, this.i18n.instant('COMMON.OK'), { duration: errors ? 5000 : 3000 });
+  }
+
+  /** Whether a pending value would switch a login method off. See #633. */
+  private isDisablingLogin(value: unknown): boolean {
+    return String(value).toLowerCase() === 'false';
   }
 
   private settingMatches(meta: SettingMeta): boolean {

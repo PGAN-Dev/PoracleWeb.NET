@@ -258,7 +258,6 @@ public static class AlarmMappingExtensions
         FortType = src.FortType,
         IncludeEmpty = src.IncludeEmpty,
         ChangeTypes = src.ChangeTypes,
-        Clean = src.Clean,
         Template = src.Template,
     };
 
@@ -269,7 +268,6 @@ public static class AlarmMappingExtensions
         if (src.FortType != null) dest.FortType = src.FortType;
         if (src.IncludeEmpty != null) dest.IncludeEmpty = src.IncludeEmpty.Value;
         if (src.ChangeTypes != null) dest.ChangeTypes = src.ChangeTypes;
-        if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
     }
 

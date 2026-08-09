@@ -90,4 +90,20 @@ public class WebhookDelegateRepository(PoracleWebContext context) : IWebhookDele
         await this._context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<int> RemoveAllForIdAsync(string id)
+    {
+        var entities = await this._context.WebhookDelegates
+            .Where(d => d.WebhookId == id || d.UserId == id)
+            .ToListAsync();
+
+        if (entities.Count == 0)
+        {
+            return 0;
+        }
+
+        this._context.WebhookDelegates.RemoveRange(entities);
+        await this._context.SaveChangesAsync();
+        return entities.Count;
+    }
 }

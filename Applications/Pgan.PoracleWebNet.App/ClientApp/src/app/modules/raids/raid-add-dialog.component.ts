@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -12,9 +12,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, Observable, of } from 'rxjs';
 
-import { RaidCreate, EggCreate } from '../../core/models';
+import { Egg, EggCreate, Raid, RaidCreate } from '../../core/models';
 import { ANY_LEVEL_VALUE } from '../../core/models/raid-level.models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -64,16 +64,10 @@ export class RaidAddDialogComponent {
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
 
-  /** Single-select Boss-tab level; defaults to PoracleNG's "any" sentinel (9000). */
-  bossLevel = signal<number>(ANY_LEVEL_VALUE);
-  /** Stable array reference for the level selector input — prevents per-tick re-binding. */
-  bossLevelArray = computed(() => [this.bossLevel()]);
-
   commonForm = this.fb.group({
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
-    ping: [''],
     rsvpChanges: [0],
     team: [4],
     template: [''],
@@ -98,9 +92,6 @@ export class RaidAddDialogComponent {
   }
 
   /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
-  onBossLevelChange(values: number[]): void {
-    this.bossLevel.set(values[0] ?? ANY_LEVEL_VALUE);
-  }
 
   onDistanceModeChange(): void {
     if (this.commonForm.controls.distanceMode.value === 'areas') {
@@ -126,7 +117,9 @@ export class RaidAddDialogComponent {
     // New alarms have no prior bits, so there is nothing to preserve here.
     const clean = (common.clean ? AUTO_DELETE : 0) | ((common.rsvpChanges ?? 0) >= 1 ? EDIT : 0);
 
-    const creates: ReturnType<typeof this.raidService.create | typeof this.eggService.create>[] = [];
+    // A union of the two return types confuses .pipe(); both are Observable of an alarm, and the batch
+    // only needs to know whether each one landed. See #577.
+    const creates: Observable<Raid | Egg>[] = [];
 
     if (this.tabIndex === 0) {
       // By Level
@@ -137,10 +130,9 @@ export class RaidAddDialogComponent {
           evolution: 9000,
           exclusive: 0,
           form: 0,
-          gymId: this.selectedGymId() || null,
+          gymId: this.selectedGymId() ?? '',
           level,
           move: 9000,
-          ping: common.ping || null,
           pokemonId: 9000,
           rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
@@ -153,9 +145,8 @@ export class RaidAddDialogComponent {
           clean,
           distance: distanceMeters,
           exclusive: 0,
-          gymId: this.selectedGymId() || null,
+          gymId: this.selectedGymId() ?? '',
           level,
-          ping: common.ping || null,
           rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
@@ -163,8 +154,9 @@ export class RaidAddDialogComponent {
         creates.push(this.eggService.create(egg));
       }
     } else {
-      // By Boss
-      const bossLevel = this.bossLevel();
+      // By Boss. The level is always the "any" sentinel, never a chosen one: trackingRaid.go rewrites
+      // level to 9000 for every alarm carrying a specific pokemon_id, so the tab used to show a level
+      // picker whose value could not survive the request. See #615.
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
           clean,
@@ -172,10 +164,9 @@ export class RaidAddDialogComponent {
           evolution: 9000,
           exclusive: 0,
           form: 0,
-          gymId: this.selectedGymId() || null,
-          level: bossLevel,
+          gymId: this.selectedGymId() ?? '',
+          level: ANY_LEVEL_VALUE,
           move: 9000,
-          ping: common.ping || null,
           pokemonId,
           rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
@@ -185,15 +176,38 @@ export class RaidAddDialogComponent {
       }
     }
 
-    forkJoin(creates).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_CREATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+    // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
+    // succeeded were never reported, the dialog stayed open and the list never reloaded. Each request
+    // settles on its own now, and the toast says how many landed. See #577.
+    forkJoin(creates.map(c => c.pipe(catchError((err: { error?: { error?: string } }) => of({ failed: err }))))).subscribe({
+      // The server names what is wrong -- which alarm already uses these settings, which
+      // field a file got wrong. A fixed string threw that away. See #567, #568.
+      // Each create settles on its own, so a refused one no longer hides the ones that landed.
+      // The first refusal's message is shown, because it names what is in the way. See #577.
+      next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
+        const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
+        // Three outcomes, not two: refused (409), already tracked (200 with no uid), and created. The
+        // pokemon dialog has split these since #495; the rest reported duplicates as creations. See #605.
+        const landed = results.filter((r): r is { uid?: number } => !('failed' in r));
+        const created = landed.filter(r => (r.uid ?? 0) > 0).length;
+        const duplicates = landed.length - created;
         this.saving.set(false);
-      },
-      next: () => {
-        this.snackBar.open(this.i18n.instant('RAIDS.SNACK_CREATED_COUNT', { count: creates.length }), this.i18n.instant('TOAST.OK'), {
-          duration: 3000,
-        });
+
+        if (refused.length > 0) {
+          this.snackBar.open(
+            refused[0].failed?.error?.error ?? this.i18n.instant('RAIDS.SNACK_FAILED_CREATE'),
+            this.i18n.instant('COMMON.OK'),
+            { duration: 6000 },
+          );
+        } else {
+          const message =
+            duplicates > 0
+              ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
+              : this.i18n.instant('COMMON.SAVED', { count: created });
+          this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
+        }
+
+        // Close either way: whatever was created is real, and the list must reload to show it.
         this.dialogRef.close(true);
       },
     });

@@ -19,7 +19,6 @@ import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -57,12 +56,10 @@ export class FortChangeEditDialogComponent {
     changeTypeName: [this.data.changeTypes?.includes('name') ?? false],
     changeTypeNew: [this.data.changeTypes?.includes('new') ?? false],
     changeTypeRemoval: [this.data.changeTypes?.includes('removal') ?? false],
-    clean: [isAutoDelete(this.data.clean)],
     distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
     distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     fortType: [this.data.fortType ?? 'everything'],
     includeEmpty: [this.data.includeEmpty === 1],
-    ping: [this.data.ping ?? ''],
     template: [this.data.template ?? ''],
   });
 
@@ -89,16 +86,18 @@ export class FortChangeEditDialogComponent {
     this.fortChangeService
       .update(this.data.uid, {
         changeTypes,
-        clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
         distance: dist,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,
-        ping: v.ping || null,
-        template: v.template || null,
+        template: v.template || '',
       } as FortChangeUpdate)
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('FORT_CHANGES.UPDATE_FAILED'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        // The server names what is wrong -- which alarm already uses these settings, which
+        // field a file got wrong. A fixed string threw that away. See #567, #568.
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(err?.error?.error ?? this.i18n.instant('FORT_CHANGES.UPDATE_FAILED'), this.i18n.instant('COMMON.OK'), {
+            duration: 6000,
+          });
           this.saving.set(false);
         },
         next: () => {

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models.Helpers;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -64,8 +65,11 @@ public partial class GeofenceFeedController(
                     LogDeserializePolygonFailed(this._logger, ex, g.KojiName, g.Id);
                 }
 
-                if (polygon == null || polygon.Length < 3)
+                // This feed is the single geofence source for PoracleJS, so a malformed polygon from one
+                // user is everyone's problem. Skip anything that is not a well-formed ring. See #410.
+                if (!PolygonValidation.IsWellFormed(polygon))
                 {
+                    LogSkippedMalformedPolygon(this._logger, g.KojiName, g.Id);
                     return null;
                 }
 
@@ -94,4 +98,7 @@ public partial class GeofenceFeedController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to deserialize polygon for geofence '{KojiName}' (ID {Id})")]
     private static partial void LogDeserializePolygonFailed(ILogger logger, Exception ex, string? kojiName, int id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Skipped malformed polygon for geofence '{KojiName}' (id {Id}) when building the feed")]
+    private static partial void LogSkippedMalformedPolygon(ILogger logger, string? kojiName, int id);
 }

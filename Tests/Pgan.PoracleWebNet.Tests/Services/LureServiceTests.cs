@@ -16,12 +16,13 @@ public class LureServiceTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
     private readonly LureService _sut;
 
     public LureServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new LureService(this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance);
+        this._sut = new LureService(this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._uidRemapper.Object);
         // The natural-key replace strategy reads the original row and frees the key first.
         this._proxy.Setup(p => p.GetByUserAsync("lure", It.IsAny<string>()))
             .ReturnsAsync(JsonSerializer.SerializeToElement(Array.Empty<object>()));
@@ -111,13 +112,15 @@ public class LureServiceTests
             {
                 uid = 1,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("lure", "u", It.IsAny<JsonElement>()))
@@ -245,4 +248,20 @@ public class LureServiceTests
     private static JsonElement ItemsJson(int uid) =>
         JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
 
+
+    // A rotated uid orphans any quick pick that created the alarm. See #403.
+    [Fact]
+    public async Task UpdateAsyncRepointsQuickPickTrackedUidAtTheReplacementRow()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("lure", "user1"))
+            .ReturnsAsync(CreateJsonArray(new { uid = 239, id = "user1", lure_id = 501, distance = 500 }));
+        this._proxy.Setup(p => p.DeleteByUidAsync("lure", "user1", 239)).Returns(Task.CompletedTask);
+        this._proxy.Setup(p => p.CreateAsync("lure", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([240], 0, 0, 1));
+
+        var result = await this._sut.UpdateAsync("user1", new Lure { Uid = 239, LureId = 501, Distance = 600 });
+
+        Assert.Equal(240, result.Uid);
+        this._uidRemapper.Verify(r => r.RemapAsync("user1", "lure", 239, 240), Times.Once);
+    }
 }

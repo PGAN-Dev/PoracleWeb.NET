@@ -30,7 +30,7 @@
   </div>
 } @else {
   <div class="cleaning-content">
-    @for (item of cleaningItems; track item.type) {
+    @for (item of visibleItems(); track item.type) {
       <div class="cleaning-row" [class.disabled-row]="!item.hasAlarms()">
         <div class="cleaning-label">
           <div class="icon-wrap" [style.background-color]="item.color">

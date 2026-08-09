@@ -84,7 +84,6 @@ export class PokemonEditDialogComponent implements OnInit {
     minIv: [this.data.minIv],
     minLevel: [this.data.minLevel],
     minWeight: [this.data.minWeight],
-    ping: [this.data.ping ?? ''],
     pvpRankingBest: [this.data.pvpRankingBest],
     pvpRankingCap: [this.data.pvpRankingCap ?? 0],
     pvpRankingLeague: [this.data.pvpRankingLeague],
@@ -158,7 +157,6 @@ export class PokemonEditDialogComponent implements OnInit {
       minIv: values.minIv ?? 0,
       minLevel: values.minLevel ?? 0,
       minWeight: values.minWeight ?? 0,
-      ping: values.ping || null,
       pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 0,
       pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,
       pvpRankingLeague: values.pvpRankingLeague ?? 0,
@@ -166,12 +164,16 @@ export class PokemonEditDialogComponent implements OnInit {
       pvpRankingWorst: values.pvpRankingLeague ? (values.pvpRankingWorst ?? 100) : 4096,
       size: values.size ?? -1,
       sta: values.sta ?? 0,
-      template: values.template || null,
+      template: values.template || '',
     };
 
     this.monsterService.update(this.data.uid, update).subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+      // The server explains exactly what is wrong with a filter it refuses -- which min/max pair is
+      // inverted, say. That message never reached anyone: this handler showed a fixed string, so a
+      // transposed pair produced "failed" with no clue which field to fix. See #496.
+      error: (err: { error?: { error?: string } }) => {
+        const message = err?.error?.error ?? this.i18n.instant('POKEMON.SNACK_FAILED_UPDATE');
+        this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 6000 });
         this.saving.set(false);
       },
       next: () => {

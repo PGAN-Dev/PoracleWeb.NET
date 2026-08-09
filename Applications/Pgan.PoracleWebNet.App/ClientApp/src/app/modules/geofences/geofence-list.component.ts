@@ -153,7 +153,10 @@ export class GeofenceListComponent implements OnInit {
     // Pre-fill dialog with existing values
     const instance = ref.componentInstance;
     instance.displayName = geofence.displayName;
-    const region = this.geofenceRegions().find(r => r.name === geofence.groupName);
+    // groupName was written from region.displayName at creation, and GeofenceRegion carries name and
+    // displayName as different fields -- so matching on name never hit, the picker opened empty, and
+    // confirming closed with parentId 0 and wiped the region. See #648.
+    const region = this.geofenceRegions().find(r => r.displayName === geofence.groupName || r.name === geofence.groupName);
     if (region) {
       instance.selectedRegionId = region.id;
     }
@@ -161,37 +164,30 @@ export class GeofenceListComponent implements OnInit {
     ref.afterClosed().subscribe((result: GeofenceNameDialogResult | null) => {
       if (!result) return;
 
-      // Edit = delete + recreate
+      // A rename, not a delete and a recreate: recreating re-subscribed only the active profile, so
+      // renaming from profile 0 quietly switched the geofence off everywhere else while the page still
+      // showed it on. See #543.
       this.savingGeofence.set(true);
       this.userGeofenceService
-        .deleteGeofence(geofence.id)
+        .renameGeofence(geofence.id, {
+          displayName: result.displayName,
+          groupName: result.groupName,
+          parentId: result.parentId,
+        })
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           error: () => {
             this.savingGeofence.set(false);
             this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
-          next: () => {
-            this.userGeofenceService
-              .createGeofence({
-                displayName: result.displayName,
-                groupName: result.groupName,
-                parentId: result.parentId,
-                polygon: geofence.polygon ?? [],
-              })
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe({
-                error: () => {
-                  this.savingGeofence.set(false);
-                  this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_FAILED_UPDATE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-                },
-                next: created => {
-                  this.savingGeofence.set(false);
-                  this.customGeofences.update(list => [...list.filter(g => g.id !== geofence.id), created]);
-                  this.activeAreas.update(areas => [...areas.filter(a => a !== geofence.kojiName), created.kojiName]);
-                  this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-                },
-              });
+          next: updated => {
+            this.savingGeofence.set(false);
+            this.customGeofences.update(list => list.map(g => (g.id === updated.id ? updated : g)));
+            // The subscription moved with the rename on the server, but this list still held the OLD name,
+            // so the card flipped to "Inactive" for a geofence that is very much still on. Same lie as
+            // #543, inverted. See #558.
+            this.activeAreas.update(areas => areas.map(a => (a === geofence.kojiName ? updated.kojiName : a)));
+            this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
     });

@@ -106,4 +106,69 @@ public class FeatureGateCoverageTests
         [.. ApiAssembly.GetTypes()
             .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
             .SelectMany(t => KeysEnforcedBy(t).Select(k => (controller: t, key: k)))];
+
+    /// <summary>
+    /// The per-key test above only asks whether SOME action on SOME controller carries the attribute, so
+    /// a controller gated on one action and open on another passes it. That is exactly how
+    /// <c>UserGeofenceController</c>'s activate/deactivate shipped ungated while its create was gated:
+    /// the write endpoints bypassed both disable_areas and disable_user_geofences. See #478.
+    /// </summary>
+    [Fact]
+    public void EveryMutatingActionOnAPartiallyGatedControllerIsGated()
+    {
+        var offenders = new List<string>();
+
+        foreach (var controller in ApiAssembly.GetTypes()
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract))
+        {
+            // Only controllers that gate per-action are in scope; a class-level attribute covers
+            // everything, and a controller with no gate at all is a separate question.
+            if (controller.GetCustomAttributes(typeof(RequireFeatureEnabledAttribute), inherit: true).Length > 0)
+            {
+                continue;
+            }
+
+            var actions = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(m => !m.IsSpecialName)
+                .ToList();
+
+            var gated = actions.Where(m => m.GetCustomAttributes(typeof(RequireFeatureEnabledAttribute), inherit: true).Length > 0).ToList();
+            if (gated.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var action in actions.Except(gated).Where(IsMutating))
+            {
+                var name = $"{controller.Name}.{action.Name}";
+                if (!IntentionallyUngatedWrites.Contains(name))
+                {
+                    offenders.Add(name);
+                }
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "These write endpoints sit on a controller that gates some of its actions but not these: "
+            + string.Join(", ", offenders)
+            + ". A partially gated controller is the shape that hides bypasses - gate them or move them.");
+    }
+
+    /// <summary>
+    /// Writes that are deliberately reachable while their feature is off, with the reason. Anything not
+    /// listed here has to be gated, so an exemption is a decision someone made on purpose rather than an
+    /// oversight nobody noticed.
+    /// </summary>
+    private static readonly HashSet<string> IntentionallyUngatedWrites = new(StringComparer.Ordinal)
+    {
+        // Turning off custom geofences stops people making new ones. It must not trap users with
+        // existing geofences they can no longer delete - blocking cleanup prevents no harm.
+        "UserGeofenceController.DeleteGeofence",
+    };
+
+    /// <summary>A write, by HTTP verb. Reads are deliberately left open on some gated controllers.</summary>
+    private static bool IsMutating(MethodInfo action) =>
+        action.GetCustomAttributes(inherit: true).Any(a =>
+            a is HttpPostAttribute or HttpPutAttribute or HttpDeleteAttribute or HttpPatchAttribute);
 }

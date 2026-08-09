@@ -18,11 +18,12 @@ public class EggServiceTests
     private readonly EggService _sut;
 
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _uidRemapper = new();
 
     public EggServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new EggService(this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance);
+        this._sut = new EggService(this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._uidRemapper.Object);
     }
 
     [Fact]
@@ -125,19 +126,22 @@ public class EggServiceTests
             {
                 uid = 1,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZsecond"
             },
             new
             {
                 uid = 3,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow3"
             });
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("egg", "u", It.IsAny<JsonElement>()))

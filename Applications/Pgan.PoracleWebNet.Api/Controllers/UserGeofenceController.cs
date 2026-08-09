@@ -30,6 +30,43 @@ public partial class UserGeofenceController(
         return this.Ok(geofences);
     }
 
+    /// <summary>Renames a geofence without disturbing which profiles are subscribed to it.</summary>
+    /// <remarks>
+    /// The page used to edit by deleting and recreating, which re-subscribed only the active profile and
+    /// silently switched the geofence off everywhere else. See #543.
+    /// </remarks>
+    [HttpPut("custom/{id:int}")]
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
+    public async Task<IActionResult> RenameGeofence(int id, [FromBody] UserGeofenceRenameRequest request)
+    {
+        try
+        {
+            var updated = await this._userGeofenceService.RenameAsync(
+                this.UserId, id, request.DisplayName, request.GroupName, request.ParentId);
+            return this.Ok(updated);
+        }
+        catch (GeofenceNotFoundException)
+        {
+            return this.NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Not Forbid: a geofence the caller does not own should not be distinguishable from one that
+            // does not exist.
+            return this.NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // The rename status guard (#646) threw straight past these arms as an unhandled 500.
+            // CreateGeofence already has this arm; rename was not given it. See #657.
+            return this.BadRequest(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return this.BadRequest(new { error = ex.Message });
+        }
+    }
+
     [HttpPost("custom")]
     [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     public async Task<IActionResult> CreateGeofence([FromBody] UserGeofenceCreate model)
@@ -94,6 +131,10 @@ public partial class UserGeofenceController(
         }
     }
 
+    // These write area subscriptions, so they answer to the same switch the Areas page does.
+    // Gated per-action because the reads on this controller stay open; disable_areas is
+    // enforced in the service, since the attribute does not allow two keys. See #478.
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     [HttpPost("custom/{id:int}/activate")]
     public async Task<IActionResult> ActivateGeofence(int id)
     {
@@ -116,6 +157,10 @@ public partial class UserGeofenceController(
         }
     }
 
+    // These write area subscriptions, so they answer to the same switch the Areas page does.
+    // Gated per-action because the reads on this controller stay open; disable_areas is
+    // enforced in the service, since the attribute does not allow two keys. See #478.
+    [RequireFeatureEnabled(DisableFeatureKeys.UserGeofences)]
     [HttpPost("custom/{id:int}/deactivate")]
     public async Task<IActionResult> DeactivateGeofence(int id)
     {
@@ -256,3 +301,5 @@ public partial class UserGeofenceController(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to import GeoJSON for user {UserId}")]
     private static partial void LogImportGeoJsonFailed(ILogger logger, Exception ex, string userId);
 }
+
+public record UserGeofenceRenameRequest(string DisplayName, string? GroupName, int? ParentId);
