@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
@@ -9,6 +10,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [Route("api/admin")]
 public partial class AdminController(
     IHumanService humanService,
+    IMemoryCache cache,
     IUserPurgeService userPurgeService,
     IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
@@ -18,6 +20,7 @@ public partial class AdminController(
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IMemoryCache _cache = cache;
     private readonly IUserPurgeService _userPurgeService = userPurgeService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
@@ -177,6 +180,11 @@ public partial class AdminController(
 
         await this._humanProxy.AdminDisabledAsync(id, false);
 
+        // Evict the block cache so this takes effect on the next request rather than up to a
+        // minute later. Without it the filter kept serving the value it had already cached, which
+        // is how the first live check of this fix appeared to fail. See #609.
+        this._cache.Remove($"blocked:{id}");
+
         // Re-fetch to return the updated state
         var updated = await this._humanService.GetByIdAsync(id) ?? human;
         return this.Ok(updated);
@@ -197,6 +205,11 @@ public partial class AdminController(
         }
 
         await this._humanProxy.AdminDisabledAsync(id, true);
+
+        // Evict the block cache so this takes effect on the next request rather than up to a
+        // minute later. Without it the filter kept serving the value it had already cached, which
+        // is how the first live check of this fix appeared to fail. See #609.
+        this._cache.Remove($"blocked:{id}");
 
         // Re-fetch to return the updated state
         var updated = await this._humanService.GetByIdAsync(id) ?? human;

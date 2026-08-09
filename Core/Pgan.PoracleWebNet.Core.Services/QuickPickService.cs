@@ -464,6 +464,15 @@ public partial class QuickPickService(
     }
 
     /// <summary>Builds one alarm of the definition's type purely to run its validation.</summary>
+    /// <summary>Deserializes a definition's filters onto its model and validates them, writing nothing.</summary>
+    private static void BuildFromFilters<T>(Dictionary<string, object?> filters)
+        where T : new()
+    {
+        var json = JsonSerializer.Serialize(filters, JsonOptions);
+        var alarm = JsonSerializer.Deserialize<T>(json, JsonOptions) ?? new T();
+        EnsureValidAlarm(alarm!);
+    }
+
     private static void BuildSampleAlarm(
         QuickPickDefinition definition, int profileNo, QuickPickApplyRequest request)
     {
@@ -478,9 +487,31 @@ public partial class QuickPickService(
             case "maxbattle":
                 BuildMaxBattle(definition.Filters, profileNo, request);
                 break;
+            // The rest deserialize their filters straight onto the model. That IS validated on the way
+            // through -- but only after RemoveAsync has already deleted the alarms, so a re-apply of a pick
+            // with a bad filter destroyed them and created nothing. And a definition holding such a filter
+            // could still be SAVED, because the save check runs the same dry run. Six of the nine types
+            // fell through here. See #607, #608.
+            case "egg":
+                BuildFromFilters<Egg>(definition.Filters);
+                break;
+            case "quest":
+                BuildFromFilters<Quest>(definition.Filters);
+                break;
+            case "invasion":
+                BuildFromFilters<Invasion>(definition.Filters);
+                break;
+            case "lure":
+                BuildFromFilters<Lure>(definition.Filters);
+                break;
+            case "nest":
+                BuildFromFilters<Nest>(definition.Filters);
+                break;
+            case "gym":
+                BuildFromFilters<Gym>(definition.Filters);
+                break;
             default:
-                // The remaining types deserialize their filters straight onto the model, which the
-                // apply path validates on the way through; there is nothing extra to check here.
+                // An alarm type this build does not know. Apply will fail on it anyway.
                 break;
         }
     }
