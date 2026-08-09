@@ -32,6 +32,11 @@ public interface IJwtService
     /// Generates a JWT by copying claims from an existing <see cref="ClaimsPrincipal"/>
     /// and replacing <c>profileNo</c>. Framework-injected claims (<c>exp</c>, <c>nbf</c>,
     /// <c>iat</c>, <c>iss</c>, <c>aud</c>) are filtered out to avoid duplication.
+    /// <para>
+    /// The re-issued token keeps the original <c>exp</c> rather than starting a fresh lifetime -- a
+    /// re-issue must never extend a session. Pass <paramref name="isAdmin"/> to replace the copied
+    /// claim with a freshly resolved value. See #624.
+    /// </para>
     /// </summary>
-    string GenerateTokenWithReplacedProfile(ClaimsPrincipal existingPrincipal, int profileNo);
+    string GenerateTokenWithReplacedProfile(ClaimsPrincipal existingPrincipal, int profileNo, bool? isAdmin = null);
 }

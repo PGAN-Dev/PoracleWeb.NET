@@ -18,6 +18,7 @@ public class AdminControllerTests : ControllerTestBase
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
     private readonly Mock<IJwtService> _jwtService = new();
+    private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
     private readonly AdminController _sut;
 
@@ -35,6 +36,7 @@ public class AdminControllerTests : ControllerTestBase
             this._humanProxy.Object,
             poracleSettings,
             this._jwtService.Object,
+            this._roleResolver.Object,
             this._logger.Object);
     }
 
@@ -385,8 +387,11 @@ public class AdminControllerTests : ControllerTestBase
         SetupUser(this._sut, isAdmin: false, managedWebhooks: ["u1"]);
         // Delegation is resolved live now, not read from the JWT claim, so a revoked delegate loses access
         // immediately rather than at their next sign-in. See #601.
-        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync("123456789"))
-            .ReturnsAsync(["u1"]);
+        // Resolved through IUserRoleResolver, which unions the local delegate table with the webhooks
+        // PoracleNG reports -- a PoracleJS-configured delegate was refused by the local-table-only
+        // lookup. See #626.
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["u1"]));
         this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "WH", Type = "webhook", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
 
         var result = await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1"));

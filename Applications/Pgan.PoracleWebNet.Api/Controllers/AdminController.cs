@@ -2,6 +2,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -17,6 +18,7 @@ public partial class AdminController(
     IPoracleHumanProxy humanProxy,
     IOptions<PoracleSettings> poracleSettings,
     IJwtService jwtService,
+    IUserRoleResolver roleResolver,
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
@@ -27,6 +29,7 @@ public partial class AdminController(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly ILogger<AdminController> _logger = logger;
 
     /// <summary>Caps one avatar batch. The admin user list is the only caller and batches per viewport.</summary>
@@ -76,7 +79,11 @@ public partial class AdminController(
         // Resolved live rather than read from the JWT claim. The claim is minted at login and lives 24
         // hours, so revoking a delegate left them managing the webhook until they happened to sign in
         // again -- and impersonation authorises off the same claim. See #601.
-        var managed = (await this._webhookDelegateService.GetManagedWebhookIdsAsync(this.UserId)).ToArray();
+        // The union the JWT claim is built from, not the local table alone. Resolving from
+        // poracle_web.webhook_delegates only meant a delegate configured in PoracleJS -- the
+        // delegateAdministration mechanism -- saw the nav item, got an empty page here, and a 403 from
+        // impersonate. See #626.
+        var managed = (await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [];
         if (managed.Length == 0)
         {
             return this.Ok(Array.Empty<object>());
@@ -566,8 +573,10 @@ public partial class AdminController(
         // Allow admins or delegates who manage this specific webhook. Resolved live rather than read from
         // the JWT claim: the claim is minted at login and lives 24 hours, so a revoked delegate could keep
         // impersonating the webhook until they next signed in. See #601.
+        // Same union as the claim and as my-webhooks, so a PoracleJS-configured delegate is not refused
+        // by an endpoint the nav item just offered them. See #626.
         var isDelegate = !this.IsAdmin
-            && (await this._webhookDelegateService.GetManagedWebhookIdsAsync(this.UserId))
+            && ((await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [])
                 .Contains(request.UserId, StringComparer.Ordinal);
         if (!this.IsAdmin && !isDelegate)
         {

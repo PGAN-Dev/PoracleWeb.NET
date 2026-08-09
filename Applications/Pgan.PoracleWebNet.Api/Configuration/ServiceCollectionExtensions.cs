@@ -169,6 +169,10 @@ public static class ServiceCollectionExtensions
         // Register JWT service (shared token generation across controllers)
         services.AddSingleton<IJwtService, JwtService>();
 
+        // Admin status and delegated webhooks, resolved live rather than trusted from a claim minted
+        // at login. See #624 and #626.
+        services.AddScoped<Services.IUserRoleResolver, Services.UserRoleResolver>();
+
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));
