@@ -227,8 +227,30 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     /// as a generic 500. Fail here instead, where the message says what is actually wrong. Callers that
     /// want "everything" must fan out over <see cref="InvasionGruntTypes.All"/>. See #416.
     /// </summary>
+    /// <summary>The grunt_type column width upstream.</summary>
+    private const int MaxGruntTypeLength = 35;
+
     private static void RequireGruntType(Invasion model)
     {
+        // Deliberately NOT an allowlist. The live database holds grunt types this codebase does not model --
+        // blanche, candela, spark, "npc 0" through "npc 10", "player team leader" -- so validating against
+        // InvasionGruntTypes.All would have refused edits to alarms that work today. What is checked instead
+        // is what cannot be a grunt type under any upstream: control characters, and a value longer than the
+        // column. See #611.
+        if (!string.IsNullOrEmpty(model.GruntType))
+        {
+            if (model.GruntType.Any(char.IsControl))
+            {
+                throw new AlarmValidationException("gruntType must not contain control characters.");
+            }
+
+            if (model.GruntType.Length > MaxGruntTypeLength)
+            {
+                throw new AlarmValidationException(
+                    $"gruntType must be {MaxGruntTypeLength} characters or fewer.");
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(model.GruntType))
         {
             // AlarmValidationException rather than ArgumentException: nothing maps the latter, so this

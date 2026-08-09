@@ -329,4 +329,26 @@ public class InvasionServiceTests
     private static JsonElement ItemsJson(int uid) =>
         JsonSerializer.SerializeToElement(new[] { new { uid, id = "user1" } });
 
+
+    [Theory]
+    [InlineData("fi\u0000re")]
+    [InlineData("fire\u001bx")]
+    [InlineData("fire\n")]
+    public async Task CreateAsyncRefusesControlCharactersInGruntType(string gruntType)
+    {
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.CreateAsync("user1", new Invasion { GruntType = gruntType }));
+
+        Assert.Contains("control characters", ex.Message, StringComparison.OrdinalIgnoreCase);
+        this._proxy.Verify(p => p.CreateAsync("invasion", It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsyncRefusesAGruntTypeLongerThanTheColumn()
+    {
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.CreateAsync("user1", new Invasion { GruntType = new string('a', 36) }));
+
+        Assert.Contains("35", ex.Message, StringComparison.Ordinal);
+    }
 }

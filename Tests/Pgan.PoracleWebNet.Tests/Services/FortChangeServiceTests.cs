@@ -219,6 +219,31 @@ public class FortChangeServiceTests
     }
 
     [Theory]
+    [InlineData(new[] { "name", "location", "image_url", "removal", "new" }, true)]
+    [InlineData(new[] { "name", "name" }, false)]
+    [InlineData(new[] { "name", "NAME" }, false)]
+    public void FortChangeCreateRefusesRepeatedAndOverLongChangeTypes(string[] changeTypes, bool expected)
+    {
+        // Five legal values, so a longer list or a repeat cannot mean anything and used to reach the
+        // database as an over-long JSON string. See #612.
+        var model = new FortChangeCreate { FortType = "everything", ChangeTypes = [.. changeTypes] };
+        var results = new List<ValidationResult>();
+        var isValid = Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true);
+        Assert.Equal(expected, isValid);
+    }
+
+    [Fact]
+    public void FortChangeCreateRefusesMoreThanFiveChangeTypes()
+    {
+        var model = new FortChangeCreate
+        {
+            FortType = "everything",
+            ChangeTypes = ["name", "location", "image_url", "removal", "new", "name2"],
+        };
+        var results = new List<ValidationResult>();
+        Assert.False(Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true));
+    }
+    [Theory]
     [InlineData(new[] { "name", "location" }, true)]
     [InlineData(new[] { "image_url", "removal", "new" }, true)]
     [InlineData(new string[0], true)]
