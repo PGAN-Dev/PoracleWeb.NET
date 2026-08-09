@@ -620,9 +620,15 @@ export class ProfileOverviewComponent implements OnInit {
               .importProfile({ ...backup, profileName: name })
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
-                error: () => {
+                // The server names the alarm and the field a file got wrong; a fixed string threw that
+                // away and left the user to guess which of hundreds of alarms was the problem. See #588.
+                error: (err: { error?: { error?: string } }) => {
                   this.switching.set(false);
-                  this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+                  this.snackBar.open(
+                    err?.error?.error ?? this.i18n.instant('PROFILES.SNACK_FAILED_IMPORT'),
+                    this.i18n.instant('TOAST.OK'),
+                    { duration: 6000 },
+                  );
                 },
                 next: res => {
                   this.switching.set(false);

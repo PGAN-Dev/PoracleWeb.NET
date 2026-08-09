@@ -117,9 +117,11 @@ export class QuickPickApplyDialogComponent {
       : this.quickPickService.apply(this.data.definition.id, request);
 
     obs.subscribe({
-      error: () => {
-        this.snackBar.open(this.i18n.instant('QUICK_PICKS.SNACK_FAILED_APPLY'), this.i18n.instant('TOAST.OK'), {
-          duration: 3000,
+      // The server says what to do -- remove the pick first, or fix the filter it will not accept. A fixed
+      // string left the user with a dead end. See #587.
+      error: (err: { error?: { error?: string } }) => {
+        this.snackBar.open(err?.error?.error ?? this.i18n.instant('QUICK_PICKS.SNACK_FAILED_APPLY'), this.i18n.instant('TOAST.OK'), {
+          duration: 6000,
         });
         this.applying.set(false);
         this.applyStatus.set('');

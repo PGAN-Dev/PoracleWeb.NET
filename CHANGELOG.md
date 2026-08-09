@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Rate limits could be bypassed by forging a header** ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)). `X-Forwarded-For` was believed from any caller, so a client could name a different address on each request and hand itself a fresh allowance — including on the sign-in endpoints the limit exists to protect. It is now honoured only from proxies the deployment declares, via `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS`.
+
+### Fixed
+- **A deleted account kept getting server errors instead of being signed out** ([#584](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/584)). Only the session check answered correctly; every other page returned "an unexpected error occurred" until the app happened to re-check. All of them now agree and the session ends.
+- **Renaming a geofence skipped the name rules that creating one enforces** ([#585](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/585)), so a name the app refuses at creation could be applied by editing instead.
+- **The PVP league accepted values no league uses** ([#586](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/586)), storing a filter that can never match. It is now limited to the four the dropdown offers.
+- **Quick-pick apply and profile import discarded the server's explanation** ([#587](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/587), [#588](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/588)) — the instruction telling you what to do, and the message naming the bad alarm in a file.
+- **Two retired map-picker settings still appeared in the admin page** ([#589](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/589)).
 ### Fixed
 - **A bulk radius change could leave you with fewer alarms than you selected** ([#580](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/580)). Two alarms that differed only by radius became the same alarm once both were set to the same one, and Poracle merged them — while the app reported every alarm updated. It is now refused with an explanation.
 - **The Profiles page was blank for accounts that had never edited a profile** ([#582](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/582)). It reported no alarms across any profile while the alarms were there and firing.

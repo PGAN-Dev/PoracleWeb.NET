@@ -181,6 +181,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.SummaryBackendUnavailableExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingConflictExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmValidationExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AccountGoneExceptionFilter>();
 });
 
 // Add Poracle services (DbContext, repositories, services, settings)
@@ -371,10 +372,35 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 };
+// Clearing both lists tells ASP.NET to believe X-Forwarded-For from ANY peer, so a client could name its
+// own address and hand itself a fresh rate-limit bucket per request -- including on the login endpoints
+// the per-IP partitioning exists to protect. Trust only the proxies the deployment names.
+//
+// PROXY_KNOWN_PROXIES / PROXY_KNOWN_NETWORKS take comma-separated addresses and CIDR ranges. With
+// neither set the header is ignored entirely and the connection address is used, which is correct for a
+// direct-exposed instance and safe for one behind a proxy that has not been declared yet -- it means
+// everyone behind that proxy shares a bucket, rather than everyone being able to forge one. See #583.
+foreach (var proxy in SplitConfigList(builder.Configuration["Proxy:KnownProxies"]))
+{
+    if (System.Net.IPAddress.TryParse(proxy, out var address))
+    {
+        forwardedHeadersOptions.KnownProxies.Add(address);
+    }
+}
+
+foreach (var network in SplitConfigList(builder.Configuration["Proxy:KnownNetworks"]))
+{
+    var parts = network.Split('/', 2);
+    if (parts.Length == 2
+        && System.Net.IPAddress.TryParse(parts[0], out var prefix)
+        && int.TryParse(parts[1], out var length))
+    {
 #pragma warning disable ASPDEPR005
-forwardedHeadersOptions.KnownNetworks.Clear();
+        forwardedHeadersOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(prefix, length));
 #pragma warning restore ASPDEPR005
-forwardedHeadersOptions.KnownProxies.Clear();
+    }
+}
+
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Security headers -- values live in SecurityHeaders so they can be unit-tested
@@ -434,6 +460,12 @@ static string UserOrIpPartitionKey(HttpContext ctx)
 }
 
 // Maps a short env var name to .NET's __ convention if the target is not already set.
+/// <summary>Splits a comma-separated config value, ignoring blanks.</summary>
+static string[] SplitConfigList(string? value) =>
+    string.IsNullOrWhiteSpace(value)
+        ? []
+        : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 static void MapEnvVar(string shortName, string configName, string? defaultValue = null)
 {
     if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(configName)))

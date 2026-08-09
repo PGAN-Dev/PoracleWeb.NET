@@ -1,3 +1,5 @@
+using Pgan.PoracleWebNet.Core.Models;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +17,22 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
     /// URL-encodes a userId for safe path construction. Webhook IDs are full URLs
     /// containing slashes that would break routing without encoding.
     /// </summary>
+    /// <summary>
+    /// Turns PoracleNG's "user not found" into something the API can answer 401 to.
+    /// </summary>
+    /// <remarks>
+    /// A JWT outlives the account it names. Without this, every lookup for a deleted user threw an
+    /// HttpRequestException that the global handler flattened into a 500, so the SPA -- which signs out
+    /// only on 401 -- left the user in an app where every page failed. See #584.
+    /// </remarks>
+    private static void EnsureAccountStillExists(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new AccountGoneException();
+        }
+    }
+
     private static string Encode(string userId) => Uri.EscapeDataString(userId);
 
     public async Task<JsonElement?> GetHumanAsync(string userId)
@@ -40,18 +58,21 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
     public async Task CreateHumanAsync(JsonElement body)
     {
         var response = await this.SendAsync(HttpMethod.Post, "/api/humans", body.GetRawText());
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task StartAsync(string userId)
     {
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/start");
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task StopAsync(string userId)
     {
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/stop");
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
@@ -65,12 +86,14 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
             state = disabled
         });
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/adminDisabled", body);
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task SetLocationAsync(string userId, double lat, double lon)
     {
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/setLocation/{lat}/{lon}");
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
@@ -78,6 +101,7 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
     {
         var body = JsonSerializer.Serialize(areas);
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/setAreas", body);
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
@@ -89,12 +113,14 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
     public async Task SwitchProfileAsync(string userId, int profileNo)
     {
         var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/switchProfile/{profileNo}");
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task<JsonElement> GetProfilesAsync(string userId)
     {
         var response = await this.SendAsync(HttpMethod.Get, $"/api/profiles/{Encode(userId)}");
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -105,24 +131,28 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
     public async Task AddProfileAsync(string userId, JsonElement body)
     {
         var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/add", body.GetRawText());
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task UpdateProfileAsync(string userId, JsonElement body)
     {
         var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/update", body.GetRawText());
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task DeleteProfileAsync(string userId, int profileNo)
     {
         var response = await this.SendAsync(HttpMethod.Delete, $"/api/profiles/{Encode(userId)}/byProfileNo/{profileNo}");
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
     public async Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo)
     {
         var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/copy/{fromProfileNo}/{toProfileNo}");
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
