@@ -288,6 +288,43 @@ public class CreateResultSemanticsTests
         Assert.Equal(191, result.Uid);
     }
 
+    /// <summary>
+    /// min_iv is diff:"update" on the monster struct only, so adding the same species at a tighter IV
+    /// floor is exactly one updatable difference -- PoracleNG updates the existing alarm rather than
+    /// inserting, and the user loses it. See #574.
+    /// </summary>
+    [Fact]
+    public async Task AddingTheSameSpeciesAtATighterIvIsRefused()
+    {
+        var sut = new MonsterService(this._proxy.Object, this._gate.Object);
+        this._proxy.Setup(p => p.GetByUserAsync("pokemon", "u1")).ReturnsAsync(Rows(
+            new { uid = 1, id = "u1", pokemon_id = 140, min_iv = 90, distance = 4000 }));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => sut.CreateAsync("u1", new Monster { PokemonId = 140, MinIv = 95, Distance = 4000 }));
+    }
+
+    /// <summary>
+    /// gym_id is blank precisely when the user means "any gym", so it must count as a difference. Skipping
+    /// every blank field made an any-gym alarm read as identical to a gym-specific one. See #575.
+    /// </summary>
+    [Fact]
+    public async Task AnAnyGymAlarmDoesNotCollideWithAGymSpecificOne()
+    {
+        var sut = new RaidService(this._proxy.Object, this._gate.Object,
+            NullLogger<RaidService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(Rows(
+            new { uid = 1, id = "u1", level = 5, gym_id = "zzgym", distance = 1111 }));
+        this._proxy.Setup(p => p.CreateAsync("raid", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([2], 0, 0, 1));
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(Rows(
+            new { uid = 1, id = "u1", level = 5, gym_id = "zzgym", distance = 1111 }));
+
+        var result = await sut.CreateAsync("u1", new Raid { Level = 5, GymId = "", Distance = 2222 });
+
+        Assert.Equal(2, result.Uid);
+    }
+
     // ── #462: a colliding natural-key edit must not destroy either alarm ─────
 
     [Fact]

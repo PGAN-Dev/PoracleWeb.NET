@@ -169,6 +169,25 @@ public class RaidServiceTests
         Assert.Equal(3, await this._sut.DeleteAllByUserAsync("u", 1));
     }
 
+    /// <summary>
+    /// Two rows that differ only by radius become the same alarm once both are set to the same radius,
+    /// and PoracleNG resolves that inside the batch -- so the user ends up with fewer alarms than they
+    /// selected, one still at its old radius, and a response claiming every one was updated. See #580.
+    /// </summary>
+    [Fact]
+    public async Task UpdateDistanceRefusesWhenTwoSelectedAlarmsWouldBecomeIdentical()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("raid", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, id = "u1", level = 5, distance = 500, template = "1" },
+            new { uid = 2, id = "u1", level = 5, distance = 900, template = "1" }));
+
+        await Assert.ThrowsAsync<TrackingConflictException>(
+            () => this._sut.UpdateDistanceByUidsAsync([1, 2], "u1", 700));
+
+        this._proxy.Verify(
+            p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
     [Fact]
     public async Task UpdateDistanceByUserAsyncReturnsCount()
     {
@@ -177,13 +196,15 @@ public class RaidServiceTests
             {
                 uid = 1,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("raid", "u", It.IsAny<JsonElement>()))

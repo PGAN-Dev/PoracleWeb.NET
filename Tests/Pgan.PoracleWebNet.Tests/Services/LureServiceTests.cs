@@ -112,13 +112,15 @@ public class LureServiceTests
             {
                 uid = 1,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZsecond"
             });
         this._proxy.Setup(p => p.GetByUserAsync("lure", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("lure", "u", It.IsAny<JsonElement>()))

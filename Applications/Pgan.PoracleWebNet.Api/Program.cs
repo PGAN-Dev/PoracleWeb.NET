@@ -396,10 +396,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authentication, deliberately. Registered before it, the partition key could not see
+// User.Identity, so every "per-user" policy silently fell back to the IP -- one person behind a shared
+// egress could exhaust the allowance for everyone behind it, and the per-user policies were per-user in
+// name only. See #581.
+app.UseRateLimiter();
 
 app.MapControllers();
 
