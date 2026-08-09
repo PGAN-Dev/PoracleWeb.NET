@@ -51,7 +51,8 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 - **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **DTS Preview** — Live Discord notification template preview
 - **Dark/Light Mode** — Theme toggle with accent color customization
-- **18 Languages** — Pokemon name localization
+- **11 UI Languages** — with Pokemon and move names localized separately via the bot language setting
+- **Single Sign-On** — Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout
 - **Admin Panel** — User management, webhooks, settings, geofence review
 
 ## Documentation
@@ -111,7 +112,7 @@ Three Docker channels are published to GHCR — see [TESTING.md](TESTING.md) for
 
 | Channel | Tag | Trigger |
 |---|---|---|
-| Stable | `:latest`, `:vX.Y.Z` | Release tag |
+| Stable | `:latest`, `:X.Y.Z`, `:X.Y` | Release published |
 | Beta | `:beta`, `:develop-<sha>` | Every push to `develop` |
 | PR preview | `:pr-<number>` | PRs with the `preview` label |
 

@@ -40,10 +40,14 @@ The **copy icon** on any profile creates an exact duplicate with all alarm filte
 
 - You are prompted for a new name (default: "Profile (Copy)")
 - All alarm filters from the source profile are copied to the new profile
-- Area selections are **not** copied -- the new profile starts with a fresh area configuration
+- Area selections, location and active hours **are** copied too
 
-!!! note
-    After duplicating a profile, remember to configure areas for the new profile. Alarms will not trigger until at least one area is selected.
+!!! note "Duplication copies the whole profile, geography included"
+    This changed in #503. `addProfile` upstream ignores area, latitude and longitude, so a copy used to
+    silently inherit whatever the *active* profile had — the right alarms over the wrong map, and a
+    location that also drives the active-hours timezone. The duplicate now carries the source profile's
+    geography, so it starts alerting immediately. Change the areas afterwards if that is not what you
+    wanted.
 
 ## Profile Export & Import
 

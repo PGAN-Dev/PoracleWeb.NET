@@ -26,7 +26,7 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 1. Click the **+** (add) button
 2. Select the Pokemon/raid/quest target using the selector dialog
 3. Configure filter options (IV range, CP range, level, etc.)
-4. Set a **distance** — how far from your location to receive alerts (in meters)
+4. Set a **distance** — how far from your location to receive alerts (in kilometres; the API stores metres)
 5. Optionally select a **template** for notification formatting
 6. Save the alarm
 
@@ -152,15 +152,18 @@ The default maximum level is **55** (not 40 or 50), matching Poracle's support f
 
 ## Raid level selector
 
-Raid, egg, and raid-boss-level pickers share the `<app-level-selector>` chip component. The vocabulary follows the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator/blob/main/master-latest-poracle-v2.json) — the same source PoracleNG uses for in-DM notification text — so the names you see in the picker match what users receive in their alerts.
+The raid and egg pickers share the `<app-level-selector>` chip component. The vocabulary follows the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator/blob/main/master-latest-poracle-v2.json) — the same source PoracleNG uses for in-DM notification text — so the names you see in the picker match what users receive in their alerts.
 
 **Raid picker.** Multi-select. Primary chip row shows the seven most common types: `1 Star`, `2 Star`, `3 Star`, `4 Star`, `Legendary` (level 5), `Mega` (level 6), `Mega Legendary` (level 7). A `Any` chip selects the wildcard sentinel (level 9000) that matches every raid level. A **More raid types…** overflow menu surfaces the other 12 canonical types: `Ultra Beast` (8), `Elite` (9), `Primal` (10), `1–5 Shadow` (11–15), `4–5 Super Mega` (16–17), `Coordinated 1–2` (18–19).
 
 **Egg picker.** Multi-select. Only the five Star tiers (1–5) are surfaced — Pokémon GO has no Mega/Shadow/Primal eggs.
 
-**Boss-level picker.** Single-select. Same primary/overflow layout as the raid picker, used in the "By Boss" tab when a specific Pokémon is selected but the user still wants to scope to certain raid levels.
+**The "By Boss" tab has no level picker.** PoracleNG forces `level` to the wildcard 9000 for any raid
+alarm carrying a specific `pokemon_id` (`trackingRaid.go`), so a level chosen alongside a boss could never
+survive the request. The tab used to show a picker whose value was always discarded; it was removed in
+v2.14.0. Track a boss to be alerted at whatever level it appears.
 
-**`+ Add`.** All three pickers expose an inline numeric input for any positive integer not in the canonical list. Useful for forward compatibility — if Niantic introduces a new raid type (`raid_20`) before PoracleWeb.NET ships an update, you can already alarm on it. Typed values are **ephemeral** to the dialog session: close the dialog (or refresh the page) and the chip is gone. Saved alarms at custom levels re-seed the chip when you open the edit dialog.
+**`+ Add`.** Both pickers expose an inline numeric input for any positive integer not in the canonical list. Useful for forward compatibility — if Niantic introduces a new raid type (`raid_20`) before PoracleWeb.NET ships an update, you can already alarm on it. Typed values are **ephemeral** to the dialog session: close the dialog (or refresh the page) and the chip is gone. Saved alarms at custom levels re-seed the chip when you open the edit dialog.
 
 The canonical list is served by the API at `GET /api/masterdata/raid-levels` (cached server-side; baked-in fallback if the masterfile fetch fails). Card titles like "All Mega Legendary Raids" compose by combining the modifier ("Mega Legendary") with the localized "Raids" suffix from `RAIDS.ALL_LEVEL_RAIDS`, so card text reads naturally without the doubled word that an unaltered masterfile string would produce.
 
@@ -379,7 +382,7 @@ Every alarm card includes a **test button** (send/paper plane icon) that trigger
 
 ### Supported alarm types
 
-Test alerts are available for all alarm types:
+Test alerts are available for eight of the ten alarm types:
 
 - Pokemon
 - Raid
@@ -389,8 +392,9 @@ Test alerts are available for all alarm types:
 - Lure
 - Nest
 - Gym
-- Fort Change
-- Max Battle
+
+**Not** Fort Change or Max Battle — `TestAlertController` rejects them, and neither module renders a test
+button. Those two have no mock payload builder, so there is nothing to send.
 
 ### Rate limiting
 

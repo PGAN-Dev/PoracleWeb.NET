@@ -4,8 +4,8 @@ PoracleWeb.NET publishes three Docker image channels on GHCR. Pick one based on 
 
 | Channel | Tag | What it is | Updates |
 |---|---|---|---|
-| **Stable** | `:latest`, `:v2.5.0` | Tagged releases. Battle-tested. | On release |
-| **Beta** | `:beta` | Latest `main`. Next release candidate. | Every merge to main |
+| **Stable** | `:latest`, `:X.Y.Z`, `:X.Y` | Tagged releases, built from `main`. Battle-tested. | On release |
+| **Beta** | `:beta`, `:develop-<sha>` | Latest `develop`. Next release candidate. | Every merge to `develop` |
 | **PR preview** | `:pr-123` | A specific pull request. Unreviewed code. | Every push to that PR |
 
 Image registry: [`ghcr.io/pgan-dev/poracleweb.net`](https://github.com/PGAN-Dev/PoracleWeb.NET/pkgs/container/poracleweb.net).
@@ -77,7 +77,7 @@ docker compose up -d --force-recreate
 ## Reporting issues
 
 - **On a PR preview**: comment directly on the PR.
-- **On `:beta`**: open a GitHub issue and mention the `main-<sha>` tag you're running (`docker inspect` the container to find it).
+- **On `:beta`**: open a GitHub issue and mention the `develop-<sha>` tag you're running (`docker inspect` the container to find it).
 - **On `:latest`**: open a GitHub issue with the version tag.
 
 Include: your channel/tag, `docker compose logs --tail 200`, steps to reproduce.

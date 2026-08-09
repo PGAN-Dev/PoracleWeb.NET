@@ -6,9 +6,23 @@
 git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git
 cd PoracleWeb.NET
 
+# Work from develop, not main -- see the note below
+git checkout develop
+
 # Install frontend dependencies (from root)
 ./scripts/dev.sh install
 ```
+
+!!! important "Branch from `develop`, and target it in pull requests"
+    A plain `git clone` lands you on `main`, which only moves when a release is published — deliberately,
+    so that self-hosters cloning the repo get released code. **Development happens on `develop`**: it
+    receives every merged pull request and publishes the `:beta` image.
+
+    So branch from `develop` and open your pull request against `develop`. A PR against `main` will be
+    asked to retarget. See [Branches](../development/ci-cd.md#branches).
+
+    CI runs on both branches, so a PR to either gets the full backend, frontend, lint and changelog
+    checks.
 
 Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
 
@@ -109,7 +123,7 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
     npx ng serve --proxy-config proxy.conf.json --port 8082
     ```
 
-    The dev server port must be present in your Discord application's **Redirects** list for OAuth login to work. The default `4200` matches `Discord:FrontendUrl` in `appsettings.json`.
+    The dev server port must be present in your Discord application's **Redirects** list for OAuth login to work, because the callback is built from the incoming `Host` header. Register `http://localhost:4200/api/auth/discord/callback`; see [Discord OAuth](discord-oauth.md).
 
 Open **http://localhost:4200** in your browser.
 

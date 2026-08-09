@@ -127,7 +127,15 @@ Wraps HttpClient calls for non-tracking Poracle API operations.
 
 ## Areas
 
-User areas are managed through `IPoracleHumanProxy.SetAreasAsync()`. PoracleNG handles the dual-write to both `humans.area` and `profiles.area` internally.
+User areas are managed through `IPoracleHumanProxy.SetAreasAsync()`, and PoracleNG handles the dual-write
+to both `humans.area` and `profiles.area` — **for admin areas**.
+
+User-drawn geofences are the exception. PoracleWeb serves them with `userSelectable=false` to keep them
+off the bot's area picker, and PoracleNG's `HandleSetAreas` silently strips any name whose fence is not
+user-selectable. So every user-geofence area mutation goes through `IUserAreaDualWriter`, which writes
+both tables directly in a single `SaveChangesAsync`, and `AreaController.UpdateAreas` calls
+`PreserveOwnedAreasInHumanAsync` after `SetAreasAsync` to re-add what was stripped. Every such site is
+tagged `HACK: trusted-set-areas` — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists them.
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 
@@ -155,13 +163,15 @@ Geofence polygons come from the Poracle API (via the unified feed), not the data
 
 The `Profile` model includes an `ActiveHours` (`string?`) property representing a JSON array of time-window rules stored in the `active_hours` column of the `profiles` table. `ProfileService.DeserializeProfiles()` extracts `active_hours` from the PoracleNG proxy's `JsonElement` response and maps it onto the model.
 
-`ProfileController` includes `active_hours` in the proxy payload for Create, Update, and Duplicate endpoints. A `ValidateActiveHours` internal static method validates the JSON structure before forwarding:
+`ProfileController` includes `active_hours` in the proxy payload for Create, Update, and Duplicate
+endpoints. Validation lives in `Core.Models/ActiveHoursValidator`, shared with `SummaryScheduleController`
+so the two cannot drift:
 
 - Each entry must specify `day` (1--7), `hours` (0--23), `mins` (0--59)
-- Maximum 28 entries per profile (one per 30-minute slot per day)
+- Maximum 28 entries per profile (four per day across seven days)
 - Returns a `400 Bad Request` with details on validation failure
 
-`InternalsVisibleTo` is added to the API `.csproj` so `ValidateActiveHours` can be tested directly from the xUnit project.
+It accepts `hours` and `mins` as either numbers or strings, because PoracleNG stores them inconsistently.
 
 ## Scanner service
 
