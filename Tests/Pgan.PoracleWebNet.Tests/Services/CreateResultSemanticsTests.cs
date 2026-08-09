@@ -213,6 +213,64 @@ public class CreateResultSemanticsTests
             }));
     }
 
+    /// <summary>
+    /// Two alarms that differ in more than one updatable field genuinely coexist -- PoracleNG inserts
+    /// rather than merges -- so every ordinary edit on them must keep working. Ignoring those fields
+    /// wholesale called such a pair a collision and refused radius, template and auto-delete edits on both,
+    /// leaving them uneditable. See #553.
+    /// </summary>
+    [Fact]
+    public async Task AnEditIsAllowedWhenTwoUpdatableFieldsSeparateTheAlarms()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 1, id = "u1", team = 4, distance = 1000, template = "1" },
+            new { uid = 2, id = "u1", team = 4, distance = 6000, template = "ZZalt" }));
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([3], 0, 1, 0));
+
+        // Changing uid 2's radius still leaves it separated from uid 1 by BOTH radius and template.
+        var result = await sut.UpdateAsync("u1", new Gym
+        {
+            Id = "u1",
+            Uid = 2,
+            Team = 4,
+            Distance = 6500,
+            Template = "ZZalt",
+        });
+
+        Assert.Equal(3, result.Uid);
+    }
+
+    /// <summary>
+    /// Gyms that differ only in their slot/battle toggles are kept apart by PoracleNG, so those fields
+    /// identify an alarm and both must stay editable. See #553.
+    /// </summary>
+    [Fact]
+    public async Task AGymSeparatedOnlyByItsTogglesIsStillEditable()
+    {
+        var sut = new GymService(this._proxy.Object, this._gate.Object,
+            NullLogger<GymService>.Instance, this._remapper.Object);
+        this._proxy.Setup(p => p.GetByUserAsync("gym", "u1")).ReturnsAsync(Rows(
+            new { uid = 1, id = "u1", team = 4, slot_changes = 1, battle_changes = 0, distance = 1000 },
+            new { uid = 2, id = "u1", team = 4, slot_changes = 0, battle_changes = 1, distance = 1000 }));
+        this._proxy.Setup(p => p.CreateAsync("gym", "u1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([3], 0, 1, 0));
+
+        var result = await sut.UpdateAsync("u1", new Gym
+        {
+            Id = "u1",
+            Uid = 2,
+            Team = 4,
+            SlotChanges = 0,
+            BattleChanges = 1,
+            Distance = 1500,
+        });
+
+        Assert.Equal(3, result.Uid);
+    }
+
     /// <summary>An edit that collides with nothing must still go through untouched.</summary>
     [Fact]
     public async Task AnEditThatCollidesWithNothingIsUnaffected()

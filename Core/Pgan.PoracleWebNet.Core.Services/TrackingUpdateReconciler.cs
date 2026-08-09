@@ -169,31 +169,33 @@ internal static partial class TrackingUpdateReconciler
         }
     }
 
-    /// <summary>Fields whose value never distinguishes two alarms.</summary>
-    private static readonly HashSet<string> NotPartOfIdentity = new(StringComparer.Ordinal)
+    /// <summary>Fields the comparison ignores entirely: PoracleNG owns them.</summary>
+    private static readonly HashSet<string> AssignedByPoracle = new(StringComparer.Ordinal)
     {
         // Assigned by PoracleNG, or rendered by it from the rest.
         "uid", "id", "profile_no", "description",
         // Never persisted (see #494).
         "ping",
-        // diff:"update" upstream -- differing here is what makes PoracleNG merge rather than insert.
+    };
+
+    /// <summary>diff:"update" upstream: a difference here can make PoracleNG merge rather than insert.</summary>
+    private static readonly HashSet<string> UpdatableFields = new(StringComparer.Ordinal)
+    {
         "distance", "template", "clean",
     };
 
-    /// <summary>Gyms additionally treat these two as updatable.</summary>
-    private static readonly HashSet<string> GymUpdatableFields = new(StringComparer.Ordinal)
-    {
-        "slot_changes", "battle_changes",
-    };
+    // slot_changes and battle_changes were treated as updatable for gyms, on the strength of the tags in
+    // the PoracleNG checkout. The running binary keeps two gyms that differ only in those toggles as
+    // separate rows -- so they identify an alarm, and calling them updatable refused every edit on both.
+    // They are compared like any other field now. See #553.
 
     private static bool WouldMergeInto(JsonElement submitted, JsonElement existing, string trackingType)
     {
-        var isGym = string.Equals(trackingType, "gym", StringComparison.Ordinal);
+        var updatableDifferences = 0;
 
         foreach (var field in submitted.EnumerateObject())
         {
-            if (NotPartOfIdentity.Contains(field.Name)
-                || (isGym && GymUpdatableFields.Contains(field.Name)))
+            if (AssignedByPoracle.Contains(field.Name))
             {
                 continue;
             }
@@ -207,14 +209,36 @@ internal static partial class TrackingUpdateReconciler
             // Compare what PoracleNG will STORE, not what was sent: it rewrites some values on the way
             // in, and it diffs the rewritten row. Comparing the raw submission made every collision
             // look like a difference, which is exactly how the destructive merge got through.
-            if (!SameValue(NormalizeForStorage(field, submitted, trackingType), storedValue))
+            var same = SameValue(NormalizeForStorage(field, submitted, trackingType), storedValue);
+
+            if (IsUpdatable(field.Name))
+            {
+                if (!same)
+                {
+                    updatableDifferences++;
+                }
+
+                continue;
+            }
+
+            if (!same)
             {
                 return false;
             }
         }
 
-        return true;
+        // Counted, not ignored. The running PoracleNG merges two rows only when EXACTLY ONE updatable
+        // field differs; with two or more it inserts a separate row, so those alarms genuinely coexist.
+        // Ignoring the fields wholesale called every such pair a collision and refused every ordinary edit
+        // on both -- radius, template, auto-delete, clearing the gym -- leaving them uneditable. That is a
+        // worse defect than the merge this check exists to prevent. See #553.
+        //
+        // Zero differences is the row colliding with itself, which IsNoOpEditAsync handles; only the
+        // one-difference case is a genuine merge into someone else.
+        return updatableDifferences <= 1;
     }
+
+    private static bool IsUpdatable(string fieldName) => UpdatableFields.Contains(fieldName);
     /// <summary>
     /// True when the row being edited already holds every value the update submitted, so PoracleNG's
     /// "already present" was the row colliding with itself rather than with a different alarm.
