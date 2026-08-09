@@ -180,6 +180,10 @@ export class GeofenceListComponent implements OnInit {
           next: updated => {
             this.savingGeofence.set(false);
             this.customGeofences.update(list => list.map(g => (g.id === updated.id ? updated : g)));
+            // The subscription moved with the rename on the server, but this list still held the OLD name,
+            // so the card flipped to "Inactive" for a geofence that is very much still on. Same lie as
+            // #543, inverted. See #558.
+            this.activeAreas.update(areas => areas.map(a => (a === geofence.kojiName ? updated.kojiName : a)));
             this.snackBar.open(this.i18n.instant('GEOFENCES.SNACK_UPDATED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
           },
         });
