@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- A login that carries no refresh token now clears any refresh token left behind by a previous session, instead of inheriting it and letting the refresh interceptor swap in a JWT minted for the previous user (#625)
 - A token re-issue no longer restarts the session clock: profile switches and profile resyncs keep the original expiry instead of applying the 24-hour default, so a short OIDC access token stays short and revocation propagates as documented (#624)
 - `isAdmin` is resolved live on every token re-issue rather than copied forward, so removing someone's admin rights takes effect instead of surviving indefinitely while they switch profile (#624)
 - Webhook delegates configured in PoracleJS can use the My Webhooks page again: the live resolution now unions PoracleNG's delegate list with PoracleWeb's own table, as the JWT claim always did (#626)
@@ -21,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The impersonation banner no longer survives a 401 with a Stop button that does nothing; with no admin token to restore, it now signs out (#627)
+- After a session expires, the login page no longer bounces to the dashboard and back, and the OIDC auto-redirect runs as it should (#628)
 - The Add Raid dialog no longer offers a level picker on the By Boss tab, where PoracleNG discards the chosen level and stores "any" (#615)
 - A 401 now clears the whole session rather than the access token alone, so the admin impersonation token and a dead refresh token no longer survive it (#616)
 - The delivery preview no longer spins forever in every alarm dialog when `disable_location` is on (#617)
