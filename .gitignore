@@ -19,7 +19,10 @@ docker-compose.override.yml
 appsettings.*.local.json
 
 ## Claude Code
-.claude/
+# Contents ignored rather than the directory itself: git cannot re-include anything beneath an
+# excluded directory, and the shared slash commands below need re-including.
+.claude/*
+!.claude/commands/
 
 ## IDE
 .idea/
