@@ -298,6 +298,11 @@ export class ProfileOverviewComponent implements OnInit {
             this.snackBar.open(this.i18n.instant('PROFILES.SNACK_FAILED_DELETE'), this.i18n.instant('TOAST.OK'), { duration: 3000 }),
           next: () => {
             this.snackBar.open(this.i18n.instant('PROFILES.SNACK_DELETED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
+            // PoracleNG reassigns current_profile_no when the active profile goes, and /api/auth/me is the
+            // only place the refreshed token is stored. Switch, duplicate and import all do this; delete did
+            // not, so the profileNo claim kept naming a profile that no longer exists and every alarm read
+            // and write in between targeted it. See #651.
+            void this.authService.loadCurrentUser();
             this.loadAll();
           },
         });

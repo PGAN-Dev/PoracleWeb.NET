@@ -1,4 +1,4 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, effect, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -40,7 +40,32 @@ export interface RegionGroup {
 })
 export class RegionSelectorComponent {
   readonly regions = input<RegionOption[]>([]);
+  readonly selectedOption = signal<RegionOption | null>(null);
+  /**
+   * The region the caller says is already chosen, by id or label.
+   */
+  /* Declared and then never read: the chip rendered purely off selectedOption, which starts null. So
+   * the approval dialog showed an empty picker for a submission that already carried a region, while
+   * still submitting the seeded id -- the admin approved a region they were never shown, and any touch
+   * of the picker replaced it with 0. See #650. */
+  readonly selectedValue = input<string | number | null>(null);
+
+  /** Mirrors selectedValue into the visible selection whenever either side changes. See #650. */
+  private readonly seedFromSelectedValue = effect(() => {
+    const wanted = this.selectedValue();
+    const available = this.regions();
+    if (wanted === null || wanted === undefined || wanted === '') {
+      return;
+    }
+
+    const match = available.find(r => r.id === wanted || r.label === wanted || r.shortLabel === wanted);
+    if (match && this.selectedOption()?.id !== match.id) {
+      this.selectedOption.set(match);
+    }
+  });
+
   readonly searchText = signal('');
+
   readonly filteredGroups = computed((): RegionGroup[] => {
     const search = this.searchText().toLowerCase();
     const all = this.regions();
@@ -61,12 +86,10 @@ export class RegionSelectorComponent {
   });
 
   readonly label = input('Select Region');
+
   readonly placeholder = input('Search regions...');
 
   readonly regionSelected = output<RegionOption>();
-
-  readonly selectedOption = signal<RegionOption | null>(null);
-  readonly selectedValue = input<string | number | null>(null);
 
   readonly showCounts = input(false);
 

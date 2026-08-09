@@ -19,12 +19,13 @@ public class ProfileControllerTests : ControllerTestBase
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<IProfileRepository> _profileRepository = new();
     private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
+    private readonly Mock<IUserGeofenceRepository> _userGeofenceRepository = new();
 
     public ProfileControllerTests()
     {
         this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
-        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._profileRepository.Object, this._jwtService.Object, this._roleResolver.Object);
+        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._profileRepository.Object, this._jwtService.Object, this._roleResolver.Object, this._userGeofenceRepository.Object);
         SetupUser(this._sut);
     }
 

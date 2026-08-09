@@ -60,7 +60,10 @@ public class UserGeofenceRepository(PoracleWebContext context) : IUserGeofenceRe
     {
         var entities = await this._context.UserGeofences
             .AsNoTracking()
-            .Where(g => g.Status == "active" || g.Status == "pending_review")
+            // "rejected" is served too. Rejection means "not public", not "switched off": it writes only
+            // status, notes and reviewer, so dropping the row from the feed stopped the owner's alerts
+            // while their area lists still named the fence and the UI still showed it Active. See #645.
+            .Where(g => g.Status == "active" || g.Status == "pending_review" || g.Status == "rejected")
             .OrderBy(g => g.KojiName)
             .ToListAsync();
 

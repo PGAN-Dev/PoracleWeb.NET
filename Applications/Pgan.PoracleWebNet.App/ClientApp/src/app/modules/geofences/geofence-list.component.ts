@@ -153,7 +153,10 @@ export class GeofenceListComponent implements OnInit {
     // Pre-fill dialog with existing values
     const instance = ref.componentInstance;
     instance.displayName = geofence.displayName;
-    const region = this.geofenceRegions().find(r => r.name === geofence.groupName);
+    // groupName was written from region.displayName at creation, and GeofenceRegion carries name and
+    // displayName as different fields -- so matching on name never hit, the picker opened empty, and
+    // confirming closed with parentId 0 and wiped the region. See #648.
+    const region = this.geofenceRegions().find(r => r.displayName === geofence.groupName || r.name === geofence.groupName);
     if (region) {
       instance.selectedRegionId = region.id;
     }

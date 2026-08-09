@@ -656,14 +656,21 @@ describe('GeofenceSubmissionsComponent', () => {
     expect(notesItem).toBeTruthy();
   });
 
-  it('should show Review button only for pending_review geofences', () => {
+  it('offers Review for pending and rejected submissions, matching what the API accepts', () => {
+    // ApprovableStatuses is { pending_review, rejected } -- an admin reconsidering a rejection is the
+    // intended case, and gating on pending_review alone made a mistaken rejection irreversible from the
+    // SPA. See #649.
     const fixture = setup();
     component.ngOnInit();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     const reviewButtons = compiled.querySelectorAll('button[color="primary"]');
-    expect(reviewButtons).toHaveLength(1); // Only the pending_review geofence gets a Review button
+    expect(reviewButtons).toHaveLength(2);
+    expect(component.canReview({ status: 'pending_review' })).toBe(true);
+    expect(component.canReview({ status: 'rejected' })).toBe(true);
+    expect(component.canReview({ status: 'approved' })).toBe(false);
+    expect(component.canReview({ status: 'active' })).toBe(false);
   });
 
   it('should show empty state when no geofences match the filter', () => {

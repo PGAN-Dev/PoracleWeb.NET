@@ -1595,4 +1595,77 @@ public class UserGeofenceServiceTests
 
         Assert.Equal("somewhere new", result.KojiName);
     }
+
+    // ── Rename guards (#646, #648) ──────────────────────────────────────
+
+    [Theory]
+    [InlineData("approved")]
+    [InlineData("pending_review")]
+    public async Task RenameIsRefusedOnceTheGeofenceHasLeftTheOwnersHands(string status)
+    {
+        // Approval moves the fence to Koji under PromotedName and the area lists hold that name, so a
+        // rename rewrote the subscription to a name nothing serves. See #646.
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            Status = status,
+        });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.RenameAsync("u1", 1, "Uptown", null, null));
+
+        this._repository.Verify(r => r.UpdateAsync(It.IsAny<UserGeofence>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RenameKeepsTheRegionWhenTheDialogSendsNoSelection()
+    {
+        // 0 is the dialog's "nothing selected", not a request to clear the parent. Taken literally it
+        // wiped the region of every renamed geofence. See #648.
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            Status = "active",
+            ParentId = 42,
+            GroupName = "North",
+        });
+        UserGeofence? saved = null;
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saved = g)
+            .ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.RenameAsync("u1", 1, "Uptown", null, 0);
+
+        Assert.Equal(42, saved?.ParentId);
+        Assert.Equal("North", saved?.GroupName);
+    }
+
+    [Fact]
+    public async Task RenameStillAppliesARegionThatWasActuallyChosen()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserGeofence
+        {
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            Status = "active",
+            ParentId = 42,
+        });
+        UserGeofence? saved = null;
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>()))
+            .Callback<UserGeofence>(g => saved = g)
+            .ReturnsAsync((UserGeofence g) => g);
+
+        await this._sut.RenameAsync("u1", 1, "Uptown", "South", 7);
+
+        Assert.Equal(7, saved?.ParentId);
+        Assert.Equal("South", saved?.GroupName);
+    }
 }
