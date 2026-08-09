@@ -103,6 +103,49 @@ internal static partial class TrackingUpdateReconciler
     }
 
     /// <summary>
+    /// Refuses a bulk write in which two of the submitted rows would become the same alarm.
+    /// </summary>
+    /// <remarks>
+    /// The distance endpoints rewrite every selected row and POST them as one batch. Two rows that differed
+    /// only by radius become identical once both are set to the same radius, and PoracleNG resolves that
+    /// within the batch -- so the user ended up with FEWER alarms than they selected, at least one still at
+    /// its old radius, and a response claiming every one was updated. Refuse instead of silently losing a
+    /// row. See #580.
+    /// </remarks>
+    public static void EnsureBatchDoesNotCollapse(JsonElement body, string trackingType)
+    {
+        if (body.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in body.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            if (!seen.Add(IdentityOf(row)))
+            {
+                throw new TrackingConflictException(
+                    trackingType,
+                    "Two of the selected alarms would end up identical at that radius. "
+                    + "Change them separately, or remove one first.");
+            }
+        }
+    }
+
+    /// <summary>Everything about a row that distinguishes it from another, in a stable order.</summary>
+    private static string IdentityOf(JsonElement row) =>
+        string.Join(
+            '|',
+            row.EnumerateObject()
+                .Where(p => !AssignedByPoracle.Contains(p.Name))
+                .OrderBy(p => p.Name, StringComparer.Ordinal)
+                .Select(p => $"{p.Name}={p.Value}"));
+    /// <summary>
     /// Refuses an edit that PoracleNG would satisfy by merging into a DIFFERENT alarm.
     /// </summary>
     /// <remarks>

@@ -179,13 +179,15 @@ public class FortChangeServiceTests
             {
                 uid = 1,
                 id = "u1",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u1",
-                distance = 0
+                distance = 0,
+                template = "ZZrow2"
             });
         this._proxy.Setup(p => p.GetByUserAsync("fort", "u1")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("fort", "u1", It.IsAny<JsonElement>()))

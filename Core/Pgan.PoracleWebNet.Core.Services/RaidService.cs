@@ -111,6 +111,11 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         }
 
         var body = SerializeToElement(itemList);
+        // Two selected rows that differed only by radius become the same alarm once both are set to
+        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
+        // one left at its old radius, and a response claiming all were updated. See #580.
+        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
         // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
         // tracks them, pairing on content because the batch response is reordered. See #443.
@@ -137,6 +142,11 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         }
 
         var body = SerializeToElement(matching);
+        // Two selected rows that differed only by radius become the same alarm once both are set to
+        // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
+        // one left at its old radius, and a response claiming all were updated. See #580.
+        TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
         // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
         // tracks them, pairing on content because the batch response is reordered. See #443.

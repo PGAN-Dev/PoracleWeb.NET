@@ -421,6 +421,19 @@ public partial class QuickPickService(
             await this._featureGate.EnsureEnabledAsync(disableKey);
         }
 
+        // The alarm-type guard runs here too, not just in ApplyAsync. Re-apply deletes before it applies,
+        // so a pick whose type changed since it was applied lost its alarms AND its applied state before
+        // the refusal ever fired -- the deletes are committed and the error reads as "nothing happened".
+        // See #579.
+        var applied = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
+        if (applied is not null
+            && applied.TrackedUids.Count > 0
+            && !string.Equals(applied.AlarmType, definition.AlarmType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AlarmValidationException(
+                "This quick pick still owns alarms of a different type. Remove it first, then apply it again.");
+        }
+
         // Building throws for a filter the alarm model refuses. Nothing is sent anywhere.
         BuildSampleAlarm(definition, profileNo, request);
     }

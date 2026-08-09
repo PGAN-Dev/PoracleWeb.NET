@@ -127,31 +127,36 @@ public class GymServiceTests
             {
                 uid = 1,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow1"
             },
             new
             {
                 uid = 2,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZsecond"
             },
             new
             {
                 uid = 3,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow3"
             },
             new
             {
                 uid = 4,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow4"
             },
             new
             {
                 uid = 5,
                 id = "u",
-                distance = 0
+                distance = 0,
+                template = "ZZrow5"
             });
         this._proxy.Setup(p => p.GetByUserAsync("gym", "u")).ReturnsAsync(json);
         this._proxy.Setup(p => p.CreateAsync("gym", "u", It.IsAny<JsonElement>()))

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **A bulk radius change could leave you with fewer alarms than you selected** ([#580](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/580)). Two alarms that differed only by radius became the same alarm once both were set to the same one, and Poracle merged them — while the app reported every alarm updated. It is now refused with an explanation.
+- **The Profiles page was blank for accounts that had never edited a profile** ([#582](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/582)). It reported no alarms across any profile while the alarms were there and firing.
+- **Re-applying a quick pick whose type had changed deleted its alarms before refusing** ([#579](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/579)), so the error read as "nothing happened" while the alarms were already gone.
+
+### Security
+- **Per-user rate limits were shared by everyone behind the same address** ([#581](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/581)). The limiter ran before sign-in was established, so it could not tell users apart — one person on a shared connection could use up the allowance for everyone on it.
+### Fixed
 - **Adding a Pokemon alarm at a tighter IV silently replaced the existing one** ([#574](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/574)). Same species, higher minimum IV — about the most ordinary thing you can do — reported a new alarm created and destroyed the old one.
 - **An "any gym" alarm was refused when a gym-specific one existed** ([#575](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/575)), and whether it worked depended on which of the two you added first. They are different alarms and both are allowed again.
 - **Duplicating a profile from the Profiles page put the Pokemon alarms on the wrong profile** ([#576](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/576)) — back onto the profile being copied, which quietly gained a duplicate each time, while the new profile came up with no Pokemon tracking at all.
