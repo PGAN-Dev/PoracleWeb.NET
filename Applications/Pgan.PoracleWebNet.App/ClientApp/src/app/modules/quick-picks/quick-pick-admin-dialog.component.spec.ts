@@ -93,7 +93,7 @@ describe('QuickPickAdminDialogComponent', () => {
       category: 'PvP',
       description: '',
       enabled: true,
-      filters: { clean: 5, minIv: 0, pvpRankingLeague: 1500 },
+      filters: { clean: 5, minIv: 0, ping: '<@&123>', pvpRankingLeague: 1500, template: 'custom' },
       icon: 'pokeball',
       scope: 'global',
       sortOrder: 1,
@@ -109,15 +109,18 @@ describe('QuickPickAdminDialogComponent', () => {
       expect(savedDefinition().filters['minIv']).toBeUndefined();
     });
 
-    it('keeps clean, which belongs to no type', () => {
-      // quick-pick-apply reads it as the base bitmask, and clearing wholesale reset a pick's
-      // auto-delete, edit and summary bits on a type change. See #671.
+    it('keeps the keys that belong to no type', () => {
+      // All four are properties of every alarm model and are exposed by no form. Clearing wholesale
+      // reset a pick's auto-delete bits (#671) and dropped its ping target and template (#674).
       setup(monsterPick);
       component.mainForm.patchValue({ alarmType: 'lure' });
 
       component.save();
 
-      expect(savedDefinition().filters['clean']).toBe(5);
+      const filters = savedDefinition().filters;
+      expect(filters['clean']).toBe(5);
+      expect(filters['ping']).toBe('<@&123>');
+      expect(filters['template']).toBe('custom');
     });
   });
 

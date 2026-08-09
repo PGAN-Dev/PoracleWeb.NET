@@ -19,10 +19,15 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
 /**
  * Filter keys that belong to no particular alarm type, and so survive a type change.
  *
- * `clean` is the only one: every other key is owned by one alarm type's form, while `clean` is read by
- * the apply dialog as its base bitmask and is exposed by no form at all. See #671.
+ * All four are properties of every one of the ten alarm models, and none is exposed by any of the
+ * per-type forms in `getFilterForm` -- the same test that justified preserving `clean` in #671. The
+ * backend's own `QuickPickService.SafeMonsterFilterKeys` lists them alongside it. `ping` in particular
+ * is never overridden at apply time, because the apply dialog has no ping control at all.
+ *
+ * This said `clean` was the only one, which was wrong -- and wrong in the direction that silently drops
+ * a user's ping target and template on a type change. See #671, #674.
  */
-const TYPE_AGNOSTIC_FILTER_KEYS = new Set(['clean']);
+const TYPE_AGNOSTIC_FILTER_KEYS = new Set(['clean', 'distance', 'ping', 'template']);
 
 @Component({
   imports: [
