@@ -54,6 +54,22 @@ interface SettingGroup {
   settings: SettingMeta[];
 }
 
+/**
+ * Keys deliberately withdrawn from the admin UI: they saved, persisted and read back while nothing in
+ * the product consumed them, and their descriptions promised behaviour the app does not have. Rows are
+ * left in the database rather than deleted. See #547, #560.
+ */
+const RETIRED_KEYS = [
+  'register_command',
+  'location_command',
+  'provider_url',
+  'gAnalyticsId',
+  'patreonUrl',
+  'paypalUrl',
+  'site_is_https',
+  'debug',
+];
+
 const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#0088cc',
@@ -335,6 +351,11 @@ export class AdminSettingsComponent implements OnInit {
     'enable_oidc',
     // Single-logout toggle, surfaced as a dedicated control in the Authentication section.
     'enable_oidc_slo',
+    // Withdrawn from the UI because nothing reads them (#547). Listed here so they do not reappear
+    // in the "Other" catch-all, which is what happened when they were only removed from their groups:
+    // the same editable controls, one section lower, still promising behaviour that does not exist.
+    // Their rows stay in the database, unread. See #560.
+    ...RETIRED_KEYS,
   ]);
 
   private readonly destroyRef = inject(DestroyRef);

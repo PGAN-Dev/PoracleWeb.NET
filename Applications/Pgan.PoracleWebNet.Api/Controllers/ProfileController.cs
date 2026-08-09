@@ -95,6 +95,28 @@ public class ProfileController(
             });
         }
 
+        // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the
+        // ACTIVE profile had -- every area subscription the user held, and a location that also drives the
+        // active-hours timezone. Duplicate and import already write the geography directly after creating;
+        // create needs the same. Empty unless the request asked for something. See #563.
+        try
+        {
+            await this._profileRepository.UpdateAsync(new Profile
+            {
+                Id = this.UserId,
+                ProfileNo = createdNo.Value,
+                Name = profile.Name.Trim(),
+                Area = profile.Area ?? "[]",
+                Latitude = profile.Latitude,
+                Longitude = profile.Longitude,
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            // The row is not visible yet in some PoracleNG timings. The profile exists either way, and a
+            // wrong area list is fixable from the Areas page; a failed create is not.
+        }
+
         var result = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, createdNo.Value);
         return this.CreatedAtAction(nameof(GetAll), result);
     }

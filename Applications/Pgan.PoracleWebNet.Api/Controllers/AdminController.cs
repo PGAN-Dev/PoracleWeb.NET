@@ -59,6 +59,46 @@ public partial class AdminController(
     }
 
     /// <summary>
+    /// The webhooks a delegate manages.
+    /// </summary>
+    /// <remarks>
+    /// /my-webhooks renders only when the session carries managedWebhooks, which happens only for
+    /// NON-admins -- and it loaded its rows from the admin user list, which rejects exactly those people.
+    /// The only users who could see the page were the only users the endpoint refused: a 403, an empty
+    /// table and a failure toast. Scoped to the caller's own grants instead. See #564.
+    /// </remarks>
+    [HttpGet("my-webhooks")]
+    public async Task<IActionResult> GetManagedWebhooks()
+    {
+        var managed = this.ManagedWebhooks;
+        if (managed.Length == 0)
+        {
+            return this.Ok(Array.Empty<object>());
+        }
+
+        var humans = await this._humanService.GetAllAsync();
+
+        var webhooks = humans
+            .Where(h => managed.Contains(h.Id, StringComparer.Ordinal))
+            .Select(h => new
+            {
+                h.Id,
+                h.Name,
+                h.Type,
+                h.Enabled,
+                h.AdminDisable,
+                h.LastChecked,
+                h.DisabledDate,
+                h.CurrentProfileNo,
+                h.Language,
+                h.Notes,
+                AvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(h.Id, h.Type),
+            });
+
+        return this.Ok(webhooks);
+    }
+
+    /// <summary>
     /// Resolves avatar URLs for a batch of user IDs. <see cref="Services.AvatarCacheService"/> already holds
     /// them (the background cache populates it and <c>GET users</c> reads the same source), so this is a
     /// lookup rather than a fetch -- it never calls Discord.

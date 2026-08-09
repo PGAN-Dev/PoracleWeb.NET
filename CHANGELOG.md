@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Adding a lure for a type you already track returned a server error** ([#562](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/562)) instead of saying you already have one — for a choice the lure picker actively offers.
+- **A new profile started with all your current areas and location** ([#563](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/563)) rather than empty, so it began delivering notifications for areas you never chose for it.
+- **A quick pick could still store filter values the add form rejects** ([#565](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/565)), producing an alarm that matches nothing. The check was running against a model that carries none of the rules.
+- **Applying a quick pick after changing its alarm type stranded the alarms it had made** ([#557](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/557)). It now says to remove the pick first, rather than quietly losing track of them.
+- **The My Webhooks page failed to load for the only people who can see it** ([#564](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/564)). It read from an admin-only list, so every delegate got an empty table and an error.
+- **Alarm dialogs and profile import replaced the server's explanation with a generic failure** ([#567](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/567), [#568](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/568)), so you were told something failed but not which alarm was in the way or which field was wrong.
+- **The eight withdrawn admin settings reappeared under "Other"** ([#560](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/560)) — the same editable controls one section lower, still promising behaviour the app does not have.
+### Fixed
 - **Adding an alarm could silently take over one you already had** ([#561](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/561), [#569](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/569)). Adding an alarm that matched an existing one except for its radius reported a new alarm created, and quietly moved the old one instead — leaving one alarm where there had been two. It is now refused, while adding a genuinely new alarm, or re-adding one you already have, behave as before.
 ### Fixed
 - **A quick pick with a long name failed with a server error** ([#555](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/555)). The identifier generated from the name could be longer than the column that stores it.

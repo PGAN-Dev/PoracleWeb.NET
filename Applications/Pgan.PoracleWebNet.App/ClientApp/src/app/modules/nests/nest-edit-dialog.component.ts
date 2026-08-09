@@ -89,8 +89,12 @@ export class NestEditDialogComponent {
         template: v.template || null,
       } as NestUpdate)
       .subscribe({
-        error: () => {
-          this.snackBar.open(this.i18n.instant('NESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
+        // The server names what is wrong -- which alarm already uses these settings, which
+        // field a file got wrong. A fixed string threw that away. See #567, #568.
+        error: (err: { error?: { error?: string } }) => {
+          this.snackBar.open(err?.error?.error ?? this.i18n.instant('NESTS.SNACK_FAILED_UPDATE'), this.i18n.instant('COMMON.OK'), {
+            duration: 6000,
+          });
           this.saving.set(false);
         },
         next: () => {
