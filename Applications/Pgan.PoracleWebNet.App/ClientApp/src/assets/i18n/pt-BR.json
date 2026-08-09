@@ -343,7 +343,8 @@
     "TEST_COOLDOWN": "Cooldown ativo",
     "TEST_SEND": "Enviar notificação de teste",
     "TAB_DELIVERY": "Entrega",
-    "COMMON_SETTINGS": "Configurações comuns"
+    "COMMON_SETTINGS": "Configurações comuns",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} criados, {{duplicates}} ja monitorados"
   },
   "RAIDS": {
     "RSVP_LABEL": "Notificações RSVP",

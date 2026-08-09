@@ -357,10 +357,29 @@ public class AdminControllerTests : ControllerTestBase
     public async Task ImpersonateByIdAllowsDelegateWhenManagedWebhookMatches()
     {
         SetupUser(this._sut, isAdmin: false, managedWebhooks: ["u1"]);
+        // Delegation is resolved live now, not read from the JWT claim, so a revoked delegate loses access
+        // immediately rather than at their next sign-in. See #601.
+        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync("123456789"))
+            .ReturnsAsync(["u1"]);
         this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "WH", Type = "webhook", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
 
         var result = await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1"));
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    /// <summary>
+    /// The JWT claim is minted at login and lives 24 hours, so trusting it let a revoked delegate keep
+    /// impersonating the webhook until they next signed in. See #601.
+    /// </summary>
+    [Fact]
+    public async Task ImpersonateByIdRefusesADelegateWhoseGrantWasRevoked()
+    {
+        SetupUser(this._sut, isAdmin: false, managedWebhooks: ["u1"]);
+        this._webhookDelegateService.Setup(s => s.GetManagedWebhookIdsAsync("123456789"))
+            .ReturnsAsync([]);
+
+        Assert.IsType<ForbidResult>(
+            await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
     }
 
     [Fact]

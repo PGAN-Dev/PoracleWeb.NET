@@ -114,7 +114,11 @@ export class GymAddDialogComponent {
       // The first refusal's message is shown, because it names what is in the way. See #577.
       next: (results: ({ uid?: number } | { failed: { error?: { error?: string } } })[]) => {
         const refused = results.filter((r): r is { failed: { error?: { error?: string } } } => 'failed' in r);
-        const created = results.length - refused.length;
+        // Three outcomes, not two: refused (409), already tracked (200 with no uid), and created. The
+        // pokemon dialog has split these since #495; the rest reported duplicates as creations. See #605.
+        const landed = results.filter((r): r is { uid?: number } => !('failed' in r));
+        const created = landed.filter(r => (r.uid ?? 0) > 0).length;
+        const duplicates = landed.length - created;
         this.saving.set(false);
 
         if (refused.length > 0) {
@@ -124,9 +128,11 @@ export class GymAddDialogComponent {
             { duration: 6000 },
           );
         } else {
-          this.snackBar.open(this.i18n.instant('GYMS.SNACK_CREATED', { count: created }), this.i18n.instant('COMMON.OK'), {
-            duration: 4000,
-          });
+          const message =
+            duplicates > 0
+              ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
+              : this.i18n.instant('GYMS.SNACK_CREATED', { count: created });
+          this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 
         // Close either way: whatever was created is real, and the list must reload to show it.

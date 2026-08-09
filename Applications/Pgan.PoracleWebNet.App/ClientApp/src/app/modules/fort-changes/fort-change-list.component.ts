@@ -62,11 +62,22 @@ export class FortChangeListComponent implements OnInit {
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
       const ids = [...this.selectedIds()];
-      for (const uid of ids) await firstValueFrom(this.fortChangeService.delete(uid));
+      // Settled one at a time: a stale uid -- the row re-keyed by an edit, or removed in another tab --
+      // threw out of the loop, so deletes that had already happened went unreported and the list never
+      // reloaded. See #603.
+      let deleted = 0;
+      for (const uid of ids) {
+        try {
+          await firstValueFrom(this.fortChangeService.delete(uid));
+          deleted++;
+        } catch {
+          // Already gone, which is what the user asked for.
+        }
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadItems();
-      this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+      this.snackBar.open(this.i18n.instant('FORT_CHANGES.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }

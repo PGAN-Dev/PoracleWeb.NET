@@ -343,7 +343,8 @@
     "TEST_COOLDOWN": "Abklingzeit aktiv",
     "TEST_SEND": "Testbenachrichtigung senden",
     "TAB_DELIVERY": "Zustellung",
-    "COMMON_SETTINGS": "Allgemeine Einstellungen"
+    "COMMON_SETTINGS": "Allgemeine Einstellungen",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} erstellt, {{duplicates}} bereits verfolgt"
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-Benachrichtigungen",

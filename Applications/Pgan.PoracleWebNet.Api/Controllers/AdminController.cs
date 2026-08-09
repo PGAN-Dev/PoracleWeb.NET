@@ -70,7 +70,10 @@ public partial class AdminController(
     [HttpGet("my-webhooks")]
     public async Task<IActionResult> GetManagedWebhooks()
     {
-        var managed = this.ManagedWebhooks;
+        // Resolved live rather than read from the JWT claim. The claim is minted at login and lives 24
+        // hours, so revoking a delegate left them managing the webhook until they happened to sign in
+        // again -- and impersonation authorises off the same claim. See #601.
+        var managed = (await this._webhookDelegateService.GetManagedWebhookIdsAsync(this.UserId)).ToArray();
         if (managed.Length == 0)
         {
             return this.Ok(Array.Empty<object>());
@@ -536,8 +539,12 @@ public partial class AdminController(
     [HttpPost("impersonate")]
     public async Task<IActionResult> ImpersonateById([FromBody] ImpersonateRequest request)
     {
-        // Allow admins or delegates who manage this specific webhook
-        var isDelegate = this.ManagedWebhooks.Contains(request.UserId);
+        // Allow admins or delegates who manage this specific webhook. Resolved live rather than read from
+        // the JWT claim: the claim is minted at login and lives 24 hours, so a revoked delegate could keep
+        // impersonating the webhook until they next signed in. See #601.
+        var isDelegate = !this.IsAdmin
+            && (await this._webhookDelegateService.GetManagedWebhookIdsAsync(this.UserId))
+                .Contains(request.UserId, StringComparer.Ordinal);
         if (!this.IsAdmin && !isDelegate)
         {
             return this.Forbid();

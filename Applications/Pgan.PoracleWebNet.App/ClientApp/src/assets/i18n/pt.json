@@ -343,7 +343,8 @@
     "TEST_COOLDOWN": "Tempo de espera ativo",
     "TEST_SEND": "Enviar notificação de teste",
     "TAB_DELIVERY": "Entrega",
-    "COMMON_SETTINGS": "Definições Comuns"
+    "COMMON_SETTINGS": "Definições Comuns",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} criados, {{duplicates}} ja monitorizados"
   },
   "RAIDS": {
     "RSVP_LABEL": "Notificações RSVP",
