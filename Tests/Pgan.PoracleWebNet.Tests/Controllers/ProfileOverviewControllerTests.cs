@@ -18,10 +18,11 @@ public class ProfileOverviewControllerTests : ControllerTestBase
     private readonly ProfileOverviewController _sut;
 
     private readonly Mock<IJwtService> _jwtService = new();
+    private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
 
     public ProfileOverviewControllerTests()
     {
-        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>()))
+        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
         this._sut = new ProfileOverviewController(
             this._service.Object,
@@ -29,6 +30,7 @@ public class ProfileOverviewControllerTests : ControllerTestBase
             this._profileRepository.Object,
             this._humanProxy.Object,
             this._jwtService.Object,
+            this._roleResolver.Object,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileOverviewController>.Instance);
         SetupUser(this._sut);
     }

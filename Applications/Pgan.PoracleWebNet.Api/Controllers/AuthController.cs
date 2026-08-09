@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Api.Services.Oidc;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -23,6 +24,7 @@ public partial class AuthController(
     ISiteSettingService siteSettingService,
     IWebhookDelegateService webhookDelegateService,
     IJwtService jwtService,
+    IUserRoleResolver roleResolver,
     IOidcClient oidcClient,
     IOidcSessionService oidcSessionService,
     IOptions<DiscordSettings> discordSettings,
@@ -50,6 +52,7 @@ public partial class AuthController(
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IOidcClient _oidcClient = oidcClient;
     private readonly IOidcSessionService _oidcSessionService = oidcSessionService;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
@@ -817,7 +820,11 @@ public partial class AuthController(
             // out-of-band profile changes this branch exists to absorb. Replace the profile on the
             // current principal instead, which is what every other profile-replacement site does and
             // which copies every non-registered claim. See #484.
-            userInfo.Token = this._jwtService.GenerateTokenWithReplacedProfile(this.User, dbProfileNo);
+            // isAdmin resolved fresh rather than copied: this is the one place a long-lived session
+            // routinely re-mints its token, so copying the claim let revoked admin rights live on. See #624.
+            var roles = await this._roleResolver.ResolveAsync(this.UserId);
+            userInfo.IsAdmin = roles.IsAdmin;
+            userInfo.Token = this._jwtService.GenerateTokenWithReplacedProfile(this.User, dbProfileNo, roles.IsAdmin);
         }
 
         return this.Ok(userInfo);
@@ -868,102 +875,17 @@ public partial class AuthController(
     /// Calls PoracleJS getAdministrationRoles once and returns (isAdmin, managedWebhooks).
     /// managedWebhooks merges: Poracle-resolved webhook delegation + our own webhook delegate service layer.
     /// </summary>
+    /// <summary>
+    /// The caller's current admin status and delegated webhooks.
+    /// </summary>
+    /// <remarks>
+    /// The body of this moved to <see cref="IUserRoleResolver"/> so the admin endpoints and the token
+    /// re-issue paths can ask the same question login asks. See #624 and #626.
+    /// </remarks>
     private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
     {
-        // Fast path: configured admin IDs
-        if (!string.IsNullOrEmpty(this._poracleSettings.AdminIds))
-        {
-            var adminIds = this._poracleSettings.AdminIds.Split(',',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (adminIds.Contains(userId))
-            {
-                return (true, null);
-            }
-        }
-
-        // Check Poracle config admins list
-        try
-        {
-            var config = await this._poracleApiProxy.GetConfigAsync();
-            if (config?.Admins != null &&
-                (config.Admins.Discord.Contains(userId) || config.Admins.Telegram.Contains(userId)))
-            {
-                return (true, null);
-            }
-        }
-        catch (Exception ex)
-        {
-            LogPoracleConfigFetchFailed(this._logger, ex, userId);
-        }
-
-        // Call getAdministrationRoles once — resolves delegation including Discord guild roles
-        var managed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var isAdmin = false;
-
-        try
-        {
-            var rolesJson = await this._poracleApiProxy.GetAdminRolesAsync(userId);
-            if (!string.IsNullOrEmpty(rolesJson))
-            {
-                using var doc = JsonDocument.Parse(rolesJson);
-                var root = doc.RootElement;
-
-                // Some versions return isAdmin at root; others wrap under admin.discord
-                if (root.TryGetProperty("isAdmin", out var isAdminProp) && isAdminProp.ValueKind == JsonValueKind.True)
-                {
-                    isAdmin = true;
-                }
-
-                // Parse admin.discord.webhooks — the authoritative delegate webhook list
-                if (root.TryGetProperty("admin", out var adminEl) &&
-                    adminEl.TryGetProperty("discord", out var discordEl))
-                {
-                    if (!isAdmin &&
-                        discordEl.TryGetProperty("isAdmin", out var discordAdmin) &&
-                        discordAdmin.ValueKind == JsonValueKind.True)
-                    {
-                        isAdmin = true;
-                    }
-
-                    if (discordEl.TryGetProperty("webhooks", out var webhooks) &&
-                        webhooks.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var wh in webhooks.EnumerateArray())
-                        {
-                            if (wh.GetString() is { } id)
-                            {
-                                managed.Add(id);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LogAdminRolesFetchFailed(this._logger, ex, userId);
-        }
-
-        if (isAdmin)
-        {
-            return (true, null);
-        }
-
-        // Also merge our own webhook delegate service layer
-        try
-        {
-            var managedWebhookIds = await this._webhookDelegateService.GetManagedWebhookIdsAsync(userId);
-            foreach (var webhookId in managedWebhookIds)
-            {
-                managed.Add(webhookId);
-            }
-        }
-        catch (Exception ex)
-        {
-            LogPwebDelegatesFetchFailed(this._logger, ex, userId);
-        }
-
-        return (false, managed.Count > 0 ? managed.ToArray() : null);
+        var roles = await this._roleResolver.ResolveAsync(userId);
+        return (roles.IsAdmin, roles.ManagedWebhooks);
     }
 
     /// <summary>
@@ -1297,15 +1219,6 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "OIDC refresh tokens are enabled but the provider returned no refresh token (offline_access not granted?); falling back to a standard session.")]
     private static partial void LogOidcRefreshUnavailable(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
-    private static partial void LogPoracleConfigFetchFailed(ILogger logger, Exception ex, string userId);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch administration roles for {UserId}.")]
-    private static partial void LogAdminRolesFetchFailed(ILogger logger, Exception ex, string userId);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch webhook delegates for {UserId}.")]
-    private static partial void LogPwebDelegatesFetchFailed(ILogger logger, Exception ex, string userId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Auth attempt blocked: {Method} login is disabled by site setting.")]
     private static partial void LogAuthMethodDisabled(ILogger logger, string method);

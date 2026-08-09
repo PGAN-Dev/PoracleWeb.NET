@@ -25,7 +25,7 @@ public class AuthControllerMeTests : ControllerTestBase
     {
         this._jwtService.Setup(j => j.GenerateToken(It.IsAny<UserInfo>()))
             .Returns("refreshed-jwt-token");
-        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>()))
+        this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("refreshed-jwt-token");
 
         var config = new ConfigurationBuilder().Build();
@@ -36,6 +36,7 @@ public class AuthControllerMeTests : ControllerTestBase
             new Mock<ISiteSettingService>().Object,
             new Mock<IWebhookDelegateService>().Object,
             this._jwtService.Object,
+            new Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver>().Object,
             new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcClient>().Object,
             new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcSessionService>().Object,
             Options.Create(new DiscordSettings()),
@@ -95,7 +96,9 @@ public class AuthControllerMeTests : ControllerTestBase
         Assert.Equal(1, userInfo.ProfileNo);
         Assert.Equal("refreshed-jwt-token", userInfo.Token);
         this._jwtService.Verify(
-            j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), 1), Times.Once);
+            // isAdmin is passed explicitly now: this is the one place a long-lived session routinely
+            // re-mints its token, so copying the claim let revoked admin rights survive. See #624.
+            j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), 1, It.IsAny<bool?>()), Times.Once);
     }
 
     [Fact]
@@ -145,7 +148,7 @@ public class AuthControllerMeTests : ControllerTestBase
 
         Assert.IsType<UnauthorizedObjectResult>(result);
         this._jwtService.Verify(
-            j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>()), Times.Never);
+            j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()), Times.Never);
     }
 
     /// <summary>
@@ -163,8 +166,8 @@ public class AuthControllerMeTests : ControllerTestBase
 
         ClaimsPrincipal? seen = null;
         this._jwtService
-            .Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>()))
-            .Callback<ClaimsPrincipal, int>((p, _) => seen = p)
+            .Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
+            .Callback<ClaimsPrincipal, int, bool?>((p, _, _) => seen = p)
             .Returns("refreshed-jwt-token");
 
         await this._sut.Me();

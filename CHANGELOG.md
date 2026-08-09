@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- A token re-issue no longer restarts the session clock: profile switches and profile resyncs keep the original expiry instead of applying the 24-hour default, so a short OIDC access token stays short and revocation propagates as documented (#624)
+- `isAdmin` is resolved live on every token re-issue rather than copied forward, so removing someone's admin rights takes effect instead of surviving indefinitely while they switch profile (#624)
+- Webhook delegates configured in PoracleJS can use the My Webhooks page again: the live resolution now unions PoracleNG's delegate list with PoracleWeb's own table, as the JWT claim always did (#626)
 - Pinned `SQLitePCLRaw.bundle_e_sqlite3` forward to 2.1.12 in the test project, clearing the high-severity GHSA-2m69-gcr7-jv3q advisory the build reported
 - **Blocking a user was not enforced by the API** ([#609](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/609)). The earlier fix only signed the browser out; the API kept serving a blocked account, and anything not using the web app was unaffected entirely. Blocking now refuses immediately, and unblocking restores access at once.
 - **Blocking a user did not block them** ([#597](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/597)). Blocking stopped notifications being delivered and left the web session untouched, so a blocked account kept full access for up to a day, and signing in again issued a fresh token.

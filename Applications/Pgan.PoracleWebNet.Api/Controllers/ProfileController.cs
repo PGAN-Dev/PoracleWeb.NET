@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
@@ -16,13 +17,15 @@ public class ProfileController(
     IHumanService humanService,
     IPoracleHumanProxy humanProxy,
     IProfileRepository profileRepository,
-    IJwtService jwtService) : BaseApiController
+    IJwtService jwtService,
+    IUserRoleResolver roleResolver) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly IUserRoleResolver _roleResolver = roleResolver;
 
     /// <summary>Matches the profiles.name column, so an over-long name is refused rather than 500ing.</summary>
     private const int MaxProfileNameLength = 255;
@@ -185,7 +188,10 @@ public class ProfileController(
         await this._humanProxy.SwitchProfileAsync(this.UserId, profileNo);
 
         // Issue a new JWT with the updated profileNo so all subsequent API calls use it
-        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, profileNo);
+        // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
+        // user kept their isAdmin claim alive indefinitely. See #624.
+        var roles = await this._roleResolver.ResolveAsync(this.UserId);
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, profileNo, roles.IsAdmin);
 
         return this.Ok(new
         {

@@ -46,7 +46,7 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
         return this.WriteToken(claims);
     }
 
-    public string GenerateTokenWithReplacedProfile(ClaimsPrincipal existingPrincipal, int profileNo)
+    public string GenerateTokenWithReplacedProfile(ClaimsPrincipal existingPrincipal, int profileNo, bool? isAdmin = null)
     {
         var claims = new List<Claim>();
         foreach (var claim in existingPrincipal.Claims)
@@ -66,7 +66,42 @@ public sealed class JwtService(IOptions<JwtSettings> jwtSettings) : IJwtService
         }
 
         claims.Add(new Claim("profileNo", profileNo.ToString(CultureInfo.InvariantCulture)));
-        return this.WriteToken(claims);
+
+        // A re-issue must not extend the session. This used to end in WriteToken(claims), which applies
+        // the configured default of 24 hours -- so an OIDC login's deliberately short 30-minute access
+        // token became a day-long one on the first profile switch, and a user who switched profile once
+        // a day never expired at all. Revocation is supposed to propagate within roughly one access
+        // token's lifetime; renewing on re-issue quietly removed that bound. See #624.
+        var remaining = RemainingMinutes(existingPrincipal);
+        if (isAdmin is { } resolved)
+        {
+            // Copied verbatim, isAdmin outlived the rights it described: nothing revalidates the claim,
+            // so de-admining someone had no effect while they kept switching profile.
+            claims.RemoveAll(c => string.Equals(c.Type, "isAdmin", StringComparison.Ordinal));
+            claims.Add(new Claim("isAdmin", resolved.ToString().ToLowerInvariant()));
+        }
+
+        return remaining is { } minutes
+            ? this.WriteToken(claims, minutes)
+            : this.WriteToken(claims);
+    }
+
+    /// <summary>
+    /// Whole minutes left on the principal's own <c>exp</c>, or null when it carries none.
+    /// </summary>
+    private static int? RemainingMinutes(ClaimsPrincipal principal)
+    {
+        var exp = principal.FindFirst("exp")?.Value ?? principal.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
+        if (!long.TryParse(exp, NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
+        {
+            return null;
+        }
+
+        var remaining = DateTimeOffset.FromUnixTimeSeconds(seconds) - DateTimeOffset.UtcNow;
+
+        // The request authenticated, so the token was live when it arrived; a floor of one minute keeps
+        // a token that expires mid-request from being re-issued already dead.
+        return Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
     }
 
     private static List<Claim> BuildClaims(UserInfo user)

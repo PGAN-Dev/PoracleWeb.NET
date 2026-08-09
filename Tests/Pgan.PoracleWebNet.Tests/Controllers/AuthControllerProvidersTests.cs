@@ -27,6 +27,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
             this._siteSettingService.Object,
             new Mock<IWebhookDelegateService>().Object,
             new Mock<IJwtService>().Object,
+            new Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver>().Object,
             new Mock<IOidcClient>().Object,
             new Mock<IOidcSessionService>().Object,
             Options.Create(discord ?? new DiscordSettings { ClientId = "test-id", ClientSecret = "test-secret" }),

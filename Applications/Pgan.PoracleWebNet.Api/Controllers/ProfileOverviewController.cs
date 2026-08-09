@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Api.Configuration;
+using Pgan.PoracleWebNet.Api.Services;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
@@ -18,11 +19,13 @@ public partial class ProfileOverviewController(
     IProfileRepository profileRepository,
     IPoracleHumanProxy humanProxy,
     IJwtService jwtService,
+    IUserRoleResolver roleResolver,
     ILogger<ProfileOverviewController> logger) : BaseApiController
 {
     private readonly IProfileOverviewService _profileOverviewService = profileOverviewService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IJwtService _jwtService = jwtService;
+    private readonly IUserRoleResolver _roleResolver = roleResolver;
     private readonly IProfileService _profileService = profileService;
     private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly ILogger<ProfileOverviewController> _logger = logger;
@@ -108,7 +111,10 @@ public partial class ProfileOverviewController(
             newProfileNo, request.Name.Trim(), source.Area ?? "[]", source.Latitude, source.Longitude);
 
         // Issue a new JWT so the current profile stays correct
-        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo);
+        // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
+        // user kept their isAdmin claim alive indefinitely. See #624.
+        var roles = await this._roleResolver.ResolveAsync(this.UserId);
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, roles.IsAdmin);
 
         return this.Ok(new
         {
@@ -203,7 +209,10 @@ public partial class ProfileOverviewController(
         // never chose for it. Restore what the file actually declared. See #522.
         await this.WriteGeographyAsync(newProfileNo, profileName, "[]", 0.0, 0.0);
 
-        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo);
+        // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
+        // user kept their isAdmin claim alive indefinitely. See #624.
+        var roles = await this._roleResolver.ResolveAsync(this.UserId);
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, roles.IsAdmin);
 
         return this.Ok(new
         {
