@@ -85,6 +85,42 @@ describe('QuickPickAdminDialogComponent', () => {
     });
   });
 
+  describe('changing the alarm type', () => {
+    const monsterPick: QuickPickDefinition = {
+      id: 'p',
+      name: 'P',
+      alarmType: 'monster',
+      category: 'PvP',
+      description: '',
+      enabled: true,
+      filters: { clean: 5, minIv: 0, pvpRankingLeague: 1500 },
+      icon: 'pokeball',
+      scope: 'global',
+      sortOrder: 1,
+    };
+
+    it('drops the previous type’s filters', () => {
+      setup(monsterPick);
+      component.mainForm.patchValue({ alarmType: 'lure' });
+
+      component.save();
+
+      expect(savedDefinition().filters['pvpRankingLeague']).toBeUndefined();
+      expect(savedDefinition().filters['minIv']).toBeUndefined();
+    });
+
+    it('keeps clean, which belongs to no type', () => {
+      // quick-pick-apply reads it as the base bitmask, and clearing wholesale reset a pick's
+      // auto-delete, edit and summary bits on a type change. See #671.
+      setup(monsterPick);
+      component.mainForm.patchValue({ alarmType: 'lure' });
+
+      component.save();
+
+      expect(savedDefinition().filters['clean']).toBe(5);
+    });
+  });
+
   describe('creating a new definition', () => {
     it('does not write out the form defaults that mean "not set"', () => {
       // Most numeric controls default to 0. Persisting them would put an explicit minIv, pokemonId and

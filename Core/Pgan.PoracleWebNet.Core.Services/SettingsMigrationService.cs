@@ -437,9 +437,15 @@ public partial class SettingsMigrationService(
     /// Records that the built-in quick picks exist, for installations seeded before the marker did.
     /// </summary>
     /// <remarks>
-    /// The marker used to be a per-browser localStorage flag and became a site setting in #662. Without
-    /// this, an installation that was already seeded has no row, so the first admin to open Quick Picks
-    /// after upgrading -- having deliberately deleted the presets -- gets all thirty back. See #666.
+    /// The marker used to be a per-browser localStorage flag and became a site setting in #662, so an
+    /// installation seeded before that has no row and would seed again on the next admin visit.
+    /// <para>
+    /// This covers installations that still hold at least one global pick, which is the common case. It
+    /// deliberately does NOT cover an admin who had already deleted every preset before upgrading: they
+    /// have no global picks, so there is nothing here to infer from, and the old marker lived in their
+    /// browser where the server cannot see it. That admin gets one reseed. Said plainly because the
+    /// first version of this comment claimed to cover it and did not. See #666, #672.
+    /// </para>
     /// </remarks>
     private async Task BackfillQuickPickSeedMarkerAsync()
     {

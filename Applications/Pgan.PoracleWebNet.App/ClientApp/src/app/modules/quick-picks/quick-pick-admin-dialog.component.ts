@@ -16,6 +16,14 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 
+/**
+ * Filter keys that belong to no particular alarm type, and so survive a type change.
+ *
+ * `clean` is the only one: every other key is owned by one alarm type's form, while `clean` is read by
+ * the apply dialog as its base bitmask and is exposed by no form at all. See #671.
+ */
+const TYPE_AGNOSTIC_FILTER_KEYS = new Set(['clean']);
+
 @Component({
   imports: [
     ReactiveFormsModule,
@@ -197,11 +205,16 @@ export class QuickPickAdminDialogComponent implements OnInit {
     // Start from what is stored rather than rebuilding: any key the dialog has no control for used to be
     // dropped on save, and quick-pick-apply reads filters['clean'] as its base bitmask while no form
     // exposes it. See #654.
-    // Only when the type is unchanged. alarmType is editable on the edit dialog, and carrying the old
-    // type's keys across stored minIv and pvpRankingLeague on a lure pick. Inert at apply time, since
-    // BuildFromFilters ignores unknown keys, but it is junk in the definition. See #669.
+    // A type change clears the old type's filters -- carrying them across stored minIv and
+    // pvpRankingLeague on a lure pick (#669) -- but keeps the keys that belong to no type. Clearing
+    // wholesale threw away `clean`, which quick-pick-apply reads as its base bitmask, so changing a
+    // pick's type silently reset its auto-delete, edit and summary bits: the preservation #654 added,
+    // undone by the fix for #669. See #671.
     const sameType = this.data?.alarmType === (main.alarmType ?? 'monster');
-    const stored: Record<string, unknown> = sameType ? { ...(this.data?.filters ?? {}) } : {};
+    const previous = this.data?.filters ?? {};
+    const stored: Record<string, unknown> = sameType
+      ? { ...previous }
+      : Object.fromEntries(Object.entries(previous).filter(([key]) => TYPE_AGNOSTIC_FILTER_KEYS.has(key)));
     const filters: Record<string, unknown> = stored;
     if (filterForm) {
       const raw = filterForm.getRawValue();
