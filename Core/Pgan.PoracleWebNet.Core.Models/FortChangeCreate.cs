@@ -40,6 +40,11 @@ public class FortChangeCreate
     // ["name"] rather than an array -- and a genuine, unmodified backup then failed to re-import once
     // #548 started binding this DTO. The domain model has carried the converter for exactly this
     // reason; the Create DTO needs it too. See #556.
+    // There are exactly five legal change types, so anything longer is impossible input and was reaching
+    // the database as an over-long JSON string -- a 500 for a request the API can describe. Duplicates
+    // are refused for the same reason: they cannot mean anything. See #612.
+    [MaxLength(5, ErrorMessage = "changeTypes may contain at most 5 entries.")]
+    [DistinctValues(ErrorMessage = "changeTypes must not repeat a value.")]
     [JsonConverter(typeof(StringOrArrayConverter))]
     public List<string> ChangeTypes { get; set; } = [];
 

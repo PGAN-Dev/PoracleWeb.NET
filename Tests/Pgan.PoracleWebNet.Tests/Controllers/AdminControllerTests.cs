@@ -193,6 +193,30 @@ public class AdminControllerTests : ControllerTestBase
         this._humanProxy.Verify(p => p.AdminDisabledAsync("u1", true), Times.Once);
     }
 
+    [Fact]
+    public async Task DisableUserRefusesToBlockTheCallersOwnAccount()
+    {
+        // A block is enforced on every request, so this would take the admin's own API access away --
+        // including the endpoint that would give it back. See #613.
+        SetupUser(this._sut, userId: "u1", isAdmin: true);
+
+        var result = await this._sut.DisableUser("u1");
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(p => p.AdminDisabledAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DisableUserStillBlocksOtherAccounts()
+    {
+        SetupUser(this._sut, userId: "admin", isAdmin: true);
+        this._humanService.Setup(s => s.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1" });
+
+        await this._sut.DisableUser("u1");
+
+        this._humanProxy.Verify(p => p.AdminDisabledAsync("u1", true), Times.Once);
+    }
+
     // --- PauseUser / ResumeUser ---
 
     [Fact]

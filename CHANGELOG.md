@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Invasion alarms no longer accept a grunt type containing control characters, or one longer than the column, which produced an alarm that could never fire or a 500 (#611)
+- Fort change alarms now refuse a `changeTypes` list longer than the five legal values, or one that repeats a value, instead of failing in the database (#612)
+- An admin can no longer block their own account, which since #609 removed their API access immediately, including the endpoint that would restore it (#613)
 - **Ordinary radius and template edits were refused when a similar alarm existed** ([#606](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/606)). The clash check was stricter than Poracle itself, so it blocked edits that would have been perfectly safe — and the message suggested doing the very thing it was blocking. Pokemon edits could never clash at all and were refused anyway.
 - **Re-applying a quick pick with an unusable filter deleted its alarms** ([#607](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/607)) for six of the nine alarm types — the check that is supposed to run first only covered three.
 - **A quick pick holding a value alarms refuse could still be saved** ([#608](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/608)) for those same six types.

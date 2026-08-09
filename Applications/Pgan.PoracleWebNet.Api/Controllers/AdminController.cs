@@ -198,6 +198,17 @@ public partial class AdminController(
             return this.Forbid();
         }
 
+        // Now that a block is actually enforced (#609), an admin blocking their own account loses the
+        // API immediately -- including the endpoint that would unblock it. The list shows every account,
+        // their own included, one row among many. See #613.
+        if (string.Equals(id, this.UserId, StringComparison.Ordinal))
+        {
+            return this.BadRequest(new
+            {
+                error = "You cannot block your own account.",
+            });
+        }
+
         var human = await this._humanService.GetByIdAsync(id);
         if (human is null)
         {
