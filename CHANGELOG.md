@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-08-09
+
 ### Security
 
 - A failed lookup of PoracleWeb's own delegate table is now reported as unresolved rather than as a confident empty list, so a momentary blip no longer denies a delegate for a full minute (#667)
@@ -841,7 +843,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.13.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.14.0...HEAD
+[2.14.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.12.1...v2.13.0
 [2.12.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.12.0...v2.12.1
 [2.12.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.11.1...v2.12.0
