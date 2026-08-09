@@ -60,6 +60,11 @@ interface SettingGroup {
  * left in the database rather than deleted. See #547, #560.
  */
 const RETIRED_KEYS = [
+  // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
+  // from SettingsMigrationService when they were retired, but rows persist in existing databases and were
+  // still rendering in the "Other" catch-all. See #589.
+  'disable_geomap',
+  'disable_geomap_select',
   'register_command',
   'location_command',
   'provider_url',

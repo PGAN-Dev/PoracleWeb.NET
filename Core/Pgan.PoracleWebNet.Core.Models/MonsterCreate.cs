@@ -100,7 +100,11 @@ public class MonsterCreate
         get; set;
     }
 
-    [Range(0, int.MaxValue)]
+    // The league is a CP cap, and the dropdown offers exactly four: none, Little (500), Great (1500),
+    // Ultra (2500). [Range(0, int.MaxValue)] accepted any positive integer, so a value no league uses
+    // stored a PVP filter that can never match -- the one unbounded field among Best/Worst/Cap.
+    // See #586.
+    [AllowedValues(0, 500, 1500, 2500)]
     public int PvpRankingLeague
     {
         get; set;

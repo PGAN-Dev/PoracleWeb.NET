@@ -217,13 +217,23 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        if (string.IsNullOrWhiteSpace(displayName))
+        // The same rules create enforces. Rename checked only for emptiness, so a name creation refuses --
+        // over 50 characters, or carrying characters outside the allowlist -- could be applied by editing
+        // an existing geofence instead. The polygon-side validation on this feature is thorough, which
+        // made the gap look like an oversight rather than a decision. See #585.
+        var trimmedName = displayName?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmedName) || trimmedName.Length > 50)
         {
-            throw new ArgumentException("A name is required.", nameof(displayName));
+            throw new ArgumentException("Display name must be between 1 and 50 characters.", nameof(displayName));
+        }
+
+        if (!MyRegex().IsMatch(trimmedName))
+        {
+            throw new ArgumentException("Display name contains invalid characters.", nameof(displayName));
         }
 
         var oldKojiName = geofence.KojiName;
-        var newKojiName = displayName.Trim().ToLowerInvariant();
+        var newKojiName = trimmedName.ToLowerInvariant();
 
         if (!string.Equals(oldKojiName, newKojiName, StringComparison.OrdinalIgnoreCase))
         {
@@ -236,7 +246,7 @@ public partial class UserGeofenceService(
             }
         }
 
-        geofence.DisplayName = displayName.Trim();
+        geofence.DisplayName = trimmedName;
         geofence.KojiName = newKojiName;
         // group_name is NOT NULL, and the rename dialog does not always send one -- keep what is there rather than clearing it.
         geofence.GroupName = string.IsNullOrWhiteSpace(groupName) ? geofence.GroupName : groupName;
