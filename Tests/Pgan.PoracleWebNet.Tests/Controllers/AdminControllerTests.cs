@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,6 +28,7 @@ public class AdminControllerTests : ControllerTestBase
             .Returns("test-impersonation-jwt");
         this._sut = new AdminController(
             this._humanService.Object,
+            new MemoryCache(new MemoryCacheOptions()),
             this._userPurgeService.Object,
             this._webhookDelegateService.Object,
             this._proxy.Object,

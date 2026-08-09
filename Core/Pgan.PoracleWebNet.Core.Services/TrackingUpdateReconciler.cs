@@ -150,23 +150,18 @@ internal static partial class TrackingUpdateReconciler
 
         foreach (var candidate in body.EnumerateArray())
         {
-            foreach (var row in existing.EnumerateArray())
+            // Ordering matters here too: PoracleNG resolves each candidate against the FIRST row that
+            // classifies, so a later sibling is never touched. Checking every row refused bulk changes that
+            // would have been harmless -- and told the user to make the single change that was also
+            // refused. See #606.
+            var decisive = FirstClassifyingRow(existing, candidate, trackingType);
+            if (decisive is { Classification: RowMatch.Update } match
+                && !submittedUids.Contains(match.Uid))
             {
-                if (row.ValueKind != JsonValueKind.Object
-                    || !row.TryGetProperty("uid", out var rowUid)
-                    || rowUid.ValueKind != JsonValueKind.Number
-                    || submittedUids.Contains(rowUid.GetInt32()))
-                {
-                    continue;
-                }
-
-                if (WouldMergeInto(candidate, row, trackingType, isCreate: false))
-                {
-                    throw new TrackingConflictException(
-                        trackingType,
-                        "That radius would overwrite another alarm you did not select. "
-                        + "Change these alarms one at a time.");
-                }
+                throw new TrackingConflictException(
+                    trackingType,
+                    "That radius would overwrite another alarm you did not select. "
+                    + "Remove or edit that alarm first.");
             }
         }
     }
@@ -240,10 +235,16 @@ internal static partial class TrackingUpdateReconciler
         int oldUid,
         JsonElement submitted)
     {
-        // Creates as well as edits. PoracleNG resolves an Add that differs from an existing alarm by one
-        // updatable field into an UPDATE of that alarm, so the user pressed Add, got a 201, and quietly
-        // lost the alarm they had. oldUid 0 means there is no row of ours to exclude. See #561, #569.
         if (submitted.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        // Pokemon edits cannot merge at all: trackingMonster.go splits rows on req.UID.isSet() and sends
+        // uid-bearing ones straight to UpdateMonsterByUID, never reaching the diff. Every refusal this
+        // guard produced for a monster edit was therefore false. It is the only type that does this.
+        // See #606.
+        if (oldUid > 0 && string.Equals(trackingType, "pokemon", StringComparison.Ordinal))
         {
             return;
         }
@@ -255,8 +256,6 @@ internal static partial class TrackingUpdateReconciler
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            // Cannot see the siblings, so cannot rule a collision in or out. Let the edit through rather
-            // than refuse a legitimate one on a transport error; the pre-existing behaviour applies.
             return;
         }
 
@@ -265,25 +264,72 @@ internal static partial class TrackingUpdateReconciler
             return;
         }
 
+        // In list order, and stopping at the first row that classifies. DiffAndClassify walks the
+        // existing rows and BREAKS on the first duplicate-or-update match, so only that row is ever
+        // taken over -- a later sibling is irrelevant. Refusing on any match anywhere blocked ordinary
+        // radius and template edits whenever a similar alarm existed further down the list, and the
+        // error told the user to do the very thing that was blocked. See #606.
+        var decisive = FirstClassifyingRow(rows, submitted, trackingType);
+        if (decisive is not { Classification: RowMatch.Update } match)
+        {
+            return;
+        }
+
+        if (match.Uid == oldUid)
+        {
+            // PoracleNG would update the row being edited, which is exactly what was asked for.
+            return;
+        }
+
+        throw new TrackingConflictException(
+            trackingType,
+            "Another alarm of this type already uses those settings. Edit or remove that one instead.");
+    }
+
+    private enum RowMatch
+    {
+        Duplicate,
+        Update,
+    }
+
+    private readonly record struct ClassifiedRow(int Uid, RowMatch Classification);
+
+    /// <summary>
+    /// The first existing row PoracleNG would resolve the submission against, mirroring the break in
+    /// DiffAndClassify. Rows it would treat as unrelated, or as a separate insert, are skipped.
+    /// </summary>
+    private static ClassifiedRow? FirstClassifyingRow(
+        JsonElement rows, JsonElement submitted, string trackingType)
+    {
         foreach (var row in rows.EnumerateArray())
         {
             if (row.ValueKind != JsonValueKind.Object
                 || !row.TryGetProperty("uid", out var uid)
-                || uid.ValueKind != JsonValueKind.Number
-                || uid.GetInt32() == oldUid)
+                || uid.ValueKind != JsonValueKind.Number)
             {
                 continue;
             }
 
-            if (WouldMergeInto(submitted, row, trackingType, isCreate: oldUid <= 0))
+            var differences = CountUpdatableDifferences(submitted, row, trackingType);
+            if (differences is null)
             {
-                throw new TrackingConflictException(
-                    trackingType,
-                    "Another alarm of this type already uses those settings. Edit or remove that one instead.");
+                // An identity field differs: unrelated, or a separate insert. Keep looking.
+                continue;
+            }
+
+            if (differences == 0)
+            {
+                return new ClassifiedRow(uid.GetInt32(), RowMatch.Duplicate);
+            }
+
+            if (differences == 1)
+            {
+                return new ClassifiedRow(uid.GetInt32(), RowMatch.Update);
             }
         }
-    }
 
+        return null;
+    }
     /// <summary>Fields the comparison ignores entirely: PoracleNG owns them.</summary>
     private static readonly HashSet<string> AssignedByPoracle = new(StringComparer.Ordinal)
     {
@@ -329,8 +375,11 @@ internal static partial class TrackingUpdateReconciler
 
 
 
-    private static bool WouldMergeInto(
-        JsonElement submitted, JsonElement existing, string trackingType, bool isCreate)
+    /// <summary>
+    /// Counts differing updatable fields, or null when an identity field differs (no relation).
+    /// </summary>
+    private static int? CountUpdatableDifferences(
+        JsonElement submitted, JsonElement existing, string trackingType)
     {
         var updatableDifferences = 0;
 
@@ -379,11 +428,11 @@ internal static partial class TrackingUpdateReconciler
 
             if (!same)
             {
-                return false;
+                return null;
             }
         }
 
-        // This mirrors DiffTracking in PoracleNG's processor/internal/db/diff.go, at the commit prod runs:
+        // Mirrors DiffTracking in processor/internal/db/diff.go at the commit prod runs:
         //
         //     if totalDiffs == 0                            -> duplicate (nothing written)
         //     if totalDiffs == 1 && nonUpdatableDiffs == 0  -> UPDATE of that existing row
@@ -393,11 +442,7 @@ internal static partial class TrackingUpdateReconciler
         // two of them a collision, and refused every ordinary edit on both -- radius, template,
         // auto-delete, clearing the gym -- leaving them uneditable (#553).
         //
-        // Zero differences on an EDIT means the submission matches another row outright, which is a
-        // collision worth refusing. On a CREATE it means an exact duplicate, and PoracleNG already
-        // reports that as "already present" -- answered with 200 and no new uid since #459, which is
-        // what multi-select add relies on. Only the one-difference case takes an existing alarm over.
-        return isCreate ? updatableDifferences == 1 : updatableDifferences <= 1;
+        return updatableDifferences;
     }
 
     private static bool IsUpdatable(string fieldName, string trackingType) =>
