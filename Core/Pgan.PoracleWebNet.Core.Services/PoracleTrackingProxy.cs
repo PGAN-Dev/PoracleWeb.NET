@@ -13,6 +13,22 @@ public partial class PoracleTrackingProxy(
     IConfiguration configuration,
     ILogger<PoracleTrackingProxy> logger) : IPoracleTrackingProxy
 {
+    /// <summary>
+    /// PoracleNG answers 404 for a user that no longer exists; that is a dead session, not a server fault.
+    /// </summary>
+    /// <remarks>
+    /// #584 fixed this on the human proxy only, so the alarm lists, dashboard, cleaning and profile
+    /// overview kept returning 500 for a deleted account and the SPA -- which signs out on 401 -- left the
+    /// user in a broken app. See #595.
+    /// </remarks>
+    private static void EnsureAccountStillExists(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new AccountGoneException();
+        }
+    }
+
     private static string Encode(string id) => Uri.EscapeDataString(id);
     private readonly HttpClient _httpClient = httpClient;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
@@ -23,6 +39,7 @@ public partial class PoracleTrackingProxy(
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}");
         var response = await this._httpClient.SendAsync(request);
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -55,6 +72,7 @@ public partial class PoracleTrackingProxy(
             throw new AlarmValidationException(await ExtractMessageAsync(response));
         }
 
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -89,6 +107,7 @@ public partial class PoracleTrackingProxy(
             return;
         }
 
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
@@ -107,6 +126,7 @@ public partial class PoracleTrackingProxy(
             "application/json");
 
         var response = await this._httpClient.SendAsync(request);
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 
@@ -114,6 +134,7 @@ public partial class PoracleTrackingProxy(
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/all/{Encode(userId)}");
         var response = await this._httpClient.SendAsync(request);
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -125,6 +146,7 @@ public partial class PoracleTrackingProxy(
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/tracking/allProfiles/{Encode(userId)}?includeDescriptions=true");
         var response = await this._httpClient.SendAsync(request);
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();
@@ -136,6 +158,7 @@ public partial class PoracleTrackingProxy(
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/reload");
         var response = await this._httpClient.SendAsync(request);
+        EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
     }
 

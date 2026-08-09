@@ -103,6 +103,75 @@ internal static partial class TrackingUpdateReconciler
     }
 
     /// <summary>
+    /// Refuses a bulk write in which a submitted row would take over a row that was NOT submitted.
+    /// </summary>
+    /// <remarks>
+    /// The batch check only looks at the rows being written. At the new radius a selected row can differ
+    /// from an unselected sibling by exactly one updatable field, and PoracleNG then rewrites the sibling --
+    /// an alarm the user never selected -- while the selected one keeps its old radius and the response
+    /// reports it updated. See #598.
+    /// </remarks>
+    public static async Task EnsureBatchDoesNotTakeOverOthersAsync(
+        IPoracleTrackingProxy proxy,
+        string trackingType,
+        string userId,
+        JsonElement body)
+    {
+        if (body.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        var submittedUids = new HashSet<int>();
+        foreach (var row in body.EnumerateArray())
+        {
+            if (row.ValueKind == JsonValueKind.Object
+                && row.TryGetProperty("uid", out var uid)
+                && uid.ValueKind == JsonValueKind.Number)
+            {
+                submittedUids.Add(uid.GetInt32());
+            }
+        }
+
+        JsonElement existing;
+        try
+        {
+            existing = await proxy.GetByUserAsync(trackingType, userId);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return;
+        }
+
+        if (existing.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var candidate in body.EnumerateArray())
+        {
+            foreach (var row in existing.EnumerateArray())
+            {
+                if (row.ValueKind != JsonValueKind.Object
+                    || !row.TryGetProperty("uid", out var rowUid)
+                    || rowUid.ValueKind != JsonValueKind.Number
+                    || submittedUids.Contains(rowUid.GetInt32()))
+                {
+                    continue;
+                }
+
+                if (WouldMergeInto(candidate, row, trackingType, isCreate: false))
+                {
+                    throw new TrackingConflictException(
+                        trackingType,
+                        "That radius would overwrite another alarm you did not select. "
+                        + "Change these alarms one at a time.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Refuses a bulk write in which two of the submitted rows would become the same alarm.
     /// </summary>
     /// <remarks>
@@ -278,23 +347,25 @@ internal static partial class TrackingUpdateReconciler
                 continue;
             }
 
-            // template is the one field we may leave unset and PoracleNG will fill in (the configured
-            // default name, "1" when unset), so a null there says nothing about what gets stored --
-            // counting it as a difference made the create-path check miss every collision (#561).
+            // template needs the value PoracleNG will STORE, not the one we sent. Both previous attempts
+            // at this were wrong in opposite directions: counting a blank as a difference made the check
+            // miss real collisions (#561), and skipping it entirely made an Add that differs from an
+            // existing alarm only by that alarm's custom template read as zero differences -- so it was
+            // let through, and PoracleNG overwrote the custom template (#593).
             //
-            // Scoped to that one field deliberately. Applied to everything, it swallowed gym_id, which is
-            // blank precisely when the user means "any gym" -- so an any-gym alarm read as identical to a
-            // gym-specific one and a legitimate add was refused, with the outcome depending on which order
-            // the two were created in. See #575.
-            if (string.Equals(field.Name, "template", StringComparison.Ordinal) && IsBlank(field.Value))
+            // Substituting the default resolves both: a blank submission is compared as the default
+            // PoracleNG would fill in, so it matches a stored default and differs from a stored custom
+            // template, which is exactly what PoracleNG's own diff does.
+            var submittedValue = field.Value;
+            if (string.Equals(field.Name, "template", StringComparison.Ordinal) && IsBlank(submittedValue))
             {
-                continue;
+                submittedValue = DefaultTemplateElement;
             }
 
             // Compare what PoracleNG will STORE, not what was sent: it rewrites some values on the way
             // in, and it diffs the rewritten row. Comparing the raw submission made every collision
             // look like a difference, which is exactly how the destructive merge got through.
-            var same = SameValue(NormalizeForStorage(field, submitted, trackingType), storedValue);
+            var same = SameValue(NormalizeForStorage(field, submittedValue, submitted, trackingType), storedValue);
 
             if (IsUpdatable(field.Name, trackingType))
             {
@@ -436,7 +507,8 @@ internal static partial class TrackingUpdateReconciler
     /// (trackingRaid.go:217-219, trackingMaxbattle.go:137-139). Nothing else in the identity set is
     /// rewritten -- the updatable fields are excluded from the comparison already.
     /// </remarks>
-    private static JsonElement NormalizeForStorage(JsonProperty field, JsonElement submitted, string trackingType)
+    private static JsonElement NormalizeForStorage(
+        JsonProperty field, JsonElement submittedValue, JsonElement submitted, string trackingType)
     {
         var levelIsForced = string.Equals(field.Name, "level", StringComparison.Ordinal)
             && (string.Equals(trackingType, "raid", StringComparison.Ordinal)
@@ -445,8 +517,21 @@ internal static partial class TrackingUpdateReconciler
             && pokemonId.ValueKind == JsonValueKind.Number
             && pokemonId.GetInt32() != AnyPokemonId;
 
-        return levelIsForced ? AnyLevelElement : field.Value;
+        return levelIsForced ? AnyLevelElement : submittedValue;
     }
+
+    /// <summary>
+    /// The template PoracleNG stores when a submission leaves it blank.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG uses <c>general.defaultTemplateName</c> and falls back to <c>"1"</c> when it is unset
+    /// (trackingMonster.go and its siblings). PoracleWeb does not read that setting here, so a deployment
+    /// that configures a custom default would see an exact-duplicate Add answered 409 rather than 200.
+    /// The durable fix is for the alarm services to send the resolved default instead of a blank; this
+    /// constant matches the upstream fallback in the meantime. See #593.
+    /// </remarks>
+    private static readonly JsonElement DefaultTemplateElement =
+        JsonDocument.Parse("\"1\"").RootElement.Clone();
 
     private const int AnyPokemonId = 9000;
 

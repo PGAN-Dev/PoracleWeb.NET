@@ -756,6 +756,15 @@ public partial class AuthController(
             return this.Unauthorized(new { error = "This account no longer exists." });
         }
 
+        // Blocking a user stopped Poracle delivering to them and did nothing else: no filter, controller or
+        // service looked at admin_disable, so an existing token kept full read/write access for the rest of
+        // its 24-hour life, and a fresh login minted another one. The SPA signs out on 401, so answering
+        // that here ends the session on the next poll, the same way a deleted account does. See #597.
+        if (human.AdminDisable == 1)
+        {
+            return this.Unauthorized(new { error = "This account has been blocked by an administrator." });
+        }
+
         var adminDisable = human.AdminDisable == 1;
         var enabled = human.Enabled == 1 && human.AdminDisable == 0;
         var dbProfileNo = human.CurrentProfileNo;
