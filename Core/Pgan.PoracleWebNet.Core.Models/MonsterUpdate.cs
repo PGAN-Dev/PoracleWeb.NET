@@ -118,7 +118,10 @@ public class MonsterUpdate
         get; set;
     }
 
-    [Range(0, int.MaxValue)]
+    // The same four the create DTO allows (#586). Left as an unbounded range here, an edit could store a
+    // CP cap no league uses -- the exact state that fix was written to prevent, reached from the edit
+    // path instead. See #594.
+    [AllowedValues(null, 0, 500, 1500, 2500)]
     public int? PvpRankingLeague
     {
         get; set;

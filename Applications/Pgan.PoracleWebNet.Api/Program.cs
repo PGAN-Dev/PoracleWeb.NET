@@ -47,6 +47,11 @@ if (File.Exists(envFile))
 // Bridge short env var names (from .env) to .NET's __ convention.
 // Docker Compose does this translation in docker-compose.yml; this makes the same .env work standalone.
 MapEnvVar("JWT_SECRET", "Jwt__Secret");
+
+// Named in the #583 changelog entry as the way to declare trusted proxies, and never bridged -- so the
+// documented escape hatch did nothing and an instance behind a real proxy had no way to opt in. See #596.
+MapEnvVar("PROXY_KNOWN_PROXIES", "Proxy__KnownProxies");
+MapEnvVar("PROXY_KNOWN_NETWORKS", "Proxy__KnownNetworks");
 MapEnvVar("JWT_ISSUER", "Jwt__Issuer", "PoracleWeb");
 MapEnvVar("JWT_AUDIENCE", "Jwt__Audience", "PoracleWeb.App");
 MapEnvVar("DISCORD_CLIENT_ID", "Discord__ClientId");

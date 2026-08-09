@@ -110,6 +110,13 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         // one left at its old radius, and a response claiming all were updated. See #580.
         TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
 
+        // And against the rows NOT selected: at the new radius a selected row can differ from an
+        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
+        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
+        // response claims it was updated. See #598.
+        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
+            this._proxy, TrackingType, userId, body);
+
         await this._proxy.CreateAsync(TrackingType, userId, body);
         // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
         // tracks them, pairing on content because the batch response is reordered. See #443.
@@ -140,6 +147,13 @@ public class NestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
         // one left at its old radius, and a response claiming all were updated. See #580.
         TrackingUpdateReconciler.EnsureBatchDoesNotCollapse(body, TrackingType);
+
+        // And against the rows NOT selected: at the new radius a selected row can differ from an
+        // unselected sibling by exactly one updatable field, and PoracleNG then rewrites the SIBLING
+        // -- an alarm the user never touched -- while the selected one keeps its old radius and the
+        // response claims it was updated. See #598.
+        await TrackingUpdateReconciler.EnsureBatchDoesNotTakeOverOthersAsync(
+            this._proxy, TrackingType, userId, body);
 
         await this._proxy.CreateAsync(TrackingType, userId, body);
         // PoracleNG rewrites every row, so the uids change. Follow any quick-pick that
