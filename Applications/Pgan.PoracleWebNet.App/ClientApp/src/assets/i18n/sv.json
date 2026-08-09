@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Sök efter ett gym (valfritt)",
     "SEARCH_HINT": "Skriv gym-namn...",
-    "CLEAR_ARIA": "Rensa gym-val"
+    "CLEAR_ARIA": "Rensa gym-val",
+    "RATE_LIMITED": "För många skannerförfrågningar — sakta ner lite."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Notiser skickas för dessa områden:",
@@ -1555,7 +1556,7 @@
     "ENABLE_TELEGRAM_LABEL": "Aktivera Telegram-inloggning",
     "ENABLE_TELEGRAM_DESC": "Tillåt Telegram-inloggning på denna webbplats. Kräver TELEGRAM_ENABLED=true, bot token och bot username i .env (serveromstart krävs efter .env-ändringar).",
     "TELEGRAM_BOT_LABEL": "Bot-användarnamn",
-    "TELEGRAM_BOT_DESC": "Telegram-bot-användarnamn (utan @).",
+    "TELEGRAM_BOT_DESC": "Telegram-bot-användarnamn (utan @). Används när TELEGRAM_BOT_USERNAME inte är konfigurerat.",
     "ENABLE_DISCORD_LABEL": "Aktivera Discord-inloggning",
     "ENABLE_DISCORD_DESC": "Tillåt Discord-inloggning på denna webbplats. Kräver Discord Client ID och Client Secret i .env (serveromstart krävs efter .env-ändringar). Påverkar inte PoracleNG-bot-leverans.",
     "ENABLE_OIDC_LABEL": "Aktivera extern SSO-inloggning",

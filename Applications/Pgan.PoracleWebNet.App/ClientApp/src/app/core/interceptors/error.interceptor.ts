@@ -5,6 +5,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { catchError, throwError } from 'rxjs';
 
 import { ToastService } from '../services/toast.service';
+import { TokenStoreService } from '../services/token-store.service';
 
 /** Endpoints where errors should be silently swallowed (no user-facing toast). */
 const SILENT_URL_PATTERNS = [
@@ -29,6 +30,7 @@ function isAuthCallbackRoute(): boolean {
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
+  const tokenStore = inject(TokenStoreService);
   const router = inject(Router);
   const translate = inject(TranslateService);
 
@@ -38,7 +40,15 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       // On 401, clear token and redirect — but NOT during OAuth callback flow or login page
       if (error.status === 401 && !isAuthCallbackRoute()) {
+        // The whole session, not just the access token. Three keys used to survive the app deciding the
+        // session was invalid: poracle_admin_token -- the higher-privilege credential an impersonating
+        // admin leaves behind, which stopImpersonating() would then install as the active token -- plus
+        // the refresh token and its expiry, so the next load tried to refresh a session the server had
+        // already rejected. Navigation is deliberately left alone: routing through AuthService.logout()
+        // would append loggedout=1 and suppress the OIDC auto-redirect. See #616.
         localStorage.removeItem('poracle_token');
+        localStorage.removeItem('poracle_admin_token');
+        tokenStore.clear();
         // Preserve any existing query params (e.g. ?error=missing_required_role)
         const params = new URLSearchParams(window.location.search);
         router.navigate(['/login'], { queryParams: Object.fromEntries(params) });

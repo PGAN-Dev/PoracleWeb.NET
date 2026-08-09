@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { catchError, of } from 'rxjs';
 
 import { AreaService } from '../../../core/services/area.service';
 import { LocationService } from '../../../core/services/location.service';
@@ -43,17 +44,23 @@ export class DeliveryPreviewComponent implements OnChanges {
         this.mapUrl.set('');
         this.loading.set(true);
 
-        // Get user location first, then fetch distance map
-        this.locationService.getLocation().subscribe(loc => {
-          if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
-            this.locationService.getDistanceMapUrl(loc.latitude, loc.longitude, distanceMeters).subscribe(result => {
+        // Get user location first, then fetch distance map. The error arm matters: with disable_location
+        // on, GET /api/location answers 403, and a next-only subscriber left `loading` set -- so the
+        // preview inside every add and edit alarm dialog span forever the moment distance mode was
+        // picked. No location means no map, which is what an empty mapUrl already renders. See #617.
+        this.locationService
+          .getLocation()
+          .pipe(catchError(() => of(null)))
+          .subscribe(loc => {
+            if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
+              this.locationService.getDistanceMapUrl(loc.latitude, loc.longitude, distanceMeters).subscribe(result => {
+                this.loading.set(false);
+                if (result?.url) this.mapUrl.set(result.url);
+              });
+            } else {
               this.loading.set(false);
-              if (result?.url) this.mapUrl.set(result.url);
-            });
-          } else {
-            this.loading.set(false);
-          }
-        });
+            }
+          });
       }
     }
   }

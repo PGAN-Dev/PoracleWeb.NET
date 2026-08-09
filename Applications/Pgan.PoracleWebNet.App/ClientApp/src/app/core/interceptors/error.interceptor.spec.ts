@@ -49,6 +49,23 @@ describe('errorInterceptor', () => {
     expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
   });
 
+  it('clears the whole session on a 401, not just the access token', () => {
+    // The admin token is the higher-privilege credential an impersonating admin leaves behind, and
+    // stopImpersonating() would install it as the active token. See #616.
+    localStorage.setItem('poracle_token', 'expired-token');
+    localStorage.setItem('poracle_admin_token', 'admin-token');
+    localStorage.setItem('poracle_refresh_token', 'refresh-token');
+    localStorage.setItem('poracle_token_expires_at', '1');
+
+    http.get('/api/dashboard').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/dashboard').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(localStorage.getItem('poracle_token')).toBeNull();
+    expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+    expect(localStorage.getItem('poracle_refresh_token')).toBeNull();
+    expect(localStorage.getItem('poracle_token_expires_at')).toBeNull();
+  });
+
   it('should show permission toast for 403 without disableKey', () => {
     http.get('/api/admin/users').subscribe({ error: () => {} });
 

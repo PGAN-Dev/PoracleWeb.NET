@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Szukaj areny (opcjonalnie)",
     "SEARCH_HINT": "Wpisz nazwę areny...",
-    "CLEAR_ARIA": "Wyczyść wybór areny"
+    "CLEAR_ARIA": "Wyczyść wybór areny",
+    "RATE_LIMITED": "Zbyt wiele zapytań do skanera — zwolnij trochę."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Powiadomienia będą wysyłane dla tych obszarów:",
@@ -1555,7 +1556,7 @@
     "ENABLE_TELEGRAM_LABEL": "Włącz logowanie Telegram",
     "ENABLE_TELEGRAM_DESC": "Zezwól na logowanie Telegram na tej stronie. Wymaga TELEGRAM_ENABLED=true, bot token i bot username w .env (wymagany restart serwera po zmianach w .env).",
     "TELEGRAM_BOT_LABEL": "Nazwa użytkownika bota",
-    "TELEGRAM_BOT_DESC": "Nazwa użytkownika bota Telegram (bez @).",
+    "TELEGRAM_BOT_DESC": "Nazwa użytkownika bota Telegram (bez @). Używane, gdy TELEGRAM_BOT_USERNAME nie jest skonfigurowane.",
     "ENABLE_DISCORD_LABEL": "Włącz logowanie Discord",
     "ENABLE_DISCORD_DESC": "Zezwól na logowanie Discord na tej stronie. Wymaga Discord Client ID i Client Secret w .env (wymagany restart serwera po zmianach w .env). Nie wpływa na dostarczanie bota PoracleNG.",
     "ENABLE_OIDC_LABEL": "Włącz logowanie przez zewnętrzne SSO",

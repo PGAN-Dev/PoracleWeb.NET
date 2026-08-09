@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Zoek een gym (optioneel)",
     "SEARCH_HINT": "Typ gym naam...",
-    "CLEAR_ARIA": "Gymselectie wissen"
+    "CLEAR_ARIA": "Gymselectie wissen",
+    "RATE_LIMITED": "Te veel scannerverzoeken — doe het wat rustiger aan."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Meldingen worden verstuurd voor deze gebieden:",
@@ -1555,7 +1556,7 @@
     "ENABLE_TELEGRAM_LABEL": "Telegram-login inschakelen",
     "ENABLE_TELEGRAM_DESC": "Sta Telegram-login toe op deze site. Vereist TELEGRAM_ENABLED=true, bot token en bot username in .env (serverherstart vereist bij .env-wijzigingen).",
     "TELEGRAM_BOT_LABEL": "Bot-gebruikersnaam",
-    "TELEGRAM_BOT_DESC": "Gebruikersnaam van de Telegram-bot (zonder @).",
+    "TELEGRAM_BOT_DESC": "Gebruikersnaam van de Telegram-bot (zonder @). Wordt gebruikt als TELEGRAM_BOT_USERNAME niet is ingesteld.",
     "ENABLE_DISCORD_LABEL": "Discord-login inschakelen",
     "ENABLE_DISCORD_DESC": "Sta Discord-login toe op deze site. Vereist Discord Client ID en Client Secret in .env (serverherstart vereist bij .env-wijzigingen). Beïnvloedt de PoracleNG-botlevering niet.",
     "PROVIDER_URL_LABEL": "Map-tile-URL",

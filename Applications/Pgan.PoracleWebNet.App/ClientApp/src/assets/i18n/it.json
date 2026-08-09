@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Cerca una palestra (opzionale)",
     "SEARCH_HINT": "Scrivi nome palestra...",
-    "CLEAR_ARIA": "Cancella selezione palestra"
+    "CLEAR_ARIA": "Cancella selezione palestra",
+    "RATE_LIMITED": "Troppe richieste allo scanner: rallenta un po’."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Le notifiche verranno inviate per queste aree:",
@@ -1554,7 +1555,7 @@
     "ENABLE_TELEGRAM_LABEL": "Abilita accesso Telegram",
     "ENABLE_TELEGRAM_DESC": "Consenti l'accesso Telegram su questo sito. Richiede TELEGRAM_ENABLED=true, bot token e bot username in .env (riavvio del server necessario dopo modifiche a .env).",
     "TELEGRAM_BOT_LABEL": "Nome utente del bot",
-    "TELEGRAM_BOT_DESC": "Nome utente del bot Telegram (senza @).",
+    "TELEGRAM_BOT_DESC": "Nome utente del bot Telegram (senza @). Usato quando TELEGRAM_BOT_USERNAME non è configurato.",
     "ENABLE_DISCORD_LABEL": "Abilita accesso Discord",
     "ENABLE_DISCORD_DESC": "Consenti l'accesso Discord su questo sito. Richiede Discord Client ID e Client Secret in .env (riavvio del server necessario dopo modifiche a .env). Non influenza la consegna del bot PoracleNG.",
     "GROUP_OIDC": "SSO Esterno",

@@ -11,7 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { switchMap, forkJoin, EMPTY } from 'rxjs';
+import { switchMap, forkJoin, EMPTY, catchError } from 'rxjs';
 
 import { DashboardCounts, GeofenceData, Location, Profile, WeatherData } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
@@ -495,6 +495,9 @@ export class DashboardComponent implements OnInit {
           }
           return EMPTY;
         }),
+        // Same 403 as #617: without this the disabled-location case threw instead of leaving the
+        // location panel empty.
+        catchError(() => EMPTY),
       )
       .subscribe();
   }

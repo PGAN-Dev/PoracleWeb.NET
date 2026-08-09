@@ -333,6 +333,25 @@ public partial class UserGeofenceService(
     public async Task<List<UserGeofence>> GetAllWithDetailsAsync()
     {
         var geofences = await this.GetAllAsync();
+        await this.EnrichWithDetailsAsync(geofences);
+        return geofences;
+    }
+
+    /// <summary>
+    /// Fills in the fields the admin list renders but the table does not store: owner and reviewer
+    /// names, and the parsed polygon with its point count.
+    /// </summary>
+    /// <remarks>
+    /// Shared with approve and reject so their responses carry the same projection. Returning the bare
+    /// row from those left the SPA -- which swaps the row for the response -- showing raw Discord
+    /// snowflakes and no map thumbnail until the page was reloaded. See #618.
+    /// </remarks>
+    private async Task EnrichWithDetailsAsync(List<UserGeofence> geofences)
+    {
+        if (geofences.Count == 0)
+        {
+            return;
+        }
 
         // Batch-fetch owner humans by distinct HumanId
         var humanIds = geofences.Select(g => g.HumanId).Distinct().ToList();
@@ -378,8 +397,6 @@ public partial class UserGeofenceService(
                 }
             }
         }
-
-        return geofences;
     }
 
     public async Task AdminDeleteAsync(string adminId, int id)
@@ -719,6 +736,7 @@ public partial class UserGeofenceService(
 
         LogGeofenceApproved(this._logger, adminId, geofence.KojiName, id, promotedName);
 
+        await this.EnrichWithDetailsAsync([updated]);
         return updated;
     }
 
@@ -762,6 +780,7 @@ public partial class UserGeofenceService(
 
         LogGeofenceRejected(this._logger, adminId, geofence.KojiName, id);
 
+        await this.EnrichWithDetailsAsync([updated]);
         return updated;
     }
 

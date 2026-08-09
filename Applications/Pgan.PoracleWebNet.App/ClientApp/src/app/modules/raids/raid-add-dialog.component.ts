@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -64,11 +64,6 @@ export class RaidAddDialogComponent {
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
 
-  /** Single-select Boss-tab level; defaults to PoracleNG's "any" sentinel (9000). */
-  bossLevel = signal<number>(ANY_LEVEL_VALUE);
-  /** Stable array reference for the level selector input — prevents per-tick re-binding. */
-  bossLevelArray = computed(() => [this.bossLevel()]);
-
   commonForm = this.fb.group({
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
@@ -97,9 +92,6 @@ export class RaidAddDialogComponent {
   }
 
   /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
-  onBossLevelChange(values: number[]): void {
-    this.bossLevel.set(values[0] ?? ANY_LEVEL_VALUE);
-  }
 
   onDistanceModeChange(): void {
     if (this.commonForm.controls.distanceMode.value === 'areas') {
@@ -162,8 +154,9 @@ export class RaidAddDialogComponent {
         creates.push(this.eggService.create(egg));
       }
     } else {
-      // By Boss
-      const bossLevel = this.bossLevel();
+      // By Boss. The level is always the "any" sentinel, never a chosen one: trackingRaid.go rewrites
+      // level to 9000 for every alarm carrying a specific pokemon_id, so the tab used to show a level
+      // picker whose value could not survive the request. See #615.
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
           clean,
@@ -172,7 +165,7 @@ export class RaidAddDialogComponent {
           exclusive: 0,
           form: 0,
           gymId: this.selectedGymId() ?? '',
-          level: bossLevel,
+          level: ANY_LEVEL_VALUE,
           move: 9000,
           pokemonId,
           rsvpChanges: common.rsvpChanges ?? 0,

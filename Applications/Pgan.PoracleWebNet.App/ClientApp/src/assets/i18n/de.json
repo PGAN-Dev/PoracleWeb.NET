@@ -1454,7 +1454,8 @@
   "GYM_PICKER": {
     "SEARCH_LABEL": "Arena suchen (optional)",
     "SEARCH_HINT": "Arena-Name eingeben...",
-    "CLEAR_ARIA": "Arena-Auswahl löschen"
+    "CLEAR_ARIA": "Arena-Auswahl löschen",
+    "RATE_LIMITED": "Zu viele Scanner-Anfragen — bitte etwas langsamer."
   },
   "DELIVERY_PREVIEW": {
     "AREAS_LABEL": "Benachrichtigungen werden für diese Gebiete gesendet:",
@@ -1554,7 +1555,7 @@
     "ENABLE_TELEGRAM_LABEL": "Telegram-Anmeldung aktivieren",
     "ENABLE_TELEGRAM_DESC": "Telegram-Anmeldung auf dieser Website zulassen. Erfordert TELEGRAM_ENABLED=true, Bot-Token und Bot-Benutzernamen in .env (Server-Neustart nach .env-Änderungen erforderlich).",
     "TELEGRAM_BOT_LABEL": "Bot-Benutzername",
-    "TELEGRAM_BOT_DESC": "Telegram-Bot-Benutzername (ohne @).",
+    "TELEGRAM_BOT_DESC": "Telegram-Bot-Benutzername (ohne @). Wird verwendet, wenn TELEGRAM_BOT_USERNAME nicht konfiguriert ist.",
     "ENABLE_DISCORD_LABEL": "Discord-Anmeldung aktivieren",
     "ENABLE_DISCORD_DESC": "Discord-Anmeldung auf dieser Website zulassen. Erfordert Discord Client ID und Client Secret in .env (Server-Neustart nach .env-Änderungen erforderlich). Betrifft nicht die PoracleNG-Bot-Zustellung.",
     "ENABLE_OIDC_LABEL": "Externe SSO-Anmeldung aktivieren",

@@ -887,7 +887,10 @@ public class UserGeofenceServiceTests
         var result = await this._sut.GetAllWithDetailsAsync();
 
         Assert.Empty(result);
-        this._humanRepo.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(ids => !ids.Any())), Times.Once);
+
+        // No rows, no lookup. The enrichment is shared with approve and reject now (#618) and returns
+        // early on an empty list rather than asking the humans table about nobody.
+        this._humanRepo.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()), Times.Never);
     }
 
     [Fact]
