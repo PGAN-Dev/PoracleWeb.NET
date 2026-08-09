@@ -139,7 +139,9 @@ describe('MonsterService', () => {
 
     const req = httpMock.expectOne(`${API}/api/monsters/distance`);
     expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ distance: 5000 });
+    // A bare number, as every sibling service sends and as [FromBody] int binds. This assertion used
+    // to require the object shape that 400'd, which is how the bug survived. See #640.
+    expect(req.request.body).toBe(5000);
     req.flush(null);
   });
 });

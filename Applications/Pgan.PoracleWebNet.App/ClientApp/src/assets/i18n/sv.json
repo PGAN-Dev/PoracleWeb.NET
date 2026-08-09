@@ -638,7 +638,8 @@
     "EDIT_MODE": "Redigera meddelandet på plats",
     "EDIT_HINT": "Uppdaterar det befintliga Discord-meddelandet när betet ändras i stället för att skicka ett nytt.",
     "EDIT_BADGE": "Redigera",
-    "CONFIRM_DELETE_TITLE": "Ta bort lockbete-larm?"
+    "CONFIRM_DELETE_TITLE": "Ta bort lockbete-larm?",
+    "SNACK_FAILED_DISTANCE": "Avståndet kunde inte uppdateras."
   },
   "NESTS": {
     "PAGE_TITLE": "Nästlarm",
@@ -656,7 +657,8 @@
     "SNACK_FAILED_CREATE": "Kunde inte skapa larm",
     "SNACK_FAILED_UPDATE": "Kunde inte uppdatera larm",
     "SNACK_FAILED_DELETE": "Kunde inte radera larm",
-    "CONFIRM_DELETE_TITLE": "Ta bort bo-larm?"
+    "CONFIRM_DELETE_TITLE": "Ta bort bo-larm?",
+    "SNACK_FAILED_DISTANCE": "Avståndet kunde inte uppdateras."
   },
   "GYMS": {
     "PAGE_TITLE": "Gymlarm",
@@ -682,7 +684,8 @@
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
     "TEAM_UNKNOWN": "Lag {{id}}",
-    "CONFIRM_DELETE_TITLE": "Ta bort gym-larm?"
+    "CONFIRM_DELETE_TITLE": "Ta bort gym-larm?",
+    "SNACK_FAILED_DISTANCE": "Avståndet kunde inte uppdateras."
   },
   "FORT_CHANGES": {
     "PAGE_TITLE": "Fort-ändringslarm",
@@ -804,7 +807,9 @@
     "SNACK_LOCATION_FAILED": "Kunde inte uppdatera plats",
     "SEARCH_AREAS": "Sök områden",
     "MANUAL_ADD_PLACEHOLDER": "Skriv ett områdesnamn och tryck Enter",
-    "FILTER_PLACEHOLDER": "Filtrera efter namn..."
+    "FILTER_PLACEHOLDER": "Filtrera efter namn...",
+    "SNACK_LOAD_SELECTED_FAILED": "Dina nuvarande områden kunde inte laddas. Ladda om innan du ändrar dem.",
+    "SELECTION_UNKNOWN": "Dina nuvarande områden kunde inte laddas — ladda om sidan innan du sparar."
   },
   "PROFILES": {
     "PAGE_TITLE": "Profiler",

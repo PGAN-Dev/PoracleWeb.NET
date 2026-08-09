@@ -66,7 +66,7 @@
     }
   </div>
 } @else {
-  <mat-tab-group>
+  <mat-tab-group [selectedIndex]="activeTab()" (selectedIndexChange)="activeTab.set($event)">
     <!-- Raids Tab -->
     <mat-tab>
       <ng-template mat-tab-label>

@@ -164,7 +164,7 @@ export class PokemonEditDialogComponent implements OnInit {
       pvpRankingWorst: values.pvpRankingLeague ? (values.pvpRankingWorst ?? 100) : 4096,
       size: values.size ?? -1,
       sta: values.sta ?? 0,
-      template: values.template || null,
+      template: values.template || '',
     };
 
     this.monsterService.update(this.data.uid, update).subscribe({

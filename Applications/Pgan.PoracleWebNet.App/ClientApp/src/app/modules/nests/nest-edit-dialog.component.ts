@@ -86,7 +86,7 @@ export class NestEditDialogComponent {
         distance: dist,
         minSpawnAvg: v.minSpawnAvg ?? 0,
         pokemonId: this.data.pokemonId,
-        template: v.template || null,
+        template: v.template || '',
       } as NestUpdate)
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which

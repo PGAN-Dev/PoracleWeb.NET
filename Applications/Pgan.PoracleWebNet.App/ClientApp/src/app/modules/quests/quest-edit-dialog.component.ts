@@ -159,7 +159,7 @@ export class QuestEditDialogComponent {
       reward: this.data.reward,
       rewardType: this.data.rewardType,
       shiny: this.data.shiny,
-      template: values.template || null,
+      template: values.template || '',
     };
 
     this.questService.update(this.data.uid, update).subscribe({

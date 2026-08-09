@@ -97,7 +97,7 @@ export class LureEditDialogComponent {
         clean: preserve(this.data.clean, AUTO_DELETE | EDIT, compose(!!v.clean, !!v.editInPlace, false)),
         distance: dist,
         lureId: this.data.lureId,
-        template: v.template || null,
+        template: v.template || '',
       } as LureUpdate)
       .subscribe({
         // The server names what is wrong -- which alarm already uses these settings, which
