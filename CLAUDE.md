@@ -363,6 +363,37 @@ The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` str
 ### Clean Field Bitmask
 The alarm `clean` field is a **3-bit bitmask** in PoracleNG, not a boolean: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary (`db.IsClean/IsEdit/IsSummary` in PoracleNG; quest summary is gated by `summary_schedules`). Use `CleanFlags` (`Core.Models/CleanFlags.cs`) and the frontend twin `shared/utils/clean-flags.ts` (`AUTO_DELETE`/`EDIT`/`SUMMARY`, `isAutoDelete/isEdit/isSummary`, `compose`, `preserve(existing, mask, changes)`) for all reads/writes so bits set elsewhere (e.g. via the bot) survive a web edit. Models cap `Clean` at `[Range(0, 7)]`. UI controls exist only where PoracleNG acts on the bit: auto-delete (all types), edit-in-place (lures + raids/eggs via RSVP `rsvpChanges`), and daily summary (quests). **Angular templates can't parse bitwise `&`** — gate card badges via a component method (e.g. `isAutoDelete(clean)`), not inline `clean & 1`. See #292.
 
+### PoracleNG Decides Insert vs Update vs Duplicate — And PoracleWeb Must Mirror It
+
+Every alarm write is a POST. PoracleNG diffs the submitted row against the existing ones (`DiffTracking`, `processor/internal/db/diff.go`) using `diff` struct tags, and the outcome is not obvious:
+
+```go
+totalDiffs == 0                            -> duplicate: nothing written, "alreadyPresent"
+totalDiffs == 1 && nonUpdatableDiffs == 0  -> UPDATE of that existing row, re-keyed to a new uid
+otherwise                                  -> new insert
+```
+
+`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm.
+
+The consequence that keeps biting: **an Add or an Edit that differs from a *different* alarm by exactly one updatable field takes that alarm over.** The user gets 201/200, and one alarm exists where there were two. `TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync` mirrors the rule and refuses before the write — on create and update alike. Two or more updatable differences genuinely coexist and must stay editable; refusing those made alarms permanently uneditable (#553).
+
+When comparing, **a field PoracleWeb does not supply cannot be compared** — PoracleNG fills it with its own default (`template` becomes the configured name, `"1"` when unset), so a null here says nothing about what will be stored. Counting it as a difference is what made the create-path check miss every collision (#561). Some values are also rewritten on the way in: raids and max battles force `level` to 9000 unless `pokemon_id` is 9000, so compare the value that will be **stored**, not the one sent (#521, #531).
+
+See #462, #463, #531, #553, #561.
+
+### Keep the PoracleNG Checkout Pinned To What Prod Runs
+
+`E:/PGAN/pogogit/PoracleNG` drifts. On 2026-08-08 it was four months behind prod, and its `DiffTracking` lacked the `totalDiffs == 1` clause entirely — reading it produced three wrong fixes in one day.
+
+PoracleNG has no version endpoint (`/health` only). To establish what prod runs: `ss -lntp | grep 3030` for the pid, `/proc/<pid>/exe` for the binary, and `git -C /source/PoracleNG rev-parse HEAD`; compare the binary mtime against the commit date. Then check out that commit locally.
+
+**Even then, verify against the live instance.** POST directly to `/api/tracking/<type>/<id>?silent=true` with the `X-Poracle-Secret` header and read the row back. Source and running binary have disagreed before, and a unit test cannot tell you which is right.
+
+### Validation Attributes Live On The `*Create` DTOs, Not The Domain Models
+
+`Monster`, `Raid`, `Gym` and friends carry **no** `[Range]` or `[StringLength]` attributes; `MonsterCreate` and its siblings do. Anything that validates an alarm outside the normal model-binding path must bind or deserialize into the `*Create` DTO, or it will validate nothing and pass silently.
+
+This has cost three separate fixes: profile import (#548), quick-pick apply (#565), and the quick-pick id length check that bounded the name but not the id generated from it (#555). All three passed their unit tests while doing nothing, because the tests asserted the code ran rather than that it rejected anything.
 ### Monster Filter Defaults
 PoracleNG applies `cleanRow` defaults (template, PVP ranking, size, max values, etc.) on every create/update, so PoracleWeb no longer needs to maintain its own set of `*Create` model defaults for alarm filter fields. The `*Create` models still exist for DTO mapping (via `AlarmMappingExtensions.To*()` methods) but their field defaults are no longer critical -- PoracleNG is the authoritative source for filter defaults.
 
