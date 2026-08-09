@@ -9,7 +9,11 @@ public interface IQuickPickService
 
     /// <summary>Ownership-scoped read: global picks are public, user picks are visible only to their owner.</summary>
     public Task<QuickPickDefinition?> GetVisibleByIdAsync(string userId, string id);
-    public Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition);
+    /// <summary>
+    /// Saves a global quick pick. <paramref name="isSeeding"/> skips the ownership guard, which the
+    /// seeding path shares and would otherwise trip over a user pick holding a built-in id. See #659.
+    /// </summary>
+    public Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition, bool isSeeding = false);
     public Task<QuickPickDefinition> SaveUserPickAsync(string userId, QuickPickDefinition definition);
     public Task<bool> DeleteAdminPickAsync(string id);
     public Task<bool> DeleteUserPickAsync(string userId, string id);

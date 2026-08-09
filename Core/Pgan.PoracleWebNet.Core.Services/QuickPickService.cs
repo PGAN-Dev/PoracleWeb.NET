@@ -161,7 +161,7 @@ public partial class QuickPickService(
     public async Task<QuickPickDefinition?> GetVisibleByIdAsync(string userId, string id) =>
         await this.LoadDefinitionAsync(userId, id);
 
-    public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition)
+    public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition, bool isSeeding = false)
     {
         EnsureFiltersAreUsable(definition);
 
@@ -170,12 +170,19 @@ public partial class QuickPickService(
         // Given an id, this used to convert whatever it found into a global pick -- including a private
         // one belonging to somebody else, which then appeared for every user and vanished from its
         // owner's list. SaveUserPickAsync has always had this guard. See #631.
-        var existing = await this._definitionRepository.GetByIdAsync(definition.Id);
-        if (existing is not null
-            && !string.Equals(existing.Scope, "global", StringComparison.OrdinalIgnoreCase))
+        //
+        // Skipped when seeding. SeedDefaultsAsync creates the built-ins through this method, so a
+        // user-scoped pick that happens to hold a built-in id aborted the seed partway -- the same
+        // partial-preset-list failure #637 fixed, reintroduced by the guard in the same commit. See #659.
+        if (!isSeeding)
         {
-            throw new AlarmValidationException(
-                "That quick pick belongs to a user. Publish a copy instead of converting theirs.");
+            var existing = await this._definitionRepository.GetByIdAsync(definition.Id);
+            if (existing is not null
+                && !string.Equals(existing.Scope, "global", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AlarmValidationException(
+                    "That quick pick belongs to a user. Publish a copy instead of converting theirs.");
+            }
         }
 
         definition.Scope = "global";
@@ -620,7 +627,7 @@ public partial class QuickPickService(
 
         foreach (var definition in Defaults)
         {
-            await this.SaveAdminPickAsync(definition);
+            await this.SaveAdminPickAsync(definition, isSeeding: true);
         }
     }
 

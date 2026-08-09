@@ -326,6 +326,26 @@ public class QuickPickServiceSecurityTests
     // then collapsed to /api/quick-picks/ so the pick could not be deleted or applied through any path.
 
     [Fact]
+    public async Task SeedingIsNotBlockedByAUserPickHoldingABuiltInId()
+    {
+        // SeedDefaultsAsync creates the built-ins through SaveAdminPickAsync, so the ownership guard
+        // added alongside it ran there too: one user-scoped pick holding a built-in id aborted the seed
+        // partway -- the same partial-preset-list failure the same commit had just fixed. See #659.
+        this._definitionRepository.Setup(r => r.GetAllGlobalAsync()).ReturnsAsync([]);
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new QuickPickDefinition { Id = "nundo", Scope = "user", OwnerUserId = "u2" });
+        var created = new List<string>();
+        this._definitionRepository.Setup(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()))
+            .Callback<QuickPickDefinition>(d => created.Add(d.Id))
+            .Returns(Task.CompletedTask);
+
+        await this._sut.SeedDefaultsAsync();
+
+        var expected = (await this._sut.GetDefaultPicksAsync()).Count();
+        Assert.Equal(expected, created.Count);
+    }
+
+    [Fact]
     public async Task SaveAdminPickRefusesToTakeOverAUsersPrivatePick()
     {
         // Given an id it converted whatever it found into a global pick -- so an admin editing their own

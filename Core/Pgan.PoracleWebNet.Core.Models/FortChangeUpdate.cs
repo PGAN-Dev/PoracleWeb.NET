@@ -29,6 +29,10 @@ public class FortChangeUpdate
         get; set;
     }
 
+    // The same two bounds the create DTO carries (#612). Left off here, an update could still push an
+    // unbounded or repeating list into the JSON text column. See #660.
+    [MaxLength(5, ErrorMessage = "changeTypes may contain at most 5 entries.")]
+    [DistinctValues(ErrorMessage = "changeTypes must not repeat a value.")]
     [AllowedStringValues(
         FortChangeOptions.ChangeTypeName,
         FortChangeOptions.ChangeTypeLocation,

@@ -114,7 +114,15 @@ public partial class ProfileOverviewController(
         // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
         // user kept their isAdmin claim alive indefinitely. See #624.
         var roles = await this._roleResolver.ResolveAsync(this.UserId);
-        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, roles.IsAdmin);
+
+        // Null means "leave the claim alone". Two cases need it: the resolver could not reach PoracleNG,
+        // where treating unknown as false stripped admin for the rest of the session (#656); and an
+        // impersonation session, which AdminController deliberately mints with IsAdmin = false and which
+        // would otherwise be re-elevated by resolving the impersonated user's own roles (#663).
+        bool? resolvedAdmin = roles.Resolved && this.User.FindFirst("impersonatedBy") is null
+            ? roles.IsAdmin
+            : null;
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, resolvedAdmin);
 
         return this.Ok(new
         {
@@ -212,7 +220,15 @@ public partial class ProfileOverviewController(
         // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
         // user kept their isAdmin claim alive indefinitely. See #624.
         var roles = await this._roleResolver.ResolveAsync(this.UserId);
-        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, roles.IsAdmin);
+
+        // Null means "leave the claim alone". Two cases need it: the resolver could not reach PoracleNG,
+        // where treating unknown as false stripped admin for the rest of the session (#656); and an
+        // impersonation session, which AdminController deliberately mints with IsAdmin = false and which
+        // would otherwise be re-elevated by resolving the impersonated user's own roles (#663).
+        bool? resolvedAdmin = roles.Resolved && this.User.FindFirst("impersonatedBy") is null
+            ? roles.IsAdmin
+            : null;
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, this.ProfileNo, resolvedAdmin);
 
         return this.Ok(new
         {

@@ -55,6 +55,12 @@ public partial class UserGeofenceController(
             // does not exist.
             return this.NotFound();
         }
+        catch (InvalidOperationException ex)
+        {
+            // The rename status guard (#646) threw straight past these arms as an unhandled 500.
+            // CreateGeofence already has this arm; rename was not given it. See #657.
+            return this.BadRequest(new { error = ex.Message });
+        }
         catch (ArgumentException ex)
         {
             return this.BadRequest(new { error = ex.Message });

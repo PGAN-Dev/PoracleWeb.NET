@@ -346,9 +346,23 @@ public class InvasionServiceTests
     [Fact]
     public async Task CreateAsyncRefusesAGruntTypeLongerThanTheColumn()
     {
+        // varchar(255) upstream. This asserted 35, an invented limit the fix's own rationale forbade.
+        // See #661.
         var ex = await Assert.ThrowsAsync<AlarmValidationException>(
-            () => this._sut.CreateAsync("user1", new Invasion { GruntType = new string('a', 36) }));
+            () => this._sut.CreateAsync("user1", new Invasion { GruntType = new string('a', 256) }));
 
-        Assert.Contains("35", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("255", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CreateAsyncAcceptsAGruntTypeTheColumnCanHold()
+    {
+        // The legitimate-case-still-passes half. See #661.
+        this._proxy.Setup(p => p.CreateAsync("invasion", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([12], 0, 0, 1));
+
+        var result = await this._sut.CreateAsync("user1", new Invasion { GruntType = new string('a', 255) });
+
+        Assert.Equal(12, result.Uid);
     }
 }

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- A PoracleNG outage during a profile switch no longer strips admin from the session: the role resolver now reports "could not resolve" separately from "not an admin", and a degraded answer is never cached (#656)
+- A profile switch during impersonation no longer undoes the deliberate privilege downgrade (#663)
+- `PUT /api/fort-changes/{uid}` bounds `changeTypes` the same way the create path does (#660)
 - Creating a profile no longer accepts an unbounded location or an area list naming another user's private geofence, both of which were written straight to the database (#647)
 - A login that carries no refresh token now clears any refresh token left behind by a previous session, instead of inheriting it and letting the refresh interceptor swap in a JWT minted for the previous user (#625)
 - A token re-issue no longer restarts the session clock: profile switches and profile resyncs keep the original expiry instead of applying the 24-hour default, so a short OIDC access token stays short and revocation propagates as documented (#624)
@@ -23,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Renaming an approved geofence answers 400 with a reason instead of 500, and the rename button is hidden where it cannot work (#657)
+- Creating a profile no longer strips approved geofences, which are public areas anyone may select, and rejects a malformed area list instead of silently emptying it (#658)
+- Seeding the built-in quick picks is no longer aborted by a user pick that happens to hold a built-in id (#659)
+- The invasion `gruntType` length bound is the column's actual width (255), not an invented 35 (#661)
+- Whether the built-in quick picks have been seeded is recorded server-side, so a second admin or a different browser no longer reseeds them and a failed seed retries (#662)
 - Editing a quick pick no longer drops filters whose value is 0: the built-in Nundo preset is `minIv: 0, maxIv: 0`, so changing its description silently turned "0% IV only" into "any IV" for everyone who applied it afterwards (#654)
 - Rejecting a geofence submission no longer silently stops the owner's alerts: a rejected fence stays in the feed, as "remains private with review notes" always intended (#645)
 - An approved or under-review geofence can no longer be renamed, which used to move the area subscription to a name neither Koji nor the feed serves (#646)

@@ -67,9 +67,11 @@ public class ProfileController(
         {
             requested = JsonSerializer.Deserialize<List<string>>(area);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            return "[]";
+            // Silently emptying a list we could not read is the worst of both: the caller asked for
+            // something and gets a 201 saying it worked. See #658.
+            throw new ArgumentException("area must be a JSON array of area names.", nameof(area), ex);
         }
 
         if (requested is null || requested.Count == 0)
@@ -77,8 +79,13 @@ public class ProfileController(
             return "[]";
         }
 
+        // Approved fences are excluded: approval promotes them to public Koji areas that anyone may
+        // select, and when no promotedName was supplied the public area's name IS the KojiName -- so
+        // denying it silently dropped a legitimate public area from the new profile. Only another
+        // user's still-private fence is refused. See #658.
         var privateNames = (await this._userGeofenceRepository.GetAllAsync())
             .Where(g => !string.Equals(g.HumanId, this.UserId, StringComparison.OrdinalIgnoreCase))
+            .Where(g => !string.Equals(g.Status, "approved", StringComparison.OrdinalIgnoreCase))
             .Select(g => g.KojiName)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -154,7 +161,15 @@ public class ProfileController(
             });
         }
 
-        var requestedAreas = await this.RemoveAreasTheCallerMayNotSelectAsync(profile.Area);
+        string requestedAreas;
+        try
+        {
+            requestedAreas = await this.RemoveAreasTheCallerMayNotSelectAsync(profile.Area);
+        }
+        catch (ArgumentException ex)
+        {
+            return this.BadRequest(new { error = ex.Message });
+        }
 
         // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the
         // ACTIVE profile had -- every area subscription the user held, and a location that also drives the
@@ -249,7 +264,15 @@ public class ProfileController(
         // Resolved fresh, not copied from the old token: a profile switch was the way a de-admined
         // user kept their isAdmin claim alive indefinitely. See #624.
         var roles = await this._roleResolver.ResolveAsync(this.UserId);
-        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, profileNo, roles.IsAdmin);
+
+        // Null means "leave the claim alone". Two cases need it: the resolver could not reach PoracleNG,
+        // where treating unknown as false stripped admin for the rest of the session (#656); and an
+        // impersonation session, which AdminController deliberately mints with IsAdmin = false and which
+        // would otherwise be re-elevated by resolving the impersonated user's own roles (#663).
+        bool? resolvedAdmin = roles.Resolved && this.User.FindFirst("impersonatedBy") is null
+            ? roles.IsAdmin
+            : null;
+        var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, profileNo, resolvedAdmin);
 
         return this.Ok(new
         {
