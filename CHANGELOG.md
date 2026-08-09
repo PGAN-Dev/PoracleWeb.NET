@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Changing a quick pick's alarm type no longer drops its ping target, template or distance either (#674)
 - Changing a quick pick's alarm type no longer resets its auto-delete, edit-in-place and summary bits (#671)
 - Creating a profile validates the location and area list before the profile is created, instead of leaving an orphan profile behind a 400 (#665)
 - Deleting the last quick pick no longer restores all thirty presets in the same session, and installations seeded before the marker existed are backfilled at startup (#666)
