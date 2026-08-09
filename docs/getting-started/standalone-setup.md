@@ -18,19 +18,17 @@ You'll configure everything in a single `.env` file at the project root and run 
 
 ## 1. Get the app
 
-=== "Download a release (easiest)"
+=== "Clone a release tag (recommended)"
 
-    Download the latest release from the [GitHub Releases](https://github.com/PGAN-Dev/PoracleWeb.NET/releases) page and extract it:
+    Releases are source-only — no prebuilt archives are attached, so clone the tag you want and build it:
 
     ```bash
-    # Linux/macOS
-    mkdir poracleweb && cd poracleweb
-    tar -xzf poracleweb.net-linux-x64.tar.gz
-
-    # Windows (PowerShell)
-    Expand-Archive poracleweb.net-win-x64.zip -DestinationPath poracleweb
+    git clone --branch v2.14.0 --depth 1 https://github.com/PGAN-Dev/PoracleWeb.NET.git poracleweb
     cd poracleweb
     ```
+
+    Omit `--branch` to take `main`, which always points at the most recent release. If you would rather
+    not build at all, the [Docker image](../configuration/docker.md) is the prebuilt option.
 
 === "Build from source"
 

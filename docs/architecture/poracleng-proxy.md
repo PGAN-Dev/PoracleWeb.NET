@@ -77,6 +77,7 @@ public interface IPoracleTrackingProxy
     Task DeleteByUidAsync(string type, string userId, int uid);
     Task BulkDeleteByUidsAsync(string type, string userId, IEnumerable<int> uids);
     Task<JsonElement> GetAllTrackingAsync(string userId);
+    Task<JsonElement> GetAllTrackingAllProfilesAsync(string userId);
     Task ReloadStateAsync();
 }
 ```
@@ -88,6 +89,11 @@ Key design points:
 - **`X-Poracle-Secret` header** -- authenticates requests to the PoracleNG API. Configured via `Poracle:ApiSecret`.
 - **Updates use POST** -- PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a `uid` field, PoracleNG updates the existing alarm instead of creating a new one.
 - **`uid:0` stripped on create** -- `PoracleJsonHelper.SerializeToElement()` removes `"uid":0` from request bodies. PoracleNG treats `uid=0` as an update target instead of a new insert; omitting `uid` tells PoracleNG to create a new row.
+- **`profile_no` stripped on every alarm write** -- the same helper removes it. PoracleNG takes a submitted
+  `profile_no` at face value on the pokemon type (creating a row on a profile that may not exist) while
+  scoping every read to `current_profile_no`. Since the JWT claim can be stale, stamping it onto writes
+  stranded alarms that were invisible and undeletable. Omitting it files each alarm under the live active
+  profile.
 - **URL-encoding for user IDs** -- Both `PoracleTrackingProxy` and `PoracleHumanProxy` use `Uri.EscapeDataString()` on user IDs in URL paths. Webhook IDs are full URLs containing slashes that would break routing without encoding.
 
 ## snake_case JSON serialization

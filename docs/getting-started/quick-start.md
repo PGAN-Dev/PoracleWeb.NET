@@ -65,6 +65,7 @@ JWT_SECRET=generate-a-long-random-secret-key-at-least-32-chars
 # Set the OAuth2 redirect URI to: http://your-server:8082/api/auth/discord/callback
 DISCORD_CLIENT_ID=your_discord_client_id
 DISCORD_CLIENT_SECRET=your_discord_client_secret
+# Optional: only needed for avatar caching and the geofence review forum posts.
 DISCORD_BOT_TOKEN=your_discord_bot_token
 
 # Poracle API — your running PoracleNG instance

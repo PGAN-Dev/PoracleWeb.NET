@@ -11,9 +11,13 @@ PoracleWeb.NET uses Discord OAuth2 for user authentication. This page walks thro
     | Environment | Redirect URI |
     |---|---|
     | Production / Docker | `http://your-domain:8082/api/auth/discord/callback` |
-    | Development | `http://localhost:5048/api/auth/discord/callback` |
+    | Development | `http://localhost:4200/api/auth/discord/callback` |
 
-    The redirect URI must point to the **API server** (not the Angular dev server). In production, both are served from the same origin. In development, the API runs on port 5048.
+    The redirect URI must match the origin **the browser is on**, because `AuthController` builds the
+    callback from the incoming `Host` header. In production the API and the SPA share an origin, so this
+    is simply your domain. In development the browser is on the Angular dev server (4200) and
+    `proxy.conf.json` sets `changeOrigin: false`, so the `Host` stays `localhost:4200` — register that,
+    not the API's 5048. If you serve the dev app on another port, register that port instead.
 
 4. Copy the **Client ID** and **Client Secret**
 
