@@ -61,11 +61,58 @@ jobs:
     permissions:
       packages: write
     steps:
-      - name: Keep only last 10 develop-<sha> images
-        uses: actions/delete-package-versions@v5
+      # Deliberately github-script rather than actions/delete-package-versions.
+      #
+      # That action's `ignore-versions` matches a package version's NAME, and for container packages the
+      # name is the digest -- never the tag. So the ignore list protected nothing, and
+      # `min-versions-to-keep: 10` deleted every version older than the ten most recent pushes whatever
+      # it was tagged. Twenty merges to develop after a release was enough to take `latest` and the
+      # version tags with it: on 2026-08-09 the registry held `beta` and 28 `develop-<sha>` tags and
+      # nothing else, so every documented `docker compose up` failed to pull for anyone not already
+      # running an image. The v2.13.0 tags had published successfully and were then pruned away.
+      #
+      # A version is deleted only when EVERY tag on it looks like develop-<sha>. A develop push tags one
+      # digest both `beta` and `develop-<sha>`, and a release tags one digest `latest`, `X.Y.Z`, `X.Y`
+      # and `<sha>` -- checking every tag is what keeps those safe.
+      - name: Keep only the last 10 develop-<sha> images
+        uses: actions/github-script@v9
+        env:
+          ORG: ${{ env.ORG }}
+          PACKAGE: ${{ env.PACKAGE }}
+          KEEP: '10'
         with:
-          package-name: poracleweb.net
-          package-type: container
-          owner: pgan-dev
-          min-versions-to-keep: 10
-          ignore-versions: '^(latest|beta|v\\d+\\.\\d+.*|pr-.*)$'
+          script: |
+            const { ORG, PACKAGE } = process.env;
+            const keep = Number(process.env.KEEP);
+
+            const versions = await github.paginate(
+              github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg,
+              { package_type: 'container', package_name: PACKAGE, org: ORG, per_page: 100 },
+            );
+
+            const isDevelopSha = t => /^develop-[0-9a-f]+$/i.test(t);
+            const prunable = versions.filter(v => {
+              const tags = v.metadata?.container?.tags ?? [];
+              return tags.length > 0 && tags.every(isDevelopSha);
+            });
+
+            // Sorted explicitly rather than trusting the API's order. Which images get deleted depends
+            // entirely on this, and an undocumented ordering is not something to bet the registry on.
+            prunable.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const surplus = prunable.slice(keep);
+            console.log(`${versions.length} versions, ${prunable.length} develop-only, deleting ${surplus.length}`);
+
+            for (const v of surplus) {
+              const tags = (v.metadata?.container?.tags ?? []).join(',');
+              try {
+                await github.rest.packages.deletePackageVersionForOrg({
+                  package_type: 'container',
+                  package_name: PACKAGE,
+                  org: ORG,
+                  package_version_id: v.id,
+                });
+                console.log(`Deleted ${tags}`);
+              } catch (e) {
+                console.log(`Skipping ${tags}: ${e.message}`);
+              }
+            }
