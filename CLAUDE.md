@@ -307,6 +307,73 @@ Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT 
 - **DataProtection**: Keys are persisted to `DATA_DIR/dataprotection-keys` (Docker: `/app/data/dataprotection-keys`, standalone: `./data/dataprotection-keys`). Configured in `ServiceCollectionExtensions.cs` via `AddDataProtection().PersistKeysToFileSystem().SetApplicationName("Pgan.PoracleWebNet.Api")`. Uses the existing `DATA_DIR` env var (set in Dockerfile, read via `configuration["DATA_DIR"]`) with a fallback to `Path.Combine(Directory.GetCurrentDirectory(), "data")` for local dev. No additional env vars or NuGet packages needed.
 - **PoracleJS config**: `geofence.path` in PoracleJS config is a single URL pointing to the PoracleWeb unified feed endpoint (e.g., `"http://poracleweb:8082/api/geofence-feed"`). PoracleWeb fetches admin geofences from Koji internally and merges them with user geofences.
 
+## Fixing Defects Without Causing Them
+
+About one in five defects found in this codebase's audit sweeps was caused by an earlier fix in the
+same campaign. They are not random -- they cluster into two shapes, and both are cheap to prevent.
+
+### Shape 1: tightening a rule without enumerating who depended on the loose one
+
+The repeated failure. A constraint gets added, the bad case is verified refused, and nobody checks
+which legitimate cases are now refused too.
+
+| The fix | What it broke |
+|---|---|
+| #601 resolved delegated webhooks live | delegates configured in PoracleJS got an empty page and a 403 (#626) |
+| #604 validated quick-pick filters at save time | seeding died on two built-ins that carry empty filters on purpose (#637) |
+| #616 cleared the admin token on a 401 | left an impersonation banner whose Stop button did nothing (#627) |
+| #531 guarded alarm-edit collisions | refused uneditable alarms (#553), then swallowed `gym_id` (#575), then ignored first-match ordering (#606) |
+
+**Before adding any validation, allowlist, guard or refusal:**
+
+1. **Query production for what currently satisfies the loose rule.** An invasion `gruntType` allowlist
+   built from `InvasionGruntTypes.All` would have refused `blanche`, `candela`, `spark`, `npc 0`-`npc 10`
+   and `player team leader` -- every one of them live. Connection details are in `.env`; query with
+   `docker run --rm mariadb:latest mariadb --skip-ssl -h HOST -P PORT -u USER -pPASS DB -e "SQL"`.
+   If you cannot enumerate what the loose rule permits, you cannot safely tighten it.
+2. **Prefer refusing the impossible over allowing only the known.** "No control characters, no more than
+   the column holds" ages well. "One of these thirty values" does not.
+3. **Find the other callers.** `SeedDefaultsAsync` reaches `SaveAdminPickAsync`; quick-pick apply reaches
+   `BulkCreateAsync`. A guard added for the interactive path fires on every internal path too.
+
+### Shape 2: fixing one path and leaving its siblings
+
+`bulkDelete` was hardened in #603 and `bulkUpdateDistance` was not (#641). The single-pick delete cleared
+applied state and the reseed did not (#630). One edit dialog sent `''` and nine sent `null` (#639).
+
+**Before committing, grep for the shape you just fixed.** There are ten alarm types, ten list components,
+ten edit dialogs, eleven locale files. A fix that touches one of a set of ten is incomplete until you have
+looked at the other nine and can say in the PR why they are fine, or fixed them too.
+
+### Tests: assert what must still work, not only what must now fail
+
+A test written alongside a fix encodes the fix's own model of the world, so it passes whether or not the
+fix is right. Three fixes validated the domain model instead of the `*Create` DTO the controller binds,
+passed their tests, and did nothing (#548, #555, #565). `monster.service.spec.ts` went further and
+**asserted the broken request shape**, so the suite was actively defending the bug (#640).
+
+- Every guard needs a **legitimate-case-still-passes** test alongside the refusal test. The grunt-type
+  theory names five values found in live data; the seeding test names the two presets that were being
+  dropped. Those are the tests that catch shape 1.
+- **Watch a new test fail before you fix the code.** A test that has never been red proves nothing.
+- When an existing test contradicts a fix, work out which one is wrong before changing either. Sometimes
+  the test is enshrining the defect.
+
+### Verify upstream behaviour by calling it, not by reading it
+
+Three fixes were derived from a PoracleNG checkout four months adrift from production (#521, #531, #553).
+Pin the checkout first -- see the memory note `project_poracleng_checkout_must_match_prod` -- and then,
+where it is cheap, confirm by POSTing to the running instance rather than trusting the source read.
+Reading `DiffAndClassify` incrementally produced a guard that was right about the part just read and wrong
+about the part not yet read, twice.
+
+### What "clean" means
+
+A sweep returning nothing does not mean the code is defect-free -- it means that set of lenses is
+exhausted. Every sweep should include a **regression lens**: an agent that reads the diffs merged since
+the last sweep and asks only "what did these fixes break, and which siblings did they miss?" That is the
+lens which catches the one-in-five, and it is the one most easily forgotten.
+
 ## Common Issues
 
 ### MySQL Provider
