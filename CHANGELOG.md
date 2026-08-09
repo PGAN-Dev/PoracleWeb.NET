@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Adding a Pokemon alarm at a tighter IV silently replaced the existing one** ([#574](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/574)). Same species, higher minimum IV — about the most ordinary thing you can do — reported a new alarm created and destroyed the old one.
+- **An "any gym" alarm was refused when a gym-specific one existed** ([#575](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/575)), and whether it worked depended on which of the two you added first. They are different alarms and both are allowed again.
+- **Duplicating a profile from the Profiles page put the Pokemon alarms on the wrong profile** ([#576](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/576)) — back onto the profile being copied, which quietly gained a duplicate each time, while the new profile came up with no Pokemon tracking at all.
+- **Adding several alarms at once reported the whole batch as failed if one clashed** ([#577](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/577)), leaving the ones that were created invisible until you reloaded the page.
+### Fixed
 - **Adding a lure for a type you already track returned a server error** ([#562](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/562)) instead of saying you already have one — for a choice the lure picker actively offers.
 - **A new profile started with all your current areas and location** ([#563](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/563)) rather than empty, so it began delivering notifications for areas you never chose for it.
 - **A quick pick could still store filter values the add form rejects** ([#565](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/565)), producing an alarm that matches nothing. The check was running against a model that carries none of the rules.
