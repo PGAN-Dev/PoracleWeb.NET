@@ -107,9 +107,15 @@ export class QuickPickListComponent implements OnInit {
           // reseeded anyway, while a failed seed latched the flag and never retried. See #662.
           this.quickPickService.seed().subscribe({
             error: () => this.loading.set(false),
-            // The marker is written server-side by the seed endpoint, atomically with the seed it
-            // describes -- the SPA only reads it. See #662.
-            next: () => this.loadPicks(false),
+            next: () => {
+              // The marker is written server-side by the seed endpoint, atomically with the seed it
+              // describes (#662). The local signal is only refreshed at app init, so without this the
+              // key stayed absent for the rest of the session: deleting the last pick called loadPicks
+              // with autoSeed, saw an empty list and an absent marker, and restored all thirty. That is
+              // #634 again, minus the synchronous localStorage write that used to mask it. See #666.
+              this.settingsService.siteSettings.update(current => ({ ...current, [SEEDED_KEY]: 'true' }));
+              this.loadPicks(false);
+            },
           });
           return;
         }

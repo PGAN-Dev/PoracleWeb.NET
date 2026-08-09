@@ -125,34 +125,15 @@ public class ProfileController(
             return this.BadRequest(validationError);
         }
 
-        // PoracleNG assigns the lowest free number, not max+1, so the number cannot be predicted for a
-        // user who has ever deleted a non-last profile. Ask what it chose. See #407.
-        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-
-        var body = JsonSerializer.SerializeToElement(new
-        {
-            name = profile.Name,
-            area = profile.Area ?? "[]",
-            latitude = profile.Latitude,
-            longitude = profile.Longitude,
-            active_hours = profile.ActiveHours
-        });
-        await this._humanProxy.AddProfileAsync(this.UserId, body);
-
-        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
-        var createdNo = ProfileNumbering.ResolveCreated(before, after, profile.Name);
-        if (createdNo is null)
-        {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new
-            {
-                error = "The profile was not created."
-            });
-        }
-
         // The request supplies its own geography, and nothing bounded it. Coordinates out of range reach
         // the active-hours scheduler, which reads them as a timezone; an area list could name another
         // user's private geofence, which PoracleNG's own setAreas filter would have stripped but a direct
         // write does not. See #647.
+        //
+        // Both checks run BEFORE the profile is created. Behind it, a refusal answered 400 while leaving
+        // a profile PoracleNG had already made -- and since addProfile ignores `area`, that orphan came
+        // up carrying the ACTIVE profile's entire area list and location, the inheritance #563 exists to
+        // prevent. A retry then made a second one. See #665.
         if (profile.Latitude is < -90 or > 90 || profile.Longitude is < -180 or > 180)
         {
             return this.BadRequest(new
@@ -169,6 +150,30 @@ public class ProfileController(
         catch (ArgumentException ex)
         {
             return this.BadRequest(new { error = ex.Message });
+        }
+
+        // PoracleNG assigns the lowest free number, not max+1, so the number cannot be predicted for a
+        // user who has ever deleted a non-last profile. Ask what it chose. See #407.
+        var before = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
+
+        var body = JsonSerializer.SerializeToElement(new
+        {
+            name = profile.Name,
+            area = requestedAreas,
+            latitude = profile.Latitude,
+            longitude = profile.Longitude,
+            active_hours = profile.ActiveHours
+        });
+        await this._humanProxy.AddProfileAsync(this.UserId, body);
+
+        var after = (await this._profileService.GetByUserAsync(this.UserId)).ToList();
+        var createdNo = ProfileNumbering.ResolveCreated(before, after, profile.Name);
+        if (createdNo is null)
+        {
+            return this.StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                error = "The profile was not created."
+            });
         }
 
         // addProfile ignores area, latitude and longitude, so a new profile came up carrying whatever the

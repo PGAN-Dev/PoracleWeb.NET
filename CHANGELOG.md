@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- A failed lookup of PoracleWeb's own delegate table is now reported as unresolved rather than as a confident empty list, so a momentary blip no longer denies a delegate for a full minute (#667)
 - A PoracleNG outage during a profile switch no longer strips admin from the session: the role resolver now reports "could not resolve" separately from "not an admin", and a degraded answer is never cached (#656)
 - A profile switch during impersonation no longer undoes the deliberate privilege downgrade (#663)
 - `PUT /api/fort-changes/{uid}` bounds `changeTypes` the same way the create path does (#660)
@@ -26,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Creating a profile validates the location and area list before the profile is created, instead of leaving an orphan profile behind a 400 (#665)
+- Deleting the last quick pick no longer restores all thirty presets in the same session, and installations seeded before the marker existed are backfilled at startup (#666)
+- The quick-pick seed marker no longer appears in the admin Settings page as an editable unknown setting (#668)
+- Changing a quick pick's alarm type no longer keeps the previous type's filter keys (#669)
 - Renaming an approved geofence answers 400 with a reason instead of 500, and the rename button is hidden where it cannot work (#657)
 - Creating a profile no longer strips approved geofences, which are public areas anyone may select, and rejects a malformed area list instead of silently emptying it (#658)
 - Seeding the built-in quick picks is no longer aborted by a user pick that happens to hold a built-in id (#659)

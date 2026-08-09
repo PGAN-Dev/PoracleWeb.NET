@@ -406,6 +406,9 @@ public partial class SettingsMigrationService(
         ("custom_title", "PoracleWeb.NET", "branding", "string"),
     ];
 
+    /// <summary>Marks that the built-in quick picks have been created once. See #662, #666.</summary>
+    private const string QuickPicksSeededKey = "quick_picks_seeded";
+
     public async Task SeedDefaultsAsync()
     {
         foreach (var (key, value, category, valueType) in DefaultSettings)
@@ -426,6 +429,42 @@ public partial class SettingsMigrationService(
 
             LogDefaultSeeded(this._logger, key, value);
         }
+
+        await this.BackfillQuickPickSeedMarkerAsync();
+    }
+
+    /// <summary>
+    /// Records that the built-in quick picks exist, for installations seeded before the marker did.
+    /// </summary>
+    /// <remarks>
+    /// The marker used to be a per-browser localStorage flag and became a site setting in #662. Without
+    /// this, an installation that was already seeded has no row, so the first admin to open Quick Picks
+    /// after upgrading -- having deliberately deleted the presets -- gets all thirty back. See #666.
+    /// </remarks>
+    private async Task BackfillQuickPickSeedMarkerAsync()
+    {
+        if (await this._siteSettingService.GetByKeyAsync(QuickPicksSeededKey) is not null)
+        {
+            return;
+        }
+
+        var globals = await this._quickPickDefinitionRepository.GetAllGlobalAsync();
+        if (globals is not { Count: > 0 })
+        {
+            // Genuinely fresh, or deliberately emptied before the marker existed. Either way the first
+            // admin visit seeds, which is the behaviour that shipped.
+            return;
+        }
+
+        await this._siteSettingService.CreateOrUpdateAsync(new SiteSetting
+        {
+            Key = QuickPicksSeededKey,
+            Value = "true",
+            Category = "admin",
+            ValueType = "boolean",
+        });
+
+        LogDefaultSeeded(this._logger, QuickPicksSeededKey, "true");
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Settings migration completed: {SiteSettings} site settings, {WebhookDelegates} webhook delegates, {QuickPickDefinitions} quick pick definitions, {QuickPickAppliedStates} quick pick applied states, {Failed} failed")]

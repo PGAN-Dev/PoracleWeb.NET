@@ -197,7 +197,11 @@ export class QuickPickAdminDialogComponent implements OnInit {
     // Start from what is stored rather than rebuilding: any key the dialog has no control for used to be
     // dropped on save, and quick-pick-apply reads filters['clean'] as its base bitmask while no form
     // exposes it. See #654.
-    const stored: Record<string, unknown> = { ...(this.data?.filters ?? {}) };
+    // Only when the type is unchanged. alarmType is editable on the edit dialog, and carrying the old
+    // type's keys across stored minIv and pvpRankingLeague on a lure pick. Inert at apply time, since
+    // BuildFromFilters ignores unknown keys, but it is junk in the definition. See #669.
+    const sameType = this.data?.alarmType === (main.alarmType ?? 'monster');
+    const stored: Record<string, unknown> = sameType ? { ...(this.data?.filters ?? {}) } : {};
     const filters: Record<string, unknown> = stored;
     if (filterForm) {
       const raw = filterForm.getRawValue();

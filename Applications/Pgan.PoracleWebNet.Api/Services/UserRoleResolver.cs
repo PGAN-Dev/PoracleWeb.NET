@@ -95,6 +95,7 @@ public sealed partial class UserRoleResolver(
         // Tracked so a failure is reported as "unknown", not as "not an admin". See #656.
         var configReadable = true;
         var rolesReadable = true;
+        var delegatesReadable = true;
 
         // Check Poracle config admins list
         try
@@ -177,10 +178,14 @@ public sealed partial class UserRoleResolver(
         }
         catch (Exception ex)
         {
+            // The third source, and it was left out of the Resolved flag: a poracle_web blip returned a
+            // confident answer with an incomplete webhook list, which then got cached for the full
+            // minute and denied a legitimate delegate the whole time. See #667.
             LogPwebDelegatesFetchFailed(this._logger, ex, userId);
+            delegatesReadable = false;
         }
 
-        return new UserRoles(false, managed.Count > 0 ? [.. managed] : null, configReadable && rolesReadable);
+        return new UserRoles(false, managed.Count > 0 ? [.. managed] : null, configReadable && rolesReadable && delegatesReadable);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
