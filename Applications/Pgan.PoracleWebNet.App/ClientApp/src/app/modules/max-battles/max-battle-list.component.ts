@@ -67,13 +67,22 @@ export class MaxBattleListComponent implements OnInit {
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
       const ids = [...this.selectedIds()];
+      // Settled one at a time. A stale uid -- the row re-keyed by an edit, or removed in another tab --
+      // threw out of the loop, so the deletes that had already happened went unreported and the list
+      // never reloaded: the user saw nothing at all. See #603.
+      let deleted = 0;
       for (const uid of ids) {
-        await firstValueFrom(this.maxBattleService.delete(uid));
+        try {
+          await firstValueFrom(this.maxBattleService.delete(uid));
+          deleted++;
+        } catch {
+          // Already gone, which is the outcome the user asked for.
+        }
       }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+      this.snackBar.open(this.i18n.instant('MAX_BATTLES.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }

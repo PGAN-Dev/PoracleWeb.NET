@@ -343,7 +343,8 @@
     "TEST_COOLDOWN": "Przerwa aktywna",
     "TEST_SEND": "Wyślij testowe powiadomienie",
     "TAB_DELIVERY": "Dostarczanie",
-    "COMMON_SETTINGS": "Wspólne ustawienia"
+    "COMMON_SETTINGS": "Wspólne ustawienia",
+    "SNACK_CREATED_WITH_DUPLICATES": "Utworzono: {{count}}, juz sledzone: {{duplicates}}"
   },
   "RAIDS": {
     "RSVP_LABEL": "Powiadomienia RSVP",

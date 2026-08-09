@@ -14,6 +14,8 @@ public class QuickPickDefinition
     [Required(AllowEmptyStrings = false, ErrorMessage = "A name is required.")]
     [StringLength(200, ErrorMessage = "name must be 200 characters or fewer.")]
     public string Name { get; set; } = string.Empty;
+    // TEXT, so 65535. The only sibling #549 missed, and the only one that still answered 500.
+    [StringLength(65535, ErrorMessage = "description must be 65535 characters or fewer.")]
     public string Description { get; set; } = string.Empty;
     [StringLength(50, ErrorMessage = "icon must be 50 characters or fewer.")]
     public string Icon { get; set; } = "bolt";

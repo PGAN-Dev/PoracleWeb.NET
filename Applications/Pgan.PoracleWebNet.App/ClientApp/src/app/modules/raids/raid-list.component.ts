@@ -87,16 +87,27 @@ export class RaidListComponent implements OnInit {
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
       const keys = [...this.selectedIds()];
+      let deleted = 0;
       for (const uid of this.uidsOfKind(keys, 'raid')) {
-        await firstValueFrom(this.raidService.delete(uid));
+        try {
+          await firstValueFrom(this.raidService.delete(uid));
+          deleted++;
+        } catch {
+          // Already gone. See #603.
+        }
       }
       for (const uid of this.uidsOfKind(keys, 'egg')) {
-        await firstValueFrom(this.eggService.delete(uid));
+        try {
+          await firstValueFrom(this.eggService.delete(uid));
+          deleted++;
+        } catch {
+          // Already gone. See #603.
+        }
       }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
-      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DELETED', { count: keys.length }), this.i18n.instant('TOAST.OK'), {
+      this.snackBar.open(this.i18n.instant('RAIDS.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('TOAST.OK'), {
         duration: 3000,
       });
     }

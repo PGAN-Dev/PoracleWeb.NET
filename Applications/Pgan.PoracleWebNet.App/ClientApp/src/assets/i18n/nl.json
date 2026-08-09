@@ -343,7 +343,8 @@
     "TEST_COOLDOWN": "Afkoelperiode actief",
     "TEST_SEND": "Testmelding versturen",
     "TAB_DELIVERY": "Bezorging",
-    "COMMON_SETTINGS": "Gemeenschappelijke Instellingen"
+    "COMMON_SETTINGS": "Gemeenschappelijke Instellingen",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} aangemaakt, {{duplicates}} al gevolgd"
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-meldingen",

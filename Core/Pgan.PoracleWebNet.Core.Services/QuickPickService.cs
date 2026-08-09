@@ -123,6 +123,27 @@ public partial class QuickPickService(
     public async Task<QuickPickDefinition?> GetByIdAsync(string id) => await this._definitionRepository.GetByIdAsync(id);
 
     /// <summary>
+    /// Refuses a definition whose filters the alarm endpoints would reject.
+    /// </summary>
+    /// <remarks>
+    /// Apply validates the alarm it builds (#565), but the definition itself was never checked, so an
+    /// admin could save a global pick holding a value no alarm accepts -- a PVP league of 1000, say -- and
+    /// every user who applied it got the refusal instead. Failing at save time puts the error in front of
+    /// the person who can fix it. See #604.
+    /// </remarks>
+    private static void EnsureFiltersAreUsable(QuickPickDefinition definition)
+    {
+        try
+        {
+            BuildSampleAlarm(definition, 0, new QuickPickApplyRequest());
+        }
+        catch (AlarmValidationException ex)
+        {
+            throw new AlarmValidationException(
+                $"This quick pick cannot be saved: {ex.Message}");
+        }
+    }
+    /// <summary>
     /// Returns the pick only if <paramref name="userId"/> is allowed to see it: global picks are public,
     /// user picks are visible to their owner alone.
     /// </summary>
@@ -131,6 +152,8 @@ public partial class QuickPickService(
 
     public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition)
     {
+        EnsureFiltersAreUsable(definition);
+
         definition.Id = await this.EnsureIdAsync(definition);
         definition.Scope = "global";
         definition.OwnerUserId = null;
@@ -212,6 +235,8 @@ public partial class QuickPickService(
 
     public async Task<QuickPickDefinition> SaveUserPickAsync(string userId, QuickPickDefinition definition)
     {
+        EnsureFiltersAreUsable(definition);
+
         // CreateOrUpdateAsync upserts on Id alone, and the Id arrives from the request body. Without this
         // check a user could post a global pick's well-known Id (hundo, nundo, raid-5star, ...) and the
         // upsert would rewrite that row -- flipping it to scope=user under their ownership and removing it

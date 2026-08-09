@@ -343,7 +343,8 @@
     "TEST_COOLDOWN": "Ventetid aktiv",
     "TEST_SEND": "Send testnotifikation",
     "TAB_DELIVERY": "Levering",
-    "COMMON_SETTINGS": "Fælles indstillinger"
+    "COMMON_SETTINGS": "Fælles indstillinger",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} oprettet, {{duplicates}} spores allerede"
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-notifikationer",

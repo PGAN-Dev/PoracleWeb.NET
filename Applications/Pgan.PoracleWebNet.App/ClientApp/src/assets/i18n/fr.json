@@ -343,7 +343,8 @@
     "TEST_COOLDOWN": "Temps de recharge actif",
     "TEST_SEND": "Envoyer une notification test",
     "TAB_DELIVERY": "Livraison",
-    "COMMON_SETTINGS": "Paramètres communs"
+    "COMMON_SETTINGS": "Paramètres communs",
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} creees, {{duplicates}} deja suivies"
   },
   "RAIDS": {
     "RSVP_LABEL": "Notifications RSVP",

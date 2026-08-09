@@ -64,11 +64,22 @@ export class LureListComponent implements OnInit {
     const result = await firstValueFrom(ref.afterClosed());
     if (result) {
       const ids = [...this.selectedIds()];
-      for (const uid of ids) await firstValueFrom(this.lureService.delete(uid));
+      // Settled one at a time: a stale uid -- the row re-keyed by an edit, or removed in another tab --
+      // threw out of the loop, so deletes that had already happened went unreported and the list never
+      // reloaded. See #603.
+      let deleted = 0;
+      for (const uid of ids) {
+        try {
+          await firstValueFrom(this.lureService.delete(uid));
+          deleted++;
+        } catch {
+          // Already gone, which is what the user asked for.
+        }
+      }
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadLures();
-      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: ids.length }), this.i18n.instant('COMMON.OK'), {
+      this.snackBar.open(this.i18n.instant('POKEMON.SNACK_BULK_DELETED', { count: deleted }), this.i18n.instant('COMMON.OK'), {
         duration: 3000,
       });
     }

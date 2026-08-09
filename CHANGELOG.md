@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Revoking a webhook delegate did not take effect until they signed in again** ([#600](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/600)) — up to a day of continued access, including the ability to act as that webhook.
+- **Bulk delete stopped at the first alarm that had already gone** ([#603](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/603)), reporting nothing and leaving the list unrefreshed even though some alarms had been deleted.
+- **An admin could save a quick pick holding a value alarms refuse** ([#604](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/604)), so every user who applied it got the error instead. It is now caught when the pick is saved.
+- **Adding alarms you already had reported them as newly created** ([#602](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/602)) in seven of the eight add dialogs.
+- **A very long quick pick description returned a server error** ([#601](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/601)) instead of saying it was too long.
 - **Adding an alarm could overwrite an existing one that had a custom template** ([#593](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/593)). Adding an alarm identical to one you already had, except that yours carried a custom template, replaced that template with the default and reported a new alarm created.
 - **A bulk radius change could rewrite an alarm you had not selected** ([#598](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/598)), leaving the one you did select at its old radius while reporting it updated.
 - **The PVP league could still be set to an unusable value by editing** ([#594](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/594)) — the check added in v2.12.3 covered adding an alarm but not editing one.
