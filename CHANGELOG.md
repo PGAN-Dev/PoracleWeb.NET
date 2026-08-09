@@ -22,6 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Seeding the built-in quick picks no longer aborts partway: two invasion presets carry empty filters on purpose and were rejected by the save-time validation added in #604, so both the first-visit auto-seed and Reset to Defaults left a partial preset list (#637)
+- The admin Settings page shows every group on a fresh install; Alarm Types, Features, Administration and Analytics were hidden until their rows existed, and this page is the only thing that creates them (#629)
+- Resetting quick picks to defaults now clears the applied state of the picks it removes, instead of orphaning a row per user and profile (#630)
+- An admin editing their own personal quick pick no longer publishes it to every user, and an admin save can no longer take over a pick belonging to someone else (#631)
+- Telegram accounts appear in the admin Users list, so they can be blocked, paused, purged and impersonated like any other account (#632)
+- Switching login provider in one save no longer fails on whichever request lands first: enables are applied before disables so the anti-lockout guard never sees a half-applied batch (#633)
+- Deleting all global quick picks sticks instead of being undone by an auto-reseed on the next admin visit (#634)
 - The impersonation banner no longer survives a 401 with a Stop button that does nothing; with no admin token to restore, it now signs out (#627)
 - After a session expires, the login page no longer bounces to the dashboard and back, and the OIDC auto-redirect runs as it should (#628)
 - The Add Raid dialog no longer offers a level picker on the By Boss tab, where PoracleNG discards the chosen level and stores "any" (#615)

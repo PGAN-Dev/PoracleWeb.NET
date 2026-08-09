@@ -134,6 +134,15 @@ export class QuickPickAdminDialogComponent implements OnInit {
 
   readonly saving = signal(false);
 
+  /**
+   * Where this pick belongs: an edit keeps its own scope, a new one follows who is creating it.
+   */
+  /* Deciding purely from isAdmin meant an admin editing their *own* personal pick posted scope
+   * 'global', and SaveAdminPickAsync then republished it to every user and stripped its owner. The
+   * list's delete path already branched on scope; only save did not. See #631. */
+  readonly targetScope = (): 'global' | 'user' =>
+    this.isEdit ? (this.data?.scope === 'global' ? 'global' : 'user') : this.isAdmin ? 'global' : 'user';
+
   get currentAlarmType(): string {
     return this.mainForm.controls.alarmType.value ?? 'monster';
   }
@@ -204,11 +213,11 @@ export class QuickPickAdminDialogComponent implements OnInit {
       enabled: main.enabled ?? true,
       filters,
       icon: main.icon ?? 'bolt',
-      scope: this.isAdmin ? 'global' : 'user',
+      scope: this.targetScope(),
       sortOrder: main.sortOrder ?? 0,
     };
 
-    const obs = this.isAdmin ? this.quickPickService.saveAdmin(definition) : this.quickPickService.saveUser(definition);
+    const obs = this.targetScope() === 'global' ? this.quickPickService.saveAdmin(definition) : this.quickPickService.saveUser(definition);
 
     obs.subscribe({
       error: () => {

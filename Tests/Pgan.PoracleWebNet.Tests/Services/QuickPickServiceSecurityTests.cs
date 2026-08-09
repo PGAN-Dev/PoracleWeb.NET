@@ -326,6 +326,71 @@ public class QuickPickServiceSecurityTests
     // then collapsed to /api/quick-picks/ so the pick could not be deleted or applied through any path.
 
     [Fact]
+    public async Task SaveAdminPickRefusesToTakeOverAUsersPrivatePick()
+    {
+        // Given an id it converted whatever it found into a global pick -- so an admin editing their own
+        // personal pick republished it to everyone, and an admin could take over anybody's. See #631.
+        this._definitionRepository.Setup(r => r.GetByIdAsync("someones-pick"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "someones-pick", Scope = "user", OwnerUserId = "u2" });
+
+        await Assert.ThrowsAsync<AlarmValidationException>(
+            () => this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "someones-pick", Name = "Mine now" }));
+
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveAdminPickStillUpdatesAnExistingGlobalPick()
+    {
+        this._definitionRepository.Setup(r => r.GetByIdAsync("raid-5star"))
+            .ReturnsAsync(new QuickPickDefinition { Id = "raid-5star", Scope = "global" });
+
+        var saved = await this._sut.SaveAdminPickAsync(new QuickPickDefinition { Id = "raid-5star", Name = "Five star" });
+
+        Assert.Equal("global", saved.Scope);
+        this._definitionRepository.Verify(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SeedingDefaultsCreatesEveryBuiltInPick()
+    {
+        // Save-time filter validation (#604) rejected all-invasions and invasion-leader, whose filter
+        // sets are empty on purpose, so seeding aborted partway and left a partial preset list behind
+        // both the first-visit auto-seed and Reset to Defaults. See #637.
+        this._definitionRepository.Setup(r => r.GetAllGlobalAsync()).ReturnsAsync([]);
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);
+        var created = new List<string>();
+        this._definitionRepository.Setup(r => r.CreateOrUpdateAsync(It.IsAny<QuickPickDefinition>()))
+            .Callback<QuickPickDefinition>(d => created.Add(d.Id))
+            .Returns(Task.CompletedTask);
+
+        await this._sut.SeedDefaultsAsync();
+
+        var expected = (await this._sut.GetDefaultPicksAsync()).Select(d => d.Id).ToList();
+        Assert.Equal(expected.Count, created.Count);
+        Assert.Contains("all-invasions", created);
+        Assert.Contains("invasion-leader", created);
+    }
+
+    [Fact]
+    public async Task SeedingDefaultsClearsTheAppliedStateOfEveryPickItRemoves()
+    {
+        // Left behind, that state named a definition that no longer exists: never listed, never cleaned,
+        // and the alarms it owned lost their Remove button for good. See #630.
+        this._definitionRepository.Setup(r => r.GetAllGlobalAsync())
+            .ReturnsAsync([
+                new QuickPickDefinition { Id = "old-one", Scope = "global" },
+                new QuickPickDefinition { Id = "old-two", Scope = "global" },
+            ]);
+        this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);
+
+        await this._sut.SeedDefaultsAsync();
+
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("old-one", null), Times.Once);
+        this._appliedStateRepository.Verify(r => r.DeleteByQuickPickIdAsync("old-two", null), Times.Once);
+    }
+
+    [Fact]
     public async Task SaveAdminPickGeneratesASlugWhenNoIdIsSupplied()
     {
         this._definitionRepository.Setup(r => r.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((QuickPickDefinition?)null);

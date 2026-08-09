@@ -514,11 +514,11 @@ export class AdminSettingsComponent implements OnInit {
     const query = this.searchQuery().trim();
     const base = SETTING_GROUPS.filter(g => {
       if (oidcMode && localProviderGroups.has(g.labelKey)) return false;
-      return (
-        g.settings.some(s => this.settingMap().has(s.key)) ||
-        (g.labelKey === 'ADMIN_SETTINGS.GROUP_DISCORD' && this.discordConfig() !== null) ||
-        (g.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && this.telegramConfig() !== null)
-      );
+      // Deliberately not gated on a key already having a row. A fresh install seeds exactly one
+      // (custom_title), so Alarm Types, Features, Administration and Analytics were filtered out of the
+      // DOM entirely -- and since this page is the only writer, the row could never appear. The
+      // row-level guard below already renders an absent key correctly. See #629.
+      return true;
     });
     if (!query) return base;
     return base.map(g => ({ ...g, settings: g.settings.filter(s => this.settingMatches(s)) })).filter(g => g.settings.length > 0);
@@ -685,7 +685,13 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   saveAllModified(): void {
-    const entries = Array.from(this.modifiedSettings().entries());
+    // Enables first. The anti-lockout guard on the server reads the *other* login key from the
+    // database, so turning Discord off and Telegram on in one batch failed on whichever request landed
+    // first: the Discord PUT still saw enable_telegram false and answered 400, leaving a partial save
+    // and a message about a state the admin was in the middle of leaving. See #633.
+    const entries = Array.from(this.modifiedSettings().entries()).sort(
+      ([, a], [, b]) => Number(this.isDisablingLogin(b)) - Number(this.isDisablingLogin(a)),
+    );
     if (!entries.length) return;
     this.bulkSaving.set(true);
     let done = 0,
@@ -811,6 +817,11 @@ export class AdminSettingsComponent implements OnInit {
           ? errorMessages.join(' ')
           : this.i18n.instant('ADMIN_SETTINGS.SAVE_PARTIAL', { done, errors });
     this.snackBar.open(msg, this.i18n.instant('COMMON.OK'), { duration: errors ? 5000 : 3000 });
+  }
+
+  /** Whether a pending value would switch a login method off. See #633. */
+  private isDisablingLogin(value: unknown): boolean {
+    return String(value).toLowerCase() === 'false';
   }
 
   private settingMatches(meta: SettingMeta): boolean {

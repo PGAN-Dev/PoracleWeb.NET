@@ -133,6 +133,17 @@ public partial class QuickPickService(
     /// </remarks>
     private static void EnsureFiltersAreUsable(QuickPickDefinition definition)
     {
+        // Nothing to check, and checking anyway broke seeding. Two built-ins -- all-invasions and
+        // invasion-leader -- carry no filters on purpose because ApplyInvasionAsync fans them out across
+        // grunt types at apply time, so the sample alarm built here has no grunt_type and the Create DTO
+        // requires one. SeedDefaultsAsync goes through this method, so it threw partway and left a
+        // partial preset list behind both entry points that call it. Apply-time validation (#565) still
+        // covers the alarm that actually gets built. See #637.
+        if (definition.Filters is null || definition.Filters.Count == 0)
+        {
+            return;
+        }
+
         try
         {
             BuildSampleAlarm(definition, 0, new QuickPickApplyRequest());
@@ -155,6 +166,18 @@ public partial class QuickPickService(
         EnsureFiltersAreUsable(definition);
 
         definition.Id = await this.EnsureIdAsync(definition);
+
+        // Given an id, this used to convert whatever it found into a global pick -- including a private
+        // one belonging to somebody else, which then appeared for every user and vanished from its
+        // owner's list. SaveUserPickAsync has always had this guard. See #631.
+        var existing = await this._definitionRepository.GetByIdAsync(definition.Id);
+        if (existing is not null
+            && !string.Equals(existing.Scope, "global", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AlarmValidationException(
+                "That quick pick belongs to a user. Publish a copy instead of converting theirs.");
+        }
+
         definition.Scope = "global";
         definition.OwnerUserId = null;
 
@@ -580,6 +603,16 @@ public partial class QuickPickService(
         // Delete any existing global quick picks so we can re-seed cleanly
         var existingGlobal = await this._definitionRepository.GetAllGlobalAsync();
         var existingCount = existingGlobal.Count;
+
+        // Applied state goes with the definitions it belongs to, exactly as DeleteAdminPickAsync does
+        // (#470). Without this, every user kept a row pointing at a definition that no longer exists:
+        // GetAllAsync iterates definitions, so the state was never listed and never cleaned, and the
+        // alarms it owned lost their Remove button for good. Worse, a later pick generating a colliding
+        // slug re-attached that state, and its trackedUids then named unrelated alarms. See #630.
+        foreach (var stale in existingGlobal)
+        {
+            await this._appliedStateRepository.DeleteByQuickPickIdAsync(stale.Id);
+        }
 
         await this._definitionRepository.DeleteAllGlobalAsync();
 
