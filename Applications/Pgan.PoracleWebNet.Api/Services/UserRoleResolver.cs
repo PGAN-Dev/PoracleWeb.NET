@@ -9,7 +9,14 @@ namespace Pgan.PoracleWebNet.Api.Services;
 /// <summary>
 /// A user's admin status and the webhooks they may administer, resolved from live sources.
 /// </summary>
-public readonly record struct UserRoles(bool IsAdmin, string[]? ManagedWebhooks);
+/// <param name="IsAdmin">Whether the user is an admin. Meaningless when <paramref name="Resolved"/> is false.</param>
+/// <param name="ManagedWebhooks">Webhooks the user may administer, or null.</param>
+/// <param name="Resolved">
+/// False when a source we needed was unreachable. Callers that stamp roles onto a token must treat
+/// this as "do not change the claim" rather than as "not an admin" -- a PoracleNG blip during a
+/// profile switch otherwise stripped admin for the rest of the session. See #656.
+/// </param>
+public readonly record struct UserRoles(bool IsAdmin, string[]? ManagedWebhooks, bool Resolved = true);
 
 /// <summary>
 /// Resolves admin status and delegated webhooks from the configured admin list, Poracle's config,
@@ -61,7 +68,14 @@ public sealed partial class UserRoleResolver(
         }
 
         var resolved = await this.ResolveUncachedAsync(userId);
-        this._cache.Set(cacheKey, resolved, CacheTtl);
+
+        // A degraded answer is never cached: doing so would hold a user at the wrong privilege level for
+        // the full minute after a momentary outage. See #656.
+        if (resolved.Resolved)
+        {
+            this._cache.Set(cacheKey, resolved, CacheTtl);
+        }
+
         return resolved;
     }
 
@@ -78,6 +92,10 @@ public sealed partial class UserRoleResolver(
             }
         }
 
+        // Tracked so a failure is reported as "unknown", not as "not an admin". See #656.
+        var configReadable = true;
+        var rolesReadable = true;
+
         // Check Poracle config admins list
         try
         {
@@ -91,6 +109,7 @@ public sealed partial class UserRoleResolver(
         catch (Exception ex)
         {
             LogPoracleConfigFetchFailed(this._logger, ex, userId);
+            configReadable = false;
         }
 
         // Call getAdministrationRoles once — resolves delegation including Discord guild roles
@@ -139,6 +158,7 @@ public sealed partial class UserRoleResolver(
         catch (Exception ex)
         {
             LogAdminRolesFetchFailed(this._logger, ex, userId);
+            rolesReadable = false;
         }
 
         if (isAdmin)
@@ -160,7 +180,7 @@ public sealed partial class UserRoleResolver(
             LogPwebDelegatesFetchFailed(this._logger, ex, userId);
         }
 
-        return new UserRoles(false, managed.Count > 0 ? [.. managed] : null);
+        return new UserRoles(false, managed.Count > 0 ? [.. managed] : null, configReadable && rolesReadable);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]

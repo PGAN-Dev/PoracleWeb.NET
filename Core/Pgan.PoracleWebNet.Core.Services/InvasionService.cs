@@ -227,8 +227,13 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     /// as a generic 500. Fail here instead, where the message says what is actually wrong. Callers that
     /// want "everything" must fan out over <see cref="InvasionGruntTypes.All"/>. See #416.
     /// </summary>
-    /// <summary>The grunt_type column width upstream.</summary>
-    private const int MaxGruntTypeLength = 35;
+    /// <summary>
+    /// The grunt_type column width upstream: <c>varchar(255)</c>, per PoracleNG's initial schema
+    /// migration at the commit production runs. This said 35, which was an invented limit wearing a
+    /// factual justification -- in a fix whose whole point was refusing the impossible rather than
+    /// allowing only the known. See #661.
+    /// </summary>
+    private const int MaxGruntTypeLength = 255;
 
     private static void RequireGruntType(Invasion model)
     {

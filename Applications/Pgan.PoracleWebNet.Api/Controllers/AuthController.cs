@@ -823,8 +823,16 @@ public partial class AuthController(
             // isAdmin resolved fresh rather than copied: this is the one place a long-lived session
             // routinely re-mints its token, so copying the claim let revoked admin rights live on. See #624.
             var roles = await this._roleResolver.ResolveAsync(this.UserId);
-            userInfo.IsAdmin = roles.IsAdmin;
-            userInfo.Token = this._jwtService.GenerateTokenWithReplacedProfile(this.User, dbProfileNo, roles.IsAdmin);
+
+            // Null means "leave the claim alone". Two cases need it: the resolver could not reach PoracleNG,
+            // where treating unknown as false stripped admin for the rest of the session (#656); and an
+            // impersonation session, which AdminController deliberately mints with IsAdmin = false and which
+            // would otherwise be re-elevated by resolving the impersonated user's own roles (#663).
+            bool? resolvedAdmin = roles.Resolved && this.User.FindFirst("impersonatedBy") is null
+                ? roles.IsAdmin
+                : null;
+            userInfo.IsAdmin = resolvedAdmin ?? this.IsAdmin;
+            userInfo.Token = this._jwtService.GenerateTokenWithReplacedProfile(this.User, dbProfileNo, resolvedAdmin);
         }
 
         return this.Ok(userInfo);

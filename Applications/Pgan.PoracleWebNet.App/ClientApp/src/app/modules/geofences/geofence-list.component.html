@@ -138,9 +138,11 @@
                     <mat-icon>send</mat-icon>
                   </button>
                 }
-                <button mat-icon-button [matTooltip]="'GEOFENCES.RENAME_TOOLTIP' | translate" (click)="editGeofence(geofence)">
-                  <mat-icon>edit</mat-icon>
-                </button>
+                @if (geofence.status === 'active' || geofence.status === 'rejected') {
+                  <button mat-icon-button [matTooltip]="'GEOFENCES.RENAME_TOOLTIP' | translate" (click)="editGeofence(geofence)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                }
                 @if (geofence.status !== 'pending_review' && geofence.status !== 'approved') {
                   <button
                     mat-icon-button

@@ -5,9 +5,12 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/quick-picks")]
-public class QuickPickController(IQuickPickService quickPickService) : BaseApiController
+public class QuickPickController(
+    IQuickPickService quickPickService,
+    ISiteSettingService siteSettingService) : BaseApiController
 {
     private readonly IQuickPickService _quickPickService = quickPickService;
+    private readonly ISiteSettingService _siteSettingService = siteSettingService;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -166,6 +169,9 @@ public class QuickPickController(IQuickPickService quickPickService) : BaseApiCo
         return this.NoContent();
     }
 
+    /// <summary>Marks that the built-in presets have been created once. See #634, #662.</summary>
+    private const string QuickPicksSeededKey = "quick_picks_seeded";
+
     [HttpPost("seed")]
     public async Task<IActionResult> Seed()
     {
@@ -175,6 +181,18 @@ public class QuickPickController(IQuickPickService quickPickService) : BaseApiCo
         }
 
         await this._quickPickService.SeedDefaultsAsync();
+
+        // Whether an installation has been seeded is a property of the installation. The SPA used to
+        // record it in localStorage, so a second admin or a different browser reseeded anyway, and a
+        // failed seed latched the flag and never retried. Written here, after the seed actually
+        // succeeded. See #662.
+        await this._siteSettingService.CreateOrUpdateAsync(new SiteSetting
+        {
+            Key = QuickPicksSeededKey,
+            Value = "true",
+            Category = "admin",
+            ValueType = "boolean",
+        });
         return this.NoContent();
     }
 }
