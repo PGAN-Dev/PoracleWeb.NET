@@ -60,7 +60,38 @@ public partial class AuthController(
     private readonly OidcSettings _oidcSettings = oidcSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly string[] _allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+    private readonly string? _publicOrigin = PublicOrigin.NormalizeOrNull(configuration["PublicUrl"]);
     private readonly ILogger<AuthController> _logger = logger;
+
+    /// <summary>
+    /// The origin this instance is reached on. <c>PUBLIC_URL</c> when configured, otherwise the
+    /// request's own scheme and host -- which is only correct when the app is exposed directly or
+    /// its proxy is declared via <c>PROXY_KNOWN_PROXIES</c> / <c>PROXY_KNOWN_NETWORKS</c>.
+    ///
+    /// Every OAuth callback URI is built from this single method so the authorize request and the
+    /// token exchange cannot drift apart -- providers compare the two byte-for-byte.
+    /// </summary>
+    private string SelfOrigin() => this._publicOrigin ?? $"{this.Request.Scheme}://{this.Request.Host}";
+
+    /// <summary>
+    /// Warns when a callback URI is about to go out as http:// while the request carries an
+    /// <c>X-Forwarded-Proto: https</c> that was not trusted. The forwarded-headers middleware strips
+    /// the header once it applies it, so seeing it here means the proxy was not declared -- the
+    /// provider is about to reject the sign-in and this is the only place that can say why.
+    /// </summary>
+    private void WarnIfProxySchemeIgnored(string callbackUri)
+    {
+        if (!callbackUri.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var forwardedProto = this.Request.Headers["X-Forwarded-Proto"].FirstOrDefault();
+        if (string.Equals(forwardedProto, "https", StringComparison.OrdinalIgnoreCase))
+        {
+            LogProxySchemeIgnored(this._logger, callbackUri);
+        }
+    }
 
     [AllowAnonymous]
     [HttpGet("discord/login")]
@@ -85,7 +116,7 @@ public partial class AuthController(
 
         // Save the frontend origin so we know where to redirect after the callback.
         // Validate against configured CORS origins to prevent open redirect token theft.
-        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var selfOrigin = this.SelfOrigin();
         var origin = selfOrigin;
 
         var referer = this.Request.Headers.Referer.FirstOrDefault();
@@ -103,7 +134,8 @@ public partial class AuthController(
         this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
         // Redirect URI points to the API itself, not the Angular app
-        var callbackUri = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/discord/callback";
+        var callbackUri = $"{selfOrigin}/api/auth/discord/callback";
+        this.WarnIfProxySchemeIgnored(callbackUri);
         var redirectUrl = "https://discordapp.com/api/oauth2/authorize" +
             $"?client_id={this._discordSettings.ClientId}" +
             $"&redirect_uri={Uri.EscapeDataString(callbackUri)}" +
@@ -147,7 +179,8 @@ public partial class AuthController(
             ["client_secret"] = this._discordSettings.ClientSecret,
             ["grant_type"] = "authorization_code",
             ["code"] = code,
-            ["redirect_uri"] = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/discord/callback"
+            // Must match the authorize request byte-for-byte -- both go through SelfOrigin().
+            ["redirect_uri"] = $"{this.SelfOrigin()}/api/auth/discord/callback"
         });
 
         var tokenResponse = await httpClient.PostAsync("https://discordapp.com/api/oauth2/token", tokenRequest);
@@ -263,7 +296,7 @@ public partial class AuthController(
 
         // Save the frontend origin (validated against CORS origins) so the callback knows
         // where to redirect — identical handling to DiscordLogin.
-        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var selfOrigin = this.SelfOrigin();
         var origin = selfOrigin;
 
         var referer = this.Request.Headers.Referer.FirstOrDefault();
@@ -280,7 +313,8 @@ public partial class AuthController(
 
         this.Response.Cookies.Append("oauth_origin", origin, cookieOptions);
 
-        var callbackUri = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/oidc/callback";
+        var callbackUri = $"{selfOrigin}/api/auth/oidc/callback";
+        this.WarnIfProxySchemeIgnored(callbackUri);
 
         var query = new Dictionary<string, string?>
         {
@@ -311,7 +345,7 @@ public partial class AuthController(
         // OIDC RP-initiated (single) logout: bounce the browser to the provider's end-session
         // endpoint so it can clear its OWN session too, then return to the signed-out landing.
         // The frontend has already discarded the local JWT before calling this.
-        var selfOrigin = $"{this.Request.Scheme}://{this.Request.Host}";
+        var selfOrigin = this.SelfOrigin();
         var origin = selfOrigin;
 
         // Validate the return origin the same way the login flow validates oauth_origin.
@@ -380,7 +414,8 @@ public partial class AuthController(
         }
 
         // Exchange the authorization code for tokens via the generic, provider-agnostic OIDC client.
-        var redirectUri = $"{this.Request.Scheme}://{this.Request.Host}/api/auth/oidc/callback";
+        // Must match the authorize request byte-for-byte -- both go through SelfOrigin().
+        var redirectUri = $"{this.SelfOrigin()}/api/auth/oidc/callback";
         var tokenResult = await this._oidcClient.ExchangeCodeAsync(code, redirectUri, pkceVerifier);
         if (tokenResult is null)
         {
@@ -1050,8 +1085,8 @@ public partial class AuthController(
             return savedOrigin.TrimEnd('/');
         }
 
-        // Fallback: same scheme/host as the request
-        return $"{this.Request.Scheme}://{this.Request.Host}";
+        // Fallback: the configured public origin, or the request's own scheme and host
+        return this.SelfOrigin();
     }
 
     /// <summary>
@@ -1221,6 +1256,15 @@ public partial class AuthController(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Role check failed for {UserId}, denying access.")]
     private static partial void LogRoleCheckFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "OAuth callback URI was built as '{CallbackUri}', but this request arrived with " +
+                  "X-Forwarded-Proto: https from a proxy that is not declared, so the header was ignored. " +
+                  "The provider will reject this sign-in as an invalid redirect_uri. Fix it by setting " +
+                  "PROXY_KNOWN_PROXIES / PROXY_KNOWN_NETWORKS to your proxy's address, or PUBLIC_URL to " +
+                  "the URL users reach this instance on.")]
+    private static partial void LogProxySchemeIgnored(ILogger logger, string callbackUri);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Discord token exchange failed: {Status} {Body}")]
     private static partial void LogDiscordTokenExchangeFailed(ILogger logger, System.Net.HttpStatusCode status, string body);

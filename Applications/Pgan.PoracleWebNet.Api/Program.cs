@@ -98,6 +98,7 @@ MapEnvVar("KOJI_PROJECT_NAME", "Koji__ProjectName");
 MapEnvVar("GOLBAT_API_ADDRESS", "Golbat__ApiAddress");
 MapEnvVar("GOLBAT_API_SECRET", "Golbat__ApiSecret");
 MapEnvVar("CORS_ORIGIN", "Cors__AllowedOrigins__0");
+MapEnvVar("PUBLIC_URL", "PublicUrl");
 MapEnvVar("SCANNER_DB_CONNECTION", "ConnectionStrings__ScannerDb");
 
 // Auto-compose MySQL connection strings from short env vars (DB_HOST, DB_PORT, etc.)
@@ -296,6 +297,15 @@ if (allowedOrigins is not { Length: > 0 } && !builder.Environment.IsDevelopment(
     throw new InvalidOperationException(
         "Configuration 'Cors:AllowedOrigins' is required in non-development environments. " +
         "Set it to the origin(s) of your frontend (e.g., [\"https://poracle.example.com\"]).");
+}
+
+// PUBLIC_URL is optional, but a typo in it produces OAuth callback URIs the provider rejects with a
+// message that says nothing about this setting. Fail at startup instead, where the cause is obvious.
+var configuredPublicUrl = builder.Configuration["PublicUrl"];
+if (!Pgan.PoracleWebNet.Api.Configuration.PublicOrigin.TryNormalize(configuredPublicUrl, out _, out var publicUrlError)
+    && publicUrlError is not null)
+{
+    throw new InvalidOperationException($"Configuration 'PUBLIC_URL' is invalid: {publicUrlError}");
 }
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
