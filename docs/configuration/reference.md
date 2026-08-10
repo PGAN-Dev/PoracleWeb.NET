@@ -111,6 +111,15 @@ Required for the custom geofences feature.
 |---|---|---|---|
 | CORS Origin | `CORS_ORIGIN` | `Cors__AllowedOrigins__0` | Allowed CORS origin. Required in production (empty = crash). Not required in development mode. |
 
+### Reverse proxy
+
+Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a reverse proxy](../getting-started/standalone-setup.md#reverse-proxy-optional).
+
+| Setting | `.env` name | `.NET` env variable | Description |
+|---|---|---|---|
+| Known proxies | `PROXY_KNOWN_PROXIES` | `Proxy__KnownProxies` | Comma-separated proxy addresses whose `X-Forwarded-For` / `X-Forwarded-Proto` are believed |
+| Known networks | `PROXY_KNOWN_NETWORKS` | `Proxy__KnownNetworks` | Comma-separated CIDR ranges, same effect (e.g. `172.18.0.0/16,10.0.0.0/8`) |
+
 ## Configuration sources
 
 | Source | Use case |

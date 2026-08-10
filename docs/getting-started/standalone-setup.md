@@ -250,6 +250,16 @@ If you want to put PoracleWeb.NET behind nginx or Caddy (just like you might wit
 
 When using a reverse proxy, set `CORS_ORIGIN=https://poracle.example.com` in your `.env` (replacing any `http://localhost:...` value you already have) and update your Discord OAuth2 redirect URI to match the public URL.
 
+You also have to tell the app which proxy to believe. `X-Forwarded-For` and `X-Forwarded-Proto` are only honoured from declared addresses, because a header believed from anyone lets a caller name a different address on each request and hand itself a fresh rate-limit allowance on the sign-in endpoints:
+
+```bash
+# One or both. Comma-separated. Use the address the proxy connects FROM.
+PROXY_KNOWN_PROXIES=127.0.0.1
+PROXY_KNOWN_NETWORKS=172.18.0.0/16
+```
+
+Leave both unset and the app falls back to the connection address, which is safe but wrong in two visible ways: every user behind the proxy shares one rate-limit bucket, and OAuth callback URLs are built from the scheme the app *received* — `http://` — so Discord and OIDC providers reject the sign-in with an invalid `redirect_uri`.
+
 ## Troubleshooting
 
 **"Configuration 'ConnectionStrings:PoracleDb' is required"**

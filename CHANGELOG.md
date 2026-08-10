@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Upgrading to 2.14.0 could break sign-in behind a reverse proxy.** The proxy-trust fix in that release ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)) stopped believing `X-Forwarded-Proto` from undeclared proxies, so instances that had not set `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS` began building OAuth callback URLs as `http://` and Discord rejected the sign-in with an invalid `redirect_uri`. Both variables are now documented in `.env.example`, the configuration reference, the reverse-proxy setup guide, and troubleshooting. No code change — if you are affected, declare your proxy and recreate the container.
+
 ## [2.14.0] - 2026-08-09
 
 ### Security
