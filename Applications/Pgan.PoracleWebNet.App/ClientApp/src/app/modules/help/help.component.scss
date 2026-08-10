@@ -315,6 +315,21 @@
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.1));
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   margin: 12px 0 16px;
+  cursor: zoom-in;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #1976d2);
+    outline-offset: 2px;
+  }
 }
 
 ::ng-deep .help-screenshot-sm {
