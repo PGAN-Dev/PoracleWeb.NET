@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Dependabot now opens its pull requests against `develop` rather than `main`. With no `target-branch` set it defaulted to the repository's default branch, so dependency bumps landed directly on released code without ever being built as `:beta` or running on the dev instance — contradicting the documented rule that `main` only moves when a release is merged. It also put every bump through the merge queue that exists only on `main`.
 - **Upgrading to 2.14.0 could break sign-in behind a reverse proxy.** The proxy-trust fix in that release ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)) stopped believing `X-Forwarded-Proto` from undeclared proxies, so instances that had not set `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS` began building OAuth callback URLs as `http://` and Discord rejected the sign-in with an invalid `redirect_uri`. Both variables are now documented in `.env.example`, the configuration reference, the reverse-proxy setup guide, and troubleshooting. If you are affected, declare your proxy and recreate the container ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
 
 ## [2.14.0] - 2026-08-09

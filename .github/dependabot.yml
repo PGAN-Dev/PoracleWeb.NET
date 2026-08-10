@@ -3,6 +3,9 @@ updates:
   # .NET (backend)
   - package-ecosystem: nuget
     directory: /
+    # main only moves when a release is merged (see CLAUDE.md), so bumps land on
+    # develop first and reach released code with the release that carries them.
+    target-branch: develop
     schedule:
       interval: weekly
       day: monday
@@ -46,6 +49,9 @@ updates:
   # Angular frontend
   - package-ecosystem: npm
     directory: /Applications/Pgan.PoracleWebNet.App/ClientApp
+    # main only moves when a release is merged (see CLAUDE.md), so bumps land on
+    # develop first and reach released code with the release that carries them.
+    target-branch: develop
     schedule:
       interval: weekly
       day: monday
@@ -101,6 +107,9 @@ updates:
   # GitHub Actions
   - package-ecosystem: github-actions
     directory: /
+    # main only moves when a release is merged (see CLAUDE.md), so bumps land on
+    # develop first and reach released code with the release that carries them.
+    target-branch: develop
     schedule:
       interval: weekly
       day: monday
@@ -116,6 +125,9 @@ updates:
   # Dockerfile base images
   - package-ecosystem: docker
     directory: /
+    # main only moves when a release is merged (see CLAUDE.md), so bumps land on
+    # develop first and reach released code with the release that carries them.
+    target-branch: develop
     schedule:
       interval: weekly
       day: monday
