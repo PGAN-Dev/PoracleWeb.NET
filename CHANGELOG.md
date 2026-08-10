@@ -9,16 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`PUBLIC_URL` sets the sign-in callback address directly.** OAuth callback URLs were only ever derived from the incoming request, so the sole way to influence them was to declare your reverse proxy — an indirect lever for something you would rather just state. Setting `PUBLIC_URL=https://poracle.example.com` names the origin outright for both Discord and OIDC. Optional: leave it unset and behaviour is unchanged, which stays correct for a directly-exposed instance, for a declared proxy, and for anyone reaching the instance on several hostnames. An unusable value stops the app at startup instead of producing a callback the provider silently refuses.
-- A sign-in that is about to fail this way now says so in the log, naming both fixes, rather than leaving the provider's "invalid redirect_uri" as the only symptom.
+- **`PUBLIC_URL` sets the sign-in callback address directly.** OAuth callback URLs were only ever derived from the incoming request, so the sole way to influence them was to declare your reverse proxy — an indirect lever for something you would rather just state. Setting `PUBLIC_URL=https://poracle.example.com` names the origin outright for both Discord and OIDC. Optional: leave it unset and behaviour is unchanged, which stays correct for a directly-exposed instance, for a declared proxy, and for anyone reaching the instance on several hostnames. An unusable value stops the app at startup instead of producing a callback the provider silently refuses ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
+- A sign-in that is about to fail this way now says so in the log, naming both fixes, rather than leaving the provider's "invalid redirect_uri" as the only symptom ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
 
 ### Removed
 
-- `Discord:RedirectUri` — the setting was read by nothing and had been dead since the callback URL became request-derived. Anyone who had set it was getting silence; `PUBLIC_URL` is the working replacement and covers OIDC too.
+- `Discord:RedirectUri` — the setting was read by nothing and had been dead since the callback URL became request-derived. Anyone who had set it was getting silence; `PUBLIC_URL` is the working replacement and covers OIDC too ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
 
 ### Fixed
 
-- **Upgrading to 2.14.0 could break sign-in behind a reverse proxy.** The proxy-trust fix in that release ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)) stopped believing `X-Forwarded-Proto` from undeclared proxies, so instances that had not set `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS` began building OAuth callback URLs as `http://` and Discord rejected the sign-in with an invalid `redirect_uri`. Both variables are now documented in `.env.example`, the configuration reference, the reverse-proxy setup guide, and troubleshooting. No code change — if you are affected, declare your proxy and recreate the container.
+- **Upgrading to 2.14.0 could break sign-in behind a reverse proxy.** The proxy-trust fix in that release ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)) stopped believing `X-Forwarded-Proto` from undeclared proxies, so instances that had not set `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS` began building OAuth callback URLs as `http://` and Discord rejected the sign-in with an invalid `redirect_uri`. Both variables are now documented in `.env.example`, the configuration reference, the reverse-proxy setup guide, and troubleshooting. If you are affected, declare your proxy and recreate the container ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
 
 ## [2.14.0] - 2026-08-09
 
