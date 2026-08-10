@@ -16,6 +16,23 @@ updates:
       - dependencies
     commit-message:
       prefix: deps
+    ignore:
+      # Microsoft.OpenApi 3.x cannot be used while Microsoft.AspNetCore.OpenApi targets the 2.x
+      # object model. Its source generator assigns IOpenApiMediaType.Example, which became
+      # read-only in 3.0, so the build fails in generated code no edit here can reach:
+      #   OpenApiXmlCommentSupport.generated.cs: error CS0200: Property or indexer
+      #   IOpenApiMediaType.Example cannot be assigned to -- it is read only
+      #
+      # The direct reference exists only to clear GHSA-v5pm-xwqc-g5wc, which
+      # Microsoft.AspNetCore.OpenApi 10.0.10 reintroduces by pinning 2.0.0 transitively (see the
+      # comment in Pgan.PoracleWebNet.Api.csproj). Minor and patch updates inside 2.x still come
+      # through, so a later advisory is not masked.
+      #
+      # Drop this once Microsoft.AspNetCore.OpenApi ships a release built against 3.x -- at which
+      # point the direct reference should go too. See #702.
+      - dependency-name: Microsoft.OpenApi
+        update-types:
+          - version-update:semver-major
     groups:
       # One group for the whole .NET platform. These packages ship as a single versioned set:
       # Microsoft.EntityFrameworkCore 10.0.x transitively requires Microsoft.Extensions.* at
