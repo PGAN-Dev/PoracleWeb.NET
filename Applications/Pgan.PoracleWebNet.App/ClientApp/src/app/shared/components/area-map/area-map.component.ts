@@ -23,9 +23,21 @@ import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 
+import { INITIAL_VIEW_MAX_ZOOM, LOCATION_ONLY_ZOOM, planInitialView } from './initial-view';
 import { GeofenceData } from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
+
+/**
+ * Padding for an automatic fit. Asymmetric on purpose: the "N area(s) selected" badge sits at
+ * bottom centre and the Leaflet attribution at bottom right, so a shape fitted flush to the bottom
+ * edge ends up underneath them.
+ */
+const FIT_OPTIONS: L.FitBoundsOptions = {
+  maxZoom: INITIAL_VIEW_MAX_ZOOM,
+  paddingBottomRight: [24, 56],
+  paddingTopLeft: [24, 24],
+};
 
 const GROUP_COLORS = [
   '#e53935',
@@ -61,8 +73,12 @@ interface RegionEntry {
 })
 export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private allBoundsRect: L.LatLngBounds | null = null;
+  private customBoundsRect: L.LatLngBounds | null = null;
   private customGeofenceLayer: L.LayerGroup = L.layerGroup();
   private drawControl: L.Control.Draw | null = null;
+
+  /** Rank of the anchor the map is currently sitting on. See planInitialView. */
+  private fittedViewPriority = 0;
 
   private fullscreenHandler = () => {
     if (!document.fullscreenElement) {
@@ -73,9 +89,14 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   private groupColorMap = new Map<string, string>();
 
-  private hasFittedInitialBounds = false;
   private readonly i18n = inject(I18nService);
+
   private initialized = false;
+
+  private lockViewHandler = (): void => {
+    this.viewLockedByUser = true;
+  };
+
   private map: L.Map | null = null;
 
   private onDrawCreated = (event: L.LeafletEvent): void => {
@@ -90,8 +111,12 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private polygonByName = new Map<string, L.Polygon>();
 
   private polygonLayers: L.Polygon[] = [];
+  private selectionBoundsRect: L.LatLngBounds | null = null;
   private userCircle: L.Circle | null = null;
   private userMarker: L.Marker | null = null;
+
+  /** Set by any deliberate view choice -- drag, zoom, region jump, fit all. Stops auto-fitting. */
+  private viewLockedByUser = false;
   @Output() areaClicked = new EventEmitter<string>();
   customGeofences = input<GeofenceData[]>([]);
   drawMode = input(false);
@@ -146,8 +171,10 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   fitAll(): void {
     this.selectedRegion.set('');
+    // An explicit "show me everything" is a view choice; nothing should silently override it.
+    this.viewLockedByUser = true;
     if (this.map && this.allBoundsRect) {
-      this.map.fitBounds(this.allBoundsRect, { padding: [20, 20] });
+      this.map.fitBounds(this.allBoundsRect, FIT_OPTIONS);
     }
   }
 
@@ -155,6 +182,9 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.initMap();
     this.initialized = true;
     this.drawPolygons();
+    // The customGeofences effect runs before the map exists and bails out, so the first value has
+    // to be drawn here or My Geofences opens with no shapes and no bounds to anchor on.
+    this.renderCustomGeofences(this.customGeofences());
     document.addEventListener('fullscreenchange', this.fullscreenHandler);
   }
 
@@ -164,21 +194,29 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (changes['geofence'] || changes['groupMapping']) {
       // Geofence data or group mapping changed -- full redraw needed, allow re-fit
       if (changes['geofence']) {
-        this.hasFittedInitialBounds = false;
+        this.fittedViewPriority = 0;
       }
       this.drawPolygons();
     } else if (changes['selectedAreas']) {
-      // Only selection changed -- update polygon styles without resetting the map view
+      // Only selection changed -- restyle without resetting the view. The fit below cannot move the
+      // map once it has already anchored on a selection, so toggling an area never jumps the view;
+      // it only matters when the selection arrives after the map has fitted something worse.
       this.updatePolygonStyles();
+      this.selectionBoundsRect = this.computeSelectionBounds();
+      this.applyInitialView();
     }
 
     if (changes['userLocation']) {
       this.updateUserMarker();
+      this.applyInitialView();
     }
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
+    for (const event of ['pointerdown', 'wheel', 'keydown']) {
+      this.mapElement.nativeElement.removeEventListener(event, this.lockViewHandler);
+    }
     this.removeDrawControl();
     if (this.map) {
       this.map.remove();
@@ -189,6 +227,8 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   onRegionSelected(option: RegionOption): void {
     const regionLabel = option.label;
     this.selectedRegion.set(regionLabel);
+    // Jumping to a region states where the user wants to be; later data must not pull them away.
+    this.viewLockedByUser = true;
     this.regionChanged.emit(option);
 
     if (!regionLabel || !this.map) {
@@ -258,6 +298,46 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.map.on('draw:created', this.onDrawCreated);
   }
 
+  /**
+   * Positions the map on the best anchor available so far, upgrading if better data has since
+   * arrived. Safe to call as often as you like -- planInitialView decides whether anything happens.
+   */
+  private applyInitialView(): void {
+    if (!this.map) return;
+
+    const location = this.userLocation;
+    // 0,0 is how an unset location is stored, and the Gulf of Guinea is not a useful opening view.
+    const hasUserLocation = !!location && (location.lat !== 0 || location.lng !== 0);
+
+    const plan = planInitialView({
+      fittedPriority: this.fittedViewPriority,
+      hasAllBounds: !!this.allBoundsRect,
+      hasCustomBounds: !!this.customBoundsRect,
+      hasSelectionBounds: !!this.selectionBoundsRect,
+      hasUserLocation,
+      viewLockedByUser: this.viewLockedByUser || !!this.selectedRegion(),
+    });
+
+    if (!plan) return;
+
+    switch (plan.source) {
+      case 'all':
+        this.map.fitBounds(this.allBoundsRect!, FIT_OPTIONS);
+        break;
+      case 'custom':
+        this.map.fitBounds(this.customBoundsRect!, FIT_OPTIONS);
+        break;
+      case 'location':
+        this.map.setView([location!.lat, location!.lng], LOCATION_ONLY_ZOOM);
+        break;
+      case 'selection':
+        this.map.fitBounds(this.selectionBoundsRect!, FIT_OPTIONS);
+        break;
+    }
+
+    this.fittedViewPriority = plan.priority;
+  }
+
   private buildRegions(): void {
     // Group names follow pattern "US - State - City" (3 parts) or "KOR - City" (2 parts)
     // Region = full group name (all 3 parts for US, all 2 parts for KOR/AUS)
@@ -291,6 +371,24 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     regions.sort((a, b) => a.label.localeCompare(b.label));
     this.regions.set(regions);
+  }
+
+  /** Bounds of the fences the user is subscribed to, or null when none of them are in the feed. */
+  private computeSelectionBounds(): L.LatLngBounds | null {
+    if (this.selectedAreas.length === 0 || this.geofence.length === 0) return null;
+
+    const selectedSet = new Set(this.selectedAreas.map(a => a.toLowerCase()));
+    const points: L.LatLngExpression[] = [];
+
+    for (const fence of this.geofence) {
+      if (!fence.path || fence.path.length < 3) continue;
+      if (!selectedSet.has(fence.name.toLowerCase())) continue;
+      points.push(...fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression));
+    }
+
+    // A selection can name geofences the feed does not carry -- user-drawn fences are served with
+    // userSelectable=false and are not in the admin area list -- so an empty result is normal.
+    return points.length > 0 ? L.latLngBounds(points) : null;
   }
 
   private drawPolygons(): void {
@@ -399,13 +497,11 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     if (allBounds.length > 0) {
       this.allBoundsRect = L.latLngBounds(allBounds);
-      if (!this.hasFittedInitialBounds && !this.selectedRegion()) {
-        this.map.fitBounds(this.allBoundsRect, { padding: [20, 20] });
-        this.hasFittedInitialBounds = true;
-      }
     }
 
+    this.selectionBoundsRect = this.computeSelectionBounds();
     this.updateUserMarker();
+    this.applyInitialView();
   }
 
   private initMap(): void {
@@ -419,6 +515,14 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       maxZoom: 19,
       subdomains: 'abcd',
     }).addTo(this.map);
+
+    // Once the user has touched the map, stop repositioning it. Raw DOM input events are used
+    // rather than Leaflet's movestart/zoomstart because those fire for our own fitBounds calls too,
+    // which would lock the view against the very first fit.
+    const container = this.mapElement.nativeElement;
+    for (const event of ['pointerdown', 'wheel', 'keydown']) {
+      container.addEventListener(event, this.lockViewHandler, { passive: true });
+    }
 
     this.customGeofenceLayer.addTo(this.map);
   }
@@ -438,10 +542,13 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (!this.map) return;
     this.customGeofenceLayer.clearLayers();
 
+    const customBounds: L.LatLngExpression[] = [];
+
     for (const fence of geofences) {
       if (!fence.path || fence.path.length < 3) continue;
 
       const latLngs: L.LatLngExpression[] = fence.path.map(coord => [coord[0], coord[1]] as L.LatLngExpression);
+      customBounds.push(...latLngs);
 
       const polygon = L.polygon(latLngs, {
         color: '#2196f3',
@@ -458,6 +565,9 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       this.customGeofenceLayer.addLayer(polygon);
     }
+
+    this.customBoundsRect = customBounds.length > 0 ? L.latLngBounds(customBounds) : null;
+    this.applyInitialView();
   }
 
   private updatePolygonStyles(): void {
