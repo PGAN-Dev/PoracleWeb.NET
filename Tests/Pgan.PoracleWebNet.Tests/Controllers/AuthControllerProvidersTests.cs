@@ -463,4 +463,113 @@ public class AuthControllerProvidersTests : ControllerTestBase
         var doc = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
         Assert.False(doc.RootElement.GetProperty("oidc").GetProperty("endSession").GetBoolean());
     }
+
+    // ── PUBLIC_URL and OAuth callback construction ────────────────────────────────────────────
+    //
+    // Behind a proxy that has not been declared via PROXY_KNOWN_*, X-Forwarded-Proto is discarded
+    // and Request.Scheme reads "http" on an HTTPS site, so the callback URI goes out as http:// and
+    // the provider refuses it. PUBLIC_URL states the origin outright. The pairs below cover both
+    // directions: the override works, AND leaving it unset still follows the request.
+
+    private static Microsoft.AspNetCore.Http.DefaultHttpContext ProxiedHttpContext()
+    {
+        // What an undeclared reverse proxy produces: TLS terminated at the edge, plain http here.
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        httpContext.Request.Scheme = "http";
+        httpContext.Request.Host = new Microsoft.AspNetCore.Http.HostString("alerts.example.com");
+        return httpContext;
+    }
+
+    [Fact]
+    public async Task DiscordLoginUsesPublicUrlForTheCallbackWhenConfigured()
+    {
+        var controller = this.CreateController(config: ConfigWith("PublicUrl", "https://alerts.example.com"));
+        controller.ControllerContext = new ControllerContext { HttpContext = ProxiedHttpContext() };
+
+        var result = await controller.DiscordLogin();
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Contains(
+            "redirect_uri=" + Uri.EscapeDataString("https://alerts.example.com/api/auth/discord/callback"),
+            redirect.Url,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DiscordLoginFollowsTheRequestWhenPublicUrlIsUnset()
+    {
+        // The historical behaviour, and still correct for a direct-exposed instance or a declared
+        // proxy. A regression here would break every install that does not set PUBLIC_URL.
+        var controller = this.CreateController();
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new Microsoft.AspNetCore.Http.HostString("direct.example.com:8082");
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.DiscordLogin();
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Contains(
+            "redirect_uri=" + Uri.EscapeDataString("https://direct.example.com:8082/api/auth/discord/callback"),
+            redirect.Url,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OidcLoginUsesPublicUrlForTheCallbackWhenConfigured()
+    {
+        var controller = this.CreateController(
+            oidc: FullyConfiguredOidc(),
+            config: ConfigWith("PublicUrl", "https://alerts.example.com"));
+        controller.ControllerContext = new ControllerContext { HttpContext = ProxiedHttpContext() };
+
+        var result = controller.OidcLogin();
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Contains(
+            "redirect_uri=" + Uri.EscapeDataString("https://alerts.example.com/api/auth/oidc/callback"),
+            redirect.Url,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OidcLoginFollowsTheRequestWhenPublicUrlIsUnset()
+    {
+        var controller = this.CreateController(oidc: FullyConfiguredOidc());
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new Microsoft.AspNetCore.Http.HostString("direct.example.com:8082");
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = controller.OidcLogin();
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Contains(
+            "redirect_uri=" + Uri.EscapeDataString("https://direct.example.com:8082/api/auth/oidc/callback"),
+            redirect.Url,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A malformed PUBLIC_URL must not silently fall back to the request -- that would reintroduce
+    /// the exact http:// callback the setting exists to prevent, with no sign anything was wrong.
+    /// Startup rejects it (see PublicOriginTests); the controller ignores it if it ever gets through.
+    /// </summary>
+    [Fact]
+    public async Task DiscordLoginIgnoresAnUnusablePublicUrl()
+    {
+        var controller = this.CreateController(config: ConfigWith("PublicUrl", "not a url"));
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        httpContext.Request.Scheme = "https";
+        httpContext.Request.Host = new Microsoft.AspNetCore.Http.HostString("direct.example.com");
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.DiscordLogin();
+
+        var redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Contains(
+            "redirect_uri=" + Uri.EscapeDataString("https://direct.example.com/api/auth/discord/callback"),
+            redirect.Url,
+            StringComparison.Ordinal);
+    }
 }

@@ -260,6 +260,14 @@ PROXY_KNOWN_NETWORKS=172.18.0.0/16
 
 Leave both unset and the app falls back to the connection address, which is safe but wrong in two visible ways: every user behind the proxy shares one rate-limit bucket, and OAuth callback URLs are built from the scheme the app *received* — `http://` — so Discord and OIDC providers reject the sign-in with an invalid `redirect_uri`.
 
+For the sign-in half of that you can skip the inference entirely and name the URL:
+
+```bash
+PUBLIC_URL=https://poracle.example.com
+```
+
+`PUBLIC_URL` is the origin users type in, and the one you register with Discord or your OIDC provider. It must be an origin only — no trailing path — and an unusable value stops the app at startup rather than producing a callback the provider silently refuses. Set it if you have a single public address; leave it unset if people reach the instance on several hostnames and you want the callback to follow whichever one they used.
+
 ## Troubleshooting
 
 **"Configuration 'ConnectionStrings:PoracleDb' is required"**

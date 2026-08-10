@@ -111,6 +111,12 @@ Required for the custom geofences feature.
 |---|---|---|---|
 | CORS Origin | `CORS_ORIGIN` | `Cors__AllowedOrigins__0` | Allowed CORS origin. Required in production (empty = crash). Not required in development mode. |
 
+### Public URL
+
+| Setting | `.env` name | `.NET` env variable | Description |
+|---|---|---|---|
+| Public URL | `PUBLIC_URL` | `PublicUrl` | The origin users reach this instance on (e.g. `https://poracle.example.com`). Sets the Discord and OIDC callback URLs directly instead of deriving them from each request. Origin only — a path, query or invalid URL stops the app at startup. Optional; unset follows the incoming request. |
+
 ### Reverse proxy
 
 Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a reverse proxy](../getting-started/standalone-setup.md#reverse-proxy-optional).

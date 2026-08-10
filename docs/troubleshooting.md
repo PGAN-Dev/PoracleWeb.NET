@@ -4,7 +4,15 @@
 
 **Problem**: Clicking sign in sends you to Discord (or your OIDC provider) and it refuses with an invalid `redirect_uri`. Inspecting the URL shows the callback as `http://your-host/api/auth/discord/callback` even though the site is served over HTTPS.
 
-**Solution**: You are behind a reverse proxy that PoracleWeb.NET has not been told to trust, so its `X-Forwarded-Proto: https` is discarded and the callback URL is built from the plain HTTP request the app actually received. Declare the proxy in `.env`:
+**Solution**: You are behind a reverse proxy that PoracleWeb.NET has not been told to trust, so its `X-Forwarded-Proto: https` is discarded and the callback URL is built from the plain HTTP request the app actually received. The app logs a warning naming this when it happens — check the container logs to confirm.
+
+The direct fix is to state the URL rather than let the app infer it:
+
+```env
+PUBLIC_URL=https://poracle.example.com
+```
+
+Also declare the proxy, which fixes the same problem at the source and additionally stops everyone behind it sharing a single rate-limit bucket:
 
 ```env
 PROXY_KNOWN_NETWORKS=172.18.0.0/16,10.0.0.0/8
