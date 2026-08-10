@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.0] - 2026-08-10
+
 ### Added
 
 - **`PUBLIC_URL` sets the sign-in callback address directly.** OAuth callback URLs were only ever derived from the incoming request, so the sole way to influence them was to declare your reverse proxy — an indirect lever for something you would rather just state. Setting `PUBLIC_URL=https://poracle.example.com` names the origin outright for both Discord and OIDC. Optional: leave it unset and behaviour is unchanged, which stays correct for a directly-exposed instance, for a declared proxy, and for anyone reaching the instance on several hostnames. An unusable value stops the app at startup instead of producing a callback the provider silently refuses ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
@@ -25,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The documentation screenshots are unbranded too, the other half of the same defect: all 41 shots under `docs/screenshots/` that show a toolbar or the sign-in splash now read `DM Alerts` rather than `PoGO Alerts Network`, so the docs no longer illustrate self-hosting with a picture of somebody else's deployment ([#697](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/697)).
 - Dependabot now opens its pull requests against `develop` rather than `main`. With no `target-branch` set it defaulted to the repository's default branch, so dependency bumps landed directly on released code without ever being built as `:beta` or running on the dev instance — contradicting the documented rule that `main` only moves when a release is merged. It also put every bump through the merge queue that exists only on `main`.
 - **Upgrading to 2.14.0 could break sign-in behind a reverse proxy.** The proxy-trust fix in that release ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)) stopped believing `X-Forwarded-Proto` from undeclared proxies, so instances that had not set `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS` began building OAuth callback URLs as `http://` and Discord rejected the sign-in with an invalid `redirect_uri`. Both variables are now documented in `.env.example`, the configuration reference, the reverse-proxy setup guide, and troubleshooting. If you are affected, declare your proxy and recreate the container ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
+
+### Dependencies
+- Bump jsdom in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#687](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/687))
 
 ## [2.14.0] - 2026-08-09
 
@@ -862,7 +867,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.14.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.0...HEAD
+[2.15.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.12.1...v2.13.0
 [2.12.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.12.0...v2.12.1
