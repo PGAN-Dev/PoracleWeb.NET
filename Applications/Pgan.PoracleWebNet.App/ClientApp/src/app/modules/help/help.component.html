@@ -83,7 +83,14 @@
               </div>
             </mat-panel-title>
           </mat-expansion-panel-header>
-          <div class="section-content" [innerHTML]="section.contentKey | translate"></div>
+          <!-- Screenshots arrive as raw <img> inside the translated HTML, so click/keyboard
+               handling is delegated from the host rather than bound per image. -->
+          <div
+            #sectionContent
+            class="section-content"
+            [innerHTML]="section.contentKey | translate"
+            (click)="onContentClick($event)"
+            (keydown)="onContentKeydown($event)"></div>
         </mat-expansion-panel>
       }
     </mat-accordion>
