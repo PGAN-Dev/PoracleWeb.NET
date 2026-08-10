@@ -1,5 +1,36 @@
 # Troubleshooting
 
+## Sign-in fails with "Invalid OAuth2 redirect_uri"
+
+**Problem**: Clicking sign in sends you to Discord (or your OIDC provider) and it refuses with an invalid `redirect_uri`. Inspecting the URL shows the callback as `http://your-host/api/auth/discord/callback` even though the site is served over HTTPS.
+
+**Solution**: You are behind a reverse proxy that PoracleWeb.NET has not been told to trust, so its `X-Forwarded-Proto: https` is discarded and the callback URL is built from the plain HTTP request the app actually received. The app logs a warning naming this when it happens — check the container logs to confirm.
+
+The direct fix is to state the URL rather than let the app infer it:
+
+```env
+PUBLIC_URL=https://poracle.example.com
+```
+
+Also declare the proxy, which fixes the same problem at the source and additionally stops everyone behind it sharing a single rate-limit bucket:
+
+```env
+PROXY_KNOWN_NETWORKS=172.18.0.0/16,10.0.0.0/8
+# or, for a single address:
+# PROXY_KNOWN_PROXIES=127.0.0.1
+```
+
+Use the address the proxy connects **from**, as the container sees it. Then recreate the container: `docker compose up -d --force-recreate`.
+
+Two things to check if it still comes back as `http://`:
+
+- Your `docker-compose.yml` must actually pass the variable through. The shipped example uses `env_file: - .env`, which covers everything; a hand-edited file with an explicit `environment:` list needs `PROXY_KNOWN_PROXIES` and `PROXY_KNOWN_NETWORKS` added to it. Confirm with `docker inspect <container> --format '{{range .Config.Env}}{{println .}}{{end}}' | grep PROXY`.
+- Your proxy must send `X-Forwarded-Proto`. Nginx needs `proxy_set_header X-Forwarded-Proto $scheme;` explicitly; Caddy and Cloudflare Tunnel send it by default.
+
+The same misconfiguration also puts every user behind the proxy into a single rate-limit bucket. See [Behind a reverse proxy](getting-started/standalone-setup.md#reverse-proxy-optional).
+
+---
+
 ## Container exits on startup: `Configuration 'Cors:AllowedOrigins' is required`
 
 **Problem**: The container crash-loops on start. Logs show `System.InvalidOperationException: Configuration 'Cors:AllowedOrigins' is required in non-development environments.`

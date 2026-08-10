@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`PUBLIC_URL` sets the sign-in callback address directly.** OAuth callback URLs were only ever derived from the incoming request, so the sole way to influence them was to declare your reverse proxy — an indirect lever for something you would rather just state. Setting `PUBLIC_URL=https://poracle.example.com` names the origin outright for both Discord and OIDC. Optional: leave it unset and behaviour is unchanged, which stays correct for a directly-exposed instance, for a declared proxy, and for anyone reaching the instance on several hostnames. An unusable value stops the app at startup instead of producing a callback the provider silently refuses ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
+- A sign-in that is about to fail this way now says so in the log, naming both fixes, rather than leaving the provider's "invalid redirect_uri" as the only symptom ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
+- The Discord OAuth2 and external SSO setup guides now say where the callback URL comes from and when to pin it with `PUBLIC_URL`, instead of describing it as always derived from the request.
+
+### Removed
+
+- `Discord:RedirectUri` — the setting was read by nothing and had been dead since the callback URL became request-derived. Anyone who had set it was getting silence; `PUBLIC_URL` is the working replacement and covers OIDC too ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
+
+### Fixed
+
+- The Areas map opens on the areas you have selected instead of on the whole world ([#693](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/693)). It was fitting the bounds of every area in the feed, which on a network spanning Hawaii to Australia is the entire planet — no area was more than a pixel and none of them could be clicked. It now opens on your selection, falling back to your own geofences, then your pinned location, and only then to everything. My Geofences opens on your own geofences for the same reason, rather than on an ocean.
+- The Help page screenshots no longer carry one deployment's branding. Every screenshot with the toolbar in it read `PoGO Alerts Network`, and the sign-in screenshot showed it again as the splash heading, so a self-hoster reading Help saw somebody else's network name beside instructions about their own install. They now read `DM Alerts` — the same default the app itself falls back to when `custom_title` is unset ([#694](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/694)).
+- Help screenshots open full size when clicked ([#694](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/694)). They are captured at 1440px and drawn in a column roughly half that wide, so the UI detail each one exists to point at was too small to read. They are now focusable and open in a viewer on click, Enter or Space.
+- The documentation screenshots are unbranded too, the other half of the same defect: all 41 shots under `docs/screenshots/` that show a toolbar or the sign-in splash now read `DM Alerts` rather than `PoGO Alerts Network`, so the docs no longer illustrate self-hosting with a picture of somebody else's deployment ([#697](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/697)).
+- Dependabot now opens its pull requests against `develop` rather than `main`. With no `target-branch` set it defaulted to the repository's default branch, so dependency bumps landed directly on released code without ever being built as `:beta` or running on the dev instance — contradicting the documented rule that `main` only moves when a release is merged. It also put every bump through the merge queue that exists only on `main`.
+- **Upgrading to 2.14.0 could break sign-in behind a reverse proxy.** The proxy-trust fix in that release ([#583](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/583)) stopped believing `X-Forwarded-Proto` from undeclared proxies, so instances that had not set `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS` began building OAuth callback URLs as `http://` and Discord rejected the sign-in with an invalid `redirect_uri`. Both variables are now documented in `.env.example`, the configuration reference, the reverse-proxy setup guide, and troubleshooting. If you are affected, declare your proxy and recreate the container ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
+
 ## [2.14.0] - 2026-08-09
 
 ### Security

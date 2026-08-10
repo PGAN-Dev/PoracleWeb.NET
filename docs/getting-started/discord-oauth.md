@@ -14,10 +14,18 @@ PoracleWeb.NET uses Discord OAuth2 for user authentication. This page walks thro
     | Development | `http://localhost:4200/api/auth/discord/callback` |
 
     The redirect URI must match the origin **the browser is on**, because `AuthController` builds the
-    callback from the incoming `Host` header. In production the API and the SPA share an origin, so this
+    callback from the incoming request. In production the API and the SPA share an origin, so this
     is simply your domain. In development the browser is on the Angular dev server (4200) and
     `proxy.conf.json` sets `changeOrigin: false`, so the `Host` stays `localhost:4200` — register that,
     not the API's 5048. If you serve the dev app on another port, register that port instead.
+
+    !!! tip "Behind a reverse proxy, set `PUBLIC_URL`"
+        Deriving the callback from the request goes wrong when TLS is terminated in front of the app:
+        it sees plain HTTP and builds an `http://` callback that Discord rejects as unregistered.
+        Setting `PUBLIC_URL=https://poracle.example.com` in `.env` pins the callback to exactly what
+        you registered here, whatever the request looks like. Declaring the proxy with
+        `PROXY_KNOWN_PROXIES` / `PROXY_KNOWN_NETWORKS` fixes the same thing at source and additionally
+        keeps rate limits per-user — see [Behind a reverse proxy](standalone-setup.md#reverse-proxy-optional).
 
 4. Copy the **Client ID** and **Client Secret**
 

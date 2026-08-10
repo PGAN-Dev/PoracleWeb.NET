@@ -1,0 +1,34 @@
+.viewer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.viewer-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.viewer-image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(96vh - 60px);
+  border-radius: 8px;
+  cursor: zoom-out;
+}
+
+.viewer-caption {
+  margin: 0;
+  padding: 0 8px;
+  font-size: 13px;
+  text-align: center;
+  // Sits on the dialog backdrop, not on a surface -- the panel is transparent.
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}

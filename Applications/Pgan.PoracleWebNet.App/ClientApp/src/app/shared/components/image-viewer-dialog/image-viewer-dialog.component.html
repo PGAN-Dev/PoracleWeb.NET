@@ -1,0 +1,17 @@
+<div class="viewer">
+  <button
+    mat-icon-button
+    class="viewer-close"
+    type="button"
+    [matTooltip]="'COMMON.CLOSE' | translate"
+    [attr.aria-label]="'COMMON.CLOSE' | translate"
+    (click)="close()">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <img class="viewer-image" [src]="data.src" [alt]="data.alt" (click)="close()" />
+
+  @if (data.alt) {
+    <p class="viewer-caption">{{ data.alt }}</p>
+  }
+</div>

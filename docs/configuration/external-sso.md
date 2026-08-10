@@ -55,7 +55,9 @@ sequenceDiagram
 - **PKCE**: when `OIDC_USE_PKCE=true` (default), a code verifier is stored in an `HttpOnly`
   cookie and only the S256 challenge is sent to the provider.
 - **Redirect URI**: PoracleWeb always uses `{your-host}/api/auth/oidc/callback`. Register exactly
-  this URI at your provider.
+  this URI at your provider. `{your-host}` comes from the incoming request unless `PUBLIC_URL` is
+  set, in which case it is that value — worth setting behind a reverse proxy, where the app
+  otherwise sees plain HTTP and sends an `http://` redirect URI the provider will refuse.
 - **Identity resolution**: the configured identity claim (falling back to `sub`) is looked up
   against the Poracle `human` table. The provider authenticates; Poracle authorizes.
 - **JWT type claim**: successful logins mint PoracleWeb's internal JWT with the `type` claim set
