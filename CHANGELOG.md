@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`PUBLIC_URL` sets the sign-in callback address directly.** OAuth callback URLs were only ever derived from the incoming request, so the sole way to influence them was to declare your reverse proxy — an indirect lever for something you would rather just state. Setting `PUBLIC_URL=https://poracle.example.com` names the origin outright for both Discord and OIDC. Optional: leave it unset and behaviour is unchanged, which stays correct for a directly-exposed instance, for a declared proxy, and for anyone reaching the instance on several hostnames. An unusable value stops the app at startup instead of producing a callback the provider silently refuses ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
 - A sign-in that is about to fail this way now says so in the log, naming both fixes, rather than leaving the provider's "invalid redirect_uri" as the only symptom ([#689](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/689)).
+- The Discord OAuth2 and external SSO setup guides now say where the callback URL comes from and when to pin it with `PUBLIC_URL`, instead of describing it as always derived from the request.
 
 ### Removed
 

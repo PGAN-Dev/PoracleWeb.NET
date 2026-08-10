@@ -216,4 +216,4 @@ The app will now be available at `http://your-server:9090`. Remember to update y
 : `PORACLE_API_ADDRESS` must be reachable from inside the container. If Poracle runs on the host, use `http://host.docker.internal:3030`. If it's on another machine, use that machine's IP.
 
 **Discord login fails**
-: The redirect URI in your Discord app must match exactly: `http://your-server:PORT/api/auth/discord/callback`. Check both the port and the hostname/IP.
+: The redirect URI in your Discord app must match exactly: `http://your-server:PORT/api/auth/discord/callback`. Check both the port and the hostname/IP. If you serve the site over HTTPS through a reverse proxy and Discord reports the callback as `http://`, set `PUBLIC_URL` — see [the troubleshooting entry](../troubleshooting.md#sign-in-fails-with-invalid-oauth2-redirect_uri).
