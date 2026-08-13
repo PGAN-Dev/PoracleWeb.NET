@@ -40,6 +40,13 @@ export class AuthService {
     // signed-in shell and an impersonation banner around the login page. See #627, #628.
     this.tokenStore.sessionCleared$.subscribe(() => this.clearSession());
 
+    // A 401 under impersonation drops back to the admin's own token instead of ending the session;
+    // pick the admin's user back up so the banner and nav match who the token now names. See #706.
+    this.tokenStore.impersonationEnded$.subscribe(() => {
+      this._isImpersonating.set(false);
+      void this.loadCurrentUser();
+    });
+
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       this.loadCurrentUser();
@@ -113,7 +120,10 @@ export class AuthService {
       this.http.get<UserInfo>(`${this.config.apiHost}/api/auth/me`).subscribe({
         error: err => {
           if (err.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
+            // Only the user object. The interceptor owns what happens to the tokens on a 401 -- either
+            // clearAll(), which already empties this via sessionCleared$, or the impersonation fallback
+            // that installs the admin's own token. Removing poracle_token here as well deleted the token
+            // that fallback had just restored, one line after it was written. See #706, #616.
             this.currentUser.set(null);
           }
           this.userLoaded$.next(null);

@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
+import { TokenStoreService } from './token-store.service';
 import { UserInfo } from '../models';
 
 describe('AuthService', () => {
@@ -167,7 +168,10 @@ describe('AuthService', () => {
       expect(service.isLoggedIn()).toBe(true);
     });
 
-    it('should clear token and user on 401 error', async () => {
+    it('should forget the user on 401 error, leaving the token to the interceptor', async () => {
+      // Removing poracle_token here as well as in the interceptor deleted the admin token the
+      // impersonation fallback had just restored, one line after it was written. The interceptor owns
+      // 401 token handling -- clearAll(), or the fallback -- and this only resets the user. See #706.
       localStorage.setItem('poracle_token', 'bad-token');
       const promise = service.loadCurrentUser();
 
@@ -176,7 +180,6 @@ describe('AuthService', () => {
 
       const result = await promise;
       expect(result).toBeNull();
-      expect(localStorage.getItem('poracle_token')).toBeNull();
       expect(service.user()).toBeNull();
     });
 
@@ -361,6 +364,26 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(false);
       expect(service.isImpersonating()).toBe(false);
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+    });
+  });
+
+  describe('an inspection ended by a 401', () => {
+    it('drops the impersonation state and reloads the admin behind the restored token', () => {
+      // The interceptor puts the admin's own token back rather than ending the session; without picking
+      // the user back up, the banner kept naming the inspected account and the nav kept its rights.
+      // See #706.
+      const tokenStore = TestBed.inject(TokenStoreService);
+      localStorage.setItem('poracle_token', 'impersonation-jwt');
+      localStorage.setItem('poracle_admin_token', 'admin-jwt');
+      service.impersonate('impersonation-jwt');
+      httpMock.expectOne(`${API}/api/auth/me`).flush(mockUser);
+      expect(service.isImpersonating()).toBe(true);
+
+      tokenStore.tryRestoreAdminSession();
+
+      expect(service.isImpersonating()).toBe(false);
+      httpMock.expectOne(`${API}/api/auth/me`).flush({ ...mockUser, id: 'admin-1', username: 'admin' });
+      expect(service.user()?.username).toBe('admin');
     });
   });
 });

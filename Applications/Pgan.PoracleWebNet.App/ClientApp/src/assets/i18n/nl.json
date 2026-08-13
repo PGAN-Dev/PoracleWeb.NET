@@ -41,6 +41,7 @@
     "VIEWING_AS": "Bekijken als",
     "BACK_TO_ADMIN": "Terug naar Beheer",
     "DISABLED_ACCOUNT": "Je account is <strong>uitgeschakeld</strong>. Dit kan komen door snelheidsbeperking of een beheerdersactie.",
+    "DISABLED_ACCOUNT_INSPECTED": "Dit account is door een beheerder <strong>uitgeschakeld</strong> en ontvangt geen meldingen.",
     "DISABLED_SUPPORT": "Voor hulp, vraag het in",
     "PAUSED_ALERTS": "Je meldingen zijn <strong>gepauzeerd</strong>. Je ontvangt geen notificaties.",
     "RESUME": "Hervatten"
@@ -79,6 +80,7 @@
     "NETWORK": "Kan de server niet bereiken. Controleer je verbinding.",
     "BAD_REQUEST": "Ongeldig verzoek. Controleer je invoer.",
     "UNAUTHORIZED": "Je sessie is verlopen. Log opnieuw in.",
+    "INSPECTION_ENDED": "Inspectie beëindigd — je bent terug in je eigen sessie.",
     "FORBIDDEN": "Je hebt geen toestemming voor deze actie.",
     "NOT_FOUND": "De gevraagde bron is niet gevonden.",
     "CONFLICT": "Er is een conflict opgetreden. Het item is mogelijk gewijzigd.",

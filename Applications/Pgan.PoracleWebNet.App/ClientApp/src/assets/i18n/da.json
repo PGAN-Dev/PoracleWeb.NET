@@ -41,6 +41,7 @@
     "VIEWING_AS": "Viser som",
     "BACK_TO_ADMIN": "Tilbage til Admin",
     "DISABLED_ACCOUNT": "Din konto er blevet <strong>deaktiveret</strong>. Det kan skyldes hastighedsbegrænsning eller en administrativ handling.",
+    "DISABLED_ACCOUNT_INSPECTED": "Denne konto er blevet <strong>deaktiveret</strong> af en administrator og modtager ikke notifikationer.",
     "DISABLED_SUPPORT": "For at få hjælp, spørg i",
     "PAUSED_ALERTS": "Dine alarmer er <strong>sat på pause</strong>. Du vil ikke modtage notifikationer.",
     "RESUME": "Genoptag"
@@ -79,6 +80,7 @@
     "NETWORK": "Kan ikke nå serveren. Tjek din forbindelse.",
     "BAD_REQUEST": "Ugyldig forespørgsel. Tjek dine input.",
     "UNAUTHORIZED": "Din session er udløbet. Log ind igen.",
+    "INSPECTION_ENDED": "Inspektionen er afsluttet – du er tilbage i din egen session.",
     "FORBIDDEN": "Du har ikke tilladelse til at udføre denne handling.",
     "NOT_FOUND": "Den anmodede ressource blev ikke fundet.",
     "CONFLICT": "Der opstod en konflikt. Elementet kan være blevet ændret.",

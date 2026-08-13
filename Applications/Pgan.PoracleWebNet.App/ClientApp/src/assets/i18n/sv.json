@@ -41,6 +41,7 @@
     "VIEWING_AS": "Visar som",
     "BACK_TO_ADMIN": "Tillbaka till Admin",
     "DISABLED_ACCOUNT": "Ditt konto har <strong>inaktiverats</strong>. Det kan bero på hastighetsbegränsning eller en administratörsåtgärd.",
+    "DISABLED_ACCOUNT_INSPECTED": "Det här kontot har <strong>inaktiverats</strong> av en administratör och tar inte emot aviseringar.",
     "DISABLED_SUPPORT": "För att få hjälp, fråga i",
     "PAUSED_ALERTS": "Dina larm är <strong>pausade</strong>. Du kommer inte att få notiser.",
     "RESUME": "Återuppta"
@@ -79,6 +80,7 @@
     "NETWORK": "Kan inte nå servern. Kontrollera din anslutning.",
     "BAD_REQUEST": "Ogiltig begäran. Kontrollera dina uppgifter.",
     "UNAUTHORIZED": "Din session har gått ut. Logga in igen.",
+    "INSPECTION_ENDED": "Inspektionen avslutades – du är tillbaka i din egen session.",
     "FORBIDDEN": "Du har inte behörighet att utföra denna åtgärd.",
     "NOT_FOUND": "Den begärda resursen hittades inte.",
     "CONFLICT": "En konflikt uppstod. Objektet kan ha ändrats.",

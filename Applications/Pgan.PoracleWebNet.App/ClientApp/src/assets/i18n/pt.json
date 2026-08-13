@@ -41,6 +41,7 @@
     "VIEWING_AS": "A ver como",
     "BACK_TO_ADMIN": "Voltar à Administração",
     "DISABLED_ACCOUNT": "A tua conta foi <strong>desativada</strong>. Isto pode ser devido a limitação de pedidos ou a uma ação administrativa.",
+    "DISABLED_ACCOUNT_INSPECTED": "Esta conta foi <strong>desativada</strong> por um administrador e não recebe notificações.",
     "DISABLED_SUPPORT": "Para obter ajuda, pergunta em",
     "PAUSED_ALERTS": "Os teus alertas estão <strong>em pausa</strong>. Não vais receber notificações.",
     "RESUME": "Retomar"
@@ -79,6 +80,7 @@
     "NETWORK": "Não foi possível contactar o servidor. Verifica a tua ligação.",
     "BAD_REQUEST": "Pedido inválido. Verifica os dados introduzidos.",
     "UNAUTHORIZED": "A tua sessão expirou. Inicia sessão novamente.",
+    "INSPECTION_ENDED": "Inspeção terminada — voltou à sua própria sessão.",
     "FORBIDDEN": "Não tens permissão para realizar esta ação.",
     "NOT_FOUND": "O recurso solicitado não foi encontrado.",
     "CONFLICT": "Ocorreu um conflito. O item pode ter sido modificado.",
