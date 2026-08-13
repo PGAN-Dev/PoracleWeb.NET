@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.1] - 2026-08-13
+
 ### Fixed
 
 - **Inspecting a blocked user no longer signs the admin out.** `/api/auth/me` answers 401 for an account an administrator has blocked, which is how a blocked user's session ends — but under impersonation that 401 lands on the admin doing the inspecting, and the SPA discards the stashed admin token along with the rest of the session, so there was no way back. Lapsed subscribers are blocked accounts, and "why did this person's alerts stop?" is the main reason to inspect one at all, so inspection hit it constantly. The blocked state is now reported as data — the banner says so — and inspection works. Any other 401 while inspecting ends the inspection and returns the admin to their own session rather than logging them out ([#706](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/706)).
@@ -18,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump the dotnet group with 12 updates ([#711](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/711))
 - Bump `@types/leaflet` in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#705](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/705))
 - Bump the angular group in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#701](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/701))
+
+### Dependencies
+- Bump @types/leaflet ([#705](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/705))
+- Bump the angular group ([#701](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/701))
+- Bump the dotnet group with 12 updates ([#711](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/711))
 
 ## [2.15.0] - 2026-08-10
 
@@ -879,7 +886,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.1...HEAD
+[2.15.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.0...v2.15.1
 [2.15.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.12.1...v2.13.0
