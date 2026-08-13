@@ -274,7 +274,7 @@ public class ProfileController(
         // where treating unknown as false stripped admin for the rest of the session (#656); and an
         // impersonation session, which AdminController deliberately mints with IsAdmin = false and which
         // would otherwise be re-elevated by resolving the impersonated user's own roles (#663).
-        bool? resolvedAdmin = roles.Resolved && this.User.FindFirst("impersonatedBy") is null
+        bool? resolvedAdmin = roles.Resolved && !this.IsImpersonating
             ? roles.IsAdmin
             : null;
         var newToken = this._jwtService.GenerateTokenWithReplacedProfile(this.User, profileNo, resolvedAdmin);

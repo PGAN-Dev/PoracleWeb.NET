@@ -137,4 +137,32 @@ describe('TokenStoreService', () => {
       expect(announced).toBe(true);
     });
   });
+
+  describe('tryRestoreAdminSession', () => {
+    it('installs the stashed admin token and announces the end of the inspection', () => {
+      localStorage.setItem('poracle_token', 'impersonation-jwt');
+      localStorage.setItem('poracle_admin_token', 'admin-jwt');
+      let announced = false;
+      service.impersonationEnded$.subscribe(() => (announced = true));
+
+      expect(service.tryRestoreAdminSession()).toBe(true);
+
+      expect(localStorage.getItem('poracle_token')).toBe('admin-jwt');
+      expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+      expect(announced).toBe(true);
+    });
+
+    it('leaves an ordinary session alone when there is nothing stashed', () => {
+      // The common case: an expired token on a session that was never impersonating. Touching it here
+      // would strand a session the 401 path is about to clear anyway. See #706.
+      localStorage.setItem('poracle_token', 'expired-jwt');
+      let announced = false;
+      service.impersonationEnded$.subscribe(() => (announced = true));
+
+      expect(service.tryRestoreAdminSession()).toBe(false);
+
+      expect(localStorage.getItem('poracle_token')).toBe('expired-jwt');
+      expect(announced).toBe(false);
+    });
+  });
 });

@@ -424,6 +424,13 @@ On first startup after upgrade, the `SettingsMigrationStartupService` automatica
 ### MariaDB GET_LOCK Compatibility
 `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK('__EFMigrationsLock', -1)` which returns NULL on MariaDB (infinite timeout not supported), causing `System.InvalidCastException`. The `MariaDbHistoryRepository` class overrides the lock acquisition to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
 
+### `ExecuteDeleteAsync` Is Unusable On MariaDB
+`MySql.EntityFrameworkCore` emits the aliased single-table form, ``DELETE FROM `t` AS `x` WHERE …``, and MariaDB answers 1064 — it requires the multi-table ``DELETE x FROM t AS x`` once an alias is present. `ExecuteUpdateAsync` is fine; MariaDB accepts `UPDATE t AS x SET x.c = …`. Verified against MariaDB 10.8.2.
+
+Nothing catches this before production. It compiles, and the repository tests pass because they run on **SQLite**, whose provider emits the same alias and accepts it. The OIDC session cleanup shipped this way and had never once run (#707); `QuickPickAppliedStateRepository` hit it earlier and quietly grew a load-and-`RemoveRange` workaround.
+
+Use raw SQL with **unquoted** identifiers (so the statement also parses on SQLite for the tests), or load and `RemoveRange` when the row count is small. `NoAliasedDeleteTests` fails the build if `.ExecuteDeleteAsync(` reappears anywhere under `Core/`, `Data/` or the API project.
+
 ### Gym ID NULL vs Empty String
 The `gym_id` column in Poracle alarm tables (gym, raid, egg) is a `NOT NULL` string that defaults to `""` (empty string) meaning "any gym". PoracleNG handles the null-to-empty normalization on its side. The `GymPickerComponent` emits `null` when cleared and the gym's `id` string when selected.
 

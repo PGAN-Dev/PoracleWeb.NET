@@ -73,19 +73,10 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
 
     public async Task<bool> ExistsAsync(string id) => await this._context.Humans.AnyAsync(h => h.Id == id);
 
-    public async Task<int> DeleteAllAlarmsByUserAsync(string userId)
-    {
-        var count = 0;
-        count += await this._context.Monsters.Where(m => m.Id == userId).ExecuteDeleteAsync();
-        count += await this._context.Raids.Where(r => r.Id == userId).ExecuteDeleteAsync();
-        count += await this._context.Eggs.Where(e => e.Id == userId).ExecuteDeleteAsync();
-        count += await this._context.Quests.Where(q => q.Id == userId).ExecuteDeleteAsync();
-        count += await this._context.Invasions.Where(i => i.Id == userId).ExecuteDeleteAsync();
-        count += await this._context.Lures.Where(l => l.Id == userId).ExecuteDeleteAsync();
-        count += await this._context.Nests.Where(n => n.Id == userId).ExecuteDeleteAsync();
-        count += await this._context.Gyms.Where(g => g.Id == userId).ExecuteDeleteAsync();
-        return count;
-    }
+    // DeleteAllAlarmsByUserAsync lived here and was dead: HumanService has looped the tracking proxy
+    // since the PoracleNG migration, so nothing reached it. Its eight ExecuteDeleteAsync calls would
+    // each have emitted the aliased DELETE that MariaDB rejects (#707), so it could not have worked
+    // had anything called it. Alarm deletion belongs to PoracleNG, which reloads its own state.
 
     public async Task<bool> DeleteUserAsync(string userId)
     {

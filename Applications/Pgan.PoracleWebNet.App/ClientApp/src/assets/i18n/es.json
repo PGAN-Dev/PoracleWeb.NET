@@ -41,6 +41,7 @@
     "VIEWING_AS": "Viendo como",
     "BACK_TO_ADMIN": "Volver al Admin",
     "DISABLED_ACCOUNT": "Tu cuenta ha sido <strong>desactivada</strong>. Esto puede deberse a un límite de solicitudes o a una acción administrativa.",
+    "DISABLED_ACCOUNT_INSPECTED": "Esta cuenta ha sido <strong>desactivada</strong> por un administrador y no recibe notificaciones.",
     "DISABLED_SUPPORT": "Para obtener ayuda, pregunta en",
     "PAUSED_ALERTS": "Tus alertas están <strong>en pausa</strong>. No recibirás notificaciones.",
     "RESUME": "Reanudar"
@@ -79,6 +80,7 @@
     "NETWORK": "No se puede conectar al servidor. Verifica tu conexión.",
     "BAD_REQUEST": "Solicitud inválida. Verifica tus datos.",
     "UNAUTHORIZED": "Tu sesión ha expirado. Inicia sesión de nuevo.",
+    "INSPECTION_ENDED": "Se ha finalizado la inspección: has vuelto a tu propia sesión.",
     "FORBIDDEN": "No tienes permiso para realizar esta acción.",
     "NOT_FOUND": "El recurso solicitado no fue encontrado.",
     "CONFLICT": "Ocurrió un conflicto. El elemento puede haber sido modificado.",

@@ -36,6 +36,9 @@ export class TokenStoreService {
   /** Emits when a refresh definitively fails — AuthService subscribes and logs the user out. */
   readonly forceLogout$ = new Subject<void>();
 
+  /** Emits when a 401 dropped an impersonation session back to the admin's own token. */
+  readonly impersonationEnded$ = new Subject<void>();
+
   /** Emits when the session was discarded from under the app — AuthService resets its own state. */
   readonly sessionCleared$ = new Subject<void>();
 
@@ -144,6 +147,27 @@ export class TokenStoreService {
     if (expiresAt) {
       localStorage.setItem(EXPIRES_KEY, String(expiresAt));
     }
+  }
+
+  /**
+   * Puts the stashed admin token back as the active one, if there is one. Returns whether it did.
+   */
+  /* A 401 belongs to whoever the token names, and while inspecting an account that is the inspected
+   * user, not the admin holding the session. clearAll() treats every 401 as the end of the session and
+   * discards poracle_admin_token with the rest, so one blocked or deleted account signed the admin out
+   * of their own session with nothing to return to -- inspecting exactly the accounts an admin most
+   * needs to inspect. Falling back is self-limiting: if the restored admin token is itself dead, the
+   * next 401 finds no stash and clears normally. See #706, #616. */
+  tryRestoreAdminSession(): boolean {
+    const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY);
+    if (!adminToken) {
+      return false;
+    }
+
+    localStorage.setItem(TOKEN_KEY, adminToken);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    this.impersonationEnded$.next();
+    return true;
   }
 
   private decodeExpiry(token: string): number | null {

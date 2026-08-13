@@ -41,6 +41,7 @@
     "VIEWING_AS": "Przeglądasz jako",
     "BACK_TO_ADMIN": "Powrót do Admina",
     "DISABLED_ACCOUNT": "Twoje konto zostało <strong>wyłączone</strong>. Może to być spowodowane limitem zapytań lub działaniem administratora.",
+    "DISABLED_ACCOUNT_INSPECTED": "To konto zostało <strong>wyłączone</strong> przez administratora i nie otrzymuje powiadomień.",
     "DISABLED_SUPPORT": "Aby uzyskać pomoc, zapytaj na",
     "PAUSED_ALERTS": "Twoje alerty są <strong>wstrzymane</strong>. Nie będziesz otrzymywać powiadomień.",
     "RESUME": "Wznów"
@@ -79,6 +80,7 @@
     "NETWORK": "Nie można połączyć się z serwerem. Sprawdź swoje połączenie.",
     "BAD_REQUEST": "Nieprawidłowe żądanie. Sprawdź wprowadzone dane.",
     "UNAUTHORIZED": "Twoja sesja wygasła. Zaloguj się ponownie.",
+    "INSPECTION_ENDED": "Zakończono podgląd — wróciłeś do własnej sesji.",
     "FORBIDDEN": "Nie masz uprawnień do wykonania tej akcji.",
     "NOT_FOUND": "Żądany zasób nie został znaleziony.",
     "CONFLICT": "Wystąpił konflikt. Element mógł zostać zmodyfikowany.",

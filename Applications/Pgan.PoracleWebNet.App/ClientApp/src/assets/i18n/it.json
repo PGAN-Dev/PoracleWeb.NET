@@ -41,6 +41,7 @@
     "VIEWING_AS": "Visualizzazione come",
     "BACK_TO_ADMIN": "Torna all'Amministrazione",
     "DISABLED_ACCOUNT": "Il tuo account è stato <strong>disabilitato</strong>. Questo potrebbe essere dovuto a un limite di richieste o a un'azione amministrativa.",
+    "DISABLED_ACCOUNT_INSPECTED": "Questo account è stato <strong>disattivato</strong> da un amministratore e non riceve notifiche.",
     "DISABLED_SUPPORT": "Per assistenza, chiedi in",
     "PAUSED_ALERTS": "I tuoi avvisi sono <strong>in pausa</strong>. Non riceverai notifiche.",
     "RESUME": "Riprendi"
@@ -79,6 +80,7 @@
     "NETWORK": "Impossibile raggiungere il server. Controlla la tua connessione.",
     "BAD_REQUEST": "Richiesta non valida. Controlla i dati inseriti.",
     "UNAUTHORIZED": "La tua sessione è scaduta. Accedi di nuovo.",
+    "INSPECTION_ENDED": "Ispezione terminata: sei tornato alla tua sessione.",
     "FORBIDDEN": "Non hai i permessi per eseguire questa azione.",
     "NOT_FOUND": "La risorsa richiesta non è stata trovata.",
     "CONFLICT": "Si è verificato un conflitto. L'elemento potrebbe essere stato modificato.",

@@ -40,6 +40,17 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       // On 401, clear token and redirect — but NOT during OAuth callback flow or login page
       if (error.status === 401 && !isAuthCallbackRoute()) {
+        // A 401 while inspecting another account is that account's problem, not the admin's, so end the
+        // inspection rather than the session. Without this, inspecting a blocked or deleted user hit the
+        // clearAll() below and signed the admin out with nothing to return to. See #706.
+        // Toasted even for the silenced endpoints: unlike a background poll, this one explains a
+        // navigation the admin can see happen.
+        if (tokenStore.tryRestoreAdminSession()) {
+          toast.error(translate.instant('HTTP_ERROR.INSPECTION_ENDED'));
+          router.navigate(['/admin']);
+          return throwError(() => error);
+        }
+
         // The whole session, not just the access token. Three keys used to survive the app deciding the
         // session was invalid: poracle_admin_token -- the higher-privilege credential an impersonating
         // admin leaves behind, which stopImpersonating() would then install as the active token -- plus

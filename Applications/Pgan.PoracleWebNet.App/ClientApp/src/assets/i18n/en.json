@@ -41,6 +41,7 @@
     "VIEWING_AS": "Viewing as",
     "BACK_TO_ADMIN": "Back to Admin",
     "DISABLED_ACCOUNT": "Your account has been <strong>disabled</strong>. This may be due to rate limiting or an administrative action.",
+    "DISABLED_ACCOUNT_INSPECTED": "This account has been <strong>disabled</strong> by an administrator and is not receiving notifications.",
     "DISABLED_SUPPORT": "To get help, ask in",
     "PAUSED_ALERTS": "Your alerts are <strong>paused</strong>. You will not receive notifications.",
     "RESUME": "Resume"
@@ -79,6 +80,7 @@
     "NETWORK": "Unable to reach the server. Please check your connection.",
     "BAD_REQUEST": "Invalid request. Please check your input.",
     "UNAUTHORIZED": "Your session has expired. Please sign in again.",
+    "INSPECTION_ENDED": "Inspection ended — you are back in your own session.",
     "FORBIDDEN": "You do not have permission to perform this action.",
     "NOT_FOUND": "The requested resource was not found.",
     "CONFLICT": "A conflict occurred. The item may have been modified.",
