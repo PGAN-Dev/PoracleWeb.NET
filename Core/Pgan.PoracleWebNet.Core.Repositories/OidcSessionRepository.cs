@@ -61,9 +61,16 @@ public class OidcSessionRepository(PoracleWebContext context) : IOidcSessionRepo
     {
         DateTime now = DateTime.UtcNow;
         DateTime revokedCutoff = now - revokedRetention;
-        return await this._context.OidcSessions
-            .Where(s => s.ExpiresAt < now || (s.RevokedAt != null && s.RevokedAt < revokedCutoff))
-            .ExecuteDeleteAsync();
+
+        // Raw SQL rather than ExecuteDeleteAsync: MySql.EntityFrameworkCore emits the aliased
+        // single-table form -- DELETE FROM `oidc_sessions` AS `o` WHERE ... -- and MariaDB rejects
+        // that outright (1064; it wants the multi-table `DELETE o FROM ... AS o` when an alias is
+        // present). Every cleanup pass since the feature shipped threw and logged a warning, so the
+        // table only ever grew. Verified against MariaDB 10.8.2. Identifiers are left bare and
+        // unquoted so the same statement parses on MariaDB, MySQL and the SQLite the repository
+        // tests run against. See #707.
+        return await this._context.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM oidc_sessions WHERE expires_at < {now} OR (revoked_at IS NOT NULL AND revoked_at < {revokedCutoff})");
     }
 
     private static OidcSession ToModel(OidcSessionEntity e) => new()

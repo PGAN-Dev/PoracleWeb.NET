@@ -50,7 +50,7 @@ Net consequence: **without three explicit asks to jfberry, the keystone deletion
 | 7 | `LocationController.UpdateLanguage` → `HumanService.UpdateAsync` → `HumanRepository.UpdateAsync` | Generic direct-DB human update for language | **YES** | `POST /api/v2/humans/{id}/language` exists — swap now |
 | 8 | `ProfileRepository` (all methods) + `ProfileService.Create/Update/Delete` | Dead code — controllers already use proxy | **YES** | Delete outright; v2 profile endpoints exist |
 | 9 | `HumanRepository.GetByIdAsync`/`ExistsAsync`/`CreateAsync` | Dead — service uses proxy | **YES** | Delete dead methods |
-| 10 | `HumanRepository.DeleteAllAlarmsByUserAsync` | Dead — service loops via proxy | **PARTIAL** | Delete dead method now; one-shot purge endpoint is a nice-to-have (ask #6) |
+| 10 | ~~`HumanRepository.DeleteAllAlarmsByUserAsync`~~ | Dead — service loops via proxy | **DONE** | Deleted in #707 (its `ExecuteDeleteAsync` calls could not run on MariaDB anyway); one-shot purge endpoint is still a nice-to-have (ask #6) |
 | 11 | `DashboardService.GetAllTrackingAsync` (proxy, not direct DB) | Fetches full payloads to count | **YES** | Snapshot/counts — perf win, not DB elimination |
 
 **Verdict:** rows 6–11 close on v2 (some are pure dead-code deletion). Rows 1–5 — the entire reason `PoracleContext` still exists — require **four new PoracleNG capabilities.** Until those land, `HumanRepository` shrinks to ~3 admin methods that still pin `PoracleContext`, and `UserAreaDualWriter` stays in full.
@@ -123,7 +123,7 @@ The three **High** asks (trusted setAreas, admin list, batch resolve) are the ga
 |---|---|---|
 | 0a | Swap `LocationController.UpdateLanguage` to proxy `SetLanguageAsync` (→ `POST /api/v2/humans/{id}/language`). Removes the last live `HumanRepository.UpdateAsync` caller. | S |
 | 0b | Swap `UserGeofenceService:292` display-name read to proxy `GetHumanAsync`. | S |
-| 0c | Delete dead `ProfileRepository`/`IProfileRepository` + `ProfileService` CRUD; dead `HumanRepository` methods (`GetByIdAsync`/`ExistsAsync`/`CreateAsync`/`DeleteAllAlarmsByUserAsync`) + `EnsureNotNullDefaults`. Update test mocks. Keep only `GetAllAsync`/`GetByIdsAsync`/`DeleteUserAsync` until v2 admin endpoints land. | M |
+| 0c | Delete dead `ProfileRepository`/`IProfileRepository` + `ProfileService` CRUD; dead `HumanRepository` methods (`GetByIdAsync`/`ExistsAsync`/`CreateAsync`; `DeleteAllAlarmsByUserAsync` already gone in #707) + `EnsureNotNullDefaults`. Update test mocks. Keep only `GetAllAsync`/`GetByIdsAsync`/`DeleteUserAsync` until v2 admin endpoints land. | M |
 
 **Phase 1 — v2 read path (behind `Poracle:ApiVersion` flag):**
 

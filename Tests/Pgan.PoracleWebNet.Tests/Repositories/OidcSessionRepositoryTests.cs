@@ -1,5 +1,7 @@
+using System.Data.Common;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Repositories;
 using Pgan.PoracleWebNet.Data;
@@ -8,15 +10,16 @@ namespace Pgan.PoracleWebNet.Tests.Repositories;
 
 /// <summary>
 /// Repository tests over a real relational provider (SQLite in-memory) because the rotation guard
-/// and cleanup use <c>ExecuteUpdateAsync</c>/<c>ExecuteDeleteAsync</c>, which the EF InMemory
-/// provider cannot translate. Covers the retention semantics (decoupled revoked-row retention) and
-/// the atomic rotation guard.
+/// uses <c>ExecuteUpdateAsync</c>, which the EF InMemory provider cannot translate. Covers the
+/// retention semantics (decoupled revoked-row retention), the atomic rotation guard, and the shape
+/// of the emitted cleanup statement.
 /// </summary>
 public sealed class OidcSessionRepositoryTests : IDisposable
 {
     private readonly SqliteConnection _connection;
     private readonly PoracleWebContext _context;
     private readonly OidcSessionRepository _repo;
+    private readonly CommandCapture _commands = new();
 
     public OidcSessionRepositoryTests()
     {
@@ -24,6 +27,7 @@ public sealed class OidcSessionRepositoryTests : IDisposable
         this._connection.Open();
         var options = new DbContextOptionsBuilder<PoracleWebContext>()
             .UseSqlite(this._connection)
+            .AddInterceptors(this._commands)
             .Options;
         this._context = new PoracleWebContext(options);
         this._context.Database.EnsureCreated();
@@ -132,5 +136,59 @@ public sealed class OidcSessionRepositoryTests : IDisposable
 
         Assert.NotNull(await this._repo.GetByHashAsync("known"));
         Assert.Null(await this._repo.GetByHashAsync("missing"));
+    }
+
+    /// <summary>
+    /// The retention test above passed for the whole time cleanup was broken in production: SQLite
+    /// accepts what EF generated, MariaDB answered 1064 to <c>DELETE FROM `oidc_sessions` AS `o`</c>,
+    /// and no test looked at the statement itself. This one does. See #707.
+    /// </summary>
+    [Fact]
+    public async Task DeleteExpiredAndStale_EmitsUnaliasedDelete_MariaDbCannotParseTheAliasedForm()
+    {
+        await this.SeedAsync("expired", "f1", expiresAt: DateTime.UtcNow.AddMinutes(-1));
+        this._commands.Executed.Clear();
+
+        await this._repo.DeleteExpiredAndStaleAsync(TimeSpan.FromDays(2));
+
+        var delete = Assert.Single(
+            this._commands.Executed,
+            c => c.TrimStart().StartsWith("DELETE", StringComparison.OrdinalIgnoreCase));
+
+        Assert.DoesNotContain(" AS ", delete, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("`", delete, StringComparison.Ordinal);
+    }
+
+    private sealed class CommandCapture : DbCommandInterceptor
+    {
+        public List<string> Executed { get; } = [];
+
+        public override InterceptionResult<int> NonQueryExecuting(
+            DbCommand command, CommandEventData eventData, InterceptionResult<int> result)
+        {
+            this.Executed.Add(command.CommandText);
+            return base.NonQueryExecuting(command, eventData, result);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            this.Executed.Add(command.CommandText);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override InterceptionResult<DbDataReader> ReaderExecuting(
+            DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result)
+        {
+            this.Executed.Add(command.CommandText);
+            return base.ReaderExecuting(command, eventData, result);
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            this.Executed.Add(command.CommandText);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
     }
 }

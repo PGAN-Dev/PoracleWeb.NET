@@ -4,7 +4,8 @@ namespace Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 
 /// <summary>
 /// Persistence for server-side OIDC refresh sessions (rotation families). All bulk revoke/cleanup
-/// methods commit immediately via EF Core's set-based <c>ExecuteUpdateAsync</c>/<c>ExecuteDeleteAsync</c>.
+/// methods commit immediately: the revokes via EF Core's set-based <c>ExecuteUpdateAsync</c>, the
+/// cleanup via raw SQL because the aliased delete EF generates is invalid on MariaDB (see #707).
 /// </summary>
 public interface IOidcSessionRepository
 {
@@ -28,6 +29,9 @@ public interface IOidcSessionRepository
     /// <summary>Revokes every still-active session for a user (admin disable / logout-everywhere).</summary>
     public Task<int> RevokeAllForUserAsync(string userId, string reason);
 
-    /// <summary>Set-based delete of expired rows and revoked rows older than the retention window.</summary>
+    /// <summary>
+    /// Set-based delete of expired rows and revoked rows older than the retention window.
+    /// Returns the number of rows removed.
+    /// </summary>
     public Task<int> DeleteExpiredAndStaleAsync(TimeSpan revokedRetention);
 }
