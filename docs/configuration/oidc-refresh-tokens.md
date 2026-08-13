@@ -140,7 +140,7 @@ session and one rotation chain.
                                           (atomic rotate / revoke)   │ FamilyId chain,            │
                                                                      │ EncryptedRefreshToken      │
                                           OidcSessionCleanupService  │ (DataProtection)           │
-                                          (~6h ExecuteDeleteAsync)   └──────────────────────────┘
+                                          (~6h set-based DELETE)     └──────────────────────────┘
 ```
 
 ### Login and refresh-token issuance
@@ -404,8 +404,10 @@ relies solely on `/token` (`grant_type=refresh_token`), `/userinfo`, and `expire
 
 Token hashing uses **SHA-256** over 32 random bytes with a unique index — a full-entropy secret
 correctly uses a fast hash (never bcrypt/PBKDF2) for O(1) indexed lookup. Expired and old-revoked
-session rows are pruned by a background `OidcSessionCleanupService` (~every 6 hours, set-based
-`ExecuteDeleteAsync`).
+session rows are pruned by a background `OidcSessionCleanupService` (~every 6 hours, one set-based
+`DELETE`). That delete is issued as raw SQL rather than EF's `ExecuteDeleteAsync`, which emits an
+aliased `DELETE FROM oidc_sessions AS o` — valid on SQLite and MySQL 8, a 1064 syntax error on
+MariaDB (#707).
 
 ---
 
