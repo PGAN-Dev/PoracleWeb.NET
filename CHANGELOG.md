@@ -16,12 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot no longer proposes `Microsoft.OpenApi` 3.x every week. The 3.0 object model made `IOpenApiMediaType.Example` read-only, and `Microsoft.AspNetCore.OpenApi` 10.0.10 still generates code that assigns it, so the bump cannot build and no edit in this repository can reach the failure. Minor and patch updates inside 2.x still come through, so a later advisory is not masked ([#702](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/702)).
 
 ### Dependencies
-
-- Bump the dotnet group with 12 updates ([#711](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/711))
-- Bump `@types/leaflet` in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#705](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/705))
-- Bump the angular group in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#701](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/701))
-
-### Dependencies
 - Bump @types/leaflet ([#705](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/705))
 - Bump the angular group ([#701](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/701))
 - Bump the dotnet group with 12 updates ([#711](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/711))
