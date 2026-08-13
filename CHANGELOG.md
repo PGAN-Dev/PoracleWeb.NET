@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Expired OIDC refresh sessions are actually deleted now.** The background cleanup had never once completed on MariaDB: EF Core's `ExecuteDeleteAsync` emits ``DELETE FROM `oidc_sessions` AS `o` ``, and MariaDB rejects an aliased single-table delete outright, so every pass since the feature shipped threw a 1064 and logged a warning while the table only grew. The delete is now raw SQL with no alias. Nothing needs doing on upgrade — the first pass after startup clears the backlog. The eight sibling deletes in `HumanRepository` would have failed the same way and are gone; they had been dead code since alarm deletion moved to the PoracleNG proxy ([#707](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/707)).
 - Dependabot no longer proposes `Microsoft.OpenApi` 3.x every week. The 3.0 object model made `IOpenApiMediaType.Example` read-only, and `Microsoft.AspNetCore.OpenApi` 10.0.10 still generates code that assigns it, so the bump cannot build and no edit in this repository can reach the failure. Minor and patch updates inside 2.x still come through, so a later advisory is not masked ([#702](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/702)).
 
+### Dependencies
+
+- Bump the dotnet group with 12 updates ([#711](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/711))
+- Bump `@types/leaflet` in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#705](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/705))
+- Bump the angular group in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#701](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/701))
+
 ## [2.15.0] - 2026-08-10
 
 ### Added
