@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Inspecting a blocked user no longer signs the admin out.** `/api/auth/me` answers 401 for an account an administrator has blocked, which is how a blocked user's session ends — but under impersonation that 401 lands on the admin doing the inspecting, and the SPA discards the stashed admin token along with the rest of the session, so there was no way back. Lapsed subscribers are blocked accounts, and "why did this person's alerts stop?" is the main reason to inspect one at all, so inspection hit it constantly. The blocked state is now reported as data — the banner says so — and inspection works. Any other 401 while inspecting ends the inspection and returns the admin to their own session rather than logging them out ([#706](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/706)).
 - Dependabot no longer proposes `Microsoft.OpenApi` 3.x every week. The 3.0 object model made `IOpenApiMediaType.Example` read-only, and `Microsoft.AspNetCore.OpenApi` 10.0.10 still generates code that assigns it, so the bump cannot build and no edit in this repository can reach the failure. Minor and patch updates inside 2.x still come through, so a later advisory is not masked ([#702](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/702)).
 
 ## [2.15.0] - 2026-08-10

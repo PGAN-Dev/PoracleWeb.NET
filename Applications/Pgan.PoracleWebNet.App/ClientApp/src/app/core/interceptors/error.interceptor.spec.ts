@@ -50,10 +50,9 @@ describe('errorInterceptor', () => {
   });
 
   it('clears the whole session on a 401, not just the access token', () => {
-    // The admin token is the higher-privilege credential an impersonating admin leaves behind, and
-    // stopImpersonating() would install it as the active token. See #616.
+    // The refresh token and its expiry used to survive the app deciding the session was invalid, so the
+    // next load tried to refresh a session the server had already rejected. See #616.
     localStorage.setItem('poracle_token', 'expired-token');
-    localStorage.setItem('poracle_admin_token', 'admin-token');
     localStorage.setItem('poracle_refresh_token', 'refresh-token');
     localStorage.setItem('poracle_token_expires_at', '1');
 
@@ -61,9 +60,44 @@ describe('errorInterceptor', () => {
     httpMock.expectOne('/api/dashboard').flush(null, { status: 401, statusText: 'Unauthorized' });
 
     expect(localStorage.getItem('poracle_token')).toBeNull();
-    expect(localStorage.getItem('poracle_admin_token')).toBeNull();
     expect(localStorage.getItem('poracle_refresh_token')).toBeNull();
     expect(localStorage.getItem('poracle_token_expires_at')).toBeNull();
+  });
+
+  it('ends the inspection, not the session, when a 401 arrives while impersonating', () => {
+    // Inspecting a blocked or deleted account 401s /api/auth/me, and clearing the session took the
+    // stashed admin token with it -- signing the admin out of their own session with nothing to go back
+    // to. The 401 belongs to the account being inspected, not the admin holding the session. See #706.
+    localStorage.setItem('poracle_token', 'impersonation-token');
+    localStorage.setItem('poracle_admin_token', 'admin-token');
+
+    http.get('/api/dashboard').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/dashboard').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(localStorage.getItem('poracle_token')).toBe('admin-token');
+    expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+    expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+    expect(toast.error).toHaveBeenCalledWith('HTTP_ERROR.INSPECTION_ENDED');
+    expect(toast.error).not.toHaveBeenCalledWith('HTTP_ERROR.UNAUTHORIZED');
+  });
+
+  it('falls back only once, so a dead admin token still ends the session', () => {
+    // The fallback consumes the stash, so the #616 guarantee still lands: the second 401 finds nothing
+    // to restore and clears everything. Without that it would loop, or strand a session that cannot work.
+    localStorage.setItem('poracle_token', 'impersonation-token');
+    localStorage.setItem('poracle_admin_token', 'expired-admin-token');
+    localStorage.setItem('poracle_refresh_token', 'refresh-token');
+
+    http.get('/api/dashboard').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/dashboard').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    http.get('/api/dashboard').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/dashboard').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(localStorage.getItem('poracle_token')).toBeNull();
+    expect(localStorage.getItem('poracle_admin_token')).toBeNull();
+    expect(localStorage.getItem('poracle_refresh_token')).toBeNull();
+    expect(router.navigate).toHaveBeenLastCalledWith(['/login'], { queryParams: {} });
   });
 
   it('should show permission toast for 403 without disableKey', () => {

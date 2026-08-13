@@ -41,6 +41,7 @@
     "VIEWING_AS": "Angezeigt als",
     "BACK_TO_ADMIN": "Zurück zum Admin",
     "DISABLED_ACCOUNT": "Dein Konto wurde <strong>deaktiviert</strong>. Dies kann an einer Ratenbegrenzung oder einer administrativen Maßnahme liegen.",
+    "DISABLED_ACCOUNT_INSPECTED": "Dieses Konto wurde von einem Administrator <strong>deaktiviert</strong> und erhält keine Benachrichtigungen.",
     "DISABLED_SUPPORT": "Für Hilfe frag in",
     "PAUSED_ALERTS": "Deine Benachrichtigungen sind <strong>pausiert</strong>. Du wirst keine Benachrichtigungen erhalten.",
     "RESUME": "Fortsetzen"
@@ -79,6 +80,7 @@
     "NETWORK": "Server nicht erreichbar. Bitte überprüfe deine Verbindung.",
     "BAD_REQUEST": "Ungültige Anfrage. Bitte überprüfe deine Eingabe.",
     "UNAUTHORIZED": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+    "INSPECTION_ENDED": "Die Ansicht wurde beendet – du bist zurück in deiner eigenen Sitzung.",
     "FORBIDDEN": "Du hast keine Berechtigung für diese Aktion.",
     "NOT_FOUND": "Die angeforderte Ressource wurde nicht gefunden.",
     "CONFLICT": "Ein Konflikt ist aufgetreten. Das Element wurde möglicherweise geändert.",

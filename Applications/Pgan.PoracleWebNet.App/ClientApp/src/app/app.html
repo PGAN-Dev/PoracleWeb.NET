@@ -10,7 +10,14 @@
     </button>
   </div>
 }
-@if (auth.user()?.adminDisable) {
+@if (auth.user()?.adminDisable && auth.isImpersonating()) {
+  <!-- An admin inspecting a blocked account is being told about that account, not their own, so the
+       wording changes and the support links (addressed to the account holder) are dropped. See #706. -->
+  <div class="disabled-banner admin-disabled">
+    <mat-icon>block</mat-icon>
+    <span [innerHTML]="'BANNER.DISABLED_ACCOUNT_INSPECTED' | translate"></span>
+  </div>
+} @else if (auth.user()?.adminDisable) {
   <div class="disabled-banner admin-disabled">
     <mat-icon>block</mat-icon>
     <span [innerHTML]="'BANNER.DISABLED_ACCOUNT' | translate"></span>

@@ -41,6 +41,7 @@
     "VIEWING_AS": "Visualizando como",
     "BACK_TO_ADMIN": "Voltar ao Admin",
     "DISABLED_ACCOUNT": "Sua conta foi <strong>desativada</strong>. Isso pode ser devido a limite de requisições ou uma ação administrativa.",
+    "DISABLED_ACCOUNT_INSPECTED": "Esta conta foi <strong>desativada</strong> por um administrador e não recebe notificações.",
     "DISABLED_SUPPORT": "Para obter ajuda, pergunte em",
     "PAUSED_ALERTS": "Seus alertas estão <strong>pausados</strong>. Você não receberá notificações.",
     "RESUME": "Retomar"
@@ -79,6 +80,7 @@
     "NETWORK": "Não foi possível conectar ao servidor. Verifique sua conexão.",
     "BAD_REQUEST": "Requisição inválida. Verifique seus dados.",
     "UNAUTHORIZED": "Sua sessão expirou. Faça login novamente.",
+    "INSPECTION_ENDED": "Inspeção encerrada — você voltou à sua própria sessão.",
     "FORBIDDEN": "Você não tem permissão para realizar esta ação.",
     "NOT_FOUND": "O recurso solicitado não foi encontrado.",
     "CONFLICT": "Ocorreu um conflito. O item pode ter sido modificado.",

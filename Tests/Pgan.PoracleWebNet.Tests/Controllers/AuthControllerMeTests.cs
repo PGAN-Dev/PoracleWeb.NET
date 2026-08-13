@@ -152,6 +152,62 @@ public class AuthControllerMeTests : ControllerTestBase
     }
 
     /// <summary>
+    /// Blocking a user did nothing to an existing token, which kept full read/write access for the rest of
+    /// its 24-hour life. The SPA signs out on 401, so this is what ends the session. See #597.
+    /// </summary>
+    [Fact]
+    public async Task MeSignsOutABlockedAccount()
+    {
+        SetupUser(this._sut, profileNo: 1);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { CurrentProfileNo = 1, Enabled = 1, AdminDisable = 1 });
+
+        var result = await this._sut.Me();
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    /// <summary>
+    /// That 401 ends the CALLER's session, and while inspecting an account the caller is the admin -- so
+    /// inspecting a blocked user signed the admin out of their own session, with the SPA discarding the
+    /// stashed admin token along with it. A lapsed subscription is the main thing an admin inspects an
+    /// account to confirm. See #706.
+    /// </summary>
+    [Fact]
+    public async Task MeDoesNotSignOutAnAdminInspectingABlockedAccount()
+    {
+        SetupUser(this._sut, profileNo: 1);
+        ((ClaimsIdentity)this._sut.User.Identity!).AddClaim(new Claim("impersonatedBy", "999"));
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync(new Human { CurrentProfileNo = 1, Enabled = 1, AdminDisable = 1 });
+
+        var result = await this._sut.Me();
+
+        var userInfo = Assert.IsType<UserInfo>(Assert.IsType<OkObjectResult>(result).Value);
+
+        // Returned as data, not as a refusal: the SPA renders its blocked banner from these two.
+        Assert.True(userInfo.AdminDisable);
+        Assert.False(userInfo.Enabled);
+    }
+
+    /// <summary>
+    /// The deleted-account 401 is deliberately not relaxed for inspection: there is no account left to
+    /// render. The SPA drops the admin back to their own token rather than ending the session. See #706.
+    /// </summary>
+    [Fact]
+    public async Task MeStillSignsOutAnInspectionOfAnAccountThatNoLongerExists()
+    {
+        SetupUser(this._sut, profileNo: 1);
+        ((ClaimsIdentity)this._sut.User.Identity!).AddClaim(new Claim("impersonatedBy", "999"));
+        this._humanService.Setup(s => s.GetByIdAsync("123456789"))
+            .ReturnsAsync((Human?)null);
+
+        var result = await this._sut.Me();
+
+        Assert.IsType<UnauthorizedObjectResult>(result);
+    }
+
+    /// <summary>
     /// The resync used to rebuild the token from UserInfo, which has no impersonatedBy field, so an admin
     /// impersonation session lost the only record of what it was - on exactly the out-of-band profile
     /// changes this branch exists to absorb. See #484.

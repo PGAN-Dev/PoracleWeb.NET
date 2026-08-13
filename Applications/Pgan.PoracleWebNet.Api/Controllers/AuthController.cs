@@ -820,7 +820,16 @@ public partial class AuthController(
         // service looked at admin_disable, so an existing token kept full read/write access for the rest of
         // its 24-hour life, and a fresh login minted another one. The SPA signs out on 401, so answering
         // that here ends the session on the next poll, the same way a deleted account does. See #597.
-        if (human.AdminDisable == 1)
+        //
+        // Not while impersonating. This 401 ends the CALLER's session, and under impersonation the caller is
+        // the admin: inspecting a blocked account signed them out of their own, and the SPA's 401 handler
+        // discards the stashed admin token with everything else, so there was no way back. Blocked is exactly
+        // the state an admin inspects an account to confirm -- lapsed subscriptions are why alerts stop --
+        // so it is returned as data instead. The SPA already renders a banner from adminDisable. See #706.
+        //
+        // The deleted-account 401 above deliberately still fires: there is no account left to show. The SPA
+        // drops an impersonating admin back to their own token on any 401 rather than ending the session.
+        if (human.AdminDisable == 1 && !this.IsImpersonating)
         {
             return this.Unauthorized(new { error = "This account has been blocked by an administrator." });
         }
@@ -863,7 +872,7 @@ public partial class AuthController(
             // where treating unknown as false stripped admin for the rest of the session (#656); and an
             // impersonation session, which AdminController deliberately mints with IsAdmin = false and which
             // would otherwise be re-elevated by resolving the impersonated user's own roles (#663).
-            bool? resolvedAdmin = roles.Resolved && this.User.FindFirst("impersonatedBy") is null
+            bool? resolvedAdmin = roles.Resolved && !this.IsImpersonating
                 ? roles.IsAdmin
                 : null;
             userInfo.IsAdmin = resolvedAdmin ?? this.IsAdmin;

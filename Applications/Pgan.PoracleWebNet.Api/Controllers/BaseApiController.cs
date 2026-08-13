@@ -14,6 +14,18 @@ public abstract class BaseApiController : ControllerBase
     protected string UserId => this.User.FindFirstValue("userId") ?? throw new UnauthorizedAccessException();
     protected int ProfileNo => int.Parse(this.User.FindFirstValue("profileNo") ?? "1", CultureInfo.InvariantCulture);
     protected bool IsAdmin => this.User.FindFirstValue("isAdmin") == "true";
+
+    /// <summary>
+    /// True when the caller is an admin (or webhook delegate) inspecting somebody else's account, so
+    /// <see cref="UserId"/> names the account being looked at rather than the person looking.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>GenerateImpersonationToken</c> sets the claim, and the JWT is signed, so an inspected
+    /// user cannot mint one for themselves. Every decision about the CALLER -- their admin rights,
+    /// whether their session survives -- must consult this before reading the effective id, or it
+    /// answers a question about the wrong person. See #663, #706.
+    /// </remarks>
+    protected bool IsImpersonating => this.User.FindFirst("impersonatedBy") is not null;
     protected string Username => this.User.FindFirstValue("username") ?? string.Empty;
     protected string[] ManagedWebhooks => this.User.FindFirstValue("managedWebhooks")
         ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
