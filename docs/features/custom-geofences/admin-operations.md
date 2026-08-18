@@ -79,7 +79,7 @@ The colour bar tracks state: **amber** while pending, **green** approved, **red*
 If Discord is unreachable or the channel isn't set, the submission still works — the geofence still moves to `pending_review`/`approved`/`rejected`. The forum post is a convenience, never a blocker. The same applies to the individual pieces: a failed map download falls back to linking it, a failed card rewrite still posts the outcome reply, and a Koji outage just omits the "Already covered by" line.
 
 !!! note "Bot token and tags"
-    PoracleWeb.NET uses the Discord bot token from your PoracleJS/PoracleNG server's Discord bot configuration. The forum tags (`Geofence - Pending` / `Approved` / `Rejected`) are created automatically the first time they're needed. If you rename those tags in Discord, restart PoracleWeb.NET so it re-reads them.
+    PoracleWeb.NET uses the Discord bot token from your PoracleNG server's Discord bot configuration. The forum tags (`Geofence - Pending` / `Approved` / `Rejected`) are created automatically the first time they're needed. If you rename those tags in Discord, restart PoracleWeb.NET so it re-reads them.
 
 ## Limits that protect your deployment
 

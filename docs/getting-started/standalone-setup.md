@@ -187,7 +187,7 @@ journalctl -u poracleweb -f
 
 Place your `.env` file in `/opt/poracleweb/` (the `WorkingDirectory`) and the app will pick it up automatically.
 
-### pm2 (if you're already using it for PoracleJS)
+### pm2
 
 ```bash
 cd /opt/poracleweb

@@ -16,7 +16,7 @@ flowchart TD
     C -->|Reject| E[Stays private,<br/>with a note back to the user]
 ```
 
-## How PoracleJS/PoracleNG gets its geofences (and why not straight from Koji)
+## How PoracleNG gets its geofences (and why not straight from Koji)
 
 Your bot does **not** read geofences from Koji. It reads them from **one PoracleWeb.NET URL** — `/api/geofence-feed` — which serves a single combined list: the public areas (from Koji) **plus** the private user-drawn areas (from PoracleWeb.NET's own database).
 
@@ -24,12 +24,12 @@ Your bot does **not** read geofences from Koji. It reads them from **one Poracle
 flowchart LR
     Koji[(Koji<br/>public areas)] -->|cached 5 min| Feed
     DB[(PoracleWeb.NET DB<br/>private user geofences)] --> Feed
-    Feed["PoracleWeb.NET<br/>/api/geofence-feed"] -->|single URL| Bot[PoracleJS / PoracleNG]
+    Feed["PoracleWeb.NET<br/>/api/geofence-feed"] -->|single URL| Bot[PoracleNG]
 ```
 
 Why it's set up this way:
 
-- **One source, not two.** The bot needs a single geofence source. PoracleWeb.NET does the Koji round-trip for you and merges in the private areas, so a stock PoracleJS/PoracleNG works with one config line — no custom code in the bot or in Koji.
+- **One source, not two.** The bot needs a single geofence source. PoracleWeb.NET does the Koji round-trip for you and merges in the private areas, so a stock PoracleNG install works with one config line — no custom code in the bot or in Koji.
 - **Privacy.** Private user geofences must stay hidden from the bot's `!area` picker and from notification DMs. PoracleWeb.NET serves them with the right "hidden" flags. Pushing them into Koji wouldn't reliably hide them (Koji's hide-from-matches property isn't honored by every notification formatter), so PoracleWeb.NET keeps them in its own database and serves them itself.
 - **Resilience.** If Koji is briefly unreachable, PoracleWeb.NET still serves the private user geofences and the last-known public ones, so notifications keep flowing. The bot also keeps its own local cache as a further safety net.
 
