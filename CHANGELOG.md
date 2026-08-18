@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.2] - 2026-08-18
+
 ### Fixed
 
 - **Discord login no longer shows the "Authorize" button on every sign-in.** Adding `prompt=none` to the OAuth2 redirect tells Discord to skip the consent screen for users who have already granted the app permission. The screen still appears on first-time authorization ([#719](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/719)).
+
+### Dependencies
+- Bump the angular group ([#716](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/716))
+- Bump the eslint group ([#718](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/718))
+- Bump the test group with 2 updates
 
 ## [2.15.1] - 2026-08-13
 
@@ -884,7 +891,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.2...HEAD
+[2.15.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.1...v2.15.2
 [2.15.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.0...v2.15.1
 [2.15.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.13.0...v2.14.0
