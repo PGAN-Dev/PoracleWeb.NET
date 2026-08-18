@@ -18,8 +18,8 @@ Common problems operators hit, what causes them, and how to fix them. Each entry
 Work down this list:
 
 1. **Is it switched on for the right profile?** A geofence is on/off **per profile**. If the user switched profiles, it may be off on the new one. Have them check the toggle on the Geofences page for the active profile.
-2. **Is PoracleJS/PoracleNG pointed at PoracleWeb.NET's feed?** The bot's geofence-source setting must be the combined feed URL (`http://poracleweb:8082/api/geofence-feed`), **not** Koji. If it points at Koji, private geofences will be missing entirely.
-3. **Did PoracleJS/PoracleNG reload its geofences?** PoracleWeb.NET tells PoracleJS/PoracleNG to reload after changes, but if the bot was down at that moment, trigger a reload (or it'll pick it up on its next refresh).
+2. **Is PoracleNG pointed at PoracleWeb.NET's feed?** The bot's geofence-source setting must be the combined feed URL (`http://poracleweb:8082/api/geofence-feed`), **not** Koji. If it points at Koji, private geofences will be missing entirely.
+3. **Did PoracleNG reload its geofences?** PoracleWeb.NET tells PoracleNG to reload after changes, but if the bot was down at that moment, trigger a reload (or it'll pick it up on its next refresh).
 4. **Polygon too small or odd?** A shape needs at least 3 points and must be a real area. Degenerate shapes are dropped from the feed.
 
 ## Public (approved) geofences aren't showing up
@@ -38,7 +38,7 @@ flowchart TD
     F --> N[Notifications keep working;<br/>new public-area changes wait until Koji is back]
 ```
 
-PoracleJS/PoracleNG also keeps its own local cache as a second safety net.
+PoracleNG also keeps its own local cache as a second safety net.
 
 !!! warning "You can't approve while Koji is down"
     Approving a submission writes to Koji, so approvals will error until Koji is reachable again. Everything else keeps working.
@@ -59,11 +59,11 @@ Two flags control visibility, and PoracleWeb.NET sets them for you:
 | Appears in the bot's `!area` picker | No | Yes |
 | Name shown in notification DMs | No | Yes |
 
-If a **private** geofence's name is leaking into the bot picker or DMs, something is serving it as public — check that PoracleJS/PoracleNG reads PoracleWeb.NET's feed (not Koji directly), and that the geofence wasn't accidentally promoted.
+If a **private** geofence's name is leaking into the bot picker or DMs, something is serving it as public — check that PoracleNG reads PoracleWeb.NET's feed (not Koji directly), and that the geofence wasn't accidentally promoted.
 
 ## Capitalization / name-match issues
 
-PoracleJS/PoracleNG matches area names **case-sensitively**. PoracleWeb.NET always stores names in **lowercase**, so this normally just works. If you've hand-edited `humans.area`, `profiles.area`, or a geofence name in the database, make sure everything is lowercase — a single capital letter means a silent mismatch and no notifications.
+PoracleNG matches area names **case-sensitively**. PoracleWeb.NET always stores names in **lowercase**, so this normally just works. If you've hand-edited `humans.area`, `profiles.area`, or a geofence name in the database, make sure everything is lowercase — a single capital letter means a silent mismatch and no notifications.
 
 ## Removing a geofence from Koji completely
 
@@ -71,13 +71,13 @@ Deleting an approved geofence in PoracleWeb.NET removes it from the **project** 
 
 ## How the combined feed works (background)
 
-So you understand why the bot only needs one URL: PoracleWeb.NET exposes **`/api/geofence-feed`**, which merges two sources into one list for PoracleJS/PoracleNG.
+So you understand why the bot only needs one URL: PoracleWeb.NET exposes **`/api/geofence-feed`**, which merges two sources into one list for PoracleNG.
 
 ```mermaid
 flowchart LR
     Koji[(Koji<br/>public areas)] -->|cached 5 min| Feed
     DB[(PoracleWeb.NET DB<br/>private user geofences)] --> Feed
-    Feed["/api/geofence-feed<br/>combined list"] -->|single URL| PJS[PoracleJS / PoracleNG]
+    Feed["/api/geofence-feed<br/>combined list"] -->|single URL| PJS[PoracleNG]
 ```
 
 - **Public** entries come from Koji, marked visible/selectable.
@@ -85,4 +85,4 @@ flowchart LR
 - Region/parent geofences are filtered out (they're folders, not areas).
 
 !!! warning "Keep the feed on a private network"
-    The feed endpoint is open (no login) so PoracleJS/PoracleNG can read it on your internal network. Don't expose it to the internet.
+    The feed endpoint is open (no login) so PoracleNG can read it on your internal network. Don't expose it to the internet.

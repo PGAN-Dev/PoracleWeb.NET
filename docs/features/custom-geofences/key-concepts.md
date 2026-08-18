@@ -66,7 +66,7 @@ PoracleWeb.NET users can have multiple **profiles** (e.g. "Home", "Work"). A geo
 
 ## A note on capitalization (it matters)
 
-PoracleJS/PoracleNG matches area names **exactly, including case**. PoracleWeb.NET stores every geofence name in **lowercase** to avoid surprises — `Downtown` and `downtown` are *not* the same to PoracleJS/PoracleNG, and a mismatch means no notifications, silently.
+PoracleNG matches area names **exactly, including case**. PoracleWeb.NET stores every geofence name in **lowercase** to avoid surprises — `Downtown` and `downtown` are *not* the same to PoracleNG, and a mismatch means no notifications, silently.
 
 !!! warning "If you edit the database by hand"
     You don't normally need to do anything — PoracleWeb.NET handles lowercasing. But if you ever edit area names directly in `humans.area`, `profiles.area`, or a geofence name, keep them **lowercase**.
