@@ -54,11 +54,11 @@ The `./data` directory persists:
 
 ### Poracle config directory
 
-Mount your PoracleJS `config/` directory as read-only for DTS template preview functionality:
+Mount your PoracleNG `config/` directory as read-only for DTS template preview functionality:
 
 ```yaml
 volumes:
-  - /path/to/PoracleJS/config:/poracle-config:ro
+  - /path/to/PoracleNG/config:/poracle-config:ro
 ```
 
 ## Building locally
