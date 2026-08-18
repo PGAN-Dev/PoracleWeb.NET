@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Discord login no longer shows the "Authorize" button on every sign-in.** Adding `prompt=none` to the OAuth2 redirect tells Discord to skip the consent screen for users who have already granted the app permission. The screen still appears on first-time authorization ([#719](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/719)).
+
 ## [2.15.1] - 2026-08-13
 
 ### Fixed
