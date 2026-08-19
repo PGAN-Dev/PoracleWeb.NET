@@ -1,9 +1,14 @@
-// One dialog, one size. Six callers each passed their own width and one of them said 400px, so the
-// same dialog looked different depending on where you opened it from. The component decides now;
-// callers pass no width at all.
-:host {
-  display: block;
-  width: min(600px, 92vw);
+// One dialog, one size. Six callers each passed their own width and one said 400px, so the same
+// dialog looked different depending on where you opened it from. The component decides now and no
+// caller passes a width.
+//
+// Sized on the CONTENT, not on :host. A width on the host makes the component wider than the padded
+// surface it sits in, which put a horizontal scrollbar under the whole dialog. This is the shape the
+// other dialogs in the app already use.
+mat-dialog-content {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: min(560px, 84vw);
 }
 
 .full-width {
