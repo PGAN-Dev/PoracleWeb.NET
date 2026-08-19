@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { pinOrNull } from '../../shared/utils/location.utils';
 import { SavedPlace, SavedPlaces } from '../models';
 
 /**
@@ -21,7 +22,8 @@ export class PlacesService {
   readonly named = computed(() => this.places()?.named ?? []);
 
   /** The profile pin, which every alarm falls back to. */
-  readonly pin = computed(() => this.places()?.default ?? null);
+  /** The profile pin, or null when it is the 0,0 Poracle stores for "not set". */
+  readonly pin = computed(() => pinOrNull(this.places()?.default));
 
   add(place: SavedPlace): Observable<SavedPlaces> {
     return this.http.post<SavedPlaces>(`${this.config.apiHost}/api/location/places`, place).pipe(tap(updated => this.places.set(updated)));

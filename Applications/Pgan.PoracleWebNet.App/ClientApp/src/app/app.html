@@ -110,7 +110,7 @@
       </button>
       <button mat-menu-item routerLink="/areas">
         <mat-icon>map</mat-icon>
-        <span>{{ 'MENU.AREAS_LOCATION' | translate }}</span>
+        <span>{{ 'NAV.AREAS' | translate }}</span>
       </button>
       <button mat-menu-item routerLink="/cleaning">
         <mat-icon>cleaning_services</mat-icon>
@@ -128,9 +128,15 @@
       @if (i18n.availableLanguages().length > 1) {
         <button mat-menu-item [matMenuTriggerFor]="languageMenu">
           <mat-icon>translate</mat-icon>
-          <span>{{ 'MENU.LANGUAGE' | translate }}</span>
+          <span>{{ 'MENU.DISPLAY_LANGUAGE' | translate }}</span>
         </button>
       }
+      <!-- Two language controls that do different jobs. Adjacent and distinctly labelled, the
+           difference is visible at a glance; apart, each one looked like "the" language setting. -->
+      <button mat-menu-item [matMenuTriggerFor]="alertLanguageMenu">
+        <mat-icon>forum</mat-icon>
+        <span>{{ 'MENU.ALERT_LANGUAGE' | translate }}</span>
+      </button>
       <mat-divider></mat-divider>
       <button mat-menu-item (click)="logout()">
         <mat-icon>logout</mat-icon>
@@ -179,6 +185,13 @@
           }
         </button>
       }
+    </mat-menu>
+
+    <mat-menu #alertLanguageMenu="matMenu" class="alert-language-menu">
+      <div class="alert-language-panel" (click)="$event.stopPropagation()">
+        <p class="alert-language-hint">{{ 'MENU.ALERT_LANGUAGE_HINT' | translate }}</p>
+        <app-language-selector />
+      </div>
     </mat-menu>
   </mat-toolbar>
 
