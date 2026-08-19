@@ -9,7 +9,7 @@
       </ng-template>
       <div class="tab-content">
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Fort Type</mat-label>
+          <mat-label>{{ 'FORT_CHANGES.FORT_TYPE_LABEL' | translate }}</mat-label>
           <mat-select [formControl]="form.controls.fortType">
             <mat-option value="everything">{{ 'FORT_CHANGES.FORT_EVERYTHING' | translate }}</mat-option>
             <mat-option value="pokestop">{{ 'FORT_CHANGES.FORT_POKESTOP' | translate }}</mat-option>
@@ -17,7 +17,7 @@
           </mat-select>
         </mat-form-field>
 
-        <h4>Change Types</h4>
+        <h4>{{ 'FORT_CHANGES.CHANGE_TYPES_LABEL' | translate }}</h4>
         <div class="change-type-grid">
           <mat-checkbox [formControl]="form.controls.changeTypeName">{{ 'FORT_CHANGES.CHANGE_NAME' | translate }}</mat-checkbox>
           <mat-checkbox [formControl]="form.controls.changeTypeLocation">{{ 'FORT_CHANGES.CHANGE_LOCATION' | translate }}</mat-checkbox>

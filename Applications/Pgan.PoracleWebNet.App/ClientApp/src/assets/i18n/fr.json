@@ -746,7 +746,10 @@
     "CONFIRM_DELETE_MSG": "Supprimer l'alarme de changement {{type}} ?",
     "SNACK_DELETED": "Alarme de changement supprimée",
     "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances",
-    "SNACK_ALL_DISTANCE": "Toutes les distances mises à jour"
+    "SNACK_ALL_DISTANCE": "Toutes les distances mises à jour",
+    "FORT_TYPE_LABEL": "Type de fort",
+    "CHANGE_TYPES_LABEL": "Types de changement",
+    "TRACKING_SUBTITLE": "Suivi des changements de fort"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Alarmes Combat Max",
@@ -787,7 +790,13 @@
     "SNACK_FAILED_DISTANCE": "Échec de la mise à jour des distances",
     "SNACK_ALL_DISTANCE": "Toutes les distances mises à jour",
     "SNACK_FAILED_UPDATE": "Échec de la mise à jour de l'alarme",
-    "SNACK_UPDATED": "Alarme Combat Dynamax mise à jour"
+    "SNACK_UPDATED": "Alarme Combat Dynamax mise à jour",
+    "HINT_BY_LEVEL": "Suit n’importe quel Pokemon à ces niveaux de combat. Chaque niveau choisi devient sa propre alarme.",
+    "HINT_BY_POKEMON": "Suit des Pokemon précis en Combat Max, quel que soit le niveau.",
+    "HINT_GMAX_ONLY_ADD": "Ne signale que les combats Gigantamax des Pokemon choisis.",
+    "HINT_GMAX_ONLY_EDIT": "Ne signale que les combats Gigantamax de ce Pokemon.",
+    "HINT_ALL_LEVELS": "Cette alarme suit un Pokemon à tous les niveaux de Combat Max.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Gérer les lieux",

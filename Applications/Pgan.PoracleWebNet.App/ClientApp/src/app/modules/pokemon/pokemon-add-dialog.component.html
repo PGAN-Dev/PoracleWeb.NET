@@ -232,7 +232,10 @@
           @if (showCapPicker()) {
             <fieldset class="pvp-cap-fieldset" [attr.aria-describedby]="capTouched() ? null : 'pvp-cap-default-hint'">
               <legend class="pvp-cap-legend">{{ 'POKEMON.PVP_CAP' | translate }}</legend>
-              <mat-button-toggle-group [formControl]="pvpForm.controls.pvpRankingCap" class="pvp-cap-toggle" aria-label="PvP level cap">
+              <mat-button-toggle-group
+                [formControl]="pvpForm.controls.pvpRankingCap"
+                class="pvp-cap-toggle"
+                [attr.aria-label]="'POKEMON.PVP_CAP' | translate">
                 <mat-button-toggle [value]="0">{{ 'POKEMON.PVP_CAP_ALL' | translate }}</mat-button-toggle>
                 @for (cap of pvpCaps(); track cap) {
                   <mat-button-toggle [value]="cap">{{ 'POKEMON.PVP_CAP_LEVEL' | translate: { level: cap } }}</mat-button-toggle>

@@ -12,7 +12,7 @@
           <!-- By Level -->
           <mat-tab [label]="'MAX_BATTLES.BY_LEVEL' | translate">
             <div class="tab-content">
-              <p class="tab-hint">Track any Pokemon at these battle tiers. One alarm is created per selected level.</p>
+              <p class="tab-hint">{{ 'MAX_BATTLES.HINT_BY_LEVEL' | translate }}</p>
               <div class="level-grid">
                 @for (level of levels; track level.value) {
                   <mat-checkbox [checked]="selectedLevels().includes(level.value)" (change)="toggleLevel(level.value)">
@@ -40,7 +40,7 @@
           <!-- By Pokemon -->
           <mat-tab [label]="'MAX_BATTLES.BY_POKEMON' | translate">
             <div class="tab-content">
-              <p class="tab-hint">Track specific Pokemon in Max Battles regardless of level.</p>
+              <p class="tab-hint">{{ 'MAX_BATTLES.HINT_BY_POKEMON' | translate }}</p>
               <app-pokemon-selector [multi]="true" [allowedIds]="maxBattlePokemonIds()" (selectionChange)="onPokemonSelected($event)" />
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
@@ -48,7 +48,7 @@
               <mat-slide-toggle [formControl]="commonForm.controls.gmaxOnly" class="gmax-toggle">
                 {{ 'MAX_BATTLES.GIGANTAMAX_ONLY' | translate }}
               </mat-slide-toggle>
-              <p class="gmax-hint">When enabled, only notifies about Gigantamax battles for the selected Pokemon.</p>
+              <p class="gmax-hint">{{ 'MAX_BATTLES.HINT_GMAX_ONLY_ADD' | translate }}</p>
             </div>
           </mat-tab>
         </mat-tab-group>

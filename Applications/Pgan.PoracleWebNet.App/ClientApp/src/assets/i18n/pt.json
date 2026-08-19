@@ -746,7 +746,10 @@
     "CONFIRM_DELETE_MSG": "Eliminar o alarme de alteração {{type}}?",
     "SNACK_DELETED": "Alarme de alteração eliminado",
     "SNACK_FAILED_DISTANCE": "Falha ao atualizar as distâncias",
-    "SNACK_ALL_DISTANCE": "Todas as distâncias atualizadas"
+    "SNACK_ALL_DISTANCE": "Todas as distâncias atualizadas",
+    "FORT_TYPE_LABEL": "Tipo de forte",
+    "CHANGE_TYPES_LABEL": "Tipos de alteração",
+    "TRACKING_SUBTITLE": "Monitorização de alterações de forte"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Alarmes de Batalhas Max",
@@ -787,7 +790,13 @@
     "SNACK_FAILED_DISTANCE": "Falha ao atualizar as distâncias",
     "SNACK_ALL_DISTANCE": "Todas as distâncias atualizadas",
     "SNACK_FAILED_UPDATE": "Falha ao atualizar o alarme",
-    "SNACK_UPDATED": "Alarme de Combate Max atualizado"
+    "SNACK_UPDATED": "Alarme de Combate Max atualizado",
+    "HINT_BY_LEVEL": "Segue qualquer Pokemon nestes níveis de batalha. Cada nível escolhido cria o seu próprio alarme.",
+    "HINT_BY_POKEMON": "Segue Pokemon específicos em Batalhas Max, seja qual for o nível.",
+    "HINT_GMAX_ONLY_ADD": "Avisa apenas sobre batalhas Gigantamax dos Pokemon escolhidos.",
+    "HINT_GMAX_ONLY_EDIT": "Avisa apenas sobre batalhas Gigantamax deste Pokemon.",
+    "HINT_ALL_LEVELS": "Este alarme segue um Pokemon em todos os níveis de Batalha Max.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Gerir locais",

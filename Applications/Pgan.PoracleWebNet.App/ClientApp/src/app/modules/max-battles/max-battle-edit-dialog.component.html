@@ -34,18 +34,18 @@
                 <mat-option [value]="level.value">
                   {{ level.label }}
                   @if (level.gmax) {
-                    <span class="gmax-option-hint">(Gigantamax)</span>
+                    <span class="gmax-option-hint">{{ 'MAX_BATTLES.GMAX_OPTION_SUFFIX' | translate }}</span>
                   }
                 </mat-option>
               }
             </mat-select>
           </mat-form-field>
         } @else {
-          <p class="info-text">This alarm tracks a specific Pokemon across all Max Battle levels.</p>
+          <p class="info-text">{{ 'MAX_BATTLES.HINT_ALL_LEVELS' | translate }}</p>
           <mat-slide-toggle [formControl]="form.controls.gmax" class="gmax-toggle">
             {{ 'MAX_BATTLES.GIGANTAMAX_ONLY' | translate }}
           </mat-slide-toggle>
-          <p class="gmax-hint">When enabled, only notifies about Gigantamax battles for this Pokemon.</p>
+          <p class="gmax-hint">{{ 'MAX_BATTLES.HINT_GMAX_ONLY_EDIT' | translate }}</p>
         }
       </div>
     </mat-tab>

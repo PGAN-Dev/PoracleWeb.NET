@@ -746,7 +746,10 @@
     "CONFIRM_DELETE_MSG": "Alarm für {{type}}-Änderung löschen?",
     "SNACK_DELETED": "Fort-Änderungsalarm gelöscht",
     "SNACK_FAILED_DISTANCE": "Distanzen konnten nicht aktualisiert werden",
-    "SNACK_ALL_DISTANCE": "Alle Distanzen aktualisiert"
+    "SNACK_ALL_DISTANCE": "Alle Distanzen aktualisiert",
+    "FORT_TYPE_LABEL": "Fort-Typ",
+    "CHANGE_TYPES_LABEL": "Änderungsarten",
+    "TRACKING_SUBTITLE": "Fort-Änderungs-Tracking"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max-Kampf-Alarme",
@@ -787,7 +790,13 @@
     "SNACK_FAILED_DISTANCE": "Distanzen konnten nicht aktualisiert werden",
     "SNACK_ALL_DISTANCE": "Alle Distanzen aktualisiert",
     "SNACK_FAILED_UPDATE": "Alarm konnte nicht aktualisiert werden",
-    "SNACK_UPDATED": "Dynamax-Kampfalarm aktualisiert"
+    "SNACK_UPDATED": "Dynamax-Kampfalarm aktualisiert",
+    "HINT_BY_LEVEL": "Verfolgt jedes Pokemon auf diesen Kampfstufen. Jede gewählte Stufe wird ein eigener Alarm.",
+    "HINT_BY_POKEMON": "Verfolgt bestimmte Pokemon in Max-Kämpfen, unabhängig von der Stufe.",
+    "HINT_GMAX_ONLY_ADD": "Meldet nur Gigantamax-Kämpfe für die gewählten Pokemon.",
+    "HINT_GMAX_ONLY_EDIT": "Meldet nur Gigantamax-Kämpfe für dieses Pokemon.",
+    "HINT_ALL_LEVELS": "Dieser Alarm verfolgt ein Pokemon über alle Max-Kampfstufen hinweg.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Orte verwalten",
