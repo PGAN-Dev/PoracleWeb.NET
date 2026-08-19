@@ -10,8 +10,11 @@ You'll configure everything in a single `.env` file at the project root and run 
 |---|---|---|
 | **.NET 10 Runtime** | [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download/dotnet/10.0) | Like installing Node.js or Go |
 | **MySQL / MariaDB** | Your existing Poracle database server | Same DB your Poracle bot uses |
-| **PoracleNG** | Already running with REST API enabled | The bot this app talks to |
+| **PoracleNG 5.1.0+** | Already running with REST API enabled | The bot this app talks to |
 | **Discord App** | [discord.com/developers](https://discord.com/developers/applications) | OAuth2 for user login |
+
+!!! warning "Why the PoracleNG version matters"
+    Per-alarm delivery scope, the PVP mega evolution filter and the minimum time-left filter write columns that only exist from PoracleNG 5.1.0. On an older server those three controls save without an error and change nothing. PoracleWeb logs an error at startup when it detects one, and reports the version it found on **Admin → Settings**.
 
 !!! tip "Runtime vs SDK"
     You only need the **ASP.NET Core Runtime** to run a pre-built release. The **.NET SDK** is only needed if you want to build from source.
@@ -23,12 +26,16 @@ You'll configure everything in a single `.env` file at the project root and run 
     Releases are source-only — no prebuilt archives are attached, so clone the tag you want and build it:
 
     ```bash
-    git clone --branch v2.14.0 --depth 1 https://github.com/PGAN-Dev/PoracleWeb.NET.git poracleweb
+    git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git poracleweb
     cd poracleweb
+
+    # Newest release tag. Or `git checkout vX.Y.Z` to pin a specific one.
+    git checkout "$(git describe --tags --abbrev=0)"
     ```
 
-    Omit `--branch` to take `main`, which always points at the most recent release. If you would rather
-    not build at all, the [Docker image](../configuration/docker.md) is the prebuilt option.
+    Then build it with the commands in the next tab. Skip the checkout to stay on `main`, which always
+    points at the most recent release. If you would rather not build at all, the
+    [Docker image](../configuration/docker.md) is the prebuilt option.
 
 === "Build from source"
 
@@ -213,8 +220,11 @@ Place your `.env` file in `C:\poracleweb\` (the `AppDirectory`) and the app will
 # Health check
 curl http://localhost:8082/
 
-# Check the API
-curl http://localhost:8082/api/pokemon/master-data
+# Which build is running (anonymous)
+curl http://localhost:8082/api/version
+
+# Master data the SPA loads on startup (anonymous)
+curl http://localhost:8082/api/masterdata/pokemon
 ```
 
 Open `http://your-host:8082` in a browser. You should see the login page.

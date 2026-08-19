@@ -29,16 +29,20 @@ src/app/
 │   ├── gyms/            Gym alarm management
 │   ├── fort-changes/    Fort change alarm management
 │   ├── max-battles/     Max Battle (Dynamax) alarm management
-│   ├── areas/           Area selection with map
+│   ├── areas/           Areas, the home pin, and saved places on one page
 │   ├── geofences/       Custom geofence drawing
-│   ├── profiles/        Profile management
+│   ├── profiles-overview/  Profile cards, the routed /profiles page
+│   ├── profiles/        Profile add / edit / duplicate dialogs
 │   ├── cleaning/        Alarm cleanup tools
 │   ├── quick-picks/     Quick pick alarm templates
-│   └── admin/           Admin panel (users, servers, geofences)
+│   ├── help/            In-app help page
+│   └── admin/           Admin panel (users, webhooks, settings, geofence submissions)
 └── shared/
     ├── components/      Reusable UI components
-    └── utils/           Utility functions (geo.utils, etc.)
+    └── utils/           Utility functions (geo.utils, alarm-scope, etc.)
 ```
+
+`/places` is a redirect to `/areas` — places were folded into the Areas & Places page, beside the pin they belong with. `/admin` redirects to `/admin/users`.
 
 ## Services
 
@@ -62,6 +66,21 @@ The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `
 - `updateActiveHours(profileNo, entries)` — sends the active hours array to the API for the given profile
 
 The `active-hours.models.ts` file (`core/models/`) defines the `ActiveHoursEntry` interface and utility functions for working with time-window rules (serialization, display formatting, validation).
+
+### PlacesService
+
+`PlacesService` (`core/services/places.service.ts`) holds the places an alarm can be aimed at: the named ones, plus the profile pin under `pin` (null when it is the 0,0 Poracle stores for "not set"). It is a signal rather than a per-caller fetch because the Where sheet, the Places section and every card carrying a where chip read the same list, and a place added in one has to appear in the others without a reload.
+
+- `load()` / `add(place)` — both set the signal from the response
+- `remove(label)` — answers **409** with `referencingRules` when alarms still point at the place; the caller should name them rather than reporting a bare failure
+
+### AlertLanguageService
+
+`AlertLanguageService` (`core/services/alert-language.service.ts`) owns the language Poracle writes alerts in — DM text and Pokemon names — which is a different setting from the display language. It writes optimistically to `localStorage('poracle-language')` and rolls back if the API call fails, and reconciles against the authoritative `human.Language`, since the bot can change it out of band.
+
+### AlertDefaultsService
+
+`AlertDefaultsService` (`core/services/alert-defaults.service.ts`) remembers what scope a **new** alarm should open with: mode, default radius in km (clamped 0.1–100), and a default saved place. Stored in `localStorage` under `poracle-default-alert-mode`, `poracle-default-alert-distance-km` and `poracle-default-alert-place`. Client-side only — existing alarms are untouched. Edited from `AlertDefaultsDialogComponent` in the user menu.
 
 ### PokemonAvailabilityService
 
@@ -114,6 +133,22 @@ Shows on the dashboard for new users until explicitly dismissed. Detects existin
 
 !!! note "`ProfileListComponent` removed"
     The unused `ProfileListComponent` has been removed. Profile management is handled entirely by `ProfileOverviewComponent`.
+
+### Where an alarm reaches you
+
+`ScopePickerComponent` (`shared/components/scope-picker/`) is the one control for an alarm's delivery scope, wherever the question is asked. Three mutually exclusive options — inherit the profile's areas, a radius from a point or saved place, or only specific areas — modelled as a radio group because PoracleNG refuses every combination of them, so a state that would need validating cannot be expressed. It is rendered inline by every alarm add and edit dialog and by the quick-pick apply dialog. It previously existed as two copies, a two-option radio in the dialogs and a three-option sheet on the card, which drifted apart within a day and left no way to set a per-alarm area override before the alarm existed.
+
+`WhereChipComponent` (`shared/components/where-chip/`) states the answer on the alarm card as a sentence fragment — "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina" — and is the way into the sheet. It is rendered by six of the nine list templates (pokemon, gyms, invasions, lures, nests, fort changes); raid, quest and max-battle cards do not carry it yet. An `editable` input turns it into a plain statement where there is nothing to open, which is how `AlarmInfoComponent` uses it.
+
+`WhereSheetComponent` (`shared/components/where-sheet/`) is a dialog shell around the scope picker and nothing else, for changing scope from a card where there is no form to put the control in.
+
+### Places section
+
+`PlacesSectionComponent` (`shared/components/places-section/`) renders the user's named places as a section of the Areas & Places page, directly under the card holding the pin. The pin is not repeated in the grid, since the card above it is the pin. Adding a place borrows `LocationDialogComponent` as a coordinate picker rather than growing a second map, then asks for the name separately.
+
+### Server profile card
+
+`ServerProfileCardComponent` (`shared/components/server-profile-card/`) sits on the admin settings page and says which PoracleNG the deployment talks to, which capabilities are switched on, and whether the version is below what this build needs. Only enabled capabilities are listed — a key present and false means the binary knows the feature and has it off. See [Server capability probe](backend.md#server-capability-probe).
 
 ### Level selector
 

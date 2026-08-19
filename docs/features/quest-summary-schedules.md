@@ -77,8 +77,8 @@ grouped by day pattern. A short note beneath them explains what **Send summary n
     PoracleNG decides when the schedule fires using your saved coordinates. If your active
     profile has **0,0 coordinates** (no location set), PoracleNG falls back to **UTC** and the
     summary will arrive at the wrong local time. A red warning appears in the dialog when a
-    schedule is set but no location is saved -- set a location on the **Dashboard** or **Areas**
-    page to fix it.
+    schedule is set but no pin is saved -- set your pin on the **Dashboard** or the
+    **Areas & Places** page to fix it.
 
 ### Validation rules
 

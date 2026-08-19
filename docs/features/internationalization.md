@@ -29,12 +29,19 @@ The UI translation system uses [ngx-translate](https://github.com/ngx-translate/
 - **Persistence** — the selected language is stored in `localStorage('poracle-ui-language')`
 - **Instant switching** — changing language updates all visible text immediately, no page reload needed
 
-### Language Selector
+### Language selectors
 
-Users access the language selector from the **user menu** (top-right toolbar) → **Language** submenu. Each language shows its flag emoji and native name. The currently active language is indicated with a check mark.
+There are two, and they sit next to each other in the **user menu** (top-right toolbar):
 
-!!! note "Bot Language vs UI Language"
-    The **UI language** (this feature) controls the web interface language. The **bot language** (set in Areas & Location → Language) controls what language Poracle sends DMs in (Pokemon names, move names, etc.). These are separate settings — a user can have a German UI with English Pokemon names, for example.
+- **Display language** changes this site's text and nothing else. Its submenu is hidden when an admin has restricted the selector to a single language.
+- **Alert language** is what Poracle writes your DMs in: alert text, Pokemon names, move names. The authoritative copy lives on your Poracle account (`humans.language`), with a browser cache used only for the first render, so it follows you between devices and reconciles if the bot changes it.
+
+Each submenu opens with its own hint line ("Changes this site's text only." / "Used for alert text and Pokemon names.") and lists the languages as flag and native name, with a check mark against the active one. Both draw from the same list of 11.
+
+The two settings are independent. A German UI with English Pokemon names is a normal thing to want, and the menu now shows that they are separate rather than leaving it to a footnote.
+
+!!! note "This moved"
+    The alert language used to live on the Areas page. It is in the user menu as of the Areas and Places merge, alongside the display language it kept being confused with.
 
 ### Admin Configuration
 
@@ -91,17 +98,34 @@ Each language file uses namespaced keys organized by feature area:
 | `GYMS` | Gym alarm management |
 | `FORT_CHANGES` | Fort change alarm management |
 | `MAX_BATTLES` | Max battle alarm management |
-| `AREAS` | Areas & location page |
+| `AREAS` | Areas & Places page |
 | `PROFILES` | Profile management |
 | `GEOFENCES` | Custom geofences |
 | `CLEANING` | Clean mode settings |
 | `QUICK_PICKS` | Quick pick alarm presets |
-| `HELP` | Help page chrome (section titles, search) |
+| `HELP` | Help page: section titles, search, and the guide body HTML |
 | `AUTH` | Login page |
 | `ADMIN` | Admin pages |
 | `ALARM` | Shared alarm dialog fields |
 | `DIALOG` | Shared dialog components |
 | `TEST_ALERT` | Test alert feedback |
+| `WHERE` | Per-alarm delivery scope and saved places |
+| `ALERT_DEFAULTS` | Alert Defaults dialog |
+| `ALARM_INFO` | Shared alarm summary component |
+| `ACTIVE_HOURS_CHIP` | Profile schedule pills |
+| `LOCATION_WARNING` | Missing-coordinates warning banner |
+| `ONBOARDING` | First-run wizard |
+| `DELIVERY_PREVIEW` | Delivery preview map |
+| `AREA_MAP` | Shared area map component |
+| `REGION_SELECTOR` | Region picker for geofence submission |
+| `GEOFENCE_DETAIL` | Geofence detail view |
+| `GEOJSON_IMPORT` | GeoJSON import dialog |
+| `GYM_PICKER` | Gym autocomplete |
+| `POKEMON_SELECTOR` | Species picker |
+| `TEMPLATE` / `TEMPLATE_SELECTOR` | Notification template picking and preview |
+| `ADMIN_SETTINGS` | Admin settings page |
+| `PAGINATOR` | Material paginator labels |
+| `ERROR` | Error page and interceptor messages |
 | `COMMON` | Common labels (Save, Cancel, Delete, etc.) |
 
 ### Interpolation
@@ -138,10 +162,11 @@ To improve or add translations:
 
 ### What Is NOT Translated
 
-- **Pokemon names, move names, form names** — these come from Poracle's master data, controlled by the bot language setting
+- **Pokemon names, move names, form names** — these come from Poracle's master data, controlled by the alert language setting in the user menu
 - **Admin-configured values** — site title, logo, custom navigation links
 - **User-generated content** — profile names, geofence names, area names
-- **Help guide body content** — section titles are translated, but detailed help content remains in English (contributions welcome)
+
+The help guide is translated, body and all: the `HELP.CONTENT_*` values carry the HTML for each section and every locale has its own. The gap runs the other way now, and it is small: 30 of the 36 `HELP.SECTION_*` headings are still English in Dutch, Polish and Portuguese.
 
 ## Architecture
 
@@ -149,7 +174,7 @@ To improve or add translations:
 ClientApp/
   src/
     assets/i18n/           # Translation JSON files
-      en.json              # English (baseline, ~500 keys)
+      en.json              # English (baseline, ~1,700 keys)
       de.json              # German
       fr.json              # French
       ...

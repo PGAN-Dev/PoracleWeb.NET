@@ -37,20 +37,32 @@ services:
 
 ## Network requirements
 
-The PoracleWeb.NET container must be able to reach:
+Inside your own network, the PoracleWeb.NET container must be able to reach:
 
 - **PoracleNG API** (`Poracle:ApiAddress`) -- all alarm tracking writes are proxied through this endpoint. If the containers are on the same Docker network, use the service name (e.g., `http://poracleng:3030`). If on different hosts, use the host IP/domain.
 - **MySQL** -- for `humans`/`profiles` tables and the `poracle_web` database.
-- **Golbat API** (`Golbat:ApiAddress`) -- optional. When configured, enables Pokemon availability indicators. The container must be able to reach the Golbat scanner API.
+- **Golbat API** (`Golbat:ApiAddress`) -- optional. When configured, enables Pokemon availability indicators.
+- **Scanner database** (`ConnectionStrings:ScannerDb`) -- optional. Backs the gym picker in the raid/gym/egg dialogs and the dashboard weather panel. Without it both are simply absent.
+- **Koji** (`Koji:ApiAddress`) -- required for admin geofences and region lookups. A user can still draw and use a private [custom geofence](../features/custom-geofences/index.md) without it: if Koji is unreachable the feed still serves user geofences from the local database, but approving one to a public area, and the region auto-detection on the draw page, both need Koji.
+
+Outbound to the internet:
+
+- **`discordapp.com` and `cdn.discordapp.com`** -- Discord OAuth sign-in, role lookups, avatars, and the geofence review forum posts. Unavoidable if Discord login is enabled.
+- **The geocoder** -- the address search and reverse lookup proxy to whatever `providerURL` PoracleNG's config names (usually a Nominatim instance). Switch it off with the `disable_nominatim` site setting.
+- **`raw.githubusercontent.com`** (Masterfile-Generator) -- the game master data behind the Pokemon, move and item pickers, fetched on the first request after a cold start and cached in memory. Not switchable; without it the pickers fall back to whatever is already cached.
+- **`api.github.com` and `raw.githubusercontent.com`** -- the version check behind the Versions card on **Admin > Settings**. Two anonymous GETs, made when an admin opens the card and cached six hours afterwards, nothing sent. On a locked-down egress policy it fails silently and the card cannot tell you whether an update exists. Turn it off with the `disable_update_check` site setting.
 
 ## Volume mounts
 
 ### Data directory
 
-The `./data` directory persists:
+Mounted at `DATA_DIR` (`/app/data` in the image). It persists:
 
+- DataProtection keys. These encrypt the stored OIDC refresh tokens, so losing them signs every SSO user out on the next container recreate.
 - Cached Discord avatars
 - Cached DTS template files
+
+See [Paths](reference.md#paths) for the environment variables behind these.
 
 ### Poracle config directory
 
