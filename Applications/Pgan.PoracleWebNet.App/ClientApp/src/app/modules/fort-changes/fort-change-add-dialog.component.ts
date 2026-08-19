@@ -17,8 +17,10 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { PlacesService } from '../../core/services/places.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
@@ -60,14 +62,19 @@ export class FortChangeAddDialogComponent {
     distanceMode: [this.alertDefaults.defaultMode()],
     fortType: ['everything'],
     includeEmpty: [false],
+    // Empty means the profile pin, which is what a radius has always meant.
+    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  readonly places = inject(PlacesService);
+
   saving = signal(false);
 
   onDistanceModeChange(): void {
+    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
     else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
   }
@@ -75,7 +82,12 @@ export class FortChangeAddDialogComponent {
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet.
+    const scope = scopeToFields(
+      v.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
+    );
     const changeTypes: string[] = [];
     if (v.changeTypeName) changeTypes.push('name');
     if (v.changeTypeLocation) changeTypes.push('location');
@@ -85,8 +97,10 @@ export class FortChangeAddDialogComponent {
 
     this.fortChangeService
       .create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         changeTypes,
-        distance: dist,
+        distance: scope.distance,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,
         template: v.template || null,

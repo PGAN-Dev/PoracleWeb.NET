@@ -20,10 +20,12 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
+import { PlacesService } from '../../core/services/places.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 /** Max Battle levels as defined in PoracleNG util.json */
@@ -65,13 +67,14 @@ export class MaxBattleAddDialogComponent {
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
-
   commonForm = this.fb.group({
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     form: [0],
     gmaxOnly: [false],
+    // Empty means the profile pin, which is what a radius has always meant.
+    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     template: [''],
   });
 
@@ -91,6 +94,8 @@ export class MaxBattleAddDialogComponent {
   ];
 
   maxBattlePokemonIds = signal<number[] | null>(null);
+
+  readonly places = inject(PlacesService);
   saving = signal(false);
   selectedLevels = signal<number[]>([]);
   selectedPokemonIds = signal<number[]>([]);
@@ -111,6 +116,7 @@ export class MaxBattleAddDialogComponent {
   }
 
   onDistanceModeChange(): void {
+    if (this.commonForm.controls.distanceMode.value === 'areas') this.commonForm.controls.placeLabel.setValue('');
     if (this.commonForm.controls.distanceMode.value === 'areas') {
       this.commonForm.controls.distanceKm.setValue(0);
     } else {
@@ -128,7 +134,12 @@ export class MaxBattleAddDialogComponent {
     if (!this.canSave()) return;
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
-    const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet.
+    const scope = scopeToFields(
+      common.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: common.distanceKm ?? 1, mode: common.placeLabel ? 'place' : 'profile', placeLabel: common.placeLabel ?? '' },
+    );
 
     const creates: ReturnType<typeof this.maxBattleService.create>[] = [];
 
@@ -137,8 +148,10 @@ export class MaxBattleAddDialogComponent {
       for (const levelVal of this.selectedLevels()) {
         const levelDef = this.levels.find(l => l.value === levelVal);
         const maxBattle: MaxBattleCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           clean: compose(!!common.clean, false, false),
-          distance: distanceMeters,
+          distance: scope.distance,
           evolution: 9000,
           form: common.form ?? 0,
           gmax: levelDef?.gmax ? 1 : 0,
@@ -154,8 +167,10 @@ export class MaxBattleAddDialogComponent {
       // By Pokemon — one alarm per selected Pokemon, level = 9000 (any)
       for (const pokemonId of this.selectedPokemonIds()) {
         const maxBattle: MaxBattleCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           clean: compose(!!common.clean, false, false),
-          distance: distanceMeters,
+          distance: scope.distance,
           evolution: 9000,
           form: common.form ?? 0,
           gmax: common.gmaxOnly ? 1 : 0,

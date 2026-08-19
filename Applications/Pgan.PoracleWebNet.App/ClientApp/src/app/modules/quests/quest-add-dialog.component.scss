@@ -84,3 +84,9 @@ mat-slide-toggle {
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-weight: normal;
 }
+
+.scope-near-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

@@ -53,7 +53,10 @@ describe('PokemonAddDialogComponent', () => {
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: AlertDefaultsService, useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas' } },
+        {
+          provide: AlertDefaultsService,
+          useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
+        },
         {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
@@ -145,6 +148,27 @@ describe('PokemonAddDialogComponent', () => {
       'COMMON.OK',
       expect.objectContaining({ duration: 4000 }),
     );
+  });
+
+  it('sends the mega mode with a PVP rule', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.pvpForm.controls.pvpRankingLeague.setValue(1500);
+    component.pvpForm.controls.pvpRankingEvolution.setValue(2);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).pvpRankingEvolution).toBe(2);
+  });
+
+  it('does not send a mega mode on a rule with no league', () => {
+    // Mega mode only means something inside a PVP rule. Carrying it on a non-PVP alarm would be a
+    // filter the user never asked for, on a field PoracleNG still reads.
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.pvpForm.controls.pvpRankingEvolution.setValue(2);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).pvpRankingEvolution).toBe(0);
   });
 
   it('sends the scope fields for an alarm aimed at a saved place', () => {

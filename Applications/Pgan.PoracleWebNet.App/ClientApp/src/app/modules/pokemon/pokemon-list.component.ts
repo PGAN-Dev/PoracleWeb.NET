@@ -409,6 +409,20 @@ export class PokemonListComponent implements OnInit {
       });
   }
 
+  /** The i18n key for a rule's mega mode, or an empty string for a base-forms rule. */
+  megaLabel(evolution: number): string {
+    switch (evolution) {
+      case 1:
+        return 'POKEMON.PVP_EVO_MEGA';
+      case 2:
+        return 'POKEMON.PVP_EVO_MEGA_X';
+      case 3:
+        return 'POKEMON.PVP_EVO_MEGA_Y';
+      default:
+        return '';
+    }
+  }
+
   ngOnInit(): void {
     // Ensure masterdata is loaded
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();

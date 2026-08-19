@@ -20,8 +20,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { PlacesService } from '../../core/services/places.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 
 interface GruntOption {
   color?: string;
@@ -113,19 +115,23 @@ export class InvasionAddDialogComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<InvasionAddDialogComponent>);
-
   gruntOptions = signal<GruntOption[]>([]);
 
   readonly eventGrunts = computed(() => this.gruntOptions().filter(g => g.isEvent));
+
   form = this.fb.group({
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     gender: [0],
+    // Empty means the profile pin, which is what a radius has always meant.
+    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
+  readonly places = inject(PlacesService);
   readonly rocketGrunts = computed(() => this.gruntOptions().filter(g => !g.isEvent));
 
   saving = signal(false);
@@ -157,6 +163,7 @@ export class InvasionAddDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.places.load().subscribe({ error: () => undefined });
     const grunts: GruntOption[] = InvasionAddDialogComponent.GRUNT_TYPES.map(g => ({
       ...g,
       isEvent: false,
@@ -174,6 +181,7 @@ export class InvasionAddDialogComponent implements OnInit {
   }
 
   onDistanceModeChange(): void {
+    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
     else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
   }
@@ -190,11 +198,18 @@ export class InvasionAddDialogComponent implements OnInit {
 
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet.
+    const scope = scopeToFields(
+      v.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
+    );
     const creates = targets.map(g =>
       this.invasionService.create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean: v.clean ? 1 : 0,
-        distance: dist,
+        distance: scope.distance,
         // Split variants (Mixed Male/Female) carry an implicit gender; typed grunts
         // fall back to the user's dropdown choice; fixed-gender rows force 0.
         gender: g.gender ?? (isGenderFixed(g.gruntType) ? 0 : (v.gender ?? 0)),

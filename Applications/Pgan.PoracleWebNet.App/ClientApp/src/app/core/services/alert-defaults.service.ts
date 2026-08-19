@@ -11,6 +11,7 @@ export const MAX_DEFAULT_DISTANCE_KM = 100;
 
 const MODE_KEY = 'poracle-default-alert-mode';
 const DISTANCE_KEY = 'poracle-default-alert-distance-km';
+const PLACE_KEY = 'poracle-default-alert-place';
 
 /**
  * Client-side preference for how brand-new alarms default their delivery scope.
@@ -29,13 +30,37 @@ export class AlertDefaultsService {
   /** Preferred location mode used to seed new alarms. */
   readonly defaultMode = signal<AlertLocationMode>(this.readMode());
 
+  /**
+   * Saved place new distance-mode alarms measure from. Empty means the profile pin, which is what
+   * every alarm did before per-alarm scope existed.
+   */
+  readonly defaultPlaceLabel = signal<string>(localStorage.getItem(PLACE_KEY) ?? '');
+
+  /**
+   * Drops the remembered place when it no longer exists, so a deleted place cannot keep seeding new
+   * alarms with a label PoracleNG will reject.
+   */
+  reconcilePlace(known: string[]): void {
+    const current = this.defaultPlaceLabel();
+    if (current && !known.includes(current)) {
+      this.defaultPlaceLabel.set('');
+      localStorage.setItem(PLACE_KEY, '');
+    }
+  }
+
   /** Persist the user's preferred defaults for new alarms. */
-  save(mode: AlertLocationMode, distanceKm: number): void {
+  save(mode: AlertLocationMode, distanceKm: number, placeLabel = ''): void {
     const km = this.clampDistance(distanceKm);
+    // A place only means something alongside a radius. Keeping one on the areas default would seed
+    // every new alarm with a scope PoracleNG refuses.
+    const place = mode === 'distance' ? placeLabel : '';
+
     this.defaultMode.set(mode);
     this.defaultDistanceKm.set(km);
+    this.defaultPlaceLabel.set(place);
     localStorage.setItem(MODE_KEY, mode);
     localStorage.setItem(DISTANCE_KEY, String(km));
+    localStorage.setItem(PLACE_KEY, place);
   }
 
   private clampDistance(value: number): number {

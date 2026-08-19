@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Powitanie i konfiguracja"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Megaewolucja",
+    "PVP_EVOLUTION_HINT": "Oceniaj formy podstawowe albo megę. Megi mają osobny ranking, więc reguła megi nie dopasuje formy podstawowej.",
+    "PVP_EVO_BASE": "Podstawowa",
+    "PVP_EVO_MEGA": "Mega",
+    "PVP_EVO_MEGA_X": "Mega X",
+    "PVP_EVO_MEGA_Y": "Mega Y",
     "PAGE_TITLE": "Alarmy Pokemon",
     "PAGE_DESC": "Śledź dzikie spawny Pokemon z niestandardowymi filtrami IV, CP, poziomu i PVP.",
     "SEARCH_PLACEHOLDER": "Szukaj po nazwie lub #...",

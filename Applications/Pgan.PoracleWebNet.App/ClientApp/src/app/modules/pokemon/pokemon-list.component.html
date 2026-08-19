@@ -213,6 +213,9 @@
               <span class="pvp-badge">
                 <mat-icon>emoji_events</mat-icon>
                 {{ getLeagueName(monster.pvpRankingLeague) }} {{ 'POKEMON.PVP_LEAGUE_SUFFIX' | translate }}
+                @if (monster.pvpRankingEvolution) {
+                  <span class="pvp-evo-suffix">· {{ megaLabel(monster.pvpRankingEvolution) | translate }}</span>
+                }
               </span>
               <span class="pvp-rank">{{
                 'POKEMON.PVP_RANK_RANGE' | translate: { best: monster.pvpRankingBest, worst: monster.pvpRankingWorst }

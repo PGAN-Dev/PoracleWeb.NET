@@ -110,3 +110,9 @@ mat-slide-toggle {
   display: inline-block;
   margin-right: 8px;
 }
+
+.scope-near-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

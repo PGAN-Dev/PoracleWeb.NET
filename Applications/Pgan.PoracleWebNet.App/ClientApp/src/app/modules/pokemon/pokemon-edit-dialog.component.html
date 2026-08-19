@@ -202,6 +202,16 @@
                   <mat-button-toggle [value]="cap">{{ 'POKEMON.PVP_CAP_LEVEL' | translate: { level: cap } }}</mat-button-toggle>
                 }
               </mat-button-toggle-group>
+
+              <fieldset class="pvp-evolution">
+                <legend>{{ 'POKEMON.PVP_EVOLUTION' | translate }}</legend>
+                <mat-button-toggle-group [formControl]="form.controls.pvpRankingEvolution" class="pvp-cap-toggle">
+                  <mat-button-toggle [value]="0">{{ 'POKEMON.PVP_EVO_BASE' | translate }}</mat-button-toggle>
+                  <mat-button-toggle [value]="1">{{ 'POKEMON.PVP_EVO_MEGA' | translate }}</mat-button-toggle>
+                  <mat-button-toggle [value]="2">{{ 'POKEMON.PVP_EVO_MEGA_X' | translate }}</mat-button-toggle>
+                  <mat-button-toggle [value]="3">{{ 'POKEMON.PVP_EVO_MEGA_Y' | translate }}</mat-button-toggle>
+                </mat-button-toggle-group>
+              </fieldset>
             </fieldset>
           }
           <div class="form-row">

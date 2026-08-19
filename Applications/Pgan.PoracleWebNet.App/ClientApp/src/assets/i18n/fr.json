@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Assistant de bienvenue"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Méga-évolution",
+    "PVP_EVOLUTION_HINT": "Classez les formes de base ou une méga. Les mégas sont classées à part : une règle méga ne correspondra pas à une forme de base.",
+    "PVP_EVO_BASE": "Base",
+    "PVP_EVO_MEGA": "Méga",
+    "PVP_EVO_MEGA_X": "Méga X",
+    "PVP_EVO_MEGA_Y": "Méga Y",
     "PAGE_TITLE": "Alarmes Pokemon",
     "PAGE_DESC": "Suis les spawns sauvages de Pokemon avec des filtres IV, CP, niveau et PVP personnalisés.",
     "SEARCH_PLACEHOLDER": "Rechercher par nom ou #...",
