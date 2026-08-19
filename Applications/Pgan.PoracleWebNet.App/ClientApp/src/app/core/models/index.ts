@@ -713,3 +713,22 @@ export interface AlarmScope {
   /** Only for 'place'. */
   placeLabel?: string;
 }
+
+// ─── PoracleNG server profile ──────────────────────────────────────────────────
+
+/**
+ * What PoracleWeb knows about the PoracleNG it is pointed at. Read from that server's `/health` plus
+ * its applied migration number; used to say when the server is too old for features this build ships.
+ */
+export interface PoracleServerProfile {
+  /** True only when the version is known and older than `minimumSupported`. */
+  belowMinimum: boolean;
+  /** PoracleNG's own feature map. A key that is absent means unsupported. */
+  capabilities: Record<string, boolean>;
+  checkedAt: string;
+  minimumSupported: string;
+  reachable: boolean;
+  /** Applied migration number, or null when it could not be read. */
+  schemaVersion: null | number;
+  version: null | string;
+}

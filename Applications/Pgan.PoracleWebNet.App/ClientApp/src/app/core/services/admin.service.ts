@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { AdminUser, Human } from '../models';
+import { AdminUser, Human, PoracleServerProfile } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -59,6 +59,16 @@ export class AdminService {
 
   getPorocleDelegates(): Observable<Record<string, string[]>> {
     return this.http.get<Record<string, string[]>>(`${this.config.apiHost}/api/admin/poracle-delegates`);
+  }
+
+  /**
+   * Which PoracleNG this deployment talks to, what it can store, and whether that is new enough.
+   * `refresh` re-probes rather than answering from the five-minute cache.
+   */
+  getServerProfile(refresh = false) {
+    return this.http.get<PoracleServerProfile>(`${this.config.apiHost}/api/admin/server-profile`, {
+      params: refresh ? { refresh: true } : {},
+    });
   }
 
   getUser(userId: string): Observable<Human> {

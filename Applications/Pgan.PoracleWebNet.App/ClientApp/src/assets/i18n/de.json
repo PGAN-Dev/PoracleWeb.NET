@@ -1388,7 +1388,22 @@
     "SNACK_APPROVED": "\"{{name}}\" genehmigt",
     "SNACK_FAILED_REJECT": "Einreichung konnte nicht abgelehnt werden",
     "SNACK_REJECTED": "\"{{name}}\" abgelehnt",
-    "APPROVAL_REGION_HINT": "Wähle die Region, unter der dieses Geofence erscheinen soll."
+    "APPROVAL_REGION_HINT": "Wähle die Region, unter der dieses Geofence erscheinen soll.",
+    "PANEL_TITLE": "Administration",
+    "PANEL_DESC": "Wähle unten einen Bereich.",
+    "NAV_USERS": "Benutzer",
+    "NAV_WEBHOOKS": "Webhooks",
+    "NAV_SETTINGS": "Einstellungen",
+    "SERVER_TITLE": "Poracle-Server",
+    "SERVER_REFRESH": "Erneut prüfen",
+    "SERVER_VERSION": "Version",
+    "SERVER_SCHEMA": "Datenbankschema",
+    "SERVER_CHECKED": "Zuletzt geprüft",
+    "SERVER_CAPABILITIES": "Funktionen",
+    "SERVER_NO_CAPABILITIES": "Dieser Server meldet keine.",
+    "SERVER_UNKNOWN": "Unbekannt",
+    "SERVER_UNREACHABLE": "Poracle hat nicht geantwortet. Alarme, Profile und Orte laufen darüber und schlagen fehl, bis es wieder da ist.",
+    "SERVER_TOO_OLD": "Poracle {{version}} ist älter als {{minimum}}, das diese Version der Seite benötigt. Zustellung pro Alarm, der PVP-Mega-Filter und der Filter für die Mindestrestzeit scheinen zu speichern, ändern aber nichts."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Punkt auswählen",

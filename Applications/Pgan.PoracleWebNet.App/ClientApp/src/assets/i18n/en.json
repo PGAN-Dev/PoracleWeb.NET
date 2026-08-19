@@ -1388,7 +1388,22 @@
     "SNACK_FAILED_APPROVE": "Failed to approve submission",
     "SNACK_APPROVED": "\"{{name}}\" approved",
     "SNACK_FAILED_REJECT": "Failed to reject submission",
-    "SNACK_REJECTED": "\"{{name}}\" rejected"
+    "SNACK_REJECTED": "\"{{name}}\" rejected",
+    "PANEL_TITLE": "Admin Panel",
+    "PANEL_DESC": "Select a section below.",
+    "NAV_USERS": "Users",
+    "NAV_WEBHOOKS": "Webhooks",
+    "NAV_SETTINGS": "Settings",
+    "SERVER_TITLE": "Poracle server",
+    "SERVER_REFRESH": "Check again",
+    "SERVER_VERSION": "Version",
+    "SERVER_SCHEMA": "Database schema",
+    "SERVER_CHECKED": "Last checked",
+    "SERVER_CAPABILITIES": "Capabilities",
+    "SERVER_NO_CAPABILITIES": "This server reports none.",
+    "SERVER_UNKNOWN": "Unknown",
+    "SERVER_UNREACHABLE": "Poracle did not answer. Alarms, profiles and locations all go through it and will fail until it does.",
+    "SERVER_TOO_OLD": "Poracle {{version}} is older than {{minimum}}, which this version of the site needs. Per-alarm delivery, the PVP mega filter and the minimum time filter will appear to save and change nothing."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Pick a point",

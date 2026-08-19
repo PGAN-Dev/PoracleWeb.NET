@@ -1388,7 +1388,22 @@
     "SNACK_APPROVED": "\"{{name}}\" goedgekeurd",
     "SNACK_FAILED_REJECT": "Inzending afwijzen mislukt",
     "SNACK_REJECTED": "\"{{name}}\" afgewezen",
-    "APPROVAL_REGION_HINT": "Kies de regio waaronder deze geofence verschijnt."
+    "APPROVAL_REGION_HINT": "Kies de regio waaronder deze geofence verschijnt.",
+    "PANEL_TITLE": "Beheerpaneel",
+    "PANEL_DESC": "Kies hieronder een onderdeel.",
+    "NAV_USERS": "Gebruikers",
+    "NAV_WEBHOOKS": "Webhooks",
+    "NAV_SETTINGS": "Instellingen",
+    "SERVER_TITLE": "Poracle-server",
+    "SERVER_REFRESH": "Opnieuw controleren",
+    "SERVER_VERSION": "Versie",
+    "SERVER_SCHEMA": "Databaseschema",
+    "SERVER_CHECKED": "Laatst gecontroleerd",
+    "SERVER_CAPABILITIES": "Functies",
+    "SERVER_NO_CAPABILITIES": "Deze server meldt er geen.",
+    "SERVER_UNKNOWN": "Onbekend",
+    "SERVER_UNREACHABLE": "Poracle antwoordde niet. Alarmen, profielen en locaties lopen erlangs en mislukken tot het weer reageert.",
+    "SERVER_TOO_OLD": "Poracle {{version}} is ouder dan {{minimum}}, dat deze versie van de site nodig heeft. Bereik per alarm, het PVP-megafilter en het filter voor resterende tijd lijken op te slaan maar veranderen niets."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Kies een punt",

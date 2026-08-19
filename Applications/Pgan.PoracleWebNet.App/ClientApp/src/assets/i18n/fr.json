@@ -1388,7 +1388,22 @@
     "SNACK_APPROVED": "\"{{name}}\" approuvée",
     "SNACK_FAILED_REJECT": "Échec du rejet de la soumission",
     "SNACK_REJECTED": "\"{{name}}\" rejetée",
-    "APPROVAL_REGION_HINT": "Choisissez la région sous laquelle ce géorepère apparaîtra."
+    "APPROVAL_REGION_HINT": "Choisissez la région sous laquelle ce géorepère apparaîtra.",
+    "PANEL_TITLE": "Panneau d’administration",
+    "PANEL_DESC": "Choisissez une section.",
+    "NAV_USERS": "Utilisateurs",
+    "NAV_WEBHOOKS": "Webhooks",
+    "NAV_SETTINGS": "Paramètres",
+    "SERVER_TITLE": "Serveur Poracle",
+    "SERVER_REFRESH": "Vérifier à nouveau",
+    "SERVER_VERSION": "Version",
+    "SERVER_SCHEMA": "Schéma de base de données",
+    "SERVER_CHECKED": "Dernière vérification",
+    "SERVER_CAPABILITIES": "Fonctionnalités",
+    "SERVER_NO_CAPABILITIES": "Ce serveur n’en signale aucune.",
+    "SERVER_UNKNOWN": "Inconnue",
+    "SERVER_UNREACHABLE": "Poracle n’a pas répondu. Les alarmes, profils et lieux passent par lui et échoueront tant qu’il ne répond pas.",
+    "SERVER_TOO_OLD": "Poracle {{version}} est antérieur à {{minimum}}, requis par cette version du site. La portée par alarme, le filtre méga PVP et celui du temps restant sembleront enregistrés sans rien changer."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Choisir un point",

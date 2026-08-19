@@ -1388,7 +1388,22 @@
     "SNACK_APPROVED": "\"{{name}}\" approvata",
     "SNACK_FAILED_REJECT": "Rifiuto invio fallito",
     "SNACK_REJECTED": "\"{{name}}\" rifiutata",
-    "APPROVAL_REGION_HINT": "Scegli la regione sotto cui apparirà questo geofence."
+    "APPROVAL_REGION_HINT": "Scegli la regione sotto cui apparirà questo geofence.",
+    "PANEL_TITLE": "Pannello di amministrazione",
+    "PANEL_DESC": "Scegli una sezione.",
+    "NAV_USERS": "Utenti",
+    "NAV_WEBHOOKS": "Webhook",
+    "NAV_SETTINGS": "Impostazioni",
+    "SERVER_TITLE": "Server Poracle",
+    "SERVER_REFRESH": "Controlla di nuovo",
+    "SERVER_VERSION": "Versione",
+    "SERVER_SCHEMA": "Schema del database",
+    "SERVER_CHECKED": "Ultimo controllo",
+    "SERVER_CAPABILITIES": "Funzionalità",
+    "SERVER_NO_CAPABILITIES": "Questo server non ne segnala nessuna.",
+    "SERVER_UNKNOWN": "Sconosciuta",
+    "SERVER_UNREACHABLE": "Poracle non ha risposto. Allarmi, profili e luoghi passano da lì e falliranno finché non torna.",
+    "SERVER_TOO_OLD": "Poracle {{version}} è precedente a {{minimum}}, richiesto da questa versione del sito. La consegna per allarme, il filtro mega PVP e quello sul tempo rimanente sembreranno salvati senza cambiare nulla."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Scegli un punto",

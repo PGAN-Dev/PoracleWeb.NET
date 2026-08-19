@@ -1388,7 +1388,22 @@
     "SNACK_APPROVED": "\"{{name}}\" aprobada",
     "SNACK_FAILED_REJECT": "Error al rechazar el envío",
     "SNACK_REJECTED": "\"{{name}}\" rechazada",
-    "APPROVAL_REGION_HINT": "Elige la región bajo la que aparecerá esta geocerca."
+    "APPROVAL_REGION_HINT": "Elige la región bajo la que aparecerá esta geocerca.",
+    "PANEL_TITLE": "Panel de administración",
+    "PANEL_DESC": "Elige una sección.",
+    "NAV_USERS": "Usuarios",
+    "NAV_WEBHOOKS": "Webhooks",
+    "NAV_SETTINGS": "Ajustes",
+    "SERVER_TITLE": "Servidor Poracle",
+    "SERVER_REFRESH": "Volver a comprobar",
+    "SERVER_VERSION": "Versión",
+    "SERVER_SCHEMA": "Esquema de base de datos",
+    "SERVER_CHECKED": "Última comprobación",
+    "SERVER_CAPABILITIES": "Funciones",
+    "SERVER_NO_CAPABILITIES": "Este servidor no indica ninguna.",
+    "SERVER_UNKNOWN": "Desconocida",
+    "SERVER_UNREACHABLE": "Poracle no respondió. Las alarmas, los perfiles y las ubicaciones pasan por él y fallarán hasta que vuelva.",
+    "SERVER_TOO_OLD": "Poracle {{version}} es anterior a {{minimum}}, que necesita esta versión del sitio. El alcance por alarma, el filtro mega de PVP y el de tiempo restante parecerán guardarse sin cambiar nada."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Elige un punto",

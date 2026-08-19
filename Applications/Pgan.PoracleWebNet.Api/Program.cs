@@ -198,6 +198,7 @@ builder.Services.AddPoracleServices(builder.Configuration);
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.AvatarCacheService>();
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.DtsCacheService>();
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.SettingsMigrationStartupService>();
+builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.PoracleCompatibilityStartupService>();
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.Oidc.OidcSessionCleanupService>();
 
 // JWT Authentication

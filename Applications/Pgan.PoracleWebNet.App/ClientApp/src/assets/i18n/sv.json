@@ -1388,7 +1388,22 @@
     "SNACK_APPROVED": "\"{{name}}\" godkänd",
     "SNACK_FAILED_REJECT": "Kunde inte avvisa inskickning",
     "SNACK_REJECTED": "\"{{name}}\" avvisad",
-    "APPROVAL_REGION_HINT": "Välj den region som detta geostängsel ska visas under."
+    "APPROVAL_REGION_HINT": "Välj den region som detta geostängsel ska visas under.",
+    "PANEL_TITLE": "Administration",
+    "PANEL_DESC": "Välj ett avsnitt nedan.",
+    "NAV_USERS": "Användare",
+    "NAV_WEBHOOKS": "Webhooks",
+    "NAV_SETTINGS": "Inställningar",
+    "SERVER_TITLE": "Poracle-server",
+    "SERVER_REFRESH": "Kontrollera igen",
+    "SERVER_VERSION": "Version",
+    "SERVER_SCHEMA": "Databasschema",
+    "SERVER_CHECKED": "Senast kontrollerad",
+    "SERVER_CAPABILITIES": "Funktioner",
+    "SERVER_NO_CAPABILITIES": "Den här servern rapporterar inga.",
+    "SERVER_UNKNOWN": "Okänd",
+    "SERVER_UNREACHABLE": "Poracle svarade inte. Larm, profiler och platser går via den och kommer att misslyckas tills den svarar.",
+    "SERVER_TOO_OLD": "Poracle {{version}} är äldre än {{minimum}}, som den här versionen av webbplatsen kräver. Räckvidd per larm, PVP-megafiltret och filtret för återstående tid kommer att se ut att sparas utan att ändra något."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Välj en punkt",
