@@ -1,22 +1,19 @@
-<div class="page-header">
-  <div class="page-header-text">
-    <h1>{{ 'ADMIN.PANEL_TITLE' | translate }}</h1>
-    <p class="page-description">{{ 'ADMIN.PANEL_DESC' | translate }}</p>
-  </div>
-</div>
-
 <mat-card class="server-card">
   <mat-card-content>
     <div class="server-header">
       <h2>{{ 'ADMIN.SERVER_TITLE' | translate }}</h2>
-      <button mat-icon-button [disabled]="loading()" (click)="refresh()" [attr.aria-label]="'ADMIN.SERVER_REFRESH' | translate">
+      <button
+        mat-icon-button
+        [disabled]="serverLoading()"
+        (click)="refreshServerProfile()"
+        [attr.aria-label]="'ADMIN.SERVER_REFRESH' | translate">
         <mat-icon>refresh</mat-icon>
       </button>
     </div>
 
-    @if (loading()) {
+    @if (serverLoading()) {
       <mat-spinner diameter="28"></mat-spinner>
-    } @else if (profile(); as p) {
+    } @else if (serverProfile(); as p) {
       @if (p.belowMinimum) {
         <div class="server-alert server-alert-error">
           <mat-icon>error</mat-icon>
@@ -55,9 +52,3 @@
     }
   </mat-card-content>
 </mat-card>
-
-<mat-nav-list>
-  <a mat-list-item routerLink="/admin/users"><mat-icon>people</mat-icon> {{ 'ADMIN.NAV_USERS' | translate }}</a>
-  <a mat-list-item routerLink="/admin/webhooks"><mat-icon>webhook</mat-icon> {{ 'ADMIN.NAV_WEBHOOKS' | translate }}</a>
-  <a mat-list-item routerLink="/admin/settings"><mat-icon>settings</mat-icon> {{ 'ADMIN.NAV_SETTINGS' | translate }}</a>
-</mat-nav-list>
