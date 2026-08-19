@@ -22,6 +22,14 @@ public class QuestCreate
         get; set;
     }
 
+    // Fewest of the reward the quest must give — items, candy and mega energy come in quantities.
+    // Stardust is not one of them: PoracleNG reads Reward as the stardust floor for reward type 3.
+    [Range(0, int.MaxValue)]
+    public int Amount
+    {
+        get; set;
+    }
+
     [Range(0, int.MaxValue)]
     public int RewardType
     {

@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Summary sent",
     "SUMMARY_SCHEDULE_FAILED": "Couldn't update the summary schedule",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "Summary delivery is temporarily unavailable. Please try again later.",
-    "SUMMARY_DISABLED_HINT": "Summary scheduling isn't available on this server."
+    "SUMMARY_DISABLED_HINT": "Summary scheduling isn't available on this server.",
+    "TAB_STARDUST": "Stardust",
+    "MIN_AMOUNT": "Minimum Amount",
+    "MIN_AMOUNT_HINT": "0 = any amount",
+    "MIN_STARDUST": "Minimum Stardust",
+    "MIN_STARDUST_HINT": "0 = any stardust quest",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasion Alarms",

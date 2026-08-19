@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Sammanfattning skickad",
     "SUMMARY_SCHEDULE_FAILED": "Det gick inte att uppdatera sammanfattningsschemat",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "Leverans av sammanfattningar är tillfälligt otillgänglig. Försök igen senare.",
-    "SUMMARY_DISABLED_HINT": "Schemaläggning av sammanfattningar är inte tillgänglig på den här servern."
+    "SUMMARY_DISABLED_HINT": "Schemaläggning av sammanfattningar är inte tillgänglig på den här servern.",
+    "TAB_STARDUST": "Stjärnstoft",
+    "MIN_AMOUNT": "Minsta antal",
+    "MIN_AMOUNT_HINT": "0 = valfritt antal",
+    "MIN_STARDUST": "Minsta stjärnstoft",
+    "MIN_STARDUST_HINT": "0 = alla stjärnstoftsuppdrag",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionslarm",

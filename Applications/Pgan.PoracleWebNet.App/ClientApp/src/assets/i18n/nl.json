@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Samenvatting verzonden",
     "SUMMARY_SCHEDULE_FAILED": "Kan het samenvattingsschema niet bijwerken",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "Bezorging van samenvattingen is tijdelijk niet beschikbaar. Probeer het later opnieuw.",
-    "SUMMARY_DISABLED_HINT": "Het plannen van samenvattingen is niet beschikbaar op deze server."
+    "SUMMARY_DISABLED_HINT": "Het plannen van samenvattingen is niet beschikbaar op deze server.",
+    "TAB_STARDUST": "Sterrenstof",
+    "MIN_AMOUNT": "Minimaal aantal",
+    "MIN_AMOUNT_HINT": "0 = elk aantal",
+    "MIN_STARDUST": "Minimaal sterrenstof",
+    "MIN_STARDUST_HINT": "0 = elke sterrenstof-opdracht",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasie Alarmen",

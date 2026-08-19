@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Riepilogo inviato",
     "SUMMARY_SCHEDULE_FAILED": "Impossibile aggiornare la pianificazione del riepilogo",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "La consegna del riepilogo è temporaneamente non disponibile. Riprova più tardi.",
-    "SUMMARY_DISABLED_HINT": "La pianificazione dei riepiloghi non è disponibile su questo server."
+    "SUMMARY_DISABLED_HINT": "La pianificazione dei riepiloghi non è disponibile su questo server.",
+    "TAB_STARDUST": "Polvere di Stelle",
+    "MIN_AMOUNT": "Quantità minima",
+    "MIN_AMOUNT_HINT": "0 = qualsiasi quantità",
+    "MIN_STARDUST": "Polvere di stelle minima",
+    "MIN_STARDUST_HINT": "0 = qualsiasi incarico con polvere di stelle",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Allarmi Invasioni",

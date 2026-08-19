@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Résumé envoyé",
     "SUMMARY_SCHEDULE_FAILED": "Impossible de mettre à jour la planification du résumé",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "La livraison du résumé est temporairement indisponible. Veuillez réessayer plus tard.",
-    "SUMMARY_DISABLED_HINT": "La planification des résumés n'est pas disponible sur ce serveur."
+    "SUMMARY_DISABLED_HINT": "La planification des résumés n'est pas disponible sur ce serveur.",
+    "TAB_STARDUST": "Poussière Étoilée",
+    "MIN_AMOUNT": "Quantité minimum",
+    "MIN_AMOUNT_HINT": "0 = toute quantité",
+    "MIN_STARDUST": "Poussière étoilée minimum",
+    "MIN_STARDUST_HINT": "0 = toute étude en poussière étoilée",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmes Invasion",

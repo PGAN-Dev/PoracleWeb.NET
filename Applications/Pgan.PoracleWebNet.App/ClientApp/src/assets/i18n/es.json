@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Resumen enviado",
     "SUMMARY_SCHEDULE_FAILED": "No se pudo actualizar la programación del resumen",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "La entrega del resumen no está disponible temporalmente. Inténtalo de nuevo más tarde.",
-    "SUMMARY_DISABLED_HINT": "La programación de resúmenes no está disponible en este servidor."
+    "SUMMARY_DISABLED_HINT": "La programación de resúmenes no está disponible en este servidor.",
+    "TAB_STARDUST": "Polvo Estelar",
+    "MIN_AMOUNT": "Cantidad mínima",
+    "MIN_AMOUNT_HINT": "0 = cualquier cantidad",
+    "MIN_STARDUST": "Polvo estelar mínimo",
+    "MIN_STARDUST_HINT": "0 = cualquier tarea de polvo estelar",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmas de Invasión",

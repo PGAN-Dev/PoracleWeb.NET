@@ -23,6 +23,12 @@ public class QuestUpdate
     }
 
     [Range(0, int.MaxValue)]
+    public int? Amount
+    {
+        get; set;
+    }
+
+    [Range(0, int.MaxValue)]
     public int? RewardType
     {
         get; set;
