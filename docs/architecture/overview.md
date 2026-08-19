@@ -89,7 +89,7 @@ All alarm tracking writes (create, update, delete) and single-user human/profile
 PoracleWeb.NET does **not** modify the Poracle DB schema. The Poracle database is managed by PoracleNG. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
 
 ### Unified geofence feed
-PoracleWeb.NET acts as the single geofence source for PoracleJS. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleJS or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.
+PoracleWeb.NET acts as the single geofence source for PoracleNG. It fetches admin geofences from Koji, merges them with user-drawn geofences, and serves everything via one endpoint (`GET /api/geofence-feed`). No custom code needed in PoracleNG or Koji. User geofences support GeoJSON import/export for interoperability with external mapping tools.
 
 ### Manual mapping extensions
 Mapping lives in static extension methods under `Core.Mappings/` -- there is no AutoMapper dependency. `AlarmMappingExtensions` provides `To*()` for `*Create` DTOs and `ApplyUpdate()` for `*Update` DTOs; `EntityMappingExtensions` provides `ToModel()`, `ToEntity()`, and `ApplyTo()` for Human, Profile, and the `poracle_web`-owned tables. Update models use nullable properties and `ApplyUpdate` skips nulls, so partial updates don't zero out unset fields. Alarm data itself flows as raw JSON through the PoracleNG API proxy. See [Backend Patterns](backend.md).

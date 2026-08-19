@@ -8,7 +8,7 @@ When a user draws a shape and names it, it becomes a **private geofence** straig
 
 - It works **immediately** — notifications start firing inside the shape for that user.
 - **Only that user** can see or use it. Other users have no idea it exists.
-- Its name is **hidden** from the PoracleJS/PoracleNG bot — it won't appear in the bot's `!area` picker, and the area name won't show in notification messages.
+- Its name is **hidden** from the PoracleNG bot — it won't appear in the bot's `!area` picker, and the area name won't show in notification messages.
 - It's stored **inside PoracleWeb.NET**, not in Koji.
 
 ## Staying private is a complete, valid choice

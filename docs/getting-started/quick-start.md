@@ -83,7 +83,7 @@ CORS_ORIGIN=http://localhost:8082
 
 ```env
 # Poracle config directory — mount for DTS template previews
-PORACLE_CONFIG_DIR=/path/to/PoracleJS/config
+PORACLE_CONFIG_DIR=/path/to/PoracleNG/config
 
 # Koji geofence API (required for custom geofences feature)
 KOJI_API_ADDRESS=http://host.docker.internal:8080
