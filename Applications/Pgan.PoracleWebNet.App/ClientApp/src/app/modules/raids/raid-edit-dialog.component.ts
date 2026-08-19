@@ -22,6 +22,7 @@ import { DeliveryPreviewComponent } from '../../shared/components/delivery-previ
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 
@@ -50,6 +51,7 @@ export interface RaidEditDialogData {
     GymPickerComponent,
     RsvpToggleComponent,
     LevelLabelPipe,
+    WhereChipComponent,
   ],
   selector: 'app-raid-edit-dialog',
   standalone: true,
@@ -100,6 +102,11 @@ export class RaidEditDialogComponent {
       return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
     }
     return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
+  }
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.item.overrideAreas?.length ?? 0) > 0;
   }
 
   onDistanceModeChange(): void {

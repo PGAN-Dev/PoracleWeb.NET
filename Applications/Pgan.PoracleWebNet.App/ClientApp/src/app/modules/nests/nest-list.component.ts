@@ -15,6 +15,7 @@ import { firstValueFrom } from 'rxjs';
 import { NestAddDialogComponent } from './nest-add-dialog.component';
 import { NestEditDialogComponent } from './nest-edit-dialog.component';
 import { Nest } from '../../core/models';
+import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -22,6 +23,9 @@ import { NestService } from '../../core/services/nest.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -37,6 +41,7 @@ import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flag
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    WhereChipComponent,
   ],
   selector: 'app-nest-list',
   standalone: true,
@@ -44,6 +49,7 @@ import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flag
   templateUrl: './nest-list.component.html',
 })
 export class NestListComponent implements OnInit {
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
@@ -53,8 +59,12 @@ export class NestListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
   readonly nests = signal<Nest[]>([]);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+
   readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
@@ -177,6 +187,29 @@ export class NestListComponent implements OnInit {
       });
   }
 
+  /** Change one alarm's delivery scope from its card, without opening the whole edit dialog. */
+  editScope(item: Nest): void {
+    const data: WhereSheetData = {
+      profileAreas: this.profileAreas(),
+      scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),
+    };
+
+    this.dialog
+      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .afterClosed()
+      .subscribe((scope?: AlarmScope) => {
+        if (!scope) return;
+
+        this.nestService.update(item.uid, scopeToFields(scope)).subscribe({
+          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          next: () => {
+            this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
+            this.loadNests();
+          },
+        });
+      });
+  }
+
   formatDistance(meters: number): string {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
@@ -209,6 +242,7 @@ export class NestListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadProfileAreas();
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadNests();
   }
@@ -260,5 +294,9 @@ export class NestListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private loadProfileAreas(): void {
+    this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }
 }

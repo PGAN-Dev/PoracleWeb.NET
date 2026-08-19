@@ -79,11 +79,12 @@
         </div>
         <mat-card-content>
           <div class="distance-chip-row">
-            @if (gym.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
-            } @else {
-              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(gym.distance) }}</span>
-            }
+            <app-where-chip
+              [distance]="gym.distance"
+              [overrideAreas]="gym.overrideAreas"
+              [overrideLocationLabel]="gym.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(gym); $event.stopPropagation()" />
           </div>
         </mat-card-content>
         <mat-card-actions align="end">

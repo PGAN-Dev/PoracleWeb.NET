@@ -20,6 +20,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -38,6 +39,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    WhereChipComponent,
   ],
   selector: 'app-invasion-edit-dialog',
   standalone: true,
@@ -96,6 +98,11 @@ export class InvasionEditDialogComponent {
 
   getGruntIcon(): string {
     return getGruntIconUrl(this.data.gruntType, this.selectedGender());
+  }
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.overrideAreas?.length ?? 0) > 0;
   }
 
   onDistanceModeChange(): void {

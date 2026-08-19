@@ -18,6 +18,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -36,6 +37,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    WhereChipComponent,
   ],
   selector: 'app-gym-edit-dialog',
   standalone: true,
@@ -79,6 +81,11 @@ export class GymEditDialogComponent {
       default:
         return `Team ${team}`;
     }
+  }
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.overrideAreas?.length ?? 0) > 0;
   }
 
   onDistanceModeChange(): void {

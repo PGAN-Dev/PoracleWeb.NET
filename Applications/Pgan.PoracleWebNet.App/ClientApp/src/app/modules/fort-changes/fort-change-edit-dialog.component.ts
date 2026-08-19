@@ -19,6 +19,7 @@ import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 
 @Component({
   imports: [
@@ -37,6 +38,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    WhereChipComponent,
   ],
   selector: 'app-fort-change-edit-dialog',
   standalone: true,
@@ -66,6 +68,11 @@ export class FortChangeEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.overrideAreas?.length ?? 0) > 0;
+  }
 
   onDistanceModeChange(): void {
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);

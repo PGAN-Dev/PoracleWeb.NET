@@ -17,6 +17,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -34,6 +35,7 @@ import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../.
     TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    WhereChipComponent,
   ],
   selector: 'app-lure-edit-dialog',
   standalone: true,
@@ -79,6 +81,11 @@ export class LureEditDialogComponent {
       default:
         return `Lure #${id}`;
     }
+  }
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.overrideAreas?.length ?? 0) > 0;
   }
 
   onDistanceModeChange(): void {
