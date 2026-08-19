@@ -6,11 +6,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
-import { PlacesComponent } from './places.component';
-import { ConfigService } from '../../core/services/config.service';
-import { PlacesService } from '../../core/services/places.service';
+import { PlacesSectionComponent } from './places-section.component';
+import { ConfigService } from '../../../core/services/config.service';
+import { PlacesService } from '../../../core/services/places.service';
 
-describe('PlacesComponent', () => {
+describe('PlacesSectionComponent', () => {
   let dialog: { open: jest.Mock };
   let places: {
     add: jest.Mock;
@@ -26,7 +26,7 @@ describe('PlacesComponent', () => {
     results.forEach(result => dialog.open.mockReturnValueOnce({ afterClosed: () => of(result) }));
   }
 
-  function create(): PlacesComponent {
+  function create(): PlacesSectionComponent {
     dialog = { open: jest.fn() };
     snackBar = { open: jest.fn() };
     places = {
@@ -48,12 +48,12 @@ describe('PlacesComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
-      imports: [PlacesComponent],
+      imports: [PlacesSectionComponent],
     });
 
     // MatDialogModule is in the component's own imports, so its MatDialog wins over the TestBed
     // provider. Overriding at the component injector is the only level that beats it.
-    TestBed.overrideComponent(PlacesComponent, {
+    TestBed.overrideComponent(PlacesSectionComponent, {
       set: {
         providers: [
           { provide: MatDialog, useValue: dialog },
@@ -62,7 +62,7 @@ describe('PlacesComponent', () => {
       },
     });
 
-    const component = TestBed.createComponent(PlacesComponent).componentInstance;
+    const component = TestBed.createComponent(PlacesSectionComponent).componentInstance;
     component.ngOnInit();
     return component;
   }

@@ -93,9 +93,11 @@ export const routes: Routes = [
     path: 'geofences',
   },
   {
-    canActivate: [authGuard, disabledFeatureGuard('disable_location')],
-    loadComponent: () => import('./modules/places/places.component').then(m => m.PlacesComponent),
+    // Places moved into the Areas page, beside the pin it belongs with. Kept as a redirect because
+    // bookmarks and anything still pointing here should land somewhere useful rather than 404.
     path: 'places',
+    pathMatch: 'full',
+    redirectTo: 'areas',
   },
   {
     canActivate: [authGuard],

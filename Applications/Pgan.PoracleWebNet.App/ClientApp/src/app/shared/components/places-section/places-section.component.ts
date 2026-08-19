@@ -8,18 +8,18 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import { Location, SavedPlace } from '../../core/models';
-import { PlacesService } from '../../core/services/places.service';
-import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
+import { Location, SavedPlace } from '../../../core/models';
+import { PlacesService } from '../../../core/services/places.service';
+import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
+import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
 /**
  * The places a user's alarms can be aimed at: the profile pin, plus whatever they have named.
  *
- * A page rather than a dialog, and in the nav beside Areas and My Geofences, because these are the
- * user's data and not a preference. The Areas page already frames alerts as reaching you by area or by
- * a radius from a point; named points are more of the second, so hiding them in a settings menu split
- * one idea across two surfaces.
+ * A section of the Areas page, directly under the Location card that holds the pin. The pin and the
+ * named places are the same kind of thing — points an alert can measure from — and three design
+ * reviews all landed on the same objection to giving them separate homes. The pin is not repeated in
+ * this grid because the card immediately above it is the pin.
  *
  * Adding a place borrows the location dialog as a coordinate picker rather than growing a second map,
  * then asks for the name separately, because picking a point and naming it are two decisions and
@@ -28,12 +28,12 @@ import { LocationDialogComponent } from '../../shared/components/location-dialog
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe],
-  selector: 'app-places',
+  selector: 'app-places-section',
   standalone: true,
-  styleUrl: './places.component.scss',
-  templateUrl: './places.component.html',
+  styleUrl: './places-section.component.scss',
+  templateUrl: './places-section.component.html',
 })
-export class PlacesComponent implements OnInit {
+export class PlacesSectionComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);

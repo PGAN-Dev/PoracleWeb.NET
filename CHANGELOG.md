@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Areas and Places are one page.** The sidebar item is now Areas & Places, and your named places sit directly under the card that holds your pin, because they are the same kind of thing: points an alert can measure from. Places is no longer a separate item; `/places` redirects. The notification language setting moved to the end of that page, where it stops interrupting the area picker ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **You can make a place without leaving the alarm you are editing.** The scope picker's "measured from" list ends with Add a place, which opens the map, asks for a name, and selects it. Creating a place was only ever wanted at that exact moment, and the old empty state sent you to a menu that no longer existed ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **Places.** A page in the sidebar beside Areas and My Geofences: your pin, plus whatever points you name. Adding one borrows the existing location map as a picker rather than growing a second one, and naming is a separate step because picking a point and naming it are two decisions. Deleting a place that alerts still point at says how many and refuses, instead of quietly widening them back to your pin. The Areas page's location card links to it, since that page already explains that alerts reach you by area or by a radius from a point and named points are more of the second. Shown only where the location feature is enabled, matching the endpoints it calls ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).

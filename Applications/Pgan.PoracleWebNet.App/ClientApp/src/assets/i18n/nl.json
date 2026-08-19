@@ -1,6 +1,5 @@
 {
   "NAV": {
-    "PLACES": "Plaatsen",
     "GROUP_ALARMS": "Alarmen",
     "GROUP_SETTINGS": "Instellingen",
     "GROUP_ADMIN": "Beheer",
@@ -17,7 +16,7 @@
     "GYMS": "Gyms",
     "FORT_CHANGES": "Fortwijzigingen",
     "PROFILES": "Profielen",
-    "AREAS": "Gebieden",
+    "AREAS": "Gebieden en plaatsen",
     "MY_GEOFENCES": "Mijn Geofences",
     "CLEANING": "Opschonen",
     "HELP": "Hulp",
@@ -776,7 +775,7 @@
   },
   "AREAS": {
     "MANAGE_PLACES": "Plaatsen beheren",
-    "PAGE_TITLE": "Gebieden & Locatie",
+    "PAGE_TITLE": "Gebieden en plaatsen",
     "PAGE_DESC": "Bepaal waar je meldingen ontvangt.",
     "METHOD_AREAS": "Gebieden",
     "METHOD_AREAS_ACTIVE": "{{count}} gebied(en) actief",

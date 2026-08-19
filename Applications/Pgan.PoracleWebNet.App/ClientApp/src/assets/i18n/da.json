@@ -1,6 +1,5 @@
 {
   "NAV": {
-    "PLACES": "Steder",
     "GROUP_ALARMS": "Alarmer",
     "GROUP_SETTINGS": "Indstillinger",
     "GROUP_ADMIN": "Admin",
@@ -17,7 +16,7 @@
     "GYMS": "Gyms",
     "FORT_CHANGES": "Fort-ændringer",
     "PROFILES": "Profiler",
-    "AREAS": "Områder",
+    "AREAS": "Områder og steder",
     "MY_GEOFENCES": "Mine geofences",
     "CLEANING": "Oprydning",
     "HELP": "Hjælp",
@@ -776,7 +775,7 @@
   },
   "AREAS": {
     "MANAGE_PLACES": "Administrer steder",
-    "PAGE_TITLE": "Områder og placering",
+    "PAGE_TITLE": "Områder og steder",
     "PAGE_DESC": "Kontrollér, hvor du modtager notifikationer.",
     "METHOD_AREAS": "Områder",
     "METHOD_AREAS_ACTIVE": "{{count}} område(r) aktive",
