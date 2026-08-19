@@ -82,13 +82,19 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
         var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
 
+        var body = SerializeToElement(model);
+
+        // Carry forward anything the stored row holds that the model does not declare. See #730.
+        body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
+            this._proxy, TrackingType, userId, oldUid, body);
+
         model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
             this._proxy,
             TrackingType,
             userId,
             oldUid,
             original is null ? null : SerializeToElement(original),
-            SerializeToElement(model),
+            body,
             this._logger,
             this._uidRemapper);
 
@@ -119,20 +125,15 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        var items = DeserializeItems(json);
-        var itemList = items.ToList();
+        // The stored rows are rewritten in place rather than round-tripped through the typed model,
+        // so fields PoracleWeb does not model survive the write-back. See #730.
+        var body = PoracleJsonHelper.RewriteRows(json, _ => true, ("distance", distance));
+        var count = body.GetArrayLength();
 
-        if (itemList.Count == 0)
+        if (count == 0)
         {
             return 0;
         }
-
-        foreach (var item in itemList)
-        {
-            item.Distance = distance;
-        }
-
-        var body = SerializeToElement(itemList);
         // Two selected rows that differed only by radius become the same alarm once both are set to
         // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
         // one left at its old radius, and a response claiming all were updated. See #580.
@@ -151,26 +152,25 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await BulkUidRemap.ApplyAsync(
             this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
 
-        return itemList.Count;
+        return count;
     }
 
     public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        var items = DeserializeItems(json);
-        var matching = items.Where(x => uids.Contains(x.Uid)).ToList();
+        // The stored rows are rewritten in place rather than round-tripped through the typed model,
+        // so fields PoracleWeb does not model survive the write-back. See #730.
+        var selected = new HashSet<int>(uids);
+        var body = PoracleJsonHelper.RewriteRows(
+            json,
+            row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
+            ("distance", distance));
+        var count = body.GetArrayLength();
 
-        if (matching.Count == 0)
+        if (count == 0)
         {
             return 0;
         }
-
-        foreach (var item in matching)
-        {
-            item.Distance = distance;
-        }
-
-        var body = SerializeToElement(matching);
         // Two selected rows that differed only by radius become the same alarm once both are set to
         // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
         // one left at its old radius, and a response claiming all were updated. See #580.
@@ -189,7 +189,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         await BulkUidRemap.ApplyAsync(
             this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
 
-        return matching.Count;
+        return count;
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
