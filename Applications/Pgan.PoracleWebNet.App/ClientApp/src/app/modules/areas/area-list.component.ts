@@ -18,10 +18,10 @@ import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
-import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { PlacesSectionComponent } from '../../shared/components/places-section/places-section.component';
 import { RegionOption, RegionSelectorComponent } from '../../shared/components/region-selector/region-selector.component';
+import { hasPin, pinOrNull } from '../../shared/utils/location.utils';
 
 interface AreaItem {
   group: string;
@@ -51,7 +51,6 @@ interface GroupInfo {
     MatSnackBarModule,
     TranslatePipe,
     AreaMapComponent,
-    LanguageSelectorComponent,
     RegionSelectorComponent,
     PlacesSectionComponent,
   ],
@@ -241,7 +240,7 @@ export class AreaListComponent implements OnInit {
         this.location.set(result);
         this.locationAddress.set('');
         this.locationMapUrl.set('');
-        if (result.latitude !== 0 || result.longitude !== 0) {
+        if (hasPin(result)) {
           this.locationService
             .reverseGeocode(result.latitude, result.longitude)
             .pipe(takeUntilDestroyed(this.destroyRef))
@@ -374,9 +373,10 @@ export class AreaListComponent implements OnInit {
       .subscribe({
         error: () => check(),
         next: loc => {
-          this.location.set(loc);
+          // 0,0 is a cleared pin, not a place in the Atlantic. See pinOrNull.
+          this.location.set(pinOrNull(loc));
           check();
-          if (loc && (loc.latitude !== 0 || loc.longitude !== 0)) {
+          if (hasPin(loc)) {
             this.locationService
               .reverseGeocode(loc.latitude, loc.longitude)
               .pipe(takeUntilDestroyed(this.destroyRef))

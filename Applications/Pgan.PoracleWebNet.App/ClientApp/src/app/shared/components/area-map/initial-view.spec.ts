@@ -12,16 +12,26 @@ const state = (overrides: Partial<InitialViewState> = {}): InitialViewState => (
 
 describe('planInitialView', () => {
   describe('the ladder', () => {
-    it('opens on the selected areas when there are any', () => {
+    it('opens on the user own geofences above everything else', () => {
+      // My Geofences is the only page that binds these, and the shapes you drew are what you came
+      // for there. A pin must not displace them.
       const plan = planInitialView(state({ hasAllBounds: true, hasCustomBounds: true, hasSelectionBounds: true, hasUserLocation: true }));
 
-      expect(plan?.source).toBe('selection');
+      expect(plan?.source).toBe('custom');
     });
 
-    it('opens on the user own geofences when nothing is selected', () => {
-      const plan = planInitialView(state({ hasAllBounds: true, hasCustomBounds: true, hasUserLocation: true }));
+    it('opens on the pin rather than the selected areas', () => {
+      // Areas binds the selection. A multi-area selection frames a whole region and opens too far
+      // out to act on, where the pin says where the person is.
+      const plan = planInitialView(state({ hasAllBounds: true, hasSelectionBounds: true, hasUserLocation: true }));
 
-      expect(plan?.source).toBe('custom');
+      expect(plan?.source).toBe('location');
+    });
+
+    it('opens on the selected areas when there is no pin', () => {
+      const plan = planInitialView(state({ hasAllBounds: true, hasSelectionBounds: true }));
+
+      expect(plan?.source).toBe('selection');
     });
 
     it('opens on the pinned location when there are no shapes of the user own', () => {
@@ -70,7 +80,15 @@ describe('planInitialView', () => {
     });
 
     it('does not zoom back out when the user deselects everything', () => {
-      const plan = planInitialView(state({ fittedPriority: INITIAL_VIEW_PRIORITY.selection, hasAllBounds: true, hasUserLocation: true }));
+      // With a pin present the map is already fitted to it, so losing the selection leaves nothing
+      // better to move to. Rule 2: equal rank is not an upgrade.
+      const plan = planInitialView(state({ fittedPriority: INITIAL_VIEW_PRIORITY.location, hasAllBounds: true, hasUserLocation: true }));
+
+      expect(plan).toBeNull();
+    });
+
+    it('does not fall back to the whole feed when a selection is cleared and there is no pin', () => {
+      const plan = planInitialView(state({ fittedPriority: INITIAL_VIEW_PRIORITY.selection, hasAllBounds: true }));
 
       expect(plan).toBeNull();
     });
