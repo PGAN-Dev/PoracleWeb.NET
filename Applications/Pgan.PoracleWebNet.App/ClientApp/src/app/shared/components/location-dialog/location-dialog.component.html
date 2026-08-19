@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ 'DIALOG.LOCATION_TITLE' | translate }}</h2>
+<h2 mat-dialog-title>{{ (data?.pickOnly ? 'DIALOG.LOCATION_PICK_TITLE' : 'DIALOG.LOCATION_TITLE') | translate }}</h2>
 @if (saving()) {
   <mat-progress-bar mode="indeterminate"></mat-progress-bar>
 }
