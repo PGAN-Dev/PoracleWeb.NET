@@ -1398,7 +1398,9 @@
     "SERVER_NO_CAPABILITIES": "Denne server melder ingen.",
     "SERVER_UNKNOWN": "Ukendt",
     "SERVER_UNREACHABLE": "Poracle svarede ikke. Alarmer, profiler og steder går gennem den og fejler, indtil den svarer igen.",
-    "SERVER_TOO_OLD": "Poracle {{version}} er ældre end {{minimum}}, som denne version af siden kræver. Levering pr. alarm, PVP-mega-filteret og filteret for resterende tid ser ud til at gemme uden at ændre noget."
+    "SERVER_TOO_OLD": "Poracle {{version}} er ældre end {{minimum}}, som denne version af siden kræver. Levering pr. alarm, PVP-mega-filteret og filteret for resterende tid ser ud til at gemme uden at ændre noget.",
+    "UPDATE_AVAILABLE": "{{name}} {{running}} kører, og {{latest}} er udkommet.",
+    "UPDATE_PRERELEASE": "{{name}} {{running}} er nyere end nogen udgivelse — det er en udviklingsbuild."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Vælg et punkt",
@@ -1676,7 +1678,9 @@
     "AUTH_MODE_LABEL": "Loginmetode",
     "AUTH_MODE_LOCAL": "Lokal",
     "AUTH_MODE_LOCAL_DESC": "Log ind direkte med Discord eller Telegram.",
-    "AUTH_FORCE_LOCAL_ACTIVE": "Lokalt login er gennemtvunget af serverkonfigurationen."
+    "AUTH_FORCE_LOCAL_ACTIVE": "Lokalt login er gennemtvunget af serverkonfigurationen.",
+    "DISABLE_UPDATE_CHECK_LABEL": "Søg ikke efter opdateringer",
+    "DISABLE_UPDATE_CHECK_DESC": "Stopper siden i at spørge GitHub, om der er udgivet en nyere PoracleWeb eller Poracle. Det er den eneste forespørgsel uden for dit eget netværk, og der sendes ingen data med."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",

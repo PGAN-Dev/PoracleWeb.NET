@@ -1398,7 +1398,9 @@
     "SERVER_NO_CAPABILITIES": "Este servidor não informa nenhum.",
     "SERVER_UNKNOWN": "Desconhecida",
     "SERVER_UNREACHABLE": "O Poracle não respondeu. Alarmes, perfis e locais passam por ele e vão falhar até ele voltar.",
-    "SERVER_TOO_OLD": "O Poracle {{version}} é mais antigo que {{minimum}}, exigido por esta versão do site. O alcance por alarme, o filtro mega de PVP e o de tempo restante vão parecer salvos sem mudar nada."
+    "SERVER_TOO_OLD": "O Poracle {{version}} é mais antigo que {{minimum}}, exigido por esta versão do site. O alcance por alarme, o filtro mega de PVP e o de tempo restante vão parecer salvos sem mudar nada.",
+    "UPDATE_AVAILABLE": "Está rodando o {{name}} {{running}} e a {{latest}} já saiu.",
+    "UPDATE_PRERELEASE": "O {{name}} {{running}} é mais novo que qualquer versão publicada — é uma compilação de desenvolvimento."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Escolha um ponto",
@@ -1676,7 +1678,9 @@
     "AUTH_MODE_LABEL": "Modo de login",
     "AUTH_MODE_LOCAL": "Local",
     "AUTH_MODE_LOCAL_DESC": "Faça login diretamente com Discord ou Telegram.",
-    "AUTH_FORCE_LOCAL_ACTIVE": "O login local é forçado pela configuração do servidor."
+    "AUTH_FORCE_LOCAL_ACTIVE": "O login local é forçado pela configuração do servidor.",
+    "DISABLE_UPDATE_CHECK_LABEL": "Não procurar atualizações",
+    "DISABLE_UPDATE_CHECK_DESC": "Impede o site de perguntar ao GitHub se saiu uma versão mais recente do PoracleWeb ou do Poracle. É a única requisição que sai da sua rede e não envia nada."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

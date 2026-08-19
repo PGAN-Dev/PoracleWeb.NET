@@ -43,6 +43,20 @@ export class ServerProfileCardComponent implements OnInit {
 
   readonly serverLoading = signal(true);
 
+  /**
+   * The two components this deployment is made of, so the card says "you are behind" once per project
+   * rather than making an admin compare version strings by eye.
+   */
+  readonly updates = computed(() => {
+    const profile = this.serverProfile();
+    if (!profile) return [];
+
+    return [
+      { label: 'PoracleWeb', status: profile.webUpdate },
+      { label: 'Poracle', status: profile.poracleUpdate },
+    ].filter(u => u.status);
+  });
+
   ngOnInit(): void {
     this.load(false);
   }

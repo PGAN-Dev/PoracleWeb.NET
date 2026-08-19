@@ -126,6 +126,16 @@ public static class ServiceCollectionExtensions
         // secret and still answers when the API key is wrong -- a state that otherwise looks exactly
         // like the server being down.
         services.AddScoped<IPoracleSchemaVersionReader, PoracleSchemaVersionReader>();
+
+        // The one outbound call PoracleWeb makes. Anonymous, cached for six hours, and switchable off
+        // with disable_update_check for deployments that do not want egress at all.
+        services.AddHttpClient<IUpdateCheckService, UpdateCheckService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+            // GitHub refuses anonymous API calls that do not identify themselves.
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PoracleWeb.NET");
+        });
+
         services.AddHttpClient<IPoracleServerProfileService, PoracleServerProfileService>(client =>
         {
             // A diagnostic must not hold a request open: an unreachable server should answer

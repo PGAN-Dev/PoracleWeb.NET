@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,7 @@ public class AdminControllerTests : ControllerTestBase
     private readonly Mock<IJwtService> _jwtService = new();
     private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
     private readonly Mock<IPoracleServerProfileService> _serverProfile = new();
+    private readonly Mock<IUpdateCheckService> _updateCheck = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
     private readonly AdminController _sut;
 
@@ -35,6 +37,8 @@ public class AdminControllerTests : ControllerTestBase
             this._webhookDelegateService.Object,
             this._proxy.Object,
             this._serverProfile.Object,
+            this._updateCheck.Object,
+            new ConfigurationBuilder().Build(),
             this._humanProxy.Object,
             poracleSettings,
             this._jwtService.Object,

@@ -249,6 +249,12 @@ const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_UPDATE_CHECK_DESC',
+        key: 'disable_update_check',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_UPDATE_CHECK_LABEL',
+        type: 'boolean',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_DESC',
         key: 'disable_user_geofences',
         labelKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_LABEL',

@@ -1398,7 +1398,9 @@
     "SERVER_NO_CAPABILITIES": "Deze server meldt er geen.",
     "SERVER_UNKNOWN": "Onbekend",
     "SERVER_UNREACHABLE": "Poracle antwoordde niet. Alarmen, profielen en locaties lopen erlangs en mislukken tot het weer reageert.",
-    "SERVER_TOO_OLD": "Poracle {{version}} is ouder dan {{minimum}}, dat deze versie van de site nodig heeft. Bereik per alarm, het PVP-megafilter en het filter voor resterende tijd lijken op te slaan maar veranderen niets."
+    "SERVER_TOO_OLD": "Poracle {{version}} is ouder dan {{minimum}}, dat deze versie van de site nodig heeft. Bereik per alarm, het PVP-megafilter en het filter voor resterende tijd lijken op te slaan maar veranderen niets.",
+    "UPDATE_AVAILABLE": "{{name}} {{running}} draait, en {{latest}} is uit.",
+    "UPDATE_PRERELEASE": "{{name}} {{running}} is nieuwer dan elke uitgave — dit is een ontwikkelversie."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Kies een punt",
@@ -1676,7 +1678,9 @@
     "AUTH_MODE_LABEL": "Aanmeldmodus",
     "AUTH_MODE_LOCAL": "Lokaal",
     "AUTH_MODE_LOCAL_DESC": "Meld je rechtstreeks aan met Discord of Telegram.",
-    "AUTH_FORCE_LOCAL_ACTIVE": "Lokaal aanmelden wordt afgedwongen door de serverconfiguratie."
+    "AUTH_FORCE_LOCAL_ACTIVE": "Lokaal aanmelden wordt afgedwongen door de serverconfiguratie.",
+    "DISABLE_UPDATE_CHECK_LABEL": "Niet op updates controleren",
+    "DISABLE_UPDATE_CHECK_DESC": "Voorkomt dat de site aan GitHub vraagt of er een nieuwere PoracleWeb of Poracle is uitgebracht. Dit is het enige verzoek buiten je eigen netwerk en er wordt niets meegestuurd."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",

@@ -88,3 +88,15 @@
   font-size: 13px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
 }
+
+// Blue for "there is something newer", distinct from the red that means "this will not work" and the
+// amber that means "nobody knows yet". An update is information, not a fault.
+.server-alert-update {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.server-alert-info {
+  background: #ede7f6;
+  color: #4527a0;
+}

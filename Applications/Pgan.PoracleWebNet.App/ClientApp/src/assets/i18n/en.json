@@ -1398,7 +1398,9 @@
     "SERVER_NO_CAPABILITIES": "This server reports none.",
     "SERVER_UNKNOWN": "Unknown",
     "SERVER_UNREACHABLE": "Poracle did not answer. Alarms, profiles and locations all go through it and will fail until it does.",
-    "SERVER_TOO_OLD": "Poracle {{version}} is older than {{minimum}}, which this version of the site needs. Per-alarm delivery, the PVP mega filter and the minimum time filter will appear to save and change nothing."
+    "SERVER_TOO_OLD": "Poracle {{version}} is older than {{minimum}}, which this version of the site needs. Per-alarm delivery, the PVP mega filter and the minimum time filter will appear to save and change nothing.",
+    "UPDATE_AVAILABLE": "{{name}} {{running}} is running, and {{latest}} is out.",
+    "UPDATE_PRERELEASE": "{{name}} {{running}} is newer than any release — this is a development build."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Pick a point",
@@ -1676,7 +1678,9 @@
     "DISCARD_CHANGES": "Discard",
     "COLLAPSE_SECTION": "Collapse section",
     "EXPAND_SECTION": "Expand section",
-    "SUMMARY_ENABLED": "{{count}} of {{total}} enabled"
+    "SUMMARY_ENABLED": "{{count}} of {{total}} enabled",
+    "DISABLE_UPDATE_CHECK_LABEL": "Do not check for updates",
+    "DISABLE_UPDATE_CHECK_DESC": "Stops the site asking GitHub whether a newer PoracleWeb or Poracle has been released. This is the only request it makes outside your own network; nothing is sent with it."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",
