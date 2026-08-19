@@ -312,7 +312,15 @@
     "PVP_CAP": "Niveaugrænse",
     "PVP_CAP_ALL": "Alle",
     "PVP_CAP_LEVEL": "L{{level}}",
-    "PVP_CAP_HINT_DEFAULT": "Standard — fra Poracle-konfigurationen"
+    "PVP_CAP_HINT_DEFAULT": "Standard — fra Poracle-konfigurationen",
+    "FILTER_TIME_LEFT": "Resterende Tid",
+    "LABEL_MIN_TIME": "Mindste resterende tid",
+    "MIN_TIME_HINT": "Springer spawns over, der er væk, før du når frem.",
+    "MIN_TIME_MINUTES": "{{count}} min",
+    "MIN_TIME_SECONDS": "{{count}} s",
+    "PILL_TIME_LEFT_MINUTES": "{{count}} min tilbage",
+    "PILL_TIME_LEFT_SECONDS": "{{count}} s tilbage",
+    "MIN_TIME_ANY": "Alle"
   },
   "ALARM": {
     "LOCATION_MODE": "Placeringstilstand",

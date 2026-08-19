@@ -312,7 +312,15 @@
     "PVP_CAP": "Limite de nível",
     "PVP_CAP_ALL": "Todos",
     "PVP_CAP_LEVEL": "L{{level}}",
-    "PVP_CAP_HINT_DEFAULT": "Predefinido — da configuração do Poracle"
+    "PVP_CAP_HINT_DEFAULT": "Predefinido — da configuração do Poracle",
+    "FILTER_TIME_LEFT": "Tempo Restante",
+    "LABEL_MIN_TIME": "Tempo restante mínimo",
+    "MIN_TIME_HINT": "Ignora aparições que desaparecem antes de chegares.",
+    "MIN_TIME_MINUTES": "{{count}} min",
+    "MIN_TIME_SECONDS": "{{count}} s",
+    "PILL_TIME_LEFT_MINUTES": "restam {{count}} min",
+    "PILL_TIME_LEFT_SECONDS": "restam {{count}} s",
+    "MIN_TIME_ANY": "Qualquer"
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de Localização",

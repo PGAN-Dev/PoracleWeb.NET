@@ -312,7 +312,15 @@
     "PVP_CAP": "Levellimiet",
     "PVP_CAP_ALL": "Alle",
     "PVP_CAP_LEVEL": "L{{level}}",
-    "PVP_CAP_HINT_DEFAULT": "Standaard — uit de Poracle-configuratie"
+    "PVP_CAP_HINT_DEFAULT": "Standaard — uit de Poracle-configuratie",
+    "FILTER_TIME_LEFT": "Resterende Tijd",
+    "LABEL_MIN_TIME": "Minimale resterende tijd",
+    "MIN_TIME_HINT": "Slaat spawns over die weg zijn voordat je er bent.",
+    "MIN_TIME_MINUTES": "{{count}} min",
+    "MIN_TIME_SECONDS": "{{count}} s",
+    "PILL_TIME_LEFT_MINUTES": "nog {{count}} min",
+    "PILL_TIME_LEFT_SECONDS": "nog {{count}} s",
+    "MIN_TIME_ANY": "Elke"
   },
   "ALARM": {
     "LOCATION_MODE": "Locatiemodus",

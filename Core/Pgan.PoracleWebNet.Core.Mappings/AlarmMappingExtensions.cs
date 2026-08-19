@@ -30,6 +30,8 @@ public static class AlarmMappingExtensions
         PvpRankingMinCp = src.PvpRankingMinCp,
         PvpRankingLeague = src.PvpRankingLeague,
         PvpRankingCap = src.PvpRankingCap,
+        PvpRankingEvolution = src.PvpRankingEvolution,
+        MinTime = src.MinTime,
         Form = src.Form,
         Size = src.Size,
         MaxSize = src.MaxSize,
@@ -63,6 +65,8 @@ public static class AlarmMappingExtensions
         if (src.PvpRankingMinCp != null) dest.PvpRankingMinCp = src.PvpRankingMinCp.Value;
         if (src.PvpRankingLeague != null) dest.PvpRankingLeague = src.PvpRankingLeague.Value;
         if (src.PvpRankingCap != null) dest.PvpRankingCap = src.PvpRankingCap.Value;
+        if (src.PvpRankingEvolution != null) dest.PvpRankingEvolution = src.PvpRankingEvolution.Value;
+        if (src.MinTime != null) dest.MinTime = src.MinTime.Value;
         if (src.Form != null) dest.Form = src.Form.Value;
         if (src.Size != null) dest.Size = src.Size.Value;
         if (src.MaxSize != null) dest.MaxSize = src.MaxSize.Value;

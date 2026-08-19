@@ -199,6 +199,9 @@
             @if (monster.size > 0 || monster.maxSize < 5) {
               <span class="filter-pill size-pill">{{ getSizePillText(monster) }}</span>
             }
+            @if (monster.minTime > 0) {
+              <span class="filter-pill time-pill">{{ minTimeText(monster.minTime) | translate: minTimeParams(monster.minTime) }}</span>
+            }
           </div>
           <div class="distance-chip-row">
             <app-where-chip

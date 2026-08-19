@@ -71,10 +71,34 @@ public class Monster
     {
         get; set;
     }
+
+    /// <summary>
+    /// Which form of the pokemon the PVP ranks are read from: 0 base, 1 any mega, 2 Mega X, 3 Mega Y.
+    /// </summary>
+    /// <remarks>
+    /// Only consulted when a league is set. 0 means base ranks, and whether mega entries also match is
+    /// then the server's <c>include_mega_evolution</c> default. PoracleNG 5.1.0.
+    /// </remarks>
+    public int PvpRankingEvolution
+    {
+        get; set;
+    }
     public int Form
     {
         get; set;
     }
+    /// <summary>
+    /// Seconds a spawn must still have left when it is found, or the alert is skipped.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG compares this against the spawn's time-to-hidden, so it answers "is this still worth
+    /// walking to?". 0 means any.
+    /// </remarks>
+    public int MinTime
+    {
+        get; set;
+    }
+
     public int Size { get; set; } = -1;
     public int MaxSize { get; set; } = 5;
     public int Gender

@@ -118,6 +118,18 @@
           <mat-expansion-panel-header>
             <mat-panel-title> <mat-icon>more_horiz</mat-icon> {{ 'POKEMON.MORE_FILTERS' | translate }} </mat-panel-title>
           </mat-expansion-panel-header>
+          <h4>{{ 'POKEMON.FILTER_TIME_LEFT' | translate }}</h4>
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'POKEMON.LABEL_MIN_TIME' | translate }}</mat-label>
+              <mat-select [formControl]="form.controls.minTime">
+                @for (option of minTimeChoices(); track option) {
+                  <mat-option [value]="option">{{ minTimeText(option) | translate: minTimeParams(option) }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>{{ 'POKEMON.MIN_TIME_HINT' | translate }}</mat-hint>
+            </mat-form-field>
+          </div>
           <h4>{{ 'POKEMON.FILTER_SIZE' | translate }}</h4>
           <div class="form-row">
             <mat-form-field appearance="outline">

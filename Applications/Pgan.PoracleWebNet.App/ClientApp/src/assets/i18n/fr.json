@@ -312,7 +312,15 @@
     "PVP_CAP": "Plafond de niveau",
     "PVP_CAP_ALL": "Tous",
     "PVP_CAP_LEVEL": "L{{level}}",
-    "PVP_CAP_HINT_DEFAULT": "Par défaut — depuis la configuration Poracle"
+    "PVP_CAP_HINT_DEFAULT": "Par défaut — depuis la configuration Poracle",
+    "FILTER_TIME_LEFT": "Temps Restant",
+    "LABEL_MIN_TIME": "Temps restant minimum",
+    "MIN_TIME_HINT": "Ignore les apparitions qui disparaîtront avant votre arrivée.",
+    "MIN_TIME_MINUTES": "{{count}} min",
+    "MIN_TIME_SECONDS": "{{count}} s",
+    "PILL_TIME_LEFT_MINUTES": "{{count}} min restantes",
+    "PILL_TIME_LEFT_SECONDS": "{{count}} s restantes",
+    "MIN_TIME_ANY": "Toute"
   },
   "ALARM": {
     "LOCATION_MODE": "Mode de localisation",

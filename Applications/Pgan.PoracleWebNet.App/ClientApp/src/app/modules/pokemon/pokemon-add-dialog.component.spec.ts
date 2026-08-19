@@ -171,6 +171,28 @@ describe('PokemonAddDialogComponent', () => {
     expect((monsterService.create.mock.calls[0][0] as MonsterCreate).pvpRankingEvolution).toBe(0);
   });
 
+  it('sends the minimum time left with the rule', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.filtersForm.controls.minTime.setValue(300);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).minTime).toBe(300);
+  });
+
+  it('sends no time floor by default', () => {
+    // The legitimate twin: an ordinary rule must not arrive with a filter nobody chose.
+    component.selectedPokemonIds.set([MEOWTH]);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).minTime).toBe(0);
+  });
+
+  it('offers the presets for the time left', () => {
+    expect(component.minTimeChoices()).toEqual([0, 60, 120, 300, 600, 900, 1200]);
+  });
+
   it('sends the scope fields for an alarm aimed at a saved place', () => {
     component.selectedPokemonIds.set([MEOWTH]);
     component.scope.set({ distanceKm: 2, mode: 'place', placeLabel: 'work' });

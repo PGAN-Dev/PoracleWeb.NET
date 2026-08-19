@@ -32,6 +32,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { minTimePillLabel } from '../../shared/utils/min-time';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -421,6 +422,15 @@ export class PokemonListComponent implements OnInit {
       default:
         return '';
     }
+  }
+
+  /** The pill only appears when a filter is set, so "any" never needs rendering here. */
+  minTimeParams(seconds: number): Record<string, number> {
+    return minTimePillLabel(seconds).params;
+  }
+
+  minTimeText(seconds: number): string {
+    return minTimePillLabel(seconds).key;
   }
 
   ngOnInit(): void {
