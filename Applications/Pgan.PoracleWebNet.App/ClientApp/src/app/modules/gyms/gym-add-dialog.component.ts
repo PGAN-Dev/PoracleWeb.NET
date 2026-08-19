@@ -18,11 +18,10 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { PlacesService } from '../../core/services/places.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 interface TeamOption {
@@ -46,9 +45,9 @@ interface TeamOption {
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     GymPickerComponent,
     MatSelectModule,
+    ScopePickerComponent,
   ],
   selector: 'app-gym-add-dialog',
   standalone: true,
@@ -57,7 +56,9 @@ interface TeamOption {
 })
 export class GymAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
@@ -65,19 +66,28 @@ export class GymAddDialogComponent {
   form = this.fb.group({
     battleChanges: [false],
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
-    // Empty means the profile pin, which is what a radius has always meant.
-    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     slotChanges: [false],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  readonly places = inject(PlacesService);
-
   saving = signal(false);
+
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedGymId = signal<string | null>(null);
   selectedTeamIds = signal<number[]>([]);
   teams: TeamOption[] = [
@@ -91,22 +101,11 @@ export class GymAddDialogComponent {
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
-
   save(): void {
     if (this.selectedTeamIds().length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
-    // One conversion for all three answers, shared with the card chip and the scope sheet.
-    const scope = scopeToFields(
-      v.distanceMode === 'areas'
-        ? { mode: 'profile' }
-        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
-    );
+    const scope = scopeToFields(this.scope());
     const creates = this.selectedTeamIds().map(team =>
       this.gymService.create({
         overrideAreas: scope.overrideAreas,

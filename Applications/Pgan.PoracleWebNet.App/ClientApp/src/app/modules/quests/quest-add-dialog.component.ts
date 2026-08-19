@@ -18,13 +18,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
-import { PlacesService } from '../../core/services/places.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -43,7 +42,7 @@ import { compose } from '../../shared/utils/clean-flags';
     TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-quest-add-dialog',
   standalone: true,
@@ -55,18 +54,15 @@ export class QuestAddDialogComponent {
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
-
   commonForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
-    // Empty means the profile pin, which is what a radius has always meant.
-    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     summary: [false],
     template: [''],
   });
@@ -76,16 +72,30 @@ export class QuestAddDialogComponent {
   readonly iconService = inject(IconService);
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
   itemForm = this.fb.group({
     reward: [0],
   });
-
-  readonly places = inject(PlacesService);
 
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
 
   saving = signal(false);
+
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedCandyPokemonIds = signal<number[]>([]);
   selectedMegaPokemonIds = signal<number[]>([]);
 
@@ -126,17 +136,6 @@ export class QuestAddDialogComponent {
     this.selectedCandyPokemonIds.set(ids);
   }
 
-  onDistanceModeChange(): void {
-    if (this.commonForm.controls.distanceMode.value === 'areas') this.commonForm.controls.placeLabel.setValue('');
-    if (this.commonForm.controls.distanceMode.value === 'areas') {
-      this.commonForm.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.commonForm.controls.distanceKm.value) {
-        this.commonForm.controls.distanceKm.setValue(1);
-      }
-    }
-  }
-
   onMegaPokemonSelected(ids: number[]): void {
     this.selectedMegaPokemonIds.set(ids);
   }
@@ -154,12 +153,7 @@ export class QuestAddDialogComponent {
     if (!this.canSave()) return;
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
-    // One conversion for all three answers, shared with the card chip and the scope sheet.
-    const scope = scopeToFields(
-      common.distanceMode === 'areas'
-        ? { mode: 'profile' }
-        : { distanceKm: common.distanceKm ?? 1, mode: common.placeLabel ? 'place' : 'profile', placeLabel: common.placeLabel ?? '' },
-    );
+    const scope = scopeToFields(this.scope());
     // New alarms have no prior bits, so compose directly from the two surfaced toggles (edit-in-place unsupported for quests).
     const cleanValue = compose(!!common.clean, false, !!common.summary);
 

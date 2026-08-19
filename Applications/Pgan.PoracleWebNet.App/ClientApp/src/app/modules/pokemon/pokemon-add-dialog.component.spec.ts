@@ -173,9 +173,7 @@ describe('PokemonAddDialogComponent', () => {
 
   it('sends the scope fields for an alarm aimed at a saved place', () => {
     component.selectedPokemonIds.set([MEOWTH]);
-    component.notifForm.controls.distanceMode.setValue('distance');
-    component.notifForm.controls.distanceKm.setValue(2);
-    component.notifForm.controls.placeLabel.setValue('work');
+    component.scope.set({ distanceKm: 2, mode: 'place', placeLabel: 'work' });
 
     component.save();
 
@@ -189,8 +187,7 @@ describe('PokemonAddDialogComponent', () => {
     // The legitimate-case half: "within 2 km of me" is the alarm most people make, and it must not
     // acquire a location override just because the field exists.
     component.selectedPokemonIds.set([MEOWTH]);
-    component.notifForm.controls.distanceMode.setValue('distance');
-    component.notifForm.controls.distanceKm.setValue(2);
+    component.scope.set({ distanceKm: 2, mode: 'profile' });
 
     component.save();
 
@@ -199,10 +196,9 @@ describe('PokemonAddDialogComponent', () => {
     expect(created.distance).toBe(2000);
   });
 
-  it('clears the radius and any place when the alarm uses areas', () => {
+  it('clears the radius and any place when the alarm inherits the profile', () => {
     component.selectedPokemonIds.set([MEOWTH]);
-    component.notifForm.controls.distanceMode.setValue('areas');
-    component.notifForm.controls.placeLabel.setValue('work');
+    component.scope.set({ mode: 'profile' });
 
     component.save();
 

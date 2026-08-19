@@ -18,10 +18,9 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
-import { PlacesService } from '../../core/services/places.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 interface LureOption {
@@ -45,8 +44,8 @@ interface LureOption {
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     MatSelectModule,
+    ScopePickerComponent,
   ],
   selector: 'app-lure-add-dialog',
   standalone: true,
@@ -55,18 +54,16 @@ interface LureOption {
 })
 export class LureAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
   form = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     editInPlace: [false],
-    // Empty means the profile pin, which is what a radius has always meant.
-    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     template: [''],
   });
 
@@ -81,31 +78,33 @@ export class LureAddDialogComponent {
     { id: 506, name: 'Golden', color: '#FFC107' },
   ];
 
-  readonly places = inject(PlacesService);
-
   saving = signal(false);
+
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedLureIds = signal<number[]>([]);
 
   getLureIcon(lureId: number): string {
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
-
   save(): void {
     if (this.selectedLureIds().length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
-    // One conversion for all three answers, shared with the card chip and the scope sheet.
-    const scope = scopeToFields(
-      v.distanceMode === 'areas'
-        ? { mode: 'profile' }
-        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
-    );
+    const scope = scopeToFields(this.scope());
     const creates = this.selectedLureIds().map(lureId =>
       this.lureService.create({
         overrideAreas: scope.overrideAreas,

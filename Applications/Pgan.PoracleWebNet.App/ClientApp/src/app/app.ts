@@ -8,18 +8,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { DashboardCounts } from './core/models';
+import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
-import { LanguageSelectorComponent } from './shared/components/language-selector/language-selector.component';
 
 interface NavItem {
   adminOnly?: boolean;
@@ -49,7 +50,6 @@ interface NavItem {
     MatBadgeModule,
     MatTooltipModule,
     TranslatePipe,
-    LanguageSelectorComponent,
   ],
   selector: 'app-root',
   styleUrl: './app.scss',
@@ -84,6 +84,8 @@ export class App implements OnInit {
     }
   });
 
+  private readonly snackBar = inject(MatSnackBar);
+
   protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
 
   private readonly titleEffect = effect(() => {
@@ -91,8 +93,8 @@ export class App implements OnInit {
   });
 
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
-
   protected readonly auth = inject(AuthService);
+
   protected readonly navItems: NavItem[] = [
     { group: 'alarms', icon: 'dashboard', iconColor: '#1976d2', label: 'NAV.DASHBOARD', route: '/dashboard' },
     { group: 'alarms', icon: 'bolt', iconColor: '#ff6f00', label: 'NAV.QUICK_PICKS', route: '/quick-picks' },
@@ -223,6 +225,8 @@ export class App implements OnInit {
     ),
   );
 
+  readonly alertLanguage = inject(AlertLanguageService);
+
   protected readonly counts = signal<DashboardCounts | null>(null);
 
   protected readonly customNavLink = computed(() => {
@@ -239,7 +243,6 @@ export class App implements OnInit {
   protected readonly darkMode = signal(localStorage.getItem('poracle-theme') === 'dark');
 
   protected readonly headerLogoUrl = computed(() => this.settingsService.siteSettings()['header_logo_url'] || '');
-
   protected readonly hideHeaderLogo = computed(() => this.settingsService.isDisabled('hide_header_logo'));
 
   protected readonly i18n = inject(I18nService);
@@ -283,6 +286,16 @@ export class App implements OnInit {
     this.i18n.init();
   }
 
+  /** Sets the language Poracle writes alerts in, and says so either way. */
+  async chooseAlertLanguage(code: string): Promise<void> {
+    const ok = await this.alertLanguage.choose(code);
+    this.snackBar.open(
+      this.i18n.instant(ok ? 'AREAS.SNACK_LANGUAGE_UPDATED' : 'AREAS.SNACK_LANGUAGE_FAILED'),
+      this.i18n.instant('TOAST.OK'),
+      { duration: 3000 },
+    );
+  }
+
   getCount(item: NavItem): number {
     if (!item.countKey || !this.counts()) return 0;
     return this.counts()![item.countKey] ?? 0;
@@ -301,6 +314,7 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
+    this.alertLanguage.load();
     // Signed-out visitors get the public subset. loadOnce() hits the authenticated endpoint, so
     // calling it on the login page produced a 401 and an uncaught HttpErrorResponse on every visit.
     // AuthService re-runs loadOnce() once a token exists, so nothing is lost by deferring. See #426.

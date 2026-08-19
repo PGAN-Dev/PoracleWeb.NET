@@ -432,18 +432,12 @@ kbd {
   }
 }
 
-// Two language controls sit side by side in the user menu; the alert one needs room for its
-// explanation, since the difference between them is the whole reason they are adjacent.
-.alert-language-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 260px;
-  padding: 12px 16px;
-}
-
+// The alert-language menu mirrors the display-language one row for row; the two are only
+// distinguishable at a glance if they look like siblings. Its hint says which is which.
 .alert-language-hint {
   color: var(--text-secondary, rgb(0 0 0 / 60%));
   font-size: 12px;
   margin: 0;
+  max-width: 240px;
+  padding: 8px 16px 4px;
 }

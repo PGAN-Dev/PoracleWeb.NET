@@ -1723,6 +1723,7 @@
     "LAST_PAGE": "Sista sidan"
   },
   "WHERE": {
+    "PIN_MISSING_WARNING": "Du har inte angett någon position än, så aviseringen har inget att mäta från.",
     "PLACES_EMPTY_TITLE": "Inga platser än",
     "PIN_UNSET": "Inte angiven",
     "PLACES_PAGE_DESC": "Namngivna punkter som dina aviseringar kan riktas mot i stället för din position.",

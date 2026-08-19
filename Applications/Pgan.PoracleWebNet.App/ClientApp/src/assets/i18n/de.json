@@ -1723,6 +1723,7 @@
     "LAST_PAGE": "Letzte Seite"
   },
   "WHERE": {
+    "PIN_MISSING_WARNING": "Du hast noch keinen Standort gesetzt, diese Meldung hätte also keinen Bezugspunkt.",
     "PLACES_EMPTY_TITLE": "Noch keine Orte",
     "PIN_UNSET": "Nicht gesetzt",
     "PLACES_PAGE_DESC": "Benannte Punkte, auf die deine Meldungen statt auf deinen Standort ausgerichtet werden können.",

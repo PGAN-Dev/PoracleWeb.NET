@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The Delivery tab and the card's scope picker are the same control.** They were two different shapes of the same question, and the dialog version was missing an option: "only in specific areas" could not be chosen when creating an alarm, only afterwards from the card. Both now render one component, so a new alarm can be confined to areas from the start, and picking your pin when you have not set one says so instead of alerting on nothing ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+- **Alert language shows flag rows, matching display language.** The two menus sit next to each other and now look like siblings, which is the only way the difference between them reads at a glance ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **Alert language moved into the user menu, next to display language.** It was a block on the Areas page, which is where it landed for want of anywhere better. The two controls do different jobs and each looked like *the* language setting while they sat apart; side by side and distinctly labelled, the difference is visible in a glance ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **Areas and Places are one page.** The sidebar item is now Areas & Places, and your named places sit directly under the card that holds your pin, because they are the same kind of thing: points an alert can measure from. Places is no longer a separate item; `/places` redirects. The notification language setting moved to the end of that page, where it stops interrupting the area picker ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).

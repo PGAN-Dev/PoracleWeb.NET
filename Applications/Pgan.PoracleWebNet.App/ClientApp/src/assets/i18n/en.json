@@ -1723,6 +1723,7 @@
     "LAST_PAGE": "Last page"
   },
   "WHERE": {
+    "PIN_MISSING_WARNING": "You have not set a pin yet, so this alert would have nothing to measure from.",
     "PLACES_EMPTY_TITLE": "No places yet",
     "PIN_UNSET": "Not set",
     "PLACES_PAGE_DESC": "Named points your alerts can be aimed at, instead of your pin.",

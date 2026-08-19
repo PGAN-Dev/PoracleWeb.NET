@@ -68,51 +68,7 @@
         <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
-        <mat-radio-group [formControl]="commonForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
-          <mat-radio-button value="areas">
-            <div class="radio-label">
-              <mat-icon>map</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-          <mat-radio-button value="distance">
-            <div class="radio-label">
-              <mat-icon>straighten</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-        </mat-radio-group>
-
-        @if (commonForm.controls.distanceMode.value === 'distance') {
-          <div class="scope-near-row">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'WHERE.MEASURED_FROM' | translate }}</mat-label>
-              <mat-select [formControl]="commonForm.controls.placeLabel">
-                <mat-option value="">{{ 'WHERE.MY_PIN' | translate }}</mat-option>
-                @for (place of places.named(); track place.label) {
-                  <mat-option [value]="place.label">{{ place.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
-              <input matInput type="number" [formControl]="commonForm.controls.distanceKm" min="0" step="0.1" />
-              <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
-            </mat-form-field>
-          </div>
-        }
-
-        <app-delivery-preview
-          [mode]="commonForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
-          [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
-        </app-delivery-preview>
+        <app-scope-picker [(scope)]="scope" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 
