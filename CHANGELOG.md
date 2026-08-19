@@ -55,8 +55,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clearing your pin no longer comes back as 0,0.** Poracle stores "no pin" as 0,0 rather than null, so the page cleared correctly and then read those coordinates back at face value on the next visit and rendered them. The rule now lives in one helper instead of being rewritten in half a dozen components. The pin's section is also labelled My pin, matching what the rest of the site calls it ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **The area map opens on your pin.** It ranked the selected areas above it, and a multi-area selection frames a whole region, so the map opened too far out to click anything. Your own drawn shapes still win on My Geofences, where they are what you came for ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
-- **Discord login no longer shows the "Authorize" button on every sign-in.** Adding `prompt=none` to the OAuth2 redirect tells Discord to skip the consent screen for users who have already granted the app permission. The screen still appears on first-time authorization ([#719](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/719)).
 - **Bulk and edit writes no longer erase alarm settings PoracleWeb cannot see.** Every alarm write is built by serializing the typed model, so any column PoracleNG has that PoracleWeb never modelled was absent from the request — and because the write carries a `uid`, PoracleNG upserts the row and stores the column default over whatever was there. PoracleNG 5.1.0 added per-rule location and area overrides (`override_location_label`, `override_areas`) and mega-evolution PVP mode (`pvp_ranking_evolution`) to the tracking API, so setting any of them with the bot and then pressing Update Distance, toggling auto-delete, or editing the alarm on the web silently reset them. Writes now rewrite the stored row in place and change only the fields being edited, rather than round-tripping through the model, so fields PoracleWeb has no concept of survive — including `costume`, which arrives in PoracleNG 5.2.0. All ten alarm types are covered. The collision guards see the merged row too, which closes a related false refusal: an unmodelled field could not tell two alarms apart, so an edit PoracleNG would have accepted was reported as a conflict ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
+## [2.15.3] - 2026-08-18
+
+## [2.15.2] - 2026-08-18
+
+### Fixed
+
+- **Discord login no longer shows the "Authorize" button on every sign-in.** Adding `prompt=none` to the OAuth2 redirect tells Discord to skip the consent screen for users who have already granted the app permission. The screen still appears on first-time authorization ([#719](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/719)).
+
+### Dependencies
+- Bump the angular group ([#716](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/716))
+- Bump the eslint group ([#718](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/718))
+- Bump the test group with 2 updates
 
 ## [2.15.1] - 2026-08-13
 
@@ -931,7 +943,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.3...HEAD
+[2.15.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.2...v2.15.3
+[2.15.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.1...v2.15.2
 [2.15.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.0...v2.15.1
 [2.15.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.13.0...v2.14.0
