@@ -749,7 +749,8 @@
     "UPDATE_SUCCESS": "Fort change alarm updated",
     "FORT_TYPE_LABEL": "Fort Type",
     "CHANGE_TYPES_LABEL": "Change Types",
-    "TRACKING_SUBTITLE": "Fort Change Tracking"
+    "TRACKING_SUBTITLE": "Fort Change Tracking",
+    "CHANGE_DESCRIPTION": "Description changed"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max Battle Alarms",

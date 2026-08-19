@@ -15,6 +15,7 @@ public static class FortChangeOptions
     public const string ChangeTypeImageUrl = "image_url";
     public const string ChangeTypeRemoval = "removal";
     public const string ChangeTypeNew = "new";
+    public const string ChangeTypeDescription = "description";
 
     public static readonly IReadOnlySet<string> ValidFortTypes = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -30,5 +31,6 @@ public static class FortChangeOptions
         ChangeTypeImageUrl,
         ChangeTypeRemoval,
         ChangeTypeNew,
+        ChangeTypeDescription,
     };
 }

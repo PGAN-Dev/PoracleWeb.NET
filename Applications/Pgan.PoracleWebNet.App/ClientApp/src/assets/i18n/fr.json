@@ -749,7 +749,8 @@
     "SNACK_ALL_DISTANCE": "Toutes les distances mises à jour",
     "FORT_TYPE_LABEL": "Type de fort",
     "CHANGE_TYPES_LABEL": "Types de changement",
-    "TRACKING_SUBTITLE": "Suivi des changements de fort"
+    "TRACKING_SUBTITLE": "Suivi des changements de fort",
+    "CHANGE_DESCRIPTION": "Description modifiée"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Alarmes Combat Max",

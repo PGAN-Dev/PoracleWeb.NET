@@ -24,6 +24,9 @@
           <mat-checkbox [formControl]="form.controls.changeTypeImageUrl">{{ 'FORT_CHANGES.CHANGE_IMAGE' | translate }}</mat-checkbox>
           <mat-checkbox [formControl]="form.controls.changeTypeRemoval">{{ 'FORT_CHANGES.CHANGE_REMOVAL' | translate }}</mat-checkbox>
           <mat-checkbox [formControl]="form.controls.changeTypeNew">{{ 'FORT_CHANGES.CHANGE_NEW' | translate }}</mat-checkbox>
+          <mat-checkbox [formControl]="form.controls.changeTypeDescription">{{
+            'FORT_CHANGES.CHANGE_DESCRIPTION' | translate
+          }}</mat-checkbox>
         </div>
 
         <mat-slide-toggle [formControl]="form.controls.includeEmpty" class="include-empty-toggle">

@@ -749,7 +749,8 @@
     "SNACK_ALL_DISTANCE": "Alle afstande opdateret",
     "FORT_TYPE_LABEL": "Fort-type",
     "CHANGE_TYPES_LABEL": "Ændringstyper",
-    "TRACKING_SUBTITLE": "Sporing af fort-ændringer"
+    "TRACKING_SUBTITLE": "Sporing af fort-ændringer",
+    "CHANGE_DESCRIPTION": "Beskrivelse ændret"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max-kampalarmer",
