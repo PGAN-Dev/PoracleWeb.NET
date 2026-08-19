@@ -17,6 +17,10 @@ mat-dialog-content {
 .form-row {
   display: flex;
   gap: 12px;
+  // Room for the next field's floating label. Where a row's fields carry a mat-hint, the hint fills
+  // the row to its bottom edge and the following field's label, which floats above its own border,
+  // lands on top of it. Measured: the row ended at exactly the y the next field started.
+  margin-bottom: 12px;
 }
 .form-row mat-form-field {
   flex: 1;

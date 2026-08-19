@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Überall in meinen Gebieten",
     "PIN_NOTE": "Der Rückfallwert für jede Meldung ohne eigenes Ziel.",
     "PIN_TITLE": "Mein Standort",
-    "PLACES_EMPTY": "Noch keine Orte. Füge einen hinzu, um Meldungen woanders als an deinem Standort zu erhalten: Arbeit, Fitnessstudio, bei den Eltern.",
+    "PLACES_EMPTY": "Füge einen hinzu, um Meldungen woandershin als an deinen Standort zu schicken: Arbeit, Fitnessstudio, bei den Eltern.",
     "PLACES_TITLE": "Orte",
     "PLACE_DELETED": "{{place}} gelöscht.",
     "PLACE_DELETE_CONFIRM": "Meldungen für {{place}} nutzen künftig wieder deinen Standort.",

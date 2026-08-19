@@ -43,6 +43,9 @@ mat-dialog-content {
   margin-top: 1px;
 }
 .mini-map {
+  // width:100% plus a 1px border made it 2px wider than every sibling, which is what was left of the
+  // dialog's horizontal scrollbar after the width fix. Measured at 514px against 512.
+  box-sizing: border-box;
   width: 100%;
   height: 200px;
   border-radius: 8px;

@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Em qualquer parte das minhas áreas",
     "PIN_NOTE": "O padrão para todo alerta sem destino próprio.",
     "PIN_TITLE": "Minha localização",
-    "PLACES_EMPTY": "Nenhum local ainda. Adicione um para receber alertas fora da sua localização: o trabalho, a academia, a casa dos seus pais.",
+    "PLACES_EMPTY": "Adicione um para receber alertas fora da sua localização: o trabalho, a academia, a casa dos seus pais.",
     "PLACES_TITLE": "Locais",
     "PLACE_DELETED": "{{place}} excluído.",
     "PLACE_DELETE_CONFIRM": "Os alertas voltados para {{place}} voltarão à sua localização.",

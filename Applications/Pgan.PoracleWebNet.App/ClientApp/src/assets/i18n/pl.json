@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Wszędzie w moich obszarach",
     "PIN_NOTE": "Ustawienie zapasowe dla każdego alertu bez własnego celu.",
     "PIN_TITLE": "Moja lokalizacja",
-    "PLACES_EMPTY": "Brak miejsc. Dodaj jedno, aby dostawać alerty poza swoją lokalizacją: praca, siłownia, dom rodziców.",
+    "PLACES_EMPTY": "Dodaj jedno, aby dostawać alerty poza swoją lokalizacją: praca, siłownia, dom rodziców.",
     "PLACES_TITLE": "Miejsca",
     "PLACE_DELETED": "Usunięto {{place}}.",
     "PLACE_DELETE_CONFIRM": "Alerty wskazujące {{place}} wrócą do twojej lokalizacji.",

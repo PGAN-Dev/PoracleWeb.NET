@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Var som helst i mina områden",
     "PIN_NOTE": "Reservvalet för varje avisering utan eget mål.",
     "PIN_TITLE": "Min position",
-    "PLACES_EMPTY": "Inga platser än. Lägg till en för att få aviseringar någon annanstans än vid din position: jobbet, gymmet, hos föräldrarna.",
+    "PLACES_EMPTY": "Lägg till en för att få aviseringar någon annanstans än vid din position: jobbet, gymmet, hos föräldrarna.",
     "PLACES_TITLE": "Platser",
     "PLACE_DELETED": "{{place}} borttagen.",
     "PLACE_DELETE_CONFIRM": "Aviseringar som pekar på {{place}} återgår till din position.",

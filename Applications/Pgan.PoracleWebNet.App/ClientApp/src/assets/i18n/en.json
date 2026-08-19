@@ -1740,7 +1740,7 @@
     "NAME_PLACE_TITLE": "Name this place",
     "PIN_NOTE": "The fallback for every alert that is not aimed somewhere else.",
     "PIN_TITLE": "My pin",
-    "PLACES_EMPTY": "No places yet. Add one to send alerts somewhere other than your pin: work, the gym, your parents' house.",
+    "PLACES_EMPTY": "Add one to send alerts somewhere other than your pin: work, the gym, your parents' house.",
     "PLACES_TITLE": "Places",
     "PLACE_DELETED": "Deleted {{place}}.",
     "PLACE_DELETE_CONFIRM": "Alerts aimed at {{place}} will fall back to your pin.",

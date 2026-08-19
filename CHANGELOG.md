@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Layout problems found by actually looking at the running app.** The PVP tab's rank hints collided with the field below them; the scope picker's missing-pin warning crushed its icon and squeezed its action into three lines on a phone; the Set Location dialog kept a 2px horizontal scrollbar because its map's border sat outside its width. The Places empty state also stopped repeating its own title ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **The PVP tab's mega evolution control no longer collides with the rank fields.** Its fieldset was given a class that had no styles, so it drew the browser's default border and reserved no space beneath itself. It uses the same classes as the PVP cap control right above it, which already handled this ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **The Set Location dialog no longer scrolls sideways.** Giving the component itself a width made it wider than the padded surface it sits in. The size lives on the dialog's content now, the way the app's other dialogs do it ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
