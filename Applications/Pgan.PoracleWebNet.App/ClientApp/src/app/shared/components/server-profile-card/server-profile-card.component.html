@@ -37,6 +37,22 @@
         <dd>{{ p.checkedAt | date: 'short' }}</dd>
       </dl>
 
+      @for (update of updates(); track update.label) {
+        @if (update.status.state === 'Behind') {
+          <div class="server-alert server-alert-update">
+            <mat-icon>system_update_alt</mat-icon>
+            <span>{{
+              'ADMIN.UPDATE_AVAILABLE' | translate: { name: update.label, running: update.status.running, latest: update.status.latest }
+            }}</span>
+          </div>
+        } @else if (update.status.state === 'PreRelease') {
+          <div class="server-alert server-alert-info">
+            <mat-icon>science</mat-icon>
+            <span>{{ 'ADMIN.UPDATE_PRERELEASE' | translate: { name: update.label, running: update.status.running } }}</span>
+          </div>
+        }
+      }
+
       <h3 class="server-caps-title">{{ 'ADMIN.SERVER_CAPABILITIES' | translate }}</h3>
       @if (enabledCapabilities().length === 0) {
         <p class="server-caps-empty">{{ 'ADMIN.SERVER_NO_CAPABILITIES' | translate }}</p>

@@ -16,6 +16,8 @@ public partial class AdminController(
     IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleServerProfileService serverProfileService,
+    IUpdateCheckService updateCheckService,
+    IConfiguration configuration,
     IPoracleHumanProxy humanProxy,
     IOptions<PoracleSettings> poracleSettings,
     IJwtService jwtService,
@@ -27,6 +29,8 @@ public partial class AdminController(
     private readonly IUserPurgeService _userPurgeService = userPurgeService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IPoracleServerProfileService _serverProfileService = serverProfileService;
+    private readonly IUpdateCheckService _updateCheckService = updateCheckService;
+    private readonly IConfiguration _configuration = configuration;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
@@ -376,9 +380,14 @@ public partial class AdminController(
         if (refresh)
         {
             this._serverProfileService.Invalidate();
+            this._updateCheckService.Invalidate();
         }
 
         var profile = await this._serverProfileService.GetAsync();
+
+        // The build args are absent on a locally built image, which is not the same as being behind.
+        var runningWeb = this._configuration["BUILD_VERSION"];
+        var (webUpdate, ngUpdate) = await this._updateCheckService.CheckAsync(runningWeb, profile.Version);
 
         return this.Ok(new
         {
@@ -389,6 +398,8 @@ public partial class AdminController(
             checkedAt = profile.CheckedAt,
             minimumSupported = PoracleServerProfile.MinimumSupported.ToString(),
             belowMinimum = profile.IsBelowMinimum,
+            poracleUpdate = new { running = ngUpdate.Running, latest = ngUpdate.Latest, state = ngUpdate.State.ToString() },
+            webUpdate = new { running = webUpdate.Running, latest = webUpdate.Latest, state = webUpdate.State.ToString() },
         });
     }
 

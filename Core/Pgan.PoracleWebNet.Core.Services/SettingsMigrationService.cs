@@ -64,6 +64,7 @@ public partial class SettingsMigrationService(
         ["disable_profiles"] = "features",
         ["disable_location"] = "features",
         ["disable_nominatim"] = "features",
+        ["disable_update_check"] = "features",
         ["disable_user_geofences"] = "features",
         ["enable_templates"] = "features",
 
@@ -118,7 +119,7 @@ public partial class SettingsMigrationService(
         "disable_mons", "disable_raids", "disable_quests", "disable_invasions",
         "disable_lures", "disable_nests", "disable_gyms", "disable_maxbattles",
         "disable_fort_changes", "disable_areas",
-        "disable_profiles", "disable_location", "disable_nominatim",
+        "disable_profiles", "disable_location", "disable_nominatim", "disable_update_check",
         "disable_user_geofences",
         "enable_templates", "enable_roles", "enable_telegram", "enable_discord",
         "enable_oidc",

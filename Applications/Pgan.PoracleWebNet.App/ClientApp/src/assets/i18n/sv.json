@@ -1398,7 +1398,9 @@
     "SERVER_NO_CAPABILITIES": "Den här servern rapporterar inga.",
     "SERVER_UNKNOWN": "Okänd",
     "SERVER_UNREACHABLE": "Poracle svarade inte. Larm, profiler och platser går via den och kommer att misslyckas tills den svarar.",
-    "SERVER_TOO_OLD": "Poracle {{version}} är äldre än {{minimum}}, som den här versionen av webbplatsen kräver. Räckvidd per larm, PVP-megafiltret och filtret för återstående tid kommer att se ut att sparas utan att ändra något."
+    "SERVER_TOO_OLD": "Poracle {{version}} är äldre än {{minimum}}, som den här versionen av webbplatsen kräver. Räckvidd per larm, PVP-megafiltret och filtret för återstående tid kommer att se ut att sparas utan att ändra något.",
+    "UPDATE_AVAILABLE": "{{name}} {{running}} körs, och {{latest}} har släppts.",
+    "UPDATE_PRERELEASE": "{{name}} {{running}} är nyare än någon release — det här är ett utvecklingsbygge."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Välj en punkt",
@@ -1676,7 +1678,9 @@
     "AUTH_MODE_LABEL": "Inloggningsläge",
     "AUTH_MODE_LOCAL": "Lokal",
     "AUTH_MODE_LOCAL_DESC": "Logga in direkt med Discord eller Telegram.",
-    "AUTH_FORCE_LOCAL_ACTIVE": "Lokal inloggning tvingas av serverkonfigurationen."
+    "AUTH_FORCE_LOCAL_ACTIVE": "Lokal inloggning tvingas av serverkonfigurationen.",
+    "DISABLE_UPDATE_CHECK_LABEL": "Sök inte efter uppdateringar",
+    "DISABLE_UPDATE_CHECK_DESC": "Hindrar webbplatsen från att fråga GitHub om en nyare PoracleWeb eller Poracle har släppts. Det är den enda förfrågan utanför ditt eget nätverk och inget skickas med."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",

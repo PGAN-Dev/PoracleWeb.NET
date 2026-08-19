@@ -15,14 +15,18 @@ import { AdminService } from '../../../core/services/admin.service';
 describe('ServerProfileCardComponent', () => {
   let adminService: { getServerProfile: jest.Mock };
 
+  const upToDate = { latest: null, running: null, state: 'UpToDate' as const };
+
   const base: PoracleServerProfile = {
     belowMinimum: false,
     capabilities: { autocreate: true, buttons: true, snapshots: false },
     checkedAt: '2026-08-19T19:00:00Z',
     minimumSupported: '5.1.0',
+    poracleUpdate: upToDate,
     reachable: true,
     schemaVersion: 5,
     version: '5.1.0',
+    webUpdate: upToDate,
   };
 
   function setup(profile: PoracleServerProfile | null) {
@@ -87,6 +91,34 @@ describe('ServerProfileCardComponent', () => {
 
     expect(fixture.componentInstance.serverLoading()).toBe(false);
     expect(fixture.componentInstance.serverProfile()).toBeNull();
+  });
+
+  it('says when a component is behind its latest release', () => {
+    const fixture = setup({
+      ...base,
+      poracleUpdate: { latest: '5.2.0', running: '5.1.0', state: 'Behind' },
+    });
+
+    expect(fixture.nativeElement.querySelector('.server-alert-update')).not.toBeNull();
+  });
+
+  it('names a development build rather than calling it out of date', () => {
+    // Running ahead of every release is how a develop build identifies itself; "update available"
+    // would be exactly backwards.
+    const fixture = setup({
+      ...base,
+      poracleUpdate: { latest: '5.1.0', running: '5.2.0', state: 'PreRelease' },
+    });
+
+    expect(fixture.nativeElement.querySelector('.server-alert-info')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.server-alert-update')).toBeNull();
+  });
+
+  it('shows no update line when both are current', () => {
+    const fixture = setup(base);
+
+    expect(fixture.nativeElement.querySelector('.server-alert-update')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.server-alert-info')).toBeNull();
   });
 
   it('re-probes when asked, instead of answering from the cache', () => {
