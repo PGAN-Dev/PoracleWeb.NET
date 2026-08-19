@@ -23,6 +23,12 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
 
+/** Item, candy and mega energy: the three PoracleNG compares `amount` against. */
+const QUANTITY_REWARD_TYPES = new Set([2, 4, 12]);
+
+/** Stardust reads its floor from `reward`; `amount` is ignored for this type. */
+const STARDUST = 3;
+
 @Component({
   imports: [
     ReactiveFormsModule,
@@ -58,10 +64,20 @@ export class QuestEditDialogComponent {
   readonly dialogRef = inject(MatDialogRef<QuestEditDialogComponent>);
 
   form = this.fb.group({
+    // Minimum quantity for the rewards that have one, and the stardust floor, which PoracleNG keeps in
+    // reward rather than amount. Both are thresholds rather than identity: they narrow the rule without
+    // changing which reward it is about, so unlike the reward itself they are editable here.
+    amount: [this.data.amount ?? 0],
     clean: [isAutoDelete(this.data.clean)],
+    stardust: [this.data.rewardType === STARDUST ? (this.data.reward ?? 0) : 0],
     summary: [isSummary(this.data.clean)],
     template: [this.data.template ?? ''],
   });
+
+  /** Reward types that come in quantities, so "at least N" means something. */
+  readonly hasAmount = QUANTITY_REWARD_TYPES.has(this.data.rewardType);
+
+  readonly isStardust = this.data.rewardType === STARDUST;
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
@@ -148,10 +164,11 @@ export class QuestEditDialogComponent {
     const update: QuestUpdate = {
       overrideAreas: scope.overrideAreas,
       overrideLocationLabel: scope.overrideLocationLabel,
+      amount: this.hasAmount ? (values.amount ?? 0) : this.data.amount,
       clean: preserve(this.data.clean, AUTO_DELETE | SUMMARY, compose(!!values.clean, false, !!values.summary)),
       distance: scope.distance,
       pokemonId: this.data.pokemonId,
-      reward: this.data.reward,
+      reward: this.isStardust ? (values.stardust ?? 0) : this.data.reward,
       rewardType: this.data.rewardType,
       shiny: this.data.shiny,
       template: values.template || '',

@@ -21,6 +21,7 @@ describe('QuestEditDialogComponent', () => {
   const baseQuest: Quest = {
     id: 'quest-1',
     uid: 77,
+    amount: 0,
     clean: 0,
     distance: 0,
     ping: null,
@@ -143,6 +144,62 @@ describe('QuestEditDialogComponent', () => {
       component.save();
       expect(questService.update).toHaveBeenCalledWith(77, expect.objectContaining({ clean: 4 }));
       expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+  });
+  describe('thresholds are editable, identity is not', () => {
+    // The minimum shipped in the add dialog only, which made it create-only: the card said "3x Rare
+    // Candy" and there was no way back to the 3. Same shape as the mega picker in #751.
+    it('offers the minimum amount on an item reward', () => {
+      setup({ ...baseQuest, amount: 3, reward: 1301, rewardType: 2 });
+
+      expect(component.hasAmount).toBe(true);
+      expect(component.form.controls.amount.value).toBe(3);
+    });
+
+    it('saves a changed minimum amount', () => {
+      setup({ ...baseQuest, amount: 3, reward: 1301, rewardType: 2 });
+      component.form.controls.amount.setValue(5);
+
+      component.save();
+
+      expect((questService.update.mock.calls[0][1] as QuestUpdate).amount).toBe(5);
+    });
+
+    it('offers the stardust floor, which PoracleNG keeps in reward', () => {
+      setup({ ...baseQuest, pokemonId: 0, reward: 1000, rewardType: 3 });
+
+      expect(component.isStardust).toBe(true);
+      expect(component.form.controls.stardust.value).toBe(1000);
+
+      component.form.controls.stardust.setValue(1500);
+      component.save();
+
+      expect((questService.update.mock.calls[0][1] as QuestUpdate).reward).toBe(1500);
+    });
+
+    it('leaves a pokemon encounter alone: it has no quantity and its reward is its identity', () => {
+      // The legitimate twin. Offering "at least N Pikachu" would be a filter PoracleNG never applies to
+      // this type, and letting the reward be edited would turn the alarm into a different one.
+      setup({ ...baseQuest, reward: 25, rewardType: 7 });
+
+      expect(component.hasAmount).toBe(false);
+      expect(component.isStardust).toBe(false);
+
+      component.save();
+
+      const sent = questService.update.mock.calls[0][1] as QuestUpdate;
+      expect(sent.reward).toBe(25);
+      expect(sent.amount).toBe(0);
+    });
+
+    it('does not touch the amount of a reward type that has none', () => {
+      // A stardust rule carries amount 0 and must keep it: PoracleNG ignores the column for this type,
+      // and writing something else there would be a value no screen can explain.
+      setup({ ...baseQuest, amount: 0, pokemonId: 0, reward: 1000, rewardType: 3 });
+
+      component.save();
+
+      expect((questService.update.mock.calls[0][1] as QuestUpdate).amount).toBe(0);
     });
   });
 });
