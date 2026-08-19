@@ -21,6 +21,9 @@ import { ScopePickerComponent } from '../../shared/components/scope-picker/scope
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
+/** The change types this dialog has a checkbox for. Anything else is carried through untouched. */
+const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 'new', 'description']);
+
 @Component({
   imports: [
     ReactiveFormsModule,
@@ -53,6 +56,7 @@ export class FortChangeEditDialogComponent {
   readonly dialogRef = inject(MatDialogRef<FortChangeEditDialogComponent>);
 
   form = this.fb.group({
+    changeTypeDescription: [this.data.changeTypes?.includes('description') ?? false],
     changeTypeImageUrl: [this.data.changeTypes?.includes('image_url') ?? false],
     changeTypeLocation: [this.data.changeTypes?.includes('location') ?? false],
     changeTypeName: [this.data.changeTypes?.includes('name') ?? false],
@@ -80,6 +84,14 @@ export class FortChangeEditDialogComponent {
     if (v.changeTypeImageUrl) changeTypes.push('image_url');
     if (v.changeTypeRemoval) changeTypes.push('removal');
     if (v.changeTypeNew) changeTypes.push('new');
+    if (v.changeTypeDescription) changeTypes.push('description');
+
+    // Anything stored that this dialog has no box for stays. The list is rebuilt from the boxes, so a
+    // change type PoracleNG grows before PoracleWeb does would be dropped by the next save someone
+    // makes for an unrelated reason.
+    for (const stored of this.data.changeTypes ?? []) {
+      if (!KNOWN_CHANGE_TYPES.has(stored) && !changeTypes.includes(stored)) changeTypes.push(stored);
+    }
 
     this.fortChangeService
       .update(this.data.uid, {

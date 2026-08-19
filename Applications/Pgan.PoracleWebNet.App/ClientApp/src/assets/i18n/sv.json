@@ -749,7 +749,8 @@
     "SNACK_ALL_DISTANCE": "Alla avstånd uppdaterade",
     "FORT_TYPE_LABEL": "Fort-typ",
     "CHANGE_TYPES_LABEL": "Ändringstyper",
-    "TRACKING_SUBTITLE": "Bevakning av fort-ändringar"
+    "TRACKING_SUBTITLE": "Bevakning av fort-ändringar",
+    "CHANGE_DESCRIPTION": "Beskrivning ändrad"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max-stridslarm",

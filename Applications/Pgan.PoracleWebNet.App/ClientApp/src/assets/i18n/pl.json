@@ -749,7 +749,8 @@
     "SNACK_ALL_DISTANCE": "Zaktualizowano wszystkie odległości",
     "FORT_TYPE_LABEL": "Typ fortu",
     "CHANGE_TYPES_LABEL": "Rodzaje zmian",
-    "TRACKING_SUBTITLE": "Śledzenie zmian fortów"
+    "TRACKING_SUBTITLE": "Śledzenie zmian fortów",
+    "CHANGE_DESCRIPTION": "Zmiana opisu"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Alarmy bitew Max",

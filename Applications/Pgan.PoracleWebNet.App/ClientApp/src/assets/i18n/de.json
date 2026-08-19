@@ -749,7 +749,8 @@
     "SNACK_ALL_DISTANCE": "Alle Distanzen aktualisiert",
     "FORT_TYPE_LABEL": "Fort-Typ",
     "CHANGE_TYPES_LABEL": "Änderungsarten",
-    "TRACKING_SUBTITLE": "Fort-Änderungs-Tracking"
+    "TRACKING_SUBTITLE": "Fort-Änderungs-Tracking",
+    "CHANGE_DESCRIPTION": "Beschreibung geändert"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max-Kampf-Alarme",

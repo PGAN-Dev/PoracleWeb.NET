@@ -749,7 +749,8 @@
     "SNACK_ALL_DISTANCE": "Alle afstanden bijgewerkt",
     "FORT_TYPE_LABEL": "Forttype",
     "CHANGE_TYPES_LABEL": "Soorten wijziging",
-    "TRACKING_SUBTITLE": "Fortwijzigingen volgen"
+    "TRACKING_SUBTITLE": "Fortwijzigingen volgen",
+    "CHANGE_DESCRIPTION": "Beschrijving gewijzigd"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max Gevecht Alarmen",

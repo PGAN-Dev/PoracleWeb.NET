@@ -54,6 +54,7 @@ export class FortChangeAddDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<FortChangeAddDialogComponent>);
   form = this.fb.group({
+    changeTypeDescription: [false],
     changeTypeImageUrl: [false],
     changeTypeLocation: [true],
     changeTypeName: [true],
@@ -92,6 +93,7 @@ export class FortChangeAddDialogComponent {
     if (v.changeTypeImageUrl) changeTypes.push('image_url');
     if (v.changeTypeRemoval) changeTypes.push('removal');
     if (v.changeTypeNew) changeTypes.push('new');
+    if (v.changeTypeDescription) changeTypes.push('description');
 
     this.fortChangeService
       .create({
