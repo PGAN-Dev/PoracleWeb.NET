@@ -24,6 +24,8 @@ export interface Monster {
   minIv: number;
   minLevel: number;
   minWeight: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -54,6 +56,8 @@ export interface Raid {
   id: string;
   level: number;
   move: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -78,6 +82,8 @@ export interface MaxBattle {
   id: string;
   level: number;
   move: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string;
   pokemonId: number;
   profileNo: number;
@@ -99,6 +105,8 @@ export interface Egg {
   gymId: string | null;
   id: string;
   level: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   rsvpChanges: number;
@@ -117,6 +125,8 @@ export interface Quest {
   clean: number;
   distance: number;
   id: string;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -139,6 +149,8 @@ export interface Invasion {
   gender: number;
   gruntType: string | null;
   id: string;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   template: string | null;
@@ -156,6 +168,8 @@ export interface Lure {
   distance: number;
   id: string;
   lureId: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   template: string | null;
@@ -173,6 +187,8 @@ export interface Nest {
   distance: number;
   id: string;
   minSpawnAvg: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -192,6 +208,8 @@ export interface FortChange {
   fortType: string | null;
   id: string;
   includeEmpty: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   template: string | null;
@@ -210,6 +228,8 @@ export interface Gym {
   distance: number;
   gymId: string | null;
   id: string;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   slotChanges: number;
@@ -654,4 +674,35 @@ export interface ProfileOverviewProfile {
   longitude?: number;
   name: string;
   profile_no: number;
+}
+
+/** A named coordinate an alarm can be anchored to, instead of the profile pin. */
+export interface SavedPlace {
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+
+/** Everywhere a user's alarms can be anchored: the profile pin, plus whatever they have named. */
+export interface SavedPlaces {
+  /** The profile pin every alarm falls back to. Absent when the user has never set a location. */
+  default?: null | SavedPlace;
+  named: SavedPlace[];
+}
+
+/**
+ * Where an alarm reaches the user. Three answers, and they are mutually exclusive by construction —
+ * PoracleNG refuses a place with areas, areas with a radius, or a place with no radius, so the UI
+ * models the choice as one of three rather than as three independent fields.
+ */
+export type AlarmScopeMode = 'areas' | 'place' | 'profile';
+
+export interface AlarmScope {
+  /** Only for 'areas'. */
+  areas?: string[];
+  /** Only for 'place', in kilometres, as the dialogs already work in km. */
+  distanceKm?: number;
+  mode: AlarmScopeMode;
+  /** Only for 'place'. */
+  placeLabel?: string;
 }

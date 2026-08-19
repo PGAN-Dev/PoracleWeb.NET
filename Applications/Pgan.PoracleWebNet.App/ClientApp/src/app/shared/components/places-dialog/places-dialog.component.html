@@ -1,0 +1,48 @@
+<h2 mat-dialog-title>{{ 'WHERE.PLACES_TITLE' | translate }}</h2>
+
+<mat-dialog-content class="places">
+  @if (loading()) {
+    <div class="places-loading"><mat-spinner diameter="32" /></div>
+  } @else {
+    @if (places.pin(); as pin) {
+      <div class="places-pin">
+        <mat-icon class="places-pin-icon">my_location</mat-icon>
+        <div class="places-pin-text">
+          <span class="places-pin-title">{{ 'WHERE.PIN_TITLE' | translate }}</span>
+          <span class="places-pin-detail">{{ pin.latitude | number: '1.4-4' }}, {{ pin.longitude | number: '1.4-4' }}</span>
+        </div>
+      </div>
+      <p class="places-pin-note">{{ 'WHERE.PIN_NOTE' | translate }}</p>
+    }
+
+    @if (places.named().length === 0) {
+      <p class="places-empty">{{ 'WHERE.PLACES_EMPTY' | translate }}</p>
+    } @else {
+      <mat-list>
+        @for (place of places.named(); track place.label) {
+          <mat-list-item>
+            <mat-icon matListItemIcon>place</mat-icon>
+            <span matListItemTitle>{{ place.label }}</span>
+            <span matListItemLine>{{ place.latitude | number: '1.4-4' }}, {{ place.longitude | number: '1.4-4' }}</span>
+            <button
+              mat-icon-button
+              matListItemMeta
+              [disabled]="busy()"
+              [attr.aria-label]="'WHERE.PLACE_DELETE_TITLE' | translate"
+              (click)="confirmRemove(place)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </mat-list-item>
+        }
+      </mat-list>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'COMMON.CLOSE' | translate }}</button>
+  <button mat-flat-button [disabled]="busy() || loading()" (click)="addPlace()">
+    <mat-icon>add</mat-icon>
+    {{ 'WHERE.ADD_PLACE' | translate }}
+  </button>
+</mat-dialog-actions>

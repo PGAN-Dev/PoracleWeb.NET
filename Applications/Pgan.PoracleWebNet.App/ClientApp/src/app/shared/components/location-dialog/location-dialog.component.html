@@ -70,6 +70,7 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close()">{{ 'COMMON.CANCEL' | translate }}</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !isValid()">
-    <mat-icon>save</mat-icon> {{ 'COMMON.SAVE' | translate }}
+    <mat-icon>{{ data?.pickOnly ? 'check' : 'save' }}</mat-icon>
+    {{ (data?.pickOnly ? 'WHERE.USE_THIS_POINT' : 'COMMON.SAVE') | translate }}
   </button>
 </mat-dialog-actions>

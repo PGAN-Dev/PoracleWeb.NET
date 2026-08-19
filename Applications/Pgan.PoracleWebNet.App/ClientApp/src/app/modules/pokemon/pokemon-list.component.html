@@ -201,11 +201,12 @@
             }
           </div>
           <div class="distance-chip-row">
-            @if (monster.distance === 0) {
-              <span class="distance-chip area-mode"> <mat-icon>map</mat-icon> {{ 'POKEMON.USING_AREAS' | translate }} </span>
-            } @else {
-              <span class="distance-chip distance-mode"> <mat-icon>straighten</mat-icon> {{ formatDistance(monster.distance) }} </span>
-            }
+            <app-where-chip
+              [distance]="monster.distance"
+              [overrideAreas]="monster.overrideAreas"
+              [overrideLocationLabel]="monster.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(monster); $event.stopPropagation()" />
           </div>
           @if (monster.pvpRankingLeague > 0) {
             <div class="pvp-row">

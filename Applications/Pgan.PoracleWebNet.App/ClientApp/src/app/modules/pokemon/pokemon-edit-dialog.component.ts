@@ -23,6 +23,7 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -43,6 +44,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     TranslatePipe,
+    WhereChipComponent,
   ],
   selector: 'app-pokemon-edit-dialog',
   standalone: true,
@@ -84,6 +86,10 @@ export class PokemonEditDialogComponent implements OnInit {
     minIv: [this.data.minIv],
     minLevel: [this.data.minLevel],
     minWeight: [this.data.minWeight],
+    // Read-only here on purpose: an alarm's place or areas are changed from the card chip, which is one
+    // control in one place. This dialog only has to avoid destroying them, which it does by keeping
+    // the stored label and sending the radius against it.
+    placeLabel: [this.data.overrideLocationLabel ?? ''],
     pvpRankingBest: [this.data.pvpRankingBest],
     pvpRankingCap: [this.data.pvpRankingCap ?? 0],
     pvpRankingLeague: [this.data.pvpRankingLeague],
@@ -106,6 +112,11 @@ export class PokemonEditDialogComponent implements OnInit {
 
   getPokemonImage(): string {
     return this.iconService.getPokemonUrl(this.data.pokemonId, this.data.form);
+  }
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.overrideAreas?.length ?? 0) > 0;
   }
 
   ngOnInit(): void {
@@ -136,7 +147,15 @@ export class PokemonEditDialogComponent implements OnInit {
     this.saving.set(true);
     const values = this.form.getRawValue();
 
-    const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+    // An alarm confined to areas has no radius, so the two-way control above cannot describe it and
+    // must not overwrite it. Leaving the fields out entirely means the API keeps what is stored: null
+    // reads as "not stated" on the write path, which is exactly what this dialog means. See #730.
+    const keepsAreas = (this.data.overrideAreas?.length ?? 0) > 0;
+    const distanceMeters = keepsAreas
+      ? this.data.distance
+      : values.distanceMode === 'areas'
+        ? 0
+        : Math.round((values.distanceKm ?? 1) * 1000);
 
     const update: MonsterUpdate = {
       atk: values.atk ?? 0,

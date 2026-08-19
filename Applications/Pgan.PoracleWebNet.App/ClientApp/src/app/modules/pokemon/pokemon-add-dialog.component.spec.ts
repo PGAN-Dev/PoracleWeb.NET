@@ -147,6 +147,46 @@ describe('PokemonAddDialogComponent', () => {
     );
   });
 
+  it('sends the scope fields for an alarm aimed at a saved place', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.notifForm.controls.distanceMode.setValue('distance');
+    component.notifForm.controls.distanceKm.setValue(2);
+    component.notifForm.controls.placeLabel.setValue('work');
+
+    component.save();
+
+    const created = monsterService.create.mock.calls[0][0] as MonsterCreate;
+    expect(created.overrideLocationLabel).toBe('work');
+    expect(created.distance).toBe(2000);
+    expect(created.overrideAreas).toEqual([]);
+  });
+
+  it('leaves the radius on the pin when no place is chosen', () => {
+    // The legitimate-case half: "within 2 km of me" is the alarm most people make, and it must not
+    // acquire a location override just because the field exists.
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.notifForm.controls.distanceMode.setValue('distance');
+    component.notifForm.controls.distanceKm.setValue(2);
+
+    component.save();
+
+    const created = monsterService.create.mock.calls[0][0] as MonsterCreate;
+    expect(created.overrideLocationLabel).toBe('');
+    expect(created.distance).toBe(2000);
+  });
+
+  it('clears the radius and any place when the alarm uses areas', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.notifForm.controls.distanceMode.setValue('areas');
+    component.notifForm.controls.placeLabel.setValue('work');
+
+    component.save();
+
+    const created = monsterService.create.mock.calls[0][0] as MonsterCreate;
+    expect(created.distance).toBe(0);
+    expect(created.overrideLocationLabel).toBe('');
+  });
+
   it('does nothing when no pokemon are selected', () => {
     component.filtersForm.controls.forms.setValue([ALOLAN]);
     component.save();
