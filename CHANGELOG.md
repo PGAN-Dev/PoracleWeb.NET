@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Quick picks can aim their alarms too.** The apply dialog kept its own copy of the old two-option control, and the request it sent had no way to carry a place or a set of areas. Both are fixed, so a quick pick creates alarms with the same delivery scope you would set by hand ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
-
 - **Set your pin without leaving the alarm.** The warning about measuring from a pin you have not set now offers to set it, rather than only naming the problem. Both language menus also carry a line saying what they change, since "display" and "alert" is a distinction worth stating rather than implying ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **Editing an alarm uses the same scope control as creating one.** The edit dialogs kept the old two-option version, which could not describe an alarm confined to areas and so showed it read-only. All twenty dialogs now render the one control, so the same three options are available wherever the question is asked ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
@@ -38,7 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The scope picker ignored the scope it was given.** It read its input in the constructor, where a signal input is not populated yet, so it took its own default and wrote that straight back — discarding an alarm's real scope when you opened it to edit, and the Alert Defaults preference when creating one. It seeds after the input arrives now ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **The location dialog is one size.** Six callers each passed their own width and one said 400px, so the same dialog looked different depending on where you opened it from. The component decides now ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
-
 - **Four snackbars showed a raw translation key instead of a message.** The invasion, quest, raid and max-battle add dialogs referenced `COMMON.SAVED` and `COMMON.ERROR`, which never existed; the per-type keys they should have used were already there and already translated. Also translated 38 strings per language that had been sitting in English across all ten locales: every sign-in error, the test-alert messages, fort-change and max-battle snackbars, the raid level picker and the distance validation ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **The place picker opens where you are.** It was seeded with 0,0, so choosing a point for a new place opened the map in the Atlantic. It now starts from your pin, and its title says it is picking a point rather than setting your location ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
