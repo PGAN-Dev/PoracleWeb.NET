@@ -117,7 +117,15 @@
                   >
                 </div>
               </div>
-              <app-alarm-info [distance]="raid.distance" [clean]="raid.clean" [template]="raid.template" />
+              <app-alarm-info
+                [clean]="raid.clean"
+                [distance]="raid.distance"
+                [overrideAreas]="raid.overrideAreas"
+                [overrideLocationLabel]="raid.overrideLocationLabel"
+                [profileAreas]="profileAreas()"
+                [template]="raid.template"
+                [editable]="true"
+                (click)="editScope(raid, 'raid'); $event.stopPropagation()" />
             </mat-card-content>
             <mat-card-actions align="end">
               <button
@@ -221,7 +229,15 @@
                   <span class="stat-value"><img [src]="getGymIcon(egg.team)" class="team-icon-inline" /> {{ getTeamName(egg.team) }}</span>
                 </div>
               </div>
-              <app-alarm-info [distance]="egg.distance" [clean]="egg.clean" [template]="egg.template" />
+              <app-alarm-info
+                [clean]="egg.clean"
+                [distance]="egg.distance"
+                [overrideAreas]="egg.overrideAreas"
+                [overrideLocationLabel]="egg.overrideLocationLabel"
+                [profileAreas]="profileAreas()"
+                [template]="egg.template"
+                [editable]="true"
+                (click)="editScope(egg, 'egg'); $event.stopPropagation()" />
             </mat-card-content>
             <mat-card-actions align="end">
               <button

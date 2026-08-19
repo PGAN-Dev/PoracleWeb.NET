@@ -20,6 +20,7 @@ import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -37,6 +38,7 @@ import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from
     TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    WhereChipComponent,
   ],
   selector: 'app-quest-edit-dialog',
   standalone: true,
@@ -127,6 +129,11 @@ export class QuestEditDialogComponent {
       return this.masterData.getItemName(this.data.reward);
     }
     return this.getRewardTypeLabel();
+  }
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.overrideAreas?.length ?? 0) > 0;
   }
 
   onDistanceModeChange(): void {

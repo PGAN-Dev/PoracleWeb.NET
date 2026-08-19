@@ -13,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { MaxBattleAddDialogComponent } from './max-battle-add-dialog.component';
 import { MaxBattleEditDialogComponent, MaxBattleEditDialogData } from './max-battle-edit-dialog.component';
 import { MaxBattle } from '../../core/models';
+import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -20,6 +21,8 @@ import { MaxBattleService } from '../../core/services/max-battle.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,19 +43,24 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
   templateUrl: './max-battle-list.component.html',
 })
 export class MaxBattleListComponent implements OnInit {
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
+
   private readonly maxBattleService = inject(MaxBattleService);
 
   private readonly snackBar = inject(MatSnackBar);
-
   readonly loading = signal(true);
   readonly maxBattles = signal<MaxBattle[]>([]);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+
   readonly skeletonCards = Array.from({ length: 6 });
 
   async bulkDelete(): Promise<void> {
@@ -176,6 +184,29 @@ export class MaxBattleListComponent implements OnInit {
     });
   }
 
+  /** Change one alarm's delivery scope from its card, without opening the whole edit dialog. */
+  editScope(item: MaxBattle): void {
+    const data: WhereSheetData = {
+      profileAreas: this.profileAreas(),
+      scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),
+    };
+
+    this.dialog
+      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .afterClosed()
+      .subscribe((scope?: AlarmScope) => {
+        if (!scope) return;
+
+        this.maxBattleService.update(item.uid, scopeToFields(scope)).subscribe({
+          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          next: () => {
+            this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
+            this.loadData();
+          },
+        });
+      });
+  }
+
   getFormName(pokemonId: number, formId: number): string {
     return this.masterData.getFormName(pokemonId, formId);
   }
@@ -269,6 +300,7 @@ export class MaxBattleListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadProfileAreas();
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadData();
   }
@@ -322,5 +354,9 @@ export class MaxBattleListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private loadProfileAreas(): void {
+    this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }
 }

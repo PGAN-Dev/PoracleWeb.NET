@@ -15,6 +15,7 @@ import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg } from '../../core/models';
 import { resolveLevel } from '../../core/models/raid-level.models';
+import { AreaService } from '../../core/services/area.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
@@ -27,7 +28,9 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
+import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,6 +54,7 @@ import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
   templateUrl: './raid-list.component.html',
 })
 export class RaidListComponent implements OnInit {
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly eggService = inject(EggService);
@@ -61,21 +65,25 @@ export class RaidListComponent implements OnInit {
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
+
   /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
   readonly activeTab = signal(0);
-
   readonly eggs = signal<Egg[]>([]);
   readonly gymNames = signal<Record<string, string>>({});
   readonly loading = signal(true);
-  readonly raids = signal<Raid[]>([]);
 
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
+  readonly raids = signal<Raid[]>([]);
   // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
   // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
   // one card ticked the other, and the bulk actions sent both to the raid endpoint -- deleting or
   // resizing the raid twice and leaving the egg alone. See #540.
   readonly selectedIds = signal(new Set<string>());
   readonly selectMode = signal(false);
+
   readonly skeletonCards = Array.from({ length: 6 });
+
   readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
@@ -243,6 +251,33 @@ export class RaidListComponent implements OnInit {
     });
   }
 
+  /**
+   * Change a raid's delivery scope from its card. Eggs share this list and the same sheet, so the
+   * tracking type is passed rather than duplicating the method.
+   */
+  editScope(item: Egg | Raid, type: 'egg' | 'raid'): void {
+    const data: WhereSheetData = {
+      profileAreas: this.profileAreas(),
+      scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),
+    };
+
+    this.dialog
+      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .afterClosed()
+      .subscribe((scope?: AlarmScope) => {
+        if (!scope) return;
+
+        const service = type === 'egg' ? this.eggService : this.raidService;
+        service.update(item.uid, scopeToFields(scope)).subscribe({
+          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          next: () => {
+            this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
+            this.loadData();
+          },
+        });
+      });
+  }
+
   formatDistance(meters: number): string {
     if (meters >= 1000) {
       return `${(meters / 1000).toFixed(1)} km`;
@@ -366,6 +401,7 @@ export class RaidListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadProfileAreas();
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.raidLevelService.load();
     this.loadData();
@@ -438,6 +474,10 @@ export class RaidListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private loadProfileAreas(): void {
+    this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }
 
   private resolveGymNames(items: (Raid | Egg)[]): void {

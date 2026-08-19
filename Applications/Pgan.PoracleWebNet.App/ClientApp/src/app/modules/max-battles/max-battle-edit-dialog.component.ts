@@ -20,6 +20,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 export interface MaxBattleEditDialogData {
@@ -60,6 +61,7 @@ const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
     TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    WhereChipComponent,
   ],
   selector: 'app-max-battle-edit-dialog',
   standalone: true,
@@ -117,6 +119,11 @@ export class MaxBattleEditDialogComponent {
       return this.masterData.getPokemonName(item.pokemonId);
     }
     return this.i18n.instant('MAX_BATTLES.ANY_POKEMON');
+  }
+
+  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
+  isAreaScoped(): boolean {
+    return (this.data.item.overrideAreas?.length ?? 0) > 0;
   }
 
   isGmax(): boolean {

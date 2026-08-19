@@ -15,10 +15,14 @@ import { firstValueFrom } from 'rxjs';
 import { FortChangeAddDialogComponent } from './fort-change-add-dialog.component';
 import { FortChangeEditDialogComponent } from './fort-change-edit-dialog.component';
 import { FortChange } from '../../core/models';
+import { AreaService } from '../../core/services/area.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +37,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    WhereChipComponent,
   ],
   selector: 'app-fort-change-list',
   standalone: true,
@@ -40,6 +45,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
   templateUrl: './fort-change-list.component.html',
 })
 export class FortChangeListComponent implements OnInit {
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly fortChangeService = inject(FortChangeService);
@@ -47,7 +53,11 @@ export class FortChangeListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   readonly fortChanges = signal<FortChange[]>([]);
   readonly loading = signal(true);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
+
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
 
   async bulkDelete(): Promise<void> {
@@ -170,6 +180,29 @@ export class FortChangeListComponent implements OnInit {
       });
   }
 
+  /** Change one alarm's delivery scope from its card, without opening the whole edit dialog. */
+  editScope(item: FortChange): void {
+    const data: WhereSheetData = {
+      profileAreas: this.profileAreas(),
+      scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),
+    };
+
+    this.dialog
+      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .afterClosed()
+      .subscribe((scope?: AlarmScope) => {
+        if (!scope) return;
+
+        this.fortChangeService.update(item.uid, scopeToFields(scope)).subscribe({
+          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          next: () => {
+            this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
+            this.loadItems();
+          },
+        });
+      });
+  }
+
   formatChangeTypes(types: string[]): string {
     if (!types || types.length === 0) return this.i18n.instant('FORT_CHANGES.ALL_CHANGES');
     return types
@@ -222,6 +255,7 @@ export class FortChangeListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadProfileAreas();
     this.loadItems();
   }
 
@@ -264,5 +298,9 @@ export class FortChangeListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private loadProfileAreas(): void {
+    this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }
 }

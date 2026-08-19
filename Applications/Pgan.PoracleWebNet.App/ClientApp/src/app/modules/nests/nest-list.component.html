@@ -80,11 +80,12 @@
             </div>
           </div>
           <div class="distance-chip-row">
-            @if (nest.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
-            } @else {
-              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(nest.distance) }}</span>
-            }
+            <app-where-chip
+              [distance]="nest.distance"
+              [overrideAreas]="nest.overrideAreas"
+              [overrideLocationLabel]="nest.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(nest); $event.stopPropagation()" />
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
