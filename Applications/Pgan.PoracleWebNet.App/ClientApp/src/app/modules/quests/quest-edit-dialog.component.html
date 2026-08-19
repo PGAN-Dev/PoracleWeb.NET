@@ -23,6 +23,21 @@
         <p class="read-only-info">
           <strong>{{ 'QUESTS.QUEST_TYPE_LABEL' | translate }}</strong> {{ getRewardTypeLabel() }}
         </p>
+
+        @if (hasAmount) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+            <input matInput type="number" min="0" [formControl]="form.controls.amount" />
+            <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+          </mat-form-field>
+        }
+        @if (isStardust) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'QUESTS.MIN_STARDUST' | translate }}</mat-label>
+            <input matInput type="number" min="0" step="100" [formControl]="form.controls.stardust" />
+            <mat-hint>{{ 'QUESTS.MIN_STARDUST_HINT' | translate }}</mat-hint>
+          </mat-form-field>
+        }
       </div>
     </mat-tab>
 
