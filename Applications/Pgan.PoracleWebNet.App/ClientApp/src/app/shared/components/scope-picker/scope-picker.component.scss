@@ -65,3 +65,12 @@
   vertical-align: middle;
   width: 1rem;
 }
+
+// The warning names a problem the user can fix without leaving the alarm they are editing.
+.scope-warning-action {
+  --mdc-text-button-label-text-color: var(--mat-sys-error, #d32f2f);
+
+  font-size: 0.78rem;
+  min-width: 0;
+  padding: 0 6px;
+}

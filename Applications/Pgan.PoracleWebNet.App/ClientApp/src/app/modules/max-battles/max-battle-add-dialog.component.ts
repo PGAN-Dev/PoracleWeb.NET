@@ -197,14 +197,18 @@ export class MaxBattleAddDialogComponent {
         this.saving.set(false);
 
         if (refused.length > 0) {
-          this.snackBar.open(refused[0].failed?.error?.error ?? this.i18n.instant('COMMON.ERROR'), this.i18n.instant('COMMON.OK'), {
-            duration: 6000,
-          });
+          this.snackBar.open(
+            refused[0].failed?.error?.error ?? this.i18n.instant('MAX_BATTLES.CREATE_FAILED'),
+            this.i18n.instant('COMMON.OK'),
+            {
+              duration: 6000,
+            },
+          );
         } else {
           const message =
             duplicates > 0
               ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('COMMON.SAVED', { count: created });
+              : this.i18n.instant('MAX_BATTLES.CREATE_SUCCESS', { count: created });
           this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 

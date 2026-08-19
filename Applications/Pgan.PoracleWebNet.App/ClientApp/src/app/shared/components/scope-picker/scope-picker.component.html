@@ -46,7 +46,8 @@
       @if (pinMissing()) {
         <p class="scope-warning">
           <mat-icon>error_outline</mat-icon>
-          {{ 'WHERE.PIN_MISSING_WARNING' | translate }}
+          <span>{{ 'WHERE.PIN_MISSING_WARNING' | translate }}</span>
+          <button mat-button class="scope-warning-action" (click)="setPin()">{{ 'WHERE.SET_PIN' | translate }}</button>
         </p>
       }
     }

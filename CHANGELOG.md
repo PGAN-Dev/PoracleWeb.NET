@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Set your pin without leaving the alarm.** The warning about measuring from a pin you have not set now offers to set it, rather than only naming the problem. Both language menus also carry a line saying what they change, since "display" and "alert" is a distinction worth stating rather than implying ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **Editing an alarm uses the same scope control as creating one.** The edit dialogs kept the old two-option version, which could not describe an alarm confined to areas and so showed it read-only. All twenty dialogs now render the one control, so the same three options are available wherever the question is asked ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **The Delivery tab and the card's scope picker are the same control.** They were two different shapes of the same question, and the dialog version was missing an option: "only in specific areas" could not be chosen when creating an alarm, only afterwards from the card. Both now render one component, so a new alarm can be confined to areas from the start, and picking your pin when you have not set one says so instead of alerting on nothing ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
@@ -31,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New Pokemon alarms can be aimed at a saved place.** The delivery step's radius gains a "measured from" selector: your pin, as before, or any place you have saved. Editing an alarm shows its scope but sends you to the card to change it, so there is one way to do it rather than two that can disagree ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 ### Fixed
+
+- **Four snackbars showed a raw translation key instead of a message.** The invasion, quest, raid and max-battle add dialogs referenced `COMMON.SAVED` and `COMMON.ERROR`, which never existed; the per-type keys they should have used were already there and already translated. Also translated 38 strings per language that had been sitting in English across all ten locales: every sign-in error, the test-alert messages, fort-change and max-battle snackbars, the raid level picker and the distance validation ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+- **The place picker opens where you are.** It was seeded with 0,0, so choosing a point for a new place opened the map in the Atlantic. It now starts from your pin, and its title says it is picking a point rather than setting your location ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **The map on Areas & Places is the size it should be.** It let the child component pick its own height and came out too small to find an area in. It now matches My Geofences: same height, framing and margins ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
