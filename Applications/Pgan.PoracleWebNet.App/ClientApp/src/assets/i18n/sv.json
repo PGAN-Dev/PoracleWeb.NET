@@ -746,7 +746,10 @@
     "CONFIRM_DELETE_MSG": "Ta bort {{type}}-ändringslarmet?",
     "SNACK_DELETED": "Fort-ändringslarm raderat",
     "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd",
-    "SNACK_ALL_DISTANCE": "Alla avstånd uppdaterade"
+    "SNACK_ALL_DISTANCE": "Alla avstånd uppdaterade",
+    "FORT_TYPE_LABEL": "Fort-typ",
+    "CHANGE_TYPES_LABEL": "Ändringstyper",
+    "TRACKING_SUBTITLE": "Bevakning av fort-ändringar"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max-stridslarm",
@@ -787,7 +790,13 @@
     "SNACK_FAILED_DISTANCE": "Kunde inte uppdatera avstånd",
     "SNACK_ALL_DISTANCE": "Alla avstånd uppdaterade",
     "SNACK_FAILED_UPDATE": "Kunde inte uppdatera larm",
-    "SNACK_UPDATED": "Max Battle-larm uppdaterat"
+    "SNACK_UPDATED": "Max Battle-larm uppdaterat",
+    "HINT_BY_LEVEL": "Bevakar valfri Pokemon på dessa stridsnivåer. Varje vald nivå blir ett eget larm.",
+    "HINT_BY_POKEMON": "Bevakar utvalda Pokemon i Max-strider, oavsett nivå.",
+    "HINT_GMAX_ONLY_ADD": "Larmar bara om Gigantamax-strider för de valda Pokemon.",
+    "HINT_GMAX_ONLY_EDIT": "Larmar bara om Gigantamax-strider för denna Pokemon.",
+    "HINT_ALL_LEVELS": "Det här larmet följer en Pokemon på alla Max-stridsnivåer.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Hantera platser",

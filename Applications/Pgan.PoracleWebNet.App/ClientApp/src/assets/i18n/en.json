@@ -746,7 +746,10 @@
     "CREATE_FAILED": "Failed to create alarm",
     "CREATE_SUCCESS": "Fort change alarm created",
     "UPDATE_FAILED": "Failed to update alarm",
-    "UPDATE_SUCCESS": "Fort change alarm updated"
+    "UPDATE_SUCCESS": "Fort change alarm updated",
+    "FORT_TYPE_LABEL": "Fort Type",
+    "CHANGE_TYPES_LABEL": "Change Types",
+    "TRACKING_SUBTITLE": "Fort Change Tracking"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max Battle Alarms",
@@ -787,7 +790,13 @@
     "LEVEL_4": "4 Star",
     "LEVEL_5": "5 Star (Legendary)",
     "LEVEL_GMAX": "Gigantamax",
-    "LEVEL_GMAX_LEGENDARY": "Legendary Gigantamax"
+    "LEVEL_GMAX_LEGENDARY": "Legendary Gigantamax",
+    "HINT_BY_LEVEL": "Track any Pokemon at these battle tiers. Each tier you pick becomes its own alarm.",
+    "HINT_BY_POKEMON": "Track specific Pokemon in Max Battles, whatever the tier.",
+    "HINT_GMAX_ONLY_ADD": "Only alerts on Gigantamax battles for the Pokemon you picked.",
+    "HINT_GMAX_ONLY_EDIT": "Only alerts on Gigantamax battles for this Pokemon.",
+    "HINT_ALL_LEVELS": "This alarm follows one Pokemon across every Max Battle level.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Manage places",

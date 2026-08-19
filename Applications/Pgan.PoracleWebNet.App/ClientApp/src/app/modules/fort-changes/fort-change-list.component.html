@@ -64,7 +64,7 @@
           </div>
           <div class="item-info">
             <h3>{{ formatFortType(item.fortType) }}</h3>
-            <span class="fort-subtitle">Fort Change Tracking</span>
+            <span class="fort-subtitle">{{ 'FORT_CHANGES.TRACKING_SUBTITLE' | translate }}</span>
           </div>
           <div class="card-top-actions">
             @if (item.includeEmpty === 1) {
@@ -75,7 +75,7 @@
         <mat-card-content>
           <div class="stat-grid">
             <div class="stat">
-              <span class="stat-label">Change Types</span>
+              <span class="stat-label">{{ 'FORT_CHANGES.CHANGE_TYPES_LABEL' | translate }}</span>
               <span class="stat-value">{{ formatChangeTypes(item.changeTypes) }}</span>
             </div>
           </div>

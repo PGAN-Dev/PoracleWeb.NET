@@ -746,7 +746,10 @@
     "CONFIRM_DELETE_MSG": "Usunąć alarm zmiany {{type}}?",
     "SNACK_DELETED": "Usunięto alarm zmiany",
     "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości",
-    "SNACK_ALL_DISTANCE": "Zaktualizowano wszystkie odległości"
+    "SNACK_ALL_DISTANCE": "Zaktualizowano wszystkie odległości",
+    "FORT_TYPE_LABEL": "Typ fortu",
+    "CHANGE_TYPES_LABEL": "Rodzaje zmian",
+    "TRACKING_SUBTITLE": "Śledzenie zmian fortów"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Alarmy bitew Max",
@@ -787,7 +790,13 @@
     "SNACK_FAILED_DISTANCE": "Nie udało się zaktualizować odległości",
     "SNACK_ALL_DISTANCE": "Zaktualizowano wszystkie odległości",
     "SNACK_FAILED_UPDATE": "Nie udało się zaktualizować alarmu",
-    "SNACK_UPDATED": "Zaktualizowano alarm Max Battle"
+    "SNACK_UPDATED": "Zaktualizowano alarm Max Battle",
+    "HINT_BY_LEVEL": "Śledzi dowolnego Pokemona na tych poziomach bitwy. Każdy wybrany poziom to osobny alarm.",
+    "HINT_BY_POKEMON": "Śledzi konkretne Pokemony w bitwach Max, niezależnie od poziomu.",
+    "HINT_GMAX_ONLY_ADD": "Powiadamia tylko o bitwach Gigantamax dla wybranych Pokemonów.",
+    "HINT_GMAX_ONLY_EDIT": "Powiadamia tylko o bitwach Gigantamax dla tego Pokemona.",
+    "HINT_ALL_LEVELS": "Ten alarm śledzi jednego Pokemona na wszystkich poziomach bitew Max.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Zarządzaj miejscami",

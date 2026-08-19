@@ -746,7 +746,10 @@
     "CONFIRM_DELETE_MSG": "Slet {{type}}-ændringsalarmen?",
     "SNACK_DELETED": "Fort-ændringsalarm slettet",
     "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande",
-    "SNACK_ALL_DISTANCE": "Alle afstande opdateret"
+    "SNACK_ALL_DISTANCE": "Alle afstande opdateret",
+    "FORT_TYPE_LABEL": "Fort-type",
+    "CHANGE_TYPES_LABEL": "Ændringstyper",
+    "TRACKING_SUBTITLE": "Sporing af fort-ændringer"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max-kampalarmer",
@@ -787,7 +790,13 @@
     "SNACK_FAILED_DISTANCE": "Kunne ikke opdatere afstande",
     "SNACK_ALL_DISTANCE": "Alle afstande opdateret",
     "SNACK_FAILED_UPDATE": "Kunne ikke opdatere alarm",
-    "SNACK_UPDATED": "Max Battle-alarm opdateret"
+    "SNACK_UPDATED": "Max Battle-alarm opdateret",
+    "HINT_BY_LEVEL": "Følger enhver Pokemon på disse kampniveauer. Hvert valgt niveau bliver sin egen alarm.",
+    "HINT_BY_POKEMON": "Følger bestemte Pokemon i Max-kampe, uanset niveau.",
+    "HINT_GMAX_ONLY_ADD": "Giver kun besked om Gigantamax-kampe for de valgte Pokemon.",
+    "HINT_GMAX_ONLY_EDIT": "Giver kun besked om Gigantamax-kampe for denne Pokemon.",
+    "HINT_ALL_LEVELS": "Denne alarm følger én Pokemon på alle Max-kampniveauer.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Administrer steder",

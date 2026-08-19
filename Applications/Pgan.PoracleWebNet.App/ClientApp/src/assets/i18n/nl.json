@@ -746,7 +746,10 @@
     "CONFIRM_DELETE_MSG": "Alarm voor {{type}}-wijziging verwijderen?",
     "SNACK_DELETED": "Fort-wijzigingsalarm verwijderd",
     "SNACK_FAILED_DISTANCE": "Kan afstanden niet bijwerken",
-    "SNACK_ALL_DISTANCE": "Alle afstanden bijgewerkt"
+    "SNACK_ALL_DISTANCE": "Alle afstanden bijgewerkt",
+    "FORT_TYPE_LABEL": "Forttype",
+    "CHANGE_TYPES_LABEL": "Soorten wijziging",
+    "TRACKING_SUBTITLE": "Fortwijzigingen volgen"
   },
   "MAX_BATTLES": {
     "PAGE_TITLE": "Max Gevecht Alarmen",
@@ -787,7 +790,13 @@
     "SNACK_FAILED_DISTANCE": "Kan afstanden niet bijwerken",
     "SNACK_ALL_DISTANCE": "Alle afstanden bijgewerkt",
     "SNACK_FAILED_UPDATE": "Kan alarm niet bijwerken",
-    "SNACK_UPDATED": "Max Battle-alarm bijgewerkt"
+    "SNACK_UPDATED": "Max Battle-alarm bijgewerkt",
+    "HINT_BY_LEVEL": "Volgt elke Pokemon op deze gevechtsniveaus. Elk gekozen niveau wordt een eigen alarm.",
+    "HINT_BY_POKEMON": "Volgt specifieke Pokemon in Max Gevechten, ongeacht het niveau.",
+    "HINT_GMAX_ONLY_ADD": "Meldt alleen Gigantamax-gevechten voor de gekozen Pokemon.",
+    "HINT_GMAX_ONLY_EDIT": "Meldt alleen Gigantamax-gevechten voor deze Pokemon.",
+    "HINT_ALL_LEVELS": "Dit alarm volgt één Pokemon op alle Max Gevecht-niveaus.",
+    "GMAX_OPTION_SUFFIX": "(Gigantamax)"
   },
   "AREAS": {
     "MANAGE_PLACES": "Plaatsen beheren",
