@@ -742,6 +742,8 @@ export interface PoracleServerProfile {
   reachable: boolean;
   schemaVersion: null | number;
   version: null | string;
+  /** This site's own build. */
+  web: { buildDate: null | string; revision: null | string; version: null | string };
   /** Whether this site is behind its own latest release. */
   webUpdate: UpdateStatus;
 }

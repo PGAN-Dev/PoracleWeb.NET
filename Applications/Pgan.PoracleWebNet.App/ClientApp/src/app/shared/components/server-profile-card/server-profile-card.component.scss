@@ -100,3 +100,22 @@
   background: #ede7f6;
   color: #4527a0;
 }
+
+.server-section {
+  margin: 20px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+
+  &:first-of-type {
+    margin-top: 12px;
+  }
+}
+
+.server-current {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}

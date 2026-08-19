@@ -1400,7 +1400,12 @@
     "SERVER_UNREACHABLE": "Poracle no respondió. Las alarmas, los perfiles y las ubicaciones pasan por él y fallarán hasta que vuelva.",
     "SERVER_TOO_OLD": "Poracle {{version}} es anterior a {{minimum}}, que necesita esta versión del sitio. El alcance por alarma, el filtro mega de PVP y el de tiempo restante parecerán guardarse sin cambiar nada.",
     "UPDATE_AVAILABLE": "Se está ejecutando {{name}} {{running}} y ya está disponible {{latest}}.",
-    "UPDATE_PRERELEASE": "{{name}} {{running}} es más reciente que cualquier versión publicada: es una compilación de desarrollo."
+    "UPDATE_PRERELEASE": "{{name}} {{running}} es más reciente que cualquier versión publicada: es una compilación de desarrollo.",
+    "VERSIONS_TITLE": "Versiones",
+    "VERSIONS_WEB": "Este sitio",
+    "VERSIONS_BUILD": "Compilación",
+    "UPDATE_CURRENT": "Al día.",
+    "UPDATE_UNCOMPARABLE": "Canal de desarrollo. La última versión publicada es {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Elige un punto",

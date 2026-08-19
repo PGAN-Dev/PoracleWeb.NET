@@ -1400,7 +1400,12 @@
     "SERVER_UNREACHABLE": "Poracle hat nicht geantwortet. Alarme, Profile und Orte laufen darüber und schlagen fehl, bis es wieder da ist.",
     "SERVER_TOO_OLD": "Poracle {{version}} ist älter als {{minimum}}, das diese Version der Seite benötigt. Zustellung pro Alarm, der PVP-Mega-Filter und der Filter für die Mindestrestzeit scheinen zu speichern, ändern aber nichts.",
     "UPDATE_AVAILABLE": "{{name}} {{running}} läuft, und {{latest}} ist erschienen.",
-    "UPDATE_PRERELEASE": "{{name}} {{running}} ist neuer als jede Veröffentlichung — das ist ein Entwicklungsbuild."
+    "UPDATE_PRERELEASE": "{{name}} {{running}} ist neuer als jede Veröffentlichung — das ist ein Entwicklungsbuild.",
+    "VERSIONS_TITLE": "Versionen",
+    "VERSIONS_WEB": "Diese Seite",
+    "VERSIONS_BUILD": "Build",
+    "UPDATE_CURRENT": "Aktuell.",
+    "UPDATE_UNCOMPARABLE": "Entwicklungskanal. Neueste Veröffentlichung ist {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Punkt auswählen",

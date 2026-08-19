@@ -1400,7 +1400,12 @@
     "SERVER_UNREACHABLE": "Poracle antwoordde niet. Alarmen, profielen en locaties lopen erlangs en mislukken tot het weer reageert.",
     "SERVER_TOO_OLD": "Poracle {{version}} is ouder dan {{minimum}}, dat deze versie van de site nodig heeft. Bereik per alarm, het PVP-megafilter en het filter voor resterende tijd lijken op te slaan maar veranderen niets.",
     "UPDATE_AVAILABLE": "{{name}} {{running}} draait, en {{latest}} is uit.",
-    "UPDATE_PRERELEASE": "{{name}} {{running}} is nieuwer dan elke uitgave — dit is een ontwikkelversie."
+    "UPDATE_PRERELEASE": "{{name}} {{running}} is nieuwer dan elke uitgave — dit is een ontwikkelversie.",
+    "VERSIONS_TITLE": "Versies",
+    "VERSIONS_WEB": "Deze site",
+    "VERSIONS_BUILD": "Build",
+    "UPDATE_CURRENT": "Actueel.",
+    "UPDATE_UNCOMPARABLE": "Ontwikkelkanaal. Nieuwste uitgave is {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Kies een punt",

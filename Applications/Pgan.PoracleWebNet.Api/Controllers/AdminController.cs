@@ -387,6 +387,7 @@ public partial class AdminController(
 
         // The build args are absent on a locally built image, which is not the same as being behind.
         var runningWeb = this._configuration["BUILD_VERSION"];
+        var webRevision = this._configuration["BUILD_REVISION"];
         var (webUpdate, ngUpdate) = await this._updateCheckService.CheckAsync(runningWeb, profile.Version);
 
         return this.Ok(new
@@ -400,6 +401,15 @@ public partial class AdminController(
             belowMinimum = profile.IsBelowMinimum,
             poracleUpdate = new { running = ngUpdate.Running, latest = ngUpdate.Latest, state = ngUpdate.State.ToString() },
             webUpdate = new { running = webUpdate.Running, latest = webUpdate.Latest, state = webUpdate.State.ToString() },
+
+            // This site's own build, so the card can name both halves of the deployment rather than
+            // only the one it talks to.
+            web = new
+            {
+                version = string.IsNullOrWhiteSpace(runningWeb) ? null : runningWeb,
+                revision = string.IsNullOrWhiteSpace(webRevision) ? null : webRevision,
+                buildDate = this._configuration["BUILD_DATE"],
+            },
         });
     }
 

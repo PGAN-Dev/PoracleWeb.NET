@@ -26,6 +26,7 @@ describe('ServerProfileCardComponent', () => {
     reachable: true,
     schemaVersion: 5,
     version: '5.1.0',
+    web: { buildDate: '2026-08-19T21:00:00Z', revision: 'fbfc16a17198bb6847914f7e4f0bedd57440ea61', version: '2.16.0' },
     webUpdate: upToDate,
   };
 
@@ -91,6 +92,32 @@ describe('ServerProfileCardComponent', () => {
 
     expect(fixture.componentInstance.serverLoading()).toBe(false);
     expect(fixture.componentInstance.serverProfile()).toBeNull();
+  });
+
+  it('names this site as well as the Poracle it talks to', () => {
+    // The first version of this card described only Poracle, so the site's own build -- the half an
+    // admin is most likely to be behind on -- appeared nowhere.
+    const fixture = setup(base);
+    const text = fixture.nativeElement.textContent;
+
+    expect(text).toContain('2.16.0');
+    expect(text).toContain('fbfc16a');
+    expect(text).toContain('5.1.0');
+  });
+
+  it('names the latest release even on a channel it cannot compare', () => {
+    // beta is not a point on the release line, so no direction is claimed -- but which release is
+    // current is still worth saying.
+    const fixture = setup({
+      ...base,
+      web: { ...base.web, version: 'beta' },
+      webUpdate: { latest: 'v2.15.3', running: 'beta', state: 'Unknown' },
+    });
+
+    // The test harness renders keys without interpolating, so the assertion is on which line was
+    // chosen: the "cannot compare, here is the latest" one rather than a behind/ahead claim.
+    expect(fixture.nativeElement.textContent).toContain('ADMIN.UPDATE_UNCOMPARABLE');
+    expect(fixture.nativeElement.querySelector('.server-alert-update')).toBeNull();
   });
 
   it('says when a component is behind its latest release', () => {
