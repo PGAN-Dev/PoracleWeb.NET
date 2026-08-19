@@ -141,6 +141,7 @@ public partial class AuthController(
             $"&redirect_uri={Uri.EscapeDataString(callbackUri)}" +
             "&response_type=code" +
             "&scope=identify" +
+            "&prompt=none" +
             $"&state={Uri.EscapeDataString(state)}";
 
         return this.Redirect(redirectUrl);

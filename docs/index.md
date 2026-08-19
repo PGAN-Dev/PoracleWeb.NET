@@ -4,7 +4,10 @@ template: home.html
 
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the Poracle bot system. Compatible with both [PoracleJS](https://github.com/KartulUdus/PoracleJS) and [PoracleNG](https://github.com/jfberry/PoracleNG). Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
+
+!!! warning "PoracleNG is required"
+    All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
 ## Tech Stack
 
@@ -25,7 +28,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 - **Alert Defaults** — Choose whether new alerts default to Areas or a Distance radius, with a configurable default distance
 - **Quick Picks** — Admin-defined alarm templates users can apply with one click
 - **Area Management** — Interactive Leaflet map for selecting geofence areas
-- **Custom Geofences** — Draw custom polygon geofences on a map, served to PoracleJS via a built-in feed endpoint. Submit for admin review to promote to public areas.
+- **Custom Geofences** — Draw custom polygon geofences on a map, served to the Poracle bot via a built-in unified feed endpoint. Submit for admin review to promote to public areas.
 - **Geofence Admin Review** — Approve or reject user-submitted geofences with Discord forum integration
 - **Profile Switching** — Multiple alarm profiles per user
 - **Profile Active Hours** — Schedule automatic profile switching by day and time
@@ -51,7 +54,7 @@ A web application for managing Pokemon GO notification alarms through the Poracl
 | Requirement | Version | Purpose |
 |---|---|---|
 | MySQL | 5.7+ or 8.0+ | Poracle database (existing Poracle installation) |
-| Poracle | PoracleJS or PoracleNG | Running instance with REST API enabled. All alarm writes are proxied through the Poracle API. |
+| Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
 | Discord App | — | OAuth2 application for user authentication |
 | Koji | — | Geofence management server (required for custom geofences feature) |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |

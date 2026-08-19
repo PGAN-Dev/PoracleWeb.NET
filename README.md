@@ -1,6 +1,8 @@
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the Poracle bot system. Compatible with both [PoracleJS](https://github.com/KartulUdus/PoracleJS) and [PoracleNG](https://github.com/jfberry/PoracleNG). Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
+
+> **PoracleNG is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
 **[Documentation](https://pgan-dev.github.io/PoracleWeb.NET/)** | **[Changelog](CHANGELOG.md)**
 
@@ -44,7 +46,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 - **Gym Picker** — Search and target specific gyms for team change, raid, and egg alarms
 - **Bulk Operations** — Multi-select with bulk delete and distance update
 - **Alert Defaults** — Choose whether new alerts default to Areas or a Distance radius, with a configurable default distance
-- **Custom Geofences** — Draw polygons, auto-served to PoracleJS via unified feed
+- **Custom Geofences** — Draw polygons, auto-served to the Poracle bot via unified feed
 - **Geofence Admin Review** — Approve/reject with Discord forum integration
 - **Quick Picks** — One-click alarm templates
 - **Profile Switching** — Multiple alarm profiles per user
@@ -147,7 +149,7 @@ Cutting a release means merging `develop` into `main` and publishing a GitHub re
 
 PoracleWeb.NET stands on the shoulders of these projects and their authors:
 
-- **[PoracleJS](https://github.com/KartulUdus/PoracleJS)** by KartulUdus — the original Poracle bot that this UI manages
+- **[PoracleJS](https://github.com/KartulUdus/PoracleJS)** by KartulUdus — the original Poracle bot (alarm management in this app uses PoracleNG's REST API)
 - **[PoracleNG](https://github.com/jfberry/PoracleNG)** by jfberry — next-generation fork whose REST API powers all alarm tracking
 - **[PoracleWeb (PHP)](https://github.com/bbdoc/PoracleWeb)** by bbdoc — the original PHP web interface that inspired this .NET rewrite
 - **[Kōji](https://github.com/TurtIeSocks/Koji)** by TurtIeSocks — geofence management platform used for admin areas, region detection, and public geofence promotion
