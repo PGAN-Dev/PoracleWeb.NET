@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Every alarm can say where it should reach you.** The scope an alarm has always had, inherited and invisible, is now stated on the card and editable per alarm: anywhere in your areas, within a radius of a saved place, or only in specific areas. One shared control reads and writes it wherever it appears, rather than two more fields in each of the nine alarm dialogs. The three options are a radio group because PoracleNG treats them as mutually exclusive, so the combinations it refuses cannot be expressed in the first place ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+- **Places.** The user menu gains a Places screen: your pin, plus whatever you name. Adding one borrows the existing location map as a picker rather than growing a second one, and naming is a separate step because picking a point and naming it are two decisions. Deleting a place that alerts still point at says how many and refuses, instead of quietly widening them back to your pin ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 ### Fixed
 

@@ -63,7 +63,8 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Alert Defaults"
+    "ALERT_DEFAULTS": "Alert Defaults",
+    "PLACES": "Places"
   },
   "SHORTCUTS": {
     "TITLE": "Keyboard Shortcuts",
@@ -1715,6 +1716,22 @@
     "LAST_PAGE": "Last page"
   },
   "WHERE": {
+    "ADD_PLACE": "Add a place",
+    "NAME_PLACE_MESSAGE": "What should this place be called?",
+    "NAME_PLACE_TITLE": "Name this place",
+    "PIN_NOTE": "The fallback for every alert that is not aimed somewhere else.",
+    "PIN_TITLE": "My pin",
+    "PLACES_EMPTY": "No places yet. Add one to send alerts somewhere other than your pin: work, the gym, your parents' house.",
+    "PLACES_TITLE": "Places",
+    "PLACE_DELETED": "Deleted {{place}}.",
+    "PLACE_DELETE_CONFIRM": "Alerts aimed at {{place}} will fall back to your pin.",
+    "PLACE_DELETE_ERROR": "Could not delete that place.",
+    "PLACE_DELETE_TITLE": "Delete this place?",
+    "PLACE_IN_USE": "{{place}} is used by {{count}} alert(s). Repoint them first.",
+    "PLACE_NAME": "Name",
+    "PLACE_SAVED": "Saved {{place}}.",
+    "PLACE_SAVE_ERROR": "Could not save that place.",
+    "USE_THIS_POINT": "Use this point",
     "AREAS_LABEL": "Areas",
     "AREA_LIST_MORE": "{{areas}} and {{count}} more",
     "NEAR_PLACE": "Within {{distance}} km of {{place}}",

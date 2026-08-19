@@ -121,6 +121,10 @@
         <mat-icon>tune</mat-icon>
         <span>{{ 'MENU.ALERT_DEFAULTS' | translate }}</span>
       </button>
+      <button mat-menu-item (click)="openPlaces()">
+        <mat-icon>place</mat-icon>
+        <span>{{ 'MENU.PLACES' | translate }}</span>
+      </button>
       <button mat-menu-item [matMenuTriggerFor]="accentMenu">
         <mat-icon>palette</mat-icon>
         <span>{{ 'MENU.ACCENT_THEME' | translate }}</span>
