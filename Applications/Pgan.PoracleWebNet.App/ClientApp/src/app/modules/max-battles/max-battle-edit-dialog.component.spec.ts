@@ -78,8 +78,7 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
 
   it('keeps the move filter when only the distance changes', () => {
     const { component, sent } = setup();
-    component.form.controls.distanceMode.setValue('distance');
-    component.form.controls.distanceKm.setValue(8);
+    component.scope.set({ distanceKm: 8, mode: 'profile' });
 
     component.save();
 
@@ -89,8 +88,7 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
 
   it('keeps the evolution filter when only the distance changes', () => {
     const { component, sent } = setup();
-    component.form.controls.distanceMode.setValue('distance');
-    component.form.controls.distanceKm.setValue(8);
+    component.scope.set({ distanceKm: 8, mode: 'profile' });
 
     component.save();
 
@@ -100,8 +98,7 @@ describe('MaxBattleEditDialogComponent — filter preservation (#412)', () => {
 
   it('still sends the edited distance', () => {
     const { component, sent } = setup();
-    component.form.controls.distanceMode.setValue('distance');
-    component.form.controls.distanceKm.setValue(8);
+    component.scope.set({ distanceKm: 8, mode: 'profile' });
 
     component.save();
 

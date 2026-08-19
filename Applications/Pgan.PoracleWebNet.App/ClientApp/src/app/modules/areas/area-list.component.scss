@@ -290,10 +290,35 @@
 }
 
 // ─── Map View ─────────────────────────────────────────
+// Matches My Geofences: same size, same framing, same margins. The picker was letting the child
+// decide its own height, which left a map too small to pick an area out of.
 .map-container {
-  border-radius: 12px;
   border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
-  overflow: visible;
+  border-radius: 12px;
+  height: 70vh;
+  margin: 16px 24px;
+  min-height: 500px;
+  overflow: hidden;
+
+  app-area-map {
+    display: block;
+    height: 100%;
+  }
+
+  ::ng-deep {
+    .map-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .area-map-container {
+      border: none !important;
+      border-radius: 0 !important;
+      flex: 1;
+      height: auto !important;
+    }
+  }
 }
 
 .map-hint {

@@ -31,55 +31,7 @@
         <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
-
-        <p class="scope-current">
-          <app-where-chip
-            [distance]="data.distance"
-            [editable]="false"
-            [overrideAreas]="data.overrideAreas"
-            [overrideLocationLabel]="data.overrideLocationLabel" />
-          <span class="scope-hint">{{ 'WHERE.EDIT_FROM_CARD' | translate }}</span>
-        </p>
-
-        @if (isAreaScoped()) {
-          <!-- Areas and a radius are mutually exclusive upstream, so this control cannot describe an
-               area-confined alarm. Offering it would let a save send both and be refused. -->
-        } @else {
-          <mat-radio-group [formControl]="form.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
-            <mat-radio-button value="areas">
-              <div class="radio-label">
-                <mat-icon>map</mat-icon>
-                <div>
-                  <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
-                  <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
-                </div>
-              </div>
-            </mat-radio-button>
-            <mat-radio-button value="distance">
-              <div class="radio-label">
-                <mat-icon>straighten</mat-icon>
-                <div>
-                  <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
-                  <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
-                </div>
-              </div>
-            </mat-radio-button>
-          </mat-radio-group>
-
-          @if (form.controls.distanceMode.value === 'distance') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
-              <input matInput type="number" [formControl]="form.controls.distanceKm" min="0" step="0.1" />
-              <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
-            </mat-form-field>
-          }
-
-          <app-delivery-preview
-            [mode]="form.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
-            [distanceKm]="form.controls.distanceKm.value ?? 0">
-          </app-delivery-preview>
-        }
+        <app-scope-picker [(scope)]="scope" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 

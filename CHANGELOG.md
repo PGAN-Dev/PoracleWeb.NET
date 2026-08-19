@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Editing an alarm uses the same scope control as creating one.** The edit dialogs kept the old two-option version, which could not describe an alarm confined to areas and so showed it read-only. All twenty dialogs now render the one control, so the same three options are available wherever the question is asked ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **The Delivery tab and the card's scope picker are the same control.** They were two different shapes of the same question, and the dialog version was missing an option: "only in specific areas" could not be chosen when creating an alarm, only afterwards from the card. Both now render one component, so a new alarm can be confined to areas from the start, and picking your pin when you have not set one says so instead of alerting on nothing ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **Alert language shows flag rows, matching display language.** The two menus sit next to each other and now look like siblings, which is the only way the difference between them reads at a glance ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
@@ -29,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New Pokemon alarms can be aimed at a saved place.** The delivery step's radius gains a "measured from" selector: your pin, as before, or any place you have saved. Editing an alarm shows its scope but sends you to the card to change it, so there is one way to do it rather than two that can disagree ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 ### Fixed
+
+- **The map on Areas & Places is the size it should be.** It let the child component pick its own height and came out too small to find an area in. It now matches My Geofences: same height, framing and margins ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **Clearing your pin no longer comes back as 0,0.** Poracle stores "no pin" as 0,0 rather than null, so the page cleared correctly and then read those coordinates back at face value on the next visit and rendered them. The rule now lives in one helper instead of being rewritten in half a dozen components. The pin's section is also labelled My pin, matching what the rest of the site calls it ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **The area map opens on your pin.** It ranked the selected areas above it, and a multi-area selection frames a whole region, so the map opened too far out to click anything. Your own drawn shapes still win on My Geofences, where they are what you came for ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
