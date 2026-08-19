@@ -19,6 +19,19 @@ public class Quest
     {
         get; set;
     }
+    /// <summary>
+    /// Fewest of the reward the quest must give, for the rewards that come in quantities: items, candy
+    /// and mega energy. 0 means any.
+    /// </summary>
+    /// <remarks>
+    /// Stardust does not use this — PoracleNG reads <see cref="Reward"/> as the stardust floor for
+    /// reward type 3 — and a pokemon encounter has no quantity to compare.
+    /// </remarks>
+    public int Amount
+    {
+        get; set;
+    }
+
     public int RewardType
     {
         get; set;

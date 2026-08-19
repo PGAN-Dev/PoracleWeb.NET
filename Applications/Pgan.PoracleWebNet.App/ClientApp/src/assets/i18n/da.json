@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Oversigt sendt",
     "SUMMARY_SCHEDULE_FAILED": "Kunne ikke opdatere oversigtsplanen",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "Oversigtslevering er midlertidigt utilgængelig. Prøv igen senere.",
-    "SUMMARY_DISABLED_HINT": "Planlægning af oversigter er ikke tilgængelig på denne server."
+    "SUMMARY_DISABLED_HINT": "Planlægning af oversigter er ikke tilgængelig på denne server.",
+    "TAB_STARDUST": "Stjernestøv",
+    "MIN_AMOUNT": "Mindste antal",
+    "MIN_AMOUNT_HINT": "0 = et hvilket som helst antal",
+    "MIN_STARDUST": "Mindste stjernestøv",
+    "MIN_STARDUST_HINT": "0 = enhver stjernestøvsopgave",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasionsalarmer",

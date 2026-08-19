@@ -20,7 +20,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// The fields asserted here are the ones PoracleWeb still does not model — <c>rarity</c>, which it
 /// deliberately does not offer, and <c>costume</c>, which 5.2.0 has not shipped yet. Once a field is
 /// modelled its value comes from the caller, which is a different guarantee: see
-/// <see cref="PokemonFieldCoverageTests"/>.
+/// <see cref="TrackingFieldCoverageTests"/>.
 /// </para>
 /// <para>
 /// These assert the legitimate case still works (the distance genuinely changes, the count is still

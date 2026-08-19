@@ -155,6 +155,7 @@ public static class AlarmMappingExtensions
         Ping = src.Ping,
         Distance = src.Distance,
         Reward = src.Reward,
+        Amount = src.Amount,
         RewardType = src.RewardType,
         Shiny = src.Shiny,
         Clean = src.Clean,
@@ -169,6 +170,7 @@ public static class AlarmMappingExtensions
         if (src.Ping != null) dest.Ping = src.Ping;
         if (src.Distance != null) dest.Distance = src.Distance.Value;
         if (src.Reward != null) dest.Reward = src.Reward.Value;
+        if (src.Amount != null) dest.Amount = src.Amount.Value;
         if (src.RewardType != null) dest.RewardType = src.RewardType.Value;
         if (src.Shiny != null) dest.Shiny = src.Shiny.Value;
         if (src.Clean != null) dest.Clean = src.Clean.Value;

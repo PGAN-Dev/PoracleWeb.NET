@@ -246,31 +246,11 @@ export class QuestListComponent implements OnInit {
   }
 
   getQuestTitle(quest: Quest): string {
-    // Pokemon encounter: ID may be in pokemonId or reward field
-    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
-    if (quest.rewardType === 7 && pokemonId > 0) {
-      return this.masterData.getPokemonName(pokemonId);
-    }
-    if (quest.rewardType === 7 && pokemonId === 0) {
-      return this.i18n.instant('QUESTS.ANY_POKEMON_ENCOUNTER');
-    }
-    if (quest.rewardType === 12 && pokemonId > 0) {
-      return this.i18n.instant('QUESTS.MEGA_ENERGY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
-    }
-    if (quest.rewardType === 4 && pokemonId > 0) {
-      return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
-    }
-    if (quest.rewardType === 2) {
-      // reward 0 is the dialog default, meaning any item. getItemName has no id 0, so this used to
-      // render as "Item #0" -- the Pokemon branch above already has the equivalent "any" case.
-      return quest.reward > 0 ? this.masterData.getItemName(quest.reward) : this.i18n.instant('QUESTS.ANY_ITEM');
-    }
-    if (quest.rewardType === 3) {
-      return quest.reward > 0
-        ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
-        : this.i18n.instant('QUESTS.STARDUST');
-    }
-    return this.getRewardTypeLabel(quest.rewardType);
+    const reward = this.describeReward(quest);
+
+    // The minimum only applies to the rewards that come in quantities, and saying "1x" for a rule that
+    // asks for one of something is noise.
+    return quest.amount > 1 ? this.i18n.instant('QUESTS.AMOUNT_PREFIX', { count: quest.amount, reward }) : reward;
   }
 
   getRewardColor(rewardType: number): string {
@@ -283,6 +263,10 @@ export class QuestListComponent implements OnInit {
         return '#9C27B0';
       case 4:
         return '#FF9800';
+      // Stardust used to fall through to the grey "unknown reward" colour, which is what every other
+      // type it does not recognise gets.
+      case 3:
+        return '#FBC02D';
       default:
         return '#9E9E9E';
     }
@@ -402,6 +386,34 @@ export class QuestListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private describeReward(quest: Quest): string {
+    // Pokemon encounter: ID may be in pokemonId or reward field
+    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
+    if (quest.rewardType === 7 && pokemonId > 0) {
+      return this.masterData.getPokemonName(pokemonId);
+    }
+    if (quest.rewardType === 7 && pokemonId === 0) {
+      return this.i18n.instant('QUESTS.ANY_POKEMON_ENCOUNTER');
+    }
+    if (quest.rewardType === 12 && pokemonId > 0) {
+      return this.i18n.instant('QUESTS.MEGA_ENERGY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
+    }
+    if (quest.rewardType === 4 && pokemonId > 0) {
+      return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
+    }
+    if (quest.rewardType === 2) {
+      // reward 0 is the dialog default, meaning any item. getItemName has no id 0, so this used to
+      // render as "Item #0" -- the Pokemon branch above already has the equivalent "any" case.
+      return quest.reward > 0 ? this.masterData.getItemName(quest.reward) : this.i18n.instant('QUESTS.ANY_ITEM');
+    }
+    if (quest.rewardType === 3) {
+      return quest.reward > 0
+        ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
+        : this.i18n.instant('QUESTS.STARDUST');
+    }
+    return this.getRewardTypeLabel(quest.rewardType);
   }
 
   private loadProfileAreas(): void {

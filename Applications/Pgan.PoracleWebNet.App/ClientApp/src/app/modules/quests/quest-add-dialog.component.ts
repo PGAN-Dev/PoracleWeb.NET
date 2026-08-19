@@ -61,6 +61,10 @@ export class QuestAddDialogComponent {
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
+  candyForm = this.fb.group({
+    amount: [0],
+  });
+
   commonForm = this.fb.group({
     clean: [false],
     summary: [false],
@@ -74,7 +78,13 @@ export class QuestAddDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   itemForm = this.fb.group({
+    amount: [0],
     reward: [0],
+  });
+
+  /** Mega energy and candy arrive in quantities too, and each tab keeps its own answer. */
+  megaForm = this.fb.group({
+    amount: [0],
   });
 
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
@@ -97,9 +107,17 @@ export class QuestAddDialogComponent {
   );
 
   selectedCandyPokemonIds = signal<number[]>([]);
-  selectedMegaPokemonIds = signal<number[]>([]);
 
+  selectedMegaPokemonIds = signal<number[]>([]);
   selectedPokemonIds = signal<number[]>([]);
+
+  /**
+   * Stardust is the one reward PoracleNG matches on the amount alone, so it has no selector: the
+   * number is the whole rule. PoracleNG reads it from `reward`, not `amount`.
+   */
+  stardustForm = this.fb.group({
+    reward: [0],
+  });
 
   readonly summaryService = inject(SummaryScheduleService);
 
@@ -127,6 +145,9 @@ export class QuestAddDialogComponent {
         return this.selectedMegaPokemonIds().length > 0;
       case 3:
         return this.selectedCandyPokemonIds().length > 0;
+      case 4:
+        // 0 is a rule in its own right: every stardust quest, whatever it pays.
+        return true;
       default:
         return false;
     }
@@ -166,6 +187,7 @@ export class QuestAddDialogComponent {
             this.questService.create({
               overrideAreas: scope.overrideAreas,
               overrideLocationLabel: scope.overrideLocationLabel,
+              amount: 0,
               clean: cleanValue,
               distance: scope.distance,
               pokemonId,
@@ -182,6 +204,7 @@ export class QuestAddDialogComponent {
           this.questService.create({
             overrideAreas: scope.overrideAreas,
             overrideLocationLabel: scope.overrideLocationLabel,
+            amount: this.itemForm.controls.amount.value ?? 0,
             clean: cleanValue,
             distance: scope.distance,
             pokemonId: 0,
@@ -198,6 +221,7 @@ export class QuestAddDialogComponent {
             this.questService.create({
               overrideAreas: scope.overrideAreas,
               overrideLocationLabel: scope.overrideLocationLabel,
+              amount: this.megaForm.controls.amount.value ?? 0,
               clean: cleanValue,
               distance: scope.distance,
               pokemonId,
@@ -215,6 +239,7 @@ export class QuestAddDialogComponent {
             this.questService.create({
               overrideAreas: scope.overrideAreas,
               overrideLocationLabel: scope.overrideLocationLabel,
+              amount: this.candyForm.controls.amount.value ?? 0,
               clean: cleanValue,
               distance: scope.distance,
               pokemonId,
@@ -225,6 +250,24 @@ export class QuestAddDialogComponent {
             }),
           );
         }
+        break;
+      case 4:
+        creates.push(
+          this.questService.create({
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: 0,
+            clean: cleanValue,
+            distance: scope.distance,
+            pokemonId: 0,
+            // PoracleNG compares the stored reward against the dust the quest pays, so the floor
+            // travels in reward rather than amount for this one type.
+            reward: this.stardustForm.controls.reward.value ?? 0,
+            rewardType: 3,
+            shiny: 0,
+            template: common.template || null,
+          }),
+        );
         break;
     }
 

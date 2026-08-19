@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
@@ -8,8 +9,8 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// Every column PoracleNG stores for a pokemon rule is either written by PoracleWeb or listed here with
-/// a reason.
+/// Every column PoracleNG stores for a pokemon or quest rule is either written by PoracleWeb or listed
+/// here with a reason.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -26,7 +27,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// test fails and the choice gets made deliberately rather than by omission.
 /// </para>
 /// </remarks>
-public class PokemonFieldCoverageTests
+public class TrackingFieldCoverageTests
 {
     /// <summary>
     /// <c>MonsterTrackingAPI</c> in <c>processor/internal/db/tracking_queries.go</c> at 5.1.0
@@ -59,7 +60,7 @@ public class PokemonFieldCoverageTests
     private readonly Mock<IFeatureGate> _featureGate = new();
     private JsonElement _sent;
 
-    public PokemonFieldCoverageTests()
+    public TrackingFieldCoverageTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         this._proxy
@@ -104,6 +105,35 @@ public class PokemonFieldCoverageTests
         var contradicted = NotSent.Keys.Where(written.Contains).ToList();
 
         Assert.True(contradicted.Count == 0, "Listed as not sent, but sent: " + string.Join(", ", contradicted));
+    }
+
+    /// <summary><c>QuestTrackingAPI</c> at the same commit.</summary>
+    private static readonly string[] PoracleNgQuestFields =
+    [
+        "uid", "id", "profile_no", "ping", "clean", "reward", "template", "shiny", "reward_type",
+        "distance", "form", "amount", "override_location_label", "override_areas",
+    ];
+
+    [Fact]
+    public async Task EveryPoracleNgQuestFieldIsEitherWrittenOrExcusedInWriting()
+    {
+        var remapper = new Mock<ITrackedUidRemapper>();
+        remapper
+            .Setup(r => r.RemapAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(Task.CompletedTask);
+
+        await new QuestService(
+            this._proxy.Object, this._featureGate.Object, NullLogger<QuestService>.Instance, remapper.Object)
+            .CreateAsync("u1", new QuestCreate { Reward = 1, RewardType = 7 }.ToQuest());
+
+        var row = this._sent.ValueKind == JsonValueKind.Array ? this._sent.EnumerateArray().First() : this._sent;
+        var written = row.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
+
+        var unaccounted = PoracleNgQuestFields
+            .Where(f => !written.Contains(f) && !NotSent.ContainsKey(f))
+            .ToList();
+
+        Assert.True(unaccounted.Count == 0, "Not written and not explained: " + string.Join(", ", unaccounted));
     }
 
     [Fact]

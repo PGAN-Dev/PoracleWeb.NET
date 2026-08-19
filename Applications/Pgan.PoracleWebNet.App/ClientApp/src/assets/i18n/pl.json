@@ -544,7 +544,13 @@
     "SUMMARY_SCHEDULE_SENT": "Podsumowanie wysłane",
     "SUMMARY_SCHEDULE_FAILED": "Nie udało się zaktualizować harmonogramu podsumowania",
     "SUMMARY_SCHEDULE_UNAVAILABLE": "Dostarczanie podsumowań jest chwilowo niedostępne. Spróbuj ponownie później.",
-    "SUMMARY_DISABLED_HINT": "Planowanie podsumowań nie jest dostępne na tym serwerze."
+    "SUMMARY_DISABLED_HINT": "Planowanie podsumowań nie jest dostępne na tym serwerze.",
+    "TAB_STARDUST": "Gwiezdny Pył",
+    "MIN_AMOUNT": "Minimalna liczba",
+    "MIN_AMOUNT_HINT": "0 = dowolna liczba",
+    "MIN_STARDUST": "Minimalny gwiezdny pył",
+    "MIN_STARDUST_HINT": "0 = każde zadanie z gwiezdnym pyłem",
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Alarmy inwazji",

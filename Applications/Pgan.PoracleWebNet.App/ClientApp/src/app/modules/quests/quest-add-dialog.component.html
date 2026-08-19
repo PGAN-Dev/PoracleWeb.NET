@@ -31,6 +31,11 @@
                   }
                 </mat-select>
               </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+                <input matInput type="number" min="0" [formControl]="itemForm.controls.amount" />
+                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+              </mat-form-field>
             </div>
           </mat-tab>
           <mat-tab [label]="'QUESTS.TAB_MEGA_ENERGY' | translate">
@@ -39,6 +44,11 @@
               @if (selectedMegaPokemonIds().length > 0) {
                 <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedMegaPokemonIds().length } }}</p>
               }
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+                <input matInput type="number" min="0" [formControl]="megaForm.controls.amount" />
+                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+              </mat-form-field>
             </div>
           </mat-tab>
           <mat-tab [label]="'QUESTS.TAB_CANDY' | translate">
@@ -47,6 +57,20 @@
               @if (selectedCandyPokemonIds().length > 0) {
                 <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedCandyPokemonIds().length } }}</p>
               }
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+                <input matInput type="number" min="0" [formControl]="candyForm.controls.amount" />
+                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+              </mat-form-field>
+            </div>
+          </mat-tab>
+          <mat-tab [label]="'QUESTS.TAB_STARDUST' | translate">
+            <div class="tab-content">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_STARDUST' | translate }}</mat-label>
+                <input matInput type="number" min="0" step="100" [formControl]="stardustForm.controls.reward" />
+                <mat-hint>{{ 'QUESTS.MIN_STARDUST_HINT' | translate }}</mat-hint>
+              </mat-form-field>
             </div>
           </mat-tab>
         </mat-tab-group>

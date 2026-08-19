@@ -125,6 +125,8 @@ export type EggUpdate = Partial<EggCreate>;
 // ─── Quest ─────────────────────────────────────────────────────────────────────
 
 export interface Quest {
+  /** Fewest of the reward the quest must give. Items, candy and mega energy only; 0 means any. */
+  amount: number;
   clean: number;
   distance: number;
   id: string;
