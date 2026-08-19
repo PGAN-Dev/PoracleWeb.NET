@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The PVP tab's mega evolution control no longer collides with the rank fields.** Its fieldset was given a class that had no styles, so it drew the browser's default border and reserved no space beneath itself. It uses the same classes as the PVP cap control right above it, which already handled this ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **The Set Location dialog no longer scrolls sideways.** Giving the component itself a width made it wider than the padded surface it sits in. The size lives on the dialog's content now, the way the app's other dialogs do it ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **The scope picker ignored the scope it was given.** It read its input in the constructor, where a signal input is not populated yet, so it took its own default and wrote that straight back — discarding an alarm's real scope when you opened it to edit, and the Alert Defaults preference when creating one. It seeds after the input arrives now ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
