@@ -50,7 +50,10 @@ h4 {
   // keeps its flush top.
   margin: 24px 0 8px;
 
-  &:first-of-type {
+  // :first-child, not :first-of-type. The Delivery tab's "Message Settings" is the first h4 in its
+  // container but not the first element -- the scope picker sits above it -- so :first-of-type zeroed
+  // the margin and left the heading flush against the control. Measured 0px of gap.
+  &:first-child {
     margin-top: 0;
   }
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
