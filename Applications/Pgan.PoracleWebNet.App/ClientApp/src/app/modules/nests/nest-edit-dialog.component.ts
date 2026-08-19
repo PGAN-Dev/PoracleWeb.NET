@@ -17,9 +17,9 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { NestService } from '../../core/services/nest.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -36,8 +36,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
-    WhereChipComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-nest-edit-dialog',
   standalone: true,
@@ -53,10 +52,9 @@ export class NestEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Nest>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<NestEditDialogComponent>);
+
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
-    distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
-    distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     minSpawnAvg: [this.data.minSpawnAvg],
     template: [this.data.template ?? ''],
   });
@@ -64,19 +62,12 @@ export class NestEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   pokemonName = this.masterData.getPokemonName(this.data.pokemonId);
+
   saving = signal(false);
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
   getPokemonImage(): string {
     return this.iconService.getPokemonUrl(this.data.pokemonId);
-  }
-
-  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
-  isAreaScoped(): boolean {
-    return (this.data.overrideAreas?.length ?? 0) > 0;
-  }
-
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
   }
 
   onImageError(event: Event): void {
@@ -86,11 +77,13 @@ export class NestEditDialogComponent {
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     this.nestService
       .update(this.data.uid, {
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
-        distance: dist,
+        distance: scope.distance,
         minSpawnAvg: v.minSpawnAvg ?? 0,
         pokemonId: this.data.pokemonId,
         template: v.template || '',

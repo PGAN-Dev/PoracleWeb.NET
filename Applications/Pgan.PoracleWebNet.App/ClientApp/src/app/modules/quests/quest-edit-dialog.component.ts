@@ -18,9 +18,9 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -37,8 +37,7 @@ import { AUTO_DELETE, compose, isAutoDelete, isSummary, preserve, SUMMARY } from
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
-    WhereChipComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-quest-edit-dialog',
   standalone: true,
@@ -57,10 +56,9 @@ export class QuestEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Quest>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<QuestEditDialogComponent>);
+
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
-    distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
-    distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     summary: [isSummary(this.data.clean)],
     template: [this.data.template ?? ''],
   });
@@ -68,6 +66,9 @@ export class QuestEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly summaryService = inject(SummaryScheduleService);
 
@@ -131,21 +132,6 @@ export class QuestEditDialogComponent {
     return this.getRewardTypeLabel();
   }
 
-  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
-  isAreaScoped(): boolean {
-    return (this.data.overrideAreas?.length ?? 0) > 0;
-  }
-
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') {
-      this.form.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.form.controls.distanceKm.value) {
-        this.form.controls.distanceKm.setValue(1);
-      }
-    }
-  }
-
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).style.display = 'none';
   }
@@ -157,11 +143,13 @@ export class QuestEditDialogComponent {
   save(): void {
     this.saving.set(true);
     const values = this.form.getRawValue();
-    const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
 
     const update: QuestUpdate = {
+      overrideAreas: scope.overrideAreas,
+      overrideLocationLabel: scope.overrideLocationLabel,
       clean: preserve(this.data.clean, AUTO_DELETE | SUMMARY, compose(!!values.clean, false, !!values.summary)),
-      distance: distanceMeters,
+      distance: scope.distance,
       pokemonId: this.data.pokemonId,
       reward: this.data.reward,
       rewardType: this.data.rewardType,

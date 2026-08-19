@@ -18,9 +18,9 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 export interface MaxBattleEditDialogData {
@@ -60,8 +60,7 @@ const LEVEL_OPTION_KEYS: { gmax: boolean; i18nKey: string; value: number }[] = [
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
-    WhereChipComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-max-battle-edit-dialog',
   standalone: true,
@@ -81,14 +80,13 @@ export class MaxBattleEditDialogComponent {
 
   form = this.fb.group({
     clean: [isAutoDelete(this.data.item.clean)],
-    distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
-    distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gmax: [this.data.item.gmax === 1],
     level: [this.data.item.level],
     template: [this.data.item.template ?? ''],
   });
 
   readonly isLevelBased = this.data.item.pokemonId === 9000;
+
   readonly isWebhook = inject(AuthService).isImpersonating();
   readonly levelOptions: MaxBattleLevelOption[] = LEVEL_OPTION_KEYS.map(k => ({
     gmax: k.gmax,
@@ -97,6 +95,9 @@ export class MaxBattleEditDialogComponent {
   }));
 
   saving = signal(false);
+
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
 
   getImage(): string {
     const item = this.data.item;
@@ -121,23 +122,8 @@ export class MaxBattleEditDialogComponent {
     return this.i18n.instant('MAX_BATTLES.ANY_POKEMON');
   }
 
-  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
-  isAreaScoped(): boolean {
-    return (this.data.item.overrideAreas?.length ?? 0) > 0;
-  }
-
   isGmax(): boolean {
     return this.data.item.gmax === 1 || this.data.item.level === 7 || this.data.item.level === 8;
-  }
-
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') {
-      this.form.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.form.controls.distanceKm.value) {
-        this.form.controls.distanceKm.setValue(1);
-      }
-    }
   }
 
   onImageError(event: Event): void {
@@ -147,7 +133,7 @@ export class MaxBattleEditDialogComponent {
   save(): void {
     this.saving.set(true);
     const values = this.form.getRawValue();
-    const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
 
     const item = this.data.item;
     const levelVal = this.isLevelBased ? (values.level ?? item.level) : 9000;
@@ -157,8 +143,10 @@ export class MaxBattleEditDialogComponent {
     const gmaxVal = this.isLevelBased ? (levelDef?.gmax ? 1 : 0) : values.gmax ? 1 : 0;
 
     const update: MaxBattleUpdate = {
+      overrideAreas: scope.overrideAreas,
+      overrideLocationLabel: scope.overrideLocationLabel,
       clean: preserve(item.clean, AUTO_DELETE, values.clean ? 1 : 0),
-      distance: distanceMeters,
+      distance: scope.distance,
       // Carried through from the existing alarm, not reset to the 9000 "any" sentinel. Neither
       // dialog can set these -- they come from the bot -- so hardcoding 9000 here meant any
       // unrelated edit, a distance change included, silently destroyed the user's filter and

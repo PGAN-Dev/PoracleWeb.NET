@@ -15,9 +15,9 @@ import { Lure, LureUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -34,8 +34,7 @@ import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../.
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
-    WhereChipComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-lure-edit-dialog',
   standalone: true,
@@ -49,10 +48,9 @@ export class LureEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Lure>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<LureEditDialogComponent>);
+
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
-    distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
-    distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     editInPlace: [isEdit(this.data.clean)],
     template: [this.data.template ?? ''],
   });
@@ -60,6 +58,9 @@ export class LureEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
   getLureIcon(): string {
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${this.data.lureId}.png`;
   }
@@ -83,26 +84,18 @@ export class LureEditDialogComponent {
     }
   }
 
-  /** True when the alarm is confined to areas, which the areas-or-distance control cannot express. */
-  isAreaScoped(): boolean {
-    return (this.data.overrideAreas?.length ?? 0) > 0;
-  }
-
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
-
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     this.lureService
       .update(this.data.uid, {
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         // Only bits 1 (auto-delete) and 2 (edit-in-place) are user-editable here; preserve
         // any summary bit (4) or future bits the bot may have set on this alarm.
         clean: preserve(this.data.clean, AUTO_DELETE | EDIT, compose(!!v.clean, !!v.editInPlace, false)),
-        distance: dist,
+        distance: scope.distance,
         lureId: this.data.lureId,
         template: v.template || '',
       } as LureUpdate)
