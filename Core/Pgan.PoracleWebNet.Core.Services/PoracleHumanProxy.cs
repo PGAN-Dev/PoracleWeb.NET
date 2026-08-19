@@ -169,6 +169,109 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
         return doc.RootElement.Clone();
     }
 
+
+    public async Task<SavedPlaces> GetPlacesAsync(string userId)
+    {
+        var response = await this.SendAsync(HttpMethod.Get, $"/api/humans/{Encode(userId)}/locations");
+        EnsureAccountStillExists(response);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+
+        // PoracleNG wraps this one as {"locations": {...}, "status": "ok"} -- reading the root as the
+        // payload returns an empty set rather than an error, which is the whole reason this note exists.
+        if (!doc.RootElement.TryGetProperty("locations", out var locations))
+        {
+            return new SavedPlaces();
+        }
+
+        var result = new SavedPlaces();
+
+        if (locations.TryGetProperty("default", out var def) && def.ValueKind == JsonValueKind.Object)
+        {
+            result.Default = new SavedPlace
+            {
+                Label = string.Empty,
+                Latitude = def.GetDoubleProp("latitude"),
+                Longitude = def.GetDoubleProp("longitude"),
+            };
+        }
+
+        if (locations.TryGetProperty("named", out var named) && named.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var place in named.EnumerateArray())
+            {
+                result.Named.Add(new SavedPlace
+                {
+                    Label = place.GetStringProp("label"),
+                    Latitude = place.GetDoubleProp("latitude"),
+                    Longitude = place.GetDoubleProp("longitude"),
+                });
+            }
+        }
+
+        return result;
+    }
+
+    public async Task<string?> AddPlaceAsync(string userId, SavedPlace place)
+    {
+        var body = JsonSerializer.Serialize(new
+        {
+            label = place.Label,
+            latitude = place.Latitude,
+            longitude = place.Longitude,
+        });
+
+        var response = await this.SendAsync(
+            HttpMethod.Post, $"/api/humans/{Encode(userId)}/locations/add", body);
+        EnsureAccountStillExists(response);
+        response.EnsureSuccessStatusCode();
+
+        // A rejected label is reported inside a 200: PoracleNG answers per row so a batch can partly
+        // succeed. Treating the 200 as success stored nothing and told the user it worked.
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+
+        if (!doc.RootElement.TryGetProperty("results", out var results)
+            || results.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        foreach (var row in results.EnumerateArray())
+        {
+            var error = row.GetStringPropOrNull("error");
+            if (!string.IsNullOrEmpty(error))
+            {
+                return error;
+            }
+        }
+
+        return null;
+    }
+
+    public async Task DeletePlaceAsync(string userId, string label)
+    {
+        var response = await this.SendAsync(
+            HttpMethod.Post, $"/api/humans/{Encode(userId)}/locations/{Encode(label)}/delete");
+        EnsureAccountStillExists(response);
+
+        if (response.StatusCode == HttpStatusCode.Conflict)
+        {
+            var conflict = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(conflict);
+            var rules = doc.RootElement.TryGetProperty("referencing_rules", out var refs)
+                && refs.ValueKind == JsonValueKind.Array
+                    ? refs.EnumerateArray().Select(r => r.ToString()).ToList()
+                    : [];
+
+            throw new PlaceInUseException(rules);
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? body = null)
     {
         var request = new HttpRequestMessage(method, $"{this._apiAddress}{path}");

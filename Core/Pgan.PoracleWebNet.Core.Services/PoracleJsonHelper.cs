@@ -241,9 +241,24 @@ internal static class PoracleJsonHelper
             : null;
 
     /// <summary>
-    /// Adds back every property the stored row carries that the written body does not, so a single-alarm
-    /// edit preserves the fields PoracleWeb has no model for. See <see cref="RewriteRows"/> and #730.
+    /// Adds back every property the stored row carries that the written body does not state, so a
+    /// single-alarm edit preserves fields the caller had no value for. See <see cref="RewriteRows"/>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A <c>null</c> in the written body counts as "not stated", not as "clear this". Once the models
+    /// gained <c>OverrideLocationLabel</c> and <c>OverrideAreas</c>, every serialized alarm carried them
+    /// as explicit nulls whether or not the caller had read them, and treating that as a value meant an
+    /// edit wiped the stored override — the exact defect this helper exists to prevent, reintroduced by
+    /// modelling the field.
+    /// </para>
+    /// <para>
+    /// Clearing is still expressible, and matches what PoracleNG reads as empty: an empty array for
+    /// <c>override_areas</c> (<c>normalizeOverrideAreas</c> maps it to nil) and an empty string for
+    /// <c>override_location_label</c> (<c>nullIfEmpty</c>). Same null-versus-empty split the models
+    /// already use for <c>gym_id</c>. See #730.
+    /// </para>
+    /// </remarks>
     public static JsonElement PreserveUnmodelled(JsonElement stored, JsonElement written)
     {
         if (stored.ValueKind != JsonValueKind.Object || written.ValueKind != JsonValueKind.Object)
@@ -251,17 +266,25 @@ internal static class PoracleJsonHelper
             return written;
         }
 
-        var present = new HashSet<string>(StringComparer.Ordinal);
+        var stated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var prop in written.EnumerateObject())
         {
-            present.Add(prop.Name);
+            if (prop.Value.ValueKind != JsonValueKind.Null)
+            {
+                stated.Add(prop.Name);
+            }
         }
 
-        var missing = stored.EnumerateObject().Where(p => !present.Contains(p.Name) && !ShouldStrip(p)).ToList();
-        if (missing.Count == 0)
+        var fromStored = stored.EnumerateObject()
+            .Where(p => !stated.Contains(p.Name) && !ShouldStrip(p))
+            .ToList();
+
+        if (fromStored.Count == 0)
         {
             return written;
         }
+
+        var supplied = new HashSet<string>(fromStored.Select(p => p.Name), StringComparer.Ordinal);
 
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
@@ -269,10 +292,16 @@ internal static class PoracleJsonHelper
             writer.WriteStartObject();
             foreach (var prop in written.EnumerateObject())
             {
+                // The stored row is about to supply this one; writing the null too would duplicate the key.
+                if (supplied.Contains(prop.Name))
+                {
+                    continue;
+                }
+
                 prop.WriteTo(writer);
             }
 
-            foreach (var prop in missing)
+            foreach (var prop in fromStored)
             {
                 prop.WriteTo(writer);
             }
