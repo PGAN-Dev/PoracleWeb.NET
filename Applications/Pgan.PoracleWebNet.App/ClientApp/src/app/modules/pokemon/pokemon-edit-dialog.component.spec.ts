@@ -43,7 +43,7 @@ describe('PokemonEditDialogComponent', () => {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
         },
-        { provide: AuthService, useValue: { isImpersonating: () => false } },
+        { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
       ],
       imports: [PokemonEditDialogComponent],
     });

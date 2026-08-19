@@ -126,3 +126,11 @@ mat-expansion-panel {
   color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 60%));
   font-size: 0.75rem;
 }
+
+// Matches the add dialog, which is where this hint already lived.
+.pvp-cap-default-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  line-height: 1.4;
+}
