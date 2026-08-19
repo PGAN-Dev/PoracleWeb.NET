@@ -18,11 +18,13 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { PlacesService } from '../../core/services/places.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -57,12 +59,14 @@ export class QuestAddDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
-
   private readonly snackBar = inject(MatSnackBar);
+
   commonForm = this.fb.group({
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
+    // Empty means the profile pin, which is what a radius has always meant.
+    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     summary: [false],
     template: [''],
   });
@@ -70,11 +74,13 @@ export class QuestAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
 
   readonly iconService = inject(IconService);
-  readonly isWebhook = inject(AuthService).isImpersonating();
 
+  readonly isWebhook = inject(AuthService).isImpersonating();
   itemForm = this.fb.group({
     reward: [0],
   });
+
+  readonly places = inject(PlacesService);
 
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
@@ -121,6 +127,7 @@ export class QuestAddDialogComponent {
   }
 
   onDistanceModeChange(): void {
+    if (this.commonForm.controls.distanceMode.value === 'areas') this.commonForm.controls.placeLabel.setValue('');
     if (this.commonForm.controls.distanceMode.value === 'areas') {
       this.commonForm.controls.distanceKm.setValue(0);
     } else {
@@ -147,7 +154,12 @@ export class QuestAddDialogComponent {
     if (!this.canSave()) return;
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
-    const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet.
+    const scope = scopeToFields(
+      common.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: common.distanceKm ?? 1, mode: common.placeLabel ? 'place' : 'profile', placeLabel: common.placeLabel ?? '' },
+    );
     // New alarms have no prior bits, so compose directly from the two surfaced toggles (edit-in-place unsupported for quests).
     const cleanValue = compose(!!common.clean, false, !!common.summary);
 
@@ -158,8 +170,10 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedPokemonIds()) {
           creates.push(
             this.questService.create({
+              overrideAreas: scope.overrideAreas,
+              overrideLocationLabel: scope.overrideLocationLabel,
               clean: cleanValue,
-              distance: distanceMeters,
+              distance: scope.distance,
               pokemonId,
               reward: pokemonId,
               rewardType: 7,
@@ -172,8 +186,10 @@ export class QuestAddDialogComponent {
       case 1:
         creates.push(
           this.questService.create({
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
             clean: cleanValue,
-            distance: distanceMeters,
+            distance: scope.distance,
             pokemonId: 0,
             reward: this.itemForm.controls.reward.value ?? 0,
             rewardType: 2,
@@ -186,8 +202,10 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedMegaPokemonIds()) {
           creates.push(
             this.questService.create({
+              overrideAreas: scope.overrideAreas,
+              overrideLocationLabel: scope.overrideLocationLabel,
               clean: cleanValue,
-              distance: distanceMeters,
+              distance: scope.distance,
               pokemonId,
               reward: pokemonId,
               rewardType: 12,
@@ -201,8 +219,10 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedCandyPokemonIds()) {
           creates.push(
             this.questService.create({
+              overrideAreas: scope.overrideAreas,
+              overrideLocationLabel: scope.overrideLocationLabel,
               clean: cleanValue,
-              distance: distanceMeters,
+              distance: scope.distance,
               pokemonId,
               reward: pokemonId,
               rewardType: 4,

@@ -31,6 +31,7 @@ export interface Monster {
   profileNo: number;
   pvpRankingBest: number;
   pvpRankingCap: number;
+  pvpRankingEvolution: number;
   pvpRankingLeague: number;
   pvpRankingMinCp: number;
   pvpRankingWorst: number;

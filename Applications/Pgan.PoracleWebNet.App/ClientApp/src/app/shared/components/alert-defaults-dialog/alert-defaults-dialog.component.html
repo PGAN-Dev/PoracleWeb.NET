@@ -37,6 +37,16 @@
         <mat-hint>{{ 'ALERT_DEFAULTS.DEFAULT_DISTANCE_HINT' | translate }}</mat-hint>
       }
     </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'WHERE.MEASURED_FROM' | translate }}</mat-label>
+      <mat-select [(ngModel)]="placeLabel">
+        <mat-option value="">{{ 'WHERE.MY_PIN' | translate }}</mat-option>
+        @for (place of places.named(); track place.label) {
+          <mat-option [value]="place.label">{{ place.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
   }
 
   <app-delivery-preview [mode]="mode()" [distanceKm]="mode() === 'distance' ? distanceKm : 0"></app-delivery-preview>

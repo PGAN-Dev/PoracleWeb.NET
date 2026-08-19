@@ -116,6 +116,8 @@ export class PokemonAddDialogComponent implements OnInit {
   pvpForm = this.fb.group({
     pvpRankingBest: [1],
     pvpRankingCap: [0],
+    // 0 base, 1 any mega, 2 Mega X, 3 Mega Y — PoracleNG's pvp_ranking_evolution.
+    pvpRankingEvolution: [0],
     pvpRankingLeague: [0],
     pvpRankingMinCp: [0],
     pvpRankingWorst: [100],
@@ -216,6 +218,7 @@ export class PokemonAddDialogComponent implements OnInit {
           pokemonId,
           pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
           pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
+          pvpRankingEvolution: pvp.pvpRankingLeague ? (pvp.pvpRankingEvolution ?? 0) : 0,
           pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
           pvpRankingMinCp: pvp.pvpRankingLeague ? (pvp.pvpRankingMinCp ?? 0) : 0,
           pvpRankingWorst: pvp.pvpRankingLeague ? (pvp.pvpRankingWorst ?? 100) : 4096,

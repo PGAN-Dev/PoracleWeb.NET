@@ -37,7 +37,10 @@ describe('InvasionAddDialogComponent — track all (#416)', () => {
         { provide: I18nService, useValue: { instant: (k: string) => k } },
         { provide: AuthService, useValue: { isImpersonating: () => false } },
         { provide: MasterDataService, useValue: { getPokemon: () => of([]) } },
-        { provide: AlertDefaultsService, useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas' } },
+        {
+          provide: AlertDefaultsService,
+          useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
+        },
         {
           provide: InvasionService,
           useValue: {

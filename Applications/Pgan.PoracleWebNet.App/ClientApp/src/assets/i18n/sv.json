@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Välkomst-onboarding"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Megautveckling",
+    "PVP_EVOLUTION_HINT": "Ranka grundformerna eller en mega. Megor rankas separat, så en megaregel matchar inte en grundform.",
+    "PVP_EVO_BASE": "Grund",
+    "PVP_EVO_MEGA": "Mega",
+    "PVP_EVO_MEGA_X": "Mega X",
+    "PVP_EVO_MEGA_Y": "Mega Y",
     "PAGE_TITLE": "Pokemon-larm",
     "PAGE_DESC": "Spåra vilda Pokemon-spawns med anpassade IV-, CP-, nivå- och PVP-filter.",
     "SEARCH_PLACEHOLDER": "Sök efter namn eller #...",

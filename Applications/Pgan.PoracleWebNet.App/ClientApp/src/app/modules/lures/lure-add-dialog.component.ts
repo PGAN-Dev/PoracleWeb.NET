@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -17,8 +18,10 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
+import { PlacesService } from '../../core/services/places.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 interface LureOption {
@@ -43,6 +46,7 @@ interface LureOption {
     TranslatePipe,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    MatSelectModule,
   ],
   selector: 'app-lure-add-dialog',
   standalone: true,
@@ -61,10 +65,13 @@ export class LureAddDialogComponent {
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     editInPlace: [false],
+    // Empty means the profile pin, which is what a radius has always meant.
+    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
   lureTypes: LureOption[] = [
     { id: 501, name: 'Normal', color: '#FF9800' },
     { id: 502, name: 'Glacial', color: '#03A9F4' },
@@ -74,6 +81,8 @@ export class LureAddDialogComponent {
     { id: 506, name: 'Golden', color: '#FFC107' },
   ];
 
+  readonly places = inject(PlacesService);
+
   saving = signal(false);
   selectedLureIds = signal<number[]>([]);
 
@@ -82,6 +91,7 @@ export class LureAddDialogComponent {
   }
 
   onDistanceModeChange(): void {
+    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
     else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
   }
@@ -90,12 +100,19 @@ export class LureAddDialogComponent {
     if (this.selectedLureIds().length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet.
+    const scope = scopeToFields(
+      v.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
+    );
     const creates = this.selectedLureIds().map(lureId =>
       this.lureService.create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         // New lures have no prior bits, so compose bits 1 (auto-delete) and 2 (edit-in-place) directly.
         clean: compose(!!v.clean, !!v.editInPlace, false),
-        distance: dist,
+        distance: scope.distance,
         lureId,
         template: v.template || null,
       }),

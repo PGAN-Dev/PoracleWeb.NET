@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Benvenuto iniziale"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Megaevoluzione",
+    "PVP_EVOLUTION_HINT": "Classifica le forme base o una mega. Le mega hanno classifiche separate, quindi una regola mega non corrisponderà a una forma base.",
+    "PVP_EVO_BASE": "Base",
+    "PVP_EVO_MEGA": "Mega",
+    "PVP_EVO_MEGA_X": "Mega X",
+    "PVP_EVO_MEGA_Y": "Mega Y",
     "PAGE_TITLE": "Allarmi Pokemon",
     "PAGE_DESC": "Monitora gli spawn di Pokemon selvatici con filtri personalizzati per IV, CP, livello e PVP.",
     "SEARCH_PLACEHOLDER": "Cerca per nome o #...",

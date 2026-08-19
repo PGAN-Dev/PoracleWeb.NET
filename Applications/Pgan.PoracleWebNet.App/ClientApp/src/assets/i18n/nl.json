@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Welkom onboarding"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Mega-evolutie",
+    "PVP_EVOLUTION_HINT": "Rangschik de basisvormen of een mega. Mega's worden apart gerangschikt, dus een mega-regel matcht geen basisvorm.",
+    "PVP_EVO_BASE": "Basis",
+    "PVP_EVO_MEGA": "Mega",
+    "PVP_EVO_MEGA_X": "Mega X",
+    "PVP_EVO_MEGA_Y": "Mega Y",
     "PAGE_TITLE": "Pokemon Alarmen",
     "PAGE_DESC": "Volg wilde Pokemon spawns met aangepaste IV, CP, level en PVP filters.",
     "SEARCH_PLACEHOLDER": "Zoek op naam of #...",

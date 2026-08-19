@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Velkomst-onboarding"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Mega-udvikling",
+    "PVP_EVOLUTION_HINT": "Ranger grundformerne eller en mega. Megaer rangeres separat, så en mega-regel matcher ikke en grundform.",
+    "PVP_EVO_BASE": "Grund",
+    "PVP_EVO_MEGA": "Mega",
+    "PVP_EVO_MEGA_X": "Mega X",
+    "PVP_EVO_MEGA_Y": "Mega Y",
     "PAGE_TITLE": "Pokemon-alarmer",
     "PAGE_DESC": "Spor vilde Pokemon-spawns med brugerdefinerede IV-, CP-, niveau- og PVP-filtre.",
     "SEARCH_PLACEHOLDER": "Søg efter navn eller #...",

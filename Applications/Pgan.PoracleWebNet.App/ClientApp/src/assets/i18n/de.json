@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Willkommens-Einführung"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Mega-Entwicklung",
+    "PVP_EVOLUTION_HINT": "Werte die Grundformen oder eine Mega-Form. Megas werden getrennt gewertet, eine Mega-Regel trifft also keine Grundform.",
+    "PVP_EVO_BASE": "Basis",
+    "PVP_EVO_MEGA": "Mega",
+    "PVP_EVO_MEGA_X": "Mega X",
+    "PVP_EVO_MEGA_Y": "Mega Y",
     "PAGE_TITLE": "Pokemon-Alarme",
     "PAGE_DESC": "Verfolge wilde Pokemon-Spawns mit individuellen IV-, CP-, Level- und PVP-Filtern.",
     "SEARCH_PLACEHOLDER": "Suche nach Name oder #...",

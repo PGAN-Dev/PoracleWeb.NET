@@ -182,6 +182,12 @@
     "ARIA_LABEL": "Welcome onboarding"
   },
   "POKEMON": {
+    "PVP_EVOLUTION": "Mega evolution",
+    "PVP_EVOLUTION_HINT": "Rank the base forms, or a mega. Megas are ranked separately, so a mega rule will not match a base-form spawn.",
+    "PVP_EVO_BASE": "Base",
+    "PVP_EVO_MEGA": "Mega",
+    "PVP_EVO_MEGA_X": "Mega X",
+    "PVP_EVO_MEGA_Y": "Mega Y",
     "PAGE_TITLE": "Pokemon Alarms",
     "PAGE_DESC": "Track wild Pokemon spawns with custom IV, CP, level, and PVP filters.",
     "SEARCH_PLACEHOLDER": "Search by name or #...",

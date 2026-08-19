@@ -54,4 +54,33 @@ describe('AlertDefaultsService', () => {
     service.save('distance', NaN);
     expect(service.defaultDistanceKm()).toBe(1);
   });
+  it('remembers a default place alongside a distance', () => {
+    const service = new AlertDefaultsService();
+    service.save('distance', 2, 'work');
+    expect(service.defaultPlaceLabel()).toBe('work');
+    expect(new AlertDefaultsService().defaultPlaceLabel()).toBe('work');
+  });
+
+  it('drops the place when the default is areas', () => {
+    // A place only means anything alongside a radius; the two are mutually exclusive upstream. Keeping
+    // one here would seed every new alarm with a scope PoracleNG refuses.
+    const service = new AlertDefaultsService();
+    service.save('distance', 2, 'work');
+    service.save('areas', 2, 'work');
+    expect(service.defaultPlaceLabel()).toBe('');
+  });
+
+  it('forgets a default place that no longer exists', () => {
+    const service = new AlertDefaultsService();
+    service.save('distance', 2, 'work');
+    service.reconcilePlace(['home']);
+    expect(service.defaultPlaceLabel()).toBe('');
+  });
+
+  it('keeps a default place that still exists', () => {
+    const service = new AlertDefaultsService();
+    service.save('distance', 2, 'work');
+    service.reconcilePlace(['home', 'work']);
+    expect(service.defaultPlaceLabel()).toBe('work');
+  });
 });

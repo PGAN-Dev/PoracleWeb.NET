@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -17,9 +18,11 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { PlacesService } from '../../core/services/places.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 interface TeamOption {
@@ -45,6 +48,7 @@ interface TeamOption {
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    MatSelectModule,
   ],
   selector: 'app-gym-add-dialog',
   standalone: true,
@@ -63,11 +67,15 @@ export class GymAddDialogComponent {
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
+    // Empty means the profile pin, which is what a radius has always meant.
+    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     slotChanges: [false],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
+  readonly places = inject(PlacesService);
 
   saving = signal(false);
   selectedGymId = signal<string | null>(null);
@@ -84,6 +92,7 @@ export class GymAddDialogComponent {
   }
 
   onDistanceModeChange(): void {
+    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
     else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
   }
@@ -92,12 +101,19 @@ export class GymAddDialogComponent {
     if (this.selectedTeamIds().length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet.
+    const scope = scopeToFields(
+      v.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
+    );
     const creates = this.selectedTeamIds().map(team =>
       this.gymService.create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         battleChanges: v.battleChanges ? 1 : 0,
         clean: compose(!!v.clean, false, false),
-        distance: dist,
+        distance: scope.distance,
         gymId: this.selectedGymId() ?? '',
         slotChanges: v.slotChanges ? 1 : 0,
         team,

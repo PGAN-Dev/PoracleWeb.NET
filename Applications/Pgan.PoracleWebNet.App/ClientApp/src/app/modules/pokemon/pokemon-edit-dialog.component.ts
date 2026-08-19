@@ -92,6 +92,8 @@ export class PokemonEditDialogComponent implements OnInit {
     placeLabel: [this.data.overrideLocationLabel ?? ''],
     pvpRankingBest: [this.data.pvpRankingBest],
     pvpRankingCap: [this.data.pvpRankingCap ?? 0],
+    // 0 base, 1 any mega, 2 Mega X, 3 Mega Y — PoracleNG's pvp_ranking_evolution.
+    pvpRankingEvolution: [this.data.pvpRankingEvolution ?? 0],
     pvpRankingLeague: [this.data.pvpRankingLeague],
     pvpRankingMinCp: [this.data.pvpRankingMinCp],
     pvpRankingWorst: [this.data.pvpRankingWorst],
@@ -178,6 +180,7 @@ export class PokemonEditDialogComponent implements OnInit {
       minWeight: values.minWeight ?? 0,
       pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 0,
       pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,
+      pvpRankingEvolution: values.pvpRankingLeague ? (values.pvpRankingEvolution ?? 0) : 0,
       pvpRankingLeague: values.pvpRankingLeague ?? 0,
       pvpRankingMinCp: values.pvpRankingLeague ? (values.pvpRankingMinCp ?? 0) : 0,
       pvpRankingWorst: values.pvpRankingLeague ? (values.pvpRankingWorst ?? 100) : 4096,

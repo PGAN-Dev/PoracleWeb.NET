@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -16,9 +17,11 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { NestService } from '../../core/services/nest.service';
+import { PlacesService } from '../../core/services/places.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
@@ -36,6 +39,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     PokemonSelectorComponent,
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
+    MatSelectModule,
   ],
   selector: 'app-nest-add-dialog',
   standalone: true,
@@ -54,14 +58,19 @@ export class NestAddDialogComponent {
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
     minSpawnAvg: [0],
+    // Empty means the profile pin, which is what a radius has always meant.
+    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
+  readonly places = inject(PlacesService);
+
   saving = signal(false);
   selectedPokemonIds = signal<number[]>([]);
   onDistanceModeChange(): void {
+    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
     if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
     else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
   }
@@ -74,11 +83,18 @@ export class NestAddDialogComponent {
     if (this.selectedPokemonIds().length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet.
+    const scope = scopeToFields(
+      v.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
+    );
     const creates = this.selectedPokemonIds().map(pokemonId =>
       this.nestService.create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean: v.clean ? 1 : 0,
-        distance: dist,
+        distance: scope.distance,
         minSpawnAvg: v.minSpawnAvg ?? 0,
         pokemonId,
         template: v.template || null,
