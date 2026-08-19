@@ -1716,6 +1716,10 @@
     "LAST_PAGE": "Letzte Seite"
   },
   "WHERE": {
+    "SCOPE_SAVED": "Where updated.",
+    "SCOPE_SAVE_ERROR": "Could not update where that alert reaches you.",
+    "MY_PIN": "My pin",
+    "NEAR_PIN": "Within {{distance}} km of my pin",
     "ADD_PLACE": "Add a place",
     "NAME_PLACE_MESSAGE": "What should this place be called?",
     "NAME_PLACE_TITLE": "Name this place",
@@ -1738,6 +1742,7 @@
     "NO_PLACES": "You have not saved any places yet. Add one from the location menu.",
     "ONLY_IN": "Only in {{areas}}",
     "OPTION_AREAS": "Only in specific areas",
+    "OPTION_NEAR": "Near a point",
     "OPTION_PLACE": "Near a place",
     "OPTION_PROFILE": "Anywhere in my areas",
     "PLACE_LABEL": "Place",

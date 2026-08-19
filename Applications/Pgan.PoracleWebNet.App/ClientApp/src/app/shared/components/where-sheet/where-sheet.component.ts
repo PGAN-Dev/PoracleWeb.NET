@@ -12,7 +12,14 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { AreaService } from '../../../core/services/area.service';
 import { PlacesService } from '../../../core/services/places.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
-import { AlarmScope, AlarmScopeMode, titleCaseArea } from '../../utils/alarm-scope';
+import { AlarmScope, titleCaseArea } from '../../utils/alarm-scope';
+
+/**
+ * What the sheet offers, which is not quite what PoracleNG stores. "Near a point" covers both a radius
+ * from the profile pin and a radius from a saved place, because to a person those are one choice with
+ * a target, not two unrelated modes. The mapping back to the stored fields happens on save.
+ */
+type SheetMode = 'areas' | 'inherit' | 'near';
 
 export interface WhereSheetData {
   /** Areas the profile subscribes to, so the inherited option can say what it means. */
@@ -55,23 +62,26 @@ export class WhereSheetComponent implements OnInit {
    */
   readonly availableAreas = signal<{ name: string; own: boolean }[]>([]);
   readonly data = inject<WhereSheetData>(MAT_DIALOG_DATA);
-  readonly distanceKm = signal<number>(this.data.scope.distanceKm ?? 1);
+  readonly distanceKm = signal<number>(this.data.scope.distanceKm || 1);
 
-  readonly mode = signal<AlarmScopeMode>(this.data.scope.mode);
-  readonly placeLabel = signal<string>(this.data.scope.placeLabel ?? '');
+  readonly mode = signal<SheetMode>(initialMode(this.data.scope));
   readonly selectedAreas = signal<string[]>(this.data.scope.areas ?? []);
   readonly canSave = computed(() => {
     switch (this.mode()) {
       case 'areas':
         return this.selectedAreas().length > 0;
-      case 'place':
-        return this.placeLabel().length > 0 && this.distanceKm() > 0;
+      case 'near':
+        // The pin needs no label, only a radius.
+        return this.distanceKm() > 0;
       default:
         return true;
     }
   });
 
   readonly dialogRef = inject<MatDialogRef<WhereSheetComponent, AlarmScope>>(MatDialogRef);
+
+  /** Empty means the profile pin; anything else is a saved place's label. */
+  readonly placeLabel = signal<string>(this.data.scope.placeLabel ?? '');
 
   readonly places = inject(PlacesService);
 
@@ -103,10 +113,19 @@ export class WhereSheetComponent implements OnInit {
     switch (this.mode()) {
       case 'areas':
         return { areas: this.selectedAreas(), mode: 'areas' };
-      case 'place':
-        return { distanceKm: this.distanceKm(), mode: 'place', placeLabel: this.placeLabel() };
+      case 'near':
+        return this.placeLabel()
+          ? { distanceKm: this.distanceKm(), mode: 'place', placeLabel: this.placeLabel() }
+          : { distanceKm: this.distanceKm(), mode: 'profile' };
       default:
         return { mode: 'profile' };
     }
   }
+}
+
+/** A stored scope back into the sheet's three options. A pin radius lands on "near", not "inherit". */
+function initialMode(scope: AlarmScope): SheetMode {
+  if (scope.mode === 'areas') return 'areas';
+  if (scope.mode === 'place') return 'near';
+  return (scope.distanceKm ?? 0) > 0 ? 'near' : 'inherit';
 }

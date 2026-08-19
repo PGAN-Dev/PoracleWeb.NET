@@ -17,14 +17,20 @@ describe('alarm-scope', () => {
       expect(scopeOf('home', null, 2500)).toEqual({ distanceKm: 2.5, mode: 'place', placeLabel: 'home' });
     });
 
-    it('reads neither as inherited', () => {
-      expect(scopeOf(null, null, 500)).toEqual({ mode: 'profile' });
+    it('reads a radius with no place as measured from the pin, not as inherited areas', () => {
+      // This is the pre-existing "within N km of me" alarm. Collapsing it into the areas reading would
+      // put the opposite words on the card.
+      expect(scopeOf(null, null, 500)).toEqual({ distanceKm: 0.5, mode: 'profile' });
+    });
+
+    it('reads no overrides and no radius as inherited', () => {
+      expect(scopeOf(null, null, 0)).toEqual({ distanceKm: 0, mode: 'profile' });
     });
 
     it('treats an empty area list as inherited rather than as an empty restriction', () => {
       // An alarm restricted to no areas would match nothing. PoracleNG stores the cleared state as an
       // empty column, so this has to read back as "no override".
-      expect(scopeOf(null, [], 0)).toEqual({ mode: 'profile' });
+      expect(scopeOf(null, [], 0)).toEqual({ distanceKm: 0, mode: 'profile' });
     });
 
     it('prefers areas when a row somehow carries both', () => {
@@ -66,6 +72,10 @@ describe('alarm-scope', () => {
     it('distinguishes an inherited scope with areas from one without', () => {
       expect(describeScope({ mode: 'profile' }, ['terrigal'], translate)).toBe('WHERE.PROFILE_AREAS');
       expect(describeScope({ mode: 'profile' }, [], translate)).toBe('WHERE.PROFILE_ANYWHERE');
+    });
+
+    it('says the pin, not the areas, when the inherited scope carries a radius', () => {
+      expect(describeScope({ distanceKm: 2, mode: 'profile' }, ['terrigal'], translate)).toBe('WHERE.NEAR_PIN:{"distance":"2"}');
     });
   });
 

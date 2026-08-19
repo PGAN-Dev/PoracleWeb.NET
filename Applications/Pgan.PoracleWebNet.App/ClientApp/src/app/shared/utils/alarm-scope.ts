@@ -29,7 +29,10 @@ export function scopeOf(
     };
   }
 
-  return { mode: 'profile' };
+  // A radius with no place is the behaviour that predates per-alarm scope: measured from the profile
+  // pin. It has to survive as its own reading, or "within 500 m of me" renders as "anywhere in my
+  // areas" — the same words for the opposite of what the alarm does.
+  return { distanceKm: metresToKm(distanceMetres), mode: 'profile' };
 }
 
 /**
@@ -54,7 +57,8 @@ export function scopeToFields(scope: AlarmScope): {
         distance: kmToMetres(scope.distanceKm ?? 0),
       };
     default:
-      return { overrideAreas: [], overrideLocationLabel: '', distance: 0 };
+      // Inherited scope, with or without a radius from the pin. Both overrides are cleared explicitly.
+      return { overrideAreas: [], overrideLocationLabel: '', distance: kmToMetres(scope.distanceKm ?? 0) };
   }
 }
 
@@ -71,6 +75,10 @@ export function describeScope(scope: AlarmScope, profileAreas: string[], transla
         place: scope.placeLabel ?? '',
       });
     default:
+      if ((scope.distanceKm ?? 0) > 0) {
+        return translate.instant('WHERE.NEAR_PIN', { distance: formatDistance(scope.distanceKm ?? 0) });
+      }
+
       return profileAreas.length > 0 ? translate.instant('WHERE.PROFILE_AREAS') : translate.instant('WHERE.PROFILE_ANYWHERE');
   }
 }

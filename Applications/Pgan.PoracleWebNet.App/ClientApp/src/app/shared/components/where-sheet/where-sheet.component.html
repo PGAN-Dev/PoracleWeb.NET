@@ -3,7 +3,7 @@
 <mat-dialog-content class="where-sheet">
   <mat-radio-group class="where-options" [ngModel]="mode()" (ngModelChange)="mode.set($event)">
     <label class="where-option">
-      <mat-radio-button value="profile">{{ 'WHERE.OPTION_PROFILE' | translate }}</mat-radio-button>
+      <mat-radio-button value="inherit">{{ 'WHERE.OPTION_PROFILE' | translate }}</mat-radio-button>
       <p class="where-option-detail">
         @if (profileAreaSummary()) {
           {{ profileAreaSummary() }}
@@ -14,12 +14,13 @@
     </label>
 
     <label class="where-option">
-      <mat-radio-button value="place">{{ 'WHERE.OPTION_PLACE' | translate }}</mat-radio-button>
-      @if (mode() === 'place') {
+      <mat-radio-button value="near">{{ 'WHERE.OPTION_NEAR' | translate }}</mat-radio-button>
+      @if (mode() === 'near') {
         <div class="where-option-body">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'WHERE.PLACE_LABEL' | translate }}</mat-label>
             <mat-select [ngModel]="placeLabel()" (ngModelChange)="placeLabel.set($event)">
+              <mat-option value="">{{ 'WHERE.MY_PIN' | translate }}</mat-option>
               @for (place of places.named(); track place.label) {
                 <mat-option [value]="place.label">{{ place.label }}</mat-option>
               }
