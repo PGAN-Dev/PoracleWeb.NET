@@ -214,18 +214,27 @@
                   <mat-button-toggle [value]="cap">{{ 'POKEMON.PVP_CAP_LEVEL' | translate: { level: cap } }}</mat-button-toggle>
                 }
               </mat-button-toggle-group>
-
-              <fieldset class="pvp-cap-fieldset">
-                <legend class="pvp-cap-legend">{{ 'POKEMON.PVP_EVOLUTION' | translate }}</legend>
-                <mat-button-toggle-group [formControl]="form.controls.pvpRankingEvolution" class="pvp-cap-toggle">
-                  <mat-button-toggle [value]="0">{{ 'POKEMON.PVP_EVO_BASE' | translate }}</mat-button-toggle>
-                  <mat-button-toggle [value]="1">{{ 'POKEMON.PVP_EVO_MEGA' | translate }}</mat-button-toggle>
-                  <mat-button-toggle [value]="2">{{ 'POKEMON.PVP_EVO_MEGA_X' | translate }}</mat-button-toggle>
-                  <mat-button-toggle [value]="3">{{ 'POKEMON.PVP_EVO_MEGA_Y' | translate }}</mat-button-toggle>
-                </mat-button-toggle-group>
-              </fieldset>
             </fieldset>
           }
+
+          <!--
+            Sibling of the level-cap control, not a child of it. Nested inside, this only rendered when
+            the server advertises PVP level caps -- and on a server with none, which is the common case,
+            the mega picker was unreachable in the edit dialog while the add dialog offered it. The add
+            dialog is the shape to match.
+          -->
+          <fieldset class="pvp-cap-fieldset">
+            <legend class="pvp-cap-legend">{{ 'POKEMON.PVP_EVOLUTION' | translate }}</legend>
+            <mat-button-toggle-group [formControl]="form.controls.pvpRankingEvolution" class="pvp-cap-toggle">
+              <mat-button-toggle [value]="0">{{ 'POKEMON.PVP_EVO_BASE' | translate }}</mat-button-toggle>
+              <mat-button-toggle [value]="1">{{ 'POKEMON.PVP_EVO_MEGA' | translate }}</mat-button-toggle>
+              <mat-button-toggle [value]="2">{{ 'POKEMON.PVP_EVO_MEGA_X' | translate }}</mat-button-toggle>
+              <mat-button-toggle [value]="3">{{ 'POKEMON.PVP_EVO_MEGA_Y' | translate }}</mat-button-toggle>
+            </mat-button-toggle-group>
+            <p class="pvp-cap-default-hint">
+              <em>{{ 'POKEMON.PVP_EVOLUTION_HINT' | translate }}</em>
+            </p>
+          </fieldset>
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.PVP_BEST_RANK' | translate }}</mat-label>
