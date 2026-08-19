@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, input, model, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, effect, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -57,6 +57,7 @@ export class ScopePickerComponent implements OnInit {
   private readonly areaService = inject(AreaService);
   private readonly dialog = inject(MatDialog);
   private readonly geofenceService = inject(UserGeofenceService);
+  private readonly injector = inject(Injector);
   private readonly translate = inject(TranslateService);
 
   /**
@@ -100,19 +101,20 @@ export class ScopePickerComponent implements OnInit {
 
   readonly selectedAreas = signal<string[]>([]);
 
-  constructor() {
-    // Seed once from whatever the host passed in, then stop reading it: after that the controls own
-    // the state, and mirroring both ways fights the user's typing.
+  ngOnInit(): void {
+    // Seed here, not in the constructor: a signal input is not populated until after construction, so
+    // reading it there got the model's own default and wrote it straight back over whatever the host
+    // passed. That silently discarded the Alert Defaults preference on a new alarm and an existing
+    // alarm's own scope when editing one.
     const initial = this.scope();
     this.mode.set(initialMode(initial));
     this.placeLabel.set(initial.placeLabel ?? '');
     this.distanceKm.set(initial.distanceKm || 1);
     this.selectedAreas.set(initial.areas ?? []);
 
-    effect(() => this.scope.set(this.currentScope()));
-  }
+    // Only mirror outward after seeding, or the write-back races the seed.
+    effect(() => this.scope.set(this.currentScope()), { injector: this.injector });
 
-  ngOnInit(): void {
     this.places.load().subscribe({ error: () => undefined });
 
     this.areaService.getAvailable().subscribe({
@@ -138,7 +140,6 @@ export class ScopePickerComponent implements OnInit {
 
     this.dialog
       .open(LocationDialogComponent, {
-        width: '600px',
         data: { latitude: anchor?.latitude ?? 0, longitude: anchor?.longitude ?? 0, pickOnly: true },
       })
       .afterClosed()
@@ -153,7 +154,7 @@ export class ScopePickerComponent implements OnInit {
    */
   setPin(): void {
     this.dialog
-      .open(LocationDialogComponent, { width: '600px', data: this.places.pin() })
+      .open(LocationDialogComponent, { data: this.places.pin() })
       .afterClosed()
       .subscribe((saved?: { latitude: number; longitude: number }) => {
         // The dialog writes the pin itself; re-reading is what clears the warning.

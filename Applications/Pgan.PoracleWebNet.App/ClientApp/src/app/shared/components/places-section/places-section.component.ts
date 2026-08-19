@@ -46,7 +46,6 @@ export class PlacesSectionComponent implements OnInit {
 
   addPlace(): void {
     const picker = this.dialog.open(LocationDialogComponent, {
-      width: '600px',
       data: { latitude: this.places.pin()?.latitude ?? 0, longitude: this.places.pin()?.longitude ?? 0, pickOnly: true },
     });
 

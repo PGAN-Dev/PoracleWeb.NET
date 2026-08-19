@@ -318,7 +318,6 @@ export class OnboardingComponent implements OnInit {
 
   async openLocationDialog() {
     const dialogRef = this.dialog.open(LocationDialogComponent, {
-      width: '600px',
       data: null,
     });
     const result = await firstValueFrom(dialogRef.afterClosed());

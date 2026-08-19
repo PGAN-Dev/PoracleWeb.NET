@@ -18,9 +18,10 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -40,7 +41,7 @@ import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
     TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-quick-pick-apply-dialog',
   standalone: true,
@@ -49,6 +50,7 @@ import { AUTO_DELETE, preserve } from '../../shared/utils/clean-flags';
 })
 export class QuickPickApplyDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
@@ -61,15 +63,13 @@ export class QuickPickApplyDialogComponent {
   readonly data = inject<QuickPickSummary>(MAT_DIALOG_DATA);
   deliveryForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     template: [''],
   });
 
   readonly dialogRef = inject(MatDialogRef<QuickPickApplyDialogComponent>);
+
   readonly excludedPokemonIds = signal<number[]>(this.data.appliedState?.excludePokemonIds ?? []);
   readonly excludeEnabled = signal((this.data.appliedState?.excludePokemonIds?.length ?? 0) > 0);
-
   readonly showExclusions =
     this.data.definition.alarmType === 'monster' &&
     (this.data.definition.filters['pokemonId'] === 0 ||
@@ -83,6 +83,20 @@ export class QuickPickApplyDialogComponent {
   });
 
   readonly isReapply = !!this.data.appliedState;
+
+  /**
+   * Seeded from the saved defaults, then owned by the picker. A quick pick creates real alarms, so it
+   * asks the same question in the same shape as the add dialogs do.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
 
   /** Whether this apply will create individual rows */
   readonly willTrackIndividually = computed(() => this.individualAlarmCount() > 0);
@@ -98,7 +112,7 @@ export class QuickPickApplyDialogComponent {
     }
 
     const delivery = this.deliveryForm.getRawValue();
-    const distanceMeters = delivery.distanceMode === 'areas' ? 0 : Math.round((delivery.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
 
     // clean is a PoracleNG bitmask (bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary).
     // The Delivery tab only toggles bit 1, so preserve any other bits the preset definition carries
@@ -106,8 +120,10 @@ export class QuickPickApplyDialogComponent {
     const baseClean = typeof this.data.definition.filters['clean'] === 'number' ? (this.data.definition.filters['clean'] as number) : 0;
 
     const request: QuickPickApplyRequest = {
+      overrideAreas: scope.overrideAreas,
+      overrideLocationLabel: scope.overrideLocationLabel,
       clean: preserve(baseClean, AUTO_DELETE, delivery.clean ? 1 : 0),
-      distance: distanceMeters,
+      distance: scope.distance,
       excludePokemonIds: this.showExclusions && this.excludeEnabled() ? this.excludedPokemonIds() : [],
       template: delivery.template || undefined,
     };
@@ -133,14 +149,6 @@ export class QuickPickApplyDialogComponent {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  onDistanceModeChange(): void {
-    if (this.deliveryForm.controls.distanceMode.value === 'areas') {
-      this.deliveryForm.controls.distanceKm.setValue(0);
-    } else if (!this.deliveryForm.controls.distanceKm.value) {
-      this.deliveryForm.controls.distanceKm.setValue(1);
-    }
   }
 
   onExcludedPokemonChange(ids: number[]): void {

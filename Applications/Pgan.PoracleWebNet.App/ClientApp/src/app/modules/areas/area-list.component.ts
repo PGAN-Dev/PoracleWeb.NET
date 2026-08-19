@@ -232,7 +232,6 @@ export class AreaListComponent implements OnInit {
 
   openLocationDialog(): void {
     const ref = this.dialog.open(LocationDialogComponent, {
-      width: '400px',
       data: this.location(),
     });
     ref.afterClosed().subscribe((result: Location | undefined) => {
