@@ -63,6 +63,10 @@
               <mat-icon>edit_location</mat-icon>
               {{ location() ? ('AREAS.CHANGE_LOCATION' | translate) : ('AREAS.SET_LOCATION' | translate) }}
             </button>
+            <a mat-button routerLink="/places">
+              <mat-icon>place</mat-icon>
+              {{ 'AREAS.MANAGE_PLACES' | translate }}
+            </a>
           </div>
         </div>
         <p class="method-description">

@@ -2,20 +2,25 @@ import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import { Location, SavedPlace } from '../../../core/models';
-import { PlacesService } from '../../../core/services/places.service';
-import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
-import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
+import { Location, SavedPlace } from '../../core/models';
+import { PlacesService } from '../../core/services/places.service';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 
 /**
  * The places a user's alarms can be aimed at: the profile pin, plus whatever they have named.
+ *
+ * A page rather than a dialog, and in the nav beside Areas and My Geofences, because these are the
+ * user's data and not a preference. The Areas page already frames alerts as reaching you by area or by
+ * a radius from a point; named points are more of the second, so hiding them in a settings menu split
+ * one idea across two surfaces.
  *
  * Adding a place borrows the location dialog as a coordinate picker rather than growing a second map,
  * then asks for the name separately, because picking a point and naming it are two decisions and
@@ -23,13 +28,13 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, MatButtonModule, MatDialogModule, MatIconModule, MatListModule, MatProgressSpinnerModule, TranslatePipe],
-  selector: 'app-places-dialog',
+  imports: [DecimalPipe, MatButtonModule, MatIconModule, MatListModule, MatProgressSpinnerModule, TranslatePipe],
+  selector: 'app-places',
   standalone: true,
-  styleUrl: './places-dialog.component.scss',
-  templateUrl: './places-dialog.component.html',
+  styleUrl: './places.component.scss',
+  templateUrl: './places.component.html',
 })
-export class PlacesDialogComponent implements OnInit {
+export class PlacesComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);

@@ -93,6 +93,11 @@ export const routes: Routes = [
     path: 'geofences',
   },
   {
+    canActivate: [authGuard, disabledFeatureGuard('disable_location')],
+    loadComponent: () => import('./modules/places/places.component').then(m => m.PlacesComponent),
+    path: 'places',
+  },
+  {
     canActivate: [authGuard],
     loadComponent: () => import('./modules/cleaning/cleaning.component').then(m => m.CleaningComponent),
     path: 'cleaning',

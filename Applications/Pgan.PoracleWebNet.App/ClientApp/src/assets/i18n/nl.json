@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Plaatsen",
     "GROUP_ALARMS": "Alarmen",
     "GROUP_SETTINGS": "Instellingen",
     "GROUP_ADMIN": "Beheer",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Standaardinstellingen meldingen",
-    "PLACES": "Plaatsen"
+    "ALERT_DEFAULTS": "Standaardinstellingen meldingen"
   },
   "SHORTCUTS": {
     "TITLE": "Sneltoetsen",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Max Battle-alarm bijgewerkt"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Plaatsen beheren",
     "PAGE_TITLE": "Gebieden & Locatie",
     "PAGE_DESC": "Bepaal waar je meldingen ontvangt.",
     "METHOD_AREAS": "Gebieden",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Laatste pagina"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Benoemde punten waar je meldingen op gericht kunnen worden, in plaats van je locatie.",
     "ADD_PLACE": "Plaats toevoegen",
     "AREAS_LABEL": "Gebieden",
     "AREA_LIST_MORE": "{{areas}} en nog {{count}}",

@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Lugares",
     "GROUP_ALARMS": "Alarmas",
     "GROUP_SETTINGS": "Ajustes",
     "GROUP_ADMIN": "Admin",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Valores predeterminados de alertas",
-    "PLACES": "Lugares"
+    "ALERT_DEFAULTS": "Valores predeterminados de alertas"
   },
   "SHORTCUTS": {
     "TITLE": "Atajos de teclado",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Alarma de Combate Dinamax actualizada"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Gestionar lugares",
     "PAGE_TITLE": "Zonas y ubicación",
     "PAGE_DESC": "Controla dónde recibes las notificaciones.",
     "METHOD_AREAS": "Zonas",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Última página"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Puntos con nombre a los que puedes dirigir tus alertas en vez de a tu ubicación.",
     "ADD_PLACE": "Añadir un lugar",
     "AREAS_LABEL": "Áreas",
     "AREA_LIST_MORE": "{{areas}} y {{count}} más",

@@ -1,9 +1,18 @@
-<h2 mat-dialog-title>{{ 'WHERE.PLACES_TITLE' | translate }}</h2>
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>{{ 'WHERE.PLACES_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'WHERE.PLACES_PAGE_DESC' | translate }}</p>
+  </div>
+  <button mat-flat-button [disabled]="busy() || loading()" (click)="addPlace()">
+    <mat-icon>add</mat-icon>
+    {{ 'WHERE.ADD_PLACE' | translate }}
+  </button>
+</div>
 
-<mat-dialog-content class="places">
-  @if (loading()) {
-    <div class="places-loading"><mat-spinner diameter="32" /></div>
-  } @else {
+@if (loading()) {
+  <div class="loading-container"><mat-spinner diameter="48" /></div>
+} @else {
+  <div class="places">
     @if (places.pin(); as pin) {
       <div class="places-pin">
         <mat-icon class="places-pin-icon">my_location</mat-icon>
@@ -36,13 +45,5 @@
         }
       </mat-list>
     }
-  }
-</mat-dialog-content>
-
-<mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>{{ 'COMMON.CLOSE' | translate }}</button>
-  <button mat-flat-button [disabled]="busy() || loading()" (click)="addPlace()">
-    <mat-icon>add</mat-icon>
-    {{ 'WHERE.ADD_PLACE' | translate }}
-  </button>
-</mat-dialog-actions>
+  </div>
+}

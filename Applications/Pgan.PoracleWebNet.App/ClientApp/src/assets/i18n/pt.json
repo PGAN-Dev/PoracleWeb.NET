@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Locais",
     "GROUP_ALARMS": "Alarmes",
     "GROUP_SETTINGS": "Definições",
     "GROUP_ADMIN": "Administração",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Padrões de alertas",
-    "PLACES": "Locais"
+    "ALERT_DEFAULTS": "Padrões de alertas"
   },
   "SHORTCUTS": {
     "TITLE": "Atalhos de Teclado",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Alarme de Combate Max atualizado"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Gerir locais",
     "PAGE_TITLE": "Áreas e Localização",
     "PAGE_DESC": "Controla onde recebes notificações.",
     "METHOD_AREAS": "Áreas",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Última página"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Pontos com nome para onde podes dirigir os teus alertas, em vez da tua localização.",
     "ADD_PLACE": "Adicionar um local",
     "AREAS_LABEL": "Áreas",
     "AREA_LIST_MORE": "{{areas}} e mais {{count}}",
