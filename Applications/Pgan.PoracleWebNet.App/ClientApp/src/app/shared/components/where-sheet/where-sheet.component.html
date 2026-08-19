@@ -1,79 +1,10 @@
 <h2 mat-dialog-title>{{ 'WHERE.SHEET_TITLE' | translate }}</h2>
 
 <mat-dialog-content class="where-sheet">
-  <mat-radio-group class="where-options" [ngModel]="mode()" (ngModelChange)="mode.set($event)">
-    <label class="where-option">
-      <mat-radio-button value="inherit">{{ 'WHERE.OPTION_PROFILE' | translate }}</mat-radio-button>
-      <p class="where-option-detail">
-        @if (profileAreaSummary()) {
-          {{ profileAreaSummary() }}
-        } @else {
-          {{ 'WHERE.PROFILE_ANYWHERE' | translate }}
-        }
-      </p>
-    </label>
-
-    <label class="where-option">
-      <mat-radio-button value="near">{{ 'WHERE.OPTION_NEAR' | translate }}</mat-radio-button>
-      @if (mode() === 'near') {
-        <div class="where-option-body">
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'WHERE.PLACE_LABEL' | translate }}</mat-label>
-            <mat-select [ngModel]="placeLabel()" (ngModelChange)="onTargetChange($event)">
-              <mat-option value="">{{ 'WHERE.MY_PIN' | translate }}</mat-option>
-              @for (place of places.named(); track place.label) {
-                <mat-option [value]="place.label">{{ place.label }}</mat-option>
-              }
-              <mat-option [value]="ADD_PLACE">
-                <mat-icon class="where-add-icon">add_location_alt</mat-icon>
-                {{ 'WHERE.ADD_PLACE' | translate }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="where-distance">
-            <mat-label>{{ 'WHERE.RADIUS_KM' | translate }}</mat-label>
-            <input
-              matInput
-              type="number"
-              min="0.1"
-              max="100"
-              step="0.1"
-              [ngModel]="distanceKm()"
-              (ngModelChange)="distanceKm.set($event)" />
-          </mat-form-field>
-
-          @if (places.named().length === 0) {
-            <p class="where-empty">{{ 'WHERE.NO_PLACES' | translate }}</p>
-          }
-        </div>
-      }
-    </label>
-
-    <label class="where-option">
-      <mat-radio-button value="areas">{{ 'WHERE.OPTION_AREAS' | translate }}</mat-radio-button>
-      @if (mode() === 'areas') {
-        <div class="where-option-body">
-          <mat-form-field appearance="outline">
-            <mat-label>{{ 'WHERE.AREAS_LABEL' | translate }}</mat-label>
-            <mat-select multiple [ngModel]="selectedAreas()" (ngModelChange)="selectedAreas.set($event)">
-              @for (area of availableAreas(); track area.name) {
-                <mat-option [value]="area.name">
-                  {{ titleCase(area.name) }}
-                  @if (area.own) {
-                    <mat-icon class="where-own-icon">draw</mat-icon>
-                  }
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-      }
-    </label>
-  </mat-radio-group>
+  <app-scope-picker [(scope)]="scope" [profileAreas]="data.profileAreas" [hideHeading]="true" />
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close>{{ 'COMMON.CANCEL' | translate }}</button>
-  <button mat-flat-button [disabled]="!canSave()" (click)="save()">{{ 'WHERE.SAVE' | translate }}</button>
+  <button mat-flat-button (click)="save()">{{ 'WHERE.SAVE' | translate }}</button>
 </mat-dialog-actions>

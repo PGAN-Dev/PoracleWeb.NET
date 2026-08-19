@@ -187,11 +187,17 @@
       }
     </mat-menu>
 
-    <mat-menu #alertLanguageMenu="matMenu" class="alert-language-menu">
-      <div class="alert-language-panel" (click)="$event.stopPropagation()">
-        <p class="alert-language-hint">{{ 'MENU.ALERT_LANGUAGE_HINT' | translate }}</p>
-        <app-language-selector />
-      </div>
+    <mat-menu #alertLanguageMenu="matMenu" class="language-menu-panel">
+      <p class="alert-language-hint">{{ 'MENU.ALERT_LANGUAGE_HINT' | translate }}</p>
+      @for (lang of alertLanguage.languages; track lang.code) {
+        <button mat-menu-item (click)="chooseAlertLanguage(lang.code)" class="language-menu-item">
+          <img class="lang-flag" [src]="'assets/flags/' + lang.countryCode + '.svg'" [alt]="lang.name" />
+          <span class="lang-name">{{ lang.name }}</span>
+          @if (lang.code === alertLanguage.selected()) {
+            <mat-icon class="lang-check">check</mat-icon>
+          }
+        </button>
+      }
     </mat-menu>
   </mat-toolbar>
 

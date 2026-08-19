@@ -1723,6 +1723,7 @@
     "LAST_PAGE": "Sidste side"
   },
   "WHERE": {
+    "PIN_MISSING_WARNING": "Du har ikke angivet en position endnu, så beskeden har intet at måle fra.",
     "PLACES_EMPTY_TITLE": "Ingen steder endnu",
     "PIN_UNSET": "Ikke angivet",
     "PLACES_PAGE_DESC": "Navngivne punkter, dine beskeder kan rettes mod i stedet for din position.",

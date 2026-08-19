@@ -17,10 +17,9 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { PlacesService } from '../../core/services/places.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
@@ -38,7 +37,7 @@ import { scopeToFields } from '../../shared/utils/alarm-scope';
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-fort-change-add-dialog',
   standalone: true,
@@ -47,7 +46,9 @@ import { scopeToFields } from '../../shared/utils/alarm-scope';
 })
 export class FortChangeAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
@@ -58,36 +59,33 @@ export class FortChangeAddDialogComponent {
     changeTypeName: [true],
     changeTypeNew: [true],
     changeTypeRemoval: [true],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     fortType: ['everything'],
     includeEmpty: [false],
-    // Empty means the profile pin, which is what a radius has always meant.
-    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 
-  readonly places = inject(PlacesService);
-
   saving = signal(false);
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.placeLabel.setValue('');
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
 
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    // One conversion for all three answers, shared with the card chip and the scope sheet.
-    const scope = scopeToFields(
-      v.distanceMode === 'areas'
-        ? { mode: 'profile' }
-        : { distanceKm: v.distanceKm ?? 1, mode: v.placeLabel ? 'place' : 'profile', placeLabel: v.placeLabel ?? '' },
-    );
+    const scope = scopeToFields(this.scope());
     const changeTypes: string[] = [];
     if (v.changeTypeName) changeTypes.push('name');
     if (v.changeTypeLocation) changeTypes.push('location');

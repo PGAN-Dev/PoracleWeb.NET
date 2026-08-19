@@ -20,15 +20,14 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { PlacesService } from '../../core/services/places.service';
 import { RaidService } from '../../core/services/raid.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -48,10 +47,10 @@ import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
     TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     GymPickerComponent,
     LevelSelectorComponent,
     RsvpToggleComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -60,17 +59,15 @@ import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 })
 export class RaidAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly eggService = inject(EggService);
+
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
   commonForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
-    // Empty means the profile pin, which is what a radius has always meant.
-    placeLabel: [this.alertDefaults.defaultPlaceLabel()],
     rsvpChanges: [0],
     team: [4],
     template: [''],
@@ -79,8 +76,22 @@ export class RaidAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<RaidAddDialogComponent>);
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-  readonly places = inject(PlacesService);
+
   saving = signal(false);
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedEggLevels = signal<number[]>([]);
   selectedGymId = signal<string | null>(null);
 
@@ -98,17 +109,6 @@ export class RaidAddDialogComponent {
 
   /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
 
-  onDistanceModeChange(): void {
-    if (this.commonForm.controls.distanceMode.value === 'areas') this.commonForm.controls.placeLabel.setValue('');
-    if (this.commonForm.controls.distanceMode.value === 'areas') {
-      this.commonForm.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.commonForm.controls.distanceKm.value) {
-        this.commonForm.controls.distanceKm.setValue(1);
-      }
-    }
-  }
-
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
   }
@@ -117,12 +117,7 @@ export class RaidAddDialogComponent {
     if (!this.canSave()) return;
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
-    // One conversion for all three answers, shared with the card chip and the scope sheet.
-    const scope = scopeToFields(
-      common.distanceMode === 'areas'
-        ? { mode: 'profile' }
-        : { distanceKm: common.distanceKm ?? 1, mode: common.placeLabel ? 'place' : 'profile', placeLabel: common.placeLabel ?? '' },
-    );
+    const scope = scopeToFields(this.scope());
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
     // New alarms have no prior bits, so there is nothing to preserve here.

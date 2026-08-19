@@ -1723,6 +1723,7 @@
     "LAST_PAGE": "Dernière page"
   },
   "WHERE": {
+    "PIN_MISSING_WARNING": "Vous n'avez pas encore défini de position : cette alerte n'aurait rien pour mesurer.",
     "PLACES_EMPTY_TITLE": "Aucun lieu pour l'instant",
     "PIN_UNSET": "Non définie",
     "PLACES_PAGE_DESC": "Des points nommés vers lesquels diriger vos alertes, au lieu de votre position.",

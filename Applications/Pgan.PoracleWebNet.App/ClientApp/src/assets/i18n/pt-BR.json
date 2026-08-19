@@ -1723,6 +1723,7 @@
     "LAST_PAGE": "Última página"
   },
   "WHERE": {
+    "PIN_MISSING_WARNING": "Você ainda não definiu sua localização, então este alerta não teria de onde medir.",
     "PLACES_EMPTY_TITLE": "Nenhum local ainda",
     "PIN_UNSET": "Não definida",
     "PLACES_PAGE_DESC": "Pontos nomeados para onde direcionar seus alertas, em vez da sua localização.",

@@ -1723,6 +1723,7 @@
     "LAST_PAGE": "Ultima pagina"
   },
   "WHERE": {
+    "PIN_MISSING_WARNING": "Non hai ancora impostato una posizione, quindi questo avviso non avrebbe da dove misurare.",
     "PLACES_EMPTY_TITLE": "Nessun luogo per ora",
     "PIN_UNSET": "Non impostata",
     "PLACES_PAGE_DESC": "Punti con un nome a cui puntare i tuoi avvisi, al posto della tua posizione.",

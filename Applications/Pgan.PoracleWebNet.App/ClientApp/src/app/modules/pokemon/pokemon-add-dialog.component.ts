@@ -22,12 +22,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
-import { PlacesService } from '../../core/services/places.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
-import { scopeToFields } from '../../shared/utils/alarm-scope';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
@@ -47,8 +46,8 @@ import { scopeToFields } from '../../shared/utils/alarm-scope';
     MatProgressSpinnerModule,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     TranslatePipe,
+    ScopePickerComponent,
   ],
   selector: 'app-pokemon-add-dialog',
   standalone: true,
@@ -57,7 +56,9 @@ import { scopeToFields } from '../../shared/utils/alarm-scope';
 })
 export class PokemonAddDialogComponent implements OnInit {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
@@ -98,17 +99,14 @@ export class PokemonAddDialogComponent implements OnInit {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
   notifForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     // Empty means the profile pin, which is what "set a distance" has always meant. A label points the
     // radius at a saved place instead.
     placeLabel: [''],
     template: [''],
   });
-
-  readonly places = inject(PlacesService);
 
   /** Caps offered by Poracle (e.g. [50] or [50, 51]). Empty = hide the cap picker entirely. */
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
@@ -125,6 +123,20 @@ export class PokemonAddDialogComponent implements OnInit {
 
   saving = signal(false);
 
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   /** Whether to render the cap picker at all — only when Poracle offers more than one cap. */
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
@@ -133,10 +145,6 @@ export class PokemonAddDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Saved places for the "measured from" selector. A failure leaves only the pin, which is what the
-    // dialog offered before per-alarm scope existed.
-    this.places.load().subscribe({ error: () => undefined });
-
     // Pre-fill the cap from Poracle's admin-configured default. Users can still override.
     this.poracleConfig.load().subscribe(cfg => {
       this.pvpForm.controls.pvpRankingCap.setValue(cfg.defaultPvpCap);
@@ -145,25 +153,6 @@ export class PokemonAddDialogComponent implements OnInit {
     this.pvpForm.controls.pvpRankingCap.valueChanges.subscribe(() => {
       this.capTouched.set(true);
     });
-  }
-
-  onDistanceModeChange(): void {
-    const mode = this.notifForm.controls.distanceMode.value;
-
-    if (mode === 'areas') {
-      this.notifForm.controls.distanceKm.setValue(0);
-      this.notifForm.controls.placeLabel.setValue('');
-      return;
-    }
-
-    if (!this.notifForm.controls.distanceKm.value) {
-      this.notifForm.controls.distanceKm.setValue(1);
-    }
-
-    if (mode === 'distance') {
-      // Back to the pin. Leaving a stale label would send a place the user can no longer see selected.
-      this.notifForm.controls.placeLabel.setValue('');
-    }
   }
 
   onPokemonSelected(ids: number[]): void {
@@ -177,13 +166,7 @@ export class PokemonAddDialogComponent implements OnInit {
     const filters = this.filtersForm.getRawValue();
     const pvp = this.pvpForm.getRawValue();
     const notif = this.notifForm.getRawValue();
-    // One conversion for all three answers, shared with the card chip and the scope sheet, so the wire
-    // format has a single implementation.
-    const scope = scopeToFields(
-      notif.distanceMode === 'areas'
-        ? { mode: 'profile' }
-        : { distanceKm: notif.distanceKm ?? 1, mode: notif.placeLabel ? 'place' : 'profile', placeLabel: notif.placeLabel ?? '' },
-    );
+    const scope = scopeToFields(this.scope());
 
     // PoracleNG models `form` as a single int per tracking entry, so a multi-form
     // selection fans out into one alarm per form. When specific forms are available we
