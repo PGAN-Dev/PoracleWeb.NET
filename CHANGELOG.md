@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Set Location dialog no longer scrolls sideways.** Giving the component itself a width made it wider than the padded surface it sits in. The size lives on the dialog's content now, the way the app's other dialogs do it ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **The scope picker ignored the scope it was given.** It read its input in the constructor, where a signal input is not populated yet, so it took its own default and wrote that straight back — discarding an alarm's real scope when you opened it to edit, and the Alert Defaults preference when creating one. It seeds after the input arrives now ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **The location dialog is one size.** Six callers each passed their own width and one said 400px, so the same dialog looked different depending on where you opened it from. The component decides now ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **Four snackbars showed a raw translation key instead of a message.** The invasion, quest, raid and max-battle add dialogs referenced `COMMON.SAVED` and `COMMON.ERROR`, which never existed; the per-type keys they should have used were already there and already translated. Also translated 38 strings per language that had been sitting in English across all ten locales: every sign-in error, the test-alert messages, fort-change and max-battle snackbars, the raid level picker and the distance validation ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
