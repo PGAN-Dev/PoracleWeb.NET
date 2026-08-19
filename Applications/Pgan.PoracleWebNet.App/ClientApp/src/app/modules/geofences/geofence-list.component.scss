@@ -34,6 +34,19 @@
   flex-shrink: 0;
 }
 
+// At phone width the three buttons measured 404px against a 390px viewport, so Draw Geofence was
+// cut off at the edge. Wrapping puts it on its own line rather than off the screen.
+@media (max-width: 599px) {
+  .page-header-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .page-header-actions .draw-fab {
+    width: 100%;
+  }
+}
+
 .geojson-actions {
   display: flex;
   gap: 8px;
