@@ -185,14 +185,6 @@ export class App implements OnInit {
     },
     { disableKey: 'disable_areas', group: 'settings', icon: 'map', iconColor: '#ff9800', label: 'NAV.AREAS', route: '/areas' },
     {
-      disableKey: 'disable_location',
-      group: 'settings',
-      icon: 'place',
-      iconColor: '#e91e63',
-      label: 'NAV.PLACES',
-      route: '/places',
-    },
-    {
       disableKey: 'disable_user_geofences',
       group: 'settings',
       icon: 'draw',

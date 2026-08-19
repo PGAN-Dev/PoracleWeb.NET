@@ -1,6 +1,5 @@
 {
   "NAV": {
-    "PLACES": "Platser",
     "GROUP_ALARMS": "Larm",
     "GROUP_SETTINGS": "Inställningar",
     "GROUP_ADMIN": "Admin",
@@ -17,7 +16,7 @@
     "GYMS": "Gym",
     "FORT_CHANGES": "Fort-ändringar",
     "PROFILES": "Profiler",
-    "AREAS": "Områden",
+    "AREAS": "Områden och platser",
     "MY_GEOFENCES": "Mina geofences",
     "CLEANING": "Städning",
     "HELP": "Hjälp",
@@ -776,7 +775,7 @@
   },
   "AREAS": {
     "MANAGE_PLACES": "Hantera platser",
-    "PAGE_TITLE": "Områden och plats",
+    "PAGE_TITLE": "Områden och platser",
     "PAGE_DESC": "Kontrollera var du tar emot notiser.",
     "METHOD_AREAS": "Områden",
     "METHOD_AREAS_ACTIVE": "{{count}} område(n) aktiva",

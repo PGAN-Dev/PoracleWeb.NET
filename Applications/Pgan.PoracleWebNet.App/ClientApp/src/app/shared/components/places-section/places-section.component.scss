@@ -1,3 +1,13 @@
+.section-action {
+  margin-left: auto;
+}
+
+.section-description {
+  color: var(--text-secondary, rgb(0 0 0 / 54%));
+  font-size: 13px;
+  margin: -8px 24px 12px;
+}
+
 .place-grid {
   display: grid;
   gap: 16px;
@@ -25,16 +35,6 @@
 .place-card-accent {
   background: #e91e63;
   height: 4px;
-}
-
-// The pin is the fallback rather than a choice, so it reads a shade quieter than the places
-// the user deliberately made.
-.place-card-pin .place-card-accent {
-  background: var(--text-secondary, rgb(0 0 0 / 38%));
-}
-
-.place-card-pin .place-card-icon {
-  color: var(--text-secondary, rgb(0 0 0 / 54%));
 }
 
 .place-card-body {
@@ -76,12 +76,6 @@
   color: var(--text-secondary, rgb(0 0 0 / 54%));
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-}
-
-.place-card-note {
-  color: var(--text-secondary, rgb(0 0 0 / 54%));
-  font-size: 12px;
-  margin: 10px 0 0;
 }
 
 .place-card-footer {

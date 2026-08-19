@@ -1,6 +1,5 @@
 {
   "NAV": {
-    "PLACES": "Miejsca",
     "GROUP_ALARMS": "Alarmy",
     "GROUP_SETTINGS": "Ustawienia",
     "GROUP_ADMIN": "Admin",
@@ -17,7 +16,7 @@
     "GYMS": "Areny",
     "FORT_CHANGES": "Zmiany fortów",
     "PROFILES": "Profile",
-    "AREAS": "Obszary",
+    "AREAS": "Obszary i miejsca",
     "MY_GEOFENCES": "Moje geofence",
     "CLEANING": "Czyszczenie",
     "HELP": "Pomoc",
@@ -776,7 +775,7 @@
   },
   "AREAS": {
     "MANAGE_PLACES": "Zarządzaj miejscami",
-    "PAGE_TITLE": "Obszary i lokalizacja",
+    "PAGE_TITLE": "Obszary i miejsca",
     "PAGE_DESC": "Kontroluj, gdzie otrzymujesz powiadomienia.",
     "METHOD_AREAS": "Obszary",
     "METHOD_AREAS_ACTIVE": "{{count}} aktywnych obszarów",

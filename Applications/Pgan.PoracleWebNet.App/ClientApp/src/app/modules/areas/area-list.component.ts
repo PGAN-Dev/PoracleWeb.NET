@@ -11,7 +11,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AreaDefinition, GeofenceData, Location } from '../../core/models';
@@ -21,6 +20,7 @@ import { LocationService } from '../../core/services/location.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
+import { PlacesSectionComponent } from '../../shared/components/places-section/places-section.component';
 import { RegionOption, RegionSelectorComponent } from '../../shared/components/region-selector/region-selector.component';
 
 interface AreaItem {
@@ -53,7 +53,7 @@ interface GroupInfo {
     AreaMapComponent,
     LanguageSelectorComponent,
     RegionSelectorComponent,
-    RouterLink,
+    PlacesSectionComponent,
   ],
   selector: 'app-area-list',
   standalone: true,
