@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Every alarm can say where it should reach you.** The scope an alarm has always had, inherited and invisible, is now stated on the card and editable per alarm: anywhere in your areas, within a radius of a saved place, or only in specific areas. One shared control reads and writes it wherever it appears, rather than two more fields in each of the nine alarm dialogs. The three options are a radio group because PoracleNG treats them as mutually exclusive, so the combinations it refuses cannot be expressed in the first place ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 ### Fixed
 
 - **Discord login no longer shows the "Authorize" button on every sign-in.** Adding `prompt=none` to the OAuth2 redirect tells Discord to skip the consent screen for users who have already granted the app permission. The screen still appears on first-time authorization ([#719](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/719)).

@@ -1,0 +1,45 @@
+.where-sheet {
+  display: block;
+  min-width: min(28rem, 80vw);
+}
+
+.where-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.where-option {
+  display: block;
+}
+
+.where-option-detail {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 60%));
+  font-size: 0.8rem;
+  margin: 0 0 0 2.25rem;
+}
+
+.where-option-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0 0 2.25rem;
+}
+
+.where-distance {
+  max-width: 8rem;
+}
+
+.where-empty {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 60%));
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.where-own-icon {
+  font-size: 1rem;
+  height: 1rem;
+  opacity: 0.6;
+  vertical-align: middle;
+  width: 1rem;
+}

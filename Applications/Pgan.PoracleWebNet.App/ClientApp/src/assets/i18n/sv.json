@@ -1713,5 +1713,21 @@
     "PREVIOUS_PAGE": "Föregående sida",
     "FIRST_PAGE": "Första sidan",
     "LAST_PAGE": "Sista sidan"
+  },
+  "WHERE": {
+    "AREAS_LABEL": "Areas",
+    "AREA_LIST_MORE": "{{areas}} and {{count}} more",
+    "NEAR_PLACE": "Within {{distance}} km of {{place}}",
+    "NO_PLACES": "You have not saved any places yet. Add one from the location menu.",
+    "ONLY_IN": "Only in {{areas}}",
+    "OPTION_AREAS": "Only in specific areas",
+    "OPTION_PLACE": "Near a place",
+    "OPTION_PROFILE": "Anywhere in my areas",
+    "PLACE_LABEL": "Place",
+    "PROFILE_ANYWHERE": "Anywhere I get alerts",
+    "PROFILE_AREAS": "Anywhere in my areas",
+    "RADIUS_KM": "Radius (km)",
+    "SAVE": "Set where",
+    "SHEET_TITLE": "Where should this alert reach you?"
   }
 }
