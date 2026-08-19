@@ -332,8 +332,11 @@
   }
 }
 
+// A bare 480px cap beats the base rule's max-width:100%, so on a phone these rendered 482px in a
+// 390px viewport and ran 92px off the screen. min() keeps the intent — never wider than 480 — while
+// still yielding to the viewport. Measured at 390px.
 ::ng-deep .help-screenshot-sm {
-  max-width: 480px;
+  max-width: min(480px, 100%);
 }
 
 // ─── Callout boxes ──────────────────────────────────────────

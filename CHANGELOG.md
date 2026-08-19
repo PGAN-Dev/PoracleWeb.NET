@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Two pages no longer run off the side of a phone.** Walking all twenty pages at 390px turned up My Geofences, whose three header buttons measured 404px so Draw Geofence sat 30px past the edge, and Help, whose small screenshots carried a bare 480px cap that beat the 100% one on the base class and spilled 92px. The geofence buttons wrap; the screenshots cap to whichever is smaller ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **Layout problems found by actually looking at the running app.** The PVP tab's rank hints collided with the field below them; the scope picker's missing-pin warning crushed its icon and squeezed its action into three lines on a phone; the Set Location dialog kept a 2px horizontal scrollbar because its map's border sat outside its width. The Places empty state also stopped repeating its own title ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 
 - **The PVP tab's mega evolution control no longer collides with the rank fields.** Its fieldset was given a class that had no styles, so it drew the browser's default border and reserved no space beneath itself. It uses the same classes as the PVP cap control right above it, which already handled this ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
