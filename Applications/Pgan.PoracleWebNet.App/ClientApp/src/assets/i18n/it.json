@@ -1723,6 +1723,8 @@
     "LAST_PAGE": "Ultima pagina"
   },
   "WHERE": {
+    "PLACES_EMPTY_TITLE": "Nessun luogo per ora",
+    "PIN_UNSET": "Non impostata",
     "PLACES_PAGE_DESC": "Punti con un nome a cui puntare i tuoi avvisi, al posto della tua posizione.",
     "ADD_PLACE": "Aggiungi un luogo",
     "AREAS_LABEL": "Aree",
@@ -1734,7 +1736,7 @@
     "NAME_PLACE_TITLE": "Dai un nome a questo luogo",
     "NEAR_PIN": "Entro {{distance}} km dalla mia posizione",
     "NEAR_PLACE": "Entro {{distance}} km da {{place}}",
-    "NO_PLACES": "Non hai ancora salvato nessun luogo. Aggiungine uno dal menu posizione.",
+    "NO_PLACES": "Nessun luogo per ora. Aggiungine uno qui sotto per puntare questo avviso altrove.",
     "ONLY_IN": "Solo in {{areas}}",
     "OPTION_AREAS": "Solo in aree specifiche",
     "OPTION_NEAR": "Vicino a un punto",

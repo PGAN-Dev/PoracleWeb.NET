@@ -4,9 +4,8 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { Location, SavedPlace } from '../../core/models';
@@ -28,7 +27,7 @@ import { LocationDialogComponent } from '../../shared/components/location-dialog
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, MatButtonModule, MatIconModule, MatListModule, MatProgressSpinnerModule, TranslatePipe],
+  imports: [DecimalPipe, MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe],
   selector: 'app-places',
   standalone: true,
   styleUrl: './places.component.scss',
@@ -39,8 +38,11 @@ export class PlacesComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
   readonly busy = signal(false);
+
   readonly loading = signal(true);
   readonly places = inject(PlacesService);
+  /** Placeholder count while loading: enough to fill a row without implying how many you have. */
+  readonly skeletons = [0, 1, 2];
 
   addPlace(): void {
     const picker = this.dialog.open(LocationDialogComponent, {

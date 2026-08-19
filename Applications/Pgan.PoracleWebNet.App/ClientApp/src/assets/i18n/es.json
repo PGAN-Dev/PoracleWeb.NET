@@ -1723,6 +1723,8 @@
     "LAST_PAGE": "Última página"
   },
   "WHERE": {
+    "PLACES_EMPTY_TITLE": "Todavía no hay lugares",
+    "PIN_UNSET": "Sin definir",
     "PLACES_PAGE_DESC": "Puntos con nombre a los que puedes dirigir tus alertas en vez de a tu ubicación.",
     "ADD_PLACE": "Añadir un lugar",
     "AREAS_LABEL": "Áreas",
@@ -1734,7 +1736,7 @@
     "NAME_PLACE_TITLE": "Nombrar este lugar",
     "NEAR_PIN": "A menos de {{distance}} km de mi ubicación",
     "NEAR_PLACE": "A menos de {{distance}} km de {{place}}",
-    "NO_PLACES": "Aún no has guardado ningún lugar. Añade uno desde el menú de ubicación.",
+    "NO_PLACES": "Todavía no hay lugares. Añade uno abajo para dirigir esta alerta fuera de tu ubicación.",
     "ONLY_IN": "Solo en {{areas}}",
     "OPTION_AREAS": "Solo en áreas concretas",
     "OPTION_NEAR": "Cerca de un punto",
