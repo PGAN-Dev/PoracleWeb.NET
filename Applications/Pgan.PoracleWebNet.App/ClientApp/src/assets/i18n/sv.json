@@ -1400,7 +1400,12 @@
     "SERVER_UNREACHABLE": "Poracle svarade inte. Larm, profiler och platser går via den och kommer att misslyckas tills den svarar.",
     "SERVER_TOO_OLD": "Poracle {{version}} är äldre än {{minimum}}, som den här versionen av webbplatsen kräver. Räckvidd per larm, PVP-megafiltret och filtret för återstående tid kommer att se ut att sparas utan att ändra något.",
     "UPDATE_AVAILABLE": "{{name}} {{running}} körs, och {{latest}} har släppts.",
-    "UPDATE_PRERELEASE": "{{name}} {{running}} är nyare än någon release — det här är ett utvecklingsbygge."
+    "UPDATE_PRERELEASE": "{{name}} {{running}} är nyare än någon release — det här är ett utvecklingsbygge.",
+    "VERSIONS_TITLE": "Versioner",
+    "VERSIONS_WEB": "Den här webbplatsen",
+    "VERSIONS_BUILD": "Bygge",
+    "UPDATE_CURRENT": "Uppdaterad.",
+    "UPDATE_UNCOMPARABLE": "Utvecklingskanal. Senaste släppet är {{latest}}."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Välj en punkt",
