@@ -312,7 +312,15 @@
     "PVP_CAP": "Limit poziomu",
     "PVP_CAP_ALL": "Wszystkie",
     "PVP_CAP_LEVEL": "L{{level}}",
-    "PVP_CAP_HINT_DEFAULT": "Domyślnie — z konfiguracji Poracle"
+    "PVP_CAP_HINT_DEFAULT": "Domyślnie — z konfiguracji Poracle",
+    "FILTER_TIME_LEFT": "Pozostały Czas",
+    "LABEL_MIN_TIME": "Minimalny pozostały czas",
+    "MIN_TIME_HINT": "Pomija spawny, które znikną, zanim zdążysz dotrzeć.",
+    "MIN_TIME_MINUTES": "{{count}} min",
+    "MIN_TIME_SECONDS": "{{count}} s",
+    "PILL_TIME_LEFT_MINUTES": "pozostało {{count}} min",
+    "PILL_TIME_LEFT_SECONDS": "pozostało {{count}} s",
+    "MIN_TIME_ANY": "Dowolny"
   },
   "ALARM": {
     "LOCATION_MODE": "Tryb lokalizacji",

@@ -23,6 +23,8 @@ export interface Monster {
   minCp: number;
   minIv: number;
   minLevel: number;
+  /** Seconds a spawn must still have left when it is found. 0 means any. */
+  minTime: number;
   minWeight: number;
   overrideAreas?: null | string[];
   overrideLocationLabel?: null | string;

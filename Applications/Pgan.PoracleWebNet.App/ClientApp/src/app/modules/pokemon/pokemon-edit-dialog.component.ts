@@ -25,6 +25,7 @@ import { ScopePickerComponent } from '../../shared/components/scope-picker/scope
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
 @Component({
   imports: [
@@ -82,6 +83,7 @@ export class PokemonEditDialogComponent implements OnInit {
     minCp: [this.data.minCp],
     minIv: [this.data.minIv],
     minLevel: [this.data.minLevel],
+    minTime: [this.data.minTime ?? 0],
     minWeight: [this.data.minWeight],
     // Read-only here on purpose: an alarm's place or areas are changed from the card chip, which is one
     // control in one place. This dialog only has to avoid destroying them, which it does by keeping
@@ -113,6 +115,19 @@ export class PokemonEditDialogComponent implements OnInit {
 
   getPokemonImage(): string {
     return this.iconService.getPokemonUrl(this.data.pokemonId, this.data.form);
+  }
+
+  /** The preset list, widened to keep whatever the rule already holds. */
+  minTimeChoices(): number[] {
+    return minTimeOptions(this.form.controls.minTime.value ?? 0);
+  }
+
+  minTimeParams(seconds: number): Record<string, number> | undefined {
+    return minTimeLabel(seconds).params;
+  }
+
+  minTimeText(seconds: number): string {
+    return minTimeLabel(seconds).key;
   }
 
   ngOnInit(): void {
@@ -155,6 +170,7 @@ export class PokemonEditDialogComponent implements OnInit {
       minCp: values.minCp ?? 0,
       minIv: values.minIv ?? 0,
       minLevel: values.minLevel ?? 0,
+      minTime: values.minTime ?? 0,
       minWeight: values.minWeight ?? 0,
       pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 0,
       pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,

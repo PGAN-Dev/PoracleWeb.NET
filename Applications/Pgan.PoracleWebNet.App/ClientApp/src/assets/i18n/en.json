@@ -312,7 +312,15 @@
     "SIZE_LABEL_XS": "XS",
     "SIZE_LABEL_NORMAL": "Normal",
     "SIZE_LABEL_XL": "XL",
-    "SIZE_LABEL_XXL": "XXL"
+    "SIZE_LABEL_XXL": "XXL",
+    "FILTER_TIME_LEFT": "Time Left",
+    "LABEL_MIN_TIME": "Minimum Time Left",
+    "MIN_TIME_HINT": "Skip spawns that will be gone before you get there.",
+    "MIN_TIME_MINUTES": "{{count}} min",
+    "MIN_TIME_SECONDS": "{{count}}s",
+    "PILL_TIME_LEFT_MINUTES": "{{count}} min left",
+    "PILL_TIME_LEFT_SECONDS": "{{count}}s left",
+    "MIN_TIME_ANY": "Any"
   },
   "ALARM": {
     "LOCATION_MODE": "Location Mode",

@@ -312,7 +312,15 @@
     "PVP_CAP": "Nivågräns",
     "PVP_CAP_ALL": "Alla",
     "PVP_CAP_LEVEL": "L{{level}}",
-    "PVP_CAP_HINT_DEFAULT": "Standard — från Poracle-konfigurationen"
+    "PVP_CAP_HINT_DEFAULT": "Standard — från Poracle-konfigurationen",
+    "FILTER_TIME_LEFT": "Återstående Tid",
+    "LABEL_MIN_TIME": "Minsta återstående tid",
+    "MIN_TIME_HINT": "Hoppar över spawns som är borta innan du hinner fram.",
+    "MIN_TIME_MINUTES": "{{count}} min",
+    "MIN_TIME_SECONDS": "{{count}} s",
+    "PILL_TIME_LEFT_MINUTES": "{{count}} min kvar",
+    "PILL_TIME_LEFT_SECONDS": "{{count}} s kvar",
+    "MIN_TIME_ANY": "Alla"
   },
   "ALARM": {
     "LOCATION_MODE": "Platsläge",

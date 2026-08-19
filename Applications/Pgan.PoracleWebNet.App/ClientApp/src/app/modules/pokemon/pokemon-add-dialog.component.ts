@@ -27,6 +27,7 @@ import { PokemonSelectorComponent } from '../../shared/components/pokemon-select
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
 @Component({
   imports: [
@@ -93,6 +94,7 @@ export class PokemonAddDialogComponent implements OnInit {
     minCp: [0, [Validators.min(0), Validators.max(9000)]],
     minIv: [0, [Validators.min(0), Validators.max(100)]],
     minLevel: [0, [Validators.min(0), Validators.max(55)]],
+    minTime: [0],
     minWeight: [0],
     size: [-1],
     sta: [0, [Validators.min(0), Validators.max(15)]],
@@ -142,6 +144,19 @@ export class PokemonAddDialogComponent implements OnInit {
 
   isFormValid(): boolean {
     return this.selectedPokemonIds().length > 0 && this.filtersForm.valid && this.notifForm.valid;
+  }
+
+  /** The preset list, widened to keep whatever the rule already holds. */
+  minTimeChoices(): number[] {
+    return minTimeOptions(this.filtersForm.controls.minTime.value ?? 0);
+  }
+
+  minTimeParams(seconds: number): Record<string, number> | undefined {
+    return minTimeLabel(seconds).params;
+  }
+
+  minTimeText(seconds: number): string {
+    return minTimeLabel(seconds).key;
   }
 
   ngOnInit(): void {
@@ -197,6 +212,7 @@ export class PokemonAddDialogComponent implements OnInit {
           minCp: filters.minCp ?? 0,
           minIv: filters.minIv ?? 0,
           minLevel: filters.minLevel ?? 0,
+          minTime: filters.minTime ?? 0,
           minWeight: filters.minWeight ?? 0,
           pokemonId,
           pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,

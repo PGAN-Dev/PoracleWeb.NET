@@ -133,6 +133,19 @@ public class MonsterUpdate
         get; set;
     }
 
+    // 0 base, 1 any mega, 2 Mega X, 3 Mega Y.
+    [Range(0, 3)]
+    public int? PvpRankingEvolution
+    {
+        get; set;
+    }
+
+    [Range(0, 3600)]
+    public int? MinTime
+    {
+        get; set;
+    }
+
     [Range(0, int.MaxValue)]
     public int? Form
     {

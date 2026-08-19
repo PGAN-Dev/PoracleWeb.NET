@@ -482,6 +482,11 @@
   background: #e8f5e9;
   color: #2e7d32;
 }
+// Teal is the one hue the other six pills leave free, and it reads as a clock rather than a threshold.
+.time-pill {
+  background: #e0f2f1;
+  color: #00695c;
+}
 
 // Skeleton loading
 @keyframes pulse {

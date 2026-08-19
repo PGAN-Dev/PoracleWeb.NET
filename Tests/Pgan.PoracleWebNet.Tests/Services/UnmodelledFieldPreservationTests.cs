@@ -17,6 +17,12 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// <c>costume</c>. Set one with the bot, press Update Distance on the web, and it was gone. See #730.
 /// </para>
 /// <para>
+/// The fields asserted here are the ones PoracleWeb still does not model — <c>rarity</c>, which it
+/// deliberately does not offer, and <c>costume</c>, which 5.2.0 has not shipped yet. Once a field is
+/// modelled its value comes from the caller, which is a different guarantee: see
+/// <see cref="PokemonFieldCoverageTests"/>.
+/// </para>
+/// <para>
 /// These assert the legitimate case still works (the distance genuinely changes, the count is still
 /// reported) alongside the preservation, because a helper that dropped the change on the floor would
 /// preserve everything perfectly and do nothing useful.
@@ -46,6 +52,7 @@ public class UnmodelledFieldPreservationTests
         + "\"override_location_label\": \"work\","
         + "\"override_areas\": [\"terrigal\"],"
         + "\"pvp_ranking_evolution\": 2,"
+        + "\"rarity\": 3,"
         + "\"costume\": 9000"
         + "}]";
 
@@ -229,7 +236,7 @@ public class UnmodelledFieldPreservationTests
     {
         Assert.Equal("work", row.GetProperty("override_location_label").GetString());
         Assert.Equal("terrigal", row.GetProperty("override_areas").EnumerateArray().Single().GetString());
-        Assert.Equal(2, row.GetProperty("pvp_ranking_evolution").GetInt32());
+        Assert.Equal(3, row.GetProperty("rarity").GetInt32());
         Assert.Equal(9000, row.GetProperty("costume").GetInt32());
     }
 
