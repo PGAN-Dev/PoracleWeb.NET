@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Partout dans mes zones",
     "PIN_NOTE": "La valeur par défaut de toute alerte sans destination propre.",
     "PIN_TITLE": "Ma position",
-    "PLACES_EMPTY": "Aucun lieu pour l'instant. Ajoutez-en un pour recevoir des alertes ailleurs qu'à votre position : le travail, la salle de sport, chez vos parents.",
+    "PLACES_EMPTY": "Ajoutez-en un pour recevoir des alertes ailleurs qu'à votre position : le travail, la salle de sport, chez vos parents.",
     "PLACES_TITLE": "Lieux",
     "PLACE_DELETED": "{{place}} supprimé.",
     "PLACE_DELETE_CONFIRM": "Les alertes visant {{place}} reviendront à votre position.",

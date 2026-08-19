@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Overalt i mine områder",
     "PIN_NOTE": "Standarden for enhver besked uden eget mål.",
     "PIN_TITLE": "Min position",
-    "PLACES_EMPTY": "Ingen steder endnu. Tilføj et for at få beskeder et andet sted end ved din position: arbejdet, fitnesscentret, hos dine forældre.",
+    "PLACES_EMPTY": "Tilføj et for at få beskeder et andet sted end ved din position: arbejdet, fitnesscentret, hos dine forældre.",
     "PLACES_TITLE": "Steder",
     "PLACE_DELETED": "{{place}} slettet.",
     "PLACE_DELETE_CONFIRM": "Beskeder rettet mod {{place}} falder tilbage til din position.",

@@ -47,6 +47,9 @@ mat-dialog-content {
 .form-row {
   display: flex;
   gap: 16px;
+  // Room for the next field's floating label, which otherwise lands on the hint above it. Same
+  // measurement as the add dialog.
+  margin-bottom: 12px;
 }
 .form-row mat-form-field {
   flex: 1;

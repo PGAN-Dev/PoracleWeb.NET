@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Ovunque nelle mie aree",
     "PIN_NOTE": "Il valore predefinito per ogni avviso senza una destinazione propria.",
     "PIN_TITLE": "La mia posizione",
-    "PLACES_EMPTY": "Nessun luogo per ora. Aggiungine uno per ricevere avvisi altrove: il lavoro, la palestra, casa dei tuoi.",
+    "PLACES_EMPTY": "Aggiungine uno per ricevere avvisi altrove: il lavoro, la palestra, casa dei tuoi.",
     "PLACES_TITLE": "Luoghi",
     "PLACE_DELETED": "{{place}} eliminato.",
     "PLACE_DELETE_CONFIRM": "Gli avvisi diretti a {{place}} torneranno alla tua posizione.",

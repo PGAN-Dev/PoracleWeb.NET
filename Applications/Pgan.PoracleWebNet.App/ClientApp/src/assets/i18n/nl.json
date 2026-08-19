@@ -1747,7 +1747,7 @@
     "OPTION_PROFILE": "Overal in mijn gebieden",
     "PIN_NOTE": "De terugval voor elke melding zonder eigen bestemming.",
     "PIN_TITLE": "Mijn locatie",
-    "PLACES_EMPTY": "Nog geen plaatsen. Voeg er een toe om meldingen ergens anders dan bij je locatie te krijgen: werk, de sportschool, bij je ouders.",
+    "PLACES_EMPTY": "Voeg er een toe om meldingen ergens anders dan bij je locatie te krijgen: werk, de sportschool, bij je ouders.",
     "PLACES_TITLE": "Plaatsen",
     "PLACE_DELETED": "{{place}} verwijderd.",
     "PLACE_DELETE_CONFIRM": "Meldingen gericht op {{place}} vallen terug op je locatie.",
