@@ -22,10 +22,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
+import { PlacesService } from '../../core/services/places.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
@@ -96,13 +98,17 @@ export class PokemonAddDialogComponent implements OnInit {
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
-
   notifForm = this.fb.group({
     clean: [false],
     distanceKm: [this.alertDefaults.defaultDistanceKm()],
     distanceMode: [this.alertDefaults.defaultMode()],
+    // Empty means the profile pin, which is what "set a distance" has always meant. A label points the
+    // radius at a saved place instead.
+    placeLabel: [''],
     template: [''],
   });
+
+  readonly places = inject(PlacesService);
 
   /** Caps offered by Poracle (e.g. [50] or [50, 51]). Empty = hide the cap picker entirely. */
   readonly pvpCaps = computed(() => this.poracleConfig.serverConfig().pvpCaps);
@@ -125,6 +131,10 @@ export class PokemonAddDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Saved places for the "measured from" selector. A failure leaves only the pin, which is what the
+    // dialog offered before per-alarm scope existed.
+    this.places.load().subscribe({ error: () => undefined });
+
     // Pre-fill the cap from Poracle's admin-configured default. Users can still override.
     this.poracleConfig.load().subscribe(cfg => {
       this.pvpForm.controls.pvpRankingCap.setValue(cfg.defaultPvpCap);
@@ -136,10 +146,21 @@ export class PokemonAddDialogComponent implements OnInit {
   }
 
   onDistanceModeChange(): void {
-    if (this.notifForm.controls.distanceMode.value === 'areas') {
+    const mode = this.notifForm.controls.distanceMode.value;
+
+    if (mode === 'areas') {
       this.notifForm.controls.distanceKm.setValue(0);
-    } else if (!this.notifForm.controls.distanceKm.value) {
+      this.notifForm.controls.placeLabel.setValue('');
+      return;
+    }
+
+    if (!this.notifForm.controls.distanceKm.value) {
       this.notifForm.controls.distanceKm.setValue(1);
+    }
+
+    if (mode === 'distance') {
+      // Back to the pin. Leaving a stale label would send a place the user can no longer see selected.
+      this.notifForm.controls.placeLabel.setValue('');
     }
   }
 
@@ -154,7 +175,13 @@ export class PokemonAddDialogComponent implements OnInit {
     const filters = this.filtersForm.getRawValue();
     const pvp = this.pvpForm.getRawValue();
     const notif = this.notifForm.getRawValue();
-    const distanceMeters = notif.distanceMode === 'areas' ? 0 : Math.round((notif.distanceKm ?? 1) * 1000);
+    // One conversion for all three answers, shared with the card chip and the scope sheet, so the wire
+    // format has a single implementation.
+    const scope = scopeToFields(
+      notif.distanceMode === 'areas'
+        ? { mode: 'profile' }
+        : { distanceKm: notif.distanceKm ?? 1, mode: notif.placeLabel ? 'place' : 'profile', placeLabel: notif.placeLabel ?? '' },
+    );
 
     // PoracleNG models `form` as a single int per tracking entry, so a multi-form
     // selection fans out into one alarm per form. When specific forms are available we
@@ -166,10 +193,12 @@ export class PokemonAddDialogComponent implements OnInit {
     const creates = this.selectedPokemonIds().flatMap(pokemonId =>
       formIds.map(form => {
         const monster: MonsterCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           atk: filters.atk ?? 0,
           clean: notif.clean ? 1 : 0,
           def: filters.def ?? 0,
-          distance: distanceMeters,
+          distance: scope.distance,
           form,
           gender: filters.gender ?? 0,
           maxAtk: filters.maxAtk ?? 15,

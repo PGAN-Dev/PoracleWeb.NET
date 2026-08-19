@@ -109,3 +109,16 @@ mat-expansion-panel {
     min-width: 0;
   }
 }
+
+.scope-current {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.scope-hint {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 60%));
+  font-size: 0.75rem;
+}

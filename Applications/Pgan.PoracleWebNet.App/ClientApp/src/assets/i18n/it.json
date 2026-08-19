@@ -1716,6 +1716,8 @@
     "LAST_PAGE": "Ultima pagina"
   },
   "WHERE": {
+    "EDIT_FROM_CARD": "Change this from the card.",
+    "MEASURED_FROM": "Measured from",
     "SCOPE_SAVED": "Where updated.",
     "SCOPE_SAVE_ERROR": "Could not update where that alert reaches you.",
     "MY_PIN": "My pin",

@@ -124,3 +124,9 @@ mat-expansion-panel {
     min-width: 0;
   }
 }
+
+.scope-near-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
