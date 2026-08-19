@@ -122,6 +122,17 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Poracle API (config, geofences, templates — read-only proxy)
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
+        // Which PoracleNG this is, and what it can store. /health is unauthenticated, so this needs no
+        // secret and still answers when the API key is wrong -- a state that otherwise looks exactly
+        // like the server being down.
+        services.AddScoped<IPoracleSchemaVersionReader, PoracleSchemaVersionReader>();
+        services.AddHttpClient<IPoracleServerProfileService, PoracleServerProfileService>(client =>
+        {
+            // A diagnostic must not hold a request open: an unreachable server should answer
+            // "unknown" quickly rather than stall the admin page behind a default 100s timeout.
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+
         // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
         // Registered as the concrete type, then decorated: UserOwnedOverrideAreaProxy is what the rest
         // of the app resolves as IPoracleTrackingProxy. It lets an alarm confine itself to a geofence the

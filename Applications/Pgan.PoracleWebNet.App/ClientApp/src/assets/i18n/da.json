@@ -1388,7 +1388,22 @@
     "SNACK_APPROVED": "\"{{name}}\" godkendt",
     "SNACK_FAILED_REJECT": "Kunne ikke afvise indsendelse",
     "SNACK_REJECTED": "\"{{name}}\" afvist",
-    "APPROVAL_REGION_HINT": "Vælg den region, dette geofence skal vises under."
+    "APPROVAL_REGION_HINT": "Vælg den region, dette geofence skal vises under.",
+    "PANEL_TITLE": "Administration",
+    "PANEL_DESC": "Vælg et område nedenfor.",
+    "NAV_USERS": "Brugere",
+    "NAV_WEBHOOKS": "Webhooks",
+    "NAV_SETTINGS": "Indstillinger",
+    "SERVER_TITLE": "Poracle-server",
+    "SERVER_REFRESH": "Tjek igen",
+    "SERVER_VERSION": "Version",
+    "SERVER_SCHEMA": "Databaseskema",
+    "SERVER_CHECKED": "Sidst tjekket",
+    "SERVER_CAPABILITIES": "Funktioner",
+    "SERVER_NO_CAPABILITIES": "Denne server melder ingen.",
+    "SERVER_UNKNOWN": "Ukendt",
+    "SERVER_UNREACHABLE": "Poracle svarede ikke. Alarmer, profiler og steder går gennem den og fejler, indtil den svarer igen.",
+    "SERVER_TOO_OLD": "Poracle {{version}} er ældre end {{minimum}}, som denne version af siden kræver. Levering pr. alarm, PVP-mega-filteret og filteret for resterende tid ser ud til at gemme uden at ændre noget."
   },
   "DIALOG": {
     "LOCATION_PICK_TITLE": "Vælg et punkt",

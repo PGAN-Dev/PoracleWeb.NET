@@ -1,11 +1,63 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Admin Panel</h1>
-    <p class="page-description">Select a section below.</p>
+    <h1>{{ 'ADMIN.PANEL_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'ADMIN.PANEL_DESC' | translate }}</p>
   </div>
 </div>
+
+<mat-card class="server-card">
+  <mat-card-content>
+    <div class="server-header">
+      <h2>{{ 'ADMIN.SERVER_TITLE' | translate }}</h2>
+      <button mat-icon-button [disabled]="loading()" (click)="refresh()" [attr.aria-label]="'ADMIN.SERVER_REFRESH' | translate">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+
+    @if (loading()) {
+      <mat-spinner diameter="28"></mat-spinner>
+    } @else if (profile(); as p) {
+      @if (p.belowMinimum) {
+        <div class="server-alert server-alert-error">
+          <mat-icon>error</mat-icon>
+          <span>{{ 'ADMIN.SERVER_TOO_OLD' | translate: { version: p.version, minimum: p.minimumSupported } }}</span>
+        </div>
+      } @else if (!p.reachable) {
+        <div class="server-alert server-alert-warn">
+          <mat-icon>cloud_off</mat-icon>
+          <span>{{ 'ADMIN.SERVER_UNREACHABLE' | translate }}</span>
+        </div>
+      }
+
+      <dl class="server-facts">
+        <dt>{{ 'ADMIN.SERVER_VERSION' | translate }}</dt>
+        <dd>{{ p.version ?? ('ADMIN.SERVER_UNKNOWN' | translate) }}</dd>
+
+        <dt>{{ 'ADMIN.SERVER_SCHEMA' | translate }}</dt>
+        <dd>{{ p.schemaVersion ?? ('ADMIN.SERVER_UNKNOWN' | translate) }}</dd>
+
+        <dt>{{ 'ADMIN.SERVER_CHECKED' | translate }}</dt>
+        <dd>{{ p.checkedAt | date: 'short' }}</dd>
+      </dl>
+
+      <h3 class="server-caps-title">{{ 'ADMIN.SERVER_CAPABILITIES' | translate }}</h3>
+      @if (enabledCapabilities().length === 0) {
+        <p class="server-caps-empty">{{ 'ADMIN.SERVER_NO_CAPABILITIES' | translate }}</p>
+      } @else {
+        <div class="server-caps">
+          @for (capability of enabledCapabilities(); track capability) {
+            <span class="server-cap">{{ capability }}</span>
+          }
+        </div>
+      }
+    } @else {
+      <p class="server-caps-empty">{{ 'ADMIN.SERVER_UNREACHABLE' | translate }}</p>
+    }
+  </mat-card-content>
+</mat-card>
+
 <mat-nav-list>
-  <a mat-list-item routerLink="/admin/users"><mat-icon>people</mat-icon> Users</a>
-  <a mat-list-item routerLink="/admin/webhooks"><mat-icon>webhook</mat-icon> Webhooks</a>
-  <a mat-list-item routerLink="/admin/settings"><mat-icon>settings</mat-icon> Settings</a>
+  <a mat-list-item routerLink="/admin/users"><mat-icon>people</mat-icon> {{ 'ADMIN.NAV_USERS' | translate }}</a>
+  <a mat-list-item routerLink="/admin/webhooks"><mat-icon>webhook</mat-icon> {{ 'ADMIN.NAV_WEBHOOKS' | translate }}</a>
+  <a mat-list-item routerLink="/admin/settings"><mat-icon>settings</mat-icon> {{ 'ADMIN.NAV_SETTINGS' | translate }}</a>
 </mat-nav-list>
