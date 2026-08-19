@@ -59,4 +59,18 @@ public class EggUpdate
     {
         get; set;
     }
+
+    /// <summary>Saved-place label this alarm measures its radius from. See the domain model.</summary>
+    [StringLength(64)]
+    public string? OverrideLocationLabel
+    {
+        get; set;
+    }
+
+    /// <summary>Areas this alarm is confined to. See the domain model.</summary>
+    [MaxLength(32)]
+    public List<string>? OverrideAreas
+    {
+        get; set;
+    }
 }

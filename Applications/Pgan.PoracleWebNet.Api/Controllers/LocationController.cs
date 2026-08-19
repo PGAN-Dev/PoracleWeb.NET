@@ -279,4 +279,48 @@ public class LocationController(
     }
 
 
+
+    /// <summary>
+    /// The user's saved places, plus the profile pin every alarm falls back to.
+    /// </summary>
+    [HttpGet("places")]
+    public async Task<IActionResult> GetPlaces() =>
+        this.Ok(await this._humanProxy.GetPlacesAsync(this.UserId));
+
+    /// <summary>
+    /// Saves a place an alarm can be anchored to.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG reports a rejected label inside a 200 because its endpoint answers per row, so the
+    /// refusal is unwrapped here and returned as a 400 the SPA can show against the field.
+    /// </remarks>
+    [HttpPost("places")]
+    public async Task<IActionResult> AddPlace([FromBody] SavedPlace place)
+    {
+        var refusal = await this._humanProxy.AddPlaceAsync(this.UserId, place);
+
+        return refusal is null
+            ? this.Ok(await this._humanProxy.GetPlacesAsync(this.UserId))
+            : this.BadRequest(new { error = refusal });
+    }
+
+    /// <summary>
+    /// Deletes a saved place, unless alarms still point at it.
+    /// </summary>
+    [HttpDelete("places/{label}")]
+    public async Task<IActionResult> DeletePlace(string label)
+    {
+        try
+        {
+            await this._humanProxy.DeletePlaceAsync(this.UserId, label);
+        }
+        catch (PlaceInUseException ex)
+        {
+            // Naming the alarms is the difference between "could not delete" and a person knowing what
+            // to repoint first.
+            return this.Conflict(new { error = ex.Message, referencingRules = ex.ReferencingRules });
+        }
+
+        return this.NoContent();
+    }
 }

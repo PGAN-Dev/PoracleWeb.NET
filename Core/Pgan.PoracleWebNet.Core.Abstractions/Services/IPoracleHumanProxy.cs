@@ -1,3 +1,4 @@
+using Pgan.PoracleWebNet.Core.Models;
 using System.Text.Json;
 
 namespace Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -99,4 +100,25 @@ public interface IPoracleHumanProxy
     /// Maps to POST /api/profiles/{userId}/copy/{fromProfileNo}/{toProfileNo}
     /// </summary>
     public Task CopyProfileAsync(string userId, int fromProfileNo, int toProfileNo);
+
+    /// <summary>
+    /// The user's saved places, plus the profile pin every alarm falls back to.
+    /// Maps to GET /api/humans/{id}/locations
+    /// </summary>
+    public Task<SavedPlaces> GetPlacesAsync(string userId);
+
+    /// <summary>
+    /// Saves a place. PoracleNG reports per-row outcomes rather than failing the request, so a
+    /// duplicate label comes back as a message here rather than an exception.
+    /// Maps to POST /api/humans/{id}/locations/add
+    /// </summary>
+    /// <returns>Null on success, or PoracleNG's reason for refusing this label.</returns>
+    public Task<string?> AddPlaceAsync(string userId, SavedPlace place);
+
+    /// <summary>
+    /// Deletes a saved place.
+    /// Maps to POST /api/humans/{id}/locations/{label}/delete
+    /// </summary>
+    /// <exception cref="PlaceInUseException">Alarms still point at this place.</exception>
+    public Task DeletePlaceAsync(string userId, string label);
 }

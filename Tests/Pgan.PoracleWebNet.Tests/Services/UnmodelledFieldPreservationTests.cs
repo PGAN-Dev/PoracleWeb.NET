@@ -189,6 +189,27 @@ public class UnmodelledFieldPreservationTests
     }
 
     [Fact]
+    public async Task AnEmptyOverrideClearsItRatherThanBeingCarriedForward()
+    {
+        // The other half of the null rule. Null means "not stated, keep what is stored"; empty is how a
+        // person says "remove it". Without this, an override could be set but never taken off.
+        var service = new MonsterService(this._proxy.Object, this._featureGate.Object);
+
+        await service.UpdateAsync("u1", new Monster
+        {
+            Uid = 7,
+            PokemonId = 201,
+            Distance = 1500,
+            OverrideLocationLabel = string.Empty,
+            OverrideAreas = [],
+        });
+
+        var row = this.OnlyRowSent();
+        Assert.Equal(string.Empty, row.GetProperty("override_location_label").GetString());
+        Assert.Empty(row.GetProperty("override_areas").EnumerateArray());
+    }
+
+    [Fact]
     public async Task CreateDoesNotInventFieldsFromAnotherAlarm()
     {
         // uid 0 is a create. There is no stored row to carry anything forward from, and matching on
@@ -197,7 +218,11 @@ public class UnmodelledFieldPreservationTests
 
         await service.CreateAsync("u1", new Monster { PokemonId = 999, Distance = 1500 });
 
-        Assert.False(this.OnlyRowSent().TryGetProperty("override_location_label", out _));
+        // The model states no override, so the write carries an explicit null rather than the "work"
+        // some other alarm of theirs holds.
+        Assert.Equal(
+            JsonValueKind.Null,
+            this.OnlyRowSent().GetProperty("override_location_label").ValueKind);
     }
 
     private static void AssertCarriedForward(JsonElement row)

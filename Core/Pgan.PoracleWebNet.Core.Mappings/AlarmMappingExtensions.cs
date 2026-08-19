@@ -36,6 +36,8 @@ public static class AlarmMappingExtensions
         Gender = src.Gender,
         Clean = src.Clean,
         Template = src.Template,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this MonsterUpdate src, Monster dest)
@@ -67,6 +69,8 @@ public static class AlarmMappingExtensions
         if (src.Gender != null) dest.Gender = src.Gender.Value;
         if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── Raid ─────────────────────────────────────────────────
@@ -86,6 +90,8 @@ public static class AlarmMappingExtensions
         Exclusive = src.Exclusive,
         GymId = src.GymId,
         RsvpChanges = src.RsvpChanges,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this RaidUpdate src, Raid dest)
@@ -102,6 +108,8 @@ public static class AlarmMappingExtensions
         if (src.Exclusive != null) dest.Exclusive = src.Exclusive.Value;
         if (src.GymId != null) dest.GymId = src.GymId;
         if (src.RsvpChanges != null) dest.RsvpChanges = src.RsvpChanges.Value;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── Egg ──────────────────────────────────────────────────
@@ -117,6 +125,8 @@ public static class AlarmMappingExtensions
         Exclusive = src.Exclusive,
         GymId = src.GymId,
         RsvpChanges = src.RsvpChanges,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this EggUpdate src, Egg dest)
@@ -130,6 +140,8 @@ public static class AlarmMappingExtensions
         if (src.Exclusive != null) dest.Exclusive = src.Exclusive.Value;
         if (src.GymId != null) dest.GymId = src.GymId;
         if (src.RsvpChanges != null) dest.RsvpChanges = src.RsvpChanges.Value;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── Quest ────────────────────────────────────────────────
@@ -144,6 +156,8 @@ public static class AlarmMappingExtensions
         Clean = src.Clean,
         Template = src.Template,
         Form = src.Form,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this QuestUpdate src, Quest dest)
@@ -156,6 +170,8 @@ public static class AlarmMappingExtensions
         if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
         if (src.Form != null) dest.Form = src.Form.Value;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── Invasion ─────────────────────────────────────────────
@@ -168,6 +184,8 @@ public static class AlarmMappingExtensions
         GruntType = src.GruntType,
         Clean = src.Clean,
         Template = src.Template,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this InvasionUpdate src, Invasion dest)
@@ -178,6 +196,8 @@ public static class AlarmMappingExtensions
         if (src.GruntType != null) dest.GruntType = src.GruntType;
         if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── Lure ─────────────────────────────────────────────────
@@ -189,6 +209,8 @@ public static class AlarmMappingExtensions
         LureId = src.LureId,
         Clean = src.Clean,
         Template = src.Template,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this LureUpdate src, Lure dest)
@@ -198,6 +220,8 @@ public static class AlarmMappingExtensions
         if (src.LureId != null) dest.LureId = src.LureId.Value;
         if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── Nest ─────────────────────────────────────────────────
@@ -211,6 +235,8 @@ public static class AlarmMappingExtensions
         Form = src.Form,
         Clean = src.Clean,
         Template = src.Template,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this NestUpdate src, Nest dest)
@@ -221,6 +247,8 @@ public static class AlarmMappingExtensions
         if (src.Form != null) dest.Form = src.Form.Value;
         if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── Gym ──────────────────────────────────────────────────
@@ -235,6 +263,8 @@ public static class AlarmMappingExtensions
         Template = src.Template,
         BattleChanges = src.BattleChanges,
         GymId = src.GymId,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this GymUpdate src, Gym dest)
@@ -247,6 +277,8 @@ public static class AlarmMappingExtensions
         if (src.Template != null) dest.Template = src.Template;
         if (src.BattleChanges != null) dest.BattleChanges = src.BattleChanges.Value;
         if (src.GymId != null) dest.GymId = src.GymId;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── FortChange ───────────────────────────────────────────
@@ -259,6 +291,8 @@ public static class AlarmMappingExtensions
         IncludeEmpty = src.IncludeEmpty,
         ChangeTypes = src.ChangeTypes,
         Template = src.Template,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this FortChangeUpdate src, FortChange dest)
@@ -269,6 +303,8 @@ public static class AlarmMappingExtensions
         if (src.IncludeEmpty != null) dest.IncludeEmpty = src.IncludeEmpty.Value;
         if (src.ChangeTypes != null) dest.ChangeTypes = src.ChangeTypes;
         if (src.Template != null) dest.Template = src.Template;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 
     // ── MaxBattle ────────────────────────────────────────────
@@ -286,6 +322,8 @@ public static class AlarmMappingExtensions
         Move = src.Move,
         Evolution = src.Evolution,
         StationId = src.StationId,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
     };
 
     public static void ApplyUpdate(this MaxBattleUpdate src, MaxBattle dest)
@@ -300,5 +338,7 @@ public static class AlarmMappingExtensions
         if (src.Move != null) dest.Move = src.Move.Value;
         if (src.Evolution != null) dest.Evolution = src.Evolution.Value;
         if (src.StationId != null) dest.StationId = src.StationId;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
 }

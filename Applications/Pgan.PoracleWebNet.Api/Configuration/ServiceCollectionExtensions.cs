@@ -123,7 +123,16 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
         // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
-        services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
+        // Registered as the concrete type, then decorated: UserOwnedOverrideAreaProxy is what the rest
+        // of the app resolves as IPoracleTrackingProxy. It lets an alarm confine itself to a geofence the
+        // user drew, which PoracleNG's tracking write refuses outright because those fences are served
+        // userSelectable=false. HACK: trusted-set-areas.
+        services.AddHttpClient<PoracleTrackingProxy>();
+        services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
+            sp.GetRequiredService<PoracleTrackingProxy>(),
+            sp.GetRequiredService<IUserGeofenceRepository>(),
+            sp.GetRequiredService<IUserAreaDualWriter>(),
+            sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
 
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
         services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Alarms can be aimed somewhere other than your pin.** PoracleNG 5.1.0 gives every alarm its own delivery scope, and the API now carries it: an alarm can measure its radius from a saved place ("within 2 km of work") or be confined to a set of areas, instead of inheriting the profile's single pin and area list. Saved places are managed at `GET/POST /api/location/places` and `DELETE /api/location/places/{label}`; deleting a place that alarms still point at answers 409 and names them rather than orphaning the label. The three ways a scope can contradict itself — a place and areas together, areas with a radius, a place without one — are refused before anything is written, with wording that says which one to change ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+- **Your own geofences work as an alarm's areas.** PoracleNG refuses `override_areas` entries whose fence is not user-selectable, and PoracleWeb serves user-drawn geofences that way deliberately, to keep them out of the bot's area picker — so naming one would have failed the whole write with "area not permitted". Matching never consults that flag, so the permitted names are sent to PoracleNG and the full list is written to the alarm afterwards, then state is reloaded. Verified against PoracleNG 5.1.0's matcher rather than inferred. Tagged `HACK: trusted-set-areas` alongside the existing area workarounds, and removable in one piece if PoracleNG grows a trusted override write ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 ### Fixed
 
 - **Discord login no longer shows the "Authorize" button on every sign-in.** Adding `prompt=none` to the OAuth2 redirect tells Discord to skip the consent screen for users who have already granted the app permission. The screen still appears on first-time authorization ([#719](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/719)).
