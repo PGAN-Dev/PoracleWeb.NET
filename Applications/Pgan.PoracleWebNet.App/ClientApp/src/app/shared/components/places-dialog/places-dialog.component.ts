@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,7 +23,7 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatDialogModule, MatIconModule, MatListModule, MatProgressSpinnerModule, TranslatePipe],
+  imports: [DecimalPipe, MatButtonModule, MatDialogModule, MatIconModule, MatListModule, MatProgressSpinnerModule, TranslatePipe],
   selector: 'app-places-dialog',
   standalone: true,
   styleUrl: './places-dialog.component.scss',
