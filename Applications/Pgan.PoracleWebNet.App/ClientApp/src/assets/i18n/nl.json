@@ -1723,6 +1723,8 @@
     "LAST_PAGE": "Laatste pagina"
   },
   "WHERE": {
+    "PLACES_EMPTY_TITLE": "Nog geen plaatsen",
+    "PIN_UNSET": "Niet ingesteld",
     "PLACES_PAGE_DESC": "Benoemde punten waar je meldingen op gericht kunnen worden, in plaats van je locatie.",
     "ADD_PLACE": "Plaats toevoegen",
     "AREAS_LABEL": "Gebieden",
@@ -1734,7 +1736,7 @@
     "NAME_PLACE_TITLE": "Deze plaats een naam geven",
     "NEAR_PIN": "Binnen {{distance}} km van mijn locatie",
     "NEAR_PLACE": "Binnen {{distance}} km van {{place}}",
-    "NO_PLACES": "Je hebt nog geen plaatsen opgeslagen. Voeg er een toe via het locatiemenu.",
+    "NO_PLACES": "Nog geen plaatsen. Voeg er hieronder een toe om deze melding ergens anders op te richten dan je locatie.",
     "ONLY_IN": "Alleen in {{areas}}",
     "OPTION_AREAS": "Alleen in bepaalde gebieden",
     "OPTION_NEAR": "Bij een punt",

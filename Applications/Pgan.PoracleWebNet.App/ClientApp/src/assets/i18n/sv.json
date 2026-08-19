@@ -1723,6 +1723,8 @@
     "LAST_PAGE": "Sista sidan"
   },
   "WHERE": {
+    "PLACES_EMPTY_TITLE": "Inga platser än",
+    "PIN_UNSET": "Inte angiven",
     "PLACES_PAGE_DESC": "Namngivna punkter som dina aviseringar kan riktas mot i stället för din position.",
     "ADD_PLACE": "Lägg till en plats",
     "AREAS_LABEL": "Områden",
@@ -1734,7 +1736,7 @@
     "NAME_PLACE_TITLE": "Namnge platsen",
     "NEAR_PIN": "Inom {{distance}} km från min position",
     "NEAR_PLACE": "Inom {{distance}} km från {{place}}",
-    "NO_PLACES": "Du har inte sparat några platser än. Lägg till en från positionsmenyn.",
+    "NO_PLACES": "Inga platser än. Lägg till en nedan för att rikta aviseringen någon annanstans än din position.",
     "ONLY_IN": "Endast i {{areas}}",
     "OPTION_AREAS": "Endast i valda områden",
     "OPTION_NEAR": "Nära en punkt",

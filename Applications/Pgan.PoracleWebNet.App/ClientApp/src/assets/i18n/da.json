@@ -1723,6 +1723,8 @@
     "LAST_PAGE": "Sidste side"
   },
   "WHERE": {
+    "PLACES_EMPTY_TITLE": "Ingen steder endnu",
+    "PIN_UNSET": "Ikke angivet",
     "PLACES_PAGE_DESC": "Navngivne punkter, dine beskeder kan rettes mod i stedet for din position.",
     "ADD_PLACE": "Tilføj et sted",
     "AREAS_LABEL": "Områder",
@@ -1734,7 +1736,7 @@
     "NAME_PLACE_TITLE": "Navngiv stedet",
     "NEAR_PIN": "Inden for {{distance}} km fra min position",
     "NEAR_PLACE": "Inden for {{distance}} km fra {{place}}",
-    "NO_PLACES": "Du har ikke gemt nogen steder endnu. Tilføj et fra positionsmenuen.",
+    "NO_PLACES": "Ingen steder endnu. Tilføj et nedenfor for at rette beskeden et andet sted hen end din position.",
     "ONLY_IN": "Kun i {{areas}}",
     "OPTION_AREAS": "Kun i bestemte områder",
     "OPTION_NEAR": "Nær et punkt",

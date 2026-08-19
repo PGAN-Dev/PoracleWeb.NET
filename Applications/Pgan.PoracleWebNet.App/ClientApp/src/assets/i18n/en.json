@@ -1723,6 +1723,8 @@
     "LAST_PAGE": "Last page"
   },
   "WHERE": {
+    "PLACES_EMPTY_TITLE": "No places yet",
+    "PIN_UNSET": "Not set",
     "PLACES_PAGE_DESC": "Named points your alerts can be aimed at, instead of your pin.",
     "EDIT_FROM_CARD": "Change this from the card.",
     "MEASURED_FROM": "Measured from",
@@ -1749,7 +1751,7 @@
     "AREAS_LABEL": "Areas",
     "AREA_LIST_MORE": "{{areas}} and {{count}} more",
     "NEAR_PLACE": "Within {{distance}} km of {{place}}",
-    "NO_PLACES": "You have not saved any places yet. Add one from the location menu.",
+    "NO_PLACES": "No places yet. Add one below to aim this alert somewhere other than your pin.",
     "ONLY_IN": "Only in {{areas}}",
     "OPTION_AREAS": "Only in specific areas",
     "OPTION_NEAR": "Near a point",

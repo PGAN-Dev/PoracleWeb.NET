@@ -19,11 +19,15 @@
         <div class="where-option-body">
           <mat-form-field appearance="outline">
             <mat-label>{{ 'WHERE.PLACE_LABEL' | translate }}</mat-label>
-            <mat-select [ngModel]="placeLabel()" (ngModelChange)="placeLabel.set($event)">
+            <mat-select [ngModel]="placeLabel()" (ngModelChange)="onTargetChange($event)">
               <mat-option value="">{{ 'WHERE.MY_PIN' | translate }}</mat-option>
               @for (place of places.named(); track place.label) {
                 <mat-option [value]="place.label">{{ place.label }}</mat-option>
               }
+              <mat-option [value]="ADD_PLACE">
+                <mat-icon class="where-add-icon">add_location_alt</mat-icon>
+                {{ 'WHERE.ADD_PLACE' | translate }}
+              </mat-option>
             </mat-select>
           </mat-form-field>
 

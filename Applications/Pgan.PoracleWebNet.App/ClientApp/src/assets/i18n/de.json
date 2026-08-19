@@ -1723,6 +1723,8 @@
     "LAST_PAGE": "Letzte Seite"
   },
   "WHERE": {
+    "PLACES_EMPTY_TITLE": "Noch keine Orte",
+    "PIN_UNSET": "Nicht gesetzt",
     "PLACES_PAGE_DESC": "Benannte Punkte, auf die deine Meldungen statt auf deinen Standort ausgerichtet werden können.",
     "ADD_PLACE": "Ort hinzufügen",
     "AREAS_LABEL": "Gebiete",
@@ -1734,7 +1736,7 @@
     "NAME_PLACE_TITLE": "Ort benennen",
     "NEAR_PIN": "Im Umkreis von {{distance}} km um meinen Standort",
     "NEAR_PLACE": "Im Umkreis von {{distance}} km um {{place}}",
-    "NO_PLACES": "Du hast noch keine Orte gespeichert. Füge einen im Standortmenü hinzu.",
+    "NO_PLACES": "Noch keine Orte. Füge unten einen hinzu, um diese Meldung woandershin als an deinen Standort zu richten.",
     "ONLY_IN": "Nur in {{areas}}",
     "OPTION_AREAS": "Nur in bestimmten Gebieten",
     "OPTION_NEAR": "In der Nähe eines Punktes",

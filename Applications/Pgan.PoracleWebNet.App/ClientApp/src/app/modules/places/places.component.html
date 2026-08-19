@@ -3,47 +3,83 @@
     <h1>{{ 'WHERE.PLACES_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'WHERE.PLACES_PAGE_DESC' | translate }}</p>
   </div>
-  <button mat-flat-button [disabled]="busy() || loading()" (click)="addPlace()">
-    <mat-icon>add</mat-icon>
-    {{ 'WHERE.ADD_PLACE' | translate }}
-  </button>
+  <div class="page-header-actions">
+    <button mat-fab extended color="primary" [disabled]="busy() || loading()" (click)="addPlace()">
+      <mat-icon>add_location_alt</mat-icon>
+      {{ 'WHERE.ADD_PLACE' | translate }}
+    </button>
+  </div>
 </div>
 
 @if (loading()) {
-  <div class="loading-container"><mat-spinner diameter="48" /></div>
-} @else {
-  <div class="places">
-    @if (places.pin(); as pin) {
-      <div class="places-pin">
-        <mat-icon class="places-pin-icon">my_location</mat-icon>
-        <div class="places-pin-text">
-          <span class="places-pin-title">{{ 'WHERE.PIN_TITLE' | translate }}</span>
-          <span class="places-pin-detail">{{ pin.latitude | number: '1.4-4' }}, {{ pin.longitude | number: '1.4-4' }}</span>
+  <div class="place-grid">
+    @for (i of skeletons; track i) {
+      <div class="skeleton-place-card">
+        <div class="skeleton-place-header">
+          <div class="skeleton-place-icon"></div>
+          <div class="skeleton-place-lines">
+            <div class="skeleton-line" style="width: 55%"></div>
+            <div class="skeleton-line" style="width: 75%"></div>
+          </div>
         </div>
       </div>
-      <p class="places-pin-note">{{ 'WHERE.PIN_NOTE' | translate }}</p>
     }
+  </div>
+} @else {
+  <div class="place-grid">
+    <!-- The pin is a place too, just the unnamed one every alert falls back to. Showing it in the
+         same grid says that, where a separate banner would imply it is a different kind of thing. -->
+    <div class="place-card place-card-pin">
+      <div class="place-card-accent"></div>
+      <div class="place-card-body">
+        <div class="place-card-header">
+          <mat-icon class="place-card-icon">my_location</mat-icon>
+          <div class="place-card-info">
+            <span class="place-card-name">{{ 'WHERE.PIN_TITLE' | translate }}</span>
+            @if (places.pin(); as pin) {
+              <span class="place-card-coords">{{ pin.latitude | number: '1.4-4' }}, {{ pin.longitude | number: '1.4-4' }}</span>
+            } @else {
+              <span class="place-card-coords">{{ 'WHERE.PIN_UNSET' | translate }}</span>
+            }
+          </div>
+        </div>
+        <p class="place-card-note">{{ 'WHERE.PIN_NOTE' | translate }}</p>
+      </div>
+    </div>
 
-    @if (places.named().length === 0) {
-      <p class="places-empty">{{ 'WHERE.PLACES_EMPTY' | translate }}</p>
-    } @else {
-      <mat-list>
-        @for (place of places.named(); track place.label) {
-          <mat-list-item>
-            <mat-icon matListItemIcon>place</mat-icon>
-            <span matListItemTitle>{{ place.label }}</span>
-            <span matListItemLine>{{ place.latitude | number: '1.4-4' }}, {{ place.longitude | number: '1.4-4' }}</span>
+    @for (place of places.named(); track place.label) {
+      <div class="place-card">
+        <div class="place-card-accent"></div>
+        <div class="place-card-body">
+          <div class="place-card-header">
+            <mat-icon class="place-card-icon">place</mat-icon>
+            <div class="place-card-info">
+              <span class="place-card-name">{{ place.label }}</span>
+              <span class="place-card-coords">{{ place.latitude | number: '1.4-4' }}, {{ place.longitude | number: '1.4-4' }}</span>
+            </div>
+          </div>
+          <div class="place-card-footer">
             <button
               mat-icon-button
-              matListItemMeta
               [disabled]="busy()"
-              [attr.aria-label]="'WHERE.PLACE_DELETE_TITLE' | translate"
+              [matTooltip]="'WHERE.PLACE_DELETE_TITLE' | translate"
               (click)="confirmRemove(place)">
               <mat-icon>delete</mat-icon>
             </button>
-          </mat-list-item>
-        }
-      </mat-list>
+          </div>
+        </div>
+      </div>
     }
   </div>
+
+  @if (places.named().length === 0) {
+    <div class="place-empty-state">
+      <mat-icon class="place-empty-icon">add_location_alt</mat-icon>
+      <p class="place-empty-title">{{ 'WHERE.PLACES_EMPTY_TITLE' | translate }}</p>
+      <p class="place-empty-subtitle">{{ 'WHERE.PLACES_EMPTY' | translate }}</p>
+      <button mat-stroked-button color="primary" [disabled]="busy()" (click)="addPlace()">
+        <mat-icon>add</mat-icon> {{ 'WHERE.ADD_PLACE' | translate }}
+      </button>
+    </div>
+  }
 }
