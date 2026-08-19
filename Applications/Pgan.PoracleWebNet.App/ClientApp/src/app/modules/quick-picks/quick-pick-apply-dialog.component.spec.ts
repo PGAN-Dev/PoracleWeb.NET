@@ -83,12 +83,18 @@ describe('QuickPickApplyDialogComponent', () => {
     it('should have a delivery form with default values', () => {
       const form = component.deliveryForm.getRawValue();
       expect(form.clean).toBe(false);
-      // Since #301, distanceKm is pre-seeded from AlertDefaultsService.defaultDistanceKm() (default 1 km),
-      // matching every add-dialog, so the radius is ready if the user switches to Distance mode. In Areas
-      // mode it is irrelevant — apply() sends 0 m for 'areas' regardless of this value.
-      expect(form.distanceKm).toBe(1);
-      expect(form.distanceMode).toBe('areas');
       expect(form.template).toBe('');
+    });
+
+    it('seeds the scope from the saved alert defaults', () => {
+      // The radius and mode moved to the shared scope picker, but the Alert Defaults preference still
+      // has to reach a quick pick the same way it reaches an add dialog. Cleared and re-created here
+      // because this spec uses the real AlertDefaultsService, which reads localStorage — without the
+      // clear it inherits whatever another suite left behind.
+      localStorage.clear();
+      setup(basePick);
+
+      expect(component.scope()).toEqual({ mode: 'profile' });
     });
   });
 
@@ -155,26 +161,6 @@ describe('QuickPickApplyDialogComponent', () => {
     it('should update excluded pokemon ids', () => {
       component.onExcludedPokemonChange([10, 20, 30]);
       expect(component.excludedPokemonIds()).toEqual([10, 20, 30]);
-    });
-  });
-
-  describe('onDistanceModeChange', () => {
-    beforeEach(() => {
-      setup(basePick);
-    });
-
-    it('should reset distance to 0 when switching to areas mode', () => {
-      component.deliveryForm.controls.distanceKm.setValue(5);
-      component.deliveryForm.controls.distanceMode.setValue('areas');
-      component.onDistanceModeChange();
-      expect(component.deliveryForm.controls.distanceKm.value).toBe(0);
-    });
-
-    it('should set distance to 1 when switching to distance mode with 0', () => {
-      component.deliveryForm.controls.distanceKm.setValue(0);
-      component.deliveryForm.controls.distanceMode.setValue('distance');
-      component.onDistanceModeChange();
-      expect(component.deliveryForm.controls.distanceKm.value).toBe(1);
     });
   });
 });

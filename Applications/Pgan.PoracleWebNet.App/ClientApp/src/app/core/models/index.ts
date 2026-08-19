@@ -595,6 +595,8 @@ export interface QuickPickApplyRequest {
   clean?: number;
   distance?: number;
   excludePokemonIds?: number[];
+  overrideAreas?: string[];
+  overrideLocationLabel?: string;
   template?: string;
 }
 
