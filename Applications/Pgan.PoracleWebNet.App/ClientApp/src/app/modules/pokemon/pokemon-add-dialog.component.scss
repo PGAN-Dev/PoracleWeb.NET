@@ -44,7 +44,15 @@ mat-dialog-content {
   margin-top: 8px;
 }
 h4 {
-  margin: 0 0 8px;
+  // Material reserves one line of subscript space under a field, so a hint that wraps to two — which
+  // "Minimum Time Left" does at phone width, and several locales do at any width — runs into whatever
+  // follows it. Measured 4px of overlap with the SIZE heading at 390px. The first heading in a tab
+  // keeps its flush top.
+  margin: 24px 0 8px;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
   font-size: 13px;
   text-transform: uppercase;
