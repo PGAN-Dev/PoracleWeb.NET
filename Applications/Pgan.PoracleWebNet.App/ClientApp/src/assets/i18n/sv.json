@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Platser",
     "GROUP_ALARMS": "Larm",
     "GROUP_SETTINGS": "Inställningar",
     "GROUP_ADMIN": "Admin",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Standardinställningar för aviseringar",
-    "PLACES": "Platser"
+    "ALERT_DEFAULTS": "Standardinställningar för aviseringar"
   },
   "SHORTCUTS": {
     "TITLE": "Kortkommandon",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Max Battle-larm uppdaterat"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Hantera platser",
     "PAGE_TITLE": "Områden och plats",
     "PAGE_DESC": "Kontrollera var du tar emot notiser.",
     "METHOD_AREAS": "Områden",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Sista sidan"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Namngivna punkter som dina aviseringar kan riktas mot i stället för din position.",
     "ADD_PLACE": "Lägg till en plats",
     "AREAS_LABEL": "Områden",
     "AREA_LIST_MORE": "{{areas}} och {{count}} till",

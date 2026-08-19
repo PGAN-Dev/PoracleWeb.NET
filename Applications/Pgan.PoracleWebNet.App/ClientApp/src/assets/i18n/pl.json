@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Miejsca",
     "GROUP_ALARMS": "Alarmy",
     "GROUP_SETTINGS": "Ustawienia",
     "GROUP_ADMIN": "Admin",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Domyślne ustawienia alertów",
-    "PLACES": "Miejsca"
+    "ALERT_DEFAULTS": "Domyślne ustawienia alertów"
   },
   "SHORTCUTS": {
     "TITLE": "Skróty klawiszowe",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Zaktualizowano alarm Max Battle"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Zarządzaj miejscami",
     "PAGE_TITLE": "Obszary i lokalizacja",
     "PAGE_DESC": "Kontroluj, gdzie otrzymujesz powiadomienia.",
     "METHOD_AREAS": "Obszary",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Ostatnia strona"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Nazwane punkty, na które możesz kierować alerty zamiast na swoją lokalizację.",
     "ADD_PLACE": "Dodaj miejsce",
     "AREAS_LABEL": "Obszary",
     "AREA_LIST_MORE": "{{areas}} i jeszcze {{count}}",

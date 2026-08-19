@@ -1,16 +1,16 @@
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
-import { PlacesDialogComponent } from './places-dialog.component';
-import { ConfigService } from '../../../core/services/config.service';
-import { PlacesService } from '../../../core/services/places.service';
+import { PlacesComponent } from './places.component';
+import { ConfigService } from '../../core/services/config.service';
+import { PlacesService } from '../../core/services/places.service';
 
-describe('PlacesDialogComponent', () => {
+describe('PlacesComponent', () => {
   let dialog: { open: jest.Mock };
   let places: {
     add: jest.Mock;
@@ -26,7 +26,7 @@ describe('PlacesDialogComponent', () => {
     results.forEach(result => dialog.open.mockReturnValueOnce({ afterClosed: () => of(result) }));
   }
 
-  function create(): PlacesDialogComponent {
+  function create(): PlacesComponent {
     dialog = { open: jest.fn() };
     snackBar = { open: jest.fn() };
     places = {
@@ -41,7 +41,6 @@ describe('PlacesDialogComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
-        { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: PlacesService, useValue: places },
@@ -49,12 +48,12 @@ describe('PlacesDialogComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
-      imports: [PlacesDialogComponent],
+      imports: [PlacesComponent],
     });
 
     // MatDialogModule is in the component's own imports, so its MatDialog wins over the TestBed
     // provider. Overriding at the component injector is the only level that beats it.
-    TestBed.overrideComponent(PlacesDialogComponent, {
+    TestBed.overrideComponent(PlacesComponent, {
       set: {
         providers: [
           { provide: MatDialog, useValue: dialog },
@@ -63,7 +62,7 @@ describe('PlacesDialogComponent', () => {
       },
     });
 
-    const component = TestBed.createComponent(PlacesDialogComponent).componentInstance;
+    const component = TestBed.createComponent(PlacesComponent).componentInstance;
     component.ngOnInit();
     return component;
   }

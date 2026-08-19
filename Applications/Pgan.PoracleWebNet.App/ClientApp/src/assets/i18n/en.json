@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Places",
     "GROUP_ALARMS": "Alarms",
     "GROUP_SETTINGS": "Settings",
     "GROUP_ADMIN": "Admin",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Alert Defaults",
-    "PLACES": "Places"
+    "ALERT_DEFAULTS": "Alert Defaults"
   },
   "SHORTCUTS": {
     "TITLE": "Keyboard Shortcuts",
@@ -775,6 +775,7 @@
     "LEVEL_GMAX_LEGENDARY": "Legendary Gigantamax"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Manage places",
     "PAGE_TITLE": "Areas & Location",
     "PAGE_DESC": "Control where you receive notifications.",
     "METHOD_AREAS": "Areas",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Last page"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Named points your alerts can be aimed at, instead of your pin.",
     "EDIT_FROM_CARD": "Change this from the card.",
     "MEASURED_FROM": "Measured from",
     "SCOPE_SAVED": "Where updated.",

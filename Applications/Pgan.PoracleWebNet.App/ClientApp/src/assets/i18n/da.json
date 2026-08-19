@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Steder",
     "GROUP_ALARMS": "Alarmer",
     "GROUP_SETTINGS": "Indstillinger",
     "GROUP_ADMIN": "Admin",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Standardindstillinger for advarsler",
-    "PLACES": "Steder"
+    "ALERT_DEFAULTS": "Standardindstillinger for advarsler"
   },
   "SHORTCUTS": {
     "TITLE": "Tastaturgenveje",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Max Battle-alarm opdateret"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Administrer steder",
     "PAGE_TITLE": "Områder og placering",
     "PAGE_DESC": "Kontrollér, hvor du modtager notifikationer.",
     "METHOD_AREAS": "Områder",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Sidste side"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Navngivne punkter, dine beskeder kan rettes mod i stedet for din position.",
     "ADD_PLACE": "Tilføj et sted",
     "AREAS_LABEL": "Områder",
     "AREA_LIST_MORE": "{{areas}} og {{count}} mere",

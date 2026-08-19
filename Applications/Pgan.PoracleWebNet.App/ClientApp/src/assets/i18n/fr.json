@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Lieux",
     "GROUP_ALARMS": "Alarmes",
     "GROUP_SETTINGS": "Paramètres",
     "GROUP_ADMIN": "Admin",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Réglages par défaut des alertes",
-    "PLACES": "Lieux"
+    "ALERT_DEFAULTS": "Réglages par défaut des alertes"
   },
   "SHORTCUTS": {
     "TITLE": "Raccourcis clavier",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Alarme Combat Dynamax mise à jour"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Gérer les lieux",
     "PAGE_TITLE": "Zones et localisation",
     "PAGE_DESC": "Contrôle où tu reçois les notifications.",
     "METHOD_AREAS": "Zones",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Dernière page"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Des points nommés vers lesquels diriger vos alertes, au lieu de votre position.",
     "ADD_PLACE": "Ajouter un lieu",
     "AREAS_LABEL": "Zones",
     "AREA_LIST_MORE": "{{areas}} et {{count}} autres",

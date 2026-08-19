@@ -19,7 +19,6 @@ import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
-import { PlacesDialogComponent } from './shared/components/places-dialog/places-dialog.component';
 
 interface NavItem {
   adminOnly?: boolean;
@@ -185,6 +184,14 @@ export class App implements OnInit {
       route: '/profiles',
     },
     { disableKey: 'disable_areas', group: 'settings', icon: 'map', iconColor: '#ff9800', label: 'NAV.AREAS', route: '/areas' },
+    {
+      disableKey: 'disable_location',
+      group: 'settings',
+      icon: 'place',
+      iconColor: '#e91e63',
+      label: 'NAV.PLACES',
+      route: '/places',
+    },
     {
       disableKey: 'disable_user_geofences',
       group: 'settings',
@@ -380,10 +387,6 @@ export class App implements OnInit {
 
   openAlertDefaults(): void {
     this.dialog.open(AlertDefaultsDialogComponent, { width: '480px', autoFocus: false });
-  }
-
-  openPlaces(): void {
-    this.dialog.open(PlacesDialogComponent, { width: '480px', autoFocus: false });
   }
 
   setAccentTheme(theme: string): void {

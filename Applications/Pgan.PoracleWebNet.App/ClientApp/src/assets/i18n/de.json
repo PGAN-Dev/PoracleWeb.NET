@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Orte",
     "GROUP_ALARMS": "Alarme",
     "GROUP_SETTINGS": "Einstellungen",
     "GROUP_ADMIN": "Admin",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Benachrichtigungs-Standards",
-    "PLACES": "Orte"
+    "ALERT_DEFAULTS": "Benachrichtigungs-Standards"
   },
   "SHORTCUTS": {
     "TITLE": "Tastenkürzel",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Dynamax-Kampfalarm aktualisiert"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Orte verwalten",
     "PAGE_TITLE": "Gebiete & Standort",
     "PAGE_DESC": "Bestimme, wo du Benachrichtigungen erhältst.",
     "METHOD_AREAS": "Gebiete",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Letzte Seite"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Benannte Punkte, auf die deine Meldungen statt auf deinen Standort ausgerichtet werden können.",
     "ADD_PLACE": "Ort hinzufügen",
     "AREAS_LABEL": "Gebiete",
     "AREA_LIST_MORE": "{{areas}} und {{count}} weitere",

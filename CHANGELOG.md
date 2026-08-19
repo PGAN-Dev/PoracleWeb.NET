@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Places is a page in the sidebar, beside Areas and My Geofences.** It was a dialog in the user menu, which put your data next to your preferences and split one idea across two screens: the Areas page already explains that alerts reach you by area or by a radius from a point, and named points are more of the second. The Areas page's location card now links to it. Reachable only where the location feature is enabled, matching the endpoints it calls ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
+
 - **New alarms can start somewhere other than your pin.** Alert Defaults gains a place alongside the radius, and all ten add dialogs now offer a "measured from" selector, so a preference like "within 2 km of work" applies to everything you create instead of being re-picked each time. A place that gets deleted is forgotten rather than left seeding alarms with a label PoracleNG rejects ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 - **PVP rules can target mega evolutions.** PoracleNG 5.1.0 ranks megas separately from base forms, so a Pokemon PVP rule now chooses between Base, Mega, Mega X and Mega Y, and the card's PVP badge says which. Works regardless of the server's `include_mega_evolution` setting, which only decides the default for rules that do not ask ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
 

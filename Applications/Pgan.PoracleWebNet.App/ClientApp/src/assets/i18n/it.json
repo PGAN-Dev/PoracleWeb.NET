@@ -1,5 +1,6 @@
 {
   "NAV": {
+    "PLACES": "Luoghi",
     "GROUP_ALARMS": "Allarmi",
     "GROUP_SETTINGS": "Impostazioni",
     "GROUP_ADMIN": "Amministrazione",
@@ -63,8 +64,7 @@
     "ACCENT_MYSTIC": "Mystic",
     "ACCENT_VALOR": "Valor",
     "ACCENT_INSTINCT": "Instinct",
-    "ALERT_DEFAULTS": "Impostazioni predefinite avvisi",
-    "PLACES": "Luoghi"
+    "ALERT_DEFAULTS": "Impostazioni predefinite avvisi"
   },
   "SHORTCUTS": {
     "TITLE": "Scorciatoie da Tastiera",
@@ -775,6 +775,7 @@
     "SNACK_UPDATED": "Allarme Lotta Dynamax aggiornato"
   },
   "AREAS": {
+    "MANAGE_PLACES": "Gestisci i luoghi",
     "PAGE_TITLE": "Aree e Posizione",
     "PAGE_DESC": "Controlla dove ricevi le notifiche.",
     "METHOD_AREAS": "Aree",
@@ -1722,6 +1723,7 @@
     "LAST_PAGE": "Ultima pagina"
   },
   "WHERE": {
+    "PLACES_PAGE_DESC": "Punti con un nome a cui puntare i tuoi avvisi, al posto della tua posizione.",
     "ADD_PLACE": "Aggiungi un luogo",
     "AREAS_LABEL": "Aree",
     "AREA_LIST_MORE": "{{areas}} e altre {{count}}",

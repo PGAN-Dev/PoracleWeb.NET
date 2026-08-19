@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AreaDefinition, GeofenceData, Location } from '../../core/models';
@@ -52,6 +53,7 @@ interface GroupInfo {
     AreaMapComponent,
     LanguageSelectorComponent,
     RegionSelectorComponent,
+    RouterLink,
   ],
   selector: 'app-area-list',
   standalone: true,
