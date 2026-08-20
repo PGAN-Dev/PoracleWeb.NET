@@ -53,3 +53,6 @@ Applications/Pgan.PoracleWebNet.Api/wwwroot/
 
 # Local-only Docker test build (npm 11 pin); not part of the app build
 Dockerfile.local
+
+# mkdocs build output. `mkdocs build` writes it locally; CI publishes from docs/ instead.
+site/
