@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.16.0] - 2026-08-20
+
 ### Added
 
 - **The admin page says when you are behind, on either half.** The Poracle server card now compares what is running against what has been published — for this site, its latest GitHub release; for Poracle, the version constant on its main branch, since that project publishes no releases or tags at all. A newer version says so; a version newer than any release is named as a development build rather than reported as out of date, which is also how a Poracle develop build gives itself away, since its branch never leaves the binary. This is the only request PoracleWeb makes outside your own network, it sends nothing, it is cached for six hours, and "Do not check for updates" switches it off entirely ([#730](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/730)).
@@ -950,7 +952,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.3...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.16.0...HEAD
+[2.16.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.3...v2.16.0
 [2.15.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.2...v2.15.3
 [2.15.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.1...v2.15.2
 [2.15.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.0...v2.15.1
