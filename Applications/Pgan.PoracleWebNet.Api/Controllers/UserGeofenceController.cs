@@ -86,6 +86,23 @@ public partial class UserGeofenceController(
         }
     }
 
+    /// <summary>Removes one of the caller's own geofences.</summary>
+    /// <remarks>
+    /// <para>
+    /// Deliberately not behind <see cref="DisableFeatureKeys.UserGeofences"/>, unlike every other
+    /// mutation here. Switching the feature off hides the page and refuses new work, but the fences
+    /// that already exist keep being served in the geofence feed and keep matching — so gating this
+    /// too would leave someone receiving alerts from an area they can neither edit nor remove.
+    /// </para>
+    /// <para>
+    /// This is where geofences differ from the alarm types, whose controllers gate the whole class
+    /// and so refuse deletes as well. Those users still have the bot: <c>!untrack</c> removes an
+    /// alarm whatever the web says. Geofences are PoracleWeb-only and the bot has no equivalent
+    /// command, so this endpoint is the only route a user has to their own data. Production
+    /// carries 42 of them, so the stranding is not hypothetical.
+    /// </para>
+    /// <para>Pinned by a test, because this reads like an oversight and has been reported as one.</para>
+    /// </remarks>
     [HttpDelete("custom/{id:int}")]
     public async Task<IActionResult> DeleteGeofence(int id)
     {
