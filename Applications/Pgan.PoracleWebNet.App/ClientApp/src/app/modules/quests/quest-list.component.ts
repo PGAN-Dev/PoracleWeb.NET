@@ -15,6 +15,7 @@ import { QuestAddDialogComponent } from './quest-add-dialog.component';
 import { QuestEditDialogComponent } from './quest-edit-dialog.component';
 import { SummaryScheduleDialogComponent, SummaryScheduleDialogData } from './summary-schedule-dialog/summary-schedule-dialog.component';
 import { Quest } from '../../core/models';
+import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -24,6 +25,8 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,21 +51,26 @@ export class QuestListComponent implements OnInit {
   private static readonly FALLBACK =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly masterData = inject(MasterDataService);
-  private readonly questService = inject(QuestService);
 
+  private readonly questService = inject(QuestService);
   private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
   readonly quests = signal<Quest[]>([]);
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
   readonly skeletonCards = Array.from({ length: 6 });
 
   readonly summaryService = inject(SummaryScheduleService);
+
   readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
@@ -187,6 +195,29 @@ export class QuestListComponent implements OnInit {
     });
   }
 
+  /** Change one alarm's delivery scope from its card, without opening the whole edit dialog. */
+  editScope(item: Quest): void {
+    const data: WhereSheetData = {
+      profileAreas: this.profileAreas(),
+      scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),
+    };
+
+    this.dialog
+      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .afterClosed()
+      .subscribe((scope?: AlarmScope) => {
+        if (!scope) return;
+
+        this.questService.update(item.uid, scopeToFields(scope)).subscribe({
+          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          next: () => {
+            this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
+            this.loadQuests();
+          },
+        });
+      });
+  }
+
   formatDistance(meters: number): string {
     if (meters >= 1000) {
       return `${(meters / 1000).toFixed(1)} km`;
@@ -215,31 +246,11 @@ export class QuestListComponent implements OnInit {
   }
 
   getQuestTitle(quest: Quest): string {
-    // Pokemon encounter: ID may be in pokemonId or reward field
-    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
-    if (quest.rewardType === 7 && pokemonId > 0) {
-      return this.masterData.getPokemonName(pokemonId);
-    }
-    if (quest.rewardType === 7 && pokemonId === 0) {
-      return this.i18n.instant('QUESTS.ANY_POKEMON_ENCOUNTER');
-    }
-    if (quest.rewardType === 12 && pokemonId > 0) {
-      return this.i18n.instant('QUESTS.MEGA_ENERGY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
-    }
-    if (quest.rewardType === 4 && pokemonId > 0) {
-      return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
-    }
-    if (quest.rewardType === 2) {
-      // reward 0 is the dialog default, meaning any item. getItemName has no id 0, so this used to
-      // render as "Item #0" -- the Pokemon branch above already has the equivalent "any" case.
-      return quest.reward > 0 ? this.masterData.getItemName(quest.reward) : this.i18n.instant('QUESTS.ANY_ITEM');
-    }
-    if (quest.rewardType === 3) {
-      return quest.reward > 0
-        ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
-        : this.i18n.instant('QUESTS.STARDUST');
-    }
-    return this.getRewardTypeLabel(quest.rewardType);
+    const reward = this.describeReward(quest);
+
+    // The minimum only applies to the rewards that come in quantities, and saying "1x" for a rule that
+    // asks for one of something is noise.
+    return quest.amount > 1 ? this.i18n.instant('QUESTS.AMOUNT_PREFIX', { count: quest.amount, reward }) : reward;
   }
 
   getRewardColor(rewardType: number): string {
@@ -252,6 +263,10 @@ export class QuestListComponent implements OnInit {
         return '#9C27B0';
       case 4:
         return '#FF9800';
+      // Stardust used to fall through to the grey "unknown reward" colour, which is what every other
+      // type it does not recognise gets.
+      case 3:
+        return '#FBC02D';
       default:
         return '#9E9E9E';
     }
@@ -299,6 +314,7 @@ export class QuestListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadProfileAreas();
     this.summaryService.loadCapability();
     this.masterData
       .loadData()
@@ -370,5 +386,37 @@ export class QuestListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private describeReward(quest: Quest): string {
+    // Pokemon encounter: ID may be in pokemonId or reward field
+    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
+    if (quest.rewardType === 7 && pokemonId > 0) {
+      return this.masterData.getPokemonName(pokemonId);
+    }
+    if (quest.rewardType === 7 && pokemonId === 0) {
+      return this.i18n.instant('QUESTS.ANY_POKEMON_ENCOUNTER');
+    }
+    if (quest.rewardType === 12 && pokemonId > 0) {
+      return this.i18n.instant('QUESTS.MEGA_ENERGY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
+    }
+    if (quest.rewardType === 4 && pokemonId > 0) {
+      return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
+    }
+    if (quest.rewardType === 2) {
+      // reward 0 is the dialog default, meaning any item. getItemName has no id 0, so this used to
+      // render as "Item #0" -- the Pokemon branch above already has the equivalent "any" case.
+      return quest.reward > 0 ? this.masterData.getItemName(quest.reward) : this.i18n.instant('QUESTS.ANY_ITEM');
+    }
+    if (quest.rewardType === 3) {
+      return quest.reward > 0
+        ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
+        : this.i18n.instant('QUESTS.STARDUST');
+    }
+    return this.getRewardTypeLabel(quest.rewardType);
+  }
+
+  private loadProfileAreas(): void {
+    this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }
 }

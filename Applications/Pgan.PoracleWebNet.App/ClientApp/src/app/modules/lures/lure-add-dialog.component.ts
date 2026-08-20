@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -17,8 +18,9 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LureService } from '../../core/services/lure.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 interface LureOption {
@@ -42,7 +44,8 @@ interface LureOption {
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    MatSelectModule,
+    ScopePickerComponent,
   ],
   selector: 'app-lure-add-dialog',
   standalone: true,
@@ -51,20 +54,21 @@ interface LureOption {
 })
 export class LureAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
   form = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     editInPlace: [false],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
   lureTypes: LureOption[] = [
     { id: 501, name: 'Normal', color: '#FF9800' },
     { id: 502, name: 'Glacial', color: '#03A9F4' },
@@ -75,27 +79,39 @@ export class LureAddDialogComponent {
   ];
 
   saving = signal(false);
+
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedLureIds = signal<number[]>([]);
 
   getLureIcon(lureId: number): string {
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
-
   save(): void {
     if (this.selectedLureIds().length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     const creates = this.selectedLureIds().map(lureId =>
       this.lureService.create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         // New lures have no prior bits, so compose bits 1 (auto-delete) and 2 (edit-in-place) directly.
         clean: compose(!!v.clean, !!v.editInPlace, false),
-        distance: dist,
+        distance: scope.distance,
         lureId,
         template: v.template || null,
       }),

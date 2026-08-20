@@ -1,0 +1,104 @@
+<mat-card class="server-card">
+  <mat-card-content>
+    <div class="server-header">
+      <h2>{{ 'ADMIN.VERSIONS_TITLE' | translate }}</h2>
+      <button
+        mat-icon-button
+        [disabled]="serverLoading()"
+        (click)="refreshServerProfile()"
+        [attr.aria-label]="'ADMIN.SERVER_REFRESH' | translate">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+
+    @if (serverLoading()) {
+      <mat-spinner diameter="28"></mat-spinner>
+    } @else if (serverProfile(); as p) {
+      <!-- This site -->
+      <h3 class="server-section">{{ 'ADMIN.VERSIONS_WEB' | translate }}</h3>
+      <dl class="server-facts">
+        <dt>{{ 'ADMIN.SERVER_VERSION' | translate }}</dt>
+        <dd>{{ p.web.version ?? ('ADMIN.SERVER_UNKNOWN' | translate) }}</dd>
+
+        @if (p.web.revision) {
+          <dt>{{ 'ADMIN.VERSIONS_BUILD' | translate }}</dt>
+          <dd>{{ p.web.revision.slice(0, 7) }}</dd>
+        }
+      </dl>
+
+      @if (p.webUpdate.state === 'Behind') {
+        <div class="server-alert server-alert-update">
+          <mat-icon>system_update_alt</mat-icon>
+          <span>{{
+            'ADMIN.UPDATE_AVAILABLE' | translate: { name: 'PoracleWeb', running: p.webUpdate.running, latest: p.webUpdate.latest }
+          }}</span>
+        </div>
+      } @else if (p.webUpdate.state === 'PreRelease') {
+        <div class="server-alert server-alert-info">
+          <mat-icon>science</mat-icon>
+          <span>{{ 'ADMIN.UPDATE_PRERELEASE' | translate: { name: 'PoracleWeb', running: p.webUpdate.running } }}</span>
+        </div>
+      } @else if (p.webUpdate.state === 'UpToDate') {
+        <p class="server-current">{{ 'ADMIN.UPDATE_CURRENT' | translate }}</p>
+      } @else if (p.webUpdate.latest) {
+        <!-- A rolling channel: comparable to nothing, but the latest release is still worth naming. -->
+        <p class="server-current">{{ 'ADMIN.UPDATE_UNCOMPARABLE' | translate: { latest: p.webUpdate.latest } }}</p>
+      }
+
+      <!-- The Poracle it talks to -->
+      <h3 class="server-section">{{ 'ADMIN.SERVER_TITLE' | translate }}</h3>
+
+      @if (p.belowMinimum) {
+        <div class="server-alert server-alert-error">
+          <mat-icon>error</mat-icon>
+          <span>{{ 'ADMIN.SERVER_TOO_OLD' | translate: { version: p.version, minimum: p.minimumSupported } }}</span>
+        </div>
+      } @else if (!p.reachable) {
+        <div class="server-alert server-alert-warn">
+          <mat-icon>cloud_off</mat-icon>
+          <span>{{ 'ADMIN.SERVER_UNREACHABLE' | translate }}</span>
+        </div>
+      }
+
+      <dl class="server-facts">
+        <dt>{{ 'ADMIN.SERVER_VERSION' | translate }}</dt>
+        <dd>{{ p.version ?? ('ADMIN.SERVER_UNKNOWN' | translate) }}</dd>
+
+        <dt>{{ 'ADMIN.SERVER_SCHEMA' | translate }}</dt>
+        <dd>{{ p.schemaVersion ?? ('ADMIN.SERVER_UNKNOWN' | translate) }}</dd>
+
+        <dt>{{ 'ADMIN.SERVER_CHECKED' | translate }}</dt>
+        <dd>{{ p.checkedAt | date: 'short' }}</dd>
+      </dl>
+
+      @if (p.poracleUpdate.state === 'Behind') {
+        <div class="server-alert server-alert-update">
+          <mat-icon>system_update_alt</mat-icon>
+          <span>{{
+            'ADMIN.UPDATE_AVAILABLE' | translate: { name: 'Poracle', running: p.poracleUpdate.running, latest: p.poracleUpdate.latest }
+          }}</span>
+        </div>
+      } @else if (p.poracleUpdate.state === 'PreRelease') {
+        <div class="server-alert server-alert-info">
+          <mat-icon>science</mat-icon>
+          <span>{{ 'ADMIN.UPDATE_PRERELEASE' | translate: { name: 'Poracle', running: p.poracleUpdate.running } }}</span>
+        </div>
+      } @else if (p.poracleUpdate.state === 'UpToDate') {
+        <p class="server-current">{{ 'ADMIN.UPDATE_CURRENT' | translate }}</p>
+      }
+
+      <h3 class="server-caps-title">{{ 'ADMIN.SERVER_CAPABILITIES' | translate }}</h3>
+      @if (enabledCapabilities().length === 0) {
+        <p class="server-caps-empty">{{ 'ADMIN.SERVER_NO_CAPABILITIES' | translate }}</p>
+      } @else {
+        <div class="server-caps">
+          @for (capability of enabledCapabilities(); track capability) {
+            <span class="server-cap">{{ capability }}</span>
+          }
+        </div>
+      }
+    } @else {
+      <p class="server-caps-empty">{{ 'ADMIN.SERVER_UNREACHABLE' | translate }}</p>
+    }
+  </mat-card-content>
+</mat-card>

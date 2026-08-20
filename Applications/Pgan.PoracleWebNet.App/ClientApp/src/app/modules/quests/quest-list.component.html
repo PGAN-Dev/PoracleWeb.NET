@@ -104,7 +104,15 @@
           </div>
         </div>
         <mat-card-content>
-          <app-alarm-info [distance]="quest.distance" [clean]="quest.clean" [template]="quest.template" />
+          <app-alarm-info
+            [clean]="quest.clean"
+            [distance]="quest.distance"
+            [overrideAreas]="quest.overrideAreas"
+            [overrideLocationLabel]="quest.overrideLocationLabel"
+            [profileAreas]="profileAreas()"
+            [template]="quest.template"
+            [editable]="true"
+            (click)="editScope(quest); $event.stopPropagation()" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button

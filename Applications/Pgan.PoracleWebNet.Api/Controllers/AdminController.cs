@@ -15,6 +15,9 @@ public partial class AdminController(
     IUserPurgeService userPurgeService,
     IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
+    IPoracleServerProfileService serverProfileService,
+    IUpdateCheckService updateCheckService,
+    IConfiguration configuration,
     IPoracleHumanProxy humanProxy,
     IOptions<PoracleSettings> poracleSettings,
     IJwtService jwtService,
@@ -25,6 +28,9 @@ public partial class AdminController(
     private readonly IMemoryCache _cache = cache;
     private readonly IUserPurgeService _userPurgeService = userPurgeService;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
+    private readonly IPoracleServerProfileService _serverProfileService = serverProfileService;
+    private readonly IUpdateCheckService _updateCheckService = updateCheckService;
+    private readonly IConfiguration _configuration = configuration;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
@@ -355,6 +361,57 @@ public partial class AdminController(
     }
 
     public record CreateWebhookRequest(string Name, string Url);
+
+    /// <summary>
+    /// Which PoracleNG this instance is talking to, what it can store, and whether that is new enough.
+    /// </summary>
+    /// <remarks>
+    /// Admin-only because it describes the deployment rather than the account. Refreshes on request:
+    /// the point of looking is usually that something just changed.
+    /// </remarks>
+    [HttpGet("server-profile")]
+    public async Task<IActionResult> GetServerProfile([FromQuery] bool refresh = false)
+    {
+        if (!this.IsAdmin)
+        {
+            return this.Forbid();
+        }
+
+        if (refresh)
+        {
+            this._serverProfileService.Invalidate();
+            this._updateCheckService.Invalidate();
+        }
+
+        var profile = await this._serverProfileService.GetAsync();
+
+        // The build args are absent on a locally built image, which is not the same as being behind.
+        var runningWeb = this._configuration["BUILD_VERSION"];
+        var webRevision = this._configuration["BUILD_REVISION"];
+        var (webUpdate, ngUpdate) = await this._updateCheckService.CheckAsync(runningWeb, profile.Version);
+
+        return this.Ok(new
+        {
+            version = profile.Version,
+            schemaVersion = profile.SchemaVersion,
+            capabilities = profile.Capabilities,
+            reachable = profile.Reachable,
+            checkedAt = profile.CheckedAt,
+            minimumSupported = PoracleServerProfile.MinimumSupported.ToString(),
+            belowMinimum = profile.IsBelowMinimum,
+            poracleUpdate = new { running = ngUpdate.Running, latest = ngUpdate.Latest, state = ngUpdate.State.ToString() },
+            webUpdate = new { running = webUpdate.Running, latest = webUpdate.Latest, state = webUpdate.State.ToString() },
+
+            // This site's own build, so the card can name both halves of the deployment rather than
+            // only the one it talks to.
+            web = new
+            {
+                version = string.IsNullOrWhiteSpace(runningWeb) ? null : runningWeb,
+                revision = string.IsNullOrWhiteSpace(webRevision) ? null : webRevision,
+                buildDate = this._configuration["BUILD_DATE"],
+            },
+        });
+    }
 
     [HttpGet("poracle-admins")]
     public async Task<IActionResult> GetPoracleAdmins()

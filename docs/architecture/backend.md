@@ -22,6 +22,10 @@ private static readonly JsonSerializerOptions SnakeCaseOptions = new()
 
 PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a `uid` field, it updates the existing alarm. Services use the same `CreateAsync` proxy method for both operations.
 
+An edit therefore sends the whole row, and the body is built by serializing the typed model — so every column PoracleWeb has no property for arrives absent and PoracleNG stores the default over what the user had. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
+
+The merge runs *before* the collision guards, because `TrackingUpdateReconciler.CountUpdatableDifferences` only compares properties present in the submission — an unmodelled property could not tell two alarms apart, so the guard refused edits PoracleNG would have accepted. See [PoracleNG API Proxy](poracleng-proxy.md#insert-update-or-duplicate) for what the guards are mirroring.
+
 ## Repository layer (non-alarm entities)
 
 `HumanRepository` is used only for **admin bulk operations** (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) that lack PoracleNG API equivalents. Single-user human reads and writes go through `IPoracleHumanProxy`. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
@@ -103,8 +107,19 @@ All three endpoints go through the PoracleNG API proxy. Bulk distance updates fe
 
 Proxies all alarm CRUD operations to PoracleNG's `/api/tracking/*` endpoints. Authenticated via `X-Poracle-Secret` header. See [PoracleNG API Proxy](poracleng-proxy.md) for full details.
 
-- Registered via `AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>()`
-- Used by: all alarm services, `DashboardService`, `CleaningService`
+- Registered as the concrete `PoracleTrackingProxy`, then decorated — what the container resolves for `IPoracleTrackingProxy` is `UserOwnedOverrideAreaProxy` wrapping it
+- Used by: all alarm services, `DashboardService`, `CleaningService`, each of which therefore gets the decorated instance
+
+```csharp
+services.AddHttpClient<PoracleTrackingProxy>();
+services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
+    sp.GetRequiredService<PoracleTrackingProxy>(),
+    sp.GetRequiredService<IUserGeofenceRepository>(),
+    sp.GetRequiredService<IUserAreaDualWriter>(),
+    sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
+```
+
+The decorator only touches `CreateAsync`; everything else forwards untouched. See [Per-alarm areas](#per-alarm-areas).
 
 ### IPoracleHumanProxy (human/profile management)
 
@@ -125,6 +140,35 @@ Wraps HttpClient calls for non-tracking Poracle API operations.
 
 `PoracleConfig` is parsed from Poracle's JSON configuration. The `defaultTemplateName` field can be a number or string — deserialization handles both via `JsonElement`.
 
+## Server capability probe
+
+`IPoracleServerProfileService` / `PoracleServerProfileService` asks the PoracleNG instance what it is and
+what it can store. PoracleWeb previously assumed 5.1.0 and never checked, so on an older server the
+per-alarm scope, the PVP mega picker and the minimum-time filter wrote fields nothing stored and failed
+without a word.
+
+Two reads, answering different questions:
+
+- `GET {Poracle:ApiAddress}/health` — the release number and PoracleNG's own capability map. It is
+  unauthenticated, so the probe carries no secret and still works when the API key is wrong, which is
+  itself worth knowing: "reachable but every write 401s" and "not running" look identical otherwise. The
+  map is read key-by-key rather than into a fixed type, because it is upstream's and it grows.
+- `SELECT version FROM schema_migrations` on `PoracleContext`, via `PoracleSchemaVersionReader`. The
+  capability map covers bot and template-editor features and says nothing about alarm columns; the
+  applied migration number is what answers "can this server store that filter". 5.1.0 sits at migration
+  5. A missing table or a permission error reports an unknown schema, which unlocks nothing.
+
+`PoracleServerProfile.MinimumSupported` is **5.1.0** — where `override_location_label`, `override_areas`
+and `pvp_ranking_evolution` arrive. `IsBelowMinimum` is true only when the server is *known* to be older:
+unreachable, unparseable, or the `0.0.0` a locally built binary reports are all unknown rather than too
+old, so the banner is not shown on a guess. `Supports(capability)` defaults a missing key to false, per
+PoracleNG's map contract; `HasSchema(n)` answers false on an unknown schema.
+
+The profile is cached in `IMemoryCache` for five minutes and the HttpClient's timeout is five seconds, so
+an unreachable server answers "unknown" quickly instead of stalling the admin page.
+`GET /api/admin/server-profile` serves it (admin only); `?refresh=true` invalidates the cache and the
+GitHub update check first.
+
 ## Areas
 
 User areas are managed through `IPoracleHumanProxy.SetAreasAsync()`, and PoracleNG handles the dual-write
@@ -139,9 +183,48 @@ tagged `HACK: trusted-set-areas` — `grep -rn "HACK: trusted-set-areas" --inclu
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 
+### Per-alarm areas
+
+An alarm can confine itself to named areas of its own, stored in the row's `override_areas` column. That
+is the same `userSelectable` problem one layer down, and it fails harder: PoracleNG's tracking write
+validates every entry against `GetAvailableAreas` and answers **400 "area not permitted"**, failing the
+whole request, where `setAreas` merely strips silently.
+
+Matching never consults `userSelectable` — `resolveOverride` hands the rule's areas to `areaOverlap`,
+a name comparison against the fences the spawn fell in — so a name written straight into the column
+matches exactly like a permitted one. `UserOwnedOverrideAreaProxy`, the decorator over
+`IPoracleTrackingProxy`, does that:
+
+1. `EnsureScopeIsCoherent` refuses an incoherent scope before anything is written. A row cannot carry
+   both a place and a set of areas; areas cannot coexist with a radius; a place needs one. PoracleNG
+   enforces the same three rules, but only on the body it is sent, and it never sees the stripped names.
+2. Any of the user's own geofence names are removed from `override_areas` for the POST. A list left
+   empty drops the property entirely, so PoracleNG sees no override rather than an empty one.
+3. The full list is written into the row by `IUserAreaDualWriter.SetAlarmOverrideAreasAsync`, a raw
+   `UPDATE` scoped by both `id` and `uid`. An empty list stores NULL, not `[]` — `parseOverrideAreas`
+   reads `""` back as no override, while `[]` would be a list matching nothing.
+4. `ReloadStateAsync` is called afterwards, because a direct column write is not a PoracleNG mutation
+   and would otherwise wait for the periodic reload.
+
+Writes that name no override at all skip all of this. Tagged `HACK: trusted-set-areas` like the rest.
+
 ## Location
 
 `LocationController` uses `IPoracleHumanProxy.SetLocationAsync()` to set the user's location. No direct DB access or transactions are needed -- PoracleNG handles the write and state reload atomically.
+
+### Saved places
+
+The same controller owns the places an alarm can be anchored to instead of the profile pin. PoracleNG
+stores them in `user_locations`, keyed by (human, label), and they are reached only through
+`IPoracleHumanProxy`.
+
+| Endpoint | Behaviour |
+|---|---|
+| `GET /api/location/places` | Returns `SavedPlaces { Default, Named }`. `Default` is the profile pin every alarm falls back to, null when the user has never set one. |
+| `POST /api/location/places` | Saves a place, then returns the updated set. PoracleNG reports a rejected label inside a 200 because its endpoint answers per row, so the refusal is unwrapped and returned as a 400 the SPA can show against the field. |
+| `DELETE /api/location/places/{label}` | 204 on success. **409** with `referencingRules` when alarms still point at the label — PoracleNG refuses rather than orphaning it, and naming the alarms is the difference between "could not delete" and knowing what to repoint. Carried as `PlaceInUseException`. |
+
+A label is what an alarm's `override_location_label` refers to. The whole controller carries `[RequireFeatureEnabled(DisableFeatureKeys.Location)]`, so `disable_location` takes the pin, the places API, the static and distance maps and weather with it.
 
 ## Service lifetimes
 

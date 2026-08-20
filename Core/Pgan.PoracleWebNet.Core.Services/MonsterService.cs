@@ -55,6 +55,10 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
         // PoracleNG's POST endpoint handles updates when the body includes a uid field.
         var body = SerializeToElement(model);
 
+        // Carry forward anything the stored row holds that the model does not declare. See #730.
+        body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
+            this._proxy, TrackingType, userId, model.Uid, body);
+
         // Pokemon is the one type with no collision guard: PoracleNG updates it in place rather than
         // merging, so an edit onto another alarm's exact settings wrote a byte-identical twin -- two rows
         // on the page that cannot be told apart and must each be deleted. Creating that state directly is
@@ -93,43 +97,41 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        var monsters = DeserializeMonsters(json);
-        var monsterList = monsters.ToList();
 
-        if (monsterList.Count == 0)
+        // The stored rows are rewritten in place rather than round-tripped through the typed model,
+        // so fields PoracleWeb does not model survive the write-back. See #730.
+        var body = PoracleJsonHelper.RewriteRows(json, _ => true, ("distance", distance));
+        var count = body.GetArrayLength();
+
+        if (count == 0)
         {
             return 0;
         }
 
-        foreach (var monster in monsterList)
-        {
-            monster.Distance = distance;
-        }
-
-        var body = SerializeToElement(monsterList);
         await this._proxy.CreateAsync(TrackingType, userId, body);
-        return monsterList.Count;
+        return count;
     }
 
     public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        var monsters = DeserializeMonsters(json);
-        var matching = monsters.Where(m => uids.Contains(m.Uid)).ToList();
 
-        if (matching.Count == 0)
+        // The stored rows are rewritten in place rather than round-tripped through the typed model,
+        // so fields PoracleWeb does not model survive the write-back. See #730.
+        var selected = new HashSet<int>(uids);
+        var body = PoracleJsonHelper.RewriteRows(
+            json,
+            row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
+            ("distance", distance));
+        var count = body.GetArrayLength();
+
+        if (count == 0)
         {
             return 0;
         }
 
-        foreach (var monster in matching)
-        {
-            monster.Distance = distance;
-        }
-
-        var body = SerializeToElement(matching);
         await this._proxy.CreateAsync(TrackingType, userId, body);
-        return matching.Count;
+        return count;
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)

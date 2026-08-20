@@ -19,6 +19,12 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
 import { SettingsService } from '../../../core/services/settings.service';
 
+/** Extra options for {@link LocationDialogComponent}. */
+export interface LocationDialogData {
+  /** Close with the chosen coordinates instead of saving them as the profile pin. */
+  pickOnly?: boolean;
+}
+
 @Component({
   imports: [
     FormsModule,
@@ -61,7 +67,12 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   private skipNextReverse = false;
 
   private readonly snackBar = inject(MatSnackBar);
-  readonly data = inject<Location | null>(MAT_DIALOG_DATA);
+  /**
+   * `pickOnly` borrows this dialog as a coordinate picker without touching the profile pin. Saving
+   * unconditionally is what the dialog was for, so a caller that only wants a point (naming a place,
+   * say) would otherwise silently move the user's pin on the way past.
+   */
+  readonly data = inject<(LocationDialogData & Location) | null>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<LocationDialogComponent>);
   /**
    * When the operator has switched off geocoding, hide the address search rather than let it 403.
@@ -191,8 +202,14 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   save(): void {
     if (!this.isValid()) return;
 
-    this.saving.set(true);
     const loc: Location = { latitude: this.latitude, longitude: this.longitude };
+
+    if (this.data?.pickOnly) {
+      this.dialogRef.close(loc);
+      return;
+    }
+
+    this.saving.set(true);
     this.locationService.setLocation(loc).subscribe({
       error: () => {
         this.saving.set(false);

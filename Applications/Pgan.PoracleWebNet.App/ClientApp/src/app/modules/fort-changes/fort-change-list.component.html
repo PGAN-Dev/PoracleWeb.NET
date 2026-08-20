@@ -64,7 +64,7 @@
           </div>
           <div class="item-info">
             <h3>{{ formatFortType(item.fortType) }}</h3>
-            <span class="fort-subtitle">Fort Change Tracking</span>
+            <span class="fort-subtitle">{{ 'FORT_CHANGES.TRACKING_SUBTITLE' | translate }}</span>
           </div>
           <div class="card-top-actions">
             @if (item.includeEmpty === 1) {
@@ -75,16 +75,17 @@
         <mat-card-content>
           <div class="stat-grid">
             <div class="stat">
-              <span class="stat-label">Change Types</span>
+              <span class="stat-label">{{ 'FORT_CHANGES.CHANGE_TYPES_LABEL' | translate }}</span>
               <span class="stat-value">{{ formatChangeTypes(item.changeTypes) }}</span>
             </div>
           </div>
           <div class="distance-chip-row">
-            @if (item.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
-            } @else {
-              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(item.distance) }}</span>
-            }
+            <app-where-chip
+              [distance]="item.distance"
+              [overrideAreas]="item.overrideAreas"
+              [overrideLocationLabel]="item.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(item); $event.stopPropagation()" />
           </div>
         </mat-card-content>
         <mat-card-actions align="end">

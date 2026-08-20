@@ -349,7 +349,6 @@ export class DashboardComponent implements OnInit {
   openLocationDialog(): void {
     const loc = this.location();
     const dialogRef = this.dialog.open(LocationDialogComponent, {
-      width: '600px',
       data: loc && (loc.latitude !== 0 || loc.longitude !== 0) ? loc : null,
     });
     dialogRef

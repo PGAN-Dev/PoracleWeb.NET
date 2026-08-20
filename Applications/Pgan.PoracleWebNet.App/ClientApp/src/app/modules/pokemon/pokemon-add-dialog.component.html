@@ -142,6 +142,18 @@
           <mat-expansion-panel-header>
             <mat-panel-title> <mat-icon>more_horiz</mat-icon> {{ 'POKEMON.MORE_FILTERS' | translate }} </mat-panel-title>
           </mat-expansion-panel-header>
+          <h4>{{ 'POKEMON.FILTER_TIME_LEFT' | translate }}</h4>
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'POKEMON.LABEL_MIN_TIME' | translate }}</mat-label>
+              <mat-select [formControl]="filtersForm.controls.minTime">
+                @for (option of minTimeChoices(); track option) {
+                  <mat-option [value]="option">{{ minTimeText(option) | translate: minTimeParams(option) }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>{{ 'POKEMON.MIN_TIME_HINT' | translate }}</mat-hint>
+            </mat-form-field>
+          </div>
           <h4>{{ 'POKEMON.FILTER_SIZE' | translate }}</h4>
           <div class="form-row">
             <mat-form-field appearance="outline">
@@ -220,7 +232,10 @@
           @if (showCapPicker()) {
             <fieldset class="pvp-cap-fieldset" [attr.aria-describedby]="capTouched() ? null : 'pvp-cap-default-hint'">
               <legend class="pvp-cap-legend">{{ 'POKEMON.PVP_CAP' | translate }}</legend>
-              <mat-button-toggle-group [formControl]="pvpForm.controls.pvpRankingCap" class="pvp-cap-toggle" aria-label="PvP level cap">
+              <mat-button-toggle-group
+                [formControl]="pvpForm.controls.pvpRankingCap"
+                class="pvp-cap-toggle"
+                [attr.aria-label]="'POKEMON.PVP_CAP' | translate">
                 <mat-button-toggle [value]="0">{{ 'POKEMON.PVP_CAP_ALL' | translate }}</mat-button-toggle>
                 @for (cap of pvpCaps(); track cap) {
                   <mat-button-toggle [value]="cap">{{ 'POKEMON.PVP_CAP_LEVEL' | translate: { level: cap } }}</mat-button-toggle>
@@ -233,6 +248,19 @@
               }
             </fieldset>
           }
+
+          <fieldset class="pvp-cap-fieldset">
+            <legend class="pvp-cap-legend">{{ 'POKEMON.PVP_EVOLUTION' | translate }}</legend>
+            <mat-button-toggle-group [formControl]="pvpForm.controls.pvpRankingEvolution" class="pvp-cap-toggle">
+              <mat-button-toggle [value]="0">{{ 'POKEMON.PVP_EVO_BASE' | translate }}</mat-button-toggle>
+              <mat-button-toggle [value]="1">{{ 'POKEMON.PVP_EVO_MEGA' | translate }}</mat-button-toggle>
+              <mat-button-toggle [value]="2">{{ 'POKEMON.PVP_EVO_MEGA_X' | translate }}</mat-button-toggle>
+              <mat-button-toggle [value]="3">{{ 'POKEMON.PVP_EVO_MEGA_Y' | translate }}</mat-button-toggle>
+            </mat-button-toggle-group>
+            <p class="pvp-cap-default-hint">
+              <em>{{ 'POKEMON.PVP_EVOLUTION_HINT' | translate }}</em>
+            </p>
+          </fieldset>
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>{{ 'POKEMON.PVP_BEST_RANK' | translate }}</mat-label>
@@ -266,40 +294,7 @@
         <span class="tab-label">{{ 'POKEMON.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
-        <mat-radio-group [formControl]="notifForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
-          <mat-radio-button value="areas">
-            <div class="radio-label">
-              <mat-icon>map</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-          <mat-radio-button value="distance">
-            <div class="radio-label">
-              <mat-icon>straighten</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-        </mat-radio-group>
-
-        @if (notifForm.controls.distanceMode.value === 'distance') {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
-            <input matInput type="number" [formControl]="notifForm.controls.distanceKm" min="0" step="0.1" />
-            <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
-          </mat-form-field>
-        }
-
-        <app-delivery-preview
-          [mode]="notifForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
-          [distanceKm]="notifForm.controls.distanceKm.value ?? 0">
-        </app-delivery-preview>
+        <app-scope-picker [(scope)]="scope" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 

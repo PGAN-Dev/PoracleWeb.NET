@@ -79,6 +79,9 @@ PORACLE_ADMIN_IDS=your_discord_user_id        # Comma-separated Discord user IDs
 CORS_ORIGIN=http://localhost:8082
 ```
 
+!!! warning "PoracleNG 5.1.0 or newer"
+    Point `PORACLE_API_ADDRESS` at PoracleNG 5.1.0 or later. Older servers have no column for per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without an error and change nothing. PoracleWeb logs an error at startup and shows the detected version on **Admin → Settings**.
+
 ### Optional settings
 
 ```env
@@ -94,10 +97,6 @@ KOJI_PROJECT_NAME=your_koji_project_name
 # Discord forum channel for geofence submission threads
 DISCORD_GEOFENCE_FORUM_CHANNEL_ID=
 
-# Public URL of this site, no trailing slash (optional).
-# Links geofence review threads to the admin review page.
-# PUBLIC_URL=https://alerts.example.com
-
 # Scanner DB for gym picker in raid/egg dialogs (optional)
 # SCANNER_DB_CONNECTION=Server=host.docker.internal;Port=3306;Database=golbat;User=root;Password=your_password
 
@@ -108,6 +107,30 @@ TELEGRAM_BOT_USERNAME=
 ```
 
 See the [Configuration Reference](../configuration/reference.md) for the full list of settings.
+
+### Public URL and reverse proxies
+
+`PUBLIC_URL` is the origin people reach the instance on, and it pins the OAuth callback for both Discord and OIDC instead of letting the app guess one from each incoming request. Whatever you put here is what the provider must have registered. It is an origin only — no trailing path, no query — and an unusable value stops the app at startup rather than producing a callback the provider silently refuses.
+
+```env
+PUBLIC_URL=https://alerts.example.com
+```
+
+Leave it unset if the container is exposed directly, or if people reach it on several hostnames and you want the callback to follow whichever one they used. It is also the base for the links PoracleWeb puts in geofence review threads, so set it if you use the Discord submission forum.
+
+If anything terminates TLS in front of the container — nginx, Caddy, Traefik, a Cloudflare Tunnel — also name it. `X-Forwarded-For` and `X-Forwarded-Proto` are believed only from declared addresses, because a header trusted from anyone lets a caller invent a new address per request and hand itself a fresh rate-limit allowance on the sign-in endpoints.
+
+```env
+# One or both. Comma-separated. Use the address the proxy connects FROM.
+PROXY_KNOWN_PROXIES=127.0.0.1
+PROXY_KNOWN_NETWORKS=172.18.0.0/16
+```
+
+With neither set, the app falls back to the connection address. That is safe but wrong in two visible ways: every user behind the proxy shares one sign-in rate-limit bucket, and callback URLs are built from the scheme the app received — `http://` — which Discord and OIDC providers reject. `PUBLIC_URL` fixes the callback half on its own; only these two fix the rate-limit bucket.
+
+### Version checking
+
+The Versions card under **Admin → Settings** compares your PoracleWeb and PoracleNG versions against the latest releases. Opening that page makes two anonymous GETs, to `api.github.com` and `raw.githubusercontent.com`, with no identifiers sent. There is no scheduler behind it: the result is cached for six hours, so an instance whose admins never open the page never calls GitHub at all. If your egress policy blocks it, or you'd rather it didn't happen, switch on **Do not check for updates** (`disable_update_check`) under **Admin → Settings**.
 
 ## 3. Create the PoracleWeb.NET database
 
@@ -216,4 +239,4 @@ The app will now be available at `http://your-server:9090`. Remember to update y
 : `PORACLE_API_ADDRESS` must be reachable from inside the container. If Poracle runs on the host, use `http://host.docker.internal:3030`. If it's on another machine, use that machine's IP.
 
 **Discord login fails**
-: The redirect URI in your Discord app must match exactly: `http://your-server:PORT/api/auth/discord/callback`. Check both the port and the hostname/IP. If you serve the site over HTTPS through a reverse proxy and Discord reports the callback as `http://`, set `PUBLIC_URL` — see [the troubleshooting entry](../troubleshooting.md#sign-in-fails-with-invalid-oauth2-redirect_uri).
+: The redirect URI in your Discord app must match exactly: `http://your-server:PORT/api/auth/discord/callback`. Check both the port and the hostname/IP. If you serve the site over HTTPS through a reverse proxy and Discord reports the callback as `http://`, set `PUBLIC_URL` — see [Public URL and reverse proxies](#public-url-and-reverse-proxies) above and [the troubleshooting entry](../troubleshooting.md#sign-in-fails-with-invalid-oauth2-redirect_uri).

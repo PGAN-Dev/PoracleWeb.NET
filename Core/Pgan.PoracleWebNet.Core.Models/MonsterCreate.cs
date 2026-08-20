@@ -116,8 +116,24 @@ public class MonsterCreate
         get; set;
     }
 
+    // 0 base, 1 any mega, 2 Mega X, 3 Mega Y. PoracleNG reads no other value, and a fifth would rank
+    // against a form that does not exist, so the rule would never match.
+    [Range(0, 3)]
+    public int PvpRankingEvolution
+    {
+        get; set;
+    }
+
     [Range(0, int.MaxValue)]
     public int Form
+    {
+        get; set;
+    }
+
+    // Seconds of remaining despawn time. A pokemon spawn lasts an hour at the very most, and a value
+    // above its lifetime is a rule that can never match.
+    [Range(0, 3600)]
+    public int MinTime
     {
         get; set;
     }
@@ -143,6 +159,20 @@ public class MonsterCreate
 
     [StringLength(256)]
     public string? Template
+    {
+        get; set;
+    }
+
+    /// <summary>Saved-place label this alarm measures its radius from. See the domain model.</summary>
+    [StringLength(64)]
+    public string? OverrideLocationLabel
+    {
+        get; set;
+    }
+
+    /// <summary>Areas this alarm is confined to. See the domain model.</summary>
+    [MaxLength(32)]
+    public List<string>? OverrideAreas
     {
         get; set;
     }

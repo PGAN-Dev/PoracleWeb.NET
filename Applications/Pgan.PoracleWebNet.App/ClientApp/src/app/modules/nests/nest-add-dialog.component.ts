@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -16,9 +17,10 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { NestService } from '../../core/services/nest.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
@@ -35,7 +37,8 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    MatSelectModule,
+    ScopePickerComponent,
   ],
   selector: 'app-nest-add-dialog',
   standalone: true,
@@ -44,15 +47,15 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class NestAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly nestService = inject(NestService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<NestAddDialogComponent>);
   form = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     minSpawnAvg: [0],
     template: [''],
   });
@@ -60,11 +63,22 @@ export class NestAddDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedPokemonIds = signal<number[]>([]);
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
 
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
@@ -74,11 +88,13 @@ export class NestAddDialogComponent {
     if (this.selectedPokemonIds().length === 0) return;
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     const creates = this.selectedPokemonIds().map(pokemonId =>
       this.nestService.create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean: v.clean ? 1 : 0,
-        distance: dist,
+        distance: scope.distance,
         minSpawnAvg: v.minSpawnAvg ?? 0,
         pokemonId,
         template: v.template || null,

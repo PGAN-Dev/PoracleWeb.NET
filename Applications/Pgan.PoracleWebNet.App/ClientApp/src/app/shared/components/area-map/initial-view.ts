@@ -22,14 +22,22 @@
 export type InitialViewSource = 'all' | 'custom' | 'location' | 'selection';
 
 /**
- * Higher wins. `selection` outranks `custom` only so the ordering is total -- in practice the two
- * belong to different pages (Areas binds `selectedAreas`, My Geofences binds `customGeofences`).
+ * Higher wins.
+ *
+ * The pin now outranks the selection. #693 ranked the selection highest, on the reasoning that you
+ * open on the shapes you came for, but a multi-area selection frames a whole region and the map
+ * opens too far out to act on. A pin says where the person actually is, so it wins when one exists.
+ *
+ * It does NOT outrank `custom`. On My Geofences the shapes you drew are the thing you came for, and
+ * opening on your pin instead would be the same mistake in the other direction. The two never
+ * coexist in practice -- Areas binds `selectedAreas`, My Geofences binds `customGeofences` -- but
+ * the ordering has to be total, and this is the direction that is right on both pages.
  */
 export const INITIAL_VIEW_PRIORITY: Record<InitialViewSource, number> = {
   all: 1,
-  custom: 3,
-  location: 2,
-  selection: 4,
+  custom: 4,
+  location: 3,
+  selection: 2,
 };
 
 /**

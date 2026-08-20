@@ -431,3 +431,13 @@ kbd {
     }
   }
 }
+
+// The alert-language menu mirrors the display-language one row for row; the two are only
+// distinguishable at a glance if they look like siblings. Its hint says which is which.
+.alert-language-hint {
+  color: var(--text-secondary, rgb(0 0 0 / 60%));
+  font-size: 12px;
+  margin: 0;
+  max-width: 240px;
+  padding: 8px 16px 4px;
+}

@@ -20,8 +20,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 interface GruntOption {
   color?: string;
@@ -57,7 +58,7 @@ interface GruntOption {
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-invasion-add-dialog',
   standalone: true,
@@ -107,28 +108,43 @@ export class InvasionAddDialogComponent implements OnInit {
   ];
 
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<InvasionAddDialogComponent>);
-
   gruntOptions = signal<GruntOption[]>([]);
-
   readonly eventGrunts = computed(() => this.gruntOptions().filter(g => g.isEvent));
+
   form = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     gender: [0],
     template: [''],
   });
 
   readonly isWebhook = inject(AuthService).isImpersonating();
+
   readonly rocketGrunts = computed(() => this.gruntOptions().filter(g => !g.isEvent));
 
   saving = signal(false);
+
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedCount = signal(0);
   readonly trackAll = signal(false);
 
@@ -173,11 +189,6 @@ export class InvasionAddDialogComponent implements OnInit {
     this.gruntOptions.set([...grunts, ...events]);
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
-
   save(): void {
     if (!this.canSave()) return;
 
@@ -190,11 +201,13 @@ export class InvasionAddDialogComponent implements OnInit {
 
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     const creates = targets.map(g =>
       this.invasionService.create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean: v.clean ? 1 : 0,
-        distance: dist,
+        distance: scope.distance,
         // Split variants (Mixed Male/Female) carry an implicit gender; typed grunts
         // fall back to the user's dropdown choice; fixed-gender rows force 0.
         gender: g.gender ?? (isGenderFixed(g.gruntType) ? 0 : (v.gender ?? 0)),
@@ -229,7 +242,7 @@ export class InvasionAddDialogComponent implements OnInit {
           const message =
             duplicates > 0
               ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('COMMON.SAVED', { count: created });
+              : this.i18n.instant('INVASIONS.SNACK_CREATED_COUNT', { count: created });
           this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 

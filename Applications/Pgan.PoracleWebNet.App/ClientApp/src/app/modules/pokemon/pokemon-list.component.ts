@@ -20,6 +20,7 @@ import { firstValueFrom } from 'rxjs';
 import { PokemonAddDialogComponent } from './pokemon-add-dialog.component';
 import { PokemonEditDialogComponent } from './pokemon-edit-dialog.component';
 import { Monster } from '../../core/models';
+import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
@@ -27,7 +28,11 @@ import { MonsterService } from '../../core/services/monster.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { minTimePillLabel } from '../../shared/utils/min-time';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,6 +52,7 @@ import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flag
     MatInputModule,
     MatSelectModule,
     TranslatePipe,
+    WhereChipComponent,
   ],
   selector: 'app-pokemon-list',
   standalone: true,
@@ -54,6 +60,7 @@ import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flag
   templateUrl: './pokemon-list.component.html',
 })
 export class PokemonListComponent implements OnInit {
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
@@ -63,12 +70,12 @@ export class PokemonListComponent implements OnInit {
   // Search & quick filters
   readonly searchControl = new FormControl('');
   private readonly searchValue = toSignal(this.searchControl.valueChanges, { initialValue: '' });
-
   private readonly snackBar = inject(MatSnackBar);
+
   readonly activeFilter = signal<string | null>(null);
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
-
   readonly monsters = signal<Monster[]>([]);
+
   readonly sortBy = signal<'name' | 'id' | 'evolution' | 'generation'>('name');
   readonly filteredMonsters = computed(() => {
     const gen = this.activeGen();
@@ -144,6 +151,8 @@ export class PokemonListComponent implements OnInit {
   ];
 
   readonly loading = signal(true);
+
+  readonly profileAreas = signal<string[]>([]);
 
   readonly selectedIds = signal(new Set<number>());
 
@@ -279,6 +288,22 @@ export class PokemonListComponent implements OnInit {
     });
   }
 
+  /** Change one alarm's delivery scope from its card, without opening the whole edit dialog. */
+  editScope(monster: Monster): void {
+    const data: WhereSheetData = {
+      profileAreas: this.profileAreas(),
+      scope: scopeOf(monster.overrideLocationLabel, monster.overrideAreas, monster.distance),
+    };
+
+    this.dialog
+      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .afterClosed()
+      .subscribe((scope?: AlarmScope) => {
+        if (!scope) return;
+        this.applyScope(monster, scope);
+      });
+  }
+
   formatDistance(meters: number): string {
     if (meters >= 1000) {
       return `${(meters / 1000).toFixed(1)} km`;
@@ -385,10 +410,40 @@ export class PokemonListComponent implements OnInit {
       });
   }
 
+  /** The i18n key for a rule's mega mode, or an empty string for a base-forms rule. */
+  megaLabel(evolution: number): string {
+    switch (evolution) {
+      case 1:
+        return 'POKEMON.PVP_EVO_MEGA';
+      case 2:
+        return 'POKEMON.PVP_EVO_MEGA_X';
+      case 3:
+        return 'POKEMON.PVP_EVO_MEGA_Y';
+      default:
+        return '';
+    }
+  }
+
+  /** The pill only appears when a filter is set, so "any" never needs rendering here. */
+  minTimeParams(seconds: number): Record<string, number> {
+    return minTimePillLabel(seconds).params;
+  }
+
+  minTimeText(seconds: number): string {
+    return minTimePillLabel(seconds).key;
+  }
+
   ngOnInit(): void {
     // Ensure masterdata is loaded
     this.masterData.loadData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.loadMonsters();
+
+    // Only used to word the inherited scope honestly: "anywhere in my areas" is a lie for a user who
+    // has none selected. A failure leaves it empty, which produces the more cautious wording.
+    this.areaService
+      .getSelected()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }
 
   onImageError(event: Event, pokemonId: number): void {
@@ -456,6 +511,18 @@ export class PokemonListComponent implements OnInit {
           },
         });
       }
+    });
+  }
+
+  private applyScope(monster: Monster, scope: AlarmScope): void {
+    const fields = scopeToFields(scope);
+
+    this.monsterService.update(monster.uid, fields).subscribe({
+      error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+      next: () => {
+        this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
+        this.loadMonsters();
+      },
     });
   }
 

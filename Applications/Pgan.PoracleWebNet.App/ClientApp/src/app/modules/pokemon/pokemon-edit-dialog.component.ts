@@ -21,9 +21,11 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
 @Component({
   imports: [
@@ -41,8 +43,8 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     MatTabsModule,
     MatSnackBarModule,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     TranslatePipe,
+    ScopePickerComponent,
   ],
   selector: 'app-pokemon-edit-dialog',
   standalone: true,
@@ -68,8 +70,6 @@ export class PokemonEditDialogComponent implements OnInit {
     atk: [this.data.atk],
     clean: [isAutoDelete(this.data.clean)],
     def: [this.data.def],
-    distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
-    distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     form: [this.data.form],
     gender: [this.data.gender],
     maxAtk: [this.data.maxAtk],
@@ -83,9 +83,15 @@ export class PokemonEditDialogComponent implements OnInit {
     minCp: [this.data.minCp],
     minIv: [this.data.minIv],
     minLevel: [this.data.minLevel],
+    minTime: [this.data.minTime ?? 0],
     minWeight: [this.data.minWeight],
+    // Read-only here on purpose: an alarm's place or areas are changed from the card chip, which is one
+    // control in one place. This dialog only has to avoid destroying them, which it does by keeping
+    // the stored label and sending the radius against it.
     pvpRankingBest: [this.data.pvpRankingBest],
     pvpRankingCap: [this.data.pvpRankingCap ?? 0],
+    // 0 base, 1 any mega, 2 Mega X, 3 Mega Y — PoracleNG's pvp_ranking_evolution.
+    pvpRankingEvolution: [this.data.pvpRankingEvolution ?? 0],
     pvpRankingLeague: [this.data.pvpRankingLeague],
     pvpRankingMinCp: [this.data.pvpRankingMinCp],
     pvpRankingWorst: [this.data.pvpRankingWorst],
@@ -102,24 +108,30 @@ export class PokemonEditDialogComponent implements OnInit {
 
   saving = signal(false);
 
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
+
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
   getPokemonImage(): string {
     return this.iconService.getPokemonUrl(this.data.pokemonId, this.data.form);
   }
 
-  ngOnInit(): void {
-    this.poracleConfig.load().subscribe();
+  /** The preset list, widened to keep whatever the rule already holds. */
+  minTimeChoices(): number[] {
+    return minTimeOptions(this.form.controls.minTime.value ?? 0);
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') {
-      this.form.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.form.controls.distanceKm.value) {
-        this.form.controls.distanceKm.setValue(1);
-      }
-    }
+  minTimeParams(seconds: number): Record<string, number> | undefined {
+    return minTimeLabel(seconds).params;
+  }
+
+  minTimeText(seconds: number): string {
+    return minTimeLabel(seconds).key;
+  }
+
+  ngOnInit(): void {
+    this.poracleConfig.load().subscribe();
   }
 
   onImageError(event: Event): void {
@@ -136,13 +148,15 @@ export class PokemonEditDialogComponent implements OnInit {
     this.saving.set(true);
     const values = this.form.getRawValue();
 
-    const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
 
     const update: MonsterUpdate = {
+      overrideAreas: scope.overrideAreas,
+      overrideLocationLabel: scope.overrideLocationLabel,
       atk: values.atk ?? 0,
       clean: preserve(this.data.clean, AUTO_DELETE, values.clean ? 1 : 0),
       def: values.def ?? 0,
-      distance: distanceMeters,
+      distance: scope.distance,
       form: values.form ?? 0,
       gender: values.gender ?? 0,
       maxAtk: values.maxAtk ?? 15,
@@ -156,9 +170,11 @@ export class PokemonEditDialogComponent implements OnInit {
       minCp: values.minCp ?? 0,
       minIv: values.minIv ?? 0,
       minLevel: values.minLevel ?? 0,
+      minTime: values.minTime ?? 0,
       minWeight: values.minWeight ?? 0,
       pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 0,
       pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,
+      pvpRankingEvolution: values.pvpRankingLeague ? (values.pvpRankingEvolution ?? 0) : 0,
       pvpRankingLeague: values.pvpRankingLeague ?? 0,
       pvpRankingMinCp: values.pvpRankingLeague ? (values.pvpRankingMinCp ?? 0) : 0,
       pvpRankingWorst: values.pvpRankingLeague ? (values.pvpRankingWorst ?? 100) : 4096,

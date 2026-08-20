@@ -17,8 +17,12 @@ import { FortChange, FortChangeUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+
+/** The change types this dialog has a checkbox for. Anything else is carried through untouched. */
+const KNOWN_CHANGE_TYPES = new Set(['name', 'location', 'image_url', 'removal', 'new', 'description']);
 
 @Component({
   imports: [
@@ -36,7 +40,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-fort-change-edit-dialog',
   standalone: true,
@@ -50,14 +54,14 @@ export class FortChangeEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<FortChange>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<FortChangeEditDialogComponent>);
+
   form = this.fb.group({
+    changeTypeDescription: [this.data.changeTypes?.includes('description') ?? false],
     changeTypeImageUrl: [this.data.changeTypes?.includes('image_url') ?? false],
     changeTypeLocation: [this.data.changeTypes?.includes('location') ?? false],
     changeTypeName: [this.data.changeTypes?.includes('name') ?? false],
     changeTypeNew: [this.data.changeTypes?.includes('new') ?? false],
     changeTypeRemoval: [this.data.changeTypes?.includes('removal') ?? false],
-    distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
-    distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     fortType: [this.data.fortType ?? 'everything'],
     includeEmpty: [this.data.includeEmpty === 1],
     template: [this.data.template ?? ''],
@@ -67,26 +71,34 @@ export class FortChangeEditDialogComponent {
 
   saving = signal(false);
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     const changeTypes: string[] = [];
     if (v.changeTypeName) changeTypes.push('name');
     if (v.changeTypeLocation) changeTypes.push('location');
     if (v.changeTypeImageUrl) changeTypes.push('image_url');
     if (v.changeTypeRemoval) changeTypes.push('removal');
     if (v.changeTypeNew) changeTypes.push('new');
+    if (v.changeTypeDescription) changeTypes.push('description');
+
+    // Anything stored that this dialog has no box for stays. The list is rebuilt from the boxes, so a
+    // change type PoracleNG grows before PoracleWeb does would be dropped by the next save someone
+    // makes for an unrelated reason.
+    for (const stored of this.data.changeTypes ?? []) {
+      if (!KNOWN_CHANGE_TYPES.has(stored) && !changeTypes.includes(stored)) changeTypes.push(stored);
+    }
 
     this.fortChangeService
       .update(this.data.uid, {
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         changeTypes,
-        distance: dist,
+        distance: scope.distance,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,
         template: v.template || '',

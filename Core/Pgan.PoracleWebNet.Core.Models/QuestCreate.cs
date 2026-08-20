@@ -22,6 +22,14 @@ public class QuestCreate
         get; set;
     }
 
+    // Fewest of the reward the quest must give — items, candy and mega energy come in quantities.
+    // Stardust is not one of them: PoracleNG reads Reward as the stardust floor for reward type 3.
+    [Range(0, int.MaxValue)]
+    public int Amount
+    {
+        get; set;
+    }
+
     [Range(0, int.MaxValue)]
     public int RewardType
     {
@@ -49,6 +57,20 @@ public class QuestCreate
 
     [Range(0, int.MaxValue)]
     public int Form
+    {
+        get; set;
+    }
+
+    /// <summary>Saved-place label this alarm measures its radius from. See the domain model.</summary>
+    [StringLength(64)]
+    public string? OverrideLocationLabel
+    {
+        get; set;
+    }
+
+    /// <summary>Areas this alarm is confined to. See the domain model.</summary>
+    [MaxLength(32)]
+    public List<string>? OverrideAreas
     {
         get; set;
     }

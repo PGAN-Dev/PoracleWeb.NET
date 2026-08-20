@@ -1,8 +1,10 @@
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
-> **PoracleNG is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
+> **PoracleNG 5.1.0 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. On an older server, per-alarm delivery scope, the PVP mega evolution filter and the minimum time-left filter write columns that don't exist: the controls accept input, save, and change nothing. PoracleWeb logs an error at startup and shows the mismatch on the Versions card under Admin > Settings.
+>
+> [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
 **[Documentation](https://pgan-dev.github.io/PoracleWeb.NET/)** | **[Changelog](CHANGELOG.md)**
 
@@ -42,10 +44,13 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 
 ## Features
 
-- **Alarm Management** — Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms
+- **Alarm Management** — Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms, Fort Changes
 - **Gym Picker** — Search and target specific gyms for team change, raid, and egg alarms
 - **Bulk Operations** — Multi-select with bulk delete and distance update
-- **Alert Defaults** — Choose whether new alerts default to Areas or a Distance radius, with a configurable default distance
+- **Per-Alarm Delivery Scope** — Aim each alert anywhere in your areas, at only specific areas, or within a radius of your pin or a saved place
+- **Saved Places** — Name the points your alerts measure from, so an alarm doesn't have to follow your profile pin
+- **Test Alerts** — Send yourself a sample notification for any alarm to check its filters and template
+- **Alert Defaults** — Choose where new alerts default to reaching you: your areas, or a radius from your pin or a saved place
 - **Custom Geofences** — Draw polygons, auto-served to the Poracle bot via unified feed
 - **Geofence Admin Review** — Approve/reject with Discord forum integration
 - **Quick Picks** — One-click alarm templates
@@ -53,9 +58,9 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 - **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **DTS Preview** — Live Discord notification template preview
 - **Dark/Light Mode** — Theme toggle with accent color customization
-- **11 UI Languages** — with Pokemon and move names localized separately via the bot language setting
+- **11 UI Languages** — with Pokemon, move and alert text localized separately via **Alert language** in the user menu, beside **Display language**
 - **Single Sign-On** — Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout
-- **Admin Panel** — User management, webhooks, settings, geofence review
+- **Admin Panel** — User management, webhooks, settings, geofence review, and a Versions card showing the running PoracleWeb and PoracleNG builds. Opening that card runs an anonymous GitHub check, cached six hours, switched off with the **Do not check for updates** (`disable_update_check`) site setting
 
 ## Documentation
 
@@ -75,18 +80,25 @@ Full documentation is available at **[pgan-dev.github.io/PoracleWeb.NET](https:/
 git clone https://github.com/PGAN-Dev/PoracleWeb.NET.git
 cd PoracleWeb.NET
 
-# Backend (http://localhost:5048)
-cd Applications/Pgan.PoracleWebNet.Api
-dotnet run
+# First-time setup (interactive; writes .env) and frontend dependencies
+./scripts/setup.sh
+./scripts/dev.sh install
 
-# Frontend (http://localhost:4200)
-cd Applications/Pgan.PoracleWebNet.App/ClientApp
-npm install && npm start
+# Run both servers — API on http://localhost:5048, Angular on http://localhost:4200
+./scripts/dev.sh start
+
+# Or one at a time
+./scripts/dev.sh api
+./scripts/dev.sh app
 
 # Tests
-dotnet test                  # Backend
-cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm test  # Frontend
+./scripts/dev.sh test
 ```
+
+Run everything from the repo root. `Program.cs` reads `.env` from the working directory, so
+`cd`-ing into the API project before `dotnet run` starts the app with no connection strings, no JWT
+secret and no Poracle API address. `scripts/dev.sh` exports `.env` for you; without it, use
+`dotnet run --project Applications/Pgan.PoracleWebNet.Api` from the root.
 
 See the [Development Setup guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-started/development-setup/) for full instructions.
 
@@ -143,7 +155,13 @@ Cutting a release means merging `develop` into `main` and publishing a GitHub re
 - **docker-preview.yml** — Builds `:pr-<number>` images on PRs labeled `preview`
 - **docker-prune.yml** — Nightly cleanup of stale `pr-*` and `develop-<sha>` tags
 - **pr-labeler.yml** — Auto-labels PRs from branch prefix / PR title for release-note grouping
-- **release.yml** (config) — Groups PRs by label when generating GitHub release notes
+- **changelog.yml** — Checks that a PR adds an entry under `## [Unreleased]` in CHANGELOG.md
+- **release-changelog.yml** — On a published release, opens a PR promoting `[Unreleased]` to the new version section
+- **docs.yml** — Builds the MkDocs site and deploys it to GitHub Pages
+- **auto-merge-deps.yml** — Enables auto-merge on low-risk Dependabot bumps (patches, curated groups, Actions minors); majors wait for review
+
+`.github/release.yml` is a config file, not a workflow: it groups PRs by label when GitHub generates
+release notes.
 
 ## Credits
 

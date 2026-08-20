@@ -53,7 +53,10 @@ describe('PokemonAddDialogComponent', () => {
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
-        { provide: AlertDefaultsService, useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas' } },
+        {
+          provide: AlertDefaultsService,
+          useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
+        },
         {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
@@ -145,6 +148,85 @@ describe('PokemonAddDialogComponent', () => {
       'COMMON.OK',
       expect.objectContaining({ duration: 4000 }),
     );
+  });
+
+  it('sends the mega mode with a PVP rule', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.pvpForm.controls.pvpRankingLeague.setValue(1500);
+    component.pvpForm.controls.pvpRankingEvolution.setValue(2);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).pvpRankingEvolution).toBe(2);
+  });
+
+  it('does not send a mega mode on a rule with no league', () => {
+    // Mega mode only means something inside a PVP rule. Carrying it on a non-PVP alarm would be a
+    // filter the user never asked for, on a field PoracleNG still reads.
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.pvpForm.controls.pvpRankingEvolution.setValue(2);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).pvpRankingEvolution).toBe(0);
+  });
+
+  it('sends the minimum time left with the rule', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.filtersForm.controls.minTime.setValue(300);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).minTime).toBe(300);
+  });
+
+  it('sends no time floor by default', () => {
+    // The legitimate twin: an ordinary rule must not arrive with a filter nobody chose.
+    component.selectedPokemonIds.set([MEOWTH]);
+
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).minTime).toBe(0);
+  });
+
+  it('offers the presets for the time left', () => {
+    expect(component.minTimeChoices()).toEqual([0, 60, 120, 300, 600, 900, 1200]);
+  });
+
+  it('sends the scope fields for an alarm aimed at a saved place', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.scope.set({ distanceKm: 2, mode: 'place', placeLabel: 'work' });
+
+    component.save();
+
+    const created = monsterService.create.mock.calls[0][0] as MonsterCreate;
+    expect(created.overrideLocationLabel).toBe('work');
+    expect(created.distance).toBe(2000);
+    expect(created.overrideAreas).toEqual([]);
+  });
+
+  it('leaves the radius on the pin when no place is chosen', () => {
+    // The legitimate-case half: "within 2 km of me" is the alarm most people make, and it must not
+    // acquire a location override just because the field exists.
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.scope.set({ distanceKm: 2, mode: 'profile' });
+
+    component.save();
+
+    const created = monsterService.create.mock.calls[0][0] as MonsterCreate;
+    expect(created.overrideLocationLabel).toBe('');
+    expect(created.distance).toBe(2000);
+  });
+
+  it('clears the radius and any place when the alarm inherits the profile', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.scope.set({ mode: 'profile' });
+
+    component.save();
+
+    const created = monsterService.create.mock.calls[0][0] as MonsterCreate;
+    expect(created.distance).toBe(0);
+    expect(created.overrideLocationLabel).toBe('');
   });
 
   it('does nothing when no pokemon are selected', () => {

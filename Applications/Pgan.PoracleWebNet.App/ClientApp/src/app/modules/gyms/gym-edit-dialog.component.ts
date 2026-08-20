@@ -15,9 +15,10 @@ import { Gym, GymUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -34,8 +35,8 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     GymPickerComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-gym-edit-dialog',
   standalone: true,
@@ -49,11 +50,10 @@ export class GymEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Gym>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
+
   form = this.fb.group({
     battleChanges: [this.data.battleChanges === 1],
     clean: [isAutoDelete(this.data.clean)],
-    distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
-    distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     slotChanges: [this.data.slotChanges === 1],
     template: [this.data.template ?? ''],
   });
@@ -61,6 +61,9 @@ export class GymEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
   selectedGymId = signal<string | null>(this.data.gymId);
   getGymIcon(): string {
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${this.data.team}.png`;
@@ -81,20 +84,17 @@ export class GymEditDialogComponent {
     }
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
-
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     this.gymService
       .update(this.data.uid, {
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         battleChanges: v.battleChanges ? 1 : 0,
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
-        distance: dist,
+        distance: scope.distance,
         gymId: this.selectedGymId() ?? '',
         slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,

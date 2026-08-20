@@ -78,11 +78,12 @@
             </div>
           </div>
           <div class="distance-chip-row">
-            @if (lure.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
-            } @else {
-              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(lure.distance) }}</span>
-            }
+            <app-where-chip
+              [distance]="lure.distance"
+              [overrideAreas]="lure.overrideAreas"
+              [overrideLocationLabel]="lure.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(lure); $event.stopPropagation()" />
           </div>
         </mat-card-content>
         <mat-card-actions align="end">

@@ -11,6 +11,7 @@ Site settings are admin-configurable runtime settings stored in the `poracle_web
 - The admin panel at **Admin > Settings** provides a grouped UI for editing all settings.
 - Changes take effect immediately — no app restart is needed.
 - Boolean settings use `"True"` / `"False"` string values.
+- Keys beginning `disable_` store the *disabled* state, but the admin UI shows them as positive switches — the toggle is on when the feature is available. The stored value is inverted on read and write, so what the API and the tables below describe is the key, not the switch.
 - Some settings have conditional visibility (e.g., `allowed_role_ids` only appears when `enable_roles` is enabled).
 
 ---
@@ -21,7 +22,7 @@ Customize the appearance and navigation of your PoracleWeb.NET instance.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `custom_title` | Site Title | string | Name shown in the browser tab and page header. This is the only setting visible publicly (on the login page without authentication). |
+| `custom_title` | Site Title | string | Name shown in the browser tab and page header. One of the five keys served without authentication, alongside `enable_discord`, `enable_telegram`, `favicon_url` and `signup_url`. |
 | `header_logo_url` | Header Logo URL | url | URL for a custom logo image in the header (replaces the default Pokeball). Leave empty for the default logo. |
 | `hide_header_logo` | Hide Header Logo | boolean | Hide the logo from the header entirely. |
 | `favicon_url` | Favicon URL | url | URL for the browser-tab icon. Square image recommended (32×32 minimum). Supports `.ico`, `.png`, and `.svg`. Leave empty to use the bundled default. Also loads on the public login page. See [Favicon caveats](#favicon-caveats) below. |
@@ -44,15 +45,15 @@ Control which alarm categories are available to users. Disabling a type hides it
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `disable_mons` | Disable Pokémon | boolean | Hide Pokémon alarm management from all users. |
-| `disable_raids` | Disable Raids | boolean | Hide raid alarm management from all users. |
-| `disable_quests` | Disable Quests | boolean | Hide quest alarm management from all users. |
-| `disable_invasions` | Disable Invasions | boolean | Hide invasion alarm management from all users. |
-| `disable_lures` | Disable Lures | boolean | Hide lure alarm management from all users. |
-| `disable_nests` | Disable Nests | boolean | Hide nest alarm management from all users. |
-| `disable_gyms` | Disable Gyms | boolean | Hide gym alarm management from all users. |
-| `disable_fort_changes` | Disable Fort Changes | boolean | Hide fort change alarm management from all users. |
-| `disable_maxbattles` | Disable Max Battles | boolean | Hide max battle alarm management from all users. |
+| `disable_mons` | Pokémon | boolean | Hide Pokémon alarm management from all users. |
+| `disable_raids` | Raids | boolean | Hide raid alarm management from all users. |
+| `disable_quests` | Quests | boolean | Hide quest alarm management from all users. |
+| `disable_invasions` | Invasions | boolean | Hide invasion alarm management from all users. |
+| `disable_lures` | Lures | boolean | Hide lure alarm management from all users. |
+| `disable_nests` | Nests | boolean | Hide nest alarm management from all users. |
+| `disable_gyms` | Gyms | boolean | Hide gym alarm management from all users. |
+| `disable_fort_changes` | Fort Changes | boolean | Hide fort change alarm management from all users. |
+| `disable_maxbattles` | Max Battles | boolean | Hide max battle alarm management from all users. |
 
 ---
 
@@ -62,23 +63,25 @@ Toggle user-facing features on or off.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `disable_areas` | Disable Areas | boolean | Prevent users from managing their area subscriptions. |
-| `disable_profiles` | Disable Profiles | boolean | Prevent users from creating and switching alarm profiles. |
-| `disable_location` | Disable Location | boolean | Prevent users from setting a home location. |
-| `disable_nominatim` | Disable Geocoding | boolean | Stops all outbound geocoding. The address search and reverse lookup return 403, and the location dialog hides its search box. Users can still set a location by coordinates or on the map. Turn this on if you do not want your instance making requests to a third-party geocoder. |
-| `enable_templates` | Enable Templates | boolean | Allow users to choose notification message templates. |
+| `disable_areas` | Areas | boolean | Prevent users from managing their area subscriptions. |
+| `disable_profiles` | Profiles | boolean | Prevent users from creating and switching alarm profiles. |
+| `disable_location` | Location | boolean | Gates the whole location API, not just the pin. Users cannot set their pin, and saved places, static and distance map images, and the weather lookups on the dashboard all stop with it. Since "Near a place" delivery scope measures from a saved place or the pin, alarms already using it keep working but nothing new can be pointed at a place. |
+| `disable_nominatim` | Geocoding | boolean | Stops all outbound geocoding. The address search and reverse lookup return 403, and the location dialog hides its search box. Users can still set a pin by coordinates or on the map. Turn this on if you do not want your instance making requests to a third-party geocoder. |
+| `disable_update_check` | Do not check for updates | boolean | Stops the version check against `api.github.com` and `raw.githubusercontent.com`, which runs when an admin opens the Versions card and is cached six hours afterwards. Two anonymous GETs, no identifiers and no payload. With it on, the Versions card on **Admin > Settings** still reports the running versions but cannot say whether they are current. |
+| `disable_user_geofences` | Custom Geofences | boolean | Hides the My Geofences page and the admin review queue, and 403s the create, rename, import, submit, activate and deactivate endpoints. Delete is deliberately left open, so a user can still clear out a geofence they no longer want. Geofences that already exist keep being served in the [geofence feed](../features/custom-geofences/index.md) and keep matching. See [Admin operations](../features/custom-geofences/admin-operations.md). |
+| `enable_templates` | Templates | boolean | Allow users to choose notification message templates. |
+| `allowed_languages` | Allowed UI Languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all 11 languages. |
 
 ---
 
 ## Administration
 
-Access control and language restrictions.
+Access control.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `enable_roles` | Enable Role-Based Access | boolean | Only allow users with specific Discord roles to log in. Requires `Discord:BotToken` and `Discord:GuildId` in [appsettings](reference.md). |
 | `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
-| `allowed_languages` | Allowed Languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all available languages. |
 
 !!! warning "Role-based access prerequisites"
     Role-based access requires `Discord:BotToken` and `Discord:GuildId` to be configured in appsettings. Without these, role checks cannot be performed and the setting has no effect.
@@ -88,14 +91,16 @@ Access control and language restrictions.
 
 ---
 
-## Commands
-
-Poracle bot commands shown in help text and the onboarding wizard.
+## Discord
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `register_command` | Register Command | string | The Poracle bot command users run to register (e.g., `$!register`). |
-| `location_command` | Location Command | string | The Poracle bot command users run to set their location. |
+| `enable_discord` | Enable Discord Login | boolean | Allow Discord sign-in. Requires `Discord:ClientId` and `Discord:ClientSecret` in [appsettings](reference.md). Nothing here affects PoracleNG's bot delivery — it only controls the login button. |
+
+!!! note "Admins are exempt"
+    The check runs only for non-admins, and only when the value is explicitly `"false"`. An absent key
+    allows Discord login. Admins can always sign in with Discord, so switching this off by mistake is
+    recoverable from the admin panel rather than a lockout.
 
 ---
 
@@ -105,7 +110,7 @@ Configure Telegram authentication alongside or instead of Discord.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `enable_telegram` | Enable Telegram | boolean | Allow users to log in and manage alarms via Telegram. |
+| `enable_telegram` | Enable Telegram Login | boolean | Allow users to log in and manage alarms via Telegram. |
 | `telegram_bot` | Bot Username | string | Telegram bot username (without the `@` prefix). Used as a **fallback** — see the note below. |
 
 !!! note "Backend configuration also required"
@@ -136,39 +141,29 @@ Runtime toggles for the generic external SSO / OIDC sign-in flow. See [External 
 
 ---
 
-## Maps & Assets
-
-Configure the map tile provider used for static map images.
-
-| Key | Label | Type | Description |
-|---|---|---|---|
-| `provider_url` | Map Tile URL | url | URL template for the map tile provider. Uses standard `{z}/{x}/{y}` placeholders. Example: `https://tile.openstreetmap.org/{z}/{x}/{y}.png` |
-
----
-
 ## Analytics & Links
 
-Optional analytics tracking and donation links.
-
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `gAnalyticsId` | Google Analytics ID | string | GA4 measurement ID (e.g., `G-XXXXXXXXXX`). Leave blank to disable analytics. |
-| `patreonUrl` | Patreon URL | url | Link to your Patreon page, shown in the UI when set. |
-| `paypalUrl` | PayPal URL | url | Link to your PayPal donation page, shown in the UI when set. |
+| `signup_url` | Signup URL | url | External registration page. When set, someone who reaches the login page without a Poracle account gets a sign-up button pointing here. Served on the public login page before anyone signs in, so treat it as public. Leave empty to hide the button. |
 
 ---
 
-## Debug
+## Retired keys
 
-Development and troubleshooting settings.
+Ten keys were withdrawn from the admin UI once it became clear nothing in the product read them. They
+saved, persisted and read back while their descriptions promised behaviour the app does not have:
 
-| Key | Label | Type | Description |
-|---|---|---|---|
-| `site_is_https` | Site Is HTTPS | boolean | Mark the site as running over HTTPS. Affects cookie security flags (`Secure`, `SameSite`). |
-| `debug` | Debug Mode | boolean | Enable verbose debug logging. Not recommended in production. |
+`disable_geomap`, `disable_geomap_select`, `register_command`, `location_command`, `provider_url`,
+`gAnalyticsId`, `patreonUrl`, `paypalUrl`, `site_is_https`, `debug`.
 
-!!! warning
-    Enabling debug mode in production can expose sensitive information in logs and degrade performance.
+Existing rows are left in `site_settings` rather than deleted, and the settings UI filters them out of
+its "Other" catch-all. Nothing reads them, so their values have no effect either way. See #547, #560
+and #589.
+
+`disable_geomap` and `disable_geomap_select` are legacy PoracleJS keys describing a map picker this app
+does not have. `provider_url` still exists in the Poracle bot's own config, which is where the geocoder
+URL is actually read from — the site setting was a duplicate that fed nothing.
 
 ---
 
@@ -213,11 +208,23 @@ the UI layer instead. Neither is visible to non-admins.
 
 ## Sensitive Settings
 
-These settings are stored in the database but hidden from the admin settings UI groups. Unlike internal settings, they **are** accessible to admin users via the API. Prefer configuring them via [appsettings](reference.md) environment variables instead.
+Credential-bearing rows carried over from PoracleJS installs. They are hidden from the admin settings
+UI groups but **are** readable by admins through the API. Prefer configuring the equivalents via
+[appsettings](reference.md) environment variables instead.
 
 | Key | Category | Description |
 |---|---|---|
 | `api_address` | api | Poracle API address. Prefer `Poracle:ApiAddress` in [appsettings](reference.md). |
 | `api_secret` | api | Poracle API shared secret. Prefer `Poracle:ApiSecret` in [appsettings](reference.md). |
 | `telegram_bot_token` | telegram | Telegram bot token. Prefer `Telegram:BotToken` in [appsettings](reference.md). |
-| `scan_db` | database | Scanner database connection string. Prefer `ConnectionStrings:ScannerDb` in [appsettings](reference.md). |
+| `scan_dbhost`, `scan_dbport`, `scan_dbname`, `scan_dbuser`, `scan_dbpass` | other | Scanner database host, port, name, user and password. Prefer `ConnectionStrings:ScannerDb` in [appsettings](reference.md). |
+| `cf_id`, `cf_secret` | other | Cloudflare Access service token used by some PoracleJS deployments. |
+
+Neither the scanner keys nor the Cloudflare pair appear in `SettingsMigrationService.CategoryMap`, so rows migrated from `pweb_settings` land in the catch-all `other` category.
+
+`GET /api/settings` decides what a non-admin sees with an **allowlist**, not a denylist: the exact keys
+in `SettingsController.UserVisibleKeys` plus anything beginning `disable_`, `enable_` or `uicons_`.
+Everything else is admin-only. That direction matters — the previous denylist named a key `scan_db`
+that matches no real row and never mentioned `cf_id` / `cf_secret`, so a scanner password and a
+Cloudflare token were served to every signed-in session. With an allowlist, a new credential key is
+hidden until someone deliberately adds it.

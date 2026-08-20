@@ -110,6 +110,71 @@ describe('QuestAddDialogComponent', () => {
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
+  it('creates a stardust rule from the amount alone', () => {
+    // PoracleNG matches stardust on the reward column, not the amount one, so the floor travels there.
+    component.tabIndex = 4;
+    component.stardustForm.controls.reward.setValue(1500);
+
+    component.save();
+
+    const created = questService.create.mock.calls[0][0] as QuestCreate;
+    expect(created.rewardType).toBe(3);
+    expect(created.reward).toBe(1500);
+  });
+
+  it('treats a stardust rule with no floor as every stardust quest', () => {
+    component.tabIndex = 4;
+
+    component.save();
+
+    expect((questService.create.mock.calls[0][0] as QuestCreate).reward).toBe(0);
+  });
+
+  it('sends the minimum amount with an item rule', () => {
+    component.tabIndex = 1;
+    component.itemForm.controls.reward.setValue(1301);
+    component.itemForm.controls.amount.setValue(3);
+
+    component.save();
+
+    const created = questService.create.mock.calls[0][0] as QuestCreate;
+    expect(created.rewardType).toBe(2);
+    expect(created.amount).toBe(3);
+  });
+
+  it('sends the minimum amount with a mega energy rule, on every selected pokemon', () => {
+    component.tabIndex = 2;
+    component.selectedMegaPokemonIds.set([6, 9]);
+    component.megaForm.controls.amount.setValue(50);
+
+    component.save();
+
+    expect(questService.create).toHaveBeenCalledTimes(2);
+    for (const call of questService.create.mock.calls) {
+      expect((call[0] as QuestCreate).amount).toBe(50);
+    }
+  });
+
+  it('sends the minimum amount with a candy rule', () => {
+    component.tabIndex = 3;
+    component.selectedCandyPokemonIds.set([133]);
+    component.candyForm.controls.amount.setValue(5);
+
+    component.save();
+
+    expect((questService.create.mock.calls[0][0] as QuestCreate).amount).toBe(5);
+  });
+
+  it('asks for no minimum on a pokemon encounter, which has no quantity', () => {
+    // The legitimate twin: an encounter rule carrying an amount would be a filter PoracleNG reads for
+    // other reward types and nobody chose here.
+    component.selectedPokemonIds.set([25]);
+
+    component.save();
+
+    expect((questService.create.mock.calls[0][0] as QuestCreate).amount).toBe(0);
+  });
+
   it('does nothing when no rewards are selected', () => {
     component.commonForm.controls.summary.setValue(true);
     component.save();

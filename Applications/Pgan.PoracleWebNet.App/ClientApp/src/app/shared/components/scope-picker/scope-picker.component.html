@@ -1,0 +1,76 @@
+@if (!hideHeading()) {
+  <h4 class="scope-heading">{{ 'WHERE.SHEET_TITLE' | translate }}</h4>
+}
+
+<mat-radio-group class="scope-options" [ngModel]="mode()" (ngModelChange)="mode.set($event)">
+  <label class="scope-option">
+    <mat-radio-button value="inherit">{{ 'WHERE.OPTION_PROFILE' | translate }}</mat-radio-button>
+    <p class="scope-option-detail">
+      @if (profileAreaSummary()) {
+        {{ profileAreaSummary() }}
+      } @else {
+        {{ 'WHERE.PROFILE_ANYWHERE' | translate }}
+      }
+    </p>
+  </label>
+
+  <label class="scope-option">
+    <mat-radio-button value="near">{{ 'WHERE.OPTION_NEAR' | translate }}</mat-radio-button>
+    @if (mode() === 'near') {
+      <div class="scope-option-body">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'WHERE.MEASURED_FROM' | translate }}</mat-label>
+          <mat-select [ngModel]="placeLabel()" (ngModelChange)="onTargetChange($event)">
+            <mat-option value="">
+              {{ 'WHERE.MY_PIN' | translate }}
+              @if (!places.pin()) {
+                <span class="scope-pin-unset">— {{ 'WHERE.PIN_UNSET' | translate }}</span>
+              }
+            </mat-option>
+            @for (place of places.named(); track place.label) {
+              <mat-option [value]="place.label">{{ place.label }}</mat-option>
+            }
+            <mat-option [value]="ADD_PLACE">
+              <mat-icon class="scope-add-icon">add_location_alt</mat-icon>
+              {{ 'WHERE.ADD_PLACE' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="scope-distance">
+          <mat-label>{{ 'WHERE.RADIUS_KM' | translate }}</mat-label>
+          <input matInput type="number" min="0.1" max="100" step="0.1" [ngModel]="distanceKm()" (ngModelChange)="distanceKm.set($event)" />
+        </mat-form-field>
+      </div>
+
+      @if (pinMissing()) {
+        <p class="scope-warning">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ 'WHERE.PIN_MISSING_WARNING' | translate }}</span>
+          <button mat-button class="scope-warning-action" (click)="setPin()">{{ 'WHERE.SET_PIN' | translate }}</button>
+        </p>
+      }
+    }
+  </label>
+
+  <label class="scope-option">
+    <mat-radio-button value="areas">{{ 'WHERE.OPTION_AREAS' | translate }}</mat-radio-button>
+    @if (mode() === 'areas') {
+      <div class="scope-option-body">
+        <mat-form-field appearance="outline" class="scope-areas">
+          <mat-label>{{ 'WHERE.AREAS_LABEL' | translate }}</mat-label>
+          <mat-select multiple [ngModel]="selectedAreas()" (ngModelChange)="selectedAreas.set($event)">
+            @for (area of availableAreas(); track area.name) {
+              <mat-option [value]="area.name">
+                {{ titleCase(area.name) }}
+                @if (area.own) {
+                  <mat-icon class="scope-own-icon">draw</mat-icon>
+                }
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    }
+  </label>
+</mat-radio-group>

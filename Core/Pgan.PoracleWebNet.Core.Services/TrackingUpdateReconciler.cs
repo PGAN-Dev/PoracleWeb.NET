@@ -349,6 +349,13 @@ internal static partial class TrackingUpdateReconciler
     /// through and PoracleNG took the existing alarm over -- 201 Created over the row it had just
     /// destroyed. Forts have no clean column at all. When PoracleNG is upgraded, re-read those tags
     /// before assuming this still holds. See #574.
+    /// <para>
+    /// Re-read at PoracleNG 5.1.0 (c5e08cb4), the version prod runs since 2026-08-18: every entry below
+    /// still matches. 5.1.0 added <c>override_location_label</c> and <c>override_areas</c> to all ten
+    /// types tagged <c>diff:""</c>, which is the untagged identity behaviour, so they need no entry here
+    /// -- but they DO have to reach the comparison, which is why the write paths merge the stored row in
+    /// before these guards run. See #730.
+    /// </para>
     /// </remarks>
     private static readonly Dictionary<string, HashSet<string>> UpdatableFieldsByType =
         new(StringComparer.Ordinal)
@@ -368,6 +375,13 @@ internal static partial class TrackingUpdateReconciler
         };
 
     /// <summary>Types PoracleNG does not diff at all fall back to the common three.</summary>
+    /// <remarks>
+    /// Unreached today. Maxbattle is the only type missing from the dictionary above, and it tags nothing
+    /// <c>diff:"update"</c> upstream, so this fallback would over-predict merges for it -- except
+    /// MaxBattleService never calls the reconciler: it deletes and re-creates, and pre-checks siblings
+    /// with its own IsSameAlarm. Verified at 5.1.0 rather than assumed. Left as the conservative default
+    /// for whatever type is added next.
+    /// </remarks>
     private static readonly HashSet<string> DefaultUpdatableFields = new(StringComparer.Ordinal)
     {
         "clean", "distance", "template",

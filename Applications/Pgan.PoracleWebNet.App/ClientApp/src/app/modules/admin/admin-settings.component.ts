@@ -29,6 +29,7 @@ import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, Telegr
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ServerProfileCardComponent } from '../../shared/components/server-profile-card/server-profile-card.component';
 
 /** Union type for backward compatibility during migration */
 type AnySettingItem = PwebSetting | SiteSetting;
@@ -248,6 +249,12 @@ const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_UPDATE_CHECK_DESC',
+        key: 'disable_update_check',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_UPDATE_CHECK_LABEL',
+        type: 'boolean',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_DESC',
         key: 'disable_user_geofences',
         labelKey: 'ADMIN_SETTINGS.DISABLE_USER_GEOFENCES_LABEL',
@@ -335,6 +342,7 @@ const SETTING_GROUPS: SettingGroup[] = [
     MatSlideToggleModule,
     MatDividerModule,
     MatTooltipModule,
+    ServerProfileCardComponent,
     TranslatePipe,
   ],
   selector: 'app-admin-settings',

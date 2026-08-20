@@ -96,11 +96,12 @@
         </div>
         <mat-card-content>
           <div class="distance-chip-row">
-            @if (invasion.distance === 0) {
-              <span class="distance-chip area-mode"><mat-icon>map</mat-icon> {{ 'ALARM.USING_AREAS' | translate }}</span>
-            } @else {
-              <span class="distance-chip distance-mode"><mat-icon>straighten</mat-icon> {{ formatDistance(invasion.distance) }}</span>
-            }
+            <app-where-chip
+              [distance]="invasion.distance"
+              [overrideAreas]="invasion.overrideAreas"
+              [overrideLocationLabel]="invasion.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(invasion); $event.stopPropagation()" />
           </div>
         </mat-card-content>
         <mat-card-actions align="end">

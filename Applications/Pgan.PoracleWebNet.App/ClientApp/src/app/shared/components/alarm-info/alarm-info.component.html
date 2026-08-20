@@ -1,6 +1,8 @@
 <div class="alarm-info-row">
-  <span class="distance-chip" [class.areas-mode]="distance() === 0">
-    <mat-icon class="info-icon">{{ distance() === 0 ? 'map' : 'straighten' }}</mat-icon>
-    {{ distance() | distanceDisplay }}
-  </span>
+  <app-where-chip
+    [distance]="distance()"
+    [editable]="editable()"
+    [overrideAreas]="overrideAreas()"
+    [overrideLocationLabel]="overrideLocationLabel()"
+    [profileAreas]="profileAreas()" />
 </div>

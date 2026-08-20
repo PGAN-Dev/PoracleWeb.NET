@@ -21,12 +21,13 @@ import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { RaidService } from '../../core/services/raid.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -46,10 +47,10 @@ import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
     TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     GymPickerComponent,
     LevelSelectorComponent,
     RsvpToggleComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -58,24 +59,39 @@ import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 })
 export class RaidAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly eggService = inject(EggService);
+
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
-
   commonForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     rsvpChanges: [0],
     team: [4],
     template: [''],
   });
 
   readonly dialogRef = inject(MatDialogRef<RaidAddDialogComponent>);
+
   readonly isWebhook = inject(AuthService).isImpersonating();
+
   saving = signal(false);
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedEggLevels = signal<number[]>([]);
   selectedGymId = signal<string | null>(null);
 
@@ -93,16 +109,6 @@ export class RaidAddDialogComponent {
 
   /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
 
-  onDistanceModeChange(): void {
-    if (this.commonForm.controls.distanceMode.value === 'areas') {
-      this.commonForm.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.commonForm.controls.distanceKm.value) {
-        this.commonForm.controls.distanceKm.setValue(1);
-      }
-    }
-  }
-
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
   }
@@ -111,7 +117,7 @@ export class RaidAddDialogComponent {
     if (!this.canSave()) return;
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
-    const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
     // New alarms have no prior bits, so there is nothing to preserve here.
@@ -125,8 +131,10 @@ export class RaidAddDialogComponent {
       // By Level
       for (const level of this.selectedRaidLevels()) {
         const raid: RaidCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           clean,
-          distance: distanceMeters,
+          distance: scope.distance,
           evolution: 9000,
           exclusive: 0,
           form: 0,
@@ -142,8 +150,10 @@ export class RaidAddDialogComponent {
       }
       for (const level of this.selectedEggLevels()) {
         const egg: EggCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           clean,
-          distance: distanceMeters,
+          distance: scope.distance,
           exclusive: 0,
           gymId: this.selectedGymId() ?? '',
           level,
@@ -159,8 +169,10 @@ export class RaidAddDialogComponent {
       // picker whose value could not survive the request. See #615.
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           clean,
-          distance: distanceMeters,
+          distance: scope.distance,
           evolution: 9000,
           exclusive: 0,
           form: 0,
@@ -203,7 +215,7 @@ export class RaidAddDialogComponent {
           const message =
             duplicates > 0
               ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('COMMON.SAVED', { count: created });
+              : this.i18n.instant('RAIDS.SNACK_CREATED_COUNT', { count: created });
           this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 

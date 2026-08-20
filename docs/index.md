@@ -9,6 +9,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 !!! warning "PoracleNG is required"
     All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
+    **PoracleNG 5.1.0 or newer is required.** Older servers have no column to store per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without complaint and change nothing. PoracleWeb logs an error at startup when it finds an older server, and reports the version on Admin → Settings.
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -25,9 +27,11 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 - **Gym Picker** — Search and target specific gyms for team, raid, and egg alarms with photo thumbnails and area names
 - **Pokemon Availability** — See which species are currently spawning when creating alarms (requires Golbat scanner)
 - **Bulk Operations** — Multi-select alarms with bulk delete and bulk distance update
-- **Alert Defaults** — Choose whether new alerts default to Areas or a Distance radius, with a configurable default distance
+- **Alert Defaults** — Set where new alerts reach you by default: your areas, or a radius from your pin or a saved place
+- **Per-Alarm Delivery Scope** — Aim an individual alert anywhere in your areas, near a place or a point on the map, or only in specific areas — including geofences you drew yourself
+- **Saved Places** — Name the points your alerts measure from, so one alert can watch your workplace while the rest follow your pin
 - **Quick Picks** — Admin-defined alarm templates users can apply with one click
-- **Area Management** — Interactive Leaflet map for selecting geofence areas
+- **Areas & Places** — Interactive Leaflet map for choosing geofence areas, dropping your pin, and naming the places your alerts measure from
 - **Custom Geofences** — Draw custom polygon geofences on a map, served to the Poracle bot via a built-in unified feed endpoint. Submit for admin review to promote to public areas.
 - **Geofence Admin Review** — Approve or reject user-submitted geofences with Discord forum integration
 - **Profile Switching** — Multiple alarm profiles per user
@@ -38,12 +42,12 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 - **Responsive Design** — Full mobile support with fullscreen dialogs and collapsible sidebar
 - **Onboarding Wizard** — First-run setup guide for new users
 - **Keyboard Shortcuts** — ++question++ for help, ++bracket-left++ / ++bracket-right++ for sidebar collapse
-- **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish) plus 18 Pokemon name locales
+- **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish). Alert text and Pokemon names are localized separately from the same 11, chosen as **Alert language** in the user menu beside **Display language**
 - **Single Sign-On** — Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md)
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
 - **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes and Max Battles)
-- **Weather Display** — View current in-game weather at your location and across all tracked areas on the dashboard
-- **Fort Change Tracking** — Get notified when pokestops or gyms are added, removed, renamed, or relocated
+- **Weather Display** — View current in-game weather at your pin and across all tracked areas on the dashboard
+- **Fort Change Tracking** — Get notified when pokestops or gyms are added, removed, renamed, relocated, re-described, or given a new image
 - **Max Battle (Dynamax) Alarms** — Track Dynamax and Gigantamax battles at Power Spots by level or specific Pokemon
 - **GeoJSON Import/Export** — Import and export custom geofences in standard GeoJSON format
 - **Profile Backup & Restore** — Export profiles as JSON backups and import them, including full alarm filter restoration
@@ -54,7 +58,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 | Requirement | Version | Purpose |
 |---|---|---|
 | MySQL | 5.7+ or 8.0+ | Poracle database (existing Poracle installation) |
-| Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
+| Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) 5.1.0 or newer | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
 | Discord App | — | OAuth2 application for user authentication |
 | Koji | — | Geofence management server (required for custom geofences feature) |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |

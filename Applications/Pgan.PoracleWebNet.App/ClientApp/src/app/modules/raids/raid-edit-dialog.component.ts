@@ -18,11 +18,12 @@ import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { RaidService } from '../../core/services/raid.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 
 export interface RaidEditDialogData {
@@ -46,10 +47,10 @@ export interface RaidEditDialogData {
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     GymPickerComponent,
     RsvpToggleComponent,
     LevelLabelPipe,
+    ScopePickerComponent,
   ],
   selector: 'app-raid-edit-dialog',
   standalone: true,
@@ -66,10 +67,9 @@ export class RaidEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
+
   form = this.fb.group({
     clean: [isAutoDelete(this.data.item.clean)],
-    distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
-    distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     rsvpChanges: [this.data.item.rsvpChanges],
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
@@ -78,6 +78,9 @@ export class RaidEditDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
   selectedGymId = signal<string | null>(this.data.item.gymId);
 
   getImage(): string {
@@ -102,16 +105,6 @@ export class RaidEditDialogComponent {
     return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') {
-      this.form.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.form.controls.distanceKm.value) {
-        this.form.controls.distanceKm.setValue(1);
-      }
-    }
-  }
-
   onImageError(event: Event): void {
     (event.target as HTMLImageElement).style.display = 'none';
   }
@@ -119,7 +112,7 @@ export class RaidEditDialogComponent {
   save(): void {
     this.saving.set(true);
     const values = this.form.getRawValue();
-    const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
     // Preserve any other bits (e.g. bot-set summary) the web UI does not surface.
@@ -129,8 +122,10 @@ export class RaidEditDialogComponent {
     if (this.data.type === 'raid') {
       const raid = this.data.item as Raid;
       const update: RaidUpdate = {
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean,
-        distance: distanceMeters,
+        distance: scope.distance,
         evolution: raid.evolution,
         exclusive: raid.exclusive,
         form: raid.form,
@@ -159,8 +154,10 @@ export class RaidEditDialogComponent {
     } else {
       const egg = this.data.item as Egg;
       const update: EggUpdate = {
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean,
-        distance: distanceMeters,
+        distance: scope.distance,
         exclusive: egg.exclusive,
         gymId: this.selectedGymId() ?? '',
         level: egg.level,

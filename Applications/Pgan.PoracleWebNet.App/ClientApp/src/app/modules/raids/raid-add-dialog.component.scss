@@ -83,3 +83,9 @@ mat-slide-toggle {
   vertical-align: middle;
   margin-right: 6px;
 }
+
+.scope-near-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

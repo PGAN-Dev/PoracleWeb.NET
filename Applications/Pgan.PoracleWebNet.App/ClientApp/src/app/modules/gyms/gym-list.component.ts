@@ -15,12 +15,16 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { GymAddDialogComponent } from './gym-add-dialog.component';
 import { GymEditDialogComponent } from './gym-edit-dialog.component';
 import { Gym } from '../../core/models';
+import { AreaService } from '../../core/services/area.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
+import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +39,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    WhereChipComponent,
   ],
   selector: 'app-gym-list',
   standalone: true,
@@ -42,6 +47,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
   templateUrl: './gym-list.component.html',
 })
 export class GymListComponent implements OnInit {
+  private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly gymService = inject(GymService);
@@ -51,8 +57,12 @@ export class GymListComponent implements OnInit {
   readonly gymNames = signal<Record<string, string>>({});
   readonly gyms = signal<Gym[]>([]);
   readonly loading = signal(true);
+  /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
+  readonly profileAreas = signal<string[]>([]);
   readonly selectedIds = signal(new Set<number>());
+
   readonly selectMode = signal(false);
+
   readonly testAlertService = inject(TestAlertService);
 
   async bulkDelete(): Promise<void> {
@@ -175,6 +185,29 @@ export class GymListComponent implements OnInit {
       });
   }
 
+  /** Change one alarm's delivery scope from its card, without opening the whole edit dialog. */
+  editScope(item: Gym): void {
+    const data: WhereSheetData = {
+      profileAreas: this.profileAreas(),
+      scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),
+    };
+
+    this.dialog
+      .open(WhereSheetComponent, { width: '520px', autoFocus: false, data })
+      .afterClosed()
+      .subscribe((scope?: AlarmScope) => {
+        if (!scope) return;
+
+        this.gymService.update(item.uid, scopeToFields(scope)).subscribe({
+          error: () => this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVE_ERROR'), this.i18n.instant('COMMON.OK'), { duration: 4000 }),
+          next: () => {
+            this.snackBar.open(this.i18n.instant('WHERE.SCOPE_SAVED'), this.i18n.instant('COMMON.OK'), { duration: 2500 });
+            this.loadGyms();
+          },
+        });
+      });
+  }
+
   formatDistance(meters: number): string {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${meters} m`;
   }
@@ -234,6 +267,7 @@ export class GymListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadProfileAreas();
     this.loadGyms();
   }
 
@@ -280,6 +314,10 @@ export class GymListComponent implements OnInit {
         });
       }
     });
+  }
+
+  private loadProfileAreas(): void {
+    this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }
 
   private resolveGymNames(gyms: Gym[]): void {

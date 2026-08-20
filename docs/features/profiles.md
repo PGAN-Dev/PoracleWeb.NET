@@ -120,7 +120,7 @@ Each profile card on the Profiles page shows its schedule status:
 
 A red warning banner appears on a profile card when that profile has active hours configured but its coordinates are set to 0,0 (no location). This indicates the schedule may trigger at incorrect times because PoracleNG will use UTC instead of the user's local timezone.
 
-To fix this, set a location for the profile from the **Dashboard** or **Areas** page while that profile is active.
+To fix this, set the profile's pin from the **Dashboard** or the **Areas & Places** page while that profile is active.
 
 ### Validation rules
 
@@ -164,6 +164,6 @@ With this schedule, PoracleNG automatically cycles through the three profiles wi
 
 ## Weather Per Profile
 
-The dashboard shows current weather conditions at your saved location. Since each profile can have a **different saved location**, weather information varies by profile.
+The dashboard shows current weather conditions at your pin. Since each profile carries **its own pin**, weather information varies by profile.
 
 For example, a "Home" profile with a residential location and a "Work" profile with an office location will each display the weather relevant to their respective area, helping you understand which weather-boosted Pokemon to expect at each location.

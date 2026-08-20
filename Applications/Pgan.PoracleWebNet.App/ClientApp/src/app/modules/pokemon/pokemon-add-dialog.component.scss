@@ -17,6 +17,10 @@ mat-dialog-content {
 .form-row {
   display: flex;
   gap: 12px;
+  // Room for the next field's floating label. Where a row's fields carry a mat-hint, the hint fills
+  // the row to its bottom edge and the following field's label, which floats above its own border,
+  // lands on top of it. Measured: the row ended at exactly the y the next field started.
+  margin-bottom: 12px;
 }
 .form-row mat-form-field {
   flex: 1;
@@ -40,7 +44,18 @@ mat-dialog-content {
   margin-top: 8px;
 }
 h4 {
-  margin: 0 0 8px;
+  // Material reserves one line of subscript space under a field, so a hint that wraps to two — which
+  // "Minimum Time Left" does at phone width, and several locales do at any width — runs into whatever
+  // follows it. Measured 4px of overlap with the SIZE heading at 390px. The first heading in a tab
+  // keeps its flush top.
+  margin: 24px 0 8px;
+
+  // :first-child, not :first-of-type. The Delivery tab's "Message Settings" is the first h4 in its
+  // container but not the first element -- the scope picker sits above it -- so :first-of-type zeroed
+  // the margin and left the heading flush against the control. Measured 0px of gap.
+  &:first-child {
+    margin-top: 0;
+  }
   color: var(--text-muted, rgba(0, 0, 0, 0.64));
   font-size: 13px;
   text-transform: uppercase;
@@ -123,4 +138,10 @@ mat-expansion-panel {
   mat-dialog-content {
     min-width: 0;
   }
+}
+
+.scope-near-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }

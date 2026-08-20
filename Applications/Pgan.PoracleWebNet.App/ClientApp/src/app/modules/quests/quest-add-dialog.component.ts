@@ -20,9 +20,10 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -41,7 +42,7 @@ import { compose } from '../../shared/utils/clean-flags';
     TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-quest-add-dialog',
   standalone: true,
@@ -53,16 +54,19 @@ export class QuestAddDialogComponent {
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z'/%3E%3C/svg%3E";
 
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
-
   private readonly snackBar = inject(MatSnackBar);
+  candyForm = this.fb.group({
+    amount: [0],
+  });
+
   commonForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     summary: [false],
     template: [''],
   });
@@ -70,20 +74,50 @@ export class QuestAddDialogComponent {
   readonly dialogRef = inject(MatDialogRef<QuestAddDialogComponent>);
 
   readonly iconService = inject(IconService);
+
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   itemForm = this.fb.group({
+    amount: [0],
     reward: [0],
+  });
+
+  /** Mega energy and candy arrive in quantities too, and each tab keeps its own answer. */
+  megaForm = this.fb.group({
+    amount: [0],
   });
 
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
 
   saving = signal(false);
-  selectedCandyPokemonIds = signal<number[]>([]);
-  selectedMegaPokemonIds = signal<number[]>([]);
 
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
+  selectedCandyPokemonIds = signal<number[]>([]);
+
+  selectedMegaPokemonIds = signal<number[]>([]);
   selectedPokemonIds = signal<number[]>([]);
+
+  /**
+   * Stardust is the one reward PoracleNG matches on the amount alone, so it has no selector: the
+   * number is the whole rule. PoracleNG reads it from `reward`, not `amount`.
+   */
+  stardustForm = this.fb.group({
+    reward: [0],
+  });
 
   readonly summaryService = inject(SummaryScheduleService);
 
@@ -111,6 +145,9 @@ export class QuestAddDialogComponent {
         return this.selectedMegaPokemonIds().length > 0;
       case 3:
         return this.selectedCandyPokemonIds().length > 0;
+      case 4:
+        // 0 is a rule in its own right: every stardust quest, whatever it pays.
+        return true;
       default:
         return false;
     }
@@ -118,16 +155,6 @@ export class QuestAddDialogComponent {
 
   onCandyPokemonSelected(ids: number[]): void {
     this.selectedCandyPokemonIds.set(ids);
-  }
-
-  onDistanceModeChange(): void {
-    if (this.commonForm.controls.distanceMode.value === 'areas') {
-      this.commonForm.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.commonForm.controls.distanceKm.value) {
-        this.commonForm.controls.distanceKm.setValue(1);
-      }
-    }
   }
 
   onMegaPokemonSelected(ids: number[]): void {
@@ -147,7 +174,7 @@ export class QuestAddDialogComponent {
     if (!this.canSave()) return;
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
-    const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     // New alarms have no prior bits, so compose directly from the two surfaced toggles (edit-in-place unsupported for quests).
     const cleanValue = compose(!!common.clean, false, !!common.summary);
 
@@ -158,8 +185,11 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedPokemonIds()) {
           creates.push(
             this.questService.create({
+              overrideAreas: scope.overrideAreas,
+              overrideLocationLabel: scope.overrideLocationLabel,
+              amount: 0,
               clean: cleanValue,
-              distance: distanceMeters,
+              distance: scope.distance,
               pokemonId,
               reward: pokemonId,
               rewardType: 7,
@@ -172,8 +202,11 @@ export class QuestAddDialogComponent {
       case 1:
         creates.push(
           this.questService.create({
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: this.itemForm.controls.amount.value ?? 0,
             clean: cleanValue,
-            distance: distanceMeters,
+            distance: scope.distance,
             pokemonId: 0,
             reward: this.itemForm.controls.reward.value ?? 0,
             rewardType: 2,
@@ -186,8 +219,11 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedMegaPokemonIds()) {
           creates.push(
             this.questService.create({
+              overrideAreas: scope.overrideAreas,
+              overrideLocationLabel: scope.overrideLocationLabel,
+              amount: this.megaForm.controls.amount.value ?? 0,
               clean: cleanValue,
-              distance: distanceMeters,
+              distance: scope.distance,
               pokemonId,
               reward: pokemonId,
               rewardType: 12,
@@ -201,8 +237,11 @@ export class QuestAddDialogComponent {
         for (const pokemonId of this.selectedCandyPokemonIds()) {
           creates.push(
             this.questService.create({
+              overrideAreas: scope.overrideAreas,
+              overrideLocationLabel: scope.overrideLocationLabel,
+              amount: this.candyForm.controls.amount.value ?? 0,
               clean: cleanValue,
-              distance: distanceMeters,
+              distance: scope.distance,
               pokemonId,
               reward: pokemonId,
               rewardType: 4,
@@ -211,6 +250,24 @@ export class QuestAddDialogComponent {
             }),
           );
         }
+        break;
+      case 4:
+        creates.push(
+          this.questService.create({
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: 0,
+            clean: cleanValue,
+            distance: scope.distance,
+            pokemonId: 0,
+            // PoracleNG compares the stored reward against the dust the quest pays, so the floor
+            // travels in reward rather than amount for this one type.
+            reward: this.stardustForm.controls.reward.value ?? 0,
+            rewardType: 3,
+            shiny: 0,
+            template: common.template || null,
+          }),
+        );
         break;
     }
 
@@ -241,7 +298,7 @@ export class QuestAddDialogComponent {
           const message =
             duplicates > 0
               ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('COMMON.SAVED', { count: created });
+              : this.i18n.instant('QUESTS.SNACK_CREATED_COUNT', { count: created });
           this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 

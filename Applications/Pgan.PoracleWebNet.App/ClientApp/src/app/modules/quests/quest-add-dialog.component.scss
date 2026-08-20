@@ -34,6 +34,13 @@ mat-dialog-content {
 :host ::ng-deep .reward-tabs .mat-mdc-tab-label-container {
   overflow: visible;
 }
+// Five reward types want 520px of Material's default tab padding in a 464px rail, so the group
+// paginated and put Stardust behind an arrow at every width. Trimming the padding fits all five on a
+// desktop dialog with room to spare; phone width still scrolls, as it did with four.
+:host ::ng-deep .reward-tabs .mdc-tab {
+  min-width: 0;
+  padding: 0 12px;
+}
 @media (max-width: 599px) {
   mat-dialog-content {
     min-width: unset;
@@ -83,4 +90,10 @@ mat-slide-toggle {
   font-size: 12px;
   color: var(--text-secondary, rgba(0, 0, 0, 0.54));
   font-weight: normal;
+}
+
+.scope-near-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }

@@ -23,9 +23,11 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
 @Component({
   imports: [
@@ -45,8 +47,8 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatProgressSpinnerModule,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
     TranslatePipe,
+    ScopePickerComponent,
   ],
   selector: 'app-pokemon-add-dialog',
   standalone: true,
@@ -55,7 +57,9 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class PokemonAddDialogComponent implements OnInit {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
@@ -90,6 +94,7 @@ export class PokemonAddDialogComponent implements OnInit {
     minCp: [0, [Validators.min(0), Validators.max(9000)]],
     minIv: [0, [Validators.min(0), Validators.max(100)]],
     minLevel: [0, [Validators.min(0), Validators.max(55)]],
+    minTime: [0],
     minWeight: [0],
     size: [-1],
     sta: [0, [Validators.min(0), Validators.max(15)]],
@@ -99,8 +104,9 @@ export class PokemonAddDialogComponent implements OnInit {
 
   notifForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
+    // Empty means the profile pin, which is what "set a distance" has always meant. A label points the
+    // radius at a saved place instead.
+    placeLabel: [''],
     template: [''],
   });
 
@@ -110,6 +116,8 @@ export class PokemonAddDialogComponent implements OnInit {
   pvpForm = this.fb.group({
     pvpRankingBest: [1],
     pvpRankingCap: [0],
+    // 0 base, 1 any mega, 2 Mega X, 3 Mega Y — PoracleNG's pvp_ranking_evolution.
+    pvpRankingEvolution: [0],
     pvpRankingLeague: [0],
     pvpRankingMinCp: [0],
     pvpRankingWorst: [100],
@@ -117,11 +125,38 @@ export class PokemonAddDialogComponent implements OnInit {
 
   saving = signal(false);
 
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   /** Whether to render the cap picker at all — only when Poracle offers more than one cap. */
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
   isFormValid(): boolean {
     return this.selectedPokemonIds().length > 0 && this.filtersForm.valid && this.notifForm.valid;
+  }
+
+  /** The preset list, widened to keep whatever the rule already holds. */
+  minTimeChoices(): number[] {
+    return minTimeOptions(this.filtersForm.controls.minTime.value ?? 0);
+  }
+
+  minTimeParams(seconds: number): Record<string, number> | undefined {
+    return minTimeLabel(seconds).params;
+  }
+
+  minTimeText(seconds: number): string {
+    return minTimeLabel(seconds).key;
   }
 
   ngOnInit(): void {
@@ -135,14 +170,6 @@ export class PokemonAddDialogComponent implements OnInit {
     });
   }
 
-  onDistanceModeChange(): void {
-    if (this.notifForm.controls.distanceMode.value === 'areas') {
-      this.notifForm.controls.distanceKm.setValue(0);
-    } else if (!this.notifForm.controls.distanceKm.value) {
-      this.notifForm.controls.distanceKm.setValue(1);
-    }
-  }
-
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
   }
@@ -154,7 +181,7 @@ export class PokemonAddDialogComponent implements OnInit {
     const filters = this.filtersForm.getRawValue();
     const pvp = this.pvpForm.getRawValue();
     const notif = this.notifForm.getRawValue();
-    const distanceMeters = notif.distanceMode === 'areas' ? 0 : Math.round((notif.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
 
     // PoracleNG models `form` as a single int per tracking entry, so a multi-form
     // selection fans out into one alarm per form. When specific forms are available we
@@ -166,10 +193,12 @@ export class PokemonAddDialogComponent implements OnInit {
     const creates = this.selectedPokemonIds().flatMap(pokemonId =>
       formIds.map(form => {
         const monster: MonsterCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           atk: filters.atk ?? 0,
           clean: notif.clean ? 1 : 0,
           def: filters.def ?? 0,
-          distance: distanceMeters,
+          distance: scope.distance,
           form,
           gender: filters.gender ?? 0,
           maxAtk: filters.maxAtk ?? 15,
@@ -183,10 +212,12 @@ export class PokemonAddDialogComponent implements OnInit {
           minCp: filters.minCp ?? 0,
           minIv: filters.minIv ?? 0,
           minLevel: filters.minLevel ?? 0,
+          minTime: filters.minTime ?? 0,
           minWeight: filters.minWeight ?? 0,
           pokemonId,
           pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
           pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
+          pvpRankingEvolution: pvp.pvpRankingLeague ? (pvp.pvpRankingEvolution ?? 0) : 0,
           pvpRankingLeague: pvp.pvpRankingLeague ?? 0,
           pvpRankingMinCp: pvp.pvpRankingLeague ? (pvp.pvpRankingMinCp ?? 0) : 0,
           pvpRankingWorst: pvp.pvpRankingLeague ? (pvp.pvpRankingWorst ?? 100) : 4096,

@@ -31,6 +31,11 @@
                   }
                 </mat-select>
               </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+                <input matInput type="number" min="0" [formControl]="itemForm.controls.amount" />
+                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+              </mat-form-field>
             </div>
           </mat-tab>
           <mat-tab [label]="'QUESTS.TAB_MEGA_ENERGY' | translate">
@@ -39,6 +44,11 @@
               @if (selectedMegaPokemonIds().length > 0) {
                 <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedMegaPokemonIds().length } }}</p>
               }
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+                <input matInput type="number" min="0" [formControl]="megaForm.controls.amount" />
+                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+              </mat-form-field>
             </div>
           </mat-tab>
           <mat-tab [label]="'QUESTS.TAB_CANDY' | translate">
@@ -47,6 +57,20 @@
               @if (selectedCandyPokemonIds().length > 0) {
                 <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedCandyPokemonIds().length } }}</p>
               }
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+                <input matInput type="number" min="0" [formControl]="candyForm.controls.amount" />
+                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+              </mat-form-field>
+            </div>
+          </mat-tab>
+          <mat-tab [label]="'QUESTS.TAB_STARDUST' | translate">
+            <div class="tab-content">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'QUESTS.MIN_STARDUST' | translate }}</mat-label>
+                <input matInput type="number" min="0" step="100" [formControl]="stardustForm.controls.reward" />
+                <mat-hint>{{ 'QUESTS.MIN_STARDUST_HINT' | translate }}</mat-hint>
+              </mat-form-field>
             </div>
           </mat-tab>
         </mat-tab-group>
@@ -60,40 +84,7 @@
         <span class="tab-label">{{ 'ALARM.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
-        <mat-radio-group [formControl]="commonForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
-          <mat-radio-button value="areas">
-            <div class="radio-label">
-              <mat-icon>map</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-          <mat-radio-button value="distance">
-            <div class="radio-label">
-              <mat-icon>straighten</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-        </mat-radio-group>
-
-        @if (commonForm.controls.distanceMode.value === 'distance') {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
-            <input matInput type="number" [formControl]="commonForm.controls.distanceKm" min="0" step="0.1" />
-            <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
-          </mat-form-field>
-        }
-
-        <app-delivery-preview
-          [mode]="commonForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
-          [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
-        </app-delivery-preview>
+        <app-scope-picker [(scope)]="scope" />
 
         <h4>{{ 'ALARM.COMMON_SETTINGS' | translate }}</h4>
 

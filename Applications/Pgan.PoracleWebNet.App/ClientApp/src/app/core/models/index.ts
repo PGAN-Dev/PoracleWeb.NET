@@ -23,12 +23,17 @@ export interface Monster {
   minCp: number;
   minIv: number;
   minLevel: number;
+  /** Seconds a spawn must still have left when it is found. 0 means any. */
+  minTime: number;
   minWeight: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
   pvpRankingBest: number;
   pvpRankingCap: number;
+  pvpRankingEvolution: number;
   pvpRankingLeague: number;
   pvpRankingMinCp: number;
   pvpRankingWorst: number;
@@ -54,6 +59,8 @@ export interface Raid {
   id: string;
   level: number;
   move: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -78,6 +85,8 @@ export interface MaxBattle {
   id: string;
   level: number;
   move: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string;
   pokemonId: number;
   profileNo: number;
@@ -99,6 +108,8 @@ export interface Egg {
   gymId: string | null;
   id: string;
   level: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   rsvpChanges: number;
@@ -114,9 +125,13 @@ export type EggUpdate = Partial<EggCreate>;
 // ─── Quest ─────────────────────────────────────────────────────────────────────
 
 export interface Quest {
+  /** Fewest of the reward the quest must give. Items, candy and mega energy only; 0 means any. */
+  amount: number;
   clean: number;
   distance: number;
   id: string;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -139,6 +154,8 @@ export interface Invasion {
   gender: number;
   gruntType: string | null;
   id: string;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   template: string | null;
@@ -156,6 +173,8 @@ export interface Lure {
   distance: number;
   id: string;
   lureId: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   template: string | null;
@@ -173,6 +192,8 @@ export interface Nest {
   distance: number;
   id: string;
   minSpawnAvg: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   pokemonId: number;
   profileNo: number;
@@ -192,6 +213,8 @@ export interface FortChange {
   fortType: string | null;
   id: string;
   includeEmpty: number;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   template: string | null;
@@ -210,6 +233,8 @@ export interface Gym {
   distance: number;
   gymId: string | null;
   id: string;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
   ping?: string | null;
   profileNo: number;
   slotChanges: number;
@@ -574,6 +599,8 @@ export interface QuickPickApplyRequest {
   clean?: number;
   distance?: number;
   excludePokemonIds?: number[];
+  overrideAreas?: string[];
+  overrideLocationLabel?: string;
   template?: string;
 }
 
@@ -654,4 +681,69 @@ export interface ProfileOverviewProfile {
   longitude?: number;
   name: string;
   profile_no: number;
+}
+
+/** A named coordinate an alarm can be anchored to, instead of the profile pin. */
+export interface SavedPlace {
+  label: string;
+  latitude: number;
+  longitude: number;
+}
+
+/** Everywhere a user's alarms can be anchored: the profile pin, plus whatever they have named. */
+export interface SavedPlaces {
+  /** The profile pin every alarm falls back to. Absent when the user has never set a location. */
+  default?: null | SavedPlace;
+  named: SavedPlace[];
+}
+
+/**
+ * Where an alarm reaches the user. Three answers, and they are mutually exclusive by construction —
+ * PoracleNG refuses a place with areas, areas with a radius, or a place with no radius, so the UI
+ * models the choice as one of three rather than as three independent fields.
+ */
+export type AlarmScopeMode = 'areas' | 'place' | 'profile';
+
+export interface AlarmScope {
+  /** Only for 'areas'. */
+  areas?: string[];
+  /** Only for 'place', in kilometres, as the dialogs already work in km. */
+  distanceKm?: number;
+  mode: AlarmScopeMode;
+  /** Only for 'place'. */
+  placeLabel?: string;
+}
+
+// ─── PoracleNG server profile ──────────────────────────────────────────────────
+
+/**
+ * What PoracleWeb knows about the PoracleNG it is pointed at. Read from that server's `/health` plus
+ * its applied migration number; used to say when the server is too old for features this build ships.
+ */
+/** How a running component compares to what has been published. */
+export type UpdateState = 'Behind' | 'PreRelease' | 'Unknown' | 'UpToDate';
+
+export interface UpdateStatus {
+  latest: null | string;
+  running: null | string;
+  state: UpdateState;
+}
+
+export interface PoracleServerProfile {
+  /** True only when the version is known and older than `minimumSupported`. */
+  belowMinimum: boolean;
+  /** PoracleNG's own feature map. A key that is absent means unsupported. */
+  capabilities: Record<string, boolean>;
+  checkedAt: string;
+  minimumSupported: string;
+  /** Applied migration number, or null when it could not be read. */
+  /** Whether the Poracle server is behind its own latest release. */
+  poracleUpdate: UpdateStatus;
+  reachable: boolean;
+  schemaVersion: null | number;
+  version: null | string;
+  /** This site's own build. */
+  web: { buildDate: null | string; revision: null | string; version: null | string };
+  /** Whether this site is behind its own latest release. */
+  webUpdate: UpdateStatus;
 }

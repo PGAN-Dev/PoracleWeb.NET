@@ -1,0 +1,99 @@
+.scope-heading {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+
+.scope-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.scope-option {
+  display: block;
+}
+
+.scope-option-detail {
+  color: var(--text-secondary, rgb(0 0 0 / 60%));
+  font-size: 0.8rem;
+  margin: 0 0 0 2.25rem;
+}
+
+.scope-option-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0 0 2.25rem;
+}
+
+.scope-distance {
+  max-width: 8rem;
+}
+
+.scope-areas {
+  min-width: 16rem;
+}
+
+// The pin being unset is the difference between an alarm that works and one that silently never
+// fires, so it is a warning rather than a hint.
+// Wraps rather than squeezes. At phone width the icon was being crushed to a sliver and the action
+// squashed into three lines against the right edge; measured at 390px.
+.scope-warning {
+  align-items: flex-start;
+  color: var(--mat-sys-error, #d32f2f);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0 2.25rem;
+}
+
+.scope-warning span {
+  flex: 1 1 12rem;
+}
+
+.scope-warning mat-icon {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.scope-warning mat-icon {
+  font-size: 1rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+.scope-pin-unset {
+  color: var(--text-secondary, rgb(0 0 0 / 54%));
+  font-size: 0.8em;
+}
+
+.scope-add-icon,
+.scope-own-icon {
+  font-size: 1rem;
+  height: 1rem;
+  opacity: 0.7;
+  vertical-align: middle;
+  width: 1rem;
+}
+
+// The warning names a problem the user can fix without leaving the alarm they are editing.
+.scope-warning-action {
+  --mdc-text-button-label-text-color: var(--mat-sys-error, #d32f2f);
+
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+// The 2.25rem indent lines options up with the radio labels, which is right on a wide dialog and
+// wasteful on a phone, where it costs a fifth of the usable width.
+@media (max-width: 599px) {
+  .scope-option-body,
+  .scope-option-detail,
+  .scope-warning {
+    margin-left: 1.25rem;
+  }
+}

@@ -199,19 +199,26 @@
             @if (monster.size > 0 || monster.maxSize < 5) {
               <span class="filter-pill size-pill">{{ getSizePillText(monster) }}</span>
             }
+            @if (monster.minTime > 0) {
+              <span class="filter-pill time-pill">{{ minTimeText(monster.minTime) | translate: minTimeParams(monster.minTime) }}</span>
+            }
           </div>
           <div class="distance-chip-row">
-            @if (monster.distance === 0) {
-              <span class="distance-chip area-mode"> <mat-icon>map</mat-icon> {{ 'POKEMON.USING_AREAS' | translate }} </span>
-            } @else {
-              <span class="distance-chip distance-mode"> <mat-icon>straighten</mat-icon> {{ formatDistance(monster.distance) }} </span>
-            }
+            <app-where-chip
+              [distance]="monster.distance"
+              [overrideAreas]="monster.overrideAreas"
+              [overrideLocationLabel]="monster.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(monster); $event.stopPropagation()" />
           </div>
           @if (monster.pvpRankingLeague > 0) {
             <div class="pvp-row">
               <span class="pvp-badge">
                 <mat-icon>emoji_events</mat-icon>
                 {{ getLeagueName(monster.pvpRankingLeague) }} {{ 'POKEMON.PVP_LEAGUE_SUFFIX' | translate }}
+                @if (monster.pvpRankingEvolution) {
+                  <span class="pvp-evo-suffix">· {{ megaLabel(monster.pvpRankingEvolution) | translate }}</span>
+                }
               </span>
               <span class="pvp-rank">{{
                 'POKEMON.PVP_RANK_RANGE' | translate: { best: monster.pvpRankingBest, worst: monster.pvpRankingWorst }

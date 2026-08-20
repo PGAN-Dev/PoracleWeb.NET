@@ -122,8 +122,38 @@ public static class ServiceCollectionExtensions
         // Register HttpClient for Poracle API (config, geofences, templates — read-only proxy)
         services.AddHttpClient<IPoracleApiProxy, PoracleApiProxy>();
 
+        // Which PoracleNG this is, and what it can store. /health is unauthenticated, so this needs no
+        // secret and still answers when the API key is wrong -- a state that otherwise looks exactly
+        // like the server being down.
+        services.AddScoped<IPoracleSchemaVersionReader, PoracleSchemaVersionReader>();
+
+        // The one outbound call PoracleWeb makes. Anonymous, cached for six hours, and switchable off
+        // with disable_update_check for deployments that do not want egress at all.
+        services.AddHttpClient<IUpdateCheckService, UpdateCheckService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(5);
+            // GitHub refuses anonymous API calls that do not identify themselves.
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PoracleWeb.NET");
+        });
+
+        services.AddHttpClient<IPoracleServerProfileService, PoracleServerProfileService>(client =>
+        {
+            // A diagnostic must not hold a request open: an unreachable server should answer
+            // "unknown" quickly rather than stall the admin page behind a default 100s timeout.
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
+
         // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
-        services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
+        // Registered as the concrete type, then decorated: UserOwnedOverrideAreaProxy is what the rest
+        // of the app resolves as IPoracleTrackingProxy. It lets an alarm confine itself to a geofence the
+        // user drew, which PoracleNG's tracking write refuses outright because those fences are served
+        // userSelectable=false. HACK: trusted-set-areas.
+        services.AddHttpClient<PoracleTrackingProxy>();
+        services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
+            sp.GetRequiredService<PoracleTrackingProxy>(),
+            sp.GetRequiredService<IUserGeofenceRepository>(),
+            sp.GetRequiredService<IUserAreaDualWriter>(),
+            sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
 
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
         services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();

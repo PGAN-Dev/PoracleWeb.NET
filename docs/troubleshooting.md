@@ -272,7 +272,7 @@ SELECT * FROM monsters WHERE size = 0;
 
 **Problem**: Auto-profile switches happen hours earlier or later than the configured active hours schedule.
 
-**Solution**: The profile has `0,0` coordinates, so PoracleNG's scheduler falls back to UTC instead of the user's local timezone. Set a location on the affected profile via the Dashboard or Areas page. The Profiles page shows a red location warning banner on profiles that have no coordinates set.
+**Solution**: The profile has `0,0` coordinates, so PoracleNG's scheduler falls back to UTC instead of the user's local timezone. Set the pin on the affected profile via the Dashboard or the Areas & Places page. The Profiles page shows a red location warning banner on profiles that have no coordinates set.
 
 ---
 

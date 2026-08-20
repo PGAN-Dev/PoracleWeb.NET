@@ -12,7 +12,7 @@
           <!-- By Level -->
           <mat-tab [label]="'MAX_BATTLES.BY_LEVEL' | translate">
             <div class="tab-content">
-              <p class="tab-hint">Track any Pokemon at these battle tiers. One alarm is created per selected level.</p>
+              <p class="tab-hint">{{ 'MAX_BATTLES.HINT_BY_LEVEL' | translate }}</p>
               <div class="level-grid">
                 @for (level of levels; track level.value) {
                   <mat-checkbox [checked]="selectedLevels().includes(level.value)" (change)="toggleLevel(level.value)">
@@ -40,7 +40,7 @@
           <!-- By Pokemon -->
           <mat-tab [label]="'MAX_BATTLES.BY_POKEMON' | translate">
             <div class="tab-content">
-              <p class="tab-hint">Track specific Pokemon in Max Battles regardless of level.</p>
+              <p class="tab-hint">{{ 'MAX_BATTLES.HINT_BY_POKEMON' | translate }}</p>
               <app-pokemon-selector [multi]="true" [allowedIds]="maxBattlePokemonIds()" (selectionChange)="onPokemonSelected($event)" />
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
@@ -48,7 +48,7 @@
               <mat-slide-toggle [formControl]="commonForm.controls.gmaxOnly" class="gmax-toggle">
                 {{ 'MAX_BATTLES.GIGANTAMAX_ONLY' | translate }}
               </mat-slide-toggle>
-              <p class="gmax-hint">When enabled, only notifies about Gigantamax battles for the selected Pokemon.</p>
+              <p class="gmax-hint">{{ 'MAX_BATTLES.HINT_GMAX_ONLY_ADD' | translate }}</p>
             </div>
           </mat-tab>
         </mat-tab-group>
@@ -62,40 +62,7 @@
         <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <h4>{{ 'ALARM.LOCATION_MODE' | translate }}</h4>
-        <mat-radio-group [formControl]="commonForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
-          <mat-radio-button value="areas">
-            <div class="radio-label">
-              <mat-icon>map</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.USE_AREAS' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.USE_AREAS_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-          <mat-radio-button value="distance">
-            <div class="radio-label">
-              <mat-icon>straighten</mat-icon>
-              <div>
-                <strong>{{ 'ALARM.SET_DISTANCE' | translate }}</strong>
-                <p class="radio-hint">{{ 'ALARM.SET_DISTANCE_HINT' | translate }}</p>
-              </div>
-            </div>
-          </mat-radio-button>
-        </mat-radio-group>
-
-        @if (commonForm.controls.distanceMode.value === 'distance') {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'ALARM.DISTANCE_LABEL' | translate }}</mat-label>
-            <input matInput type="number" [formControl]="commonForm.controls.distanceKm" min="0" step="0.1" />
-            <span matSuffix>{{ 'ALARM.DISTANCE_SUFFIX' | translate }}</span>
-          </mat-form-field>
-        }
-
-        <app-delivery-preview
-          [mode]="commonForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
-          [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
-        </app-delivery-preview>
+        <app-scope-picker [(scope)]="scope" />
 
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
 

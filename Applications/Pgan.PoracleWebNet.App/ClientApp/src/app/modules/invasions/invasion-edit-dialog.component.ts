@@ -18,8 +18,9 @@ import { Invasion, InvasionUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { InvasionService } from '../../core/services/invasion.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
 
 @Component({
@@ -37,7 +38,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-invasion-edit-dialog',
   standalone: true,
@@ -53,18 +54,20 @@ export class InvasionEditDialogComponent {
   readonly data = inject<Invasion>(MAT_DIALOG_DATA);
 
   readonly dialogRef = inject(MatDialogRef<InvasionEditDialogComponent>);
+
   form = this.fb.group({
     clean: [isAutoDelete(this.data.clean)],
-    distanceKm: [this.data.distance > 0 ? this.data.distance / 1000 : 1],
-    distanceMode: [this.data.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     gender: [this.data.gender],
     template: [this.data.template ?? ''],
   });
 
   readonly hideGender = isGenderFixed(this.data.gruntType);
+
   readonly isEvent = isEventType(this.data.gruntType);
   readonly isWebhook = inject(AuthService).isImpersonating();
   saving = signal(false);
+  /** The alarm's current scope, read back into the shared picker. */
+  readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
   readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });
 
   getDisplayName(): string {
@@ -98,19 +101,16 @@ export class InvasionEditDialogComponent {
     return getGruntIconUrl(this.data.gruntType, this.selectedGender());
   }
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
-
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     this.invasionService
       .update(this.data.uid, {
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         clean: preserve(this.data.clean, AUTO_DELETE, v.clean ? 1 : 0),
-        distance: dist,
+        distance: scope.distance,
         // Preserve the stored gender when the dropdown is hidden — a Mixed Male alarm
         // (gender=1) must stay at 1 across edits; zeroing it would widen the filter to
         // also match female Mixed grunts.

@@ -119,7 +119,15 @@
               <span class="filter-pill form-pill">{{ getFormName(mb.pokemonId, mb.form) }}</span>
             }
           </div>
-          <app-alarm-info [distance]="mb.distance" [clean]="mb.clean" [template]="mb.template" />
+          <app-alarm-info
+            [clean]="mb.clean"
+            [distance]="mb.distance"
+            [overrideAreas]="mb.overrideAreas"
+            [overrideLocationLabel]="mb.overrideLocationLabel"
+            [profileAreas]="profileAreas()"
+            [template]="mb.template"
+            [editable]="true"
+            (click)="editScope(mb); $event.stopPropagation()" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button mat-icon-button (click)="editMaxBattle(mb)" [matTooltip]="'COMMON.EDIT' | translate">

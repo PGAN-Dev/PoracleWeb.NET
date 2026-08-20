@@ -1,0 +1,10 @@
+<h2 mat-dialog-title>{{ 'WHERE.SHEET_TITLE' | translate }}</h2>
+
+<mat-dialog-content class="where-sheet">
+  <app-scope-picker [(scope)]="scope" [profileAreas]="data.profileAreas" [hideHeading]="true" />
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-flat-button (click)="save()">{{ 'WHERE.SAVE' | translate }}</button>
+</mat-dialog-actions>

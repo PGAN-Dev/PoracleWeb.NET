@@ -17,8 +17,9 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   imports: [
@@ -36,7 +37,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSnackBarModule,
     TranslatePipe,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-fort-change-add-dialog',
   standalone: true,
@@ -45,19 +46,20 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 })
 export class FortChangeAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<FortChangeAddDialogComponent>);
   form = this.fb.group({
+    changeTypeDescription: [false],
     changeTypeImageUrl: [false],
     changeTypeLocation: [true],
     changeTypeName: [true],
     changeTypeNew: [true],
     changeTypeRemoval: [true],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     fortType: ['everything'],
     includeEmpty: [false],
     template: [''],
@@ -67,26 +69,38 @@ export class FortChangeAddDialogComponent {
 
   saving = signal(false);
 
-  onDistanceModeChange(): void {
-    if (this.form.controls.distanceMode.value === 'areas') this.form.controls.distanceKm.setValue(0);
-    else if (!this.form.controls.distanceKm.value) this.form.controls.distanceKm.setValue(1);
-  }
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
 
   save(): void {
     this.saving.set(true);
     const v = this.form.getRawValue();
-    const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
     const changeTypes: string[] = [];
     if (v.changeTypeName) changeTypes.push('name');
     if (v.changeTypeLocation) changeTypes.push('location');
     if (v.changeTypeImageUrl) changeTypes.push('image_url');
     if (v.changeTypeRemoval) changeTypes.push('removal');
     if (v.changeTypeNew) changeTypes.push('new');
+    if (v.changeTypeDescription) changeTypes.push('description');
 
     this.fortChangeService
       .create({
+        overrideAreas: scope.overrideAreas,
+        overrideLocationLabel: scope.overrideLocationLabel,
         changeTypes,
-        distance: dist,
+        distance: scope.distance,
         fortType: v.fortType,
         includeEmpty: v.includeEmpty ? 1 : 0,
         template: v.template || null,

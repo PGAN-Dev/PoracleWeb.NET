@@ -809,6 +809,18 @@ public partial class QuickPickService(
             monster.Distance = request.Distance.Value;
         }
 
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            monster.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            monster.OverrideAreas = request.OverrideAreas;
+        }
+
         if (request.Clean.HasValue)
         {
             monster.Clean = request.Clean.Value;
@@ -854,6 +866,18 @@ public partial class QuickPickService(
             raid.Distance = request.Distance.Value;
         }
 
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            raid.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            raid.OverrideAreas = request.OverrideAreas;
+        }
+
         if (request.Clean.HasValue)
         {
             raid.Clean = request.Clean.Value;
@@ -885,6 +909,18 @@ public partial class QuickPickService(
             egg.Distance = request.Distance.Value;
         }
 
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            egg.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            egg.OverrideAreas = request.OverrideAreas;
+        }
+
         if (request.Clean.HasValue)
         {
             egg.Clean = request.Clean.Value;
@@ -913,6 +949,18 @@ public partial class QuickPickService(
         if (request.Distance.HasValue)
         {
             quest.Distance = request.Distance.Value;
+        }
+
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            quest.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            quest.OverrideAreas = request.OverrideAreas;
         }
 
         if (request.Clean.HasValue)
@@ -980,6 +1028,18 @@ public partial class QuickPickService(
             invasion.Distance = request.Distance.Value;
         }
 
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            invasion.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            invasion.OverrideAreas = request.OverrideAreas;
+        }
+
         if (request.Clean.HasValue)
         {
             invasion.Clean = request.Clean.Value;
@@ -1009,6 +1069,18 @@ public partial class QuickPickService(
         if (request.Distance.HasValue)
         {
             lure.Distance = request.Distance.Value;
+        }
+
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            lure.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            lure.OverrideAreas = request.OverrideAreas;
         }
 
         if (request.Clean.HasValue)
@@ -1041,6 +1113,18 @@ public partial class QuickPickService(
             nest.Distance = request.Distance.Value;
         }
 
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            nest.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            nest.OverrideAreas = request.OverrideAreas;
+        }
+
         if (request.Clean.HasValue)
         {
             nest.Clean = request.Clean.Value;
@@ -1069,6 +1153,18 @@ public partial class QuickPickService(
         if (request.Distance.HasValue)
         {
             gym.Distance = request.Distance.Value;
+        }
+
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            gym.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            gym.OverrideAreas = request.OverrideAreas;
         }
 
         if (request.Clean.HasValue)
@@ -1128,6 +1224,18 @@ public partial class QuickPickService(
         if (request.Distance.HasValue)
         {
             maxBattle.Distance = request.Distance.Value;
+        }
+
+        // The scope travels with the distance: a quick pick makes ordinary alarms, so it can aim
+        // them anywhere an alarm can be aimed. See #730.
+        if (request.OverrideLocationLabel != null)
+        {
+            maxBattle.OverrideLocationLabel = request.OverrideLocationLabel;
+        }
+
+        if (request.OverrideAreas != null)
+        {
+            maxBattle.OverrideAreas = request.OverrideAreas;
         }
 
         if (request.Clean.HasValue)

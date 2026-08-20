@@ -21,9 +21,10 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { MaxBattleService } from '../../core/services/max-battle.service';
 import { ScannerService } from '../../core/services/scanner.service';
-import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
 
 /** Max Battle levels as defined in PoracleNG util.json */
@@ -51,7 +52,7 @@ interface MaxBattleLevel {
     TranslatePipe,
     PokemonSelectorComponent,
     TemplateSelectorComponent,
-    DeliveryPreviewComponent,
+    ScopePickerComponent,
   ],
   selector: 'app-max-battle-add-dialog',
   standalone: true,
@@ -60,16 +61,15 @@ interface MaxBattleLevel {
 })
 export class MaxBattleAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
+
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
   private readonly maxBattleService = inject(MaxBattleService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
-
   commonForm = this.fb.group({
     clean: [false],
-    distanceKm: [this.alertDefaults.defaultDistanceKm()],
-    distanceMode: [this.alertDefaults.defaultMode()],
     form: [0],
     gmaxOnly: [false],
     template: [''],
@@ -91,7 +91,23 @@ export class MaxBattleAddDialogComponent {
   ];
 
   maxBattlePokemonIds = signal<number[] | null>(null);
+
   saving = signal(false);
+
+  /**
+   * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
+   * picker owns it from there.
+   */
+  readonly scope = signal<AlarmScope>(
+    this.alertDefaults.defaultMode() === 'areas'
+      ? { mode: 'profile' }
+      : {
+          distanceKm: this.alertDefaults.defaultDistanceKm(),
+          mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
+          placeLabel: this.alertDefaults.defaultPlaceLabel(),
+        },
+  );
+
   selectedLevels = signal<number[]>([]);
   selectedPokemonIds = signal<number[]>([]);
 
@@ -110,16 +126,6 @@ export class MaxBattleAddDialogComponent {
     return this.selectedPokemonIds().length > 0;
   }
 
-  onDistanceModeChange(): void {
-    if (this.commonForm.controls.distanceMode.value === 'areas') {
-      this.commonForm.controls.distanceKm.setValue(0);
-    } else {
-      if (!this.commonForm.controls.distanceKm.value) {
-        this.commonForm.controls.distanceKm.setValue(1);
-      }
-    }
-  }
-
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
   }
@@ -128,7 +134,7 @@ export class MaxBattleAddDialogComponent {
     if (!this.canSave()) return;
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
-    const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    const scope = scopeToFields(this.scope());
 
     const creates: ReturnType<typeof this.maxBattleService.create>[] = [];
 
@@ -137,8 +143,10 @@ export class MaxBattleAddDialogComponent {
       for (const levelVal of this.selectedLevels()) {
         const levelDef = this.levels.find(l => l.value === levelVal);
         const maxBattle: MaxBattleCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           clean: compose(!!common.clean, false, false),
-          distance: distanceMeters,
+          distance: scope.distance,
           evolution: 9000,
           form: common.form ?? 0,
           gmax: levelDef?.gmax ? 1 : 0,
@@ -154,8 +162,10 @@ export class MaxBattleAddDialogComponent {
       // By Pokemon — one alarm per selected Pokemon, level = 9000 (any)
       for (const pokemonId of this.selectedPokemonIds()) {
         const maxBattle: MaxBattleCreate = {
+          overrideAreas: scope.overrideAreas,
+          overrideLocationLabel: scope.overrideLocationLabel,
           clean: compose(!!common.clean, false, false),
-          distance: distanceMeters,
+          distance: scope.distance,
           evolution: 9000,
           form: common.form ?? 0,
           gmax: common.gmaxOnly ? 1 : 0,
@@ -187,14 +197,18 @@ export class MaxBattleAddDialogComponent {
         this.saving.set(false);
 
         if (refused.length > 0) {
-          this.snackBar.open(refused[0].failed?.error?.error ?? this.i18n.instant('COMMON.ERROR'), this.i18n.instant('COMMON.OK'), {
-            duration: 6000,
-          });
+          this.snackBar.open(
+            refused[0].failed?.error?.error ?? this.i18n.instant('MAX_BATTLES.CREATE_FAILED'),
+            this.i18n.instant('COMMON.OK'),
+            {
+              duration: 6000,
+            },
+          );
         } else {
           const message =
             duplicates > 0
               ? this.i18n.instant('ALARM.SNACK_CREATED_WITH_DUPLICATES', { count: created, duplicates })
-              : this.i18n.instant('COMMON.SAVED', { count: created });
+              : this.i18n.instant('MAX_BATTLES.CREATE_SUCCESS', { count: created });
           this.snackBar.open(message, this.i18n.instant('COMMON.OK'), { duration: 4000 });
         }
 
