@@ -1,0 +1,1233 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Web application for managing Poracle Pokemon GO notification alarms" name="description"/>
+<link href="https://pgan-dev.github.io/PoracleWeb.NET/features/custom-geofences/koji-and-regions/" rel="canonical"/>
+<link href="../key-concepts/" rel="prev"/>
+<link href="../private-and-promotion/" rel="next"/>
+<link href="../../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<title>Koji &amp; Regions - PoracleWeb.NET</title>
+<link href="../../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
+<link href="../../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="cyan" data-md-color-primary="blue" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#koji-regions">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="PoracleWeb.NET" class="md-header__button md-logo" data-md-component="logo" href="../../.." title="PoracleWeb.NET">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            PoracleWeb.NET
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Koji &amp; Regions
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="cyan" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="blue" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="cyan" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="blue" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../..">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../getting-started/quick-start/">
+          
+  
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../configuration/reference/">
+          
+  
+  
+  Configuration
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../architecture/overview/">
+          
+  
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../../alarms/">
+          
+  
+  
+  Features
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../development/testing/">
+          
+  
+  
+  Development
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../troubleshooting/">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../../poracleng-enhancement-requests/">
+        
+  
+  
+    
+  
+  PoracleNG Enhancement Requests
+
+      </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="PoracleWeb.NET" class="md-nav__button md-logo" data-md-component="logo" href="../../.." title="PoracleWeb.NET">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    PoracleWeb.NET
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../..">
+<span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../getting-started/quick-start/">
+<span class="md-ellipsis">
+    
+  
+    Quick Start (Docker)
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../getting-started/standalone-setup/">
+<span class="md-ellipsis">
+    
+  
+    Standalone Setup (no Docker)
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../getting-started/development-setup/">
+<span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../getting-started/discord-oauth/">
+<span class="md-ellipsis">
+    
+  
+    Discord OAuth2
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../configuration/reference/">
+<span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../configuration/site-settings/">
+<span class="md-ellipsis">
+    
+  
+    Site Settings
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../configuration/external-sso/">
+<span class="md-ellipsis">
+    
+  
+    External SSO (OIDC)
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../configuration/oidc-refresh-tokens/">
+<span class="md-ellipsis">
+    
+  
+    OIDC Refresh Tokens
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../configuration/docker/">
+<span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/overview/">
+<span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/poracleng-proxy/">
+<span class="md-ellipsis">
+    
+  
+    PoracleNG API Proxy
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/backend/">
+<span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/frontend/">
+<span class="md-ellipsis">
+    
+  
+    Frontend Patterns
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../architecture/database/">
+<span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../alarms/">
+<span class="md-ellipsis">
+    
+  
+    Alarm Management
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../profiles/">
+<span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../quest-summary-schedules/">
+<span class="md-ellipsis">
+    
+  
+    Quest Summary Delivery
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_5_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_5_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_5_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Custom Geofences
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../key-concepts/">
+<span class="md-ellipsis">
+    
+  
+    Key Concepts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Koji &amp; Regions
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    Koji &amp; Regions
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#what-koji-is-doing-here">
+<span class="md-ellipsis">
+      
+        What Koji is doing here
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#connecting-poraclewebnet-to-koji">
+<span class="md-ellipsis">
+      
+        Connecting PoracleWeb.NET to Koji
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#how-geofences-and-regions-relate-in-koji">
+<span class="md-ellipsis">
+      
+        How geofences and regions relate in Koji
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setting-up-regions-the-operator-how-to">
+<span class="md-ellipsis">
+      
+        Setting up regions (the operator how-to)
+      
+    </span>
+</a>
+<nav aria-label="Setting up regions (the operator how-to)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#do-you-even-need-regions">
+<span class="md-ellipsis">
+      
+        Do you even need regions?
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#koji-geofence-properties-and-how-theyre-used">
+<span class="md-ellipsis">
+      
+        Koji geofence properties (and how they're used)
+      
+    </span>
+</a>
+<nav aria-label="Koji geofence properties (and how they're used)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#structural-directives-the-__-keys">
+<span class="md-ellipsis">
+      
+        Structural directives (the __ keys)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#custom-properties-passed-through-to-the-bot-feed">
+<span class="md-ellipsis">
+      
+        Custom properties (passed through to the bot feed)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#what-poraclewebnet-reads-back-from-koji">
+<span class="md-ellipsis">
+      
+        What PoracleWeb.NET reads back from Koji
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#what-auto-detection-does">
+<span class="md-ellipsis">
+      
+        What auto-detection does
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../private-and-promotion/">
+<span class="md-ellipsis">
+    
+  
+    Private Geofences &amp; Promotion
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../admin-operations/">
+<span class="md-ellipsis">
+    
+  
+    Admin Operations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../troubleshooting/">
+<span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../internationalization/">
+<span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../development/testing/">
+<span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../development/ci-cd/">
+<span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../development/code-style/">
+<span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../troubleshooting/">
+<span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../../poracleng-enhancement-requests/">
+<span class="md-ellipsis">
+    
+  
+    PoracleNG Enhancement Requests
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#what-koji-is-doing-here">
+<span class="md-ellipsis">
+      
+        What Koji is doing here
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#connecting-poraclewebnet-to-koji">
+<span class="md-ellipsis">
+      
+        Connecting PoracleWeb.NET to Koji
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#how-geofences-and-regions-relate-in-koji">
+<span class="md-ellipsis">
+      
+        How geofences and regions relate in Koji
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setting-up-regions-the-operator-how-to">
+<span class="md-ellipsis">
+      
+        Setting up regions (the operator how-to)
+      
+    </span>
+</a>
+<nav aria-label="Setting up regions (the operator how-to)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#do-you-even-need-regions">
+<span class="md-ellipsis">
+      
+        Do you even need regions?
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#koji-geofence-properties-and-how-theyre-used">
+<span class="md-ellipsis">
+      
+        Koji geofence properties (and how they're used)
+      
+    </span>
+</a>
+<nav aria-label="Koji geofence properties (and how they're used)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#structural-directives-the-__-keys">
+<span class="md-ellipsis">
+      
+        Structural directives (the __ keys)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#custom-properties-passed-through-to-the-bot-feed">
+<span class="md-ellipsis">
+      
+        Custom properties (passed through to the bot feed)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#what-poraclewebnet-reads-back-from-koji">
+<span class="md-ellipsis">
+      
+        What PoracleWeb.NET reads back from Koji
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#what-auto-detection-does">
+<span class="md-ellipsis">
+      
+        What auto-detection does
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="koji-regions">Koji &amp; Regions<a class="headerlink" href="#koji-regions" title="Permanent link">¶</a></h1>
+<p>This page covers two operator jobs: <strong>connecting PoracleWeb.NET to Koji</strong>, and <strong>setting up regions</strong> so the region picker works for your users. The region picker is the part most operators get tripped up on, so the relationship between geofences and regions is laid out carefully with diagrams.</p>
+<h2 id="what-koji-is-doing-here">What Koji is doing here<a class="headerlink" href="#what-koji-is-doing-here" title="Permanent link">¶</a></h2>
+<p><a href="https://github.com/TurtIeSocks/Koji">Koji</a> is the home for your <strong>public</strong> geofences — the admin-managed areas everyone can subscribe to. PoracleWeb.NET talks to Koji to:</p>
+<ol>
+<li><strong>Read</strong> the list of public areas (so users can pick them, and the bot can match on them).</li>
+<li><strong>Read</strong> your regions (the folders that group public areas).</li>
+<li><strong>Write</strong> a new public area when an admin approves a user submission.</li>
+</ol>
+<p>Private user geofences never touch Koji — they live inside PoracleWeb.NET until (and unless) an admin promotes them.</p>
+<div class="admonition info">
+<p class="admonition-title">PoracleNG never talks to Koji directly</p>
+<p>PoracleWeb.NET is the only thing that talks to Koji. PoracleWeb.NET merges Koji's public areas with the private user areas and serves them as <strong>one combined feed</strong>. PoracleNG reads that single URL. See <a href="../troubleshooting/#how-the-combined-feed-works-background">Troubleshooting → How the combined feed works</a>.</p>
+</div>
+<h2 id="connecting-poraclewebnet-to-koji">Connecting PoracleWeb.NET to Koji<a class="headerlink" href="#connecting-poraclewebnet-to-koji" title="Permanent link">¶</a></h2>
+<p>Set these in your <code>.env</code> file:</p>
+<table>
+<thead>
+<tr>
+<th><code>.env</code> variable</th>
+<th>What it is</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KOJI_API_ADDRESS</code></td>
+<td>URL of your Koji server</td>
+<td><code>http://koji-host:8080</code></td>
+</tr>
+<tr>
+<td><code>KOJI_BEARER_TOKEN</code></td>
+<td>Koji API token</td>
+<td><code>your-koji-token</code></td>
+</tr>
+<tr>
+<td><code>KOJI_PROJECT_ID</code></td>
+<td>The numeric Koji <strong>project</strong> PoracleWeb.NET works in</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>KOJI_PROJECT_NAME</code></td>
+<td>That project's name (used for the area feed)</td>
+<td><code>MyProject</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">The token is read at startup</p>
+<p><code>KOJI_BEARER_TOKEN</code> is read <strong>once when PoracleWeb.NET starts</strong>. If you change it, <strong>restart PoracleWeb.NET</strong> for it to take effect.</p>
+</div>
+<p>Then point your <strong>PoracleNG</strong> bot at PoracleWeb.NET's combined feed (a single URL, not Koji) via its geofence-source setting:</p>
+<div class="highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>// PoracleNG bot — geofence source
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>"geofence": {
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>  "path": "http://poracleweb:8082/api/geofence-feed"
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>}
+</span></code></pre></div>
+<p>That's the whole connection. If Koji is briefly down, PoracleWeb.NET keeps serving the private user geofences and the last-known public ones, so notifications don't stop dead.</p>
+<h2 id="how-geofences-and-regions-relate-in-koji">How geofences and regions relate in Koji<a class="headerlink" href="#how-geofences-and-regions-relate-in-koji" title="Permanent link">¶</a></h2>
+<p>This is the key mental model.</p>
+<div class="admonition abstract">
+<p class="admonition-title">A region is not a special object</p>
+<p>Koji only has geofences. A geofence becomes a <strong>region</strong> simply by having <strong>other geofences nested underneath it</strong> (children that point to it as their <em>parent</em>).</p>
+</div>
+<pre class="mermaid"><code>flowchart TD
+    Proj[Your Koji project]
+    Proj --&gt; CO[colorado<br/>★ REGION — has children]
+    Proj --&gt; CA[california<br/>★ REGION — has children]
+    Proj --&gt; KC[kansas-city<br/>not a region — no children]
+
+    CO --&gt; DEN[denver]
+    CO --&gt; BOU[boulder]
+    CA --&gt; SF[san-francisco]
+    CA --&gt; LA[los-angeles]
+
+    style CO fill:#1e88e5,color:#fff
+    style CA fill:#1e88e5,color:#fff
+    style KC fill:#bbb,color:#000
+</code></pre>
+<p>So:</p>
+<ul>
+<li><strong>A region = a parent geofence</strong> (a geofence that other geofences are nested under).</li>
+<li><strong>The region itself is hidden</strong> from the area picker — you don't subscribe to <code>colorado</code>, you subscribe to <code>denver</code>, <em>which is grouped under</em> Colorado.</li>
+<li>A geofence with <strong>no children is not a region</strong> — it's just a plain selectable area (<code>kansas-city</code> above).</li>
+</ul>
+<p>Here's how PoracleWeb.NET decides what counts as a region:</p>
+<pre class="mermaid"><code>flowchart TD
+    Start[For each geofence in Koji] --&gt; Q{Does any OTHER geofence<br/>list it as its parent?}
+    Q --&gt;|Yes| R[It's a REGION<br/>used as a folder]
+    Q --&gt;|No| N[Not a region<br/>just a plain area]
+</code></pre>
+<h2 id="setting-up-regions-the-operator-how-to">Setting up regions (the operator how-to)<a class="headerlink" href="#setting-up-regions-the-operator-how-to" title="Permanent link">¶</a></h2>
+<p>If your users open the "draw a geofence" dialog and the region dropdown is empty (or only shows "All"), it's because <strong>your Koji project has no nesting</strong> — every geofence is flat, with no parents. Here's how to create regions:</p>
+<ol>
+<li><strong>Create a parent geofence in Koji</strong> for each region you want — for example a polygon for the whole state of <code>colorado</code>, or a metro area like <code>denver-metro</code>. This is just a normal Koji geofence; nothing special.</li>
+<li><strong>Nest your public area geofences under it.</strong> In Koji, open each child geofence (e.g. <code>denver</code>, <code>boulder</code>) and set its <strong>parent</strong> to the region geofence (<code>colorado</code>). That parent link is the only thing that makes a region.</li>
+<li><strong>Done.</strong> Reload the geofence page in PoracleWeb.NET (the list refreshes within 5 minutes, or immediately after the next approval). Each parent that now has at least one child shows up as a region, using the parent geofence's display name as the folder label.</li>
+</ol>
+<pre class="mermaid"><code>flowchart LR
+    subgraph S1 [Step 1: make a parent]
+        A1[colorado<br/>no children yet,<br/>not a region]
+    end
+    subgraph S2 [Step 2: nest children under it]
+        B1[colorado — now a REGION]
+        B1 --&gt; B2[denver]
+        B1 --&gt; B3[boulder]
+    end
+    S1 --&gt; S2
+</code></pre>
+<h3 id="do-you-even-need-regions">Do you even need regions?<a class="headerlink" href="#do-you-even-need-regions" title="Permanent link">¶</a></h3>
+<p><strong>No — regions are optional.</strong> They are a convenience for <em>grouping</em> public areas and for <em>auto-suggesting</em> a folder when a user draws a shape. If your Koji project is flat and you don't want regions:</p>
+<ul>
+<li>Users can still draw private geofences and use them — the region picker simply hides itself when there are no regions (this fixes the empty-dropdown problem; see <a href="../troubleshooting/#the-region-dropdown-is-empty-or-only-shows-all">Troubleshooting</a>).</li>
+<li>When an admin promotes a geofence, they can leave the region unset, and it becomes an ungrouped public area. You can always organize it into a region later in Koji.</li>
+</ul>
+<h2 id="koji-geofence-properties-and-how-theyre-used">Koji geofence properties (and how they're used)<a class="headerlink" href="#koji-geofence-properties-and-how-theyre-used" title="Permanent link">¶</a></h2>
+<p>When PoracleWeb.NET promotes a geofence to a public area, it writes a set of <strong>properties</strong> onto the Koji geofence. If you create or edit geofences <strong>directly in Koji</strong>, these are the same properties that matter — and getting <code>userSelectable</code> / <code>displayInMatches</code> wrong is the usual cause of a private area leaking into the bot, or a public area never showing up.</p>
+<p>There are two groups. The <code>__</code>-prefixed keys are <strong>Koji structural directives</strong> (they set Koji's own built-in fields). The rest are <strong>custom properties</strong> that Koji stores on the geofence and passes through to the bot feed.</p>
+<h3 id="structural-directives-the-__-keys">Structural directives (the <code>__</code> keys)<a class="headerlink" href="#structural-directives-the-__-keys" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value PoracleWeb.NET sends</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__name</code></td>
+<td>the lowercase area name</td>
+<td>Koji's internal geofence key — this is the name that ends up in users' area lists and that the bot matches on. Must be <strong>lowercase</strong>.</td>
+</tr>
+<tr>
+<td><code>__mode</code></td>
+<td><code>unset</code></td>
+<td>Koji's geofence "mode" marker. PoracleWeb.NET doesn't use modes, so it leaves this unset.</td>
+</tr>
+<tr>
+<td><code>__projects</code></td>
+<td><code>[ &lt;your KOJI_PROJECT_ID&gt; ]</code></td>
+<td>Which Koji <strong>project(s)</strong> the geofence belongs to. A geofence must be in your project to appear in the feed. Sending an <strong>empty</strong> list (<code>[]</code>) removes it from the project — that's how "remove from project" works.</td>
+</tr>
+<tr>
+<td><code>__parent</code></td>
+<td>the region's geofence <strong>id</strong>, or <code>null</code></td>
+<td>Nests this geofence under a region (see <a href="#how-geofences-and-regions-relate-in-koji">the region relationship</a>). Must be a real geofence id or <code>null</code> — never <code>0</code>.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition danger">
+<p class="admonition-title"><code>__parent</code> must be <code>null</code>, not <code>0</code>, for no region</p>
+<p>Koji looks up <code>__parent</code> as a real geofence id. Sending <code>0</code> makes Koji reject the save with <code>[GEOFENCE]: Does not exist</code> (while still writing the row — a half-broken state). PoracleWeb.NET sends <code>null</code> for a region-less geofence so this works cleanly. If you set parents by hand in Koji, leave it empty rather than <code>0</code>.</p>
+</div>
+<h3 id="custom-properties-passed-through-to-the-bot-feed">Custom properties (passed through to the bot feed)<a class="headerlink" href="#custom-properties-passed-through-to-the-bot-feed" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value PoracleWeb.NET sends</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>the user-facing display name</td>
+<td>The friendly label shown in PoracleWeb.NET's region/area lists. Read back from Koji to label regions.</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td>the region/category label</td>
+<td>The folder a public area is shown under in the bot's area picker. For admin geofences this is resolved from the parent chain.</td>
+</tr>
+<tr>
+<td><code>parent</code></td>
+<td>the same region/category label</td>
+<td>A duplicate of <code>group</code> that some PoracleNG format serializers read instead of <code>group</code>. (This is the <em>custom</em> <code>parent</code> property — a text label — and is separate from the structural <code>__parent</code> id above.)</td>
+</tr>
+<tr>
+<td><code>userSelectable</code></td>
+<td><code>true</code> when public, <code>false</code> when private</td>
+<td><strong>The visibility switch.</strong> <code>true</code> = the area appears in the bot's <code>!area</code> picker. <code>false</code> = hidden. PoracleNG also refuses to let a non-admin subscribe to a <code>userSelectable=false</code> area through its <code>setAreas</code> call, which is why private user geofences are managed entirely inside PoracleWeb.NET.</td>
+</tr>
+<tr>
+<td><code>displayInMatches</code></td>
+<td><code>true</code> when public, <code>false</code> when private</td>
+<td>Whether the <strong>area name appears in notification DM text</strong>. <code>false</code> keeps private geofence names out of messages.</td>
+</tr>
+</tbody>
+</table>
+<p>For a <strong>private</strong> user geofence, PoracleWeb.NET never writes any of this to Koji — it serves the geofence from its own feed with <code>userSelectable=false</code> and <code>displayInMatches=false</code>. For an <strong>approved (public)</strong> geofence, both flags are set to <code>true</code> and the geofence is written into Koji as a normal public area.</p>
+<h3 id="what-poraclewebnet-reads-back-from-koji">What PoracleWeb.NET reads back from Koji<a class="headerlink" href="#what-poraclewebnet-reads-back-from-koji" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Koji endpoint</th>
+<th>Properties read</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/v1/geofence/reference</code></td>
+<td><code>id</code>, <code>name</code> (internal), <code>parent</code> (numeric id)</td>
+<td>Listing every geofence and deriving which ones are <strong>regions</strong> (a geofence referenced as another's parent).</td>
+</tr>
+<tr>
+<td><code>/api/v1/geofence/area/{name}?rt=feature</code></td>
+<td><code>properties.name</code>, the polygon geometry</td>
+<td>The region's <strong>display name</strong> and its outline (used for region auto-detection).</td>
+</tr>
+<tr>
+<td><code>/api/v1/geofence/poracle/{project}</code></td>
+<td>name, polygon path, group</td>
+<td>The public-area list merged into the combined feed.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-auto-detection-does">What auto-detection does<a class="headerlink" href="#what-auto-detection-does" title="Permanent link">¶</a></h2>
+<p>When a user draws a shape, PoracleWeb.NET tries to <strong>guess the region</strong> by checking which region's outline the drawn shape falls inside (using the center point of the drawing). If it finds a match, it pre-fills the region for the user. This is purely a convenience — the user can change or clear it, and it only works if your regions have outlines (which they do, since they're real Koji geofences).</p>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/PGAN-Dev/PoracleWeb.NET" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<div class="md-progress" data-md-component="progress" role="progressbar"></div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+window.mermaidConfig = {default: {
+    startOnLoad: false
+}};</script></body>
+</html>

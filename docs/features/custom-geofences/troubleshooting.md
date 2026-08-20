@@ -20,7 +20,8 @@ Work down this list:
 1. **Is it switched on for the right profile?** A geofence is on/off **per profile**. If the user switched profiles, it may be off on the new one. Have them check the toggle on the Geofences page for the active profile.
 2. **Is PoracleNG pointed at PoracleWeb.NET's feed?** The bot's geofence-source setting must be the combined feed URL (`http://poracleweb:8082/api/geofence-feed`), **not** Koji. If it points at Koji, private geofences will be missing entirely.
 3. **Did PoracleNG reload its geofences?** PoracleWeb.NET tells PoracleNG to reload after changes, but if the bot was down at that moment, trigger a reload (or it'll pick it up on its next refresh).
-4. **Polygon too small or odd?** A shape needs at least 3 points and must be a real area. Degenerate shapes are dropped from the feed.
+4. **Is the alarm pointed somewhere else?** An alarm with its own delivery scope ignores the profile area list. If its scope chip reads "Within N km of ..." or "Only in ..." and the geofence isn't in that list, the geofence has nothing to do with whether that alarm fires. Open the chip on the alarm card to check or change it.
+5. **Polygon too small or odd?** A shape needs at least 3 points and must be a real area. Degenerate shapes are dropped from the feed.
 
 ## Public (approved) geofences aren't showing up
 

@@ -117,6 +117,21 @@ Required for the custom geofences feature.
 |---|---|---|---|
 | Public URL | `PUBLIC_URL` | `PublicUrl` | The origin users reach this instance on (e.g. `https://poracle.example.com`). Sets the Discord and OIDC callback URLs directly instead of deriving them from each request. Origin only — a path, query or invalid URL stops the app at startup. Optional; unset follows the incoming request. |
 
+### Paths
+
+These three skip the short-name bridge, so there is no `__`-delimited alias. `DTS_SOURCE_DIR` and most
+`DATA_DIR` reads go through `Environment.GetEnvironmentVariable`, which `appsettings.json` never
+reaches. Set them in `.env` (the loader copies every line into the process environment) or in the
+compose file, which is what the shipped example does.
+
+| Setting | `.env` name | Default | Description |
+|---|---|---|---|
+| Data directory | `DATA_DIR` | see note (Docker image sets `/app/data`) | Where the app keeps state that must survive a restart: DataProtection keys, the Discord avatar cache, and the DTS cache fallback file. Mount it as a volume in Docker or OAuth sessions break on every recreate. |
+| DTS source directory | `DTS_SOURCE_DIR` | — | Container path where the PoracleNG `config/` directory is mounted. `DtsCacheService` reads the DTS files from here for template previews; without it, the service falls back to a `dts-cache.json` placed under `DATA_DIR` by hand. |
+| Poracle config directory | `PORACLE_CONFIG_DIR` | `./data` | Host path that the shipped compose file mounts read-only at `/poracle-config`, which is what `DTS_SOURCE_DIR` points at. Standalone deployments do not use it. |
+
+With `DATA_DIR` unset the three consumers disagree: DataProtection falls back to `./data`, while `AvatarCacheService` and `DtsCacheService` fall back to the working directory itself, so `avatar-cache.json` and `dts-cache.json` land beside the binary and the keys land a directory deeper. Set it explicitly for any standalone run you intend to keep.
+
 ### Reverse proxy
 
 Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a reverse proxy](../getting-started/standalone-setup.md#reverse-proxy-optional).

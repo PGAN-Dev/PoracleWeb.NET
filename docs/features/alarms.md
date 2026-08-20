@@ -11,12 +11,12 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 | **Pokemon** | Filter by species, IV, CP, level, PVP rank, gender, size |
 | **Raids** | Filter by raid boss, level, move, evolution, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
 | **Eggs** | Filter by egg level, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
-| **Quests** | Filter by reward type and Pokemon |
+| **Quests** | Filter by reward — Pokemon encounter, item, mega energy, candy or stardust — with an optional minimum amount. See [Quest alarm filters](#quest-alarm-filters). |
 | **Invasions** | Filter by grunt type and shadow Pokemon |
 | **Lures** | Filter by lure type |
 | **Nests** | Filter by nesting Pokemon species |
 | **Gyms** | Filter by gym team changes, battle activity, specific gym |
-| **Fort Changes** | Filter by fort type (pokestop/gym), change types (name, location, image, removal, new) |
+| **Fort Changes** | Filter by fort type (pokestop/gym), change types (name, location, image, description, removal, new) |
 | **Max Battles** | Filter by battle level (1-5 Dynamax, 7/8 Gigantamax), specific Pokemon, Gigantamax-only toggle |
 
 ## Creating alarms
@@ -26,9 +26,57 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 1. Click the **+** (add) button
 2. Select the Pokemon/raid/quest target using the selector dialog
 3. Configure filter options (IV range, CP range, level, etc.)
-4. Set a **distance** — how far from your location to receive alerts (in kilometres; the API stores metres)
+4. On the **Delivery** tab, answer "Where should this alert reach you?" — see [Where an alert reaches you](#where-an-alert-reaches-you)
 5. Optionally select a **template** for notification formatting
 6. Save the alarm
+
+## Where an alert reaches you
+
+Every alarm answers the same question, and the **Delivery** tab of every add and edit dialog asks it outright: *Where should this alert reach you?* Three options, one radio group.
+
+![Delivery scope picker in the Add Pokemon dialog](../screenshots/scope-picker.png)
+
+| Option | What it means |
+|---|---|
+| **Anywhere in my areas** | The alarm inherits whatever areas the active profile subscribes to. This is the default and the behaviour every alarm had before per-alarm scope existed. |
+| **Near a point** | A radius around one fixed point. **Measured from** picks the point: your pin, or any [saved place](#saved-places). **Add a place** in the same select opens the map picker without losing the alarm you are editing. |
+| **Only in specific areas** | A list of areas for this alarm alone. It *replaces* the profile's area list rather than narrowing it, and geofences you drew yourself are offered alongside the admin areas. |
+
+The three are exclusive rather than combinable, because PoracleNG refuses every mixture of them: a place with areas, areas with a radius, and a place without a radius are all rejected upstream. Modelling the choice as a radio group means those states can't be typed in the first place.
+
+Under the hood the picker writes three fields. "Anywhere in my areas" clears both overrides and sends `distance = 0`. "Near a point" sends the radius in metres, plus `override_location_label` when a saved place is chosen and nothing when the pin is. "Only in specific areas" sends `override_areas` and forces `distance` to 0. Both overrides are always sent explicitly, including empty, because a null means "leave what's stored" on the write path. Without that you could set an override and never take it off.
+
+If you choose "Near a point" without ever having set a pin, the picker says so and offers a **Set your pin** button in place, rather than saving an alarm that measures from 0,0.
+
+!!! warning "Needs PoracleNG 5.1.0"
+    `override_location_label` and `override_areas` arrive in PoracleNG 5.1.0. On an older server the columns don't exist, so the scope picker saves without complaint and changes nothing. PoracleWeb logs an error at startup and reports the detected version on **Admin → Settings**.
+
+!!! note "Your own geofences work here"
+    PoracleWeb serves user-drawn geofences with `userSelectable: false` to keep them out of the bot's `!area` picker, and PoracleNG rejects those names when they arrive in `override_areas`. PoracleWeb sends only the names PoracleNG will accept and writes the rest into the alarm row directly, so a geofence you drew can scope one alarm whether or not your profile subscribes to it. See [Custom geofences](custom-geofences/key-concepts.md).
+
+### Saved places
+
+A place is a named point ("home", "work", "the gym") that an alarm can measure from instead of your profile pin. They live on the **Areas & Places** page, below the pin and the area map. (`/places` still resolves; it redirects to `/areas`.)
+
+![Places section on the Areas & Places page](../screenshots/places-section.png)
+
+Add one with **Add a place**: drop the marker, then name it. Names are yours to choose and are what an alarm's `override_location_label` refers to. Places are user-scoped, not profile-scoped.
+
+Deleting a place that alarms still point at is refused. `DELETE /api/location/places/{label}` answers 409 with a `referencingRules` list, and the UI names the alarms so you know what to repoint first.
+
+The API is three endpoints on `LocationController`, all gated by `disable_location`:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/location/places` | Every place plus the profile pin, as `{ default, named }`. `default` is null when the user has never set a pin. |
+| `POST /api/location/places` | Saves a place. A label PoracleNG refuses comes back as a 400 the dialog shows against the field. |
+| `DELETE /api/location/places/{label}` | Deletes a place, or 409s with the alarms still using it. |
+
+### Changing scope from a card
+
+Most alarm cards carry a scope chip reading the alarm's answer back to you — "Anywhere I get alerts" when the profile has no areas selected, otherwise "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina". Clicking it opens the same picker in a small dialog, so one alarm's scope can be changed without opening its edit dialog. Pokemon, gym, invasion, lure, nest and fort-change cards have the chip; raid, quest and max-battle cards do not, so those are changed from their edit dialog.
+
+![Scope chip on an alarm card](../screenshots/where-chip.png)
 
 ## Default delivery scope (Alert Defaults)
 
@@ -38,11 +86,12 @@ Open the **user menu** (your avatar, top-right) and select **Alert Defaults**:
 
 - **Default mode** — choose **Areas** or **Distance** for new alarms.
 - **Default distance** — when Distance is the default, the radius (0.1–100 km) used to pre-fill new alarms. A live delivery preview shows what the choice covers.
+- **Measured from** — also Distance-only: the pin, or a [saved place](#saved-places) new alarms should measure from. Switching the default back to Areas clears it, since a place without a radius is a scope PoracleNG refuses.
 
-The preference is **per-browser** (stored in `localStorage` under `poracle-default-alert-mode` / `poracle-default-alert-distance-km`, the same pattern as the theme and language settings) and is read by the `AlertDefaultsService`. It seeds the location-mode controls in **every add-alarm dialog** and in the **[Quick Pick](#quick-picks) apply dialog**.
+The preference is **per-browser** (stored in `localStorage` under `poracle-default-alert-mode` / `poracle-default-alert-distance-km` / `poracle-default-alert-place`, the same pattern as the theme and language settings) and is read by the `AlertDefaultsService`. It seeds the scope picker in **every add-alarm dialog** and in the **[Quick Pick](#quick-picks) apply dialog**.
 
 !!! note "Applies to new alarms only"
-    Alert Defaults only changes what the add/apply dialogs open with. Existing alarms are untouched, and you can still override the mode and distance for any individual alarm before saving it. Because the preference lives in the browser, it does not sync across devices.
+    Alert Defaults only changes what the add/apply dialogs open with. Existing alarms are untouched, and you can still set a different scope on any individual alarm before saving it. Because the preference lives in the browser, it does not sync across devices.
 
 ## Pokemon Availability
 
@@ -75,13 +124,13 @@ The availability UI is **automatically hidden** when Golbat is not configured. N
 
 ## Alarm cards
 
-![Pokemon alarm list with filter pills](../screenshots/pokemon.png)
+![Pokemon alarm list with filter pills and scope chips](../screenshots/pokemon.png)
 
 Alarms are displayed as a card grid. Each card shows:
 
 - Pokemon sprite or raid/quest icon
-- **Filter pills** — Quick-glance badges showing active filters (IV, CP, Level, PVP, Gender, Size)
-- Distance setting
+- **Filter pills** — Quick-glance badges showing active filters (IV, CP, Level, PVP, Gender, Size, minimum time left)
+- **Scope chip** — where the alert reaches you, in words: "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina". Click it to [change the scope from the card](#changing-scope-from-a-card)
 - Template name
 - **Targeted gym name** — Gym, Raid, and Egg alarm cards display the name of the targeted gym when a specific gym is selected (via the gym picker)
 - Edit/delete actions
@@ -150,6 +199,21 @@ When a user selects a specific size, both `size` and `max_size` are set to the s
 
 The default maximum level is **55** (not 40 or 50), matching Poracle's support for shadow/purified/best-buddy boosted levels.
 
+### Minimum time left
+
+Under **More Filters**, **Minimum Time Left** skips spawns that will despawn before you could reach them. The field is a select rather than a free number, offering Any, 1, 2, 5, 10, 15 and 20 minutes. PoracleNG stores seconds (`min_time`), and a free field invited two silent failures: typing `5` meaning minutes asks for five seconds, and a value longer than a spawn lives mutes the alarm with no error. A value set from the bot that isn't one of the presets is kept and offered in the list rather than being overwritten on the next save.
+
+When set, the card shows a "5 min left" pill alongside the IV and CP pills.
+
+### PVP mega evolution
+
+On the **PVP** tab, once a league is selected, **Mega evolution** chooses which form the rank applies to: Base, Mega, Mega X or Mega Y (`pvp_ranking_evolution` 0–3). Megas are ranked separately from their base forms, so a Mega rule will not match a base-form spawn. Pick Base unless you specifically want mega rankings.
+
+The chosen form appears as a suffix on the card's PVP badge ("Great League · Mega X").
+
+!!! warning "Needs PoracleNG 5.1.0"
+    `pvp_ranking_evolution` arrives in PoracleNG 5.1.0. Below that the column doesn't exist and the toggle group saves without effect.
+
 ## Raid level selector
 
 The raid and egg pickers share the `<app-level-selector>` chip component. The vocabulary follows the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator/blob/main/master-latest-poracle-v2.json) — the same source PoracleNG uses for in-DM notification text — so the names you see in the picker match what users receive in their alerts.
@@ -191,6 +255,26 @@ Egg alarms support:
 | `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
 | `rsvpChanges` | `0` (matches only) | RSVP notification mode: `0` matches only, `1` matches + RSVP updates, `2` RSVP updates only. Selectable as a three-option toggle group in the egg add/edit dialog; shown as an "RSVP" / "RSVP only" status badge on egg cards (beside the auto-delete tag) when non-default. Selecting mode `1` or `2` also sets PoracleNG's edit-in-place bit (`clean` bit 2) so RSVP count changes edit the existing alert rather than sending a new message. Mode `2` requires the upstream scanner to emit RSVP webhooks — selecting it in deployments without one will silence the alarm. |
 
+## Quest alarm filters
+
+![Add Quest dialog with the five reward tabs](../screenshots/quests-add-dialog.png)
+
+A quest alarm matches one reward. Which of the five reward tabs you use decides the `reward_type` PoracleNG stores, and where the number you type ends up:
+
+| Tab | `reward_type` | What you pick | Minimum field |
+|---|---|---|---|
+| Pokemon | `7` | Species the quest rewards (`reward` = pokemon id) | — |
+| Items | `2` | The item (`reward` = item id) | `amount` |
+| Mega Energy | `12` | Species whose energy is rewarded | `amount` |
+| Candy | `4` | Species whose candy is rewarded | `amount` |
+| Stardust | `3` | Nothing; the amount is the whole rule | `reward` |
+
+**Minimum Amount** is the fewest of the reward the quest has to give; `0` means any. It only applies where a reward comes in a quantity: items, candy and mega energy. A Pokemon encounter has nothing to count.
+
+Stardust is the exception worth knowing about. PoracleNG reads the stardust floor from `reward` rather than `amount`, so the Stardust tab has a single **Minimum Stardust** field that writes there, and `amount` stays `0` on a stardust alarm.
+
+Quest cards render the amount ahead of the reward name — "3× Rare Candy" — but only when it is above one; an amount of 1 shows the reward name on its own. Stardust cards read "25000 Stardust", from `reward`.
+
 ## Gym alarm filters
 
 Gym alarms support:
@@ -203,15 +287,15 @@ Gym alarms support:
 
 ## Fort change alarm filters
 
-Fort change alarms track changes to pokestops and gyms as points of interest (not activity at them). This includes name changes, location changes, image updates, removals, and new POI additions.
+Fort change alarms track changes to pokestops and gyms as points of interest (not activity at them). This includes name changes, location changes, image updates, description changes, removals, and new POI additions.
 
-![Fort change alarm page](../screenshots/fort-changes.png)
+![Add Fort Change dialog showing the six change types](../screenshots/fort-changes-add-dialog.png)
 
 | Field | Default | Description |
 |---|---|---|
 | `fort_type` | `"everything"` | Fort type to track: `pokestop`, `gym`, or `everything` |
 | `include_empty` | `0` (false) | Include forts with no name |
-| `change_types` | `[]` (all) | JSON array of change types to monitor: `name`, `location`, `image_url`, `removal`, `new` |
+| `change_types` | `[]` (all) | JSON array of change types to monitor: `name`, `location`, `image_url`, `description`, `removal`, `new` |
 
 Fort change alarms are proxied through PoracleNG using tracking type `"fort"`. The API endpoints follow the standard alarm CRUD pattern at `/api/fort-changes`.
 
@@ -313,7 +397,7 @@ Picking mode `1` or `2` also turns on PoracleNG's edit-in-place behavior (`clean
 
 ## Default values
 
-Comprehensive table of all monster (Pokemon) alarm defaults, matching the PHP PoracleWeb.NET defaults:
+All monster (Pokemon) alarm defaults, matching the PHP PoracleWeb.NET defaults:
 
 | Field | Default | Description |
 |---|---|---|
@@ -333,6 +417,8 @@ Comprehensive table of all monster (Pokemon) alarm defaults, matching the PHP Po
 | `max_sta` | `15` | Maximum stamina IV |
 | `pvp_ranking_best` | `0` | Best PVP ranking position |
 | `pvp_ranking_worst` | `4096` | Worst PVP ranking position |
+| `pvp_ranking_evolution` | `0` | PVP form to rank against (0 = base, 1 = mega, 2 = Mega X, 3 = Mega Y) |
+| `min_time` | `0` | Minimum seconds of despawn time left (0 = no filter) |
 | `gender` | `0` | Gender filter (0 = any) |
 | `size` | `-1` | Size filter (-1 = no filter / all sizes) |
 | `max_size` | `5` | Maximum size upper bound |
@@ -406,22 +492,22 @@ Test alerts are rate limited to prevent abuse:
 
 ## Weather Display
 
-The dashboard shows the current in-game weather conditions at the user's saved location.
+The dashboard shows the current in-game weather conditions at the user's pin.
 
 ![Weather section on the dashboard](../screenshots/dashboard-weather.png)
 
 ### Features
 
-- **Current weather** — Displays the active in-game weather type at the user's saved coordinates
+- **Current weather** — Displays the active in-game weather type at the user's pin
 - **Last update timestamp** — Shows when the weather data was last refreshed
 - **Area weather** — Weather conditions displayed for each of the user's selected areas
 - **Automatic updates** — Weather data refreshes in the background
 
-!!! note "Location required"
-    The weather display requires a saved location to function. Users who have not set their location will not see weather information on the dashboard. Set a location via the Location page or the onboarding wizard.
+!!! note "Pin required"
+    The weather display requires a saved pin to function. Users who have not set one will not see weather information on the dashboard. Set a pin on the **Areas & Places** page or through the onboarding wizard.
 
 ## Quick Picks
 
 Admins can define **Quick Pick** templates — pre-configured alarm sets that users can apply with one click. Useful for onboarding new users or sharing recommended configurations.
 
-When applying a Quick Pick, the apply dialog's **Delivery** tab (location mode and distance) is seeded from your [Alert Defaults](#default-delivery-scope-alert-defaults), so applied picks follow the same default as manually added alarms. You can still adjust the mode and distance for each apply before confirming.
+When applying a Quick Pick, the apply dialog's **Delivery** tab holds the same [scope picker](#where-an-alert-reaches-you) the add dialogs use, seeded from your [Alert Defaults](#default-delivery-scope-alert-defaults). Whatever you choose there — areas, a saved place, a radius, or a specific set of areas — applies to every alarm the pick creates.

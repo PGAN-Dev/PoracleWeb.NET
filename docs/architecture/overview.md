@@ -78,7 +78,7 @@ graph TB
 ```
 
 !!! info "All operations go through PoracleNG"
-    All alarm tracking CRUD (including Fort Change and Max Battle types) is proxied via `IPoracleTrackingProxy`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Direct database access is used for admin bulk operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`), for profile rename, for user-geofence area writes, and for application-owned data (`poracle_web` database). See [Backend](backend.md#areas). Optional integrations include Pokemon availability from Golbat API and weather data from Poracle API. See [PoracleNG API Proxy](poracleng-proxy.md) for details.
+    All alarm tracking CRUD (including Fort Change and Max Battle types) is proxied via `IPoracleTrackingProxy`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Direct database access is used for admin bulk operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`), for profile rename, for user-geofence area writes, for the per-alarm `override_areas` column, and for application-owned data (`poracle_web` database). PoracleNG's `schema_migrations` table is also read directly, by the server capability probe. See [Backend](backend.md#areas). Optional integrations include Pokemon availability from the Golbat API and weather from the optional scanner database via `IScannerService`. See [PoracleNG API Proxy](poracleng-proxy.md) for details.
 
 ## Key design decisions
 

@@ -2,6 +2,9 @@
 
 All alarm tracking operations (create, read, update, delete) are proxied through the PoracleNG REST API instead of writing directly to the Poracle MySQL database. This ensures PoracleNG applies field defaults, deduplication, and immediate state reload on every mutation.
 
+!!! warning "PoracleNG 5.1.0 or newer"
+    `PoracleServerProfile.MinimumSupported` is 5.1.0 — the release that adds `override_location_label`, `override_areas` and `pvp_ranking_evolution`. Below it those columns do not exist, so per-alarm delivery scope, the PVP mega picker and the minimum time-left filter write fields nothing stores and fail silently. The [server capability probe](backend.md#server-capability-probe) reports the running version and warns an admin when it is known to be older.
+
 ## Why we migrated
 
 On March 31, 2026, a NULL `template` column written directly by PoracleWeb.NET crashed PoracleNG's state reload for 15 hours. PoracleNG's Go SQL scanner cannot handle `NULL` in the `template` column of the `monsters` table, causing the entire state reload to fail. All users received stale alarm state and unwanted DM floods until PoracleNG was manually restarted.
@@ -56,13 +59,51 @@ Also proxied:
 - **Admin delete all alarms** -- fetches all UIDs per type, bulk deletes via the proxy
 - **Bulk distance update** -- fetches alarms, modifies `distance`, POSTs back via the proxy
 
+## Insert, update or duplicate
+
+Every alarm write is a POST, and PoracleNG decides what to do with it by diffing the submitted row
+against the ones already stored (`DiffTracking`). The outcome is not
+obvious from the request:
+
+| Diff result | Outcome |
+|---|---|
+| No differences | Duplicate. Nothing is written, reported as `alreadyPresent` |
+| Exactly one difference, and it is an updatable field | **Update of that existing row**, re-keyed to a new uid |
+| Anything else | New insert |
+
+The updatable set is uniform: `clean`, `distance` and `template`, plus `slot_changes` and
+`battle_changes` on gyms. Everything else identifies the alarm.
+
+The consequence that keeps biting: an Add or an Edit that differs from a **different** alarm by exactly
+one updatable field takes that alarm over. The user gets a 201 or a 200, and one alarm exists where
+there were two, with the victim's radius replaced. `TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync`
+mirrors the rule and refuses before the write, on create and update alike. Two or more updatable
+differences genuinely coexist and must stay editable; an earlier version of the guard refused those too
+and made alarms permanently uneditable.
+
+Two qualifications:
+
+- Pokemon edits cannot merge. `trackingMonster.go` splits rows on whether the uid is set and sends
+  uid-bearing ones straight to `UpdateMonsterByUID`, never reaching the diff, so the guard skips them.
+  It is the only type that does this.
+- A field PoracleWeb does not supply cannot be compared. PoracleNG fills it with its own default, so a
+  null says nothing about what will be stored. That is why `TrackingFieldPreserver` merges the stored
+  row in before the guard runs — see [Backend → Update pattern](backend.md#update-pattern).
+
 ## What stays on direct database access
 
 | Operation | Reason |
 |---|---|
 | Admin bulk human operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) | PoracleNG has no admin-list, admin-delete, or generic update endpoints |
+| Profile **rename** (`ProfileRepository.RenameAsync`) | PoracleNG's profile update answers `{"status":"ok"}` and writes nothing for `name`, while honouring `active_hours` on the same request |
+| User-geofence area writes (`IUserAreaDualWriter`, `humans.area` + `profiles.area`) | `setAreas` intersects the submitted list against `userSelectable=true` fences for non-admins, so a user's own geofence is silently stripped |
+| Per-alarm `override_areas` (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) | The tracking write validates the same names against `GetAvailableAreas` and answers 400 "area not permitted", failing the whole request. Matching never consults `userSelectable`, so the name is written into the column directly |
+| `schema_migrations` read (`PoracleSchemaVersionReader`) | The applied migration number is what says whether a column exists; nothing in the `/health` capability map describes alarm columns |
+| Deprecated `pweb_settings` KV table (`PwebSettingRepository`, plus one `ALTER TABLE ... MODIFY COLUMN value LONGTEXT NULL` at startup) | Legacy rows PoracleNG never knew about, kept alive only so `SettingsMigrationService` can copy them into `poracle_web` |
 | `poracle_web` database (geofences, settings, webhook delegates, quick picks) | Application-owned data, not managed by PoracleNG |
-| Scanner database (gym search) | Read-only, separate database |
+| Scanner database (gym search, weather) | Read-only, separate database |
+
+The user-geofence area writes and the per-alarm `override_areas` write are tagged `HACK: trusted-set-areas` in code — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every reversion point. See [Backend → Areas](backend.md#areas) for the mechanism; this table and the one in [Database](database.md#poraclecontext) describe the same set.
 
 !!! note "Single-user human/profile operations are fully proxied"
     `HumanService` reads, creates, and checks existence via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, profile CRUD, and profile copy all go through the proxy. Only admin bulk operations remain on direct DB.
@@ -157,8 +198,37 @@ No repository or entity is needed for alarm types -- the proxy handles all datab
 
 ```csharp
 // In ServiceCollectionExtensions.cs
-services.AddHttpClient<IPoracleTrackingProxy, PoracleTrackingProxy>();
+services.AddHttpClient<PoracleTrackingProxy>();
+services.AddScoped<IPoracleTrackingProxy>(sp => new UserOwnedOverrideAreaProxy(
+    sp.GetRequiredService<PoracleTrackingProxy>(),
+    sp.GetRequiredService<IUserGeofenceRepository>(),
+    sp.GetRequiredService<IUserAreaDualWriter>(),
+    sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
+
 services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
 ```
 
 The `HttpClient` instances are managed by the .NET HTTP client factory, providing connection pooling and DNS rotation.
+
+### The tracking proxy is decorated
+
+`PoracleTrackingProxy` is registered as its concrete type. What the rest of the app resolves for
+`IPoracleTrackingProxy` is `UserOwnedOverrideAreaProxy` wrapping it, so every alarm service gets the
+decorated instance. It intercepts `CreateAsync` only; the other six methods forward untouched.
+
+On a create or an edit it:
+
+1. Refuses an incoherent scope up front (`EnsureScopeIsCoherent`): a place and a set of areas cannot
+   both be set, areas cannot coexist with a radius, and a place needs one. PoracleNG enforces the same
+   three rules, but only against the body it receives — which by step 2 may no longer mention the areas.
+2. Strips the user's own geofence names out of `override_areas` before the POST, because PoracleNG
+   rejects them outright with a 400 rather than stripping them the way `setAreas` does.
+3. Writes the full list into the row with `IUserAreaDualWriter.SetAlarmOverrideAreasAsync`, resolving
+   the uid from the create response for a single row and by re-reading and pairing on content for a
+   batch (PoracleNG returns `newUids` in its own order). A row that is not there to write to throws
+   rather than leaving an alarm that quietly covers the whole profile.
+4. Calls `ReloadStateAsync`, since a direct column write is not a PoracleNG mutation and would otherwise
+   wait for the periodic reload.
+
+A write that names no override area skips steps 2 to 4 entirely, so the common path costs one extra
+JSON scan and no queries.

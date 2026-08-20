@@ -9,8 +9,19 @@ PoracleWeb.NET uses two separate MySQL databases and optionally connects to a th
 The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
 
 - Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans`, `profiles` tables (direct access), plus alarm tables (read-only for legacy/fallback)
-- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct DB access is used for admin bulk human operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`), for profile **rename** (`ProfileRepository.RenameAsync` — PoracleNG's profile update silently ignores `name`), and for user-geofence area writes (`IUserAreaDualWriter` — PoracleNG's `setAreas` strips fences that are not user-selectable). The last two are tagged in code and documented in [Backend](backend.md#areas).
+- Contains: `humans` and `profiles` (direct access), ten alarm tables, PoracleNG's `schema_migrations`, and the deprecated `pweb_settings` KV table. `PoracleContext` maps entities for eleven of those — `humans`, `profiles`, `pweb_settings` and eight alarm tables; `forts`, `maxbattle` and `schema_migrations` are reached by raw SQL, which needs no entity
+- **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct access is confined to:
+
+| Direct access | What and why |
+|---|---|
+| Admin bulk human operations | `GetAllAsync`, `DeleteUserAsync`, `UpdateAsync` — PoracleNG has no admin-list, admin-delete or generic update endpoint |
+| Profile **rename** | `ProfileRepository.RenameAsync` — PoracleNG's profile update answers `{"status":"ok"}` and silently ignores `name` |
+| User-geofence area writes | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable |
+| Alarm `override_areas` | `IUserAreaDualWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb makes; everything else about a row goes through the proxy |
+| `schema_migrations` read | `PoracleSchemaVersionReader` reads the applied migration number for the [server capability probe](backend.md#server-capability-probe) |
+| `pweb_settings` | `PwebSettingRepository` still reads and writes the deprecated KV table, and startup runs one `ALTER TABLE pweb_settings MODIFY COLUMN value LONGTEXT NULL` so the old rows can hold JSON. Both exist only to feed `SettingsMigrationService` |
+
+The user-geofence area writes and the `override_areas` write are tagged `HACK: trusted-set-areas` in code and explained in [Backend](backend.md#areas).
 
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
@@ -36,6 +47,28 @@ The `active_hours` column stores a JSON array defining when alarm delivery is ac
 
 !!! info "Managed by PoracleNG"
     The `active_hours` column is part of Poracle's own schema (managed by PoracleNG) — no PoracleWeb.NET migration is needed. PoracleWeb.NET reads and writes this field through the `IPoracleHumanProxy` API, not via direct DB access.
+
+#### Notable columns on the alarm tables
+
+Per-alarm delivery scope rests on two columns, present on all ten tables (`monsters`, `raid`, `egg`, `quest`, `invasion`, `lures`, `nests`, `gym`, `forts`, `maxbattle`). Both arrived in PoracleNG 5.1.0.
+
+| Column | Type | Description |
+|---|---|---|
+| `override_location_label` | string, nullable | Saved-place label the alarm measures its radius from, instead of the profile pin. A label that no longer exists is not an error — PoracleNG falls through to the pin, so deleting a place widens its alarms rather than breaking them. |
+| `override_areas` | JSON array, nullable | Areas the alarm is confined to, lowercase with spaces. Replaces the profile's area list outright rather than intersecting with it. **NULL when unset, never `[]`** — `parseOverrideAreas` reads an empty value back as no override, while `[]` is a list that matches nothing. |
+
+The two are mutually exclusive, areas cannot coexist with a radius, and a place requires one. PoracleNG refuses all three combinations, and so does PoracleWeb before the write (see [Backend](backend.md#per-alarm-areas)).
+
+Two more columns on `monsters` alone, also 5.1.0:
+
+| Column | Type | Description |
+|---|---|---|
+| `pvp_ranking_evolution` | int, default 0 | Which form the PVP ranks are read from: 0 base, 1 any mega, 2 Mega X, 3 Mega Y. Only consulted when a league is set. |
+| `min_time` | int, default 0 | Seconds a spawn must still have left when it is found, or the alert is skipped. 0 means any. |
+
+#### `user_locations`
+
+Saved places live here, keyed by (human, label), and are written only through `IPoracleHumanProxy` — PoracleWeb makes no direct read or write to this table. See [Backend](backend.md#saved-places).
 
 ### PoracleWebContext
 
