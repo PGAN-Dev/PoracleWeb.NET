@@ -42,7 +42,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 - **Responsive Design** — Full mobile support with fullscreen dialogs and collapsible sidebar
 - **Onboarding Wizard** — First-run setup guide for new users
 - **Keyboard Shortcuts** — ++question++ for help, ++bracket-left++ / ++bracket-right++ for sidebar collapse
-- **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish). Alert text and Pokemon names are localized separately from the same 11, chosen as **Alert language** in the user menu beside **Display language**
+- **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish). Pokemon names, types and forms follow the display language, translated by Poracle itself. What Poracle writes in your DMs is a separate choice, **Alert language**, in the user menu beside **Display language**
 - **Single Sign-On** — Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md)
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
 - **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes and Max Battles)
