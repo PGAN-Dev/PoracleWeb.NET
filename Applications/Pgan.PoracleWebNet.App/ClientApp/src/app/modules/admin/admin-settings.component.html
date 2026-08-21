@@ -269,6 +269,12 @@
                     <span>{{ 'ADMIN_SETTINGS.FORCED_BY_PORACLE' | translate }}</span>
                   </div>
                 }
+                @if (meta.key === 'allowed_languages' && poracleLocale()) {
+                  <div class="config-hint poracle-locale-hint">
+                    <mat-icon>language</mat-icon>
+                    <span>{{ 'ADMIN_SETTINGS.PORACLE_LOCALE_HINT' | translate: { locale: poracleLocale() } }}</span>
+                  </div>
+                }
                 @if (meta.key === 'favicon_url') {
                   <div class="config-hint warning favicon-cache-warning">
                     <mat-icon>info_outline</mat-icon>

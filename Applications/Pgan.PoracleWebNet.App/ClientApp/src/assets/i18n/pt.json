@@ -1624,6 +1624,7 @@
     "ENABLE_TEMPLATES_DESC": "Permitir que os utilizadores escolham modelos de mensagens de notificação.",
     "ALLOWED_LANGUAGES_LABEL": "Idiomas de UI permitidos",
     "ALLOWED_LANGUAGES_DESC": "Códigos de idioma separados por vírgulas a mostrar no seletor (ex.: \"en,de,fr,es\"). Deixe em branco para mostrar os 11 idiomas.",
+    "PORACLE_LOCALE_HINT": "A localização do Poracle é \"{{locale}}\". Quem não escolheu um idioma, e cujo navegador envia um que este site não tem, recebe este.",
     "ENABLE_ROLES_LABEL": "Ativar acesso baseado em funções",
     "ENABLE_ROLES_DESC": "Permitir apenas o login de utilizadores com funções Discord específicas. Requer Bot Token e Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de funções permitidas",

@@ -1602,6 +1602,7 @@
     "ENABLE_TEMPLATES_DESC": "Benutzern erlauben, Benachrichtigungsvorlagen auszuwählen.",
     "ALLOWED_LANGUAGES_LABEL": "Erlaubte UI-Sprachen",
     "ALLOWED_LANGUAGES_DESC": "Kommagetrennte Sprachcodes, die im Sprachauswahl-Menü angezeigt werden (z. B. „en,de,fr,es“). Leer lassen, um alle 11 Sprachen anzuzeigen.",
+    "PORACLE_LOCALE_HINT": "Das Gebietsschema von Poracle ist „{{locale}}“. Wer keine Sprache gewählt hat und dessen Browser eine hier nicht vorhandene Sprache sendet, erhält diese.",
     "ENABLE_ROLES_LABEL": "Rollenbasierte Zugriffskontrolle aktivieren",
     "ENABLE_ROLES_DESC": "Nur Benutzer mit bestimmten Discord-Rollen dürfen sich anmelden. Erfordert Bot-Token und Guild-ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Zulässige Rollen-IDs",
