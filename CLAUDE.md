@@ -207,6 +207,46 @@ Two upstream behaviours that PoracleWeb has to work around. Both verified direct
 
 **Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
 
+### Webhook Delegation Resolves Live, From Three Sources
+
+A webhook is a Poracle human whose id is a Discord webhook URL. A **delegate** is a non-admin allowed
+to manage one, which they do by impersonating it — so "who may manage what" is an authorisation
+question asked on three surfaces: the `/my-webhooks` list, `POST /api/admin/impersonate`, and
+`/api/auth/me`, which decides whether the nav item renders at all.
+
+`IUserRoleResolver.ResolveAsync` is the single answer, unioning:
+
+1. PoracleNG's `getAdministrationRoles` → `admin.discord.webhooks` (covers `discord.webhook_admins`
+   **and** guild-role delegation),
+2. `poracle_web.webhook_delegates` (what the admin dialog writes),
+3. admins from `Poracle:AdminIds` or Poracle's config, who short-circuit before any network call.
+
+Cached one minute per user; a degraded answer is never cached.
+
+**All three surfaces must resolve live, and the same union.** This has now broken four separate ways,
+each time because one surface disagreed with another:
+
+| Fix | What it broke |
+|---|---|
+| #564 | `/my-webhooks` loaded from the admin user list, which 403s non-admins — the only people who could see the page |
+| #601 | reading the claim let a revoked delegate keep access for 24 hours |
+| #626 | resolving from the local table alone refused a PoracleJS-configured delegate the nav item had just offered |
+| #786 | `/api/auth/me` still read the claim, so a *new* delegate could not find a page that would have let them in |
+
+The `managedWebhooks` JWT claim is now a **cold fallback only**, used when a resolve is degraded so an
+outage does not strip a delegate mid-session. Nothing authorises off it. Do not reintroduce it as a
+source of truth.
+
+Two carve-outs worth keeping: an impersonation session resolves nothing (`this.UserId` is the
+impersonated account, so its own delegations answer a different question — the shape of #663), and
+`IsAdmin` deliberately still comes from the claim, because every admin endpoint authorises off the
+claim too and resolving one live without the other puts the UI and the API into disagreement.
+
+Deleting a human purges grants in both directions (`RemoveAllForIdAsync` matches `WebhookId` **or**
+`UserId`), so a recreated webhook URL does not adopt the old delegates. See #510-#512.
+
+User-facing documentation: `docs/features/webhooks.md`.
+
 ### Rate Limiting
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
 - `auth` policy: 30 requests per 60s per IP (login, callback, token exchange).
