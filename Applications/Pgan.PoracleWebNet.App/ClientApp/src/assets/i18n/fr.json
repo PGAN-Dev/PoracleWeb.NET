@@ -39,7 +39,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Vu en tant que",
-    "BACK_TO_ADMIN": "Retour à l'admin",
+    "EXIT_IMPERSONATION": "Retour à ton compte",
     "DISABLED_ACCOUNT": "Ton compte a été <strong>désactivé</strong>. Cela peut être dû à une limitation de débit ou à une action administrative.",
     "DISABLED_ACCOUNT_INSPECTED": "Ce compte a été <strong>désactivé</strong> par un administrateur et ne reçoit aucune notification.",
     "DISABLED_SUPPORT": "Pour obtenir de l'aide, demande dans",

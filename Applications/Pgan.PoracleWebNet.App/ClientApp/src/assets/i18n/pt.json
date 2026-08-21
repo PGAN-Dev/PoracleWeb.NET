@@ -39,7 +39,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "A ver como",
-    "BACK_TO_ADMIN": "Voltar à Administração",
+    "EXIT_IMPERSONATION": "Voltar à tua conta",
     "DISABLED_ACCOUNT": "A tua conta foi <strong>desativada</strong>. Isto pode ser devido a limitação de pedidos ou a uma ação administrativa.",
     "DISABLED_ACCOUNT_INSPECTED": "Esta conta foi <strong>desativada</strong> por um administrador e não recebe notificações.",
     "DISABLED_SUPPORT": "Para obter ajuda, pergunta em",

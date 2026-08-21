@@ -39,7 +39,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Viser som",
-    "BACK_TO_ADMIN": "Tilbage til Admin",
+    "EXIT_IMPERSONATION": "Tilbage til din konto",
     "DISABLED_ACCOUNT": "Din konto er blevet <strong>deaktiveret</strong>. Det kan skyldes hastighedsbegrænsning eller en administrativ handling.",
     "DISABLED_ACCOUNT_INSPECTED": "Denne konto er blevet <strong>deaktiveret</strong> af en administrator og modtager ikke notifikationer.",
     "DISABLED_SUPPORT": "For at få hjælp, spørg i",

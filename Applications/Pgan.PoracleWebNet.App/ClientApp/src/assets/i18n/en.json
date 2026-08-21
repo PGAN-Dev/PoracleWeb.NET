@@ -39,7 +39,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Viewing as",
-    "BACK_TO_ADMIN": "Back to Admin",
+    "EXIT_IMPERSONATION": "Back to your account",
     "DISABLED_ACCOUNT": "Your account has been <strong>disabled</strong>. This may be due to rate limiting or an administrative action.",
     "DISABLED_ACCOUNT_INSPECTED": "This account has been <strong>disabled</strong> by an administrator and is not receiving notifications.",
     "DISABLED_SUPPORT": "To get help, ask in",
