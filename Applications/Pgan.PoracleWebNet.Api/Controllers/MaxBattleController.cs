@@ -7,6 +7,7 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/maxbattles")]
+[RequireFeatureEnabled(DisableFeatureKeys.MaxBattles)]
 public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiController
 {
     private readonly IMaxBattleService _maxBattleService = maxBattleService;
@@ -30,7 +31,6 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
         return this.Ok(maxBattle);
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.MaxBattles)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] MaxBattleCreate model)
     {
@@ -53,7 +53,6 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
         }, result);
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.MaxBattles)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] MaxBattleUpdate model)
     {
@@ -100,7 +99,6 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
         });
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.MaxBattles)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -111,7 +109,6 @@ public class MaxBattleController(IMaxBattleService maxBattleService) : BaseApiCo
         });
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.MaxBattles)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

@@ -14,13 +14,12 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 /// so any forwarded request-supplied id would be a full read/write/delete/trigger IDOR).
 /// </summary>
 /// <remarks>
-/// Gated per-action on <c>disable_quests</c>, matching the alarm types: setting a schedule and firing
-/// one on demand are refused while quests are off; reading or deleting the schedule you already have
-/// is not. A schedule for a disabled type delivers nothing, so removing it is the one useful thing
-/// left - and when quests are disabled in Poracle rather than here, its bot refuses the command too.
-/// Admins are intentionally NOT exempt from the gate (see #236).
+/// The whole controller is gated by <c>disable_quests</c>: a disabled type is gone rather than
+/// read-only, so the schedule is unreachable until quests are switched back on. Admins are
+/// intentionally NOT exempt (see #236).
 /// </remarks>
 [Route("api/summary-schedules")]
+[RequireFeatureEnabled(DisableFeatureKeys.Quests)]
 public class SummaryScheduleController(
     IPoracleSummaryProxy summaryProxy,
     ISummaryCapabilityService capability) : BaseApiController
@@ -101,7 +100,6 @@ public class SummaryScheduleController(
     /// <c>{alertType}</c> is the sole alert-type source. Validates the active-hours payload via the
     /// shared <see cref="ActiveHoursValidator"/> BEFORE proxying; null/whitespace clears the schedule.
     /// </summary>
-    [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
     [HttpPut("{alertType}")]
     [EnableRateLimiting("auth-read")]
     public async Task<IActionResult> SetSchedule(string alertType, [FromBody] SummaryScheduleRequest request)
@@ -160,7 +158,6 @@ public class SummaryScheduleController(
     /// synchronously, then clears the bucket. Rate-limited (5/60s) and client-cooldown-guarded so a
     /// double-click cannot double-deliver.
     /// </summary>
-    [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
     [HttpPost("{alertType}/trigger")]
     [EnableRateLimiting("test-alert")]
     public async Task<IActionResult> Trigger(string alertType)

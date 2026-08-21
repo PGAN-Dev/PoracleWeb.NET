@@ -7,6 +7,7 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/gyms")]
+[RequireFeatureEnabled(DisableFeatureKeys.Gyms)]
 public class GymController(IGymService gymService) : BaseApiController
 {
     private readonly IGymService _gymService = gymService;
@@ -30,7 +31,6 @@ public class GymController(IGymService gymService) : BaseApiController
         return this.Ok(gym);
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Gyms)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] GymCreate model)
     {
@@ -53,7 +53,6 @@ public class GymController(IGymService gymService) : BaseApiController
         }, result);
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Gyms)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] GymUpdate model)
     {
@@ -100,7 +99,6 @@ public class GymController(IGymService gymService) : BaseApiController
         });
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Gyms)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -111,7 +109,6 @@ public class GymController(IGymService gymService) : BaseApiController
         });
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Gyms)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

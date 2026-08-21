@@ -28,6 +28,8 @@ import { polygonCentroid } from '../../shared/utils/geo.utils';
 
 interface DashboardCard {
   colorClass: string;
+  /** The `disable_*` key that governs this alarm type. Eggs share the raid one. */
+  disableKey: string;
   icon: string;
   key: keyof DashboardCounts;
   label: string;
@@ -114,6 +116,7 @@ export class DashboardComponent implements OnInit {
   readonly cards: DashboardCard[] = [
     {
       colorClass: 'card-pokemon',
+      disableKey: 'disable_mons',
       icon: 'catching_pokemon',
       key: 'pokemon',
       label: 'DASHBOARD.CARD_POKEMON',
@@ -122,6 +125,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-raids',
+      disableKey: 'disable_raids',
       icon: 'shield',
       key: 'raids',
       label: 'DASHBOARD.CARD_RAIDS',
@@ -130,6 +134,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-eggs',
+      disableKey: 'disable_raids',
       icon: 'egg',
       key: 'eggs',
       label: 'DASHBOARD.CARD_EGGS',
@@ -138,6 +143,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-quests',
+      disableKey: 'disable_quests',
       icon: 'explore',
       key: 'quests',
       label: 'DASHBOARD.CARD_QUESTS',
@@ -146,6 +152,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-invasions',
+      disableKey: 'disable_invasions',
       icon: 'warning',
       key: 'invasions',
       label: 'DASHBOARD.CARD_INVASIONS',
@@ -154,6 +161,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-lures',
+      disableKey: 'disable_lures',
       icon: 'location_on',
       key: 'lures',
       label: 'DASHBOARD.CARD_LURES',
@@ -162,6 +170,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-nests',
+      disableKey: 'disable_nests',
       icon: 'park',
       key: 'nests',
       label: 'DASHBOARD.CARD_NESTS',
@@ -170,6 +179,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-gyms',
+      disableKey: 'disable_gyms',
       icon: 'fitness_center',
       key: 'gyms',
       label: 'DASHBOARD.CARD_GYMS',
@@ -178,6 +188,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-fort-changes',
+      disableKey: 'disable_fort_changes',
       icon: 'domain',
       key: 'fortChanges',
       label: 'DASHBOARD.CARD_FORT_CHANGES',
@@ -186,6 +197,7 @@ export class DashboardComponent implements OnInit {
     },
     {
       colorClass: 'card-maxbattles',
+      disableKey: 'disable_maxbattles',
       icon: 'flash_on',
       key: 'maxBattles',
       label: 'DASHBOARD.CARD_MAX_BATTLES',
@@ -201,13 +213,14 @@ export class DashboardComponent implements OnInit {
   readonly geofencePolygons = signal<GeofenceData[]>([]);
 
   readonly location = signal<Location | null>(null);
+
   readonly locationAddress = signal<string>('');
+
   readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
   readonly locationMapUrl = signal<string>('');
-
   readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
-
   readonly profiles = signal<Profile[]>([]);
+
   readonly profileName = computed(() => {
     const profiles = this.profiles();
     if (profiles.length === 0) return this.i18n.instant('DASHBOARD.DEFAULT_PROFILE');
@@ -217,8 +230,8 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly profilesEnabled = computed(() => !this.settingsService.isDisabled('disable_profiles'));
-
   readonly selectedAreas = signal<string[]>([]);
+
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
 
   readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -286,6 +299,14 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly username = computed(() => this.authService.user()?.username ?? 'Trainer');
+
+  /**
+   * Cards for the alarm types this instance actually offers. A disabled type is gone from here as it
+   * is from the sidebar, the route and the API — a card linking to a page that answers 403 would be
+   * worse than no card. Rules already stored on a disabled type stay dormant and come back intact if
+   * it is switched on again. See #792.
+   */
+  readonly visibleCards = computed(() => this.cards.filter(card => !this.settingsService.isDisabled(card.disableKey)));
 
   readonly weather = signal<WeatherData | null>(null);
 

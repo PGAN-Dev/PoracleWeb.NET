@@ -11,7 +11,6 @@ import { catchError, finalize, of } from 'rxjs';
 import { ActiveHourEntry, compressDayRange, formatTime12h, groupActiveHours } from '../../../core/models/active-hours.models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
-import { SettingsService } from '../../../core/services/settings.service';
 import { SummarySchedule, SummaryScheduleService } from '../../../core/services/summary-schedule.service';
 import {
   ActiveHoursEditorDialogComponent,
@@ -51,7 +50,6 @@ export class SummaryScheduleDialogComponent {
 
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
-  private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly summaryService = inject(SummaryScheduleService);
 
@@ -75,9 +73,6 @@ export class SummaryScheduleDialogComponent {
   readonly userLat = signal(0);
 
   readonly userLon = signal(0);
-  /** Quests disabled: the schedule can be read and cleared, but not set or fired. */
-  readonly writesDisabled = computed(() => this.settingsService.isDisabled('disable_quests'));
-
   constructor() {
     this.summaryService
       .getSchedule(this.data.alertType)

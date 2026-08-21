@@ -508,11 +508,11 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 
 ---
 
-## An alarm type cannot be created and its admin toggle will not switch on
+## An alarm type has disappeared and its admin toggle will not switch on
 
-**Symptom**: A type's page has no Add button, its cards have no Edit, its nav item carries a padlock, and on **Admin > Settings** its toggle is off, greyed out and refuses to move. The alarms already there are still listed and can still be deleted.
+**Symptom**: A type is gone from the sidebar and the dashboard, its page redirects away, and on **Admin > Settings** its toggle is off, greyed out and refuses to move.
 
-**Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than accepting rules that do nothing. Existing rules stay visible and deletable on purpose: removing them is the only thing left worth doing, and Poracle's bot will not do it for you while the type is off.
+**Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than offering a feature the server will not deliver. Rules users already had are not deleted; they lie dormant and come back if the type is switched on again.
 
 **Fix**: change it in Poracle's `config.toml`, not here. The flags are `disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle` and `disable_fort_update`. Restart Poracle afterwards; this site re-reads them within five minutes, or immediately on restart.
 

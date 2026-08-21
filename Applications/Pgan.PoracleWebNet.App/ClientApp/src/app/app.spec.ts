@@ -25,11 +25,12 @@ interface NavItemShape {
  * admins included. Without these tests the iteration-1 fix ("admins shouldn't bypass the disable
  * filter in the nav") is silently regressable.
  *
- * What "takes effect" means differs by group, and deliberately. A disabled **settings** item is
- * hidden outright. A disabled **alarm type** keeps its nav item: the page still lists the rules a
- * user already has and still deletes them, and hiding the item would strand people with alarms they
- * can neither see nor remove — which matters most when the type was disabled in Poracle, whose bot
- * refuses the matching command too. Creating and editing are refused by the API either way.
+ * Every disabled item is hidden, alarm types included. That is not a return to the pre-#784
+ * behaviour: the page itself stays reachable and still lists and deletes the rules a user already
+ * has. What changed in #792 is where the way in lives. A padlocked nav item served the few people
+ * holding rules of a disabled type and was noise for everyone else, so the dashboard card carries it
+ * instead — shown for a disabled type only while it still has alarms, which the nav cannot know
+ * because it is drawn before counts load.
  */
 describe('App nav filtering (#236)', () => {
   let settingsSignal: WritableSignal<Record<string, string>>;
@@ -108,15 +109,20 @@ describe('App nav filtering (#236)', () => {
     ['disable_fort_changes', '/fort-changes'],
   ];
 
-  it.each(ALARM_KEYS)('keeps the %s route reachable so existing alarms can be viewed and deleted', (key, route) => {
-    // Previously this hid the item. It now stays: the page is read-and-delete while disabled, and the
-    // API refuses the creates and edits. Hiding it would leave alarms unreachable and undeletable.
+  it.each(ALARM_KEYS)('hides the %s nav item when the type is disabled', (key, route) => {
+    // The page stays reachable — no route guard, and the dashboard links to it while alarms remain.
+    // What is gone is a padlocked item shown to every user of an instance that never enabled the type.
     const app = setup({ [key]: 'true' }, false);
-    expect(alarmRoutes(app)).toContain(route);
+    expect(alarmRoutes(app)).not.toContain(route);
   });
 
-  it.each(ALARM_KEYS)('keeps the %s route reachable for admins too (no divergence)', (key, route) => {
+  it.each(ALARM_KEYS)('hides the %s nav item from admins too (no admin bypass)', (key, route) => {
     const app = setup({ [key]: 'true' }, true);
+    expect(alarmRoutes(app)).not.toContain(route);
+  });
+
+  it.each(ALARM_KEYS)('keeps the %s nav item while the type is enabled', (key, route) => {
+    const app = setup({}, false);
     expect(alarmRoutes(app)).toContain(route);
   });
 

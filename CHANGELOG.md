@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A switched-off alarm type disappears completely.** For most of this release's development it stayed half-present -- reachable, listing what you already had, refusing to create more -- so that nobody was left holding rules they could not remove. In practice that put a locked, empty page in front of every user of an instance that never enabled the type, to serve the few who had one. Disabling a type now removes it: the sidebar item, the dashboard card, the page and every endpoint for it. Rules already stored are not deleted -- they cannot fire while the type is off, and they come back exactly as they were if you switch it on again.
+
+
 ## [2.17.0] - 2026-08-21
 
 ### Added
