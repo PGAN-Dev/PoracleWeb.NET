@@ -202,4 +202,12 @@ export class PokemonSelectorComponent implements OnInit {
     this.searchControl.setValue('');
     this.searchText.set('');
   }
+
+  /**
+   * Display text for a type chip. The chip's value stays the English name - the icon lookup and the
+   * filter comparison both key on it - so only the label is translated.
+   */
+  typeLabel(type: string): string {
+    return this.masterData.getTypeLabel(type);
+  }
 }

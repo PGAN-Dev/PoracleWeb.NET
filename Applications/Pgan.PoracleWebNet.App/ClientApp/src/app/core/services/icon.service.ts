@@ -1,29 +1,9 @@
 import { Injectable, inject, computed } from '@angular/core';
 
 import { SettingsService } from './settings.service';
+import { POKEMON_TYPE_IDS } from '../../shared/utils/pokemon-types';
 
 const DEFAULT_UICONS = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
-
-const TYPE_IDS: Record<string, number> = {
-  Bug: 7,
-  Dark: 17,
-  Dragon: 16,
-  Electric: 13,
-  Fairy: 18,
-  Fighting: 2,
-  Fire: 10,
-  Flying: 3,
-  Ghost: 8,
-  Grass: 12,
-  Ground: 5,
-  Ice: 15,
-  Normal: 1,
-  Poison: 4,
-  Psychic: 14,
-  Rock: 6,
-  Steel: 9,
-  Water: 11,
-};
 
 @Injectable({ providedIn: 'root' })
 export class IconService {
@@ -83,7 +63,7 @@ export class IconService {
   }
 
   getTypeUrl(typeName: string): string {
-    const id = TYPE_IDS[typeName];
+    const id = POKEMON_TYPE_IDS[typeName];
     return id ? `${this.typeBase()}/${id}.png` : '';
   }
 }

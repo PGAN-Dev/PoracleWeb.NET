@@ -1,8 +1,10 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { ConfigService } from './config.service';
+import { I18nService } from './i18n.service';
 import { MasterDataService } from './masterdata.service';
 
 describe('MasterDataService', () => {
@@ -13,7 +15,12 @@ describe('MasterDataService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ConfigService, useValue: { apiHost: API } }],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideTranslateService(),
+        { provide: ConfigService, useValue: { apiHost: API } },
+      ],
     });
     service = TestBed.inject(MasterDataService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -49,6 +56,7 @@ describe('MasterDataService', () => {
         expect(ready).toBe(true);
       });
 
+      const monstersReq = httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`);
       const pokemonReq = httpMock.expectOne(`${API}/api/masterdata/pokemon`);
       const itemsReq = httpMock.expectOne(`${API}/api/masterdata/items`);
       const movesReq = httpMock.expectOne(`${API}/api/masterdata/moves`);
@@ -56,10 +64,7 @@ describe('MasterDataService', () => {
       pokemonReq.flush({ '25': 'Pikachu', '150': 'Mewtwo' });
       itemsReq.flush({ '1': 'Poke Ball', '2': 'Great Ball' });
       movesReq.flush({ '13': 'Wrap', '14': 'Hyper Beam' });
-
-      // Also handle the forms request from loadForms()
-      const formsReq = httpMock.expectOne(req => req.url.includes('master-latest-poracle'));
-      formsReq.flush({});
+      monstersReq.flush({});
 
       expect(service.isLoaded()).toBe(true);
       expect(service.getPokemonName(25)).toBe('Pikachu');
@@ -75,7 +80,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({ '13': 'Wrap' });
-      httpMock.expectOne(req => req.url.includes('master-latest-poracle')).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
 
       expect(service.getMoveName(13)).toBe('Wrap');
       expect(service.getMoveName(9999)).toBe('Move #9999');
@@ -89,7 +94,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(req => req.url.includes('master-latest-poracle')).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
     });
 
     it('should handle API errors gracefully', () => {
@@ -102,6 +107,7 @@ describe('MasterDataService', () => {
       // The items request gets cancelled by forkJoin, so just match and discard it
       httpMock.match(`${API}/api/masterdata/items`);
       httpMock.match(`${API}/api/masterdata/moves`);
+      httpMock.match(req => req.url === `${API}/api/masterdata/monsters`);
 
       expect(service.isLoaded()).toBe(true);
     });
@@ -118,7 +124,7 @@ describe('MasterDataService', () => {
       });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(req => req.url.includes('master-latest-poracle')).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
 
       const pokemon = service.getAllPokemon();
       expect(pokemon[0]).toEqual({ id: 0, name: 'All Pokemon' });
@@ -150,13 +156,11 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
       httpMock
-        .expectOne(req => req.url.includes('master-latest-poracle'))
+        .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
         .flush({
-          monsters: {
-            '618_0': { id: 618, name: 'Stunfisk', form: { id: 0, name: '' } },
-            '618_2246': { id: 618, name: 'Stunfisk', form: { id: 2246, name: 'Normal' } },
-            '618_2345': { id: 618, name: 'Stunfisk', form: { id: 2345, name: 'Galarian' } },
-          },
+          '618_0': { id: 618, name: 'Stunfisk', form: { id: 0, name: '' } },
+          '618_2246': { id: 618, name: 'Stunfisk', form: { id: 2246, name: 'Normal' } },
+          '618_2345': { id: 618, name: 'Stunfisk', form: { id: 2345, name: 'Galarian' } },
         });
 
       expect(service.getFormsForPokemon(618)).toEqual([
@@ -172,15 +176,128 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
       httpMock
-        .expectOne(req => req.url.includes('master-latest-poracle'))
+        .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
         .flush({
-          monsters: {
-            '1_0': { id: 1, name: 'Bulbasaur', form: { id: 0, name: '' } },
-            '1_123': { id: 1, name: 'Bulbasaur', form: { id: 123, name: 'Normal' } },
-          },
+          '1_0': { id: 1, name: 'Bulbasaur', form: { id: 0, name: '' } },
+          '1_123': { id: 1, name: 'Bulbasaur', form: { id: 123, name: 'Normal' } },
         });
 
       expect(service.getFormsForPokemon(1)).toEqual([]);
+    });
+  });
+  describe('localized monster data', () => {
+    const MONSTERS = `${API}/api/masterdata/monsters`;
+
+    /** Flushes the three English maps, then the monster map, and returns nothing. */
+    function load(monsters: unknown, pokemon: Record<string, string> = {}): void {
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush(pokemon);
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+      httpMock.expectOne(req => req.url === MONSTERS).flush(monsters);
+    }
+
+    it('should request the monster map for the current display language', () => {
+      TestBed.inject(I18nService).use('de');
+      service.loadData().subscribe();
+
+      const req = httpMock.expectOne(r => r.url === MONSTERS);
+      expect(req.request.params.get('locale')).toBe('de');
+
+      req.flush({});
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+    });
+
+    it('should prefer the translated name over the English masterfile name', () => {
+      service.loadData().subscribe();
+      load({ '25_0': { id: 25, name: 'Pikachu', form: { id: 0, name: '' } } }, { '25': 'Pikachu' });
+      expect(service.getPokemonName(25)).toBe('Pikachu');
+
+      // Species with names that actually differ between locales, e.g. #001 in German.
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideTranslateService(),
+          { provide: ConfigService, useValue: { apiHost: API } },
+        ],
+      });
+      const german = TestBed.inject(MasterDataService);
+      const germanHttp = TestBed.inject(HttpTestingController);
+      german.loadData().subscribe();
+      germanHttp.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1': 'Bulbasaur' });
+      germanHttp.expectOne(`${API}/api/masterdata/items`).flush({});
+      germanHttp.expectOne(`${API}/api/masterdata/moves`).flush({});
+      germanHttp.expectOne(req => req.url === MONSTERS).flush({ '1_0': { id: 1, name: 'Bisasam', form: { id: 0, name: '' } } });
+
+      expect(german.getPokemonName(1)).toBe('Bisasam');
+      germanHttp.verify();
+    });
+
+    it('should keep English type names as identity and translate only the label', () => {
+      service.loadData().subscribe();
+      load({
+        '25_0': {
+          id: 25,
+          name: 'Pikachu',
+          form: { id: 0, name: '' },
+          types: [{ id: 13, name: 'Elektro' }],
+        },
+      });
+
+      // Icons and the type filter chip both key on the English name, so it has to survive.
+      expect(service.getPokemonTypes(25)).toEqual(['Electric']);
+      expect(service.getAllTypes()).toEqual(['Electric']);
+      expect(service.getTypeLabel('Electric')).toBe('Elektro');
+    });
+
+    it('should fall back to the English name when a translation key comes back untranslated', () => {
+      service.loadData().subscribe();
+      load(
+        {
+          '25_0': {
+            id: 25,
+            name: 'poke_25',
+            form: { id: 0, name: '' },
+            types: [{ id: 13, name: 'poke_type_13' }],
+          },
+        },
+        { '25': 'Pikachu' },
+      );
+
+      expect(service.getPokemonName(25)).toBe('Pikachu');
+      expect(service.getTypeLabel('Electric')).toBe('Electric');
+    });
+
+    it('should keep English names when the monster map is unavailable', () => {
+      service.loadData().subscribe();
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+      httpMock.expectOne(req => req.url === MONSTERS).error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
+
+      expect(service.isLoaded()).toBe(true);
+      expect(service.getPokemonName(25)).toBe('Pikachu');
+    });
+
+    it('should reload and re-emit when the display language changes', () => {
+      const seen: string[] = [];
+      service.getAllPokemon$().subscribe(list => seen.push(list[1]?.name));
+      load({ '25_0': { id: 25, name: 'Pikachu', form: { id: 0, name: '' } } }, { '25': 'Pikachu' });
+
+      TestBed.inject(I18nService).use('fr');
+      TestBed.flushEffects();
+
+      const req = httpMock.expectOne(r => r.url === MONSTERS);
+      expect(req.request.params.get('locale')).toBe('fr');
+      req.flush({ '25_0': { id: 25, name: 'Pikachu (fr)', form: { id: 0, name: '' } } });
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+
+      expect(seen).toEqual(['Pikachu', 'Pikachu (fr)']);
     });
   });
 });

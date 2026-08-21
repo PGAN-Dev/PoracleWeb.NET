@@ -10,7 +10,7 @@
     <span class="gen-label">{{ 'POKEMON_SELECTOR.TYPE' | translate }}</span>
     @for (type of availableTypes(); track type) {
       <button class="gen-chip type-chip" [class.gen-active]="activeType() === type" (click)="toggleType(type)">
-        <img [src]="getTypeIcon(type)" [alt]="type" class="type-icon" (error)="onImageError($event)" />{{ type }}
+        <img [src]="getTypeIcon(type)" [alt]="typeLabel(type)" class="type-icon" (error)="onImageError($event)" />{{ typeLabel(type) }}
       </button>
     }
   </div>
