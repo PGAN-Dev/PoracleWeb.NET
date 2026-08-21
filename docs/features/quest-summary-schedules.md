@@ -111,6 +111,18 @@ Choose **Remove schedule** in the dialog to delete your delivery schedule. Quest
 **Daily summary** still buffer, but without a schedule they fall back to PoracleNG's default
 delivery timing. Removing the schedule does not change the per-alarm toggle.
 
+## When quest alarms are switched off
+
+An operator can disable quests, either on this site or in Poracle's own config. A summary schedule
+delivers nothing once that happens, so the dialog keeps only what is still useful: you can open it,
+read the schedule you already have, and clear it. **Save** and **Send now** are gone, along with the
+hint that described them.
+
+Clearing stays available deliberately. A schedule that can never fire is worth removing, and when
+quests are disabled in Poracle its bot refuses the matching command too, which would leave nowhere
+else to do it. The same rule applies to the alarm types themselves — see
+[Site Settings](../configuration/site-settings.md).
+
 ## For server operators
 
 Quest summary delivery is gated by PoracleNG, not by PoracleWeb.NET. The web UI is hidden unless

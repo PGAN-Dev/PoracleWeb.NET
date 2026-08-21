@@ -527,3 +527,30 @@ curl -s -H "Authorization: Bearer $JWT"   https://your-site/api/settings/upstrea
 ```
 
 An empty array on the first call, with the type still locked, means the local `disable_*` site setting is the one doing it — that one is yours to change on **Admin > Settings**. The page names which side it came from, so you should not have to run either command to find out.
+
+---
+
+## A delegate cannot see "My Webhooks"
+
+**Symptom**: You granted someone a webhook on **Admin > Webhooks**, and they report no *My Webhooks*
+item in the sidebar.
+
+**Checks, in order**:
+
+1. **Did the grant land?** Reopen the webhook's delegates dialog. A removable chip with their name
+   means it exists. A grant naming an account that does not exist is refused rather than stored, so an
+   absent chip usually means they had never signed in when you added them — they must register with
+   the Poracle bot and sign in once before they can be granted.
+
+2. **Give it a minute.** Delegation is resolved live but cached for about a minute per person.
+
+3. **Are they an administrator?** Admins can manage any webhook and are never listed as a delegate of
+   a particular one, so they never see the item — it is for delegates only.
+
+4. **Are you thinking of the bot?** `discord.webhook_admins` in Poracle's config grants access through
+   the Discord bot, not here. The reverse also holds: a row added here grants nothing to the bot. A
+   Poracle-side grant *does* work here, but not the other way round.
+
+**Note**: before v2.17 the item came from a claim stamped into the sign-in token, so a new delegate
+waited up to 24 hours or had to sign out and back in. If you are running an older build, that is the
+explanation — see [Webhooks & Delegates](features/webhooks.md).

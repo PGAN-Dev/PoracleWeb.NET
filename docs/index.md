@@ -45,6 +45,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 - **11 UI Languages** — Full interface translation (English, French, German, Spanish, Dutch, Italian, Portuguese, Brazilian Portuguese, Polish, Danish, Swedish). Pokemon names, types and forms follow the display language, translated by Poracle itself. What Poracle writes in your DMs is a separate choice, **Alert language**, in the user menu beside **Display language**
 - **Single Sign-On** — Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md)
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
+- **[Webhooks & Delegates](features/webhooks.md)** — Channel feeds managed as their own accounts, with named people allowed to manage one without being made an administrator
 - **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes and Max Battles)
 - **Weather Display** — View current in-game weather at your pin and across all tracked areas on the dashboard
 - **Fort Change Tracking** — Get notified when pokestops or gyms are added, removed, renamed, relocated, re-described, or given a new image
