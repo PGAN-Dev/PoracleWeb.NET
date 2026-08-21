@@ -249,7 +249,7 @@
 
   <div class="dashboard-grid">
     @if (counts(); as c) {
-      @for (card of cards; track card.key) {
+      @for (card of visibleCards(); track card.key) {
         <mat-card class="dashboard-card" [class]="card.colorClass" [class.muted]="c[card.key] === 0" (click)="navigate(card.route)">
           <div class="card-header-row">
             <div class="card-icon-wrap" [class.muted-icon]="c[card.key] === 0">

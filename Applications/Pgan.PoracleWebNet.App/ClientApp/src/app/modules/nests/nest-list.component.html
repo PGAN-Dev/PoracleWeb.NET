@@ -1,14 +1,10 @@
-<app-feature-readonly-banner disableKey="disable_nests" />
-
 <div class="page-header">
   <div class="page-header-text">
     <h1>{{ 'NESTS.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'NESTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    @if (!writesDisabled()) {
-      <button mat-fab (click)="openAddDialog()" style="background: #8bc34a; color: #fff"><mat-icon>add</mat-icon></button>
-    }
+    <button mat-fab (click)="openAddDialog()" style="background: #8bc34a; color: #fff"><mat-icon>add</mat-icon></button>
   </div>
 </div>
 @if (!loading() && nests().length > 0) {
@@ -35,11 +31,10 @@
       <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
-    @if (!writesDisabled()) {
-      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-      </button>
-    }
+    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+    </button>
+
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
       <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
@@ -95,25 +90,23 @@
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
-          @if (!writesDisabled()) {
-            <button
-              mat-icon-button
-              (click)="sendTestAlert(nest)"
-              [disabled]="testAlertService.isSending('nest', nest.uid) || testAlertService.isCoolingDown('nest', nest.uid)"
-              [matTooltip]="
-                testAlertService.isCoolingDown('nest', nest.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-              "
-              class="test-alert-btn">
-              @if (testAlertService.isSending('nest', nest.uid)) {
-                <mat-icon class="spin">sync</mat-icon>
-              } @else {
-                <mat-icon>send</mat-icon>
-              }
-            </button>
-          }
-          @if (!writesDisabled()) {
-            <button mat-icon-button (click)="editNest(nest)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
-          }
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(nest)"
+            [disabled]="testAlertService.isSending('nest', nest.uid) || testAlertService.isCoolingDown('nest', nest.uid)"
+            [matTooltip]="
+              testAlertService.isCoolingDown('nest', nest.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
+            class="test-alert-btn">
+            @if (testAlertService.isSending('nest', nest.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
+
+          <button mat-icon-button (click)="editNest(nest)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+
           <button mat-icon-button (click)="deleteNest(nest)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
@@ -148,11 +141,9 @@
         </svg>
         <h2 class="empty-title">{{ 'NESTS.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'NESTS.EMPTY_SUBTITLE' | translate }}</p>
-        @if (!writesDisabled()) {
-          <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #fff">
-            <mat-icon>add</mat-icon> {{ 'NESTS.ADD_NEST' | translate }}
-          </button>
-        }
+        <button mat-flat-button (click)="openAddDialog()" style="background: #8bc34a; color: #fff">
+          <mat-icon>add</mat-icon> {{ 'NESTS.ADD_NEST' | translate }}
+        </button>
       </div>
     }
   </div>

@@ -302,43 +302,15 @@ public class SummaryScheduleControllerTests : ControllerTestBase
         Assert.Equal("api/summary-schedules", route!.Template);
     }
 
-    /// <summary>
-    /// Setting a schedule and firing one on demand are gated; reading and deleting are not. A schedule
-    /// for a disabled type delivers nothing, so removing it is the one useful thing left, and gating
-    /// the reads would hide a schedule its owner can no longer see or clear.
-    /// </summary>
-    [Theory]
-    [InlineData(nameof(SummaryScheduleController.SetSchedule))]
-    [InlineData(nameof(SummaryScheduleController.Trigger))]
-    public void WritesAreGatedByDisableQuests(string action)
+    [Fact]
+    public void ControllerIsGatedByDisableQuestsFeature()
     {
-        // #236 lesson: the controller filter is the real boundary, not the Angular guard.
-        var attr = typeof(SummaryScheduleController).GetMethod(action)!
-            .GetCustomAttribute<RequireFeatureEnabledAttribute>();
+        // #236 lesson: the controller filter is the real boundary, not the Angular guard. The gate is
+        // class-level on purpose: a disabled type is gone, not read-only, so the schedule goes with it.
+        var attr = typeof(SummaryScheduleController).GetCustomAttribute<RequireFeatureEnabledAttribute>();
 
         Assert.NotNull(attr);
         Assert.Equal("disable_quests", (string)attr!.Arguments![0]);
-    }
-
-    [Theory]
-    [InlineData(nameof(SummaryScheduleController.GetSchedules))]
-    [InlineData(nameof(SummaryScheduleController.GetSchedule))]
-    [InlineData(nameof(SummaryScheduleController.GetCapability))]
-    [InlineData(nameof(SummaryScheduleController.DeleteSchedule))]
-    public void ReadsAndDeleteStayOpen(string action)
-    {
-        var attr = typeof(SummaryScheduleController).GetMethod(action)!
-            .GetCustomAttribute<RequireFeatureEnabledAttribute>();
-
-        Assert.Null(attr);
-    }
-
-    [Fact]
-    public void ControllerHasNoClassLevelGate()
-    {
-        var attr = typeof(SummaryScheduleController).GetCustomAttribute<RequireFeatureEnabledAttribute>();
-
-        Assert.True(attr is null, "A class-level gate 403s the reads and the delete too.");
     }
 
     [Fact]

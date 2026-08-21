@@ -1,5 +1,3 @@
-<app-feature-readonly-banner disableKey="disable_mons" />
-
 <div class="page-header">
   <div class="page-header-text">
     <h1>{{ 'POKEMON.PAGE_TITLE' | translate }}</h1>
@@ -8,11 +6,9 @@
     </p>
   </div>
   <div class="header-actions">
-    @if (!writesDisabled()) {
-      <button mat-fab (click)="openAddDialog()" [style.background-color]="'#4caf50'" [style.color]="'white'">
-        <mat-icon>add</mat-icon>
-      </button>
-    }
+    <button mat-fab (click)="openAddDialog()" [style.background-color]="'#4caf50'" [style.color]="'white'">
+      <mat-icon>add</mat-icon>
+    </button>
   </div>
 </div>
 
@@ -93,11 +89,10 @@
         <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
       }
       <div class="bulk-spacer"></div>
-      @if (!writesDisabled()) {
-        <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-          <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-        </button>
-      }
+      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+      </button>
+
       <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
         <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
       </button>
@@ -233,29 +228,25 @@
           }
         </mat-card-content>
         <mat-card-actions align="end">
-          @if (!writesDisabled()) {
-            <button
-              mat-icon-button
-              (click)="sendTestAlert(monster)"
-              [disabled]="testAlertService.isSending('pokemon', monster.uid) || testAlertService.isCoolingDown('pokemon', monster.uid)"
-              [matTooltip]="
-                testAlertService.isCoolingDown('pokemon', monster.uid)
-                  ? ('ALARM.TEST_COOLDOWN' | translate)
-                  : ('ALARM.TEST_SEND' | translate)
-              "
-              class="test-alert-btn">
-              @if (testAlertService.isSending('pokemon', monster.uid)) {
-                <mat-icon class="spin">sync</mat-icon>
-              } @else {
-                <mat-icon>send</mat-icon>
-              }
-            </button>
-          }
-          @if (!writesDisabled()) {
-            <button mat-icon-button (click)="editMonster(monster)" [matTooltip]="'COMMON.EDIT' | translate">
-              <mat-icon>edit</mat-icon>
-            </button>
-          }
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(monster)"
+            [disabled]="testAlertService.isSending('pokemon', monster.uid) || testAlertService.isCoolingDown('pokemon', monster.uid)"
+            [matTooltip]="
+              testAlertService.isCoolingDown('pokemon', monster.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+            "
+            class="test-alert-btn">
+            @if (testAlertService.isSending('pokemon', monster.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
+
+          <button mat-icon-button (click)="editMonster(monster)" [matTooltip]="'COMMON.EDIT' | translate">
+            <mat-icon>edit</mat-icon>
+          </button>
+
           <button mat-icon-button (click)="deleteMonster(monster)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
@@ -274,11 +265,9 @@
         </svg>
         <h2 class="empty-title">{{ 'POKEMON.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'POKEMON.EMPTY_SUBTITLE' | translate }}</p>
-        @if (!writesDisabled()) {
-          <button mat-flat-button style="background-color: #4caf50; color: white" (click)="openAddDialog()">
-            <mat-icon>add</mat-icon> {{ 'POKEMON.ADD_POKEMON' | translate }}
-          </button>
-        }
+        <button mat-flat-button style="background-color: #4caf50; color: white" (click)="openAddDialog()">
+          <mat-icon>add</mat-icon> {{ 'POKEMON.ADD_POKEMON' | translate }}
+        </button>
       </div>
     }
   </div>

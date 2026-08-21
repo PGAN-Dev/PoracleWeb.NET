@@ -26,9 +26,7 @@
           }
         </div>
       </section>
-      @if (!writesDisabled()) {
-        <p class="send-hint">{{ 'QUESTS.SUMMARY_SCHEDULE_SEND_NOW_HINT' | translate }}</p>
-      }
+      <p class="send-hint">{{ 'QUESTS.SUMMARY_SCHEDULE_SEND_NOW_HINT' | translate }}</p>
     } @else {
       <section class="state-block empty-block" aria-live="polite">
         <mat-icon class="empty-icon">event_available</mat-icon>
@@ -39,23 +37,21 @@
 </mat-dialog-content>
 
 <mat-dialog-actions>
-  @if (!writesDisabled()) {
-    <button
-      mat-flat-button
-      type="button"
-      class="send-now-btn"
-      [class.is-cooling]="coolingDown()"
-      (click)="sendNow()"
-      [disabled]="!hasSchedule() || triggering() || coolingDown() || saving()"
-      [matTooltip]="'QUESTS.SUMMARY_SCHEDULE_SEND_NOW_HINT' | translate">
-      @if (triggering()) {
-        <mat-spinner [diameter]="18" />
-      } @else {
-        <mat-icon>send</mat-icon>
-      }
-      {{ 'QUESTS.SUMMARY_SCHEDULE_SEND_NOW' | translate }}
-    </button>
-  }
+  <button
+    mat-flat-button
+    type="button"
+    class="send-now-btn"
+    [class.is-cooling]="coolingDown()"
+    (click)="sendNow()"
+    [disabled]="!hasSchedule() || triggering() || coolingDown() || saving()"
+    [matTooltip]="'QUESTS.SUMMARY_SCHEDULE_SEND_NOW_HINT' | translate">
+    @if (triggering()) {
+      <mat-spinner [diameter]="18" />
+    } @else {
+      <mat-icon>send</mat-icon>
+    }
+    {{ 'QUESTS.SUMMARY_SCHEDULE_SEND_NOW' | translate }}
+  </button>
 
   <span class="spacer"></span>
 
@@ -63,10 +59,8 @@
     {{ 'QUESTS.SUMMARY_SCHEDULE_CLEAR' | translate }}
   </button>
   <button mat-button type="button" (click)="close()">{{ 'COMMON.CLOSE' | translate }}</button>
-  @if (!writesDisabled()) {
-    <button mat-flat-button color="primary" type="button" (click)="editSchedule()" [disabled]="saving() || loading()">
-      <mat-icon>edit_calendar</mat-icon>
-      {{ 'QUESTS.SUMMARY_SCHEDULE_EDIT' | translate }}
-    </button>
-  }
+  <button mat-flat-button color="primary" type="button" (click)="editSchedule()" [disabled]="saving() || loading()">
+    <mat-icon>edit_calendar</mat-icon>
+    {{ 'QUESTS.SUMMARY_SCHEDULE_EDIT' | translate }}
+  </button>
 </mat-dialog-actions>

@@ -220,13 +220,19 @@ export class App implements OnInit {
   );
 
   /**
-   * Alarm types stay in the nav even when disabled. The page is no longer a create-only surface: it
-   * lists the rules a user already has and lets them delete those, which is the one action still
-   * worth taking on an alarm that can never fire. Hiding the item would strand them. A padlock says
-   * so before they click; the page itself explains which side switched it off.
+   * A disabled alarm type leaves the nav. Its page is still reachable and still lists and deletes the
+   * rules a user already has — #784 — but keeping a padlocked item for everyone showed an empty page
+   * one click away to every user of an instance that never enabled that type.
+   *
+   * The way back in is the dashboard, which renders a card per type with its count and already holds
+   * the numbers this computed does not: the nav is drawn at bootstrap, where counts have not loaded.
+   * That card is shown for a disabled type only while it still has alarms, so nothing is stranded and
+   * nothing empty is advertised. See #792.
    */
   protected readonly alarmNavItems = computed(() =>
-    this.navItems.filter(item => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin())),
+    this.navItems.filter(
+      item => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
+    ),
   );
 
   readonly alertLanguage = inject(AlertLanguageService);

@@ -7,6 +7,7 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/quests")]
+[RequireFeatureEnabled(DisableFeatureKeys.Quests)]
 public class QuestController(IQuestService questService) : BaseApiController
 {
     private readonly IQuestService _questService = questService;
@@ -30,7 +31,6 @@ public class QuestController(IQuestService questService) : BaseApiController
         return this.Ok(quest);
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] QuestCreate model)
     {
@@ -53,7 +53,6 @@ public class QuestController(IQuestService questService) : BaseApiController
         }, result);
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] QuestUpdate model)
     {
@@ -100,7 +99,6 @@ public class QuestController(IQuestService questService) : BaseApiController
         });
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -111,7 +109,6 @@ public class QuestController(IQuestService questService) : BaseApiController
         });
     }
 
-    [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
