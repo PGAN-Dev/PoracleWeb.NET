@@ -45,20 +45,31 @@ Control which alarm categories are available to users. Disabling a type hides it
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `disable_mons` | Pokémon | boolean | Hide Pokémon alarm management from all users. |
-| `disable_raids` | Raids | boolean | Hide raid alarm management from all users. |
-| `disable_quests` | Quests | boolean | Hide quest alarm management from all users. |
-| `disable_invasions` | Invasions | boolean | Hide invasion alarm management from all users. |
-| `disable_lures` | Lures | boolean | Hide lure alarm management from all users. |
-| `disable_nests` | Nests | boolean | Hide nest alarm management from all users. |
-| `disable_gyms` | Gyms | boolean | Hide gym alarm management from all users. |
-| `disable_fort_changes` | Fort Changes | boolean | Hide fort change alarm management from all users. |
-| `disable_maxbattles` | Max Battles | boolean | Hide max battle alarm management from all users. |
+| `disable_mons` | Pokémon | boolean | Stops new Pokémon alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_raids` | Raids | boolean | Stops new raid alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_quests` | Quests | boolean | Stops new quest alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_invasions` | Invasions | boolean | Stops new invasion alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_lures` | Lures | boolean | Stops new lure alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_nests` | Nests | boolean | Stops new nest alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_gyms` | Gyms | boolean | Stops new gym alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_fort_changes` | Fort Changes | boolean | Stops new fort-change alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_maxbattles` | Max Battles | boolean | Stops new max-battle alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+
+!!! info "Disabling a type does not hide what people already have"
+    Switching a type off blocks new alarms and edits to existing ones. It does not hide the page: the
+    rules a user already created stay listed, and they can still delete them.
+
+    That is deliberate. An alarm of a disabled type can never fire, so the useful thing left to do
+    with it is remove it, and hiding the page would leave people holding rules they could neither see
+    nor clear.
+
+    The page says which side switched it off, the nav item keeps a padlock, and the create, edit,
+    bulk-distance and test-alert controls are gone. Deleting is untouched.
 
 !!! warning "Poracle can switch these off too, and it wins"
     Poracle has its own per-type flags (`disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle`, `disable_fort_update`). When one of those is set, its processor drops the webhook and its bot refuses the command, so the type can never fire — and this site now honours that. A type is off if **either** side disables it.
 
-    The toggle for a type Poracle has disabled renders off and greyed, with a note saying where the decision came from; switching it on here would promise something every write refuses.
+    The toggle for a type Poracle has disabled renders off and greyed, with a note saying where the decision came from; switching it on here would promise something every write refuses. This is also the case where leaving existing alarms deletable matters most: Poracle's bot refuses the matching command while the type is off, so this page is the only place left to clean up.
 
     ![The Lures toggle, off and greyed out, with a note reading "Disabled in Poracle's own config. Poracle drops these webhooks and its bot refuses the command, so this cannot be enabled here."](../screenshots/admin-forced-by-poracle.png) Your own toggles still work for everything Poracle leaves enabled, and they gate features Poracle has no opinion about.
 

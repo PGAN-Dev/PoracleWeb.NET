@@ -21,9 +21,15 @@ interface NavItemShape {
 }
 
 /**
- * Covers the nav-filter logic that #236 hardened: `disable_*` settings hide nav items
- * for everyone (including admins). Without these tests the iteration-1 fix
- * ("admins shouldn't bypass the disable filter in the nav") is silently regressable.
+ * Covers the nav-filter logic that #236 hardened: a `disable_*` setting takes effect for everyone,
+ * admins included. Without these tests the iteration-1 fix ("admins shouldn't bypass the disable
+ * filter in the nav") is silently regressable.
+ *
+ * What "takes effect" means differs by group, and deliberately. A disabled **settings** item is
+ * hidden outright. A disabled **alarm type** keeps its nav item: the page still lists the rules a
+ * user already has and still deletes them, and hiding the item would strand people with alarms they
+ * can neither see nor remove — which matters most when the type was disabled in Poracle, whose bot
+ * refuses the matching command too. Creating and editing are refused by the API either way.
  */
 describe('App nav filtering (#236)', () => {
   let settingsSignal: WritableSignal<Record<string, string>>;
@@ -90,7 +96,7 @@ describe('App nav filtering (#236)', () => {
     );
   });
 
-  it.each([
+  const ALARM_KEYS: [string, string][] = [
     ['disable_mons', '/pokemon'],
     ['disable_raids', '/raids'],
     ['disable_quests', '/quests'],
@@ -100,26 +106,26 @@ describe('App nav filtering (#236)', () => {
     ['disable_gyms', '/gyms'],
     ['disable_maxbattles', '/max-battles'],
     ['disable_fort_changes', '/fort-changes'],
-  ])('hides %s route from non-admin nav', (key, route) => {
+  ];
+
+  it.each(ALARM_KEYS)('keeps the %s route reachable so existing alarms can be viewed and deleted', (key, route) => {
+    // Previously this hid the item. It now stays: the page is read-and-delete while disabled, and the
+    // API refuses the creates and edits. Hiding it would leave alarms unreachable and undeletable.
     const app = setup({ [key]: 'true' }, false);
-    expect(alarmRoutes(app)).not.toContain(route);
+    expect(alarmRoutes(app)).toContain(route);
   });
 
-  it.each([
-    ['disable_mons', '/pokemon'],
-    ['disable_raids', '/raids'],
-    ['disable_quests', '/quests'],
-    ['disable_invasions', '/invasions'],
-    ['disable_lures', '/lures'],
-    ['disable_nests', '/nests'],
-    ['disable_gyms', '/gyms'],
-    ['disable_maxbattles', '/max-battles'],
-    ['disable_fort_changes', '/fort-changes'],
-  ])('hides %s route from ADMIN nav too (no admin bypass)', (key, route) => {
-    // The original #236 bug was a UI/API mismatch — leaving the nav visible to admins
-    // while the API rejects them recreates the same defect class in miniature.
+  it.each(ALARM_KEYS)('keeps the %s route reachable for admins too (no divergence)', (key, route) => {
     const app = setup({ [key]: 'true' }, true);
-    expect(alarmRoutes(app)).not.toContain(route);
+    expect(alarmRoutes(app)).toContain(route);
+  });
+
+  it('still hides a disabled SETTINGS item from admins (no admin bypass)', () => {
+    // The original #236 bug was a UI/API mismatch — leaving the nav visible to admins while the API
+    // rejects them recreates the same defect class. Settings items are hidden outright, so this is
+    // where that guarantee still lives.
+    const app = setup({ disable_areas: 'true' }, true);
+    expect(settingsRoutes(app)).not.toContain('/areas');
   });
 
   it('hides /profiles when disable_profiles is true (settings group)', () => {
@@ -133,14 +139,15 @@ describe('App nav filtering (#236)', () => {
   });
 
   it('treats setting value "True" (capitalized) as disabled', () => {
-    // Matches SettingsService.isDisabled — case-insensitive check.
-    const app = setup({ disable_mons: 'True' }, false);
-    expect(alarmRoutes(app)).not.toContain('/pokemon');
+    // Matches SettingsService.isDisabled — case-insensitive check. Asserted on a settings item,
+    // since those are the ones still hidden outright.
+    const app = setup({ disable_areas: 'True' }, false);
+    expect(settingsRoutes(app)).not.toContain('/areas');
   });
 
   it('treats setting value "false" as enabled', () => {
-    const app = setup({ disable_mons: 'false' }, false);
-    expect(alarmRoutes(app)).toContain('/pokemon');
+    const app = setup({ disable_areas: 'false' }, false);
+    expect(settingsRoutes(app)).toContain('/areas');
   });
 });
 

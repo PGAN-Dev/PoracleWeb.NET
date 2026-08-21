@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/lures")]
-[RequireFeatureEnabled(DisableFeatureKeys.Lures)]
 public class LureController(ILureService lureService) : BaseApiController
 {
     private readonly ILureService _lureService = lureService;
@@ -31,6 +30,7 @@ public class LureController(ILureService lureService) : BaseApiController
         return this.Ok(lure);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Lures)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] LureCreate model)
     {
@@ -53,6 +53,7 @@ public class LureController(ILureService lureService) : BaseApiController
         }, result);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Lures)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] LureUpdate model)
     {
@@ -99,6 +100,7 @@ public class LureController(ILureService lureService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Lures)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -109,6 +111,7 @@ public class LureController(ILureService lureService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Lures)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

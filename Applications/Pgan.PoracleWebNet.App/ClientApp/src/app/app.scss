@@ -441,3 +441,12 @@ kbd {
   max-width: 240px;
   padding: 8px 16px 4px;
 }
+
+/* Marks an alarm type that is switched off: the page still lists and deletes, but cannot create. */
+.nav-lock {
+  margin-left: auto;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  opacity: 0.55;
+}

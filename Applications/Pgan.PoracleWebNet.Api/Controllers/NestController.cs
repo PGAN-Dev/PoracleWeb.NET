@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/nests")]
-[RequireFeatureEnabled(DisableFeatureKeys.Nests)]
 public class NestController(INestService nestService) : BaseApiController
 {
     private readonly INestService _nestService = nestService;
@@ -31,6 +30,7 @@ public class NestController(INestService nestService) : BaseApiController
         return this.Ok(nest);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Nests)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] NestCreate model)
     {
@@ -53,6 +53,7 @@ public class NestController(INestService nestService) : BaseApiController
         }, result);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Nests)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] NestUpdate model)
     {
@@ -99,6 +100,7 @@ public class NestController(INestService nestService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Nests)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -109,6 +111,7 @@ public class NestController(INestService nestService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Nests)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

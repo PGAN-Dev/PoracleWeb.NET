@@ -229,6 +229,9 @@
               <mat-icon matListItemIcon [style.color]="item.iconColor">{{ item.icon }}</mat-icon>
               @if (!sidenavCollapsed() || isMobile()) {
                 <span matListItemTitle>{{ item.label | translate }}</span>
+                @if (isFeatureDisabled(item.disableKey)) {
+                  <mat-icon class="nav-lock" [matTooltip]="'ALARM.READ_ONLY_NAV' | translate">lock</mat-icon>
+                }
               }
             </a>
           }

@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/eggs")]
-[RequireFeatureEnabled(DisableFeatureKeys.Raids)]
 public class EggController(IEggService eggService) : BaseApiController
 {
     private readonly IEggService _eggService = eggService;
@@ -31,6 +30,7 @@ public class EggController(IEggService eggService) : BaseApiController
         return this.Ok(egg);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] EggCreate model)
     {
@@ -53,6 +53,7 @@ public class EggController(IEggService eggService) : BaseApiController
         }, result);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] EggUpdate model)
     {
@@ -99,6 +100,7 @@ public class EggController(IEggService eggService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -109,6 +111,7 @@ public class EggController(IEggService eggService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

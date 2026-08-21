@@ -1,10 +1,14 @@
+<app-feature-readonly-banner disableKey="disable_fort_changes" />
+
 <div class="page-header">
   <div class="page-header-text">
     <h1>{{ 'FORT_CHANGES.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'FORT_CHANGES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" style="background: #795548; color: #fff"><mat-icon>add</mat-icon></button>
+    @if (!writesDisabled()) {
+      <button mat-fab (click)="openAddDialog()" style="background: #795548; color: #fff"><mat-icon>add</mat-icon></button>
+    }
   </div>
 </div>
 @if (!loading() && fortChanges().length > 0) {
@@ -31,9 +35,11 @@
       <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
+    @if (!writesDisabled()) {
+      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+      </button>
+    }
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
       <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
@@ -89,7 +95,9 @@
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
-          <button mat-icon-button (click)="editItem(item)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          @if (!writesDisabled()) {
+            <button mat-icon-button (click)="editItem(item)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          }
           <button mat-icon-button (click)="deleteItem(item)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
@@ -100,9 +108,11 @@
         <mat-icon class="empty-icon-large">domain</mat-icon>
         <h2 class="empty-title">{{ 'FORT_CHANGES.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'FORT_CHANGES.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #795548; color: #fff">
-          <mat-icon>add</mat-icon> {{ 'FORT_CHANGES.ADD_FORT_CHANGE' | translate }}
-        </button>
+        @if (!writesDisabled()) {
+          <button mat-flat-button (click)="openAddDialog()" style="background: #795548; color: #fff">
+            <mat-icon>add</mat-icon> {{ 'FORT_CHANGES.ADD_FORT_CHANGE' | translate }}
+          </button>
+        }
       </div>
     }
   </div>

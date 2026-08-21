@@ -1,10 +1,14 @@
+<app-feature-readonly-banner disableKey="disable_gyms" />
+
 <div class="page-header">
   <div class="page-header-text">
     <h1>{{ 'GYMS.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'GYMS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" style="background: #00bcd4; color: #fff"><mat-icon>add</mat-icon></button>
+    @if (!writesDisabled()) {
+      <button mat-fab (click)="openAddDialog()" style="background: #00bcd4; color: #fff"><mat-icon>add</mat-icon></button>
+    }
   </div>
 </div>
 @if (!loading() && gyms().length > 0) {
@@ -31,9 +35,11 @@
       <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
+    @if (!writesDisabled()) {
+      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+      </button>
+    }
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
       <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
@@ -88,21 +94,25 @@
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
-          <button
-            mat-icon-button
-            (click)="sendTestAlert(gym)"
-            [disabled]="testAlertService.isSending('gym', gym.uid) || testAlertService.isCoolingDown('gym', gym.uid)"
-            [matTooltip]="
-              testAlertService.isCoolingDown('gym', gym.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
-            class="test-alert-btn">
-            @if (testAlertService.isSending('gym', gym.uid)) {
-              <mat-icon class="spin">sync</mat-icon>
-            } @else {
-              <mat-icon>send</mat-icon>
-            }
-          </button>
-          <button mat-icon-button (click)="editGym(gym)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          @if (!writesDisabled()) {
+            <button
+              mat-icon-button
+              (click)="sendTestAlert(gym)"
+              [disabled]="testAlertService.isSending('gym', gym.uid) || testAlertService.isCoolingDown('gym', gym.uid)"
+              [matTooltip]="
+                testAlertService.isCoolingDown('gym', gym.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+              "
+              class="test-alert-btn">
+              @if (testAlertService.isSending('gym', gym.uid)) {
+                <mat-icon class="spin">sync</mat-icon>
+              } @else {
+                <mat-icon>send</mat-icon>
+              }
+            </button>
+          }
+          @if (!writesDisabled()) {
+            <button mat-icon-button (click)="editGym(gym)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          }
           <button mat-icon-button (click)="deleteGym(gym)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
@@ -122,9 +132,11 @@
         </svg>
         <h2 class="empty-title">{{ 'GYMS.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'GYMS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #00bcd4; color: #fff">
-          <mat-icon>add</mat-icon> {{ 'GYMS.ADD_GYM' | translate }}
-        </button>
+        @if (!writesDisabled()) {
+          <button mat-flat-button (click)="openAddDialog()" style="background: #00bcd4; color: #fff">
+            <mat-icon>add</mat-icon> {{ 'GYMS.ADD_GYM' | translate }}
+          </button>
+        }
       </div>
     }
   </div>
