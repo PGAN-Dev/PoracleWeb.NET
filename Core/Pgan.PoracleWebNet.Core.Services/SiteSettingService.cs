@@ -39,6 +39,10 @@ public partial class SiteSettingService(
     /// </summary>
     private static readonly HashSet<string> PublicKeys = new(StringComparer.OrdinalIgnoreCase)
     {
+        // The login page picks a display language before anyone is authenticated, so it needs the same
+        // admin restriction the rest of the app honours. Without it a deployment limited to en,fr still
+        // offered all eleven in the signed-out language menu.
+        "allowed_languages",
         "custom_title",
         "enable_discord",
         "enable_telegram",

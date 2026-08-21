@@ -100,6 +100,22 @@ public class SiteSettingServiceTests : IDisposable
         Assert.Equal("https://signup.example.com", result.First(s => s.Key == "signup_url").Value);
     }
 
+    /// <summary>
+    /// The signed-out language menu honours the admin's restriction only if the key reaches the login page,
+    /// and the login page can read nothing but this endpoint.
+    /// </summary>
+    [Fact]
+    public async Task GetPublicAsyncIncludesAllowedLanguages()
+    {
+        this._repository.Setup(r => r.GetByKeyAsync("allowed_languages"))
+            .ReturnsAsync(new SiteSetting { Key = "allowed_languages", Value = "en,fr", Category = "branding" });
+
+        var result = (await this._sut.GetPublicAsync()).ToList();
+
+        Assert.Contains(result, s => s.Key == "allowed_languages");
+        Assert.Equal("en,fr", result.First(s => s.Key == "allowed_languages").Value);
+    }
+
     [Fact]
     public async Task GetPublicAsyncSkipsMissingLoginMethodSettings()
     {

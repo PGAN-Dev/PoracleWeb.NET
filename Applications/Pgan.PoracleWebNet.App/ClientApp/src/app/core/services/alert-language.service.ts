@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { I18nService } from './i18n.service';
 import { LocationService } from './location.service';
@@ -14,25 +14,32 @@ const STORAGE_KEY = 'poracle-language';
  */
 @Injectable({ providedIn: 'root' })
 export class AlertLanguageService {
+  /**
+   * A language this user has actually been given, from localStorage or from humans.language. Null means
+   * nobody has ever chosen one, which is the only case where Poracle's own locale gets to decide.
+   */
+  private readonly chosen = signal<string | null>(localStorage.getItem(STORAGE_KEY));
   private readonly i18n = inject(I18nService);
+
   private readonly locationService = inject(LocationService);
 
   /** Every language Poracle can write alerts in. */
   readonly languages = this.i18n.allLanguages;
 
-  readonly selected = signal<string>(localStorage.getItem(STORAGE_KEY) ?? 'en');
+  readonly selected = computed(() => this.chosen() ?? this.i18n.serverDefaultLanguage() ?? 'en');
 
   /** Sets the alert language, rolling back if the write fails. Returns whether it stuck. */
   choose(locale: string): Promise<boolean> {
-    const previous = this.selected();
-    this.selected.set(locale);
+    const previous = this.chosen();
+    this.chosen.set(locale);
     localStorage.setItem(STORAGE_KEY, locale);
 
     return new Promise(resolve => {
       this.locationService.setLanguage(locale).subscribe({
         error: () => {
-          this.selected.set(previous);
-          localStorage.setItem(STORAGE_KEY, previous);
+          this.chosen.set(previous);
+          if (previous === null) localStorage.removeItem(STORAGE_KEY);
+          else localStorage.setItem(STORAGE_KEY, previous);
           resolve(false);
         },
         next: () => resolve(true),
@@ -49,7 +56,7 @@ export class AlertLanguageService {
       error: () => undefined,
       next: ({ language }) => {
         if (language && this.languages.some(l => l.code === language)) {
-          this.selected.set(language);
+          this.chosen.set(language);
           localStorage.setItem(STORAGE_KEY, language);
         }
       },

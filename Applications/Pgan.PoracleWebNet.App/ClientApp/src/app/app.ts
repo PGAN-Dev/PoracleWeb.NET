@@ -322,8 +322,11 @@ export class App implements OnInit {
     settings$.subscribe({
       error: () => this.i18n.init(undefined),
       next: () => {
-        const allowed = this.settingsService.siteSettings()['allowed_languages'];
-        this.i18n.init(allowed);
+        // Both endpoints carry allowed_languages and Poracle's own locale, so the display language can
+        // settle on the server's locale here rather than sitting on the hardcoded en. /api/config would
+        // have been the obvious source for the locale and is [Authorize] -- see #426.
+        const settings = this.settingsService.siteSettings();
+        this.i18n.init(settings['allowed_languages'], settings['poracle_locale']);
       },
     });
 

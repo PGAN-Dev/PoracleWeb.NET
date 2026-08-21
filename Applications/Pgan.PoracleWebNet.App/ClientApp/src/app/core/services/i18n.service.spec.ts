@@ -71,6 +71,109 @@ describe('I18nService', () => {
     });
   });
 
+  describe("init() with Poracle's locale", () => {
+    /** Browser languages the UI ships nothing for, so detection returns null and the locale gets a say. */
+    const unplaceableBrowser = (): jest.SpyInstance => jest.spyOn(navigator, 'languages', 'get').mockReturnValue(['ja-JP', 'ja']);
+
+    it('should use the server locale when there is no stored choice and no browser match', () => {
+      unplaceableBrowser();
+
+      service.init(undefined, 'de');
+
+      expect(service.currentLang()).toBe('de');
+    });
+
+    it('should keep a stored choice ahead of the server locale', () => {
+      unplaceableBrowser();
+      (Storage.prototype.getItem as jest.Mock).mockReturnValue('fr');
+
+      service.init(undefined, 'de');
+
+      expect(service.currentLang()).toBe('fr');
+    });
+
+    it('should keep a browser match ahead of the server locale', () => {
+      jest.spyOn(navigator, 'languages', 'get').mockReturnValue(['it-IT', 'it']);
+
+      service.init(undefined, 'de');
+
+      expect(service.currentLang()).toBe('it');
+    });
+
+    it('should fall back to en for a locale this UI does not ship', () => {
+      unplaceableBrowser();
+
+      service.init(undefined, 'zh-cn');
+
+      expect(service.currentLang()).toBe('en');
+      expect(service.serverDefaultLanguage()).toBeNull();
+    });
+
+    it('should fall back to en for a locale the admin excluded from allowed_languages', () => {
+      unplaceableBrowser();
+
+      service.init('en,fr', 'de');
+
+      expect(service.currentLang()).toBe('en');
+      expect(service.serverDefaultLanguage()).toBeNull();
+    });
+
+    it('should match a regional server locale to its base language', () => {
+      unplaceableBrowser();
+
+      service.init(undefined, 'de-AT');
+
+      expect(service.currentLang()).toBe('de');
+    });
+
+    it('should ignore an empty or absent server locale', () => {
+      unplaceableBrowser();
+
+      service.init(undefined, '');
+
+      expect(service.currentLang()).toBe('en');
+    });
+
+    it('should adopt a server locale that arrives after the first init', () => {
+      unplaceableBrowser();
+
+      service.init();
+      expect(service.currentLang()).toBe('en');
+
+      service.init(undefined, 'de');
+
+      expect(service.currentLang()).toBe('de');
+    });
+
+    it('should not overwrite a browser match when the server locale arrives late', () => {
+      jest.spyOn(navigator, 'languages', 'get').mockReturnValue(['it-IT', 'it']);
+
+      service.init();
+      service.init(undefined, 'de');
+
+      expect(service.currentLang()).toBe('it');
+    });
+
+    it('should not persist an auto-picked language, so a later visit can re-decide', () => {
+      unplaceableBrowser();
+
+      service.init();
+
+      expect(service.currentLang()).toBe('en');
+      expect(localStorage.setItem).not.toHaveBeenCalledWith('poracle-ui-language', expect.anything());
+    });
+
+    it('should not overwrite a stored choice when the server locale arrives late', () => {
+      unplaceableBrowser();
+      (Storage.prototype.getItem as jest.Mock).mockReturnValue('fr');
+
+      service.init();
+      service.init(undefined, 'de');
+
+      expect(service.currentLang()).toBe('fr');
+    });
+  });
+
   describe('use()', () => {
     beforeEach(() => {
       service.init();
