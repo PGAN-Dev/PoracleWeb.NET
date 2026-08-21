@@ -18,9 +18,19 @@ export class I18nService {
 
   private initialized = false;
 
+  /** Poracle's configured locale, verbatim. Empty until the settings response arrives. */
+  private readonly serverLocale = signal('');
+
+  /**
+   * How the active language was chosen. Only a language that fell through to the hardcoded default is
+   * still open to being replaced by the server locale, which arrives after the first init() -- a user's
+   * stored choice and a browser match both outrank it and must not be overwritten when it lands.
+   */
+  private source: 'browser' | 'fallback' | 'stored' = 'fallback';
+
   private readonly translate = inject(TranslateService);
 
-  /** All languages supported by the UI (matching PoracleWeb PHP). */
+  /** All languages supported by the UI. */
   readonly allLanguages: UiLanguage[] = [
     { name: 'English', code: 'en', countryCode: 'gb', flag: '\u{1F1EC}\u{1F1E7}' },
     { name: 'Fran\u00E7ais', code: 'fr', countryCode: 'fr', flag: '\u{1F1EB}\u{1F1F7}' },
@@ -46,10 +56,29 @@ export class I18nService {
   readonly currentLang = signal('en');
 
   /**
-   * Initialize the translation service. Safe to call multiple times.
-   * First call sets the active language. Subsequent calls only update allowed languages.
+   * Poracle's locale mapped onto a language this UI actually ships and the admin actually permits,
+   * or null when it maps onto neither. PoracleNG carries translations we do not (ja, ru, zh-cn), and
+   * an admin can restrict the UI to a subset, so both filters have to pass before it can be a default.
    */
-  init(allowedLanguages?: string): void {
+  readonly serverDefaultLanguage = computed<string | null>(() => {
+    const raw = this.serverLocale().trim().toLowerCase();
+    if (!raw) return null;
+
+    const available = this.availableLanguages();
+    const exact = available.find(l => l.code.toLowerCase() === raw);
+    if (exact) return exact.code;
+
+    const base = raw.split('-')[0];
+    return available.find(l => l.code.toLowerCase() === base)?.code ?? null;
+  });
+
+  /**
+   * Initialize the translation service. Safe to call multiple times.
+   * The first call sets the active language. Later calls carry the admin settings, which arrive after
+   * bootstrap: they update the allowed list, and may swap in Poracle's locale if the first call had
+   * nothing better than the hardcoded fallback to go on.
+   */
+  init(allowedLanguages?: string, serverLocale?: string): void {
     if (allowedLanguages) {
       this.allowedCodes.set(
         allowedLanguages
@@ -59,17 +88,26 @@ export class I18nService {
       );
     }
 
-    if (this.initialized) return;
+    if (serverLocale !== undefined) this.serverLocale.set(serverLocale);
+
+    if (this.initialized) {
+      if (this.source === 'fallback') {
+        const fromServer = this.serverDefaultLanguage();
+        if (fromServer && fromServer !== this.currentLang()) this.apply(fromServer, false);
+      }
+      return;
+    }
+
     this.initialized = true;
 
     this.translate.addLangs(this.allLanguages.map(l => l.code));
     this.translate.setFallbackLang('en');
 
     const stored = localStorage.getItem(STORAGE_KEY);
-    const detected = this.detectBrowserLanguage();
-    const lang = stored || detected || 'en';
+    const detected = stored ? null : this.detectBrowserLanguage();
+    this.source = stored ? 'stored' : detected ? 'browser' : 'fallback';
 
-    this.use(lang);
+    this.apply(stored || detected || this.serverDefaultLanguage() || 'en', false);
   }
 
   /** Returns a translated string synchronously (for use in TypeScript code). */
@@ -77,13 +115,23 @@ export class I18nService {
     return this.translate.instant(key, params);
   }
 
-  /** Switch UI language. */
+  /** Switch UI language, and remember it as this user's choice. */
   use(code: string): void {
+    this.apply(code, true);
+  }
+
+  /**
+   * Switches language, persisting only a deliberate choice. A detected or server-supplied default is
+   * left unwritten so it can be re-decided next visit: persisting it made the first load authoritative
+   * forever, which meant a visitor who arrived while Poracle was unreachable, and so fell through to
+   * English, stayed on English no matter what locale the server reported afterwards.
+   */
+  private apply(code: string, persist: boolean): void {
     const valid = this.allLanguages.some(l => l.code === code);
     const lang = valid ? code : 'en';
     this.translate.use(lang);
     this.currentLang.set(lang);
-    localStorage.setItem(STORAGE_KEY, lang);
+    if (persist) localStorage.setItem(STORAGE_KEY, lang);
     document.documentElement.lang = lang;
   }
 

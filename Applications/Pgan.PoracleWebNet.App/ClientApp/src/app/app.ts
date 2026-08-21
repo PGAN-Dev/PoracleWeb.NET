@@ -219,10 +219,14 @@ export class App implements OnInit {
     ),
   );
 
+  /**
+   * Alarm types stay in the nav even when disabled. The page is no longer a create-only surface: it
+   * lists the rules a user already has and lets them delete those, which is the one action still
+   * worth taking on an alarm that can never fire. Hiding the item would strand them. A padlock says
+   * so before they click; the page itself explains which side switched it off.
+   */
   protected readonly alarmNavItems = computed(() =>
-    this.navItems.filter(
-      item => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
-    ),
+    this.navItems.filter(item => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin())),
   );
 
   readonly alertLanguage = inject(AlertLanguageService);
@@ -301,6 +305,12 @@ export class App implements OnInit {
     return this.counts()![item.countKey] ?? 0;
   }
 
+  /** Also read from the template, to mark a disabled alarm type in the nav. */
+  protected isFeatureDisabled(key?: string): boolean {
+    if (!key) return false;
+    return this.settingsService.isDisabled(key);
+  }
+
   loadCounts(): void {
     this.dashboardService.getCounts().subscribe({
       error: () => {}, // silently fail for badge counts
@@ -314,7 +324,12 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
-    this.alertLanguage.load();
+    // Only a signed-in user has an alert language to reconcile. GET /api/location/language is
+    // [Authorize], so calling this unconditionally fired a guaranteed 401 on every visit to the login
+    // page -- invisible only because LocationService swallows the error. Same shape as #426. The call
+    // is re-made from AuthService.handleTokenFromCallback once a token exists, so a login inside this
+    // same page session still reconciles. See #775.
+    if (this.auth.isAuthenticated()) this.alertLanguage.load();
     // Signed-out visitors get the public subset. loadOnce() hits the authenticated endpoint, so
     // calling it on the login page produced a 401 and an uncaught HttpErrorResponse on every visit.
     // AuthService re-runs loadOnce() once a token exists, so nothing is lost by deferring. See #426.
@@ -322,8 +337,11 @@ export class App implements OnInit {
     settings$.subscribe({
       error: () => this.i18n.init(undefined),
       next: () => {
-        const allowed = this.settingsService.siteSettings()['allowed_languages'];
-        this.i18n.init(allowed);
+        // Both endpoints carry allowed_languages and Poracle's own locale, so the display language can
+        // settle on the server's locale here rather than sitting on the hardcoded en. /api/config would
+        // have been the obvious source for the locale and is [Authorize] -- see #426.
+        const settings = this.settingsService.siteSettings();
+        this.i18n.init(settings['allowed_languages'], settings['poracle_locale']);
       },
     });
 
@@ -452,10 +470,5 @@ export class App implements OnInit {
     document.body.classList.toggle('dark-theme', this.darkMode());
     document.body.classList.toggle('light-theme', !this.darkMode());
     localStorage.setItem('poracle-theme', scheme);
-  }
-
-  private isFeatureDisabled(key?: string): boolean {
-    if (!key) return false;
-    return this.settingsService.isDisabled(key);
   }
 }

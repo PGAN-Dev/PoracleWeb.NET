@@ -129,6 +129,20 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             config.MaxDistance = maxDist.GetInt32();
         }
 
+        if (root.TryGetProperty("disabledHooks", out var disabledHooks) && disabledHooks.ValueKind == JsonValueKind.Array)
+        {
+            // Absent (older Poracle, PoracleJS) stays null so callers can tell "upstream has no
+            // opinion" apart from "upstream disables nothing". Only the former may be inferred from.
+            config.DisabledHooks = [];
+            foreach (var hook in disabledHooks.EnumerateArray())
+            {
+                if (hook.ValueKind == JsonValueKind.String && hook.GetString() is { Length: > 0 } name)
+                {
+                    config.DisabledHooks.Add(name);
+                }
+            }
+        }
+
         if (root.TryGetProperty("admins", out var admins))
         {
             config.Admins = new PoracleAdmins();
@@ -201,7 +215,20 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     /// the value cannot be determined (endpoint shape changed, feature unknown), so the caller can
     /// degrade safely.
     /// </summary>
-    public async Task<bool?> GetQuestSummaryEnabledAsync()
+    public Task<bool?> GetQuestSummaryEnabledAsync() =>
+        this.ReadConfigValueBoolAsync("tracking", "quest_summary_enabled");
+
+    /// <inheritdoc />
+    public Task<bool?> GetFortUpdateDisabledAsync() =>
+        this.ReadConfigValueBoolAsync("general", "disable_fort_update");
+
+    /// <summary>
+    /// Reads a single boolean out of <c>GET /api/config/values</c>, whose body is shaped
+    /// <c>{ "values": { "&lt;section&gt;": { "&lt;key&gt;": true } } }</c>. Returns <c>null</c> when the
+    /// section or key is missing, or the value is not a boolean — an answer of "cannot determine",
+    /// distinct from <c>false</c>.
+    /// </summary>
+    private async Task<bool?> ReadConfigValueBoolAsync(string section, string key)
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/values");
         var response = await this._httpClient.SendAsync(request);
@@ -210,13 +237,12 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
 
-        // { "values": { "tracking": { "quest_summary_enabled": true, ... }, ... } }
         if (doc.RootElement.TryGetProperty("values", out var values)
-            && values.TryGetProperty("tracking", out var tracking)
-            && tracking.TryGetProperty("quest_summary_enabled", out var qse)
-            && qse.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            && values.TryGetProperty(section, out var sectionElement)
+            && sectionElement.TryGetProperty(key, out var value)
+            && value.ValueKind is JsonValueKind.True or JsonValueKind.False)
         {
-            return qse.GetBoolean();
+            return value.GetBoolean();
         }
 
         return null;
@@ -260,6 +286,24 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     public async Task<string?> GetGruntsAsync()
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/masterdata/grunts");
+        var response = await this._httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    /// <summary>
+    /// Localized monster master data from <c>/api/masterdata/monsters</c>. Older PoracleJS builds do
+    /// not serve this route, so a 404 is a normal outcome and yields <c>null</c> rather than throwing.
+    /// </summary>
+    public async Task<string?> GetMonstersAsync(string locale)
+    {
+        var request = this.CreateRequest(HttpMethod.Get,
+            $"{this._apiAddress}/api/masterdata/monsters?locale={Uri.EscapeDataString(locale)}");
         var response = await this._httpClient.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)

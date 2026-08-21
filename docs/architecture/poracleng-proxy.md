@@ -59,6 +59,21 @@ Also proxied:
 - **Admin delete all alarms** -- fetches all UIDs per type, bulk deletes via the proxy
 - **Bulk distance update** -- fetches alarms, modifies `distance`, POSTs back via the proxy
 
+### Read-only calls that shape the UI
+
+Three of PoracleNG's own endpoints are read for things other than tracking. All three degrade to a
+usable default rather than failing the request:
+
+| Call | Used for | If it fails |
+|---|---|---|
+| `GET /api/masterdata/monsters?locale={code}` | Pokemon names, types, form names and evolution chains, translated into the display language | Falls back to the English [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) cached server-side, so the pickers stay populated |
+| `GET /api/config/poracleWeb` &rarr; `disabledHooks` | The per-type disable flags Poracle sets in its own config, honoured here as a floor under the site settings | Empty set: the local `disable_*` settings are in sole charge. Fails **open**, deliberately |
+| `GET /api/config/values` &rarr; `general.disable_fort_update` | Fort changes, which PoracleNG enforces but omits from `disabledHooks` | Same, and independently of the call above, so a Poracle without this route keeps the hook list it already has |
+
+The last row is a wart, not a design: see [PoracleNG enhancement requests](../poracleng-enhancement-requests.md).
+The locale on the first row is the display language, which is why switching language re-fetches the
+map — Poracle owns the translations, so this site does not carry Pokemon names of its own.
+
 ## Insert, update or duplicate
 
 Every alarm write is a POST, and PoracleNG decides what to do with it by diffing the submitted row

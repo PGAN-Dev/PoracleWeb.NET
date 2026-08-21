@@ -49,7 +49,7 @@ Outbound to the internet:
 
 - **`discordapp.com` and `cdn.discordapp.com`** -- Discord OAuth sign-in, role lookups, avatars, and the geofence review forum posts. Unavoidable if Discord login is enabled.
 - **The geocoder** -- the address search and reverse lookup proxy to whatever `providerURL` PoracleNG's config names (usually a Nominatim instance). Switch it off with the `disable_nominatim` site setting.
-- **`raw.githubusercontent.com`** (Masterfile-Generator) -- the game master data behind the Pokemon, move and item pickers, fetched on the first request after a cold start and cached in memory. Not switchable; without it the pickers fall back to whatever is already cached.
+- **`raw.githubusercontent.com`** (Masterfile-Generator) -- the game master data behind the move and item pickers, fetched on the first request after a cold start and cached in memory. Pokemon names, types and forms come from Poracle instead, so they are translated and need no outbound call; this remains their fallback when Poracle cannot serve them. Not switchable; without it the pickers fall back to whatever is already cached. The browser makes no request of its own here -- everything is proxied through the API.
 - **`api.github.com` and `raw.githubusercontent.com`** -- the version check behind the Versions card on **Admin > Settings**. Two anonymous GETs, made when an admin opens the card and cached six hours afterwards, nothing sent. On a locked-down egress policy it fails silently and the card cannot tell you whether an update exists. Turn it off with the `disable_update_check` site setting.
 
 ## Volume mounts

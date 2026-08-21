@@ -1,6 +1,8 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -9,13 +11,17 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/settings")]
-public class SettingsController(
+public partial class SettingsController(
     ISiteSettingService siteSettingService,
     IOptions<DiscordSettings> discordSettings,
     IOptions<PoracleSettings> poracleSettings,
     IOptions<TelegramSettings> telegramSettings,
     IOptions<OidcSettings> oidcSettings,
-    IConfiguration configuration) : BaseApiController
+    IUpstreamFeatureFlagService upstreamFlags,
+    IConfiguration configuration,
+    IPoracleApiProxy poracleApiProxy,
+    IMemoryCache cache,
+    ILogger<SettingsController> logger) : BaseApiController
 {
     /// <summary>
     /// Exact setting keys a non-admin may read. This is an <em>allowlist</em>, deliberately: the previous
@@ -33,6 +39,8 @@ public class SettingsController(
         // only -- the one group that least needs it -- so an admin configuring it saw it work and had no
         // way to tell it was invisible to everyone else. See #513.
         "custom_page_name", "custom_page_url", "custom_page_icon",
+        // Poracle's own locale, synthesized rather than stored -- see GetPoracleLocaleAsync.
+        PoracleLocaleKey,
     };
 
     /// <summary>
@@ -50,11 +58,28 @@ public class SettingsController(
     private const string EnableDiscordKey = "enable_discord";
     private const string EnableTelegramKey = "enable_telegram";
 
+    /// <summary>
+    /// Pseudo-setting carrying Poracle's configured <c>locale</c>. It is not an admin-editable row: it is
+    /// read from Poracle's config and appended to the settings response so the SPA can use it as the last
+    /// language fallback ahead of the hardcoded <c>en</c>.
+    /// </summary>
+    internal const string PoracleLocaleKey = "poracle_locale";
+
+    private const string PoracleLocaleCacheKey = "settings:poracle_locale";
+
+    /// <summary>Matches the shape of a locale tag (<c>de</c>, <c>pt-BR</c>, <c>zh-cn</c>) and nothing else.</summary>
+    [GeneratedRegex("^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$")]
+    private static partial Regex LocalePattern();
+
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
     private readonly OidcSettings _oidcSettings = oidcSettings.Value;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
+    private readonly IUpstreamFeatureFlagService _upstreamFlags = upstreamFlags;
+    private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IMemoryCache _cache = cache;
+    private readonly ILogger<SettingsController> _logger = logger;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -70,7 +95,7 @@ public class SettingsController(
             settings = settings.Where(s => IsUserVisible(s.Key));
         }
 
-        return this.Ok(settings.ToList());
+        return this.Ok(await this.WithPoracleLocaleAsync(settings));
     }
 
     /// <summary>True when a non-admin may read <paramref name="key"/>.</summary>
@@ -79,13 +104,31 @@ public class SettingsController(
         && (UserVisibleKeys.Contains(key)
             || Array.Exists(UserVisibleKeyPrefixes, p => key.StartsWith(p, StringComparison.OrdinalIgnoreCase)));
 
+    /// <summary>
+    /// The <c>disable_*</c> keys the upstream Poracle deployment forces off in its own config, on top
+    /// of whatever the site settings say. Lets the SPA hide those sections and the admin page mark the
+    /// matching toggle as not-ours-to-change, instead of showing a switch that reads "enabled" while
+    /// every write 403s.
+    /// </summary>
+    /// <remarks>
+    /// Open to any signed-in user, not just admins: the same information is already obtainable by
+    /// POSTing an alarm and reading the <c>disableKey</c> off the 403, and every non-admin consumer
+    /// (nav, route guards) needs it. Empty when Poracle is unreachable or too old to report the flags.
+    /// </remarks>
+    [HttpGet("upstream-disabled")]
+    public async Task<IActionResult> GetUpstreamDisabled()
+    {
+        var keys = await this._upstreamFlags.GetDisabledKeysAsync();
+        return this.Ok(keys.OrderBy(k => k, StringComparer.Ordinal).ToList());
+    }
+
     [AllowAnonymous]
     [EnableRateLimiting("auth-read")]
     [HttpGet("public")]
     public async Task<IActionResult> GetPublic()
     {
         var publicSettings = await this._siteSettingService.GetPublicAsync();
-        return this.Ok(publicSettings);
+        return this.Ok(await this.WithPoracleLocaleAsync(publicSettings));
     }
 
     [HttpGet("discord-config")]
@@ -185,6 +228,17 @@ public class SettingsController(
             });
         }
 
+        // poracle_locale is a projection of Poracle's config, not a row this page owns. Nothing stopped
+        // it being written, and because a real row wins over the synthesized value, one accidental save
+        // would have pinned the language default forever and silently stopped tracking Poracle. See #780.
+        if (string.Equals(key, PoracleLocaleKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return this.BadRequest(new
+            {
+                error = "poracle_locale is read from Poracle's configuration and cannot be set here."
+            });
+        }
+
         // Prevent lockout: at least one login method must remain enabled.
         // Uses GetValueAsync so absent/null = enabled (safe default). Only blocks when
         // both are explicitly "False".
@@ -224,6 +278,76 @@ public class SettingsController(
         var result = await this._siteSettingService.CreateOrUpdateAsync(setting);
         return this.Ok(result);
     }
+
+    /// <summary>
+    /// Appends the Poracle locale pseudo-setting to <paramref name="settings"/>, unless a real row of the
+    /// same key already exists -- an admin-set value wins over what Poracle reports.
+    /// </summary>
+    private async Task<List<SiteSetting>> WithPoracleLocaleAsync(IEnumerable<SiteSetting> settings)
+    {
+        var list = settings.ToList();
+        if (list.Exists(s => string.Equals(s.Key, PoracleLocaleKey, StringComparison.OrdinalIgnoreCase)))
+        {
+            return list;
+        }
+
+        var locale = await this.GetPoracleLocaleAsync();
+        if (!string.IsNullOrEmpty(locale))
+        {
+            list.Add(new SiteSetting
+            {
+                Key = PoracleLocaleKey,
+                Value = locale,
+                Category = "branding",
+                ValueType = "string",
+            });
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    /// Reads <c>locale</c> from Poracle's config, cached for five minutes. Both the settings endpoints that
+    /// serve it are hit on every page load, and one of them is anonymous, so an uncached read would put a
+    /// PoracleNG roundtrip in front of the login page. A Poracle outage caches a null and the SPA keeps its
+    /// existing stored/browser/<c>en</c> ordering -- the locale is a nicety, never a blocker.
+    /// </summary>
+    private async Task<string?> GetPoracleLocaleAsync()
+    {
+        if (this._cache.TryGetValue<string?>(PoracleLocaleCacheKey, out var cached))
+        {
+            return cached;
+        }
+
+        string? locale = null;
+        try
+        {
+            var config = await this._poracleApiProxy.GetConfigAsync();
+            locale = NormalizeLocale(config?.Locale);
+        }
+        catch (Exception ex)
+        {
+            LogFetchLocaleFailed(this._logger, ex);
+        }
+
+        this._cache.Set(PoracleLocaleCacheKey, locale, TimeSpan.FromMinutes(5));
+        return locale;
+    }
+
+    /// <summary>
+    /// Returns <paramref name="locale"/> when it looks like a locale tag, otherwise null. Deliberately a
+    /// shape check rather than a list of the eleven languages this UI ships: the SPA does that matching
+    /// itself against its own language list and the <c>allowed_languages</c> filter, and a locale it cannot
+    /// place simply loses to <c>en</c>. An allowlist here would need updating every time a translation lands.
+    /// </summary>
+    internal static string? NormalizeLocale(string? locale)
+    {
+        var trimmed = locale?.Trim();
+        return !string.IsNullOrEmpty(trimmed) && LocalePattern().IsMatch(trimmed) ? trimmed : null;
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to read Poracle's configured locale")]
+    private static partial void LogFetchLocaleFailed(ILogger logger, Exception ex);
 
     public class SiteSettingRequest
     {

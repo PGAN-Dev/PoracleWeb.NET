@@ -122,7 +122,7 @@ public partial class AreaController(
     [RequireFeatureEnabled(DisableFeatureKeys.Areas)]
     public async Task<IActionResult> UpdateAreas([FromBody] UpdateAreasRequest request)
     {
-        // Lowercase area names to match Poracle's expected format (PHP PoracleWeb does strtolower)
+        // Lowercase area names because Poracle matches areas case-sensitively.
         // A null entry used to throw an NRE here and surface as a 500.
         if (request.Areas is not null && Array.Exists(request.Areas, a => a is null))
         {

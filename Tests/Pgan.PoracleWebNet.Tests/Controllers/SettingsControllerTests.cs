@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Pgan.PoracleWebNet.Api.Configuration;
@@ -12,15 +14,29 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class SettingsControllerTests : ControllerTestBase
 {
     private readonly Mock<ISiteSettingService> _siteService = new();
+    private readonly Mock<IUpstreamFeatureFlagService> _upstreamFlags = new();
+    private readonly Mock<IPoracleApiProxy> _poracleApi = new();
     private readonly SettingsController _sut;
 
-    public SettingsControllerTests() => this._sut = new SettingsController(
+    public SettingsControllerTests()
+    {
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync((PoracleConfig?)null);
+        this._sut = this.CreateController();
+    }
+
+    private SettingsController CreateController(
+        DiscordSettings? discord = null,
+        PoracleSettings? poracle = null) => new(
         this._siteService.Object,
-        Options.Create(new DiscordSettings()),
-        Options.Create(new PoracleSettings()),
+        Options.Create(discord ?? new DiscordSettings()),
+        Options.Create(poracle ?? new PoracleSettings()),
         Options.Create(new TelegramSettings()),
         Options.Create(new OidcSettings()),
-        new ConfigurationBuilder().Build());
+        this._upstreamFlags.Object,
+        new ConfigurationBuilder().Build(),
+        this._poracleApi.Object,
+        new MemoryCache(new MemoryCacheOptions()),
+        NullLogger<SettingsController>.Instance);
 
     [Fact]
     public async Task GetAllReturnsOkForAdmin()
@@ -151,6 +167,96 @@ public class SettingsControllerTests : ControllerTestBase
         return [.. Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).Select(s => s.Key!)];
     }
 
+    /// <summary>
+    /// The SPA picks its display language before login, where /api/config 401s (#426), so Poracle's locale
+    /// has to ride out on the anonymous settings endpoint instead.
+    /// </summary>
+    [Fact]
+    public async Task GetPublicServesPoraclesLocaleToAnonymousVisitors()
+    {
+        this._sut.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "de" });
+        this._siteService.Setup(s => s.GetPublicAsync()).ReturnsAsync([new() { Key = "custom_title", Value = "App" }]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPublic());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == SettingsController.PoracleLocaleKey && s.Value == "de");
+        Assert.Contains(settings, s => s.Key == "custom_title");
+    }
+
+    [Fact]
+    public async Task GetAllServesPoraclesLocaleToNonAdmins()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "de" });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Key = "custom_title", Value = "t" }]);
+
+        Assert.Contains(SettingsController.PoracleLocaleKey, await this.GetAllKeysAsync());
+    }
+
+    /// <summary>Poracle being down must cost the caller nothing but the locale.</summary>
+    [Fact]
+    public async Task GetPublicStillServesTheStoredSettingsWhenPoracleIsUnreachable()
+    {
+        this._sut.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("down"));
+        this._siteService.Setup(s => s.GetPublicAsync()).ReturnsAsync([new() { Key = "custom_title", Value = "App" }]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPublic());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == "custom_title");
+        Assert.DoesNotContain(settings, s => s.Key == SettingsController.PoracleLocaleKey);
+    }
+
+    [Fact]
+    public async Task GetPublicLetsAStoredRowWinOverPoraclesLocale()
+    {
+        this._sut.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "de" });
+        this._siteService.Setup(s => s.GetPublicAsync())
+            .ReturnsAsync([new() { Key = SettingsController.PoracleLocaleKey, Value = "fr" }]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPublic());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Single(settings);
+        Assert.Equal("fr", settings[0].Value);
+    }
+
+    /// <summary>
+    /// Locales this UI ships no translation for (ja, ru, zh-cn) pass the shape check deliberately -- the SPA
+    /// matches them against its own language list and the allowed_languages filter, and falls back to en.
+    /// </summary>
+    [Theory]
+    [InlineData("de")]
+    [InlineData("en")]
+    [InlineData("pt-BR")]
+    [InlineData("zh-cn")]
+    [InlineData("ja")]
+    public void NormalizeLocaleKeepsAnythingShapedLikeALocaleTag(string locale) =>
+        Assert.Equal(locale, SettingsController.NormalizeLocale(locale));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("en; DROP TABLE humans")]
+    [InlineData("../../etc/passwd")]
+    [InlineData("englishy")]
+    public void NormalizeLocaleRejectsAnythingElse(string? locale) =>
+        Assert.Null(SettingsController.NormalizeLocale(locale));
+
     [Fact]
     public async Task GetPublicReturnsOk()
     {
@@ -229,26 +335,65 @@ public class SettingsControllerTests : ControllerTestBase
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
+    /// <summary>
+    /// poracle_locale is synthesized from Poracle's config, and a real row would win over it, so a
+    /// single accidental save would pin the language default and stop tracking Poracle for good.
+    /// </summary>
+    [Fact]
+    public async Task UpsertRefusesToWriteThePoracleLocaleProjection()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var request = new SettingsController.SiteSettingRequest { Value = "de" };
+
+        var result = await this._sut.Upsert("poracle_locale", request);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpsertRefusesThePoracleLocaleProjectionWhateverItsCasing()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var request = new SettingsController.SiteSettingRequest { Value = "de" };
+
+        Assert.IsType<BadRequestObjectResult>(await this._sut.Upsert("PORACLE_LOCALE", request));
+    }
+
+    /// <summary>
+    /// The refusal must not spread: an ordinary key still writes. Without this the guard above passes
+    /// just as well with the whole endpoint broken.
+    /// </summary>
+    [Fact]
+    public async Task UpsertStillWritesAnOrdinarySetting()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._siteService.Setup(s => s.GetByKeyAsync("custom_title")).ReturnsAsync((SiteSetting?)null);
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
+            .ReturnsAsync(new SiteSetting { Key = "custom_title", Value = "My Site" });
+
+        var result = await this._sut.Upsert("custom_title", new SettingsController.SiteSettingRequest { Value = "My Site" });
+
+        Assert.IsType<OkObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Once);
+    }
+
     [Fact]
     public void GetDiscordConfigReturnsOkForAdmin()
     {
-        var controller = new SettingsController(
-            this._siteService.Object,
-            Options.Create(new DiscordSettings
+        var controller = this.CreateController(
+            new DiscordSettings
             {
                 ClientId = "123456789012345678",
                 ClientSecret = "abcdefghijklmnopqrstuvwxyz123456",
                 BotToken = "MTIzNDU2Nzg5.GhijKl.abcdefghijklmnop",
                 GuildId = "987654321098765432",
                 GeofenceForumChannelId = "111222333444555666",
-            }),
-            Options.Create(new PoracleSettings
+            },
+            new PoracleSettings
             {
                 AdminIds = "111111111,222222222",
-            }),
-            Options.Create(new TelegramSettings()),
-            Options.Create(new OidcSettings()),
-            new ConfigurationBuilder().Build());
+            });
         SetupUser(controller, isAdmin: true);
 
         var result = controller.GetDiscordConfig();
@@ -316,5 +461,39 @@ public class SettingsControllerTests : ControllerTestBase
         var result = await this._sut.Upsert("enable_telegram", request);
 
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    /// <summary>
+    /// The keys Poracle forces off, so the SPA can hide those sections and the admin page can mark
+    /// the matching toggle as not-ours-to-change instead of showing a dead switch. See #769.
+    /// </summary>
+    [Fact]
+    public async Task GetUpstreamDisabledReturnsTheKeysPoracleForcesOff()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._upstreamFlags
+            .Setup(f => f.GetDisabledKeysAsync())
+            .ReturnsAsync(new HashSet<string>(["disable_raids", "disable_quests"], StringComparer.Ordinal));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetUpstreamDisabled());
+        var keys = Assert.IsType<List<string>>(ok.Value);
+
+        Assert.Equal(["disable_quests", "disable_raids"], keys);
+    }
+
+    /// <summary>
+    /// Non-admins need this to hide nav items, so it must not be admin-gated. It is also the normal
+    /// case: prod serves an empty disabledHooks array.
+    /// </summary>
+    [Fact]
+    public async Task GetUpstreamDisabledReturnsAnEmptyListForNonAdminsWhenPoracleDisablesNothing()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._upstreamFlags
+            .Setup(f => f.GetDisabledKeysAsync())
+            .ReturnsAsync(new HashSet<string>(StringComparer.Ordinal));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetUpstreamDisabled());
+        Assert.Empty(Assert.IsType<List<string>>(ok.Value));
     }
 }

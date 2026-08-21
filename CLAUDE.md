@@ -207,6 +207,46 @@ Two upstream behaviours that PoracleWeb has to work around. Both verified direct
 
 **Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
 
+### Webhook Delegation Resolves Live, From Three Sources
+
+A webhook is a Poracle human whose id is a Discord webhook URL. A **delegate** is a non-admin allowed
+to manage one, which they do by impersonating it — so "who may manage what" is an authorisation
+question asked on three surfaces: the `/my-webhooks` list, `POST /api/admin/impersonate`, and
+`/api/auth/me`, which decides whether the nav item renders at all.
+
+`IUserRoleResolver.ResolveAsync` is the single answer, unioning:
+
+1. PoracleNG's `getAdministrationRoles` → `admin.discord.webhooks` (covers `discord.webhook_admins`
+   **and** guild-role delegation),
+2. `poracle_web.webhook_delegates` (what the admin dialog writes),
+3. admins from `Poracle:AdminIds` or Poracle's config, who short-circuit before any network call.
+
+Cached one minute per user; a degraded answer is never cached.
+
+**All three surfaces must resolve live, and the same union.** This has now broken four separate ways,
+each time because one surface disagreed with another:
+
+| Fix | What it broke |
+|---|---|
+| #564 | `/my-webhooks` loaded from the admin user list, which 403s non-admins — the only people who could see the page |
+| #601 | reading the claim let a revoked delegate keep access for 24 hours |
+| #626 | resolving from the local table alone refused a PoracleJS-configured delegate the nav item had just offered |
+| #786 | `/api/auth/me` still read the claim, so a *new* delegate could not find a page that would have let them in |
+
+The `managedWebhooks` JWT claim is now a **cold fallback only**, used when a resolve is degraded so an
+outage does not strip a delegate mid-session. Nothing authorises off it. Do not reintroduce it as a
+source of truth.
+
+Two carve-outs worth keeping: an impersonation session resolves nothing (`this.UserId` is the
+impersonated account, so its own delegations answer a different question — the shape of #663), and
+`IsAdmin` deliberately still comes from the claim, because every admin endpoint authorises off the
+claim too and resolving one live without the other puts the UI and the API into disagreement.
+
+Deleting a human purges grants in both directions (`RemoveAllForIdAsync` matches `WebhookId` **or**
+`UserId`), so a recreated webhook URL does not adopt the old delegates. See #510-#512.
+
+User-facing documentation: `docs/features/webhooks.md`.
+
 ### Rate Limiting
 - Auth endpoints use **per-IP** partitioned rate limiting (not global).
 - `auth` policy: 30 requests per 60s per IP (login, callback, token exchange).
@@ -218,6 +258,19 @@ Two upstream behaviours that PoracleWeb has to work around. Both verified direct
 ### Feature Gating (`disable_*` Site Settings)
 The `disable_mons` / `disable_raids` / `disable_quests` / `disable_invasions` / `disable_lures` / `disable_nests` / `disable_gyms` / `disable_maxbattles` / `disable_fort_changes` site settings disable entire alarm types for everyone, including admins. Eggs share `disable_raids` (no separate `disable_eggs` exists; eggs share the raid UI in the SPA). See #236 for the original bug.
 
+**A disabled alarm type is read-and-delete, not hidden (#784).** The ten alarm controllers carry
+`[RequireFeatureEnabled]` on their **write actions only** — `Create`, `Update`, and both distance
+bulk updates. Reads and deletes are deliberately open: an alarm of a disabled type can never fire, so
+removing it is the one useful action left, and when the type is disabled in Poracle rather than here
+its bot refuses the matching command too, leaving the web page as the only way to clean up. The nav
+item stays (with a padlock) for the same reason — hiding it would strand the alarms.
+
+The exemption is recorded in `FeatureGateCoverageTests.IntentionallyUngatedWrites`, alongside the
+geofence delete that set the precedent, and `DisabledAlarmTypeAccessTests` fails the build if a
+class-level attribute comes back or a new write action ships without one. On the SPA side,
+`alarm-list-readonly.spec.ts` reads the ten templates and checks that every create/edit control sits
+inside `@if (!writesDisabled())` and that no delete does.
+
 **Any `disable_*` toggle must be enforced server-side.** A toggle wired only into the SPA (nav item, route guard) is decoration, not a gate: the endpoints stay reachable by direct API call, and client state — the `siteSettings` signal — is trivially tampered with. `disable_areas`, `disable_profiles` and `disable_location` all shipped that way and were only closed later. `FeatureGateCoverageTests` now fails the build if a key is added to `DisableFeatureKeys` without a controller enforcing it.
 
 Non-alarm features follow the same rules, minus the tracking-type dictionary: add the constant, apply `[RequireFeatureEnabled(...)]` to the controller (or to individual actions, as `UserGeofenceController` does so its reads stay open), add a `disabledFeatureGuard` to the route in `app.routes.ts` **and** the `disableKey` to the nav item — the nav entry alone is not enough.
@@ -227,6 +280,10 @@ Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT 
 `disable_nominatim` **is** implemented (#420): it gates the two geocode actions on `LocationController`, so switching it off genuinely stops the outbound Nominatim/OpenStreetMap calls, and the location dialog hides its address search rather than firing a request that would 403 and bounce the user to the dashboard. It is gated per-action rather than per-controller because the controller itself is already gated by `disable_location`.
 
 `disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (the migration carries `admin_disable_userlist` as a legacy key only).
+
+**Poracle's own flags are a floor under these (#769).** `UpstreamFeatureFlagService` reads `disabledHooks` from `/api/config/poracleWeb` plus `general.disable_fort_update` from `/api/config/values`, maps them to `disable_*` keys via `PoracleDisabledHookMap`, and `FeatureGate` treats a type as off if **either** source disables it. Cached 5 min. It **fails open**: any fault, timeout or absent field yields an empty set, because a Poracle outage disabling every alarm type for everyone is worse than the problem being solved. `GET /api/settings/upstream-disabled` exposes the resolved keys so nav, route guards and the admin toggles agree with the API.
+
+Two traps, both verified against 5.1.0 and both load-bearing: `pokestop` is in `disabledHooks` but `DisablePokestop` has no consumer in the processor, so it maps to **nothing** — mapping it to lures/invasions/quests would disable three working types; and `disable_fort_update` is enforced upstream but omitted from the array, which is the only reason the second config call exists. Both filed upstream (jfberry/PoracleNG#195).
 
 **Adding a new alarm type? Wire it through all four layers:**
 
@@ -257,6 +314,19 @@ Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT 
 - `ScannerGymEntity` maps the `url` column for gym photo thumbnails from the scanner DB.
 - The scanner DB is optional -- if not configured, the gym picker is hidden and `gym_id` can still be entered manually.
 
+### Localized Game Data
+
+Pokemon names, types, form names and evolution chains come from PoracleNG, which translates them from its own i18n bundle: `GET /api/masterdata/monsters?locale={code}`, proxied through `MasterDataController.GetMonsters` and consumed by the SPA's `MasterDataService` in the same `forkJoin` as items and moves. The locale is the **display** language, so switching it re-fetches and re-emits on `ready$`; an open species picker updates in place. See #771.
+
+- **Fallback, not failure.** A Poracle too old for the route, or unreachable, falls back to the cached English WatWowMap masterfile (`IMasterDataService.GetMonsterDataAsync`). Moves and items have no translated equivalent upstream and stay English.
+- **Type names are identity, not display text.** `IconService` keys uicons on the English name and the filter chips track by it, so `applyMonsters` resolves the English name from the stable type id (`shared/utils/pokemon-types.ts`) and keeps the translated string beside it as a label, read via `getTypeLabel()`. Substituting the localized name blanks every type icon.
+- **Untranslated keys are ignored.** If Poracle's game-data locale download failed it returns the key itself (`poke_25`); those are skipped so the English name survives rather than a raw key reaching the UI.
+- The lone-base-form drop rule matches `/^normal/i` because form names are now translated ("Normale" in Italian). Do **not** simplify it to "species with exactly one form": 856 species qualify and two of them, Koraidon and Miraidon, are not base forms.
+
+### Settings That Are Projections, Not Rows
+
+`poracle_locale` is synthesized onto the settings response from Poracle's `general.locale`; the SPA uses it as the last display-language fallback. It is **not stored**, `SettingsController.Upsert` refuses to write it, and it is declared in `PROJECTED_KEYS` so it never reaches the admin page's "Other" catch-all as an editable box. A stored row would win over the projected value, so one accidental save would pin the language default permanently. Any future projection needs the same two halves — the write refusal is the guarantee, the declaration is cosmetics. See #780, and #560 for the same mistake with retired keys.
+
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
 - `DashboardService` now uses a single `GetAllTrackingAsync` call to PoracleNG instead of 8 separate DB count queries.
@@ -268,6 +338,7 @@ Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT 
 - Uses Angular signals for reactive state where applicable.
 - Lazy-loaded routes in `app.routes.ts`.
 - Services in `core/services/` use `HttpClient` to call the .NET API (including `ScannerService` for gym search, `TestAlertService` for test notifications).
+- `MasterDataService` fetches monster data per display language and refetches on a language change; it no longer fetches the masterfile from GitHub in the browser. See "Localized Game Data".
 - `TestAlertService` manages per-UID cooldown tracking (15s Map-based TTL) and in-flight request deduplication to prevent duplicate API calls.
 - `GymPickerComponent` is a shared autocomplete component used in gym/raid/egg dialogs for gym selection with photo thumbnails and area names.
 - `ActiveHoursEditorDialogComponent` is a shared dialog for editing profile schedule rules with day/time pickers and a weekly preview grid.
@@ -666,6 +737,10 @@ dotnet ef migrations script \
 | Geo Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
 | Alarm Mapping Extensions | `Core/Pgan.PoracleWebNet.Core.Mappings/AlarmMappingExtensions.cs` |
 | Entity Mapping Extensions | `Core/Pgan.PoracleWebNet.Core.Mappings/EntityMappingExtensions.cs` |
+| IUpstreamFeatureFlagService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IUpstreamFeatureFlagService.cs` |
+| UpstreamFeatureFlagService | `Core/Pgan.PoracleWebNet.Core.Services/UpstreamFeatureFlagService.cs` |
+| PoracleDisabledHookMap | `Core/Pgan.PoracleWebNet.Core.Models/PoracleDisabledHookMap.cs` |
+| Pokemon type id-to-name table | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/pokemon-types.ts` |
 | IPoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleTrackingProxy.cs` |
 | IPoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleHumanProxy.cs` |
 | PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |

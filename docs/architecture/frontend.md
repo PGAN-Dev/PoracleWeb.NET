@@ -76,7 +76,17 @@ The `active-hours.models.ts` file (`core/models/`) defines the `ActiveHoursEntry
 
 ### AlertLanguageService
 
-`AlertLanguageService` (`core/services/alert-language.service.ts`) owns the language Poracle writes alerts in — DM text and Pokemon names — which is a different setting from the display language. It writes optimistically to `localStorage('poracle-language')` and rolls back if the API call fails, and reconciles against the authoritative `human.Language`, since the bot can change it out of band.
+`AlertLanguageService` (`core/services/alert-language.service.ts`) owns the language Poracle writes alerts in — DM text and Pokemon names in your notifications — which is a different setting from the display language. It writes optimistically to `localStorage('poracle-language')` and rolls back if the API call fails, and reconciles against the authoritative `human.Language`, since the bot can change it out of band. Its selected value is a computed: a language the user has actually been given, falling back to Poracle's configured locale, then `en`.
+
+### MasterDataService
+
+`MasterDataService` (`core/services/masterdata.service.ts`) holds the game data the pickers render: Pokemon names, types, form names, evolution chains, plus move and item names.
+
+Names, types and forms are fetched from `GET /api/masterdata/monsters?locale={display language}` — Poracle owns those translations — while moves and items come from `/api/masterdata/{moves,items}` in English. All four load in one `forkJoin`; only the monster call is wrapped in `catchError`, so a Poracle that cannot serve it leaves the English names in place instead of cancelling the rest.
+
+An `effect` on `I18nService.currentLang` re-fetches when the display language changes and re-emits on `ready$`, so a species picker that is already open updates in place rather than needing a reload.
+
+Type names are the subtlety. Poracle returns them translated, but the uicons file names and the type filter chips both key on the English name, so the **English name is kept as the value** — resolved from the stable type id via `shared/utils/pokemon-types.ts` — and the translated string is stored alongside as a display label, read through `getTypeLabel()`. Only the chip's text is localized; everything that identifies a type is not.
 
 ### AlertDefaultsService
 

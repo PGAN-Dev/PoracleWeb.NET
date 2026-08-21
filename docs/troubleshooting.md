@@ -246,9 +246,9 @@ UPDATE gym SET team = 4 WHERE team = 0;
 !!! note "Legacy issue (PoracleJS only)"
     This was caused by direct database writes with incorrect C# model defaults in early versions of PoracleWeb.NET. New alarms created through the PoracleNG API proxy have correct defaults applied by PoracleNG itself. The SQL queries below help diagnose alarms created before the migration, on PoracleJS installations.
 
-**Problem**: On PoracleJS, monster alarms created by old versions of PoracleWeb.NET may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly in the old PHP UI as "-XXL". This does not apply to PoracleNG, which applies its own defaults on every write.
+**Problem**: On PoracleJS, monster alarms created by old versions of PoracleWeb.NET may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly as "-XXL". This does not apply to PoracleNG, which applies its own defaults on every write.
 
-**Solution**: All Create model defaults are aligned with the PHP PoracleWeb.NET `include/defaults.php`. Key values:
+**Solution**: All Create model defaults are aligned with the values Poracle itself expects. Key values:
 
 - `size=-1` means "no size filter" (not `0`)
 - `max_size=5` means "up to XXL"
@@ -262,7 +262,7 @@ If users report missing alerts, check the `monsters` table for rows where max fi
 -- Find alarms with broken size filter (rejects all pokemon with size data)
 SELECT * FROM monsters WHERE max_size = 0;
 
--- Find alarms with incorrect "no size filter" value (shows as "-XXL" in PHP UI)
+-- Find alarms with incorrect "no size filter" value (shows as "-XXL")
 SELECT * FROM monsters WHERE size = 0;
 ```
 
@@ -481,3 +481,76 @@ This forces the local login page regardless of the `enable_oidc` mode, so an adm
 3. **The `post_logout_redirect_uri` registered at the IdP** — PoracleWeb.NET sends `{origin}/login?loggedout=1`. If that URL isn't in the provider's allow-list, the provider rejects the logout redirect.
 
 Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and register the post-logout redirect URI at the IdP.
+
+---
+
+## Pokemon names and types stay English with the site set to another language
+
+**Symptom**: The interface is translated, but the species picker still lists Bulbasaur, Blastoise and Butterfree, and the type chips read Bug, Dark, Dragon.
+
+**Cause**: Those names come from Poracle, which translates them from its own bundle. If it cannot serve them, the site falls back to the English WatWowMap masterfile rather than showing nothing.
+
+**Checks, in order**:
+
+1. **Poracle is too old for the endpoint.** `GET /api/masterdata/monsters?locale=de` on your Poracle should answer with a map of `"{pokemonId}_{formId}"` entries. A 404 means the fallback is doing its job and only an upgrade will change it.
+
+    ```bash
+    curl -s -H "X-Poracle-Secret: $SECRET"       "http://poracle-host:3030/api/masterdata/monsters?locale=de" | head -c 200
+    ```
+
+2. **Poracle has no translation for that language.** It ships `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`, `ru`, `sv` and `zh-cn`. For `nl`, `pt`, `pt-BR` and `da` it returns English, and there is nothing to configure — the interface around the names is still translated.
+
+3. **Poracle's game-data locale files are missing.** If names come back as their own keys (`poke_25` rather than `Pikachu`), Poracle's resource download has failed. The site ignores such values and keeps the English name, so the symptom is English names rather than visible keys. Check Poracle's startup log for its resource fetch.
+
+4. **Move and item names are meant to be English.** Poracle serves no translated equivalent, so those pickers are unaffected by the display language.
+
+**Note**: this follows the **display** language, not the alert language. The alert language decides what your DMs say. See [Internationalization](features/internationalization.md).
+
+---
+
+## An alarm type cannot be created and its admin toggle will not switch on
+
+**Symptom**: A type's page has no Add button, its cards have no Edit, its nav item carries a padlock, and on **Admin > Settings** its toggle is off, greyed out and refuses to move. The alarms already there are still listed and can still be deleted.
+
+**Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than accepting rules that do nothing. Existing rules stay visible and deletable on purpose: removing them is the only thing left worth doing, and Poracle's bot will not do it for you while the type is off.
+
+**Fix**: change it in Poracle's `config.toml`, not here. The flags are `disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle` and `disable_fort_update`. Restart Poracle afterwards; this site re-reads them within five minutes, or immediately on restart.
+
+**Diagnostic**:
+
+```bash
+# What Poracle reports as disabled
+curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/poracleWeb | jq .disabledHooks
+
+# What this site resolved that into (any signed-in user)
+curl -s -H "Authorization: Bearer $JWT"   https://your-site/api/settings/upstream-disabled
+```
+
+An empty array on the first call, with the type still locked, means the local `disable_*` site setting is the one doing it — that one is yours to change on **Admin > Settings**. The page names which side it came from, so you should not have to run either command to find out.
+
+---
+
+## A delegate cannot see "My Webhooks"
+
+**Symptom**: You granted someone a webhook on **Admin > Webhooks**, and they report no *My Webhooks*
+item in the sidebar.
+
+**Checks, in order**:
+
+1. **Did the grant land?** Reopen the webhook's delegates dialog. A removable chip with their name
+   means it exists. A grant naming an account that does not exist is refused rather than stored, so an
+   absent chip usually means they had never signed in when you added them — they must register with
+   the Poracle bot and sign in once before they can be granted.
+
+2. **Give it a minute.** Delegation is resolved live but cached for about a minute per person.
+
+3. **Are they an administrator?** Admins can manage any webhook and are never listed as a delegate of
+   a particular one, so they never see the item — it is for delegates only.
+
+4. **Are you thinking of the bot?** `discord.webhook_admins` in Poracle's config grants access through
+   the Discord bot, not here. The reverse also holds: a row added here grants nothing to the bot. A
+   Poracle-side grant *does* work here, but not the other way round.
+
+**Note**: before v2.17 the item came from a claim stamped into the sign-in token, so a new delegate
+waited up to 24 hours or had to sign out and back in. If you are running an older build, that is the
+explanation — see [Webhooks & Delegates](features/webhooks.md).

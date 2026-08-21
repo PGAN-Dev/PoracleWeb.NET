@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/invasions")]
-[RequireFeatureEnabled(DisableFeatureKeys.Invasions)]
 public class InvasionController(IInvasionService invasionService) : BaseApiController
 {
     private readonly IInvasionService _invasionService = invasionService;
@@ -31,6 +30,7 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
         return this.Ok(invasion);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Invasions)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] InvasionCreate model)
     {
@@ -53,6 +53,7 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
         }, result);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Invasions)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] InvasionUpdate model)
     {
@@ -99,6 +100,7 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Invasions)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -109,6 +111,7 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Invasions)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

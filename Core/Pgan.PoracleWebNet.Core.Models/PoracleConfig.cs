@@ -56,6 +56,22 @@ public class PoracleConfig
     {
         get; set;
     }
+    /// <summary>
+    /// Webhook types the upstream Poracle deployment has switched off, as reported by
+    /// <c>GET /api/config/poracleWeb</c> (e.g. <c>["raid", "quest"]</c>).
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> means the field was absent — an older Poracle or PoracleJS, which has no opinion —
+    /// and is deliberately distinct from an empty list, which means "nothing is disabled upstream".
+    /// Only the latter is safe to enforce on. Translate to <c>disable_*</c> keys with
+    /// <see cref="PoracleDisabledHookMap.ToDisableKeys"/>; note that <c>disable_fort_update</c> is
+    /// enforced upstream but never appears here.
+    /// </remarks>
+    public List<string>? DisabledHooks
+    {
+        get; set;
+    }
+
     public PoracleAdmins? Admins
     {
         get; set;

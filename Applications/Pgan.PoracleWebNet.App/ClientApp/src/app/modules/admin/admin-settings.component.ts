@@ -60,6 +60,16 @@ interface SettingGroup {
  * the product consumed them, and their descriptions promised behaviour the app does not have. Rows are
  * left in the database rather than deleted. See #547, #560.
  */
+/**
+ * Keys the API synthesizes onto the settings response rather than storing: projections of Poracle's own
+ * config, present so the SPA can read them like any other setting. They are declared here for the same
+ * reason as RETIRED_KEYS -- an undeclared key falls through to the "Other" catch-all and is rendered as
+ * an editable control, which for a projection is worse than useless: a real row wins over the
+ * synthesized value, so one save pins it forever and stops tracking Poracle. Writes are refused
+ * server-side too; this only keeps the box off the page. See #780.
+ */
+export const PROJECTED_KEYS = ['poracle_locale'];
+
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
   // from SettingsMigrationService when they were retired, but rows persist in existing databases and were
@@ -76,7 +86,7 @@ const RETIRED_KEYS = [
   'debug',
 ];
 
-const SETTING_GROUPS: SettingGroup[] = [
+export const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#0088cc',
     icon: 'send',
@@ -295,18 +305,6 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#607d8b',
-    icon: 'terminal',
-    labelKey: 'ADMIN_SETTINGS.GROUP_COMMANDS',
-    settings: [],
-  },
-  {
-    color: '#2e7d32',
-    icon: 'map',
-    labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',
-    settings: [],
-  },
-  {
     color: '#7b1fa2',
     icon: 'bar_chart',
     labelKey: 'ADMIN_SETTINGS.GROUP_ANALYTICS_LINKS',
@@ -318,12 +316,6 @@ const SETTING_GROUPS: SettingGroup[] = [
         type: 'url',
       },
     ],
-  },
-  {
-    color: '#ff5722',
-    icon: 'bug_report',
-    labelKey: 'ADMIN_SETTINGS.GROUP_DEBUG',
-    settings: [],
   },
 ];
 
@@ -369,6 +361,7 @@ export class AdminSettingsComponent implements OnInit {
     // the same editable controls, one section lower, still promising behaviour that does not exist.
     // Their rows stay in the database, unread. See #560.
     ...RETIRED_KEYS,
+    ...PROJECTED_KEYS,
   ]);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -415,6 +408,7 @@ export class AdminSettingsComponent implements OnInit {
   readonly authMode = computed<'local' | 'oidc'>(() => (this.getBool('enable_oidc') ? 'oidc' : 'local'));
 
   readonly searchQuery = signal('');
+
   /**
    * The Authentication section is hand-written rather than driven by SETTING_GROUPS, so the search
    * box never touched it and a nonsense query still left it on screen. See #426.
@@ -431,8 +425,8 @@ export class AdminSettingsComponent implements OnInit {
   });
 
   readonly bulkSaving = signal(false);
-  readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
 
+  readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
   readonly iconRepos = [
@@ -506,6 +500,13 @@ export class AdminSettingsComponent implements OnInit {
   /** Single-logout admin toggle state — absent defaults to ON once the end-session URL is wired. */
   readonly oidcSloEnabled = computed(() => (this.getSettingValue('enable_oidc_slo') ?? '').toLowerCase() !== 'false');
 
+  /**
+   * Poracle's own locale, shown beside Allowed UI Languages because that is the setting it interacts
+   * with: it decides what a user who has never chosen a language, and whose browser we cannot place,
+   * sees. Read-only -- it is Poracle's to set, and writes to it are refused (#780).
+   */
+  readonly poracleLocale = computed(() => this.settingMap().get('poracle_locale') ?? '');
+
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   readonly settingsLoading = signal(true);
 
@@ -526,6 +527,12 @@ export class AdminSettingsComponent implements OnInit {
     const query = this.searchQuery().trim();
     const base = SETTING_GROUPS.filter(g => {
       if (oidcMode && localProviderGroups.has(g.labelKey)) return false;
+      // A group that declares no settings can never render anything, so it is a header and a chevron
+      // over nothing. Three shipped that way -- Maps & Assets was left behind when #452 deleted the two
+      // toggles it held. Note this is NOT the filter #629 reverted: that one dropped a group whose keys
+      // had no DB row yet, which a fresh install always has; this one only drops groups with nothing
+      // declared in the code at all.
+      if (g.settings.length === 0) return false;
       // Deliberately not gated on a key already having a row. A fresh install seeds exactly one
       // (custom_title), so Alarm Types, Features, Administration and Analytics were filtered out of the
       // DOM entirely -- and since this page is the only writer, the row could never appear. The
@@ -555,7 +562,19 @@ export class AdminSettingsComponent implements OnInit {
 
   /** Positive-framing checked state for a boolean setting (ON = enabled). */
   featureEnabled(meta: SettingMeta): boolean {
+    // A type Poracle has switched off in its own config is off no matter what this row stores, so
+    // the switch must read off. Showing it on would promise something every write will 403 on (#769).
+    if (this.forcedByPoracle(meta)) return false;
     return this.isInverted(meta) ? !this.getBool(meta.key) : this.getBool(meta.key);
+  }
+
+  /**
+   * True when the upstream Poracle deployment disables this feature in its own `config.toml`. The
+   * admin page cannot override that — Poracle's processor drops the webhook and its bot refuses the
+   * command — so the row is shown off, locked, and explained rather than left looking adjustable.
+   */
+  forcedByPoracle(meta: SettingMeta): boolean {
+    return this.settingsService.isForcedByPoracle(meta.key);
   }
 
   getBool(key: string): boolean {
@@ -575,8 +594,9 @@ export class AdminSettingsComponent implements OnInit {
   groupSummary(group: SettingGroup): string {
     const disableKeys = group.settings.filter(s => s.key.startsWith('disable_'));
     if (disableKeys.length === 0) return '';
-    // Positive framing: report how many features are enabled (i.e. NOT disabled).
-    const count = disableKeys.reduce((acc, s) => acc + (this.getBool(s.key) ? 0 : 1), 0);
+    // Positive framing: report how many features are enabled (i.e. NOT disabled). Counts a
+    // Poracle-forced type as off, so the header agrees with the switches underneath it.
+    const count = disableKeys.reduce((acc, s) => acc + (this.featureEnabled(s) ? 1 : 0), 0);
     return this.i18n.instant('ADMIN_SETTINGS.SUMMARY_ENABLED', { count, total: disableKeys.length });
   }
 

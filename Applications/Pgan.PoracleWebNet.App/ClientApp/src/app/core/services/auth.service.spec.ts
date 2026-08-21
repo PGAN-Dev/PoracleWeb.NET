@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
@@ -39,6 +40,9 @@ describe('AuthService', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        // AuthService reaches TranslateService transitively, via AlertLanguageService -> I18nService,
+        // since it reconciles the alert language once a token exists (#775).
+        provideTranslateService(),
         { provide: ConfigService, useValue: { apiHost: API } },
         {
           provide: Router,
@@ -63,6 +67,7 @@ describe('AuthService', () => {
         providers: [
           provideHttpClient(),
           provideHttpClientTesting(),
+          provideTranslateService(),
           { provide: ConfigService, useValue: { apiHost: API } },
           { provide: Router, useValue: { navigate: jest.fn() } },
         ],
@@ -119,6 +124,11 @@ describe('AuthService', () => {
       // Settings are loaded after token is stored (fixes title not showing after OAuth redirect)
       const settingsReq = httpMock.expectOne(`${API}/api/settings`);
       settingsReq.flush([]);
+      // getAll() also asks which disable_* keys Poracle forces off upstream (#769).
+      httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
+      // The alert language is reconciled here too: App.ngOnInit skips it while signed out (#775), so a
+      // login completed inside one page session would otherwise never pick up humans.language.
+      httpMock.expectOne(`${API}/api/location/language`).flush({ language: 'de' });
 
       // Now navigation should have happened
       expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);

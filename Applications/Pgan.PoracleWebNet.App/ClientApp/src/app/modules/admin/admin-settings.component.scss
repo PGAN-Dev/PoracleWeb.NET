@@ -364,6 +364,12 @@
   margin-top: 4px;
 }
 
+// Shown under a toggle Poracle's own config forces off, so the locked switch has a reason.
+.forced-by-poracle-hint {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
 // ─── Live search bar ────────────────────────────────────────────────────────
 .settings-search {
   position: sticky;

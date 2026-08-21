@@ -1,10 +1,14 @@
+<app-feature-readonly-banner disableKey="disable_lures" />
+
 <div class="page-header">
   <div class="page-header-text">
     <h1>{{ 'LURES.PAGE_TITLE' | translate }}</h1>
     <p class="page-description">{{ 'LURES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" style="background: #e91e63; color: #fff"><mat-icon>add</mat-icon></button>
+    @if (!writesDisabled()) {
+      <button mat-fab (click)="openAddDialog()" style="background: #e91e63; color: #fff"><mat-icon>add</mat-icon></button>
+    }
   </div>
 </div>
 @if (!loading() && lures().length > 0) {
@@ -31,9 +35,11 @@
       <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
-    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-    </button>
+    @if (!writesDisabled()) {
+      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+      </button>
+    }
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
       <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
@@ -87,21 +93,25 @@
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
-          <button
-            mat-icon-button
-            (click)="sendTestAlert(lure)"
-            [disabled]="testAlertService.isSending('lure', lure.uid) || testAlertService.isCoolingDown('lure', lure.uid)"
-            [matTooltip]="
-              testAlertService.isCoolingDown('lure', lure.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
-            "
-            class="test-alert-btn">
-            @if (testAlertService.isSending('lure', lure.uid)) {
-              <mat-icon class="spin">sync</mat-icon>
-            } @else {
-              <mat-icon>send</mat-icon>
-            }
-          </button>
-          <button mat-icon-button (click)="editLure(lure)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          @if (!writesDisabled()) {
+            <button
+              mat-icon-button
+              (click)="sendTestAlert(lure)"
+              [disabled]="testAlertService.isSending('lure', lure.uid) || testAlertService.isCoolingDown('lure', lure.uid)"
+              [matTooltip]="
+                testAlertService.isCoolingDown('lure', lure.uid) ? ('ALARM.TEST_COOLDOWN' | translate) : ('ALARM.TEST_SEND' | translate)
+              "
+              class="test-alert-btn">
+              @if (testAlertService.isSending('lure', lure.uid)) {
+                <mat-icon class="spin">sync</mat-icon>
+              } @else {
+                <mat-icon>send</mat-icon>
+              }
+            </button>
+          }
+          @if (!writesDisabled()) {
+            <button mat-icon-button (click)="editLure(lure)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          }
           <button mat-icon-button (click)="deleteLure(lure)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
@@ -120,9 +130,11 @@
         </svg>
         <h2 class="empty-title">{{ 'LURES.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'LURES.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #e91e63; color: #fff">
-          <mat-icon>add</mat-icon> {{ 'LURES.ADD_LURE' | translate }}
-        </button>
+        @if (!writesDisabled()) {
+          <button mat-flat-button (click)="openAddDialog()" style="background: #e91e63; color: #fff">
+            <mat-icon>add</mat-icon> {{ 'LURES.ADD_LURE' | translate }}
+          </button>
+        }
       </div>
     }
   </div>

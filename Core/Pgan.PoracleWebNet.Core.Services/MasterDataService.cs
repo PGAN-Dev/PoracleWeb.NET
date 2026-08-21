@@ -18,6 +18,7 @@ public partial class MasterDataService(
     private const string PokemonCacheKey = "MasterData_Pokemon";
     private const string ItemCacheKey = "MasterData_Items";
     private const string MoveCacheKey = "MasterData_Moves";
+    private const string MonsterCacheKey = "MasterData_Monsters";
     private const string BaseStatsCacheKey = "MasterData_BaseStats";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
 
@@ -44,6 +45,13 @@ public partial class MasterDataService(
     {
         await this.EnsureInitializedAsync();
         this._cache.TryGetValue(MoveCacheKey, out string? data);
+        return data;
+    }
+
+    public async Task<string?> GetMonsterDataAsync()
+    {
+        await this.EnsureInitializedAsync();
+        this._cache.TryGetValue(MonsterCacheKey, out string? data);
         return data;
     }
 
@@ -113,6 +121,13 @@ public partial class MasterDataService(
                     }
                 }
             }
+            // The whole monster map is kept verbatim as the English fallback for
+            // GET /api/masterdata/monsters, which normally serves PoracleNG's localized version.
+            if (monsters.ValueKind == JsonValueKind.Object)
+            {
+                this._cache.Set(MonsterCacheKey, monsters.GetRawText(), CacheDuration);
+            }
+
             this._cache.Set(PokemonCacheKey, JsonSerializer.Serialize(pokemonMap), CacheDuration);
             this._cache.Set(BaseStatsCacheKey, baseStatsMap, CacheDuration);
             LogCachedPokemonEntries(this._logger, pokemonMap.Count);

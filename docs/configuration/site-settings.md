@@ -45,15 +45,35 @@ Control which alarm categories are available to users. Disabling a type hides it
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `disable_mons` | Pokémon | boolean | Hide Pokémon alarm management from all users. |
-| `disable_raids` | Raids | boolean | Hide raid alarm management from all users. |
-| `disable_quests` | Quests | boolean | Hide quest alarm management from all users. |
-| `disable_invasions` | Invasions | boolean | Hide invasion alarm management from all users. |
-| `disable_lures` | Lures | boolean | Hide lure alarm management from all users. |
-| `disable_nests` | Nests | boolean | Hide nest alarm management from all users. |
-| `disable_gyms` | Gyms | boolean | Hide gym alarm management from all users. |
-| `disable_fort_changes` | Fort Changes | boolean | Hide fort change alarm management from all users. |
-| `disable_maxbattles` | Max Battles | boolean | Hide max battle alarm management from all users. |
+| `disable_mons` | Pokémon | boolean | Stops new Pokémon alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_raids` | Raids | boolean | Stops new raid alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_quests` | Quests | boolean | Stops new quest alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_invasions` | Invasions | boolean | Stops new invasion alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_lures` | Lures | boolean | Stops new lure alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_nests` | Nests | boolean | Stops new nest alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_gyms` | Gyms | boolean | Stops new gym alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_fort_changes` | Fort Changes | boolean | Stops new fort-change alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+| `disable_maxbattles` | Max Battles | boolean | Stops new max-battle alarms and edits to existing ones. What a user already has stays listed and can still be deleted. |
+
+!!! info "Disabling a type does not hide what people already have"
+    Switching a type off blocks new alarms and edits to existing ones. It does not hide the page: the
+    rules a user already created stay listed, and they can still delete them.
+
+    That is deliberate. An alarm of a disabled type can never fire, so the useful thing left to do
+    with it is remove it, and hiding the page would leave people holding rules they could neither see
+    nor clear.
+
+    The page says which side switched it off, the nav item keeps a padlock, and the create, edit,
+    bulk-distance and test-alert controls are gone. Deleting is untouched.
+
+!!! warning "Poracle can switch these off too, and it wins"
+    Poracle has its own per-type flags (`disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle`, `disable_fort_update`). When one of those is set, its processor drops the webhook and its bot refuses the command, so the type can never fire — and this site now honours that. A type is off if **either** side disables it.
+
+    The toggle for a type Poracle has disabled renders off and greyed, with a note saying where the decision came from; switching it on here would promise something every write refuses. This is also the case where leaving existing alarms deletable matters most: Poracle's bot refuses the matching command while the type is off, so this page is the only place left to clean up.
+
+    ![The Lures toggle, off and greyed out, with a note reading "Disabled in Poracle's own config. Poracle drops these webhooks and its bot refuses the command, so this cannot be enabled here."](../screenshots/admin-forced-by-poracle.png) Your own toggles still work for everything Poracle leaves enabled, and they gate features Poracle has no opinion about.
+
+    If Poracle is unreachable, or too old to report its flags, the settings on this page are in sole charge — the gate fails **open** rather than disabling every type because a server was down.
 
 ---
 
@@ -70,7 +90,13 @@ Toggle user-facing features on or off.
 | `disable_update_check` | Do not check for updates | boolean | Stops the version check against `api.github.com` and `raw.githubusercontent.com`, which runs when an admin opens the Versions card and is cached six hours afterwards. Two anonymous GETs, no identifiers and no payload. With it on, the Versions card on **Admin > Settings** still reports the running versions but cannot say whether they are current. |
 | `disable_user_geofences` | Custom Geofences | boolean | Hides the My Geofences page and the admin review queue, and 403s the create, rename, import, submit, activate and deactivate endpoints. Delete is deliberately left open, so a user can still clear out a geofence they no longer want. Geofences that already exist keep being served in the [geofence feed](../features/custom-geofences/index.md) and keep matching. See [Admin operations](../features/custom-geofences/admin-operations.md). |
 | `enable_templates` | Templates | boolean | Allow users to choose notification message templates. |
-| `allowed_languages` | Allowed UI Languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all 11 languages. |
+| `allowed_languages` | Allowed UI Languages | csv | Comma-separated language codes users can select (e.g., `en,de,fr`). Leave empty to show all 11 languages. Applies to the signed-out login page as well. English is always available. |
+
+Beneath that row the page reports Poracle's own configured locale, which is the language a
+first-time visitor lands on when neither a stored choice nor their browser can answer. It is read
+from Poracle and cannot be set here — see [Values that are not settings](#values-that-are-not-settings).
+
+![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
 
 ---
 
@@ -205,6 +231,27 @@ the UI layer instead. Neither is visible to non-admins.
 |---|---|---|
 | `migration_completed` | system | Sentinel flag indicating that the one-time data migration from `pweb_settings` to structured tables has completed. Set automatically by `SettingsMigrationStartupService`. |
 | `quick_picks_seeded` | admin | Sentinel flag indicating that the built-in quick picks have been created once. Written by `POST /api/quick-picks/seed` after a successful seed, and backfilled at startup for installations that already hold global picks. Without it an admin who deliberately deletes every preset gets them all back on their next visit. Admin-readable via the API (the SPA guard needs it) but hidden from the settings UI. |
+
+## Values that are not settings
+
+Some keys arrive on the settings response without being stored anywhere. They are **projections** of
+another system's configuration, present so the SPA can read them like any other value.
+
+| Key | Source | What it is |
+|---|---|---|
+| `poracle_locale` | Poracle's `general.locale` | The language a first-time visitor lands on, when neither a stored choice nor their browser can answer. See [Internationalization](../features/internationalization.md). |
+
+A projection is read fresh from Poracle, cached briefly, and **cannot be written**. `PUT /api/settings/poracle_locale`
+answers 400, and the admin page renders the value as a read-only line under Allowed UI Languages
+rather than as an editable box. The refusal matters more than it looks: a stored row would take
+precedence over the projected value, so a single accidental save would pin the language default
+permanently and stop the site tracking Poracle's configuration at all.
+
+There is also `GET /api/settings/upstream-disabled`, which lists the `disable_*` keys Poracle's own
+config is forcing off. Any signed-in user can read it — the nav and the route guards need it — and it
+is empty when Poracle is unreachable.
+
+---
 
 ## Sensitive Settings
 
