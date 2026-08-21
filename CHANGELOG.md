@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.0] - 2026-08-21
+
 ### Added
 
 - **A German server reads as a German site to someone arriving for the first time.** The display language fell back to English for everyone whose browser advertises a language this UI does not ship, which on a German or Italian deployment is most first-time visitors. Poracle's own `locale` was already fetched and projected to the browser and read by nothing; it is now the last fallback ahead of the hardcoded English, in both the display language and the language Poracle writes alerts in. A stored choice still wins, and browser detection still comes second — a French browser on a German server is better served in French — so the server's locale answers only for the visitors the browser cannot place. It has to pass the `allowed_languages` filter, so an admin who restricted the UI to English and French does not get a German default they excluded, and a locale PoracleNG has translations for but this UI does not (`ja`, `ru`, `zh-cn`) falls back to English rather than half-applying. The locale reaches the browser on the anonymous settings endpoint rather than through `/api/config`, which is `[Authorize]` and would have put a 401 on the login page again ([#770](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/770)).
@@ -982,7 +984,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.16.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.0...HEAD
+[2.17.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.16.0...v2.17.0
 [2.16.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.3...v2.16.0
 [2.15.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.2...v2.15.3
 [2.15.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.1...v2.15.2
