@@ -1,9 +1,0 @@
-<mat-form-field appearance="outline" class="language-field">
-  <mat-label>{{ 'AREAS.NOTIFICATION_LANGUAGE' | translate }}</mat-label>
-  <mat-icon matPrefix>translate</mat-icon>
-  <mat-select [value]="selectedLanguage()" (selectionChange)="onLanguageChange($event.value)" panelClass="language-panel">
-    @for (lang of languages; track lang.code) {
-      <mat-option [value]="lang.code">{{ lang.name }}</mat-option>
-    }
-  </mat-select>
-</mat-form-field>
