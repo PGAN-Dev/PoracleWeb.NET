@@ -169,6 +169,40 @@ describe('MasterDataService', () => {
       ]);
     });
 
+    it('should drop a lone base form under a translated name (it: "Normale")', () => {
+      service.loadData().subscribe();
+
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1': 'Bulbasaur' });
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+      httpMock
+        .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
+        .flush({
+          '1_0': { id: 1, name: 'Bulbasaur', form: { id: 0, name: '' } },
+          '1_123': { id: 1, name: 'Bulbasaur', form: { id: 123, name: 'Normale' } },
+        });
+
+      expect(service.getFormsForPokemon(1)).toEqual([]);
+    });
+
+    // Koraidon and Miraidon are the only two species in live data whose single real form is not
+    // the base one, so the drop rule has to be about the name and not about the count.
+    it('should keep a lone form that is not the base form', () => {
+      service.loadData().subscribe();
+
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1007': 'Koraidon' });
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+      httpMock
+        .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
+        .flush({
+          '1007_0': { id: 1007, name: 'Koraidon', form: { id: 0, name: '' } },
+          '1007_3084': { id: 1007, name: 'Koraidon', form: { id: 3084, name: 'Apex Build' } },
+        });
+
+      expect(service.getFormsForPokemon(1007)).toEqual([{ id: 3084, name: 'Apex Build' }]);
+    });
+
     it('should drop a lone "Normal" form covered by "All Forms"', () => {
       service.loadData().subscribe();
 

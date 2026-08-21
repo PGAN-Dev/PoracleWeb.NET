@@ -196,9 +196,15 @@ export class MasterDataService {
     // default, the synthetic "All Forms" option already covers it, so listing it adds
     // noise. Keep "Normal" only when sibling variants (Galarian, Alolan, etc.) exist
     // so users can target the base form on its own.
-    const normalLabel = typeLabelMap.get('Normal');
+    //
+    // The name is matched by prefix because it is now translated. Across the locales this UI
+    // offers, prod serves "Normal" for en/de/fr/es/pl/sv and "Normale" for it; nl, pt, pt-BR and
+    // da have no Poracle translation and fall back to English. Species whose only real form is
+    // something else - Koraidon's "Apex Build", Miraidon's "Ultimate Mode", the two exceptions in
+    // live data - are unaffected. A locale that translates it to something else entirely shows one
+    // redundant chip; it cannot hide a form.
     for (const [pokemonId, forms] of grouped) {
-      if (forms.length === 1 && (forms[0].name === 'Normal' || forms[0].name === normalLabel)) {
+      if (forms.length === 1 && /^normal/i.test(forms[0].name)) {
         grouped.delete(pokemonId);
       }
     }
