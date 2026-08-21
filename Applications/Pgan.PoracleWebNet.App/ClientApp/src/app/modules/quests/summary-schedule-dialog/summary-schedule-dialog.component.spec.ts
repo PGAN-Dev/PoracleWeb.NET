@@ -1,4 +1,3 @@
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -10,7 +9,6 @@ import { SummaryScheduleDialogComponent, SummaryScheduleDialogData } from './sum
 import { ActiveHourEntry } from '../../../core/models/active-hours.models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
-import { SettingsService } from '../../../core/services/settings.service';
 import { SummarySchedule, SummaryScheduleService } from '../../../core/services/summary-schedule.service';
 import { ActiveHoursEditorDialogComponent } from '../../../shared/components/active-hours-editor-dialog/active-hours-editor-dialog.component';
 
@@ -46,7 +44,6 @@ describe('SummaryScheduleDialogComponent', () => {
       schedule?: SummarySchedule | null;
       location?: { latitude: number; longitude: number };
       data?: SummaryScheduleDialogData;
-      questsDisabled?: boolean;
     } = {},
   ) {
     const enabled = overrides.enabled ?? true;
@@ -74,14 +71,6 @@ describe('SummaryScheduleDialogComponent', () => {
         { provide: SummaryScheduleService, useValue: summaryService },
         { provide: MatDialog, useValue: matDialog },
         { provide: LocationService, useValue: locationService },
-        {
-          provide: SettingsService,
-          useValue: {
-            isDisabled: (key: string) => key === 'disable_quests' && (overrides.questsDisabled ?? false),
-            isForcedByPoracle: () => false,
-            siteSettings: signal({}),
-          },
-        },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: I18nService, useValue: { instant: (key: string) => key } },
       ],
@@ -267,36 +256,6 @@ describe('SummaryScheduleDialogComponent', () => {
       setup({ location: { latitude: 51.5, longitude: -0.12 }, schedule: QUEST_SCHEDULE });
       expect(component.userLat()).toBe(51.5);
       expect(component.userLon()).toBe(-0.12);
-    });
-  });
-
-  const buttonLabels = (fixture: { nativeElement: HTMLElement }): string[] =>
-    [...fixture.nativeElement.querySelectorAll('button')].map(b => b.textContent ?? '');
-
-  describe('when quests are disabled', () => {
-    /**
-     * A schedule for a disabled type delivers nothing, so clearing it is the one useful action left.
-     * Hiding the dialog, or its Clear button, would strand a schedule its owner cannot see or remove.
-     */
-    it('still offers Clear', () => {
-      const labels = buttonLabels(setup({ questsDisabled: true }));
-
-      expect(labels.some(l => l.includes('CLEAR'))).toBe(true);
-    });
-
-    it('drops Save and Send now', () => {
-      const fixture = setup({ questsDisabled: true });
-      const labels = buttonLabels(fixture);
-
-      expect(labels.some(l => l.includes('SEND_NOW'))).toBe(false);
-      expect(labels.some(l => l.includes('SUMMARY_SCHEDULE_EDIT'))).toBe(false);
-    });
-
-    it('keeps Save and Send now while quests are enabled', () => {
-      const labels = buttonLabels(setup());
-
-      expect(labels.some(l => l.includes('SEND_NOW'))).toBe(true);
-      expect(labels.some(l => l.includes('SUMMARY_SCHEDULE_EDIT'))).toBe(true);
     });
   });
 });

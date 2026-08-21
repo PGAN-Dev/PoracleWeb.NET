@@ -301,20 +301,12 @@ export class DashboardComponent implements OnInit {
   readonly username = computed(() => this.authService.user()?.username ?? 'Trainer');
 
   /**
-   * Cards for the alarm types worth showing. A disabled type keeps its card only while it still holds
-   * alarms, because this is the way back to a page whose sidebar item is gone (#792) — the rules can
-   * still be viewed and deleted there. Once the last one goes, so does the card.
-   *
-   * Counts live here rather than in the nav, which is drawn before they load; behind the existing
-   * skeletons there is nothing to flicker.
+   * Cards for the alarm types this instance actually offers. A disabled type is gone from here as it
+   * is from the sidebar, the route and the API — a card linking to a page that answers 403 would be
+   * worse than no card. Rules already stored on a disabled type stay dormant and come back intact if
+   * it is switched on again. See #792.
    */
-  readonly visibleCards = computed(() => {
-    const counts = this.counts();
-    return this.cards.filter(card => {
-      if (!this.settingsService.isDisabled(card.disableKey)) return true;
-      return (counts?.[card.key] ?? 0) > 0;
-    });
-  });
+  readonly visibleCards = computed(() => this.cards.filter(card => !this.settingsService.isDisabled(card.disableKey)));
 
   readonly weather = signal<WeatherData | null>(null);
 
@@ -356,11 +348,6 @@ export class DashboardComponent implements OnInit {
     } else if (tip.route) {
       this.router.navigate([tip.route]);
     }
-  }
-
-  /** True for a card that survives only because its disabled type still has alarms. */
-  isLockedCard(card: DashboardCard): boolean {
-    return this.settingsService.isDisabled(card.disableKey);
   }
 
   navigate(route: string): void {

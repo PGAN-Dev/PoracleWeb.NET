@@ -1,5 +1,3 @@
-<app-feature-readonly-banner disableKey="disable_quests" />
-
 <div class="page-header">
   <div class="page-header-text">
     <h1>{{ 'QUESTS.PAGE_TITLE' | translate }}</h1>
@@ -17,11 +15,9 @@
         </button>
       </mat-menu>
     }
-    @if (!writesDisabled()) {
-      <button mat-fab class="fab-quest" (click)="openAddDialog()">
-        <mat-icon>add</mat-icon>
-      </button>
-    }
+    <button mat-fab class="fab-quest" (click)="openAddDialog()">
+      <mat-icon>add</mat-icon>
+    </button>
   </div>
 </div>
 
@@ -49,11 +45,10 @@
       <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
     }
     <div class="bulk-spacer"></div>
-    @if (!writesDisabled()) {
-      <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
-        <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
-      </button>
-    }
+    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+    </button>
+
     <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
       <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
     </button>
@@ -121,25 +116,23 @@
             (click)="editScope(quest); $event.stopPropagation()" />
         </mat-card-content>
         <mat-card-actions align="end">
-          @if (!writesDisabled()) {
-            <button
-              mat-icon-button
-              (click)="sendTestAlert(quest)"
-              [disabled]="testAlertService.isSending('quest', quest.uid) || testAlertService.isCoolingDown('quest', quest.uid)"
-              [matTooltip]="(testAlertService.isCoolingDown('quest', quest.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
-              class="test-alert-btn">
-              @if (testAlertService.isSending('quest', quest.uid)) {
-                <mat-icon class="spin">sync</mat-icon>
-              } @else {
-                <mat-icon>send</mat-icon>
-              }
-            </button>
-          }
-          @if (!writesDisabled()) {
-            <button mat-icon-button (click)="editQuest(quest)" [matTooltip]="'COMMON.EDIT' | translate">
-              <mat-icon>edit</mat-icon>
-            </button>
-          }
+          <button
+            mat-icon-button
+            (click)="sendTestAlert(quest)"
+            [disabled]="testAlertService.isSending('quest', quest.uid) || testAlertService.isCoolingDown('quest', quest.uid)"
+            [matTooltip]="(testAlertService.isCoolingDown('quest', quest.uid) ? 'ALARM.TEST_COOLDOWN' : 'ALARM.TEST_SEND') | translate"
+            class="test-alert-btn">
+            @if (testAlertService.isSending('quest', quest.uid)) {
+              <mat-icon class="spin">sync</mat-icon>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+          </button>
+
+          <button mat-icon-button (click)="editQuest(quest)" [matTooltip]="'COMMON.EDIT' | translate">
+            <mat-icon>edit</mat-icon>
+          </button>
+
           <button mat-icon-button (click)="deleteQuest(quest)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
             <mat-icon>delete</mat-icon>
           </button>
@@ -163,11 +156,9 @@
         </svg>
         <h2 class="empty-title">{{ 'QUESTS.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'QUESTS.EMPTY_SUBTITLE' | translate }}</p>
-        @if (!writesDisabled()) {
-          <button mat-flat-button class="cta-quest" (click)="openAddDialog()">
-            <mat-icon>add</mat-icon> {{ 'QUESTS.ADD_QUEST' | translate }}
-          </button>
-        }
+        <button mat-flat-button class="cta-quest" (click)="openAddDialog()">
+          <mat-icon>add</mat-icon> {{ 'QUESTS.ADD_QUEST' | translate }}
+        </button>
       </div>
     }
   </div>

@@ -15,9 +15,10 @@ import { ProfileService } from '../../core/services/profile.service';
 import { SettingsService } from '../../core/services/settings.service';
 
 /**
- * The dashboard card is the way into a disabled alarm type's page, now that the sidebar item is gone
- * (#792). It has to appear for exactly the people who need it — those still holding rules of that
- * type — and for nobody else, or it becomes the noise it was meant to remove.
+ * A disabled alarm type is gone everywhere: the sidebar item, the dashboard card, the route and the
+ * API all refuse it (#792). The card list is the last of those with any conditional logic, so this
+ * pins that it drops a disabled type regardless of what is stored on it — a card linking to a page
+ * that does not answer would be worse than no card.
  */
 describe('DashboardComponent cards', () => {
   const EMPTY: DashboardCounts = {
@@ -88,33 +89,16 @@ describe('DashboardComponent cards', () => {
     expect(keys(component)).not.toContain('lures');
   });
 
-  /** The case the card exists for: without it the page has no entry point at all. */
-  it('keeps a disabled type that still has alarms', () => {
+  /** Alarms stored on a disabled type do not bring its card back — the page they link to is gated. */
+  it('drops a disabled type even when it still has alarms', () => {
     const component = setup(['disable_lures'], { lures: 3 });
 
-    expect(keys(component)).toContain('lures');
+    expect(keys(component)).not.toContain('lures');
   });
 
-  it('marks that card as locked so it does not read as an invitation', () => {
-    const component = setup(['disable_lures'], { lures: 3 });
-    const lures = component.visibleCards().find(c => c.key === 'lures')!;
-
-    expect(component.isLockedCard(lures)).toBe(true);
-  });
-
-  it('leaves enabled types unmarked even when they are empty', () => {
-    const component = setup([], {});
-    const lures = component.visibleCards().find(c => c.key === 'lures')!;
-
-    expect(component.isLockedCard(lures)).toBe(false);
-  });
-
-  /** Eggs share the raid key, so disabling raids must not leave an egg card behind. */
+  /** Eggs share the raid key, so disabling raids takes the egg card with it. */
   it('treats eggs as raids', () => {
-    const withNone = setup(['disable_raids'], {});
-    expect(keys(withNone)).not.toContain('eggs');
-
-    const withEggs = setup(['disable_raids'], { eggs: 2 });
-    expect(keys(withEggs)).toContain('eggs');
+    expect(keys(setup(['disable_raids'], {}))).not.toContain('eggs');
+    expect(keys(setup(['disable_raids'], { eggs: 2 }))).not.toContain('eggs');
   });
 });

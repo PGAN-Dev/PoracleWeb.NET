@@ -721,10 +721,3 @@
     gap: 10px;
   }
 }
-
-/* A disabled type's card, kept only because alarms remain on it. Muted so it does not read as an
-   invitation to add more — the page it leads to cannot create any. */
-.dashboard-card.locked-card {
-  opacity: 0.72;
-  border-style: dashed;
-}

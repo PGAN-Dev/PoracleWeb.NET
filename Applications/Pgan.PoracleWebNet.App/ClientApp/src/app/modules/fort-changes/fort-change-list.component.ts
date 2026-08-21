@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -18,10 +18,8 @@ import { FortChange } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { FortChangeService } from '../../core/services/fort-change.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { FeatureReadonlyBannerComponent } from '../../shared/components/feature-readonly-banner/feature-readonly-banner.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -29,7 +27,6 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FeatureReadonlyBannerComponent,
     MatCardModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -55,7 +52,6 @@ export class FortChangeListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly fortChangeService = inject(FortChangeService);
   private readonly i18n = inject(I18nService);
-  private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly fortChanges = signal<FortChange[]>([]);
   readonly loading = signal(true);
@@ -64,9 +60,6 @@ export class FortChangeListComponent implements OnInit {
   readonly selectedIds = signal(new Set<number>());
 
   readonly selectMode = signal(false);
-
-  /** True while this alarm type is switched off: the page reads and deletes, but cannot create or edit. */
-  readonly writesDisabled = computed(() => this.settingsService.isDisabled('disable_fort_changes'));
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -190,13 +183,6 @@ export class FortChangeListComponent implements OnInit {
 
   /** Change one alarm's delivery scope from its card, without opening the whole edit dialog. */
   editScope(item: FortChange): void {
-    if (this.writesDisabled()) {
-      // The chip stays visible because it says something worth reading; editing it is a write, and
-      // the API refuses those while the type is disabled. Say so rather than no-op silently.
-      this.snackBar.open(this.i18n.instant('ALARM.READ_ONLY_TOAST'), this.i18n.instant('TOAST.OK'), { duration: 4000 });
-      return;
-    }
-
     const data: WhereSheetData = {
       profileAreas: this.profileAreas(),
       scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),

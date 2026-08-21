@@ -258,18 +258,19 @@ User-facing documentation: `docs/features/webhooks.md`.
 ### Feature Gating (`disable_*` Site Settings)
 The `disable_mons` / `disable_raids` / `disable_quests` / `disable_invasions` / `disable_lures` / `disable_nests` / `disable_gyms` / `disable_maxbattles` / `disable_fort_changes` site settings disable entire alarm types for everyone, including admins. Eggs share `disable_raids` (no separate `disable_eggs` exists; eggs share the raid UI in the SPA). See #236 for the original bug.
 
-**A disabled alarm type is read-and-delete, not hidden (#784).** The ten alarm controllers carry
-`[RequireFeatureEnabled]` on their **write actions only** — `Create`, `Update`, and both distance
-bulk updates. Reads and deletes are deliberately open: an alarm of a disabled type can never fire, so
-removing it is the one useful action left, and when the type is disabled in Poracle rather than here
-its bot refuses the matching command too, leaving the web page as the only way to clean up. The nav
-item stays (with a padlock) for the same reason — hiding it would strand the alarms.
+**A disabled alarm type disappears completely.** The gate is **class-level** on the ten alarm
+controllers and on `SummaryScheduleController`, so every action answers 403 — reads and deletes
+included — and the SPA hides the sidebar item, the dashboard card and the route.
 
-The exemption is recorded in `FeatureGateCoverageTests.IntentionallyUngatedWrites`, alongside the
-geofence delete that set the precedent, and `DisabledAlarmTypeAccessTests` fails the build if a
-class-level attribute comes back or a new write action ships without one. On the SPA side,
-`alarm-list-readonly.spec.ts` reads the ten templates and checks that every create/edit control sits
-inside `@if (!writesDisabled())` and that no delete does.
+This was briefly the other way round. #784 moved the gate onto the write actions so users could still
+see and delete rules of a switched-off type; #792 reverted it. An operator disabling a type means it
+should be gone, and dormant rules are harmless: they cannot fire, they are not deleted, and they come
+back intact when the type is re-enabled. `DisabledAlarmTypeGatingTests` fails the build if the gate
+moves back onto individual actions.
+
+The corollary is that there is nothing read-only to build around it: no banner, no `writesDisabled`
+computed, no per-control `@if`. If you find yourself adding one, the page it would live on is
+unreachable.
 
 **Any `disable_*` toggle must be enforced server-side.** A toggle wired only into the SPA (nav item, route guard) is decoration, not a gate: the endpoints stay reachable by direct API call, and client state — the `siteSettings` signal — is trivially tampered with. `disable_areas`, `disable_profiles` and `disable_location` all shipped that way and were only closed later. `FeatureGateCoverageTests` now fails the build if a key is added to `DisableFeatureKeys` without a controller enforcing it.
 

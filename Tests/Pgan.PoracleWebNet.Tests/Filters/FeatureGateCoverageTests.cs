@@ -166,36 +166,6 @@ public class FeatureGateCoverageTests
         // existing geofences they can no longer delete - blocking cleanup prevents no harm.
         "UserGeofenceController.DeleteGeofence",
 
-        // Same reasoning, applied to every alarm type: a disabled type blocks new rules and edits,
-        // and leaves the ones a user already has visible and removable. Deleting is the only action
-        // still worth taking on a rule that can never fire, and when the type is disabled in Poracle
-        // rather than here its bot refuses the matching command too - so this is the only place left
-        // to clean up. Reads are open for the same reason and are not writes, so they never reach
-        // this list.
-        "MonsterController.Delete",
-        "MonsterController.DeleteAll",
-        "RaidController.Delete",
-        "RaidController.DeleteAll",
-        "EggController.Delete",
-        "EggController.DeleteAll",
-        "QuestController.Delete",
-        "QuestController.DeleteAll",
-        "InvasionController.Delete",
-        "InvasionController.DeleteAll",
-        "LureController.Delete",
-        "LureController.DeleteAll",
-        "NestController.Delete",
-        "NestController.DeleteAll",
-        "GymController.Delete",
-        "GymController.DeleteAll",
-        "FortChangeController.Delete",
-        "FortChangeController.DeleteAll",
-        "MaxBattleController.Delete",
-        "MaxBattleController.DeleteAll",
-
-        // Quest summary schedules follow the alarm types: a schedule for a disabled type delivers
-        // nothing, so clearing it is the one useful thing left.
-        "SummaryScheduleController.DeleteSchedule",
     };
 
     /// <summary>A write, by HTTP verb. Reads are deliberately left open on some gated controllers.</summary>
