@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Quest summary schedules follow the same rule as the alarm types.** Turning quests off used to take the whole schedule with it -- unreadable and unclearable until someone turned quests back on. Now the schedule you already have can be opened and cleared; setting one, and sending one on demand, are refused. It was the last controller still doing it the old way.
 - **Switching an alarm type off no longer hides the alarms people already have.** It used to take the whole page with it: rules a user had already created became invisible, and unremovable, until someone switched the type back on. That is the wrong way round -- an alarm of a disabled type can never fire, so deleting it is the one thing still worth doing, and when the type is disabled in Poracle rather than here its bot refuses the matching command too, which leaves this page as the only way to clean up. The page now stays reachable and says which side switched it off. Creating, editing, bulk distance changes and test alerts are gone; the list and both delete paths are untouched, and the nav item keeps a padlock so you know before you click.
 ### Documentation
 

@@ -11,6 +11,7 @@ import { catchError, finalize, of } from 'rxjs';
 import { ActiveHourEntry, compressDayRange, formatTime12h, groupActiveHours } from '../../../core/models/active-hours.models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { SummarySchedule, SummaryScheduleService } from '../../../core/services/summary-schedule.service';
 import {
   ActiveHoursEditorDialogComponent,
@@ -45,32 +46,37 @@ export class SummaryScheduleDialogComponent {
   /** Timestamp (ms) when the trigger cooldown expires; 0 = not cooling down. */
   private readonly cooldownUntil = signal(0);
   private readonly dialog = inject(MatDialog);
+
   private readonly dialogRef = inject(MatDialogRef<SummaryScheduleDialogComponent>);
+
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
+  private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
-
   private readonly summaryService = inject(SummaryScheduleService);
 
   readonly coolingDown = computed(() => Date.now() < this.cooldownUntil());
+
   readonly data: SummaryScheduleDialogData = inject(MAT_DIALOG_DATA);
   readonly schedule = signal<SummarySchedule | null>(null);
-
   readonly entries = computed<ActiveHourEntry[]>(() => this.schedule()?.activeHours ?? []);
 
   readonly hasSchedule = computed(() => this.entries().length > 0);
-  readonly loading = signal(true);
 
+  readonly loading = signal(true);
   /** Grouped amber pills mirroring the active-hours-chip idiom. */
   readonly pills = computed(() =>
     groupActiveHours(this.entries()).map(g => ({ label: `${compressDayRange(g.days)} ${formatTime12h(g.hours, g.mins)}` })),
   );
 
   readonly saving = signal(false);
-  readonly triggering = signal(false);
 
+  readonly triggering = signal(false);
   readonly userLat = signal(0);
+
   readonly userLon = signal(0);
+  /** Quests disabled: the schedule can be read and cleared, but not set or fired. */
+  readonly writesDisabled = computed(() => this.settingsService.isDisabled('disable_quests'));
 
   constructor() {
     this.summaryService

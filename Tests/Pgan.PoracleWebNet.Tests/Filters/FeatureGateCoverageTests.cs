@@ -192,6 +192,10 @@ public class FeatureGateCoverageTests
         "FortChangeController.DeleteAll",
         "MaxBattleController.Delete",
         "MaxBattleController.DeleteAll",
+
+        // Quest summary schedules follow the alarm types: a schedule for a disabled type delivers
+        // nothing, so clearing it is the one useful thing left.
+        "SummaryScheduleController.DeleteSchedule",
     };
 
     /// <summary>A write, by HTTP verb. Reads are deliberately left open on some gated controllers.</summary>
