@@ -246,9 +246,9 @@ UPDATE gym SET team = 4 WHERE team = 0;
 !!! note "Legacy issue (PoracleJS only)"
     This was caused by direct database writes with incorrect C# model defaults in early versions of PoracleWeb.NET. New alarms created through the PoracleNG API proxy have correct defaults applied by PoracleNG itself. The SQL queries below help diagnose alarms created before the migration, on PoracleJS installations.
 
-**Problem**: On PoracleJS, monster alarms created by old versions of PoracleWeb.NET may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly in the old PHP UI as "-XXL". This does not apply to PoracleNG, which applies its own defaults on every write.
+**Problem**: On PoracleJS, monster alarms created by old versions of PoracleWeb.NET may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly as "-XXL". This does not apply to PoracleNG, which applies its own defaults on every write.
 
-**Solution**: All Create model defaults are aligned with the PHP PoracleWeb.NET `include/defaults.php`. Key values:
+**Solution**: All Create model defaults are aligned with the values Poracle itself expects. Key values:
 
 - `size=-1` means "no size filter" (not `0`)
 - `max_size=5` means "up to XXL"
@@ -262,7 +262,7 @@ If users report missing alerts, check the `monsters` table for rows where max fi
 -- Find alarms with broken size filter (rejects all pokemon with size data)
 SELECT * FROM monsters WHERE max_size = 0;
 
--- Find alarms with incorrect "no size filter" value (shows as "-XXL" in PHP UI)
+-- Find alarms with incorrect "no size filter" value (shows as "-XXL")
 SELECT * FROM monsters WHERE size = 0;
 ```
 

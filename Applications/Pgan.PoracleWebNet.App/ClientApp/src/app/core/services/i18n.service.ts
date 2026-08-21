@@ -30,7 +30,7 @@ export class I18nService {
 
   private readonly translate = inject(TranslateService);
 
-  /** All languages supported by the UI (matching PoracleWeb PHP). */
+  /** All languages supported by the UI. */
   readonly allLanguages: UiLanguage[] = [
     { name: 'English', code: 'en', countryCode: 'gb', flag: '\u{1F1EC}\u{1F1E7}' },
     { name: 'Fran\u00E7ais', code: 'fr', countryCode: 'fr', flag: '\u{1F1EB}\u{1F1F7}' },
