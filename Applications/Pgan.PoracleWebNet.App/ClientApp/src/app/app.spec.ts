@@ -155,6 +155,7 @@ describe('App bootstrap language defaults (#770)', () => {
     const loadOnce = jest.fn(() => of([]));
     const loadPublic = jest.fn(() => of([]));
     const init = jest.fn();
+    const alertLanguage = { languages: [], load: jest.fn(), selected: signal('en') };
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -186,7 +187,7 @@ describe('App bootstrap language defaults (#770)', () => {
             toggleAlerts: () => of(null),
           },
         },
-        { provide: AlertLanguageService, useValue: { languages: [], load: jest.fn(), selected: signal('en') } },
+        { provide: AlertLanguageService, useValue: alertLanguage },
         { provide: DashboardService, useValue: { getCounts: () => of({}) } },
         { provide: I18nService, useValue: { init } },
       ],
@@ -194,7 +195,7 @@ describe('App bootstrap language defaults (#770)', () => {
 
     const app = TestBed.runInInjectionContext(() => new App());
     app.ngOnInit();
-    return { app, init, loadOnce, loadPublic };
+    return { alertLanguage, app, init, loadOnce, loadPublic };
   };
 
   it('uses only the anonymous settings endpoint when signed out', () => {
@@ -221,5 +222,19 @@ describe('App bootstrap language defaults (#770)', () => {
     const { init } = setup({ authenticated: false, settings: {} });
 
     expect(init).toHaveBeenLastCalledWith(undefined, undefined);
+  });
+
+  it('does not reconcile the alert language while signed out (#775)', () => {
+    // GET /api/location/language is [Authorize]. Calling it here guaranteed a 401 on every login-page
+    // visit; LocationService swallowing the error is what kept it invisible.
+    const { alertLanguage } = setup({ authenticated: false, settings: {} });
+
+    expect(alertLanguage.load).not.toHaveBeenCalled();
+  });
+
+  it('reconciles the alert language when signed in', () => {
+    const { alertLanguage } = setup({ authenticated: true, settings: {} });
+
+    expect(alertLanguage.load).toHaveBeenCalled();
   });
 });
