@@ -838,6 +838,7 @@ public partial class AuthController(
         var adminDisable = human.AdminDisable == 1;
         var enabled = human.Enabled == 1 && human.AdminDisable == 0;
         var dbProfileNo = human.CurrentProfileNo;
+        var managedWebhooks = await this.ResolveManagedWebhooksAsync();
 
         var userInfo = new UserInfo
         {
@@ -849,7 +850,7 @@ public partial class AuthController(
             Enabled = enabled,
             ProfileNo = dbProfileNo,
             AvatarUrl = this.User.FindFirstValue("avatarUrl"),
-            ManagedWebhooks = this.ManagedWebhooks.Length > 0 ? this.ManagedWebhooks : null,
+            ManagedWebhooks = managedWebhooks,
             ProfileName = await this.ActiveProfileNameAsync(dbProfileNo),
         };
 
@@ -923,6 +924,50 @@ public partial class AuthController(
     {
         message = "Logged out successfully."
     });
+
+    /// <summary>
+    /// The webhooks this session may manage, resolved live rather than read from the JWT claim.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The claim is minted at login and lives 24 hours, so a delegate granted access today could not
+    /// reach <c>/my-webhooks</c> until their token happened to refresh — while the page itself and
+    /// <c>POST /api/admin/impersonate</c> would already have let them in, both having moved to live
+    /// resolution in #601 and #626. This response drives whether the nav item renders at all, so it was
+    /// the last consumer of the claim and the one that decided whether the others were reachable.
+    /// </para>
+    /// <para>
+    /// Two cases keep the claim instead. An impersonation session, where resolving the impersonated
+    /// account's own delegations answers a different question entirely — the same trap #663 fixed for
+    /// admin status. And a degraded resolve, where an unreachable PoracleNG or a <c>poracle_web</c> blip
+    /// would otherwise strip a legitimate delegate's nav item mid-session (#656, #667); there the two
+    /// sets are unioned, since a partial answer may have found a new grant while missing an old one.
+    /// </para>
+    /// <para>
+    /// Nothing authorises off the claim any more — it is a cold fallback for the degraded path only.
+    /// Both real checks (the list and the impersonation grant) resolve live and fail closed.
+    /// </para>
+    /// </remarks>
+    private async Task<string[]?> ResolveManagedWebhooksAsync()
+    {
+        var claimed = this.ManagedWebhooks;
+
+        if (this.IsImpersonating)
+        {
+            return claimed.Length > 0 ? claimed : null;
+        }
+
+        var roles = await this._roleResolver.ResolveAsync(this.UserId);
+        var resolved = roles.ManagedWebhooks ?? [];
+
+        if (roles.Resolved)
+        {
+            return resolved.Length > 0 ? resolved : null;
+        }
+
+        string[] merged = [.. resolved.Union(claimed, StringComparer.Ordinal)];
+        return merged.Length > 0 ? merged : null;
+    }
 
     /// <summary>
     /// Calls PoracleJS getAdministrationRoles once and returns (isAdmin, managedWebhooks).
