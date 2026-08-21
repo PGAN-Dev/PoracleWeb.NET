@@ -1,0 +1,2233 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web application for managing Poracle Pokemon GO notification alarms">
+      
+      
+      
+        <link rel="canonical" href="https://pgan-dev.github.io/PoracleWeb.NET/poracleng-v2-review/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>PoracleNG v2 API Review & PoracleWeb.NET Migration Plan - PoracleWeb.NET</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#poracleng-v2-api-review-poraclewebnet-migration-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="PoracleWeb.NET" class="md-header__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PoracleWeb.NET
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PoracleNG v2 API Review &amp; PoracleWeb.NET Migration Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/quick-start/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../configuration/reference/" class="md-tabs__link">
+          
+  
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../features/alarms/" class="md-tabs__link">
+          
+  
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../development/testing/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../poracleng-enhancement-requests/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  PoracleNG Enhancement Requests
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="PoracleWeb.NET" class="md-nav__button md-logo" aria-label="PoracleWeb.NET" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    PoracleWeb.NET
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    PGAN-Dev/PoracleWeb.NET
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start (Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/standalone-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standalone Setup (no Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/development-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/discord-oauth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discord OAuth2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/site-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Site Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/external-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    External SSO (OIDC)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/oidc-refresh-tokens/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OIDC Refresh Tokens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/poracleng-proxy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG API Proxy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/frontend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend Patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/alarms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alarm Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/profiles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/quest-summary-schedules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quest Summary Delivery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/webhooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webhooks & Delegates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_5" id="__nav_5_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Geofences
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Custom Geofences
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-geofences/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-geofences/key-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-geofences/koji-and-regions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Koji & Regions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-geofences/private-and-promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Private Geofences & Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-geofences/admin-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/custom-geofences/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/internationalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internationalization (i18n)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../poracleng-enhancement-requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PoracleNG Enhancement Requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executive Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-v2-gets-right-for-us" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What v2 Gets Right (for us)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#direct-db-elimination-scorecard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct-DB Elimination Scorecard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#answering-the-maintainers-6-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Answering the maintainer's 6 open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-capabilities-to-build-unblocked-by-v2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Capabilities to Build (unblocked by v2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks-gotchas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks &amp; Gotchas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#appendix-a-prioritized-api-change-requests-to-poracleng-feedback-for-issue-138" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix A — Prioritized API Change Requests to PoracleNG (feedback for issue #138)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#appendix-b-poraclewebnet-migration-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix B — PoracleWeb.NET Migration Sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="poracleng-v2-api-review-poraclewebnet-migration-plan">PoracleNG v2 API Review &amp; PoracleWeb.NET Migration Plan<a class="headerlink" href="#poracleng-v2-api-review-poraclewebnet-migration-plan" title="Permanent link">&para;</a></h1>
+<p><em>Lead architect synthesis of architecture, db-elimination, tracking-types, performance, security, testing, optimization, and source-verification (researcher) reviews of PoracleNG v2 (<a href="https://github.com/jfberry/PoracleNG/issues/138">issue #138</a> / <a href="https://github.com/jfberry/PoracleNG/pull/139">PR #139</a>, "huma" framework).</em></p>
+<blockquote>
+<p>Companion to <a href="../poracleng-enhancement-requests/"><code>poracleng-enhancement-requests.md</code></a>. That doc tracks v1-era workaround gaps; this doc evaluates whether v2 closes them and what we must still ask for. <strong>PR #139 is OPEN — wire shapes are not yet frozen.</strong></p>
+</blockquote>
+<hr />
+<h2 id="executive-summary">Executive Summary<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h2>
+<p>PoracleNG v2 is a strong, well-shaped API surface that PoracleWeb.NET should adopt. The full human-scoped <strong>snapshot</strong> (<code>GET /api/v2/humans/{id}/tracking</code> → <code>{human, tracking, profiles, locations, summaries}</code>) collapses our dashboard/bootstrap reads into one round-trip, the <strong>wrapper-free typed bodies</strong> delete reams of <code>JsonElement</code> unwrap plumbing, and <strong>strict typing + RFC 9457</strong> errors are exactly the defense-in-depth that the March 31 NULL-template incident demanded.</p>
+<p>But the headline goal of this review — <strong>eliminate all direct access to the Poracle DB</strong> — is <strong>NOT achievable on v2 as currently designed.</strong> The researcher verified against PR #139 source that the three load-bearing direct-DB touchpoints are each blocked by a missing endpoint or an unbypassable filter:</p>
+<ol>
+<li>
+<p><strong>Trusted setAreas (the <code>IUserAreaDualWriter</code> HACK) — NOT closed.</strong> <code>v2_humans.go registerV2HumanSetAreas</code> mirrors v1 <code>HandleSetAreas</code>: for non-admins it skips every fence where <code>!f.UserSelectable</code>. Our user-drawn geofences are served <code>userSelectable=false</code>, so their names are still silently dropped. The new per-rule <code>override_areas</code> field does <strong>not</strong> rescue this — <code>validateOverrideFields</code> (tracking.go) checks each override against <code>GetAvailableAreas</code>, which for non-admins also excludes <code>userSelectable=false</code> fences (<code>bot/area_logic.go</code>), returning a 400. <strong>This is the single most important blocker and it requires a new PoracleNG capability.</strong></p>
+</li>
+<li>
+<p><strong>Admin list-all-humans, batch name/avatar resolve, full-purge delete — NONE exist in v2.</strong> All v2 human endpoints are single-<code>{id}</code>-scoped. These three keep <code>HumanRepository</code> (and therefore <code>PoracleContext</code> and the entire Poracle-DB <code>Data</code> dependency) alive.</p>
+</li>
+</ol>
+<p>Net consequence: <strong>without three explicit asks to jfberry, the keystone deletion (<code>PoracleContext</code> + the 10 alarm entities, ~800 LOC) cannot happen.</strong> What we <em>can</em> delete unconditionally on v2 is the proxy unwrap helpers, <code>StripUidZero</code>, <code>PoracleJsonHelper</code>'s coercion machinery, and the dead <code>ProfileRepository</code> / dead <code>HumanRepository</code> methods — a real but smaller win (~600–700 LOC).</p>
+<p><strong>Recommended posture:</strong> adopt v2 behind a <code>Poracle:ApiVersion</code> flag, migrate reads first (snapshot), then writes after a strict-payload audit, while sending jfberry the three High-priority asks below (trusted setAreas, admin list, batch resolve). Treat v2 wire shapes as <strong>not yet frozen</strong> — PR #139 is still OPEN.</p>
+<blockquote>
+<p><strong>Source-verified against branch <code>huma-api-migration</code> (PR #139):</strong> the <code>userSelectable</code> filter in <code>registerV2HumanSetAreas</code> (<code>v2_humans.go:518-522</code>), the <code>override_areas</code> → <code>GetAvailableAreas</code> gate (<code>tracking.go:266,322</code>), the absence of any admin list/delete-human endpoint (full <code>RegisterV2Humans</code> set), the <code>active_hours</code> <code>day</code> 0-6/Sun=0 schema with no cross-midnight (<code>v2_profiles.go:43,71</code>), and <code>blocked_alerts</code> as a read-only field on the human GET. <strong>Correction vs our older gap-tracker:</strong> <code>monsters.go</code> now already does <code>COALESCE(template, '') AS template</code> on this branch — the template crash vector is closed; only <code>ping</code> is still selected raw (see ask #4).</p>
+</blockquote>
+<hr />
+<h2 id="what-v2-gets-right-for-us">What v2 Gets Right (for us)<a class="headerlink" href="#what-v2-gets-right-for-us" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Full snapshot in one call.</strong> <code>GET /api/v2/humans/{id}/tracking</code> (+ <code>?all_profiles=true</code>) folds human, areas, profiles, locations, all tracking, and summaries into one typed response — replaces our <code>/auth/me</code> + <code>/api/dashboard</code> + <code>/api/areas</code> + <code>/api/profiles</code> + <code>/api/locations</code> fan-out. Confirmed to cover <code>DashboardService</code>'s count needs.</li>
+<li><strong>No wrappers.</strong> Typed bodies directly — deletes the <code>{human:{...}}</code> / <code>{profile:[...]}</code> / <code>{type:[...]}</code> / <code>{status:ok}</code> unwrap branches in <code>PoracleHumanProxy</code>/<code>PoracleTrackingProxy</code> and the <code>DeserializeHuman</code>/<code>DeserializeProfiles</code> hand-parsers.</li>
+<li><strong>Strict types, no coercion.</strong> Game-master ids as ints, fixed categories as string enums, flags as bools. Lets us drop the defensive <code>JsonValueKind</code> switches (and the IDE0072 suppressions) and the <code>PropertyNameCaseInsensitive</code> tolerance.</li>
+<li><strong><code>clean</code> split into independent booleans (<code>clean</code>/<code>edit</code>/<code>summary</code>).</strong> Genuinely better than the 3-bit bitmask we compose client-side — we want it, provided bot-set bits survive partial writes.</li>
+<li><strong>POST-array create keeps the <code>{created,updated,unchanged}</code> diff</strong> — matches today's <code>TrackingCreateResult</code> flow; we depend on the created UID round-tripping for the optimistic UI.</li>
+<li><strong>RFC 9457 problem+json</strong> — a structured error contract we can map to typed exceptions, directly addressing the class of failure that motivated the proxy migration.</li>
+<li><strong>No <code>uid:0</code> sentinel</strong> — explicit POST(create)/PUT(replace)/DELETE removes the <code>StripUidZero</code> magic.</li>
+<li><strong>Saved-locations editor</strong> (<code>PUT /{label}</code>) and <strong>typed <code>active_hours</code></strong> are net-new capabilities we can surface.</li>
+</ul>
+<hr />
+<h2 id="direct-db-elimination-scorecard">Direct-DB Elimination Scorecard<a class="headerlink" href="#direct-db-elimination-scorecard" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Touchpoint (file)</th>
+<th>What it does</th>
+<th>v2 status</th>
+<th>What's needed to eliminate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>UserAreaDualWriter</code> + 6 <code>UserGeofenceService</code> callsites + <code>AreaController.UpdateAreas</code> merge-back</td>
+<td>Direct dual-write of <code>humans.area</code> + <code>profiles.area</code> because setAreas strips <code>userSelectable=false</code> names; forces manual <code>ReloadGeofencesSafeAsync</code></td>
+<td><strong>NO</strong> (verified: v2 setAreas mirrors v1; <code>override_areas</code> blocked by same filter)</td>
+<td><strong>Trusted setAreas variant</strong> (secret-gated, bypasses <code>userSelectable</code>, per-profile + all-profiles, triggers internal reloadState) — ask #1</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>HumanRepository.GetAllAsync</code> → <code>AdminController.GetAllUsers</code></td>
+<td>Admin user-list enumerates whole humans table</td>
+<td><strong>NO</strong></td>
+<td><code>GET /api/v2/humans</code> paginated admin list — ask #2</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>HumanRepository.GetByIdsAsync</code> → <code>UserGeofenceService.GetAllWithDetailsAsync</code></td>
+<td>Batch-resolve owner/reviewer names for admin geofence submissions UI</td>
+<td><strong>NO</strong></td>
+<td>Batch human resolve endpoint — ask #3</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>HumanRepository.DeleteUserAsync</code> → <code>AdminController.DeleteUser</code></td>
+<td>Full account purge</td>
+<td><strong>NO</strong></td>
+<td><code>DELETE /api/v2/humans/{id}</code> cascade — ask #4</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>UserGeofenceService</code> non-active-profile cleanup (<code>RemoveAreaFromAllProfilesAsync</code>, spans every <code>profiles.area</code>)</td>
+<td>Remove deleted geofence from all profiles</td>
+<td><strong>NO</strong></td>
+<td>Trusted setAreas with <code>all_profiles</code> targeting — folded into ask #1</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>HumanRepository.GetByIdAndProfileAsync</code> (UserGeofenceService submission display name, :292)</td>
+<td>Read human name for Discord forum post</td>
+<td><strong>PARTIAL</strong></td>
+<td><code>GET /api/v2/humans/{id}</code> covers the read; swap now (independent of trusted-areas)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>LocationController.UpdateLanguage</code> → <code>HumanService.UpdateAsync</code> → <code>HumanRepository.UpdateAsync</code></td>
+<td>Generic direct-DB human update for language</td>
+<td><strong>YES</strong></td>
+<td><code>POST /api/v2/humans/{id}/language</code> exists — swap now</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>ProfileRepository</code> (all methods) + <code>ProfileService.Create/Update/Delete</code></td>
+<td>Dead code — controllers already use proxy</td>
+<td><strong>YES</strong></td>
+<td>Delete outright; v2 profile endpoints exist</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>HumanRepository.GetByIdAsync</code>/<code>ExistsAsync</code>/<code>CreateAsync</code></td>
+<td>Dead — service uses proxy</td>
+<td><strong>YES</strong></td>
+<td>Delete dead methods</td>
+</tr>
+<tr>
+<td>10</td>
+<td>~~<code>HumanRepository.DeleteAllAlarmsByUserAsync</code>~~</td>
+<td>Dead — service loops via proxy</td>
+<td><strong>DONE</strong></td>
+<td>Deleted in #707 (its <code>ExecuteDeleteAsync</code> calls could not run on MariaDB anyway); one-shot purge endpoint is still a nice-to-have (ask #6)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>DashboardService.GetAllTrackingAsync</code> (proxy, not direct DB)</td>
+<td>Fetches full payloads to count</td>
+<td><strong>YES</strong></td>
+<td>Snapshot/counts — perf win, not DB elimination</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict:</strong> rows 6–11 close on v2 (some are pure dead-code deletion). Rows 1–5 — the entire reason <code>PoracleContext</code> still exists — require <strong>four new PoracleNG capabilities.</strong> Until those land, <code>HumanRepository</code> shrinks to ~3 admin methods that still pin <code>PoracleContext</code>, and <code>UserAreaDualWriter</code> stays in full.</p>
+<hr />
+<h2 id="answering-the-maintainers-6-open-questions">Answering the maintainer's 6 open questions<a class="headerlink" href="#answering-the-maintainers-6-open-questions" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Q1 (collection scoping):</strong> Keep the <strong>human-scoped sub-resource</strong> <code>/api/v2/humans/{id}/tracking[/{type}][/{uid}]?profile={n}</code>. PoracleWeb is always single-human-scoped; a flat <code>?user=&amp;profile=</code> collection would force <code>user</code> into every query and lose the ownership boundary. We do <strong>not</strong> need a <code>/users/{id}/</code> alias.</li>
+<li><strong>Q2 (create response):</strong> <strong>Keep <code>{created,updated,unchanged}</code></strong> — we depend on the created UID round-tripping. <strong>Enhancement:</strong> return the <em>full resulting rule objects</em> in each bucket (with applied defaults), not just UIDs, so we can hydrate cards without a follow-up GET.</li>
+<li><strong>Q3 (int/enum split):</strong> <strong>Correct as-is.</strong> Keep <code>team</code>/<code>gender</code>/<code>rsvp_changes</code>/<code>fort_type</code> as string enums, game ids as ints, flags as bools. The <code>clean</code>→3-booleans split is good; confirm all three are independently settable and bot-set bits survive partial writes.</li>
+<li><strong>Q4 (invasion two-axis + incident):</strong> Two-axis fits our UI (we already carry <code>typeId</code>). <strong>Caveat:</strong> moving from <code>grunt_type</code> <em>string</em> to integer <code>type_id</code>/<code>grunt_id</code> requires a <strong>published id dictionary</strong> so our Angular table doesn't drift. Confirm <code>incident.display_type</code> is a <em>different</em> dictionary than invasion <code>type_id</code>, and that read-back returns the same axis we wrote.</li>
+<li><strong>Q5 (discrete action endpoints + typed active_hours):</strong> Discrete endpoints suit us. Typed <code>active_hours</code> is good — but <strong>day numbering flips from our 1-7 Mon-Sun to v2's 0-6 Sun=0</strong>, and v2 forbids cross-midnight ranges. Document <code>day=0=Sunday</code> and <code>step</code>/<code>end_hours</code>/<code>end_mins</code> semantics authoritatively.</li>
+<li><strong>Q6 (v1 dependencies missing in v2):</strong> Yes — admin list-all-humans, admin full-purge delete, and batch human resolve. These are hard blockers to a DB-free PoracleWeb.</li>
+</ul>
+<hr />
+<h2 id="new-capabilities-to-build-unblocked-by-v2">New Capabilities to Build (unblocked by v2)<a class="headerlink" href="#new-capabilities-to-build-unblocked-by-v2" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>incident</code> alarm type</strong> — genuinely new (facade over invasion, <code>display_type</code> int). Full four-layer wiring per CLAUDE.md (model + <code>IncidentCreate/Update</code>, controller with <code>[RequireFeatureEnabled]</code>, <code>DisableFeatureKeys</code> entry, Angular module/route/guard/nav). <strong>Do not under-scope as "another invasion"</strong> — <code>display_type</code> is a different dictionary. Effort: L.</li>
+<li><strong><code>fort</code> type</strong> — we already have <code>FortChange</code> model/UI; reconcile <code>include_empty</code> default (v2 = TRUE, ours = 0) and convert int flags to bools. Effort: S–M.</li>
+<li><strong><code>maxbattle</code></strong> — model/UI exist; add <code>gmax</code> bool + <code>move</code> int coverage. Effort: S.</li>
+<li><strong><code>pokemon.pvp_ranking_evolution</code></strong> (int 0/2/3) — additive field on <code>MonsterCreate/Update</code>. Effort: S.</li>
+<li><strong>Saved-locations editor</strong> — v2 <code>PUT /{id}/locations/{label}</code> enables in-place edit of saved locations. Effort: S.</li>
+<li><strong><code>blocked_alerts</code></strong> — read-only per-user authz signal (derived from Discord roles). Consume from the snapshot to hide/disable alarm-type nav + add-dialogs per user (distinct from global <code>disable_*</code> gates). Map <code>monster</code>→<code>pokemon</code>. Effort: M.</li>
+</ul>
+<hr />
+<h2 id="risks-gotchas">Risks &amp; Gotchas<a class="headerlink" href="#risks-gotchas" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong><code>override_areas</code> is a trap.</strong> Per-<em>rule</em>, not the human/profile area subscription list, and source-verified to be gated by the same <code>userSelectable</code> filter. Adopting it expecting a filter-bypass would silently reintroduce the geofence-persistence regression. <strong>Do not delete <code>UserAreaDualWriter</code> until a confirmed trusted human-level areas op exists.</strong></li>
+<li><strong>PUT full-replace footgun.</strong> v2 PUT resets omitted fields to defaults — incompatible with our <code>ApplyUpdate</code> null-skip merge. A naive partial PUT silently zeroes IV/CP/PvP/template — echoing the NULL-template incident. Route single-field edits through POST-array-diff or send the complete object.</li>
+<li><strong><code>active_hours</code> day off-by-one.</strong> 1-7 Mon-Sun → 0-6 Sun=0 is a silent, high-blast-radius corruption. v2 also bans cross-midnight ranges. Needs a translation shim <strong>and dedicated round-trip tests</strong> (the existing suite tests string coercion <code>'09'</code>/<code>'00'</code> and 1-7 numbering — these <em>invert</em> under v2 and must be rewritten, not find-replaced).</li>
+<li><strong>Strict 422 rejection.</strong> Unknown fields and wrong types hard-fail. Our snake_case proxy currently sends ints for enums and string-coerced hours in places — a full payload audit is mandatory before flipping writes.</li>
+<li><strong>Snapshot payload bloat.</strong> For power users (500+ alarms) the snapshot is hundreds of KB. Do <strong>not</strong> use it for the lightweight badge path — use a counts projection/selective includes, keep <code>include_descriptions</code> OFF except on the Profiles-overview page, add client-side dedupe + ETag/304 if offered.</li>
+<li><strong>RFC 9457 reflected input.</strong> <code>errors[].value</code>/<code>detail</code> echo submitted input — sanitize at the proxy boundary before surfacing to the SPA.</li>
+<li><strong>Trust model unchanged.</strong> <code>X-Poracle-Secret</code> = full impersonation of any human id. If admin list/delete/resolve are added but reachable without the secret (e.g. via public <code>/docs</code>), they become mass-enumeration/deletion vulns. <strong>Verify secret-gating before adopting.</strong></li>
+<li><strong>PR #139 is OPEN.</strong> Wire shapes may shift; pin a vendored <code>openapi.json</code> as a golden contract fixture and treat shapes as not-yet-frozen.</li>
+<li><strong><code>monsters.go</code> COALESCE — <code>template</code> fixed on the v2 branch, <code>ping</code> still raw.</strong> Verified on <code>huma-api-migration</code>: <code>COALESCE(template, '') AS template, clean, ping,</code> — the template DoS vector (one NULL row crashing state reload for everyone) is closed there. <code>ping</code> remains raw; if nullable it's the same crash class. Confirm the template fix is in the release line we actually deploy (our older gap-tracker still lists it as live), and COALESCE <code>ping</code> for parity.</li>
+</ol>
+<hr />
+<h2 id="appendix-a-prioritized-api-change-requests-to-poracleng-feedback-for-issue-138">Appendix A — Prioritized API Change Requests to PoracleNG (feedback for issue #138)<a class="headerlink" href="#appendix-a-prioritized-api-change-requests-to-poracleng-feedback-for-issue-138" title="Permanent link">&para;</a></h2>
+<p>The three <strong>High</strong> asks (trusted setAreas, admin list, batch resolve) are the gating set for full DB elimination. The <code>monsters.go</code> item is now <strong>Medium</strong> — <code>template</code> is already COALESCE'd on the v2 branch (verified), leaving only a <code>ping</code> parity nit.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Priority</th>
+<th>Ask</th>
+<th>Proposed shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>High</strong></td>
+<td><strong>Trusted setAreas variant (bypass userSelectable filter) — keystone blocker.</strong> Only thing that lets us delete <code>IUserAreaDualWriter</code> + 6 callsites + the merge-back + manual reloads. The filter is a browser-hack defense, meaningless against a caller holding <code>X-Poracle-Secret</code>.</td>
+<td><code>POST /api/v2/humans/{id}/areas?trusted=true&amp;profile={n\|all}</code> body <code>{areas:[...], mode:add\|remove\|replace}</code>; secret-gated; runs <code>reloadState</code> internally. <strong>Alternative (most defensible): per-fence <code>ownedBy:humanId</code></strong> so the intersection admits owned fences regardless of <code>userSelectable</code>.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>High</strong></td>
+<td><strong>Admin list-all-humans (paginated).</strong> Keeps <code>HumanRepository.GetAllAsync</code> → <code>PoracleContext</code> alive.</td>
+<td><code>GET /api/v2/humans?limit=&amp;offset=&amp;search=&amp;community=</code> → <code>{humans:[{id,name,type,enabled,admin_disable,current_profile_no,language,last_checked,disabled_date,notes}], total}</code>. Secret-gated. Must include <code>last_checked</code>/<code>disabled_date</code> (admin grid shows them).</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>High</strong></td>
+<td><strong>Batch human display-name/avatar resolution.</strong> <code>GetByIdsAsync</code> resolves N owner+reviewer ids in one query for the admin submissions UI; per-id fan-out is a perf regression.</td>
+<td><code>GET /api/v2/humans?ids=a,b,c</code> → <code>[{id,name,type,avatar?}]</code> or <code>POST /api/v2/humans/resolve {ids:[...]}</code>. Minimal projection. Secret-gated.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Medium</td>
+<td><strong><code>monsters.go</code> COALESCE parity — <code>template</code> already fixed on <code>huma-api-migration</code>, <code>ping</code> still raw.</strong> Verified: line 97 now reads <code>COALESCE(template, '') AS template, clean, ping,</code>, so the original template crash vector (the incident that motivated our proxy migration) is <strong>closed</strong> there. But <code>ping</code> is still selected raw — if nullable, that's the same <code>converting NULL to string</code> crash class.</td>
+<td>Confirm <code>ping</code> is <code>NOT NULL</code> in schema, or <code>COALESCE(ping,'') AS ping</code> for parity with the other tracking files. Also confirm the template fix is in the release line we deploy, not only the v2 branch.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Medium</td>
+<td><strong>Admin delete-human (full purge).</strong> Last admin write with no v2 mapping.</td>
+<td><code>DELETE /api/v2/humans/{id}</code> → <code>{deleted:{human,profiles,tracking}}</code>; cascades all profiles/tracking/locations/roles. Secret-gated, idempotent.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Medium</td>
+<td><strong>Return full rule objects in <code>{created,updated,unchanged}</code>.</strong> Eliminates our post-create re-fetch.</td>
+<td>Each bucket returns full rule (incl. uid + applied defaults). Confirm POST-array upsert preserves omitted fields (vs PUT full-replace).</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Medium</td>
+<td><strong>Publish integer dictionaries</strong> (invasion <code>type_id</code>/<code>grunt_id</code>, incident <code>display_type</code>). Our hardcoded Angular tables must match exactly.</td>
+<td>In <code>openapi.json</code> or <code>/api/v2/dictionaries</code>. Confirm read-back returns the same axis written; clarify whether invasion <code>type_id</code> == incident <code>display_type</code> dictionary.</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Medium</td>
+<td><strong>Document sentinel→null mapping + <code>active_hours</code> day convention.</strong> <code>distance=0</code>='use areas' is meaningful, not absent.</td>
+<td>Annotate each field's null-meaning/omit-default in OpenAPI; flag <code>distance:0</code>. Document <code>day=0-6 (0=Sunday)</code>, <code>step</code>/<code>end_*</code>, no-wrap. Echo-on-read.</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Medium</td>
+<td><strong>Bulk field-update (PATCH) for distance/clean.</strong> Replaces O(N) fetch-modify-POST; PUT full-replace makes per-uid updates more dangerous.</td>
+<td><code>PATCH /api/v2/humans/{id}/tracking/{type}?profile=N</code> body <code>{uids?:[...]\|all:true, distance?, clean?, edit?, summary?}</code> → <code>{updated:[uids]}</code>.</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Medium</td>
+<td><strong>Surface <code>blocked_alerts</code> in the snapshot + confirm reject semantics.</strong> Per-user authz we should respect.</td>
+<td>Include in <code>GET …/tracking</code>; document <code>monster=pokemon</code>/<code>specificgym</code>/<code>specificstation</code>; confirm POST of a blocked type returns 403/422 (not silent-unchanged).</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Medium</td>
+<td><strong>Versioned <code>/api/v2/openapi.json</code> as a golden contract fixture.</strong> Our mocked tests can't catch wire drift (the NULL-template blind spot).</td>
+<td>semver/etag, published per release, so we vendor it and add a build-time contract test.</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Low</td>
+<td><strong>Confirm profile-DELETE cascade + single-call all-types purge.</strong></td>
+<td>Document <code>DELETE …/profiles/{n}</code> cascades tracking, reassigns <code>current_profile_no</code>, refreshes <code>humans.area</code>, rejects last profile (422). Add <code>DELETE …/tracking?all_profiles=true</code>.</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Low</td>
+<td><strong>Sanitize/document RFC 9457 error echo.</strong> <code>errors[].value</code>/<code>detail</code> can reflect attacker input.</td>
+<td>Document they contain only caller-submitted values; optional <code>X-Poracle-Verbose-Errors:false</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="appendix-b-poraclewebnet-migration-sequence">Appendix B — PoracleWeb.NET Migration Sequence<a class="headerlink" href="#appendix-b-poraclewebnet-migration-sequence" title="Permanent link">&para;</a></h2>
+<p><strong>Phase 0 — Unconditional, no API dependency (do now):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Detail</th>
+<th>Effort</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0a</td>
+<td>Swap <code>LocationController.UpdateLanguage</code> to proxy <code>SetLanguageAsync</code> (→ <code>POST /api/v2/humans/{id}/language</code>). Removes the last live <code>HumanRepository.UpdateAsync</code> caller.</td>
+<td>S</td>
+</tr>
+<tr>
+<td>0b</td>
+<td>Swap <code>UserGeofenceService:292</code> display-name read to proxy <code>GetHumanAsync</code>.</td>
+<td>S</td>
+</tr>
+<tr>
+<td>0c</td>
+<td>Delete dead <code>ProfileRepository</code>/<code>IProfileRepository</code> + <code>ProfileService</code> CRUD; dead <code>HumanRepository</code> methods (<code>GetByIdAsync</code>/<code>ExistsAsync</code>/<code>CreateAsync</code>; <code>DeleteAllAlarmsByUserAsync</code> already gone in #707) + <code>EnsureNotNullDefaults</code>. Update test mocks. Keep only <code>GetAllAsync</code>/<code>GetByIdsAsync</code>/<code>DeleteUserAsync</code> until v2 admin endpoints land.</td>
+<td>M</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase 1 — v2 read path (behind <code>Poracle:ApiVersion</code> flag):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Detail</th>
+<th>Effort</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1a</td>
+<td>Collapse <code>IPoracleTrackingProxy</code> + <code>IPoracleHumanProxy</code> into one <code>IPoracleV2Client</code>. Point reads at <code>/api/v2</code>, deserialize typed bodies, delete all unwrap branches + hand-parsers. Keep v1 as runtime fallback.</td>
+<td>L</td>
+</tr>
+<tr>
+<td>1b</td>
+<td>RFC 9457 → typed <code>PoracleApiException</code>; handle 400→422; <strong>sanitize <code>errors[].value</code>/<code>detail</code></strong> before surfacing to SPA.</td>
+<td>M</td>
+</tr>
+<tr>
+<td>1c</td>
+<td>Add <code>GetSnapshotAsync</code>; re-point <code>DashboardService</code>, <code>AreaController.GetSelectedAreas</code>, profile/location reads, <code>/auth/me</code> resync at the cached snapshot. <code>include_descriptions</code> OFF; counts projection for the badge path.</td>
+<td>M</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase 2 — v2 write path (after strict-payload audit):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Detail</th>
+<th>Effort</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2a</td>
+<td>Strict-payload audit across all create/update builders: correct JSON types, no unknown fields, int↔enum translation, sentinel↔null mapping (<strong>preserve <code>distance=0</code>=use-areas</strong>).</td>
+<td>L</td>
+</tr>
+<tr>
+<td>2b</td>
+<td>Keep POST-array upsert; <strong>never adopt PUT full-replace for partial edits</strong>. Verify <code>CleanFlags</code> bit preservation on the 3-boolean path. Drop <code>StripUidZero</code>.</td>
+<td>M</td>
+</tr>
+<tr>
+<td>2c</td>
+<td><code>active_hours</code> 1-7↔0-6 shim + typed-schema validator rewrite; update Angular day picker + utilities; drop string coercion. <strong>Rewrite (don't find-replace) the active_hours tests.</strong></td>
+<td>L</td>
+</tr>
+<tr>
+<td>2d</td>
+<td>Vendor <code>openapi.json</code> contract test; re-point proxy/service tests at <code>/api/v2</code>; shared typed-fixture builder to replace ~150 snake_case <code>JsonElement</code> fixtures.</td>
+<td>L</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase 3 — gated on API asks landing:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Detail</th>
+<th>Effort</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3a</td>
+<td><strong>GATED on trusted setAreas:</strong> replace all 6 <code>UserAreaDualWriter</code> callsites + merge-back, delete the writer + interface + tests + manual reloads. Until then, keep the HACK + add a regression-lock test proving v2 setAreas still strips <code>userSelectable=false</code>.</td>
+<td>L</td>
+</tr>
+<tr>
+<td>3b</td>
+<td><strong>GATED on admin endpoints:</strong> re-point <code>AdminController.GetAllUsers</code>/<code>DeleteUser</code>/<code>GetAllWithDetailsAsync</code> at proxy; delete <code>HumanRepository</code>, then <strong><code>PoracleContext</code>, the 10 Poracle-DB entities, the connection string, and the Human/Profile half of <code>EntityMappingExtensions</code>.</strong> Keep <code>PoracleWebContext</code> untouched.</td>
+<td>L</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Phase 4 — new capabilities:</strong> <code>incident</code> (four-layer, distinct dictionary), invasion two-axis, <code>pvp_ranking_evolution</code>, <code>fort.include_empty</code> reconcile, saved-locations editor, <code>blocked_alerts</code> consumption. Effort: L.</p>
+<p><strong>Phase 5 — gated on bulk PATCH:</strong> replace fetch-modify-POST across 8 alarm services + <code>CleaningService</code> with one PATCH; reconcile <code>poracleng-enhancement-requests.md</code> with v2. Effort: M.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/PGAN-Dev/PoracleWeb.NET" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
