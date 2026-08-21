@@ -5,7 +5,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/masterdata")]
-public class MasterDataController(
+public partial class MasterDataController(
     IMasterDataService masterDataService,
     IPoracleApiProxy poracleApiProxy,
     IRaidLevelService raidLevelService) : BaseApiController
@@ -95,6 +95,73 @@ public class MasterDataController(
         var levels = await this._raidLevelService.GetAllAsync();
         return this.Ok(levels);
     }
+
+    /// <summary>
+    /// Monster master data (names, types, form names, stats, evolutions) keyed
+    /// <c>"{pokemonId}_{formId}"</c>, translated into <paramref name="locale"/>.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG owns the translations, so this proxies its <c>/api/masterdata/monsters</c> and only
+    /// falls back to the WatWowMap masterfile - which is English-only - when that route is missing or
+    /// unreachable. Before this endpoint existed the SPA fetched the masterfile from GitHub directly,
+    /// so Pokemon names and types stayed English no matter what the display language was set to.
+    /// </remarks>
+    [AllowAnonymous]
+    [HttpGet("monsters")]
+    public async Task<IActionResult> GetMonsters([FromQuery] string? locale)
+    {
+        var requested = NormalizeLocale(locale);
+
+        try
+        {
+            var localized = await this._poracleApiProxy.GetMonstersAsync(requested);
+            if (!string.IsNullOrWhiteSpace(localized))
+            {
+                return this.Content(localized, "application/json");
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // Upstream unreachable or too slow - fall through to the English masterfile rather than
+            // leaving the selector with no names, types or forms at all. A misconfigured
+            // Poracle:ApiAddress throws InvalidOperationException instead and is left to surface.
+        }
+
+        var fallback = await this._masterDataService.GetMonsterDataAsync();
+        if (fallback == null)
+        {
+            await this._masterDataService.RefreshCacheAsync();
+            fallback = await this._masterDataService.GetMonsterDataAsync();
+        }
+
+        if (fallback == null)
+        {
+            return this.NotFound(new
+            {
+                message = "Monster data not available."
+            });
+        }
+
+        return this.Content(fallback, "application/json");
+    }
+
+    /// <summary>
+    /// Constrains the locale to a BCP-47-ish shape before it reaches the upstream query string.
+    /// Anything else becomes <c>en</c>, which is also what PoracleNG defaults to.
+    /// </summary>
+    internal static string NormalizeLocale(string? locale)
+    {
+        if (string.IsNullOrWhiteSpace(locale))
+        {
+            return "en";
+        }
+
+        var trimmed = locale.Trim();
+        return LocalePattern().IsMatch(trimmed) ? trimmed : "en";
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$")]
+    private static partial System.Text.RegularExpressions.Regex LocalePattern();
 
     [AllowAnonymous]
     [HttpGet("grunts")]

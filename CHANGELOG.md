@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pokemon names, types and forms follow the display language.** Setting the site to German left the selector listing Bulbasaur, Blastoise and Butterfree under English type chips, because the names never came from anything translatable: the API cached WatWowMap's English masterfile, and the browser fetched the same file from GitHub a second time for forms and types. PoracleNG already translates all three and serves them at `/api/masterdata/monsters`, which is where they now come from, per display language and re-fetched when you change it. The English masterfile stays as the fallback for a Poracle too old to serve that route, so nothing empties out. Type chips keep their English identity internally, since the uicons file names and the filter comparison both key on it, and only the label is translated. Items and moves stay English -- Poracle has no translated equivalent to call. Reported on Discord.
+
 ## [2.16.0] - 2026-08-20
 
 ### Added

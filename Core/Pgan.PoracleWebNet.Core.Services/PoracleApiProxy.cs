@@ -270,6 +270,24 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         return await response.Content.ReadAsStringAsync();
     }
 
+    /// <summary>
+    /// Localized monster master data from <c>/api/masterdata/monsters</c>. Older PoracleJS builds do
+    /// not serve this route, so a 404 is a normal outcome and yields <c>null</c> rather than throwing.
+    /// </summary>
+    public async Task<string?> GetMonstersAsync(string locale)
+    {
+        var request = this.CreateRequest(HttpMethod.Get,
+            $"{this._apiAddress}/api/masterdata/monsters?locale={Uri.EscapeDataString(locale)}");
+        var response = await this._httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadAsStringAsync();
+    }
+
     public async Task<string?> GetGeofenceAsync()
     {
         // Use any user ID to get the full area list with groups

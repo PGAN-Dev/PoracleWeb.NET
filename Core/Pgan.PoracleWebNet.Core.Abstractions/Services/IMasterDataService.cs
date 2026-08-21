@@ -9,6 +9,13 @@ public interface IMasterDataService
 
     /// <summary>Move ID to name map (e.g. <c>{"13":"Wrap"}</c>), sourced from the masterfile.</summary>
     public Task<string?> GetMoveDataAsync();
+
+    /// <summary>
+    /// The raw masterfile monster map keyed <c>"{pokemonId}_{formId}"</c> (names, types, forms,
+    /// stats, evolutions). English only - it is the fallback for when PoracleNG cannot serve its
+    /// localized equivalent.
+    /// </summary>
+    public Task<string?> GetMonsterDataAsync();
     public Task RefreshCacheAsync();
 
     /// <summary>
