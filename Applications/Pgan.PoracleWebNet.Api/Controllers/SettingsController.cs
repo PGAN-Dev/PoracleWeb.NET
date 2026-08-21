@@ -228,6 +228,17 @@ public partial class SettingsController(
             });
         }
 
+        // poracle_locale is a projection of Poracle's config, not a row this page owns. Nothing stopped
+        // it being written, and because a real row wins over the synthesized value, one accidental save
+        // would have pinned the language default forever and silently stopped tracking Poracle. See #780.
+        if (string.Equals(key, PoracleLocaleKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return this.BadRequest(new
+            {
+                error = "poracle_locale is read from Poracle's configuration and cannot be set here."
+            });
+        }
+
         // Prevent lockout: at least one login method must remain enabled.
         // Uses GetValueAsync so absent/null = enabled (safe default). Only blocks when
         // both are explicitly "False".
