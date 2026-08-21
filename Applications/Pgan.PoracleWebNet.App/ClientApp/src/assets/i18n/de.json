@@ -39,7 +39,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Angezeigt als",
-    "BACK_TO_ADMIN": "Zurück zum Admin",
+    "EXIT_IMPERSONATION": "Zurück zu deinem Konto",
     "DISABLED_ACCOUNT": "Dein Konto wurde <strong>deaktiviert</strong>. Dies kann an einer Ratenbegrenzung oder einer administrativen Maßnahme liegen.",
     "DISABLED_ACCOUNT_INSPECTED": "Dieses Konto wurde von einem Administrator <strong>deaktiviert</strong> und erhält keine Benachrichtigungen.",
     "DISABLED_SUPPORT": "Für Hilfe frag in",

@@ -39,7 +39,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Przeglądasz jako",
-    "BACK_TO_ADMIN": "Powrót do Admina",
+    "EXIT_IMPERSONATION": "Powrót do swojego konta",
     "DISABLED_ACCOUNT": "Twoje konto zostało <strong>wyłączone</strong>. Może to być spowodowane limitem zapytań lub działaniem administratora.",
     "DISABLED_ACCOUNT_INSPECTED": "To konto zostało <strong>wyłączone</strong> przez administratora i nie otrzymuje powiadomień.",
     "DISABLED_SUPPORT": "Aby uzyskać pomoc, zapytaj na",

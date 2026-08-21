@@ -39,7 +39,7 @@
   },
   "BANNER": {
     "VIEWING_AS": "Visar som",
-    "BACK_TO_ADMIN": "Tillbaka till Admin",
+    "EXIT_IMPERSONATION": "Tillbaka till ditt konto",
     "DISABLED_ACCOUNT": "Ditt konto har <strong>inaktiverats</strong>. Det kan bero på hastighetsbegränsning eller en administratörsåtgärd.",
     "DISABLED_ACCOUNT_INSPECTED": "Det här kontot har <strong>inaktiverats</strong> av en administratör och tar inte emot aviseringar.",
     "DISABLED_SUPPORT": "För att få hjälp, fråga i",
