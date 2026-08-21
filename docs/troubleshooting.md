@@ -510,7 +510,7 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 
 ## An alarm type cannot be created and its admin toggle will not switch on
 
-**Symptom**: A type's page has no Add button, its cards have no Edit, its nav item carries a padlock, and on **Admin > Settings** its toggle is off, greyed out and refuses to move. The alarms already there are still listed and can still be deleted.
+**Symptom**: A type has left the sidebar, and on **Admin > Settings** its toggle is off, greyed out and refuses to move. If you still have alarms of that type, the dashboard keeps its card: opening it shows them, with no Add button and no Edit, and they can still be deleted.
 
 **Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than accepting rules that do nothing. Existing rules stay visible and deletable on purpose: removing them is the only thing left worth doing, and Poracle's bot will not do it for you while the type is off.
 

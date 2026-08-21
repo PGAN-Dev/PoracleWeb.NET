@@ -249,8 +249,14 @@
 
   <div class="dashboard-grid">
     @if (counts(); as c) {
-      @for (card of cards; track card.key) {
-        <mat-card class="dashboard-card" [class]="card.colorClass" [class.muted]="c[card.key] === 0" (click)="navigate(card.route)">
+      @for (card of visibleCards(); track card.key) {
+        <mat-card
+          class="dashboard-card"
+          [class]="card.colorClass"
+          [class.muted]="c[card.key] === 0"
+          [class.locked-card]="isLockedCard(card)"
+          [matTooltip]="isLockedCard(card) ? ('DASHBOARD.CARD_TYPE_DISABLED' | translate) : ''"
+          (click)="navigate(card.route)">
           <div class="card-header-row">
             <div class="card-icon-wrap" [class.muted-icon]="c[card.key] === 0">
               <mat-icon>{{ card.icon }}</mat-icon>

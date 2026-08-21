@@ -63,8 +63,13 @@ Control which alarm categories are available to users. Disabling a type hides it
     with it is remove it, and hiding the page would leave people holding rules they could neither see
     nor clear.
 
-    The page says which side switched it off, the nav item keeps a padlock, and the create, edit,
-    bulk-distance and test-alert controls are gone. Deleting is untouched.
+    The page says which side switched it off, and the create, edit, bulk-distance and test-alert
+    controls are gone. Deleting is untouched.
+
+    The sidebar item goes, since a padlocked entry to an empty page is noise for everyone who never
+    used that type. The way back in is the dashboard, which keeps that type's card — marked, and
+    linking through as usual — for as long as the user still has alarms on it. Delete the last one and
+    the card goes too.
 
 !!! warning "Poracle can switch these off too, and it wins"
     Poracle has its own per-type flags (`disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle`, `disable_fort_update`). When one of those is set, its processor drops the webhook and its bot refuses the command, so the type can never fire — and this site now honours that. A type is off if **either** side disables it.

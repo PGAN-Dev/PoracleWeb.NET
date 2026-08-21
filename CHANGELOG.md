@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A switched-off alarm type leaves the sidebar again.** It kept a padlocked item so the people still holding rules of that type could reach them, which served the few and put a locked entry to an empty page in front of everyone else. The dashboard carries that job instead: the type's card stays, marked, for as long as you have alarms on it, and takes you to the same page. Delete the last one and both are gone. The page itself is unchanged -- reachable, listing what you have, refusing to create more.
+
+
 ## [2.17.0] - 2026-08-21
 
 ### Added
