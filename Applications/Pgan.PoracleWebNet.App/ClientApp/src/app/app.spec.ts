@@ -8,6 +8,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
 import { App } from './app';
+import { AlertLanguageService } from './core/services/alert-language.service';
 import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
@@ -140,5 +141,85 @@ describe('App nav filtering (#236)', () => {
   it('treats setting value "false" as enabled', () => {
     const app = setup({ disable_mons: 'false' }, false);
     expect(alarmRoutes(app)).toContain('/pokemon');
+  });
+});
+
+/**
+ * The bootstrap path, which #426 already broke once: a signed-out visitor must reach only the
+ * anonymous settings endpoint. `/api/config` is `[Authorize]`, so sourcing Poracle's locale from
+ * there would 401 on every visit to the login page. The locale rides on the public settings call
+ * instead, and these tests pin that it does.
+ */
+describe('App bootstrap language defaults (#770)', () => {
+  const setup = (opts: { authenticated: boolean; settings: Record<string, string> }) => {
+    const loadOnce = jest.fn(() => of([]));
+    const loadPublic = jest.fn(() => of([]));
+    const init = jest.fn();
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        provideRouter([]),
+        provideTranslateService(),
+        {
+          provide: SettingsService,
+          useValue: {
+            isDisabled: () => false,
+            loadOnce,
+            loadPublic,
+            siteSettings: signal(opts.settings),
+          },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            getProviders: () => of({}),
+            hasManagedWebhooks: () => false,
+            isAdmin: () => false,
+            isAuthenticated: () => opts.authenticated,
+            loadCurrentUser: jest.fn(),
+            logout: jest.fn(),
+            stopImpersonating: jest.fn(),
+            toggleAlerts: () => of(null),
+          },
+        },
+        { provide: AlertLanguageService, useValue: { languages: [], load: jest.fn(), selected: signal('en') } },
+        { provide: DashboardService, useValue: { getCounts: () => of({}) } },
+        { provide: I18nService, useValue: { init } },
+      ],
+    });
+
+    const app = TestBed.runInInjectionContext(() => new App());
+    app.ngOnInit();
+    return { app, init, loadOnce, loadPublic };
+  };
+
+  it('uses only the anonymous settings endpoint when signed out', () => {
+    const { loadOnce, loadPublic } = setup({ authenticated: false, settings: {} });
+
+    expect(loadPublic).toHaveBeenCalled();
+    expect(loadOnce).not.toHaveBeenCalled();
+  });
+
+  it('forwards the Poracle locale from the anonymous response to i18n', () => {
+    const { init } = setup({ authenticated: false, settings: { allowed_languages: 'en,de', poracle_locale: 'de' } });
+
+    expect(init).toHaveBeenLastCalledWith('en,de', 'de');
+  });
+
+  it('still uses the authenticated endpoint when signed in', () => {
+    const { loadOnce, loadPublic } = setup({ authenticated: true, settings: { poracle_locale: 'de' } });
+
+    expect(loadOnce).toHaveBeenCalled();
+    expect(loadPublic).not.toHaveBeenCalled();
+  });
+
+  it('passes undefined rather than failing when Poracle reports no locale', () => {
+    const { init } = setup({ authenticated: false, settings: {} });
+
+    expect(init).toHaveBeenLastCalledWith(undefined, undefined);
   });
 });
