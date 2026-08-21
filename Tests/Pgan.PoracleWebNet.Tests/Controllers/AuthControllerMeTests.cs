@@ -19,6 +19,7 @@ public class AuthControllerMeTests : ControllerTestBase
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IProfileService> _profileService = new();
     private readonly Mock<IJwtService> _jwtService = new();
+    private readonly Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver> _roleResolver = new();
     private readonly AuthController _sut;
 
     public AuthControllerMeTests()
@@ -36,7 +37,7 @@ public class AuthControllerMeTests : ControllerTestBase
             new Mock<ISiteSettingService>().Object,
             new Mock<IWebhookDelegateService>().Object,
             this._jwtService.Object,
-            new Mock<Pgan.PoracleWebNet.Api.Services.IUserRoleResolver>().Object,
+            this._roleResolver.Object,
             new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcClient>().Object,
             new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcSessionService>().Object,
             Options.Create(new DiscordSettings()),
@@ -230,4 +231,103 @@ public class AuthControllerMeTests : ControllerTestBase
 
         Assert.Equal("999", seen?.FindFirst("impersonatedBy")?.Value);
     }
+    // --- Managed webhooks (#786) ---
+
+    /// <summary>
+    /// The nav item for /my-webhooks renders off this response, so reading it from the JWT claim meant a
+    /// delegate granted access today waited up to 24 hours for a token refresh before they could reach a
+    /// page that would already have let them in. Both real checks moved to live resolution in #601/#626;
+    /// this was the last consumer of the claim.
+    /// </summary>
+    [Fact]
+    public async Task MeReportsAWebhookGrantedSinceTheTokenWasMinted()
+    {
+        SetupUser(this._sut, profileNo: 1);
+        this.SetupHuman(profileNo: 1);
+        this.Resolves(["http://webhook.example/new"]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.Me());
+
+        Assert.Equal(["http://webhook.example/new"], Assert.IsType<UserInfo>(ok.Value).ManagedWebhooks);
+    }
+
+    [Fact]
+    public async Task MeDropsAWebhookThatHasBeenRevoked()
+    {
+        SetupUser(this._sut, profileNo: 1, managedWebhooks: ["http://webhook.example/old"]);
+        this.SetupHuman(profileNo: 1);
+        this.Resolves([]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.Me());
+
+        Assert.Null(Assert.IsType<UserInfo>(ok.Value).ManagedWebhooks);
+    }
+
+    /// <summary>
+    /// A resolve that could not read one of its three sources must not strip a delegate mid-session — the
+    /// failure mode #656 and #667 were both about. The claim is stale but never invents access, and the
+    /// impersonation grant re-checks live and fails closed.
+    /// </summary>
+    [Fact]
+    public async Task MeKeepsTheClaimWhenResolutionIsDegraded()
+    {
+        SetupUser(this._sut, profileNo: 1, managedWebhooks: ["http://webhook.example/known"]);
+        this.SetupHuman(profileNo: 1);
+        this._roleResolver.Setup(r => r.ResolveAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, null, Resolved: false));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.Me());
+
+        Assert.Equal(["http://webhook.example/known"], Assert.IsType<UserInfo>(ok.Value).ManagedWebhooks);
+    }
+
+    [Fact]
+    public async Task MeUnionsBothSetsWhenResolutionIsDegraded()
+    {
+        SetupUser(this._sut, profileNo: 1, managedWebhooks: ["http://webhook.example/known"]);
+        this.SetupHuman(profileNo: 1);
+        this._roleResolver.Setup(r => r.ResolveAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(
+                false, ["http://webhook.example/found"], Resolved: false));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.Me());
+
+        Assert.Equal(
+            ["http://webhook.example/found", "http://webhook.example/known"],
+            Assert.IsType<UserInfo>(ok.Value).ManagedWebhooks);
+    }
+
+    /// <summary>
+    /// While impersonating, this.UserId is the impersonated account, so resolving its delegations answers
+    /// a different question than "what may this session manage" — the trap #663 fixed for admin status.
+    /// </summary>
+    [Fact]
+    public async Task MeDoesNotResolveDelegationsForAnImpersonatedAccount()
+    {
+        SetupUser(this._sut, profileNo: 1);
+        this._sut.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim("userId", "123456789"),
+                new Claim("profileNo", "1"),
+                new Claim("isAdmin", "false"),
+                new Claim("username", "TestUser"),
+                new Claim("impersonatedBy", "admin-1"),
+            ], "TestAuth"));
+        this.SetupHuman(profileNo: 1);
+        this.Resolves(["http://webhook.example/not-mine"]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.Me());
+
+        Assert.Null(Assert.IsType<UserInfo>(ok.Value).ManagedWebhooks);
+        this._roleResolver.Verify(r => r.ResolveAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    private void Resolves(string[] webhooks) =>
+        this._roleResolver.Setup(r => r.ResolveAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(
+                false, webhooks.Length > 0 ? webhooks : null));
+
+    private void SetupHuman(int profileNo) =>
+        this._humanService.Setup(h => h.GetByIdAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Human { Id = "123456789", Enabled = 1, AdminDisable = 0, CurrentProfileNo = profileNo });
 }
