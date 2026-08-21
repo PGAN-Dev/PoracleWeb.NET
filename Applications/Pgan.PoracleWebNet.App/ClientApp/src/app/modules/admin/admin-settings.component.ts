@@ -76,7 +76,7 @@ const RETIRED_KEYS = [
   'debug',
 ];
 
-const SETTING_GROUPS: SettingGroup[] = [
+export const SETTING_GROUPS: SettingGroup[] = [
   {
     color: '#0088cc',
     icon: 'send',
@@ -295,18 +295,6 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    color: '#607d8b',
-    icon: 'terminal',
-    labelKey: 'ADMIN_SETTINGS.GROUP_COMMANDS',
-    settings: [],
-  },
-  {
-    color: '#2e7d32',
-    icon: 'map',
-    labelKey: 'ADMIN_SETTINGS.GROUP_MAPS_ASSETS',
-    settings: [],
-  },
-  {
     color: '#7b1fa2',
     icon: 'bar_chart',
     labelKey: 'ADMIN_SETTINGS.GROUP_ANALYTICS_LINKS',
@@ -318,12 +306,6 @@ const SETTING_GROUPS: SettingGroup[] = [
         type: 'url',
       },
     ],
-  },
-  {
-    color: '#ff5722',
-    icon: 'bug_report',
-    labelKey: 'ADMIN_SETTINGS.GROUP_DEBUG',
-    settings: [],
   },
 ];
 
@@ -526,6 +508,12 @@ export class AdminSettingsComponent implements OnInit {
     const query = this.searchQuery().trim();
     const base = SETTING_GROUPS.filter(g => {
       if (oidcMode && localProviderGroups.has(g.labelKey)) return false;
+      // A group that declares no settings can never render anything, so it is a header and a chevron
+      // over nothing. Three shipped that way -- Maps & Assets was left behind when #452 deleted the two
+      // toggles it held. Note this is NOT the filter #629 reverted: that one dropped a group whose keys
+      // had no DB row yet, which a fresh install always has; this one only drops groups with nothing
+      // declared in the code at all.
+      if (g.settings.length === 0) return false;
       // Deliberately not gated on a key already having a row. A fresh install seeds exactly one
       // (custom_title), so Alarm Types, Features, Administration and Analytics were filtered out of the
       // DOM entirely -- and since this page is the only writer, the row could never appear. The
