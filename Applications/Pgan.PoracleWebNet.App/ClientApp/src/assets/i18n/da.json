@@ -1611,6 +1611,7 @@
     "ENABLE_TEMPLATES_DESC": "Tillad brugere at vælge skabeloner for notifikationsbeskeder.",
     "ALLOWED_LANGUAGES_LABEL": "Tilladte UI-sprog",
     "ALLOWED_LANGUAGES_DESC": "Kommaseparerede sprogkoder, der skal vises i sprogvælgeren (f.eks. \"en,de,fr,es\"). Lad stå tomt for at vise alle 11 sprog.",
+    "PORACLE_LOCALE_HINT": "Standardsprog for nye brugere: {{locale}}, hentet fra Poracles egen konfiguration. Den, der vælger et sprog, eller hvis browser beder om et, som dette site har, får det i stedet.",
     "ENABLE_ROLES_LABEL": "Aktiver rollebaseret adgang",
     "ENABLE_ROLES_DESC": "Tillad kun brugere med specifikke Discord-roller at logge ind. Kræver Bot-token og Guild-ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Tilladte rolle-ID'er",

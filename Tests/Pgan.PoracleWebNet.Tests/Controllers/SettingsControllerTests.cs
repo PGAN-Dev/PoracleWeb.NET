@@ -335,6 +335,49 @@ public class SettingsControllerTests : ControllerTestBase
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
+    /// <summary>
+    /// poracle_locale is synthesized from Poracle's config, and a real row would win over it, so a
+    /// single accidental save would pin the language default and stop tracking Poracle for good.
+    /// </summary>
+    [Fact]
+    public async Task UpsertRefusesToWriteThePoracleLocaleProjection()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var request = new SettingsController.SiteSettingRequest { Value = "de" };
+
+        var result = await this._sut.Upsert("poracle_locale", request);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpsertRefusesThePoracleLocaleProjectionWhateverItsCasing()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        var request = new SettingsController.SiteSettingRequest { Value = "de" };
+
+        Assert.IsType<BadRequestObjectResult>(await this._sut.Upsert("PORACLE_LOCALE", request));
+    }
+
+    /// <summary>
+    /// The refusal must not spread: an ordinary key still writes. Without this the guard above passes
+    /// just as well with the whole endpoint broken.
+    /// </summary>
+    [Fact]
+    public async Task UpsertStillWritesAnOrdinarySetting()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._siteService.Setup(s => s.GetByKeyAsync("custom_title")).ReturnsAsync((SiteSetting?)null);
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
+            .ReturnsAsync(new SiteSetting { Key = "custom_title", Value = "My Site" });
+
+        var result = await this._sut.Upsert("custom_title", new SettingsController.SiteSettingRequest { Value = "My Site" });
+
+        Assert.IsType<OkObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Once);
+    }
+
     [Fact]
     public void GetDiscordConfigReturnsOkForAdmin()
     {

@@ -1603,6 +1603,7 @@
     "ENABLE_TEMPLATES_DESC": "Permite a los usuarios elegir plantillas de mensaje de notificación.",
     "ALLOWED_LANGUAGES_LABEL": "Idiomas de interfaz permitidos",
     "ALLOWED_LANGUAGES_DESC": "Códigos de idioma separados por comas para mostrar en el selector (ej. «en,de,fr,es»). Deja en blanco para mostrar los 11 idiomas.",
+    "PORACLE_LOCALE_HINT": "Idioma predeterminado para usuarios nuevos: {{locale}}, tomado de la configuración de Poracle. Quien elija un idioma, o cuyo navegador pida uno disponible en este sitio, recibe ese en su lugar.",
     "ENABLE_ROLES_LABEL": "Activar acceso basado en roles",
     "ENABLE_ROLES_DESC": "Permitir iniciar sesión solo a usuarios con roles de Discord específicos. Requiere Bot Token y Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de roles permitidos",

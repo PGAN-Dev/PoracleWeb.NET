@@ -1603,6 +1603,7 @@
     "ENABLE_TEMPLATES_DESC": "Pozwól użytkownikom wybierać szablony wiadomości powiadomień.",
     "ALLOWED_LANGUAGES_LABEL": "Dozwolone języki UI",
     "ALLOWED_LANGUAGES_DESC": "Kody języków oddzielone przecinkami do pokazania w selektorze (np. „en,de,fr,es”). Pozostaw puste, aby pokazać wszystkie 11 języków.",
+    "PORACLE_LOCALE_HINT": "Domyślny język nowych użytkowników: {{locale}}, pobrany z konfiguracji samego Poracle. Kto wybierze język lub czyja przeglądarka poprosi o dostępny tutaj, dostanie tamten.",
     "ENABLE_ROLES_LABEL": "Włącz dostęp oparty na rolach",
     "ENABLE_ROLES_DESC": "Zezwalaj na logowanie tylko użytkownikom z określonymi rolami Discord. Wymaga Bot Token i Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Dozwolone ID ról",

@@ -1,4 +1,4 @@
-import { SETTING_GROUPS } from './admin-settings.component';
+import { PROJECTED_KEYS, SETTING_GROUPS } from './admin-settings.component';
 
 /**
  * The admin settings page renders one expansion panel per group. A group that declares no settings
@@ -26,5 +26,24 @@ describe('SETTING_GROUPS', () => {
     const keys = SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key));
 
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+/**
+ * A projection is not a setting. `poracle_locale` is synthesized by the API from Poracle's config so the
+ * SPA can default the display language; undeclared, it fell through to the "Other" catch-all and rendered
+ * as an editable text box. Because a real row wins over the synthesized value, one save would have pinned
+ * the language default for good. Same mistake as #560, for a key that was never in a group. See #780.
+ */
+describe('PROJECTED_KEYS', () => {
+  it('covers poracle_locale, so it cannot reach the "Other" catch-all', () => {
+    expect(PROJECTED_KEYS).toContain('poracle_locale');
+  });
+
+  it('declares nothing that is also a real, editable setting', () => {
+    const editable = new Set(SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)));
+    const overlap = PROJECTED_KEYS.filter(k => editable.has(k));
+
+    expect(overlap).toEqual([]);
   });
 });

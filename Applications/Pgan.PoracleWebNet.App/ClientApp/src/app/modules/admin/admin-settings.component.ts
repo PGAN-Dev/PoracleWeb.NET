@@ -60,6 +60,16 @@ interface SettingGroup {
  * the product consumed them, and their descriptions promised behaviour the app does not have. Rows are
  * left in the database rather than deleted. See #547, #560.
  */
+/**
+ * Keys the API synthesizes onto the settings response rather than storing: projections of Poracle's own
+ * config, present so the SPA can read them like any other setting. They are declared here for the same
+ * reason as RETIRED_KEYS -- an undeclared key falls through to the "Other" catch-all and is rendered as
+ * an editable control, which for a projection is worse than useless: a real row wins over the
+ * synthesized value, so one save pins it forever and stops tracking Poracle. Writes are refused
+ * server-side too; this only keeps the box off the page. See #780.
+ */
+export const PROJECTED_KEYS = ['poracle_locale'];
+
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
   // from SettingsMigrationService when they were retired, but rows persist in existing databases and were
@@ -351,6 +361,7 @@ export class AdminSettingsComponent implements OnInit {
     // the same editable controls, one section lower, still promising behaviour that does not exist.
     // Their rows stay in the database, unread. See #560.
     ...RETIRED_KEYS,
+    ...PROJECTED_KEYS,
   ]);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -390,6 +401,13 @@ export class AdminSettingsComponent implements OnInit {
   });
 
   private readonly settingsService = inject(SettingsService);
+
+  /**
+   * Poracle's own locale, shown beside Allowed UI Languages because that is the setting it interacts
+   * with: it decides what a user who has never chosen a language, and whose browser we cannot place,
+   * sees. Read-only -- it is Poracle's to set, and writes to it are refused (#780).
+   */
+  readonly poracleLocale = computed(() => this.settingMap().get('poracle_locale') ?? '');
 
   private readonly snackBar = inject(MatSnackBar);
 

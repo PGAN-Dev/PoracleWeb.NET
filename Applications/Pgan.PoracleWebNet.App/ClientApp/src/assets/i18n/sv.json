@@ -1603,6 +1603,7 @@
     "ENABLE_TEMPLATES_DESC": "Låt användare välja mallar för notifieringsmeddelanden.",
     "ALLOWED_LANGUAGES_LABEL": "Tillåtna UI-språk",
     "ALLOWED_LANGUAGES_DESC": "Kommaseparerade språkkoder som ska visas i språkväljaren (t.ex. \"en,de,fr,es\"). Lämna tomt för att visa alla 11 språk.",
+    "PORACLE_LOCALE_HINT": "Standardspråk för nya användare: {{locale}}, hämtat från Poracles egen konfiguration. Den som väljer ett språk, eller vars webbläsare ber om ett som den här webbplatsen har, får det i stället.",
     "ENABLE_ROLES_LABEL": "Aktivera rollbaserad åtkomst",
     "ENABLE_ROLES_DESC": "Tillåt endast användare med specifika Discord-roller att logga in. Kräver Bot Token och Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Tillåtna roll-ID:n",
