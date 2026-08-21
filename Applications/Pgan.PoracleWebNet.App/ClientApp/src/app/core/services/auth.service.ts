@@ -3,6 +3,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, ReplaySubject, tap, firstValueFrom } from 'rxjs';
 
+import { AlertLanguageService } from './alert-language.service';
 import { ConfigService } from './config.service';
 import { SettingsService } from './settings.service';
 import { TokenStoreService } from './token-store.service';
@@ -15,6 +16,7 @@ const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 export class AuthService {
   private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
   private readonly _profileResynced = signal(false);
+  private readonly alertLanguage = inject(AlertLanguageService);
   private readonly config = inject(ConfigService);
   private readonly currentUser = signal<UserInfo | null>(null);
 
@@ -96,6 +98,9 @@ export class AuthService {
     // in App.ngOnInit() fires before the token is stored, so settings (including
     // custom_title) fail silently and never reload.
     this.settingsService.loadOnce().subscribe();
+    // Same reason, for the same reason: App.ngOnInit skips this while signed out (#775), so without
+    // it here a login completed inside one page session would never reconcile the alert language.
+    this.alertLanguage.load();
     this.router.navigate(['/dashboard']);
   }
 

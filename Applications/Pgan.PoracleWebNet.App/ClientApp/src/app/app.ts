@@ -314,7 +314,12 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
-    this.alertLanguage.load();
+    // Only a signed-in user has an alert language to reconcile. GET /api/location/language is
+    // [Authorize], so calling this unconditionally fired a guaranteed 401 on every visit to the login
+    // page -- invisible only because LocationService swallows the error. Same shape as #426. The call
+    // is re-made from AuthService.handleTokenFromCallback once a token exists, so a login inside this
+    // same page session still reconciles. See #775.
+    if (this.auth.isAuthenticated()) this.alertLanguage.load();
     // Signed-out visitors get the public subset. loadOnce() hits the authenticated endpoint, so
     // calling it on the login page produced a 401 and an uncaught HttpErrorResponse on every visit.
     // AuthService re-runs loadOnce() once a token exists, so nothing is lost by deferring. See #426.
