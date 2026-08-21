@@ -25,9 +25,18 @@ PoracleWeb.NET supports 11 UI languages. Users can switch the interface language
 The UI translation system uses [ngx-translate](https://github.com/ngx-translate/core) for runtime language switching:
 
 - **Translation files** are stored in `ClientApp/src/assets/i18n/{code}.json` as flat namespaced JSON
-- **Language detection** — on first visit, the browser's preferred language is auto-detected
-- **Persistence** — the selected language is stored in `localStorage('poracle-ui-language')`
 - **Instant switching** — changing language updates all visible text immediately, no page reload needed
+
+The language a visitor lands on is decided in this order, first match winning:
+
+1. **A language they chose before**, from `localStorage('poracle-ui-language')`.
+2. **A browser language this site ships.** `de-AT` matches `de`; `pt-BR` matches exactly before falling back to `pt`.
+3. **Poracle's own `locale`**, read from its configuration. A German community running Poracle with `locale = "de"` therefore greets a first-time visitor in German rather than English, without configuring anything here.
+4. **English.**
+
+Only a deliberate choice is written to `localStorage`. A language picked automatically is left unwritten so it can be re-decided next visit — otherwise the first page load would be authoritative forever, and a visitor who arrived while Poracle was unreachable would stay on English no matter what the server reported afterwards.
+
+Poracle's locale has to clear the same two filters as any other option: this site must ship that language, and `allowed_languages` must permit it. Poracle carries translations for languages this UI does not have, and those simply do not qualify.
 
 ### Language selectors
 
@@ -35,6 +44,8 @@ There are two, and they sit next to each other in the **user menu** (top-right t
 
 - **Display language** changes this site's text and nothing else. Its submenu is hidden when an admin has restricted the selector to a single language.
 - **Alert language** is what Poracle writes your DMs in: alert text, Pokemon names, move names. The authoritative copy lives on your Poracle account (`humans.language`), with a browser cache used only for the first render, so it follows you between devices and reconciles if the bot changes it.
+
+Note that Pokemon names, types and forms **in this site's own screens** follow the *display* language, not the alert language — see [Game data names](#game-data-names) below. Setting the display language to German gives you Bisasam in the species picker and Käfer on the type chips; the alert language decides what your DMs say.
 
 Each submenu opens with its own hint line ("Changes this site's text only." / "Used for alert text and Pokemon names.") and lists the languages as flag and native name, with a check mark against the active one. Both draw from the same list of 11.
 
@@ -52,9 +63,11 @@ Admins can restrict which languages appear in the selector by setting the `allow
 | `allowed_languages` | *(empty)* | All 11 languages available |
 | `allowed_languages` | `en,de,fr` | Only English, German, and French shown |
 
-English is always available regardless of the `allowed_languages` setting.
+English is always available regardless of the `allowed_languages` setting. The restriction applies to the signed-out login page as well as to signed-in users.
 
-Set this in **Admin → Settings** under the **Features** category.
+![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
+
+Set this in **Admin → Settings** under the **Features** category. Directly beneath it, the page reports Poracle's own configured locale as a read-only line — the default a new visitor lands on, per the order above. It is Poracle's to set, not this site's: it is read from Poracle's configuration on every load and cannot be edited or overridden here.
 
 ## Translation File Structure
 
@@ -160,9 +173,28 @@ To improve or add translations:
 5. Keep game proper nouns: Mystic, Valor, Instinct, Giovanni, Team Rocket, Dynamax, Gigantamax, PokéStop
 6. Use informal forms (du/tu/tú/je) appropriate for a gaming community
 
+### Game data names
+
+Pokemon names, their types and their form names are not in the translation files at all. They come from Poracle, which translates them from its own i18n bundle, and this site asks for them in **the display language**:
+
+```
+GET /api/masterdata/monsters?locale=de
+  1_0  -> Bisasam,  types: Gift, Pflanze
+ 12_0  -> Smettbo,  types: Flug, Käfer
+```
+
+Switching the display language re-fetches them, so an open species picker updates in place. Searching works on the translated names too — typing `bi` finds Bisasam.
+
+Two things this does not cover:
+
+- **Move and item names** stay English. Poracle serves no translated equivalent for them, so they come from the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) as before.
+- **A Poracle that cannot answer** — an older build without the endpoint, or one that is unreachable — falls back to the same English masterfile, so the pickers keep working rather than emptying out.
+
+Poracle ships translations for `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`, `ru`, `sv` and `zh-cn`. Four of this site's languages — `nl`, `pt`, `pt-BR` and `da` — have no counterpart there, so game data names appear in English while the interface around them is translated.
+
 ### What Is NOT Translated
 
-- **Pokemon names, move names, form names** — these come from Poracle's master data, controlled by the alert language setting in the user menu
+- **Move names and item names** — see above
 - **Admin-configured values** — site title, logo, custom navigation links
 - **User-generated content** — profile names, geofence names, area names
 
@@ -188,7 +220,8 @@ The `I18nService`:
 
 - Wraps `@ngx-translate/core`'s `TranslateService`
 - Manages available languages (filtered by admin `allowed_languages` setting)
-- Handles browser language detection on first visit
+- Handles browser language detection on first visit, and falls back to Poracle's configured locale when the browser asks for a language this site does not ship
+- Records *how* the active language was chosen, so a locale arriving from the server after bootstrap replaces a bare English fallback but never a stored or browser-matched choice
 - Provides `instant()` for synchronous translation in TypeScript code
 - Sets `document.documentElement.lang` for accessibility
 

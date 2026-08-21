@@ -58,7 +58,7 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 - **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **DTS Preview** — Live Discord notification template preview
 - **Dark/Light Mode** — Theme toggle with accent color customization
-- **11 UI Languages** — with Pokemon, move and alert text localized separately via **Alert language** in the user menu, beside **Display language**
+- **11 UI Languages** — the interface, plus Pokemon names, types and forms, which follow the display language. What Poracle writes in your DMs is a separate choice, **Alert language**, sitting beside **Display language** in the user menu
 - **Single Sign-On** — Discord and Telegram login, plus any OIDC provider, with optional silent refresh and single logout
 - **Admin Panel** — User management, webhooks, settings, geofence review, and a Versions card showing the running PoracleWeb and PoracleNG builds. Opening that card runs an anonymous GitHub check, cached six hours, switched off with the **Do not check for updates** (`disable_update_check`) site setting
 

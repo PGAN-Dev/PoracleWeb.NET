@@ -231,8 +231,9 @@ A label is what an alarm's `override_location_label` refers to. The whole contro
 | Service | Lifetime | Reason |
 |---|---|---|
 | Most services | **Scoped** | Per-request |
-| `MasterDataService` | **Singleton** | Cached game data |
+| `MasterDataService` | **Singleton** | Cached game data. Serves move and item names from the WatWowMap masterfile, and the English monster map as the fallback for `GET /api/masterdata/monsters`, which normally proxies Poracle's translated one |
 | `RaidLevelService` | **Singleton** | Stateless canonical-list provider; future live masterfile fetch will cache here |
+| `UpstreamFeatureFlagService` | Scoped | Resolves Poracle's own per-type disable flags into `disable_*` keys, cached 5 min; fails open |
 
 !!! info "DashboardService uses the proxy"
     `DashboardService` calls `IPoracleTrackingProxy.GetAllTrackingAsync()` to fetch all alarm types in a single API call, then counts each type from the response. No direct DB queries.

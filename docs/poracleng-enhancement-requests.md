@@ -1,6 +1,6 @@
 # PoracleNG API Enhancement Requests
 
-This document tracks PoracleNG API gaps that require workarounds in PoracleWeb. Each gap is referenced by inline `HACK`/`TODO` comments throughout the codebase.
+This document tracks PoracleNG API gaps that require workarounds in PoracleWeb.NET. Each gap is referenced by inline `HACK`/`TODO` comments throughout the codebase.
 
 ## Background
 
@@ -191,6 +191,41 @@ This crashes the **entire state reload**, freezing PoracleNG on stale data for a
 
 ---
 
+### available_languages is enforced but not readable
+
+**Filed upstream:** [jfberry/PoracleNG#194](https://github.com/jfberry/PoracleNG/issues/194)
+
+`POST /api/humans/{id}/setLanguage` rejects any language absent from `general.available_languages`
+with `400 "language is not available"` (`internal/api/humans.go`). Nothing exposes that list:
+`/api/config/poracleWeb` does not carry it, and `/api/config/values` is driven by `configSchema`,
+which does not declare it.
+
+**Consequence here:** the alert-language menu offers all 11 of this site's languages. On a Poracle
+that restricts the list, choosing an unlisted one fails the write and the user sees a generic error
+with no reason. Filtering that menu is blocked until the codes are readable.
+
+**Workaround:** none. The menu is unfiltered.
+
+### disabledHooks omits fort, and carries an inert pokestop
+
+**Filed upstream:** [jfberry/PoracleNG#195](https://github.com/jfberry/PoracleNG/issues/195)
+
+The `disabledHooks` array on `/api/config/poracleWeb` is built from ten flags. `disable_fort_update`
+is enforced by the processor, the bot, and `!tracked`, but is not one of them — so a client reading
+the array concludes fort changes are enabled when they are not. Meanwhile `pokestop` is in the array
+and nothing in the processor reads it.
+
+**Consequence here:** [feature gating](configuration/site-settings.md) needs a second call to
+`GET /api/config/values` purely to learn `general.disable_fort_update`, and `pokestop` is
+deliberately mapped to nothing. Mapping it to lures, invasions and quests — the obvious reading,
+since those arrive on the pokestop webhook — would disable three working types on a flag that does
+nothing.
+
+**Workaround:** the second config call, degraded independently so a Poracle without that route keeps
+the hook list already in hand.
+
+---
+
 ## Summary Table
 
 | Gap | Priority | Workaround in Use | Status |
@@ -204,6 +239,8 @@ This crashes the **entire state reload**, freezing PoracleNG on stale data for a
 | Atomic profile switch | Low | Already in PoracleNG | **Adopted** |
 | Atomic area update | Low | Already in PoracleNG | **Adopted** |
 | NULL field defaults | Low | Handled by PoracleNG cleanRow() | Resolved by migration |
+| available_languages not readable | Medium | None -- alert-language menu is unfiltered | [Filed upstream (#194)](https://github.com/jfberry/PoracleNG/issues/194) |
+| disabledHooks omits fort | Low | Second call to /api/config/values | [Filed upstream (#195)](https://github.com/jfberry/PoracleNG/issues/195) |
 
 ### Tracking create has no upsert path for natural-key types
 

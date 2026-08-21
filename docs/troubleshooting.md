@@ -481,3 +481,49 @@ This forces the local login page regardless of the `enable_oidc` mode, so an adm
 3. **The `post_logout_redirect_uri` registered at the IdP** — PoracleWeb.NET sends `{origin}/login?loggedout=1`. If that URL isn't in the provider's allow-list, the provider rejects the logout redirect.
 
 Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and register the post-logout redirect URI at the IdP.
+
+---
+
+## Pokemon names and types stay English with the site set to another language
+
+**Symptom**: The interface is translated, but the species picker still lists Bulbasaur, Blastoise and Butterfree, and the type chips read Bug, Dark, Dragon.
+
+**Cause**: Those names come from Poracle, which translates them from its own bundle. If it cannot serve them, the site falls back to the English WatWowMap masterfile rather than showing nothing.
+
+**Checks, in order**:
+
+1. **Poracle is too old for the endpoint.** `GET /api/masterdata/monsters?locale=de` on your Poracle should answer with a map of `"{pokemonId}_{formId}"` entries. A 404 means the fallback is doing its job and only an upgrade will change it.
+
+    ```bash
+    curl -s -H "X-Poracle-Secret: $SECRET"       "http://poracle-host:3030/api/masterdata/monsters?locale=de" | head -c 200
+    ```
+
+2. **Poracle has no translation for that language.** It ships `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`, `ru`, `sv` and `zh-cn`. For `nl`, `pt`, `pt-BR` and `da` it returns English, and there is nothing to configure — the interface around the names is still translated.
+
+3. **Poracle's game-data locale files are missing.** If names come back as their own keys (`poke_25` rather than `Pikachu`), Poracle's resource download has failed. The site ignores such values and keeps the English name, so the symptom is English names rather than visible keys. Check Poracle's startup log for its resource fetch.
+
+4. **Move and item names are meant to be English.** Poracle serves no translated equivalent, so those pickers are unaffected by the display language.
+
+**Note**: this follows the **display** language, not the alert language. The alert language decides what your DMs say. See [Internationalization](features/internationalization.md).
+
+---
+
+## An alarm type is missing and its admin toggle will not switch on
+
+**Symptom**: A type is absent from the sidebar, its page redirects to the dashboard, and on **Admin > Settings** its toggle is off, greyed out and refuses to move.
+
+**Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than accepting rules that do nothing.
+
+**Fix**: change it in Poracle's `config.toml`, not here. The flags are `disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle` and `disable_fort_update`. Restart Poracle afterwards; this site re-reads them within five minutes, or immediately on restart.
+
+**Diagnostic**:
+
+```bash
+# What Poracle reports as disabled
+curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/poracleWeb | jq .disabledHooks
+
+# What this site resolved that into (any signed-in user)
+curl -s -H "Authorization: Bearer $JWT"   https://your-site/api/settings/upstream-disabled
+```
+
+An empty array on the first call with a type still missing means the local `disable_*` site setting is the one hiding it — that one is yours to change on **Admin > Settings**.
