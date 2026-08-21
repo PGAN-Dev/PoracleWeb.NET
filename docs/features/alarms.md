@@ -397,7 +397,7 @@ Picking mode `1` or `2` also turns on PoracleNG's edit-in-place behavior (`clean
 
 ## Default values
 
-All monster (Pokemon) alarm defaults, matching the PHP PoracleWeb.NET defaults:
+All monster (Pokemon) alarm defaults:
 
 | Field | Default | Description |
 |---|---|---|

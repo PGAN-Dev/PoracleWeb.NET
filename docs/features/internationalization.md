@@ -1,6 +1,6 @@
 # Internationalization (i18n)
 
-PoracleWeb.NET supports 11 UI languages, matching the language support from the original PoracleWeb.NET PHP. Users can switch the interface language at any time without reloading the page.
+PoracleWeb.NET supports 11 UI languages. Users can switch the interface language at any time without reloading the page.
 
 ## Supported Languages
 
