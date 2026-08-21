@@ -15,6 +15,7 @@ public class SettingsController(
     IOptions<PoracleSettings> poracleSettings,
     IOptions<TelegramSettings> telegramSettings,
     IOptions<OidcSettings> oidcSettings,
+    IUpstreamFeatureFlagService upstreamFlags,
     IConfiguration configuration) : BaseApiController
 {
     /// <summary>
@@ -55,6 +56,7 @@ public class SettingsController(
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
     private readonly OidcSettings _oidcSettings = oidcSettings.Value;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
+    private readonly IUpstreamFeatureFlagService _upstreamFlags = upstreamFlags;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -78,6 +80,24 @@ public class SettingsController(
         !string.IsNullOrWhiteSpace(key)
         && (UserVisibleKeys.Contains(key)
             || Array.Exists(UserVisibleKeyPrefixes, p => key.StartsWith(p, StringComparison.OrdinalIgnoreCase)));
+
+    /// <summary>
+    /// The <c>disable_*</c> keys the upstream Poracle deployment forces off in its own config, on top
+    /// of whatever the site settings say. Lets the SPA hide those sections and the admin page mark the
+    /// matching toggle as not-ours-to-change, instead of showing a switch that reads "enabled" while
+    /// every write 403s.
+    /// </summary>
+    /// <remarks>
+    /// Open to any signed-in user, not just admins: the same information is already obtainable by
+    /// POSTing an alarm and reading the <c>disableKey</c> off the 403, and every non-admin consumer
+    /// (nav, route guards) needs it. Empty when Poracle is unreachable or too old to report the flags.
+    /// </remarks>
+    [HttpGet("upstream-disabled")]
+    public async Task<IActionResult> GetUpstreamDisabled()
+    {
+        var keys = await this._upstreamFlags.GetDisabledKeysAsync();
+        return this.Ok(keys.OrderBy(k => k, StringComparer.Ordinal).ToList());
+    }
 
     [AllowAnonymous]
     [EnableRateLimiting("auth-read")]

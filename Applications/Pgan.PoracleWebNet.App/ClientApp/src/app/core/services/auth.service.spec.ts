@@ -119,6 +119,8 @@ describe('AuthService', () => {
       // Settings are loaded after token is stored (fixes title not showing after OAuth redirect)
       const settingsReq = httpMock.expectOne(`${API}/api/settings`);
       settingsReq.flush([]);
+      // getAll() also asks which disable_* keys Poracle forces off upstream (#769).
+      httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
 
       // Now navigation should have happened
       expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);

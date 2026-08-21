@@ -1587,6 +1587,8 @@
     "FAVICON_URL_PREVIEW": "Pré-visualização do favicon (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Os navegadores armazenam os favicons em cache de forma agressiva. Após guardar, os utilizadores têm de limpar a cache do navegador ou fazer uma atualização forçada (Ctrl+F5 / Cmd+Shift+R) para verem o novo ícone.",
     "FAVICON_URL_CSP_NOTE": "Se o seu site utilizar uma Content Security Policy, a origem do URL do favicon tem de ser permitida pela diretiva img-src; caso contrário, o navegador bloqueia a obtenção e recorre ao ícone predefinido.",
+    "FORCED_BY_PORACLE": "Desativado na própria configuração do Poracle. O Poracle descarta estes webhooks e o seu bot recusa o comando, pelo que não é possível ativar isto aqui.",
+    "FORCED_BY_PORACLE_TOOLTIP": "Controlado pela configuração do Poracle, não por esta página.",
     "CUSTOM_PAGE_NAME_LABEL": "Etiqueta do link de navegação",
     "CUSTOM_PAGE_NAME_DESC": "Etiqueta para o link de navegação personalizado (ex.: \"Voltar ao mapa\").",
     "CUSTOM_PAGE_URL_LABEL": "URL do link de navegação",

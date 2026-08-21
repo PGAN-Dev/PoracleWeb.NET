@@ -1566,6 +1566,8 @@
     "FAVICON_URL_PREVIEW": "Favicon-voorbeeld (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Browsers cachen favicons agressief. Na het opslaan moeten gebruikers hun browsercache wissen of een hard refresh uitvoeren (Ctrl+F5 / Cmd+Shift+R) om het nieuwe pictogram te zien.",
     "FAVICON_URL_CSP_NOTE": "Als uw site een Content Security Policy gebruikt, moet de oorsprong van de favicon-URL toegestaan zijn door uw img-src-richtlijn; anders blokkeert de browser het ophalen en valt terug op het standaardpictogram.",
+    "FORCED_BY_PORACLE": "Uitgeschakeld in de configuratie van Poracle zelf. Poracle negeert deze webhooks en de bot weigert het commando, dus dit kan hier niet worden ingeschakeld.",
+    "FORCED_BY_PORACLE_TOOLTIP": "Wordt bepaald door de configuratie van Poracle, niet door deze pagina.",
     "CUSTOM_PAGE_NAME_LABEL": "Label van navigatielink",
     "CUSTOM_PAGE_NAME_DESC": "Label voor de aangepaste navigatielink (bijv. \"Terug naar kaart\").",
     "CUSTOM_PAGE_URL_LABEL": "URL van navigatielink",

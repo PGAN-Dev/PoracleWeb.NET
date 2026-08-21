@@ -555,7 +555,19 @@ export class AdminSettingsComponent implements OnInit {
 
   /** Positive-framing checked state for a boolean setting (ON = enabled). */
   featureEnabled(meta: SettingMeta): boolean {
+    // A type Poracle has switched off in its own config is off no matter what this row stores, so
+    // the switch must read off. Showing it on would promise something every write will 403 on (#769).
+    if (this.forcedByPoracle(meta)) return false;
     return this.isInverted(meta) ? !this.getBool(meta.key) : this.getBool(meta.key);
+  }
+
+  /**
+   * True when the upstream Poracle deployment disables this feature in its own `config.toml`. The
+   * admin page cannot override that — Poracle's processor drops the webhook and its bot refuses the
+   * command — so the row is shown off, locked, and explained rather than left looking adjustable.
+   */
+  forcedByPoracle(meta: SettingMeta): boolean {
+    return this.settingsService.isForcedByPoracle(meta.key);
   }
 
   getBool(key: string): boolean {
@@ -575,8 +587,9 @@ export class AdminSettingsComponent implements OnInit {
   groupSummary(group: SettingGroup): string {
     const disableKeys = group.settings.filter(s => s.key.startsWith('disable_'));
     if (disableKeys.length === 0) return '';
-    // Positive framing: report how many features are enabled (i.e. NOT disabled).
-    const count = disableKeys.reduce((acc, s) => acc + (this.getBool(s.key) ? 0 : 1), 0);
+    // Positive framing: report how many features are enabled (i.e. NOT disabled). Counts a
+    // Poracle-forced type as off, so the header agrees with the switches underneath it.
+    const count = disableKeys.reduce((acc, s) => acc + (this.featureEnabled(s) ? 1 : 0), 0);
     return this.i18n.instant('ADMIN_SETTINGS.SUMMARY_ENABLED', { count, total: disableKeys.length });
   }
 

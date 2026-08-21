@@ -6,6 +6,15 @@ public interface IPoracleApiProxy
 {
     Task<PoracleConfig?> GetConfigAsync();
     Task<bool?> GetQuestSummaryEnabledAsync();
+
+    /// <summary>
+    /// Reads <c>general.disable_fort_update</c> from PoracleNG's config-values endpoint. PoracleNG
+    /// honours this flag in the processor and the bot but leaves it out of the <c>disabledHooks</c>
+    /// array on <c>/api/config/poracleWeb</c>, so fort changes have to be asked about separately.
+    /// Returns <c>null</c> when the value cannot be determined (older Poracle, PoracleJS, endpoint
+    /// shape changed) so the caller can leave the site setting in sole charge.
+    /// </summary>
+    Task<bool?> GetFortUpdateDisabledAsync();
     Task<string?> GetAreasAsync(string userId);
     Task<string?> GetTemplatesAsync();
     Task<string?> GetAdminRolesAsync(string userId);
