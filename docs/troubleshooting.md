@@ -508,11 +508,11 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 
 ---
 
-## An alarm type is missing and its admin toggle will not switch on
+## An alarm type cannot be created and its admin toggle will not switch on
 
-**Symptom**: A type is absent from the sidebar, its page redirects to the dashboard, and on **Admin > Settings** its toggle is off, greyed out and refuses to move.
+**Symptom**: A type's page has no Add button, its cards have no Edit, its nav item carries a padlock, and on **Admin > Settings** its toggle is off, greyed out and refuses to move. The alarms already there are still listed and can still be deleted.
 
-**Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than accepting rules that do nothing.
+**Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than accepting rules that do nothing. Existing rules stay visible and deletable on purpose: removing them is the only thing left worth doing, and Poracle's bot will not do it for you while the type is off.
 
 **Fix**: change it in Poracle's `config.toml`, not here. The flags are `disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle` and `disable_fort_update`. Restart Poracle afterwards; this site re-reads them within five minutes, or immediately on restart.
 
@@ -526,4 +526,4 @@ curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/por
 curl -s -H "Authorization: Bearer $JWT"   https://your-site/api/settings/upstream-disabled
 ```
 
-An empty array on the first call with a type still missing means the local `disable_*` site setting is the one hiding it — that one is yours to change on **Admin > Settings**.
+An empty array on the first call, with the type still locked, means the local `disable_*` site setting is the one doing it — that one is yours to change on **Admin > Settings**. The page names which side it came from, so you should not have to run either command to find out.

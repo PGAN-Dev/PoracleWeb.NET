@@ -60,9 +60,8 @@ Control which alarm categories are available to users. Disabling a type hides it
     rules a user already created stay listed, and they can still delete them.
 
     That is deliberate. An alarm of a disabled type can never fire, so the useful thing left to do
-    with it is remove it — and hiding the page would leave people holding rules they could neither
-    see nor clear. Poracle can disable the same types from its own config, and when it does, its bot
-    refuses the matching command too, which would make this page the only place left to clean up.
+    with it is remove it, and hiding the page would leave people holding rules they could neither see
+    nor clear.
 
     The page says which side switched it off, the nav item keeps a padlock, and the create, edit,
     bulk-distance and test-alert controls are gone. Deleting is untouched.
@@ -70,7 +69,7 @@ Control which alarm categories are available to users. Disabling a type hides it
 !!! warning "Poracle can switch these off too, and it wins"
     Poracle has its own per-type flags (`disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle`, `disable_fort_update`). When one of those is set, its processor drops the webhook and its bot refuses the command, so the type can never fire — and this site now honours that. A type is off if **either** side disables it.
 
-    The toggle for a type Poracle has disabled renders off and greyed, with a note saying where the decision came from; switching it on here would promise something every write refuses.
+    The toggle for a type Poracle has disabled renders off and greyed, with a note saying where the decision came from; switching it on here would promise something every write refuses. This is also the case where leaving existing alarms deletable matters most: Poracle's bot refuses the matching command while the type is off, so this page is the only place left to clean up.
 
     ![The Lures toggle, off and greyed out, with a note reading "Disabled in Poracle's own config. Poracle drops these webhooks and its bot refuses the command, so this cannot be enabled here."](../screenshots/admin-forced-by-poracle.png) Your own toggles still work for everything Poracle leaves enabled, and they gate features Poracle has no opinion about.
 
