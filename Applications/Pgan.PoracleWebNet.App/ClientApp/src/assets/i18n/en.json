@@ -1597,7 +1597,7 @@
     "ENABLE_TEMPLATES_DESC": "Allow users to choose notification message templates.",
     "ALLOWED_LANGUAGES_LABEL": "Allowed UI Languages",
     "ALLOWED_LANGUAGES_DESC": "Comma-separated language codes to show in the UI language selector (e.g. \"en,de,fr,es\"). Leave empty to show all 11 languages.",
-    "PORACLE_LOCALE_HINT": "Poracle's own locale is \"{{locale}}\". A user who has not chosen a language, and whose browser sends one this site does not have, gets that.",
+    "PORACLE_LOCALE_HINT": "Default language for new users: {{locale}}, taken from Poracle's own configuration. Anyone who picks a language, or whose browser asks for one this site has, gets that instead.",
     "ENABLE_ROLES_LABEL": "Enable Role-Based Access",
     "ENABLE_ROLES_DESC": "Only allow users with specific Discord roles to log in. Requires Bot Token and Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Allowed Role IDs",

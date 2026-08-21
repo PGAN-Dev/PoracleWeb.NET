@@ -1602,7 +1602,7 @@
     "ENABLE_TEMPLATES_DESC": "Consenti agli utenti di scegliere modelli di messaggio di notifica.",
     "ALLOWED_LANGUAGES_LABEL": "Lingue UI consentite",
     "ALLOWED_LANGUAGES_DESC": "Codici lingua separati da virgole da mostrare nel selettore (es. \"en,de,fr,es\"). Lascia vuoto per mostrare tutte e 11 le lingue.",
-    "PORACLE_LOCALE_HINT": "La lingua configurata in Poracle è \"{{locale}}\". Chi non ha scelto una lingua, e il cui browser ne invia una non presente qui, riceve questa.",
+    "PORACLE_LOCALE_HINT": "Lingua predefinita per i nuovi utenti: {{locale}}, presa dalla configurazione di Poracle. Chi sceglie una lingua, o il cui browser ne richiede una presente qui, ottiene invece quella.",
     "ENABLE_ROLES_LABEL": "Abilita accesso basato sui ruoli",
     "ENABLE_ROLES_DESC": "Consenti l'accesso solo agli utenti con specifici ruoli Discord. Richiede Bot Token e Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "ID ruoli consentiti",

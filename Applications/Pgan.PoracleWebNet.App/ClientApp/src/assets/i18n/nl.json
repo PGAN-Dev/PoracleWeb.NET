@@ -1603,7 +1603,7 @@
     "ENABLE_TEMPLATES_DESC": "Laat gebruikers meldingsberichttemplates kiezen.",
     "ALLOWED_LANGUAGES_LABEL": "Toegestane UI-talen",
     "ALLOWED_LANGUAGES_DESC": "Door komma's gescheiden taalcodes die in de taalkiezer worden getoond (bijv. \"en,de,fr,es\"). Laat leeg om alle 11 talen te tonen.",
-    "PORACLE_LOCALE_HINT": "De locale van Poracle is \"{{locale}}\". Wie geen taal heeft gekozen en van wie de browser er een stuurt die deze site niet heeft, krijgt deze.",
+    "PORACLE_LOCALE_HINT": "Standaardtaal voor nieuwe gebruikers: {{locale}}, uit de configuratie van Poracle zelf. Wie een taal kiest, of van wie de browser er een vraagt die deze site heeft, krijgt die in plaats daarvan.",
     "ENABLE_ROLES_LABEL": "Op rollen gebaseerde toegang inschakelen",
     "ENABLE_ROLES_DESC": "Laat alleen gebruikers met specifieke Discord-rollen inloggen. Vereist Bot Token en Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "Toegestane rol-ID's",

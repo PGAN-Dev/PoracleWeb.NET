@@ -1603,7 +1603,7 @@
     "ENABLE_TEMPLATES_DESC": "Autoriser les utilisateurs à choisir des modèles de messages de notification.",
     "ALLOWED_LANGUAGES_LABEL": "Langues d'interface autorisées",
     "ALLOWED_LANGUAGES_DESC": "Codes de langue séparés par des virgules à afficher dans le sélecteur de langue (ex. « en,de,fr,es »). Laissez vide pour afficher les 11 langues.",
-    "PORACLE_LOCALE_HINT": "La locale de Poracle est « {{locale}} ». Un utilisateur qui n'a choisi aucune langue, et dont le navigateur en envoie une absente de ce site, obtient celle-ci.",
+    "PORACLE_LOCALE_HINT": "Langue par défaut des nouveaux utilisateurs : {{locale}}, issue de la configuration de Poracle. Quiconque choisit une langue, ou dont le navigateur en demande une présente sur ce site, obtient celle-là.",
     "ENABLE_ROLES_LABEL": "Activer le contrôle d'accès par rôle",
     "ENABLE_ROLES_DESC": "Autoriser uniquement les utilisateurs avec des rôles Discord spécifiques à se connecter. Nécessite un Bot Token et un Guild ID.",
     "ALLOWED_ROLE_IDS_LABEL": "IDs de rôles autorisés",
