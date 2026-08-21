@@ -1565,6 +1565,8 @@
     "FAVICON_URL_PREVIEW": "Favicon-Vorschau (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Browser cachen Favicons aggressiv. Nach dem Speichern müssen Benutzer ihren Browser-Cache leeren oder einen Hard-Refresh (Strg+F5 / Cmd+Umschalt+R) durchführen, um das neue Symbol zu sehen.",
     "FAVICON_URL_CSP_NOTE": "Wenn Ihre Site eine Content Security Policy verwendet, muss der Ursprung der Favicon-URL von Ihrer img-src-Direktive zugelassen sein; andernfalls blockiert der Browser den Abruf und greift auf das Standardsymbol zurück.",
+    "FORCED_BY_PORACLE": "In der Poracle-Konfiguration deaktiviert. Poracle verwirft diese Webhooks und der Bot lehnt den Befehl ab, daher kann dies hier nicht aktiviert werden.",
+    "FORCED_BY_PORACLE_TOOLTIP": "Wird von der Poracle-Konfiguration gesteuert, nicht von dieser Seite.",
     "CUSTOM_PAGE_NAME_LABEL": "Navigationslink-Bezeichnung",
     "CUSTOM_PAGE_NAME_DESC": "Bezeichnung für den benutzerdefinierten Navigationslink (z. B. „Zurück zur Karte“).",
     "CUSTOM_PAGE_URL_LABEL": "Navigationslink-URL",

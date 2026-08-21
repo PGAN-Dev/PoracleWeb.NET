@@ -34,6 +34,15 @@ describe('SettingsService', () => {
 
   afterEach(() => httpMock.verify());
 
+  /**
+   * getAll() fans out to two endpoints: the settings themselves and the disable_* keys Poracle
+   * forces off upstream. Both have to be answered or httpMock.verify() reports the outstanding one.
+   */
+  const flushGetAll = (settings: unknown, upstream: string[] = []): void => {
+    httpMock.expectOne(`${API}/api/settings`).flush(settings);
+    httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush(upstream);
+  };
+
   describe('normalize', () => {
     it('should normalize PwebSetting items', () => {
       const result = service.normalize(mockPwebSettings);
@@ -66,7 +75,7 @@ describe('SettingsService', () => {
         expect(settings).toHaveLength(3);
       });
 
-      httpMock.expectOne(`${API}/api/settings`).flush(mockPwebSettings);
+      flushGetAll(mockPwebSettings);
 
       expect(service.siteSettings()['enable_templates']).toBe('true');
       expect(service.siteSettings()['site_name']).toBe('My Site');
@@ -77,7 +86,7 @@ describe('SettingsService', () => {
         expect(settings).toHaveLength(3);
       });
 
-      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      flushGetAll(mockSiteSettings);
 
       expect(service.siteSettings()['enable_templates']).toBe('true');
       expect(service.siteSettings()['site_name']).toBe('My Site');
@@ -86,15 +95,13 @@ describe('SettingsService', () => {
     it('should update siteSettings on every call', () => {
       // First call
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      flushGetAll(mockSiteSettings);
 
       expect(service.siteSettings()['enable_templates']).toBe('true');
 
       // Second call - signal should update with new data
       service.getAll().subscribe();
-      httpMock
-        .expectOne(`${API}/api/settings`)
-        .flush([{ id: 1, category: 'features', key: 'enable_templates', value: 'false', valueType: 'boolean' }]);
+      flushGetAll([{ id: 1, category: 'features', key: 'enable_templates', value: 'false', valueType: 'boolean' }]);
 
       expect(service.siteSettings()['enable_templates']).toBe('false');
     });
@@ -102,7 +109,7 @@ describe('SettingsService', () => {
     it('should handle settings with null values', () => {
       service.getAll().subscribe();
 
-      httpMock.expectOne(`${API}/api/settings`).flush([{ id: 1, category: 'test', key: 'key1', value: null, valueType: 'string' }]);
+      flushGetAll([{ id: 1, category: 'test', key: 'key1', value: null, valueType: 'string' }]);
 
       expect(service.siteSettings()['key1']).toBe('');
     });
@@ -111,27 +118,21 @@ describe('SettingsService', () => {
   describe('isDisabled', () => {
     it('should return true when setting is "true"', () => {
       service.getAll().subscribe();
-      httpMock
-        .expectOne(`${API}/api/settings`)
-        .flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'true', valueType: 'boolean' }]);
+      flushGetAll([{ id: 1, category: 'features', key: 'disable_raids', value: 'true', valueType: 'boolean' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(true);
     });
 
     it('should return true case-insensitively', () => {
       service.getAll().subscribe();
-      httpMock
-        .expectOne(`${API}/api/settings`)
-        .flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'True', valueType: 'boolean' }]);
+      flushGetAll([{ id: 1, category: 'features', key: 'disable_raids', value: 'True', valueType: 'boolean' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(true);
     });
 
     it('should return false when setting is not "true"', () => {
       service.getAll().subscribe();
-      httpMock
-        .expectOne(`${API}/api/settings`)
-        .flush([{ id: 1, category: 'features', key: 'disable_raids', value: 'false', valueType: 'boolean' }]);
+      flushGetAll([{ id: 1, category: 'features', key: 'disable_raids', value: 'false', valueType: 'boolean' }]);
 
       expect(service.isDisabled('disable_raids')).toBe(false);
     });
@@ -141,17 +142,74 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('upstream Poracle disable flags (#769)', () => {
+    it('leaves every type enabled when Poracle disables nothing, which is what prod serves', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, []);
+
+      for (const key of [
+        'disable_mons',
+        'disable_raids',
+        'disable_quests',
+        'disable_invasions',
+        'disable_lures',
+        'disable_nests',
+        'disable_gyms',
+        'disable_maxbattles',
+        'disable_fort_changes',
+      ]) {
+        expect(service.isDisabled(key)).toBe(false);
+        expect(service.isForcedByPoracle(key)).toBe(false);
+      }
+    });
+
+    it('reports a type as disabled when Poracle forces it off and the site setting does not', () => {
+      service.getAll().subscribe();
+      flushGetAll([{ id: 1, category: 'features', key: 'disable_raids', value: 'false', valueType: 'boolean' }], ['disable_raids']);
+
+      expect(service.isDisabled('disable_raids')).toBe(true);
+      expect(service.isForcedByPoracle('disable_raids')).toBe(true);
+    });
+
+    it('does not touch the keys Poracle has no opinion about', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, ['disable_raids']);
+
+      expect(service.isDisabled('disable_areas')).toBe(false);
+      expect(service.isDisabled('disable_profiles')).toBe(false);
+      expect(service.isForcedByPoracle('disable_quests')).toBe(false);
+    });
+
+    it('leaves the site settings in sole charge when the upstream call fails', () => {
+      service.getAll().subscribe();
+      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      httpMock.expectOne(`${API}/api/settings/upstream-disabled`).error(new ProgressEvent('network error'));
+
+      // Failing closed here would blank the nav on any Poracle blip.
+      expect(service.upstreamDisabled()).toEqual([]);
+      expect(service.isDisabled('disable_raids')).toBe(false);
+      expect(service.siteSettings()['site_name']).toBe('My Site');
+    });
+
+    it('never re-enables something the admin disabled here', () => {
+      service.getAll().subscribe();
+      flushGetAll([{ id: 1, category: 'features', key: 'disable_lures', value: 'true', valueType: 'boolean' }], []);
+
+      expect(service.isDisabled('disable_lures')).toBe(true);
+    });
+  });
+
   describe('loadOnce', () => {
     it('should call getAll on first invocation', () => {
       service.loadOnce().subscribe();
 
-      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      flushGetAll(mockSiteSettings);
     });
 
     it('should return empty and not make HTTP call when already loaded', () => {
       // Load first
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      flushGetAll(mockSiteSettings);
 
       // loadOnce should not make another request
       service.loadOnce().subscribe(result => {
@@ -159,6 +217,7 @@ describe('SettingsService', () => {
       });
 
       httpMock.expectNone(`${API}/api/settings`);
+      httpMock.expectNone(`${API}/api/settings/upstream-disabled`);
     });
   });
 
@@ -166,7 +225,7 @@ describe('SettingsService', () => {
     it('should merge public SiteSetting response into existing settings', () => {
       // Pre-load some settings
       service.getAll().subscribe();
-      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      flushGetAll(mockSiteSettings);
 
       // Load public settings
       service.loadPublic().subscribe();

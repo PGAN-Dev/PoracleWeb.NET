@@ -237,6 +237,8 @@
                     @if (meta.type === 'boolean') {
                       <mat-slide-toggle
                         [checked]="featureEnabled(meta)"
+                        [disabled]="forcedByPoracle(meta)"
+                        [matTooltip]="forcedByPoracle(meta) ? ('ADMIN_SETTINGS.FORCED_BY_PORACLE_TOOLTIP' | translate) : ''"
                         (change)="onFeatureToggle(meta, $event.checked)"
                         color="primary"></mat-slide-toggle>
                     } @else {
@@ -261,6 +263,12 @@
                     }
                   </div>
                 </div>
+                @if (forcedByPoracle(meta)) {
+                  <div class="config-hint warning forced-by-poracle-hint">
+                    <mat-icon>lock</mat-icon>
+                    <span>{{ 'ADMIN_SETTINGS.FORCED_BY_PORACLE' | translate }}</span>
+                  </div>
+                }
                 @if (meta.key === 'favicon_url') {
                   <div class="config-hint warning favicon-cache-warning">
                     <mat-icon>info_outline</mat-icon>

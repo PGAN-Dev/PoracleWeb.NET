@@ -1566,6 +1566,8 @@
     "FAVICON_URL_PREVIEW": "Favicon-förhandsvisning (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Webbläsare cachar favicons aggressivt. Efter att du sparat måste användare rensa webbläsarens cache eller göra en hård omladdning (Ctrl+F5 / Cmd+Shift+R) för att se den nya ikonen.",
     "FAVICON_URL_CSP_NOTE": "Om din webbplats använder en Content Security Policy måste favicon-URL:ens ursprung tillåtas av ditt img-src-direktiv; annars blockerar webbläsaren hämtningen och återgår till standardikonen.",
+    "FORCED_BY_PORACLE": "Inaktiverat i Poracles egen konfiguration. Poracle kastar dessa webhooks och boten avvisar kommandot, så detta kan inte aktiveras här.",
+    "FORCED_BY_PORACLE_TOOLTIP": "Styrs av Poracles konfiguration, inte av den här sidan.",
     "CUSTOM_PAGE_NAME_LABEL": "Etikett för navigeringslänk",
     "CUSTOM_PAGE_NAME_DESC": "Etikett för den anpassade navigeringslänken (t.ex. \"Tillbaka till kartan\").",
     "CUSTOM_PAGE_URL_LABEL": "URL för navigeringslänk",

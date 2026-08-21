@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
 import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../models';
@@ -17,12 +17,28 @@ export class SettingsService {
   /** Cached site settings as key→value map, loaded once at app init */
   readonly siteSettings = signal<Record<string, string>>({});
 
+  /**
+   * The `disable_*` keys the upstream Poracle deployment forces off in its own config, regardless of
+   * what the site settings say. Poracle's processor drops those webhooks and its bot refuses the
+   * matching commands, so offering the type here would only produce alarms that save and never fire.
+   * Empty when Poracle is unreachable or too old to report the flags — the site settings then stay in
+   * sole charge. See #769.
+   */
+  readonly upstreamDisabled = signal<readonly string[]>([]);
+
   getAll(): Observable<AnySettingItem[]> {
-    return this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings`).pipe(
-      tap(settings => {
+    // Fetched together so a nav item never renders for a type the server will 403. A failure here is
+    // not fatal: the settings still load and the server-side gate remains the real enforcement point.
+    return forkJoin({
+      settings: this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings`),
+      upstream: this.http.get<string[]>(`${this.config.apiHost}/api/settings/upstream-disabled`).pipe(catchError(() => of([]))),
+    }).pipe(
+      tap(({ settings, upstream }) => {
         this.siteSettings.set(this.normalize(settings));
+        this.upstreamDisabled.set(upstream);
         this.loaded = true;
       }),
+      map(({ settings }) => settings),
     );
   }
 
@@ -38,9 +54,21 @@ export class SettingsService {
     return this.http.get<TelegramServerConfig>(`${this.config.apiHost}/api/settings/telegram-config`);
   }
 
-  /** Returns true if a feature is disabled via site settings */
+  /**
+   * True when a feature is off — because an admin disabled it here, or because Poracle disabled it
+   * upstream. Poracle's flags are a floor, never a way to switch something back on.
+   */
   isDisabled(key: string): boolean {
-    return this.siteSettings()[key]?.toLowerCase() === 'true';
+    return this.siteSettings()[key]?.toLowerCase() === 'true' || this.isForcedByPoracle(key);
+  }
+
+  /**
+   * True when Poracle's own config disables this type, which the admin page cannot override. Kept
+   * separate from {@link isDisabled} so that page can explain the switch instead of just showing it
+   * off, and so nothing mistakes a forced-off type for an admin decision.
+   */
+  isForcedByPoracle(key: string): boolean {
+    return this.upstreamDisabled().includes(key);
   }
 
   /** Load settings once (idempotent) */

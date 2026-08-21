@@ -12,6 +12,7 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class SettingsControllerTests : ControllerTestBase
 {
     private readonly Mock<ISiteSettingService> _siteService = new();
+    private readonly Mock<IUpstreamFeatureFlagService> _upstreamFlags = new();
     private readonly SettingsController _sut;
 
     public SettingsControllerTests() => this._sut = new SettingsController(
@@ -20,6 +21,7 @@ public class SettingsControllerTests : ControllerTestBase
         Options.Create(new PoracleSettings()),
         Options.Create(new TelegramSettings()),
         Options.Create(new OidcSettings()),
+        this._upstreamFlags.Object,
         new ConfigurationBuilder().Build());
 
     [Fact]
@@ -248,6 +250,7 @@ public class SettingsControllerTests : ControllerTestBase
             }),
             Options.Create(new TelegramSettings()),
             Options.Create(new OidcSettings()),
+            this._upstreamFlags.Object,
             new ConfigurationBuilder().Build());
         SetupUser(controller, isAdmin: true);
 
@@ -316,5 +319,39 @@ public class SettingsControllerTests : ControllerTestBase
         var result = await this._sut.Upsert("enable_telegram", request);
 
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    /// <summary>
+    /// The keys Poracle forces off, so the SPA can hide those sections and the admin page can mark
+    /// the matching toggle as not-ours-to-change instead of showing a dead switch. See #769.
+    /// </summary>
+    [Fact]
+    public async Task GetUpstreamDisabledReturnsTheKeysPoracleForcesOff()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._upstreamFlags
+            .Setup(f => f.GetDisabledKeysAsync())
+            .ReturnsAsync(new HashSet<string>(["disable_raids", "disable_quests"], StringComparer.Ordinal));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetUpstreamDisabled());
+        var keys = Assert.IsType<List<string>>(ok.Value);
+
+        Assert.Equal(["disable_quests", "disable_raids"], keys);
+    }
+
+    /// <summary>
+    /// Non-admins need this to hide nav items, so it must not be admin-gated. It is also the normal
+    /// case: prod serves an empty disabledHooks array.
+    /// </summary>
+    [Fact]
+    public async Task GetUpstreamDisabledReturnsAnEmptyListForNonAdminsWhenPoracleDisablesNothing()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._upstreamFlags
+            .Setup(f => f.GetDisabledKeysAsync())
+            .ReturnsAsync(new HashSet<string>(StringComparer.Ordinal));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetUpstreamDisabled());
+        Assert.Empty(Assert.IsType<List<string>>(ok.Value));
     }
 }

@@ -1560,6 +1560,8 @@
     "FAVICON_URL_PREVIEW": "Favicon preview (32×32)",
     "FAVICON_URL_CACHE_WARNING": "Browsers aggressively cache favicons. After saving, users must clear their browser cache or hard-refresh (Ctrl+F5 / Cmd+Shift+R) to see the new icon.",
     "FAVICON_URL_CSP_NOTE": "If your site uses a Content Security Policy, the favicon URL's origin must be allowed by your img-src directive; otherwise the browser blocks the fetch and falls back to the default icon.",
+    "FORCED_BY_PORACLE": "Disabled in Poracle's own config. Poracle drops these webhooks and its bot refuses the command, so this cannot be enabled here.",
+    "FORCED_BY_PORACLE_TOOLTIP": "Controlled by Poracle's config, not by this page.",
     "CUSTOM_PAGE_NAME_LABEL": "Nav Link Label",
     "CUSTOM_PAGE_NAME_DESC": "Label for the custom navigation link (e.g. \"Back To Map\").",
     "CUSTOM_PAGE_URL_LABEL": "Nav Link URL",
