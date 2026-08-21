@@ -218,6 +218,19 @@ Two upstream behaviours that PoracleWeb has to work around. Both verified direct
 ### Feature Gating (`disable_*` Site Settings)
 The `disable_mons` / `disable_raids` / `disable_quests` / `disable_invasions` / `disable_lures` / `disable_nests` / `disable_gyms` / `disable_maxbattles` / `disable_fort_changes` site settings disable entire alarm types for everyone, including admins. Eggs share `disable_raids` (no separate `disable_eggs` exists; eggs share the raid UI in the SPA). See #236 for the original bug.
 
+**A disabled alarm type is read-and-delete, not hidden (#784).** The ten alarm controllers carry
+`[RequireFeatureEnabled]` on their **write actions only** — `Create`, `Update`, and both distance
+bulk updates. Reads and deletes are deliberately open: an alarm of a disabled type can never fire, so
+removing it is the one useful action left, and when the type is disabled in Poracle rather than here
+its bot refuses the matching command too, leaving the web page as the only way to clean up. The nav
+item stays (with a padlock) for the same reason — hiding it would strand the alarms.
+
+The exemption is recorded in `FeatureGateCoverageTests.IntentionallyUngatedWrites`, alongside the
+geofence delete that set the precedent, and `DisabledAlarmTypeAccessTests` fails the build if a
+class-level attribute comes back or a new write action ships without one. On the SPA side,
+`alarm-list-readonly.spec.ts` reads the ten templates and checks that every create/edit control sits
+inside `@if (!writesDisabled())` and that no delete does.
+
 **Any `disable_*` toggle must be enforced server-side.** A toggle wired only into the SPA (nav item, route guard) is decoration, not a gate: the endpoints stay reachable by direct API call, and client state — the `siteSettings` signal — is trivially tampered with. `disable_areas`, `disable_profiles` and `disable_location` all shipped that way and were only closed later. `FeatureGateCoverageTests` now fails the build if a key is added to `DisableFeatureKeys` without a controller enforcing it.
 
 Non-alarm features follow the same rules, minus the tracking-type dictionary: add the constant, apply `[RequireFeatureEnabled(...)]` to the controller (or to individual actions, as `UserGeofenceController` does so its reads stay open), add a `disabledFeatureGuard` to the route in `app.routes.ts` **and** the `disableKey` to the nav item — the nav entry alone is not enough.

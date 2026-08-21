@@ -402,19 +402,13 @@ export class AdminSettingsComponent implements OnInit {
 
   private readonly settingsService = inject(SettingsService);
 
-  /**
-   * Poracle's own locale, shown beside Allowed UI Languages because that is the setting it interacts
-   * with: it decides what a user who has never chosen a language, and whose browser we cannot place,
-   * sees. Read-only -- it is Poracle's to set, and writes to it are refused (#780).
-   */
-  readonly poracleLocale = computed(() => this.settingMap().get('poracle_locale') ?? '');
-
   private readonly snackBar = inject(MatSnackBar);
 
   /** Current sign-in mode, derived from enable_oidc (opt-in; absent/false = local). */
   readonly authMode = computed<'local' | 'oidc'>(() => (this.getBool('enable_oidc') ? 'oidc' : 'local'));
 
   readonly searchQuery = signal('');
+
   /**
    * The Authentication section is hand-written rather than driven by SETTING_GROUPS, so the search
    * box never touched it and a nonsense query still left it on screen. See #426.
@@ -431,8 +425,8 @@ export class AdminSettingsComponent implements OnInit {
   });
 
   readonly bulkSaving = signal(false);
-  readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
 
+  readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
   readonly iconRepos = [
@@ -505,6 +499,13 @@ export class AdminSettingsComponent implements OnInit {
 
   /** Single-logout admin toggle state — absent defaults to ON once the end-session URL is wired. */
   readonly oidcSloEnabled = computed(() => (this.getSettingValue('enable_oidc_slo') ?? '').toLowerCase() !== 'false');
+
+  /**
+   * Poracle's own locale, shown beside Allowed UI Languages because that is the setting it interacts
+   * with: it decides what a user who has never chosen a language, and whose browser we cannot place,
+   * sees. Read-only -- it is Poracle's to set, and writes to it are refused (#780).
+   */
+  readonly poracleLocale = computed(() => this.settingMap().get('poracle_locale') ?? '');
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   readonly settingsLoading = signal(true);

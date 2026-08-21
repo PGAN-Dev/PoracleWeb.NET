@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, DestroyRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -23,10 +23,12 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidLevelService } from '../../core/services/raid-level.service';
 import { RaidService } from '../../core/services/raid.service';
 import { ScannerService } from '../../core/services/scanner.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { FeatureReadonlyBannerComponent } from '../../shared/components/feature-readonly-banner/feature-readonly-banner.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
@@ -35,6 +37,7 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    FeatureReadonlyBannerComponent,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -55,7 +58,9 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 })
 export class RaidListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
+
   private readonly destroyRef = inject(DestroyRef);
+
   private readonly dialog = inject(MatDialog);
   private readonly eggService = inject(EggService);
   private readonly i18n = inject(I18nService);
@@ -64,16 +69,17 @@ export class RaidListComponent implements OnInit {
   private readonly raidLevelService = inject(RaidLevelService);
   private readonly raidService = inject(RaidService);
   private readonly scannerService = inject(ScannerService);
+  private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
-
   /** Which tab is in front: 0 raids, 1 eggs. Bulk actions are scoped to it. See #642. */
   readonly activeTab = signal(0);
+
   readonly eggs = signal<Egg[]>([]);
   readonly gymNames = signal<Record<string, string>>({});
   readonly loading = signal(true);
-
   /** Only used to word the inherited scope honestly; empty produces the more cautious wording. */
   readonly profileAreas = signal<string[]>([]);
+
   readonly raids = signal<Raid[]>([]);
   // Keyed "raid:12" / "egg:12", not by the bare uid. Raid and egg uids come from separate
   // auto-increment sequences and do collide; with one set of integers covering both grids, ticking
@@ -81,10 +87,12 @@ export class RaidListComponent implements OnInit {
   // resizing the raid twice and leaving the egg alone. See #540.
   readonly selectedIds = signal(new Set<string>());
   readonly selectMode = signal(false);
-
   readonly skeletonCards = Array.from({ length: 6 });
 
   readonly testAlertService = inject(TestAlertService);
+
+  /** True while this alarm type is switched off: the page reads and deletes, but cannot create or edit. */
+  readonly writesDisabled = computed(() => this.settingsService.isDisabled('disable_raids'));
 
   async bulkDelete(): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -256,6 +264,13 @@ export class RaidListComponent implements OnInit {
    * tracking type is passed rather than duplicating the method.
    */
   editScope(item: Egg | Raid, type: 'egg' | 'raid'): void {
+    if (this.writesDisabled()) {
+      // The chip stays visible because it says something worth reading; editing it is a write, and
+      // the API refuses those while the type is disabled. Say so rather than no-op silently.
+      this.snackBar.open(this.i18n.instant('ALARM.READ_ONLY_TOAST'), this.i18n.instant('TOAST.OK'), { duration: 4000 });
+      return;
+    }
+
     const data: WhereSheetData = {
       profileAreas: this.profileAreas(),
       scope: scopeOf(item.overrideLocationLabel, item.overrideAreas, item.distance),

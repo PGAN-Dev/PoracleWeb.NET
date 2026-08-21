@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/fort-changes")]
-[RequireFeatureEnabled(DisableFeatureKeys.FortChanges)]
 public class FortChangeController(IFortChangeService fortChangeService) : BaseApiController
 {
     private readonly IFortChangeService _fortChangeService = fortChangeService;
@@ -31,6 +30,7 @@ public class FortChangeController(IFortChangeService fortChangeService) : BaseAp
         return this.Ok(item);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.FortChanges)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] FortChangeCreate model)
     {
@@ -53,6 +53,7 @@ public class FortChangeController(IFortChangeService fortChangeService) : BaseAp
         }, result);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.FortChanges)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] FortChangeUpdate model)
     {
@@ -99,6 +100,7 @@ public class FortChangeController(IFortChangeService fortChangeService) : BaseAp
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.FortChanges)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -109,6 +111,7 @@ public class FortChangeController(IFortChangeService fortChangeService) : BaseAp
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.FortChanges)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

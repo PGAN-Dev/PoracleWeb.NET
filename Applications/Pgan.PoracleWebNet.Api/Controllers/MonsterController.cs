@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/monsters")]
-[RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
 public class MonsterController(IMonsterService monsterService) : BaseApiController
 {
     private readonly IMonsterService _monsterService = monsterService;
@@ -31,6 +30,7 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
         return this.Ok(monster);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] MonsterCreate model)
     {
@@ -60,6 +60,7 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
         }, result);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] MonsterUpdate model)
     {
@@ -114,6 +115,7 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -124,6 +126,7 @@ public class MonsterController(IMonsterService monsterService) : BaseApiControll
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Pokemon)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {

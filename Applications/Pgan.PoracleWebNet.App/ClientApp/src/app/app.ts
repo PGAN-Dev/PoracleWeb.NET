@@ -219,10 +219,14 @@ export class App implements OnInit {
     ),
   );
 
+  /**
+   * Alarm types stay in the nav even when disabled. The page is no longer a create-only surface: it
+   * lists the rules a user already has and lets them delete those, which is the one action still
+   * worth taking on an alarm that can never fire. Hiding the item would strand them. A padlock says
+   * so before they click; the page itself explains which side switched it off.
+   */
   protected readonly alarmNavItems = computed(() =>
-    this.navItems.filter(
-      item => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin()) && !this.isFeatureDisabled(item.disableKey),
-    ),
+    this.navItems.filter(item => item.group === 'alarms' && (!item.adminOnly || this.auth.isAdmin())),
   );
 
   readonly alertLanguage = inject(AlertLanguageService);
@@ -299,6 +303,12 @@ export class App implements OnInit {
   getCount(item: NavItem): number {
     if (!item.countKey || !this.counts()) return 0;
     return this.counts()![item.countKey] ?? 0;
+  }
+
+  /** Also read from the template, to mark a disabled alarm type in the nav. */
+  protected isFeatureDisabled(key?: string): boolean {
+    if (!key) return false;
+    return this.settingsService.isDisabled(key);
   }
 
   loadCounts(): void {
@@ -460,10 +470,5 @@ export class App implements OnInit {
     document.body.classList.toggle('dark-theme', this.darkMode());
     document.body.classList.toggle('light-theme', !this.darkMode());
     localStorage.setItem('poracle-theme', scheme);
-  }
-
-  private isFeatureDisabled(key?: string): boolean {
-    if (!key) return false;
-    return this.settingsService.isDisabled(key);
   }
 }

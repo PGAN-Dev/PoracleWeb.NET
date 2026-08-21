@@ -7,7 +7,6 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/raids")]
-[RequireFeatureEnabled(DisableFeatureKeys.Raids)]
 public class RaidController(IRaidService raidService) : BaseApiController
 {
     private readonly IRaidService _raidService = raidService;
@@ -31,6 +30,7 @@ public class RaidController(IRaidService raidService) : BaseApiController
         return this.Ok(raid);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] RaidCreate model)
     {
@@ -53,6 +53,7 @@ public class RaidController(IRaidService raidService) : BaseApiController
         }, result);
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPut("{uid:int}")]
     public async Task<IActionResult> Update(int uid, [FromBody] RaidUpdate model)
     {
@@ -99,6 +100,7 @@ public class RaidController(IRaidService raidService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
@@ -109,6 +111,7 @@ public class RaidController(IRaidService raidService) : BaseApiController
         });
     }
 
+    [RequireFeatureEnabled(DisableFeatureKeys.Raids)]
     [HttpPut("distance")]
     public async Task<IActionResult> UpdateAllDistance([FromBody] int distance)
     {
