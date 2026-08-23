@@ -76,6 +76,11 @@ Three sources, unioned on every check:
 3. **Administrators**, from `PORACLE_ADMIN_IDS` or Poracle's `admins` list, who can manage any
    webhook and are never listed as delegates of a particular one.
 
+A Poracle-side grant names its webhook however the operator wrote it in `webhook_admins` — by the
+webhook's name, or by its URL. Either is resolved to the webhook it names before anything is decided,
+so both work. A grant naming a webhook this Poracle has no account for is ignored: it grants access to
+nothing, and counting it would put **My Webhooks** in the sidebar over an empty page.
+
 The answer is cached for a minute per person, so granting or revoking takes effect within about that
 long rather than at their next sign-in. A lookup that cannot reach one of its sources is never
 cached, and falls back to what the session already knew rather than dropping access mid-session.
@@ -87,9 +92,18 @@ webhook. Check the grant exists on the webhook's delegates dialog, and that they
 once before being granted — a grant to an account that never existed is refused, so an absent chip
 means it was never written.
 
+**Impersonating them hides the page.** It does not any more — an impersonation session sees the
+delegate's webhooks, which is the point of looking. Impersonating a second account from inside that
+session is refused; leave the first one before starting another.
+
 **They can see it in Discord but not here, or the reverse.** These are separate grants. The bot side
 is Poracle's config; this side is the delegates dialog. Having one does not imply the other, although
 a Poracle-side grant does also work here.
+
+**My Webhooks is in the sidebar but the page is empty.** The grant names a webhook that does not exist
+here. The usual cause is a `webhook_admins` target that no longer matches any webhook — a URL whose
+token was rewritten when the config was converted from PoracleJS's JSON, for instance. Naming the
+webhook by its name rather than its URL avoids the whole class of problem.
 
 **A revoked delegate still has access.** Give it a minute — the resolution is cached that long.
 Beyond that, check whether they are a global admin or hold a Poracle-side grant, both of which this

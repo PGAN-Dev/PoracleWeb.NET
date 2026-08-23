@@ -29,6 +29,8 @@ public class HumanService(
     // See: docs/poracleng-enhancement-requests.md
     public async Task<IEnumerable<Human>> GetAllAsync() => await this._repository.GetAllAsync();
 
+    public async Task<IEnumerable<Human>> GetWebhooksAsync() => await this._repository.GetWebhooksAsync();
+
     public async Task<Human?> GetByIdAsync(string id)
     {
         var json = await this._humanProxy.GetHumanAsync(id);

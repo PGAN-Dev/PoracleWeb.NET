@@ -232,6 +232,20 @@ each time because one surface disagreed with another:
 | #601 | reading the claim let a revoked delegate keep access for 24 hours |
 | #626 | resolving from the local table alone refused a PoracleJS-configured delegate the nav item had just offered |
 | #786 | `/api/auth/me` still read the claim, so a *new* delegate could not find a page that would have let them in |
+| #797 | all three agreed on the union and disagreed on what the strings in it *identify* — see below |
+
+**A grant names a webhook; it is not necessarily its id.** PoracleNG returns whatever key the operator
+wrote in `[[discord.webhook_admins]] target`, and upstream that key is the webhook's **name** — the bot
+resolves it with `LookupWebhookByName` and authorises with `CanAdminWebhook(cfg, userID, nameOverride)`.
+The local delegate table stores ids. `UserRoleResolver` therefore canonicalises every grant to a
+`humans.id` (id first, then name, case-insensitively) before returning it, and drops what names neither:
+a grant that matches no row could never match one downstream, and carrying it drew a nav item onto an
+empty page. Consumers may assume `ManagedWebhooks` holds ids. See #797.
+
+An impersonation session resolves `managedWebhooks` live, like every other surface, because `this.UserId`
+is the account the whole session is acting as — the same account `my-webhooks` and `POST impersonate`
+already answer for. `IsAdmin` is the carve-out, not this. Chaining a second impersonation is refused
+server-side: the SPA holds one `poracle_admin_token`, so a second hop overwrites the way back out.
 
 The `managedWebhooks` JWT claim is now a **cold fallback only**, used when a resolve is degraded so an
 outage does not strip a delegate mid-session. Nothing authorises off it. Do not reintroduce it as a

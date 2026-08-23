@@ -1321,6 +1321,7 @@
     "BLOCK_WEBHOOK": "Webhook sperren",
     "UNBLOCK_WEBHOOK": "Webhook entsperren",
     "MANAGE_ALARMS": "Alarme verwalten",
+    "MANAGE_ALARMS_IMPERSONATING": "Beende zuerst die Identitätsübernahme, um diesen Webhook zu verwalten",
     "MANAGE_ALARMS_TOOLTIP": "Alarme für diesen Webhook verwalten",
     "MANAGE_DELEGATES": "Delegierte verwalten",
     "DELETE_WEBHOOK": "Webhook löschen",

@@ -1321,6 +1321,7 @@
     "BLOCK_WEBHOOK": "Bloquear webhook",
     "UNBLOCK_WEBHOOK": "Desbloquear webhook",
     "MANAGE_ALARMS": "Gestionar alarmas",
+    "MANAGE_ALARMS_IMPERSONATING": "Deja de suplantar primero para gestionar este webhook",
     "MANAGE_ALARMS_TOOLTIP": "Gestionar alarmas de este webhook",
     "MANAGE_DELEGATES": "Gestionar delegados",
     "DELETE_WEBHOOK": "Eliminar webhook",

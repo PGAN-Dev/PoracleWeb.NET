@@ -427,6 +427,62 @@ public class AdminControllerTests : ControllerTestBase
         Assert.IsType<NotFoundResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
     }
 
+    /// <summary>
+    /// No second hop from inside an impersonation session. The SPA stashes the caller's own token in a
+    /// single poracle_admin_token slot, so a second hop overwrites it with the first impersonated one and
+    /// strands whoever started with no way back. Reachable only since #797 put the My Webhooks nav item
+    /// back inside impersonation sessions; nothing legitimate chained before it, and nothing does now.
+    /// </summary>
+    [Fact]
+    public async Task ImpersonateByIdRefusesAHopFromInsideAnImpersonationSession()
+    {
+        SetupImpersonatingUser(this._sut, isAdmin: true);
+        this._roleResolver.Setup(r => r.ResolveAsync(It.IsAny<string>()))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["u1"]));
+        this._humanService.Setup(s => s.GetByIdAsync("u1"))
+            .ReturnsAsync(new Human { Id = "u1", Name = "WH", Type = "webhook", Enabled = 1, AdminDisable = 0, CurrentProfileNo = 1 });
+
+        Assert.IsType<ForbidResult>(await this._sut.ImpersonateById(new AdminController.ImpersonateRequest("u1")));
+    }
+
+    // --- GetManagedWebhooks (#797) ---
+
+    /// <summary>
+    /// The grant PoracleNG reports is the webhook's NAME, and this page matches on humans.id. The
+    /// resolver canonicalises it, so what arrives here is an id and the row is found -- the delegate
+    /// used to get the nav item and an empty table. See #797.
+    /// </summary>
+    [Fact]
+    public async Task GetManagedWebhooksListsTheWebhookADelegateWasGrantedByName()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, ["http://wh.example/a"]));
+        this._humanService.Setup(s => s.GetAllAsync()).ReturnsAsync(
+        [
+            new Human { Id = "http://wh.example/a", Name = "teamharmonyrares", Type = "webhook" },
+            new Human { Id = "http://wh.example/b", Name = "100iv", Type = "webhook" },
+        ]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedWebhooks());
+
+        var rows = Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value);
+        Assert.Single(rows);
+    }
+
+    [Fact]
+    public async Task GetManagedWebhooksReturnsNothingWhenTheCallerHasNoGrants()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._roleResolver.Setup(r => r.ResolveAsync("123456789"))
+            .ReturnsAsync(new Pgan.PoracleWebNet.Api.Services.UserRoles(false, null));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetManagedWebhooks());
+
+        Assert.Empty(Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value));
+        this._humanService.Verify(s => s.GetAllAsync(), Times.Never);
+    }
+
     // --- WebhookDelegates ---
 
     [Fact]

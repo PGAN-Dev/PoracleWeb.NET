@@ -1321,6 +1321,7 @@
     "BLOCK_WEBHOOK": "Bloker webhook",
     "UNBLOCK_WEBHOOK": "Fjern blokering af webhook",
     "MANAGE_ALARMS": "Administrer alarmer",
+    "MANAGE_ALARMS_IMPERSONATING": "Stop efterligning først for at administrere denne webhook",
     "MANAGE_ALARMS_TOOLTIP": "Administrer alarmer for denne webhook",
     "MANAGE_DELEGATES": "Administrer delegerede",
     "DELETE_WEBHOOK": "Slet webhook",
