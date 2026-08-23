@@ -1321,6 +1321,7 @@
     "BLOCK_WEBHOOK": "Blockera webhook",
     "UNBLOCK_WEBHOOK": "Avblockera webhook",
     "MANAGE_ALARMS": "Hantera larm",
+    "MANAGE_ALARMS_IMPERSONATING": "Avsluta imitationen först för att hantera denna webhook",
     "MANAGE_ALARMS_TOOLTIP": "Hantera larm för denna webhook",
     "MANAGE_DELEGATES": "Hantera delegater",
     "DELETE_WEBHOOK": "Radera webhook",

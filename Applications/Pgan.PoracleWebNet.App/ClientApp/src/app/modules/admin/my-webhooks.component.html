@@ -49,7 +49,12 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>{{ 'ADMIN.COLUMN_ACTIONS' | translate }}</th>
           <td mat-cell *matCellDef="let wh">
-            <button mat-raised-button color="primary" (click)="manageAlarms(wh)" [matTooltip]="'ADMIN.MANAGE_ALARMS_TOOLTIP' | translate">
+            <button
+              mat-raised-button
+              color="primary"
+              [disabled]="isImpersonating()"
+              (click)="manageAlarms(wh)"
+              [matTooltip]="(isImpersonating() ? 'ADMIN.MANAGE_ALARMS_IMPERSONATING' : 'ADMIN.MANAGE_ALARMS_TOOLTIP') | translate">
               <mat-icon>tune</mat-icon> {{ 'ADMIN.MANAGE_ALARMS' | translate }}
             </button>
           </td>
