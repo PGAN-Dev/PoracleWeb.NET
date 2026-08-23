@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).
 - **A delegate configured in Poracle's own config can see their webhooks again.** Poracle reports a delegated webhook by the name the operator wrote in `webhook_admins`, and this site matched those strings against the webhook's URL, so a name matched nothing: the *My Webhooks* item appeared in the sidebar, the page it led to was empty, and the button on it would have been refused. Grants are now resolved to the webhook they name, whether the config names it by name or by URL, and a grant that names no webhook at all no longer puts an item in the sidebar ([#797](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/797)).
 - **Impersonating a delegate shows what the delegate sees.** *My Webhooks* was hidden inside an impersonation session -- the one place an admin looks to find out why someone is complaining -- while the page and its actions would both have answered. Impersonating a second account from inside that session is refused, since only one token can be held for the way back out ([#797](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/797)).
 
