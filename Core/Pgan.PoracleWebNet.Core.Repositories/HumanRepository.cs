@@ -57,25 +57,11 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
         return results.Select(e => e.ToModel());
     }
 
-    public async Task<Human> CreateAsync(Human human)
-    {
-        var entity = human.ToEntity();
-        EnsureNotNullDefaults(entity);
-        this._context.Humans.Add(entity);
-        await this._context.SaveChangesAsync();
-        return entity.ToModel();
-    }
-
-    public async Task<Human> UpdateAsync(Human human)
-    {
-        var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == human.Id)
-            ?? throw new InvalidOperationException($"Human with id {human.Id} not found.");
-
-        human.ApplyTo(entity);
-        EnsureNotNullDefaults(entity);
-        await this._context.SaveChangesAsync();
-        return entity.ToModel();
-    }
+    // CreateAsync and UpdateAsync lived here and are gone. Create had no callers at all; the only
+    // caller of Update was the notification-language endpoint, which now goes through
+    // IPoracleHumanProxy.SetLanguageAsync. Nothing in PoracleWeb writes a humans row directly any more,
+    // which also means nothing can stamp a stale copy of the whole record over PoracleNG's -- the shape
+    // of #517.
 
     public async Task<bool> ExistsAsync(string id) => await this._context.Humans.AnyAsync(h => h.Id == id);
 

@@ -1,7 +1,10 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
@@ -32,7 +35,12 @@ public class PoracleHumanProxyRefusalTests
                 ["Poracle:ApiAddress"] = "http://localhost:3030",
                 ["Poracle:ApiSecret"] = "test-secret",
             })
-            .Build());
+            .Build(),
+            // No version, so no /api/v2: every refusal here is v1's, which is what a 5.1.0 self-hoster
+            // still gets.
+            PoracleHumanProxyTests.ServerProfile(null),
+            new MemoryCache(new MemoryCacheOptions()),
+            Mock.Of<ILogger<PoracleHumanProxy>>());
 
     private static PoracleHumanProxy Refusing(HttpStatusCode status, string body) =>
         CreateSut(new MockHandler(status, body));
@@ -301,12 +309,20 @@ public class PoracleHumanProxyRefusalTests
     }
 
     [Fact]
-    public async Task AConflictOutsideDeletePlaceIsStillAServerFault()
+    public async Task AConflictIsPassedOnAsAConflict()
     {
-        // Only the delete-place route gives 409 a meaning. Nothing else should start reading one.
-        var sut = Refusing(HttpStatusCode.Conflict, "{}");
+        // This asserted the opposite until /api/v2 arrived, on the premise that only delete-place gives
+        // 409 a meaning. v2 ended that: saving a place whose label you already have is a real 409 there,
+        // where v1 buried the same refusal inside a 200. A 409 is the caller being told no, so flattening
+        // it into HttpRequestException put "an unexpected error occurred" in front of the user and a
+        // fault in the log -- the exact shape of #539. It keeps its own status rather than becoming a 400.
+        var sut = Refusing(HttpStatusCode.Conflict, """{"title":"Conflict","status":409,"detail":"location label already exists"}""");
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => sut.CreateHumanAsync(Body("{}")));
+        var refused = await Assert.ThrowsAsync<PoracleRequestRefusedException>(
+            () => sut.CreateHumanAsync(Body("{}")));
+
+        Assert.Equal(409, refused.StatusCode);
+        Assert.Contains("location label already exists", refused.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -345,12 +361,11 @@ public class PoracleHumanProxyRefusalTests
     [Fact]
     public async Task ReadsThatAnswerNullOnFailureStillAnswerNull()
     {
-        // GetHumanAsync and CheckLocationAsync are read paths whose callers branch on null. Turning their
+        // GetHumanAsync and GetAreasAsync are read paths whose callers branch on null. Turning their
         // failures into throws would break HumanService, ProfileService and TestAlertService at once.
         var sut = Refusing(HttpStatusCode.BadRequest, """{"message":"invalid latitude","status":"error"}""");
 
         Assert.Null(await sut.GetHumanAsync("user1"));
-        Assert.Null(await sut.CheckLocationAsync("user1", 999, 999));
         Assert.Null(await sut.GetAreasAsync("user1"));
     }
 

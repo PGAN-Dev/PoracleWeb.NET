@@ -1,26 +1,115 @@
 using Pgan.PoracleWebNet.Core.Models;
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configuration) : IPoracleHumanProxy
+public partial class PoracleHumanProxy(
+    HttpClient httpClient,
+    IConfiguration configuration,
+    IPoracleServerProfileService serverProfile,
+    IMemoryCache cache,
+    ILogger<PoracleHumanProxy> logger) : IPoracleHumanProxy
 {
     /// <summary>What to say when PoracleNG refused and explained nothing usable.</summary>
     private const string Unexplained = "Poracle rejected the request.";
 
+    /// <summary>The release that first carries <c>/api/v2/humans</c>.</summary>
+    private static readonly Version FirstWithV2 = new(5, 2, 0);
+
+    /// <summary>
+    /// How long a route is remembered as missing. Matches the server profile's own cache, so an upgrade
+    /// is picked up on the same clock as every other version-gated thing.
+    /// </summary>
+    private static readonly TimeSpan V2AbsentFor = TimeSpan.FromMinutes(5);
+
     private readonly HttpClient _httpClient = httpClient;
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
+    private readonly IPoracleServerProfileService _serverProfile = serverProfile;
+    private readonly IMemoryCache _cache = cache;
+    private readonly ILogger<PoracleHumanProxy> _logger = logger;
 
     /// <summary>
     /// URL-encodes a userId for safe path construction. Webhook IDs are full URLs
     /// containing slashes that would break routing without encoding.
     /// </summary>
     private static string Encode(string userId) => Uri.EscapeDataString(userId);
+
+    /// <summary>A latitude or longitude in a form PoracleNG parses whatever the server's culture is.</summary>
+    /// <remarks>
+    /// The v1 location paths interpolate the doubles straight into the URL. On a machine whose current
+    /// culture uses a comma for the decimal separator that produced <c>/setLocation/51,5/-0,12</c>, which
+    /// is four path segments rather than two. The v2 body does not have the problem -- <c>JsonSerializer</c>
+    /// is invariant -- but the v1 fallback is still there and still has to be right.
+    /// </remarks>
+    private static string Coord(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Whether PoracleNG is believed to carry <c>/api/v2</c>, from the version it reports.
+    /// </summary>
+    /// <remarks>
+    /// A belief, not a fact: a fork can carry the routes while reporting an older number, or the reverse.
+    /// <see cref="TryV2Async"/> therefore also handles the route being absent at request time, so being
+    /// wrong here costs one extra round-trip rather than the operation.
+    /// </remarks>
+    private async Task<bool> ServerCarriesV2Async()
+    {
+        var profile = await this._serverProfile.GetAsync();
+        return profile.Reachable && profile.ParsedVersion is { } version && version >= FirstWithV2;
+    }
+
+    /// <summary>
+    /// Sends one request to <c>/api/v2</c>, or answers null when this server has no such route so the
+    /// caller can use its v1 path for the same request instead of failing it.
+    /// </summary>
+    /// <remarks>
+    /// The absence is remembered per route, not per surface. One shared flag would let a single missing
+    /// route drop every other call back to v1 -- and <c>PUT /locations/{label}</c> has no v1 path at all,
+    /// so for that one "fall back" means "vanish".
+    /// </remarks>
+    private async Task<(HttpResponseMessage Response, string Payload)?> TryV2Async(
+        HttpMethod method, string route, string path, string? body = null)
+    {
+        var absentKey = $"poracle:v2-humans-absent:{route}";
+        if (this._cache.TryGetValue(absentKey, out _))
+        {
+            return null;
+        }
+
+        if (!await this.ServerCarriesV2Async())
+        {
+            return null;
+        }
+
+        var reply = await this.SendReadAsync(method, path, body);
+
+        // gin answers a route it does not have with the plaintext "404 page not found"; the v2 surface
+        // answers a missing human or place with problem+json at the same status. Verified against 5.1.0
+        // and 5.2.1 -- the content type is the only thing separating them.
+        if (reply.Response.StatusCode == HttpStatusCode.NotFound
+            && !PoracleProblemDetails.IsProblemJson(reply.Payload))
+        {
+            this._cache.Set(absentKey, true, V2AbsentFor);
+            LogV2RouteAbsent(this._logger, route);
+            return null;
+        }
+
+        return reply;
+    }
+
+    private async Task<(HttpResponseMessage Response, string Payload)> SendReadAsync(
+        HttpMethod method, string path, string? body = null)
+    {
+        var response = await this.SendAsync(method, path, body);
+        return (response, await response.Content.ReadAsStringAsync());
+    }
 
     /// <summary>
     /// Turns a refusal from PoracleNG into the answer it deserves, and lets everything else throw.
@@ -72,6 +161,13 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
             case HttpStatusCode.UnprocessableEntity:
                 throw new PoracleRequestRefusedException(PoracleProblemDetails.Describe(payload, Unexplained));
 
+            case HttpStatusCode.Conflict:
+                // v2 answers 409 where v1 buried the same refusal in a 200 body -- a duplicate saved-place
+                // label is the live case. Without this it fell through to EnsureSuccessStatusCode and the
+                // global handler turned "you already have one called that" into a 500.
+                throw new PoracleRequestRefusedException(
+                    PoracleProblemDetails.Describe(payload, Unexplained), (int)HttpStatusCode.Conflict);
+
             default:
                 response.EnsureSuccessStatusCode();
                 return;
@@ -92,13 +188,17 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
     public async Task<JsonElement?> GetHumanAsync(string userId)
     {
-        var response = await this.SendAsync(HttpMethod.Get, $"/api/humans/one/{Encode(userId)}");
+        // Both surfaces answer the same wrapper and the same columns -- verified field by field against a
+        // live 5.2.1 -- so nothing downstream can tell which one answered.
+        var (response, json) =
+            await this.TryV2Async(HttpMethod.Get, "get", $"/api/v2/humans/{Encode(userId)}")
+            ?? await this.SendReadAsync(HttpMethod.Get, $"/api/humans/one/{Encode(userId)}");
+
         if (!response.IsSuccessStatusCode)
         {
             return null;
         }
 
-        var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
 
         // PoracleNG wraps the response: { "human": { ... }, "status": "ok" }
@@ -118,13 +218,36 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
     public async Task StartAsync(string userId)
     {
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/start");
+        var (response, _) =
+            await this.TryV2Async(HttpMethod.Post, "enable", $"/api/v2/humans/{Encode(userId)}/enable")
+            ?? await this.SendReadAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/start");
+
         await EnsureAcceptedAsync(response);
     }
 
     public async Task StopAsync(string userId)
     {
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/stop");
+        var (response, _) =
+            await this.TryV2Async(HttpMethod.Post, "disable", $"/api/v2/humans/{Encode(userId)}/disable")
+            ?? await this.SendReadAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/stop");
+
+        await EnsureAcceptedAsync(response);
+    }
+
+    /// <inheritdoc />
+    public async Task SetLanguageAsync(string userId, string language)
+    {
+        var v2Body = JsonSerializer.Serialize(new
+        {
+            language
+        });
+
+        var (response, _) =
+            await this.TryV2Async(
+                HttpMethod.Post, "language", $"/api/v2/humans/{Encode(userId)}/language", v2Body)
+            ?? await this.SendReadAsync(
+                HttpMethod.Post, $"/api/humans/{Encode(userId)}/language", v2Body);
+
         await EnsureAcceptedAsync(response);
     }
 
@@ -137,13 +260,38 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
         {
             state = disabled
         });
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/adminDisabled", body);
+
+        // v2 renamed the key as well as the route: its adminDisableBody is `Disabled *bool`, so sending
+        // v1's `state` to it is a 422 rather than a no-op.
+        var v2Body = JsonSerializer.Serialize(new
+        {
+            disabled
+        });
+
+        var (response, _) =
+            await this.TryV2Async(
+                HttpMethod.Post, "admin-disable", $"/api/v2/humans/{Encode(userId)}/admin-disable", v2Body)
+            ?? await this.SendReadAsync(
+                HttpMethod.Post, $"/api/humans/{Encode(userId)}/adminDisabled", body);
+
         await EnsureAcceptedAsync(response);
     }
 
     public async Task SetLocationAsync(string userId, double lat, double lon)
     {
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/setLocation/{lat}/{lon}");
+        var v2Body = JsonSerializer.Serialize(new
+        {
+            lat,
+            lon
+        });
+
+        var (response, _) =
+            await this.TryV2Async(
+                HttpMethod.Post, "location", $"/api/v2/humans/{Encode(userId)}/location", v2Body)
+            ?? await this.SendReadAsync(
+                HttpMethod.Post,
+                $"/api/humans/{Encode(userId)}/setLocation/{Coord(lat)}/{Coord(lon)}");
+
         await EnsureAcceptedAsync(response);
     }
 
@@ -161,7 +309,17 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
     public async Task SwitchProfileAsync(string userId, int profileNo)
     {
-        var response = await this.SendAsync(HttpMethod.Post, $"/api/humans/{Encode(userId)}/switchProfile/{profileNo}");
+        var v2Body = JsonSerializer.Serialize(new
+        {
+            profile_no = profileNo
+        });
+
+        var (response, _) =
+            await this.TryV2Async(
+                HttpMethod.Post, "profile", $"/api/v2/humans/{Encode(userId)}/profile", v2Body)
+            ?? await this.SendReadAsync(
+                HttpMethod.Post, $"/api/humans/{Encode(userId)}/switchProfile/{profileNo}");
+
         await EnsureAcceptedAsync(response);
     }
 
@@ -199,26 +357,15 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
         await EnsureAcceptedAsync(response);
     }
 
-    public async Task<JsonElement?> CheckLocationAsync(string userId, double lat, double lon)
-    {
-        var response = await this.SendAsync(HttpMethod.Get, $"/api/humans/{Encode(userId)}/checkLocation/{lat}/{lon}");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        var json = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
-    }
-
 
     public async Task<SavedPlaces> GetPlacesAsync(string userId)
     {
-        var response = await this.SendAsync(HttpMethod.Get, $"/api/humans/{Encode(userId)}/locations");
+        var (response, json) =
+            await this.TryV2Async(HttpMethod.Get, "locations", $"/api/v2/humans/{Encode(userId)}/locations")
+            ?? await this.SendReadAsync(HttpMethod.Get, $"/api/humans/{Encode(userId)}/locations");
+
         await EnsureAcceptedAsync(response);
 
-        var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
 
         // PoracleNG wraps this one as {"locations": {...}, "status": "ok"} -- reading the root as the
@@ -258,6 +405,39 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
     public async Task<string?> AddPlaceAsync(string userId, SavedPlace place)
     {
+        // Ours, not PoracleNG's. v1 reported the overflow as "Data too long for column 'label'" inside a
+        // 200 and v2 answers 500 {"detail":"database error"} -- both verified live, and neither is
+        // something to show a person who typed a long name. humans_locations.label is varchar(64).
+        if (place.Label is { Length: > 64 })
+        {
+            return "That name is too long. Use 64 characters or fewer.";
+        }
+
+        // v2 takes lat/lon on the way in and still answers latitude/longitude on the way out. The
+        // asymmetry is upstream's, not a typo here.
+        var v2Body = JsonSerializer.Serialize(new
+        {
+            label = place.Label,
+            lat = place.Latitude,
+            lon = place.Longitude,
+        });
+
+        var v2 = await this.TryV2Async(
+            HttpMethod.Post, "locations-add", $"/api/v2/humans/{Encode(userId)}/locations", v2Body);
+
+        if (v2 is { } reply)
+        {
+            // v2 turns the duplicate label into a real 409 instead of burying it in a 200. Returned as
+            // the same string v1 produced so the controller and the SPA see one behaviour.
+            if (reply.Response.StatusCode == HttpStatusCode.Conflict)
+            {
+                return PoracleProblemDetails.Describe(reply.Payload, Unexplained);
+            }
+
+            await EnsureAcceptedAsync(reply.Response);
+            return null;
+        }
+
         var body = JsonSerializer.Serialize(new
         {
             label = place.Label,
@@ -290,6 +470,27 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
         }
 
         return null;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude)
+    {
+        var body = JsonSerializer.Serialize(new
+        {
+            lat = latitude,
+            lon = longitude,
+        });
+
+        var v2 = await this.TryV2Async(
+            HttpMethod.Put, "locations-update", $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}", body);
+
+        if (v2 is not { } reply)
+        {
+            return false;
+        }
+
+        await EnsureAcceptedAsync(reply.Response);
+        return true;
     }
 
     public async Task DeletePlaceAsync(string userId, string label)
@@ -329,4 +530,10 @@ public class PoracleHumanProxy(HttpClient httpClient, IConfiguration configurati
 
         return await this._httpClient.SendAsync(request);
     }
+
+    [LoggerMessage(
+        EventId = 6301,
+        Level = LogLevel.Debug,
+        Message = "PoracleNG has no /api/v2 route for {Route}; using the v1 path for it.")]
+    private static partial void LogV2RouteAbsent(ILogger logger, string route);
 }

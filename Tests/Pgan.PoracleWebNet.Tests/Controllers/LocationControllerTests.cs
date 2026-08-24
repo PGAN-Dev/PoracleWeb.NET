@@ -91,12 +91,31 @@ public class LocationControllerTests : ControllerTestBase
     {
         var human = new Human { Id = "123456789", Language = "en" };
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
-        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
         var result = await this.LanguageSut().UpdateLanguage(new NotificationLanguageController.LanguageUpdateRequest { Language = "de" });
 
         Assert.IsType<OkObjectResult>(result);
-        Assert.Equal("de", human.Language);
+        this._humanService.Verify(s => s.SetLanguageAsync("123456789", "de"), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateLanguageAnswersWhatWasStoredRatherThanWhatWasSent()
+    {
+        // PoracleNG lowercases and trims: "pt-BR" is stored as "pt-br", on v1 and v2 alike. Echoing the
+        // request would leave the SPA holding a value the server does not have, and its picker compares
+        // the two strings.
+        var human = new Human { Id = "123456789", Language = "en" };
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._humanService
+            .Setup(s => s.SetLanguageAsync("123456789", "pt-BR"))
+            .Callback(() => human.Language = "pt-br")
+            .Returns(Task.CompletedTask);
+
+        var result = await this.LanguageSut()
+            .UpdateLanguage(new NotificationLanguageController.LanguageUpdateRequest { Language = "pt-BR" });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("pt-br", ok.Value?.GetType().GetProperty("language")?.GetValue(ok.Value));
     }
 
     [Fact]

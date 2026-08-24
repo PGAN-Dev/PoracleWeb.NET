@@ -10,7 +10,10 @@ public interface IHumanService
     public Task<IEnumerable<Human>> GetWebhooksAsync();
     public Task<Human?> GetByIdAsync(string id);
     public Task<Human> CreateAsync(Human human);
-    public Task<Human> UpdateAsync(Human human);
+
+    /// <summary>Sets the language PoracleNG writes this user's alerts in.</summary>
+    public Task SetLanguageAsync(string userId, string language);
+
     public Task<bool> ExistsAsync(string id);
     public Task<int> DeleteAllAlarmsByUserAsync(string userId);
     public Task<bool> DeleteUserAsync(string userId);

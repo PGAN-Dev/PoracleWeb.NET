@@ -7,9 +7,9 @@ using Pgan.PoracleWebNet.Core.Models;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Proxy-first service for human operations. Admin bulk operations (GetAll, DeleteUser, UpdateAsync)
-/// remain direct DB via IHumanRepository because PoracleNG has no admin-list, admin-delete, or
-/// generic update endpoints yet. See: docs/poracleng-enhancement-requests.md
+/// Proxy-first service for human operations. Admin bulk operations (GetAll, GetWebhooks, DeleteUser)
+/// remain direct DB via IHumanRepository because PoracleNG has no admin-list or admin-delete endpoint
+/// on either API version. See: docs/poracleng-enhancement-requests.md
 /// </summary>
 public class HumanService(
     IHumanRepository repository,
@@ -48,9 +48,9 @@ public class HumanService(
         return created ?? human;
     }
 
-    // TODO: Migrate once PoracleNG adds a generic human update endpoint.
-    // See: docs/poracleng-enhancement-requests.md
-    public async Task<Human> UpdateAsync(Human human) => await this._repository.UpdateAsync(human);
+    /// <inheritdoc />
+    public async Task SetLanguageAsync(string userId, string language) =>
+        await this._humanProxy.SetLanguageAsync(userId, language);
 
     public async Task<bool> ExistsAsync(string id)
     {

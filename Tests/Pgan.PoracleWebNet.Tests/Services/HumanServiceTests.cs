@@ -106,14 +106,16 @@ public class HumanServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsyncDelegatesToRepository()
+    public async Task SetLanguageAsyncGoesThroughTheProxyAndNotTheDatabase()
     {
-        // UpdateAsync still uses direct DB for general updates
-        var human = new Human { Id = "u1", Name = "Updated" };
-        this._repository.Setup(r => r.UpdateAsync(human)).ReturnsAsync(human);
+        // The repository has no write left to delegate to. Before this, changing the notification
+        // language read the whole human, mutated one field and wrote every column back -- which is how
+        // it managed to stamp last_checked as well (#517) -- and PoracleNG never learned about it until
+        // the next restart, because nothing reloaded its state.
+        await this._sut.SetLanguageAsync("u1", "de");
 
-        await this._sut.UpdateAsync(human);
-        this._repository.Verify(r => r.UpdateAsync(human), Times.Once);
+        this._humanProxy.Verify(p => p.SetLanguageAsync("u1", "de"), Times.Once);
+        this._repository.VerifyNoOtherCalls();
     }
 
     [Fact]
