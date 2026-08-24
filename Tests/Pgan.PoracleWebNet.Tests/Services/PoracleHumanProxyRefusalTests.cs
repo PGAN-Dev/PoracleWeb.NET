@@ -299,6 +299,54 @@ public class PoracleHumanProxyRefusalTests
         Assert.Equal(["monster 25", "raid 5"], ex.ReferencingRules);
     }
 
+    /// <summary>
+    /// The shape PoracleNG 5.2.1's v2 delete actually answers with -- tagged, lower case.
+    /// </summary>
+    [Fact]
+    public async Task AV2ConflictNamesEachAlarmReadably()
+    {
+        var handler = new MockHandler(
+            HttpStatusCode.Conflict,
+            """{"title":"Conflict","status":409,"detail":"location is referenced by one or more tracking rules","referencing_rules":[{"type":"raid","uid":424},{"type":"pokemon","uid":7}]}""");
+        var sut = CreateSut(handler);
+
+        var ex = await Assert.ThrowsAsync<PlaceInUseException>(() => sut.DeletePlaceAsync("user1", "home"));
+
+        Assert.Equal(["raid 424", "pokemon 7"], ex.ReferencingRules);
+    }
+
+    /// <summary>
+    /// The shape v1 answers with. store.ReferencingRule carries no json tags, so Go's default
+    /// marshalling emits PascalCase -- and v1 stays the fallback, so both have to read.
+    /// </summary>
+    [Fact]
+    public async Task AV1ConflictNamesEachAlarmReadablyDespiteItsCasing()
+    {
+        var handler = new MockHandler(
+            HttpStatusCode.Conflict,
+            """{"status":"error","referencing_rules":[{"Type":"raid","UID":424}]}""");
+        var sut = CreateSut(handler);
+
+        var ex = await Assert.ThrowsAsync<PlaceInUseException>(() => sut.DeletePlaceAsync("user1", "home"));
+
+        Assert.Equal(["raid 424"], ex.ReferencingRules);
+    }
+
+    /// <summary>An entry in neither shape is passed through rather than dropped.</summary>
+    [Fact]
+    public async Task AConflictEntryInNoKnownShapeIsStillReported()
+    {
+        var handler = new MockHandler(
+            HttpStatusCode.Conflict,
+            """{"referencing_rules":[{"something":"else"}]}""");
+        var sut = CreateSut(handler);
+
+        var ex = await Assert.ThrowsAsync<PlaceInUseException>(() => sut.DeletePlaceAsync("user1", "home"));
+
+        Assert.Single(ex.ReferencingRules);
+        Assert.Contains("something", ex.ReferencingRules[0], StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task AServerFaultIsStillAServerFault()
     {

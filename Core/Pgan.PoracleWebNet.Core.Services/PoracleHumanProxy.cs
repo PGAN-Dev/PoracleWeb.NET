@@ -516,25 +516,93 @@ public partial class PoracleHumanProxy(
 
     public async Task DeletePlaceAsync(string userId, string label)
     {
-        var response = await this.SendAsync(
-            HttpMethod.Post, $"/api/humans/{Encode(userId)}/locations/{Encode(label)}/delete");
+        var reply =
+            await this.TryV2Async(
+                HttpMethod.Delete, "locations-delete", $"/api/v2/humans/{Encode(userId)}/locations/{Encode(label)}")
+            ?? await this.SendReadAsync(
+                HttpMethod.Post, $"/api/humans/{Encode(userId)}/locations/{Encode(label)}/delete");
 
         // Read before the general refusal path: a 409 here names the alarms still pointing at the place,
         // which is the difference between "could not delete" and knowing what to repoint first.
-        if (response.StatusCode == HttpStatusCode.Conflict)
+        if (reply.Response.StatusCode == HttpStatusCode.Conflict)
         {
-            var conflict = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(conflict);
-            var rules = doc.RootElement.TryGetProperty("referencing_rules", out var refs)
-                && refs.ValueKind == JsonValueKind.Array
-                    ? refs.EnumerateArray().Select(r => r.ToString()).ToList()
-                    : [];
-
-            throw new PlaceInUseException(rules);
+            throw new PlaceInUseException(ReferencingRules(reply.Payload));
         }
 
-        await EnsureAcceptedAsync(response);
+        await EnsureAcceptedAsync(reply.Response);
     }
+
+    /// <summary>
+    /// The alarms blocking a place delete, as "raid 424" rather than a fragment of JSON.
+    /// </summary>
+    /// <remarks>
+    /// Both versions answer 409 with a <c>referencing_rules</c> array, and they disagree about case:
+    /// v2 tags its fields (<c>{"type":"raid","uid":424}</c>) while v1 serialises
+    /// <c>store.ReferencingRule</c>, which carries no json tags at all, so Go's default marshalling
+    /// emits <c>{"Type":"raid","UID":424}</c>. Reading both keeps the message intact whichever path
+    /// answered.
+    ///
+    /// This used to call <c>ToString()</c> on each element, which put the raw JSON object into the
+    /// list. Nothing broke, because the only consumer counts the entries -- but the component's own
+    /// spec mocks readable strings the server had never produced.
+    /// </remarks>
+    private static List<string> ReferencingRules(string payload)
+    {
+        var rules = new List<string>();
+
+        try
+        {
+            using var doc = JsonDocument.Parse(payload);
+
+            if (doc.RootElement.ValueKind != JsonValueKind.Object
+                || !doc.RootElement.TryGetProperty("referencing_rules", out var refs)
+                || refs.ValueKind != JsonValueKind.Array)
+            {
+                return rules;
+            }
+
+            foreach (var entry in refs.EnumerateArray())
+            {
+                rules.Add(Describe(entry));
+            }
+        }
+        catch (JsonException)
+        {
+            // A refusal we cannot read still refuses; the caller reports the count it has.
+        }
+
+        return rules;
+    }
+
+    private static string Describe(JsonElement entry)
+    {
+        if (entry.ValueKind == JsonValueKind.String)
+        {
+            return entry.GetString() ?? string.Empty;
+        }
+
+        if (entry.ValueKind != JsonValueKind.Object)
+        {
+            return entry.ToString();
+        }
+
+        var type = ReadString(entry, "type") ?? ReadString(entry, "Type");
+        var uid = ReadString(entry, "uid") ?? ReadString(entry, "UID");
+
+        return type is null && uid is null
+            ? entry.ToString()
+            : string.Join(' ', new[] { type, uid }.Where(v => !string.IsNullOrWhiteSpace(v)));
+    }
+
+    private static string? ReadString(JsonElement entry, string name)
+        => entry.TryGetProperty(name, out var value)
+            ? value.ValueKind switch
+            {
+                JsonValueKind.String => value.GetString(),
+                JsonValueKind.Number => value.ToString(),
+                _ => null,
+            }
+            : null;
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? body = null)
     {
