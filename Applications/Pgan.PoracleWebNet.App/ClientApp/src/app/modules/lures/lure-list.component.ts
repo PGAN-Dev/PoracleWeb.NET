@@ -24,6 +24,7 @@ import { DistanceDialogComponent } from '../../shared/components/distance-dialog
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
@@ -272,7 +273,7 @@ export class LureListComponent implements OnInit {
       .subscribe({
         error: () => this.loading.set(false),
         next: l => {
-          this.lures.set(l);
+          this.lures.set(orderAlarms(l, x => [x.lureId]));
           this.loading.set(false);
         },
       });

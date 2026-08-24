@@ -44,6 +44,26 @@ public interface IPoracleTrackingProxy
         string type, string userId, int uid, System.Text.Json.JsonElement body);
 
     /// <summary>
+    /// Full-replaces one existing tracking alarm through <c>/api/v2</c>, or answers null when that surface
+    /// cannot be used for this write.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null is the ordinary answer, not a fault: the type has no v2 field table, the operator pinned v1,
+    /// the server does not carry the route, or the row holds something v2 could not be told faithfully
+    /// (see <c>TrackingV2Translator</c>). The caller then takes its own v1 path, which is why this is
+    /// separate from <see cref="UpdateByUidAsync"/> — every alarm service wraps its v1 update in guards
+    /// and repairs that the v2 PUT makes unnecessary, and those have to be skipped as a unit rather than
+    /// run against a write that already happened.
+    /// </para>
+    /// <para>
+    /// <paramref name="body"/> is the same single v1-shaped alarm object every other write takes.
+    /// </para>
+    /// </remarks>
+    public Task<Pgan.PoracleWebNet.Core.Models.TrackingUpdateResult?> TryReplaceV2Async(
+        string type, string userId, int uid, System.Text.Json.JsonElement body);
+
+    /// <summary>
     /// Deletes a single tracking alarm by UID.
     /// Maps to DELETE /api/tracking/{type}/{userId}/byUid/{uid}
     /// </summary>
