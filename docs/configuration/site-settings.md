@@ -54,6 +54,7 @@ Control which alarm categories are available to users. Disabling a type hides it
 | `disable_gyms` | Gyms | boolean | Hide gym alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_fort_changes` | Fort Changes | boolean | Hide fort-change alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_maxbattles` | Max Battles | boolean | Hide max-battle alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
+| `disable_showcase` | Pokéstop Events | boolean | Hide Showcase, Kecleon and Gold Stop alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. PoracleNG's own `[general] disable_showcase` also forces this off, and a PoracleNG older than 5.2.0 cannot serve the page at all — in either case the three events remain available from the invasion add dialog. |
 
 !!! info "A disabled type disappears completely"
     The sidebar item, the dashboard card and the page all go, and every endpoint for that type answers
