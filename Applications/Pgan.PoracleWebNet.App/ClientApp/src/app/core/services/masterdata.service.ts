@@ -31,19 +31,25 @@ const UNTRANSLATED_KEY = /^(poke|poke_type|form)_\d+$/;
 @Injectable({ providedIn: 'root' })
 export class MasterDataService {
   private readonly config = inject(ConfigService);
-  private costumeMap = new Map<number, string>();
+  /**
+   * The name maps are signals, not plain Maps, because they are filled long after the first paint.
+   * Every reader below runs inside a template or a computed, so a signal read is what makes the
+   * alarm cards repaint when the names finally land -- a mutated Map would leave them showing
+   * `Pokemon #1` until something unrelated redrew them. See the late-arrival spec.
+   */
+  private readonly costumeMap = signal(new Map<number, string>());
   private readonly evoBaseMap = new Map<number, number>();
 
   private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
   private readonly http = inject(HttpClient);
   private readonly i18n = inject(I18nService);
-  private itemMap = new Map<number, string>();
+  private readonly itemMap = signal(new Map<number, string>());
   private loaded = false;
   /** Locale of the data currently in the maps, so a display-language change can be detected. */
   private loadedLocale = '';
   private loadRequested = false;
-  private moveMap = new Map<number, string>();
-  private pokemonMap = new Map<number, string>();
+  private readonly moveMap = signal(new Map<number, string>());
+  private readonly pokemonMap = signal(new Map<number, string>());
   private readonly ready$ = new ReplaySubject<boolean>(1);
   private readonly typeLabels = signal(new Map<string, string>());
   private readonly typesMap = signal(new Map<number, string[]>());
@@ -62,12 +68,12 @@ export class MasterDataService {
 
   /** Whether any costume names loaded. False means the dialogs offer only the two sentinels. */
   costumesAvailable(): boolean {
-    return this.costumeMap.size > 0;
+    return this.costumeMap().size > 0;
   }
 
   getAllItems(): { id: number; name: string }[] {
     const entries: { id: number; name: string }[] = [];
-    this.itemMap.forEach((name, id) => {
+    this.itemMap().forEach((name, id) => {
       entries.push({ id, name });
     });
     entries.sort((a, b) => a.name.localeCompare(b.name));
@@ -77,7 +83,7 @@ export class MasterDataService {
   getAllPokemon(): PokemonEntry[] {
     const types = this.typesMap();
     const entries: PokemonEntry[] = [{ id: 0, name: 'All Pokemon' }];
-    this.pokemonMap.forEach((name, id) => {
+    this.pokemonMap().forEach((name, id) => {
       entries.push({ id, name, types: types.get(id) });
     });
     entries.sort((a, b) => a.id - b.id);
@@ -107,7 +113,7 @@ export class MasterDataService {
    * unknown form renders.
    */
   getCostumeName(id: number): string {
-    return this.costumeMap.get(id) ?? this.i18n.instant('POKEMON.COSTUME_FALLBACK', { id });
+    return this.costumeMap().get(id) ?? this.i18n.instant('POKEMON.COSTUME_FALLBACK', { id });
   }
 
   /**
@@ -119,7 +125,7 @@ export class MasterDataService {
    */
   getCostumes(): { id: number; name: string }[] {
     const entries: { id: number; name: string }[] = [];
-    this.costumeMap.forEach((name, id) => {
+    this.costumeMap().forEach((name, id) => {
       entries.push({ id, name });
     });
     entries.sort((a, b) => b.id - a.id);
@@ -138,16 +144,16 @@ export class MasterDataService {
   }
 
   getItemName(id: number): string {
-    return this.itemMap.get(id) ?? `Item #${id}`;
+    return this.itemMap().get(id) ?? `Item #${id}`;
   }
 
   getMoveName(id: number): string {
-    return this.moveMap.get(id) ?? `Move #${id}`;
+    return this.moveMap().get(id) ?? `Move #${id}`;
   }
 
   getPokemonName(id: number): string {
     if (id === 0) return 'All Pokemon';
-    return this.pokemonMap.get(id) ?? `Pokemon #${id}`;
+    return this.pokemonMap().get(id) ?? `Pokemon #${id}`;
   }
 
   getPokemonTypes(id: number): string[] {
@@ -179,7 +185,7 @@ export class MasterDataService {
    * A null payload (upstream unreachable) leaves the English names from /api/masterdata/pokemon in
    * place rather than blanking the selector.
    */
-  private applyMonsters(monsters: null | Record<string, MonsterEntry>): void {
+  private applyMonsters(monsters: null | Record<string, MonsterEntry>, names: Map<number, string>): void {
     if (!monsters) return;
 
     const namesById = new Map<number, string>();
@@ -244,7 +250,7 @@ export class MasterDataService {
       forms.sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    namesById.forEach((name, id) => this.pokemonMap.set(id, name));
+    namesById.forEach((name, id) => names.set(id, name));
     this.formsMap.set(grouped);
     this.typesMap.set(typeMap);
     this.typeLabels.set(typeLabelMap);
@@ -309,35 +315,44 @@ export class MasterDataService {
         this.ready$.next(true);
       },
       next: ({ costumes, items, monsters, moves, pokemon }) => {
-        this.pokemonMap.clear();
+        // Each map is rebuilt whole and published once. Mutating the live map in place would not
+        // notify anything reading it, and would briefly show a half-filled list to anything that
+        // did.
+        const pokemonNames = new Map<number, string>();
         if (pokemon) {
           Object.entries(pokemon).forEach(([id, name]) => {
-            this.pokemonMap.set(Number(id), name as string);
+            pokemonNames.set(Number(id), name as string);
           });
         }
 
-        this.itemMap.clear();
+        const itemNames = new Map<number, string>();
         if (items) {
           Object.entries(items).forEach(([id, name]) => {
-            this.itemMap.set(Number(id), name as string);
+            itemNames.set(Number(id), name as string);
           });
         }
 
-        this.costumeMap.clear();
+        const costumeNames = new Map<number, string>();
         if (costumes) {
           Object.entries(costumes).forEach(([id, name]) => {
-            this.costumeMap.set(Number(id), name as string);
+            costumeNames.set(Number(id), name as string);
           });
         }
 
-        this.moveMap.clear();
+        const moveNames = new Map<number, string>();
         if (moves) {
           Object.entries(moves).forEach(([id, name]) => {
-            this.moveMap.set(Number(id), name as string);
+            moveNames.set(Number(id), name as string);
           });
         }
 
-        this.applyMonsters(monsters);
+        // Translated species names overwrite the English ones, so this runs before publishing.
+        this.applyMonsters(monsters, pokemonNames);
+
+        this.itemMap.set(itemNames);
+        this.costumeMap.set(costumeNames);
+        this.moveMap.set(moveNames);
+        this.pokemonMap.set(pokemonNames);
 
         this.loaded = true;
         this.ready$.next(true);
