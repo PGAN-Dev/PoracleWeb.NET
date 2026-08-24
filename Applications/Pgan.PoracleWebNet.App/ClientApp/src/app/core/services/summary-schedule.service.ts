@@ -3,7 +3,7 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { ActiveHourEntry, parseActiveHours } from '../models/active-hours.models';
+import { ActiveHourEntry, parseActiveHours, serializeActiveHours } from '../models/active-hours.models';
 
 export interface SummarySchedule {
   activeHours: ActiveHourEntry[];
@@ -60,7 +60,7 @@ export class SummaryScheduleService {
   }
 
   setSchedule(alertType: string, hours: ActiveHourEntry[] | null): Observable<void> {
-    return this.http.put<void>(`${this.base}/${alertType}`, { activeHours: JSON.stringify(hours ?? []) });
+    return this.http.put<void>(`${this.base}/${alertType}`, { activeHours: serializeActiveHours(hours ?? []) });
   }
 
   trigger(alertType: string): Observable<void> {

@@ -1,4 +1,13 @@
-import { compressDayRange, formatTime12h, groupActiveHours, parseActiveHours, ActiveHourEntry } from './active-hours.models';
+import {
+  activeHoursFires,
+  compressDayRange,
+  formatRuleLabel,
+  formatTime12h,
+  groupActiveHours,
+  parseActiveHours,
+  serializeActiveHours,
+  ActiveHourEntry,
+} from './active-hours.models';
 
 describe('parseActiveHours', () => {
   it('should parse valid JSON string', () => {
@@ -62,8 +71,8 @@ describe('groupActiveHours', () => {
     ];
     const groups = groupActiveHours(entries);
     expect(groups).toHaveLength(2);
-    expect(groups[0]).toEqual({ days: [1, 2], hours: 9, mins: 0 });
-    expect(groups[1]).toEqual({ days: [3], hours: 18, mins: 30 });
+    expect(groups[0]).toEqual({ days: [1, 2], hours: 9, mins: 0, step: 0 });
+    expect(groups[1]).toEqual({ days: [3], hours: 18, mins: 30, step: 0 });
   });
 
   it('should sort groups by time', () => {
@@ -148,5 +157,77 @@ describe('compressDayRange', () => {
 
   it('should handle unsorted input', () => {
     expect(compressDayRange([7, 6])).toBe('Weekends');
+  });
+});
+
+describe('range entries (issue #808)', () => {
+  it('should keep end_hours/end_mins/step when parsing a range set by the bot', () => {
+    const result = parseActiveHours('[{"day":1,"hours":9,"mins":0,"end_hours":17,"end_mins":0,"step":2}]');
+    expect(result).toEqual([{ day: 1, endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 }]);
+  });
+
+  it('should coerce the string-typed range form PoracleNG also stores', () => {
+    const result = parseActiveHours('[{"day":2,"hours":"09","mins":"00","end_hours":"17","end_mins":"30","step":"3"}]');
+    expect(result).toEqual([{ day: 2, endHours: 17, endMins: 30, hours: 9, mins: 0, step: 3 }]);
+  });
+
+  it('should treat step 0 as a single fire and drop the end fields', () => {
+    const result = parseActiveHours('[{"day":1,"hours":9,"mins":0,"end_hours":17,"end_mins":0,"step":0}]');
+    expect(result).toEqual([{ day: 1, hours: 9, mins: 0 }]);
+  });
+
+  it('should round-trip a bot-set range back onto the wire unaltered', () => {
+    const wire = '[{"day":1,"hours":9,"mins":0,"end_hours":17,"end_mins":0,"step":2}]';
+    expect(serializeActiveHours(parseActiveHours(wire))).toBe(wire);
+  });
+
+  it('should emit no range fields for single-fire entries', () => {
+    expect(serializeActiveHours([{ day: 1, hours: 9, mins: 0 }])).toBe('[{"day":1,"hours":9,"mins":0}]');
+  });
+
+  it('should not merge a single fire and a range that share a start time', () => {
+    const groups = groupActiveHours([
+      { day: 1, hours: 9, mins: 0 },
+      { day: 2, endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 },
+    ]);
+    expect(groups).toHaveLength(2);
+  });
+
+  it('should expand a 9-17/2 range into five fires', () => {
+    expect(activeHoursFires({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 })).toEqual([
+      [9, 0],
+      [11, 0],
+      [13, 0],
+      [15, 0],
+      [17, 0],
+    ]);
+  });
+
+  it('should produce one fire when the step overshoots the end', () => {
+    expect(activeHoursFires({ days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 23 })).toEqual([[9, 0]]);
+  });
+
+  it('should produce one fire for a single-fire group', () => {
+    expect(activeHoursFires({ days: [1], hours: 9, mins: 0, step: 0 })).toEqual([[9, 0]]);
+  });
+
+  it('should label a single fire exactly as before', () => {
+    expect(formatRuleLabel({ days: [1, 2, 3, 4, 5], hours: 9, mins: 0, step: 0 }, k => k)).toBe('Weekdays 9:00 AM');
+  });
+
+  it('should label an hourly range', () => {
+    const label = formatRuleLabel(
+      { days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 1 },
+      (k, p) => `${k}|${p?.['days']}|${p?.['start']}|${p?.['end']}`,
+    );
+    expect(label).toBe('PROFILES.ACTIVE_HOURS_RANGE_HOURLY|Mon|9:00 AM|5:00 PM');
+  });
+
+  it('should label a stepped range', () => {
+    const label = formatRuleLabel(
+      { days: [1], endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 },
+      (k, p) => `${k}|${p?.['days']}|${p?.['start']}|${p?.['end']}|${p?.['step']}`,
+    );
+    expect(label).toBe('PROFILES.ACTIVE_HOURS_RANGE_EVERY|Mon|9:00 AM|5:00 PM|2');
   });
 });
