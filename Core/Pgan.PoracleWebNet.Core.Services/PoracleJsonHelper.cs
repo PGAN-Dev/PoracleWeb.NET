@@ -62,8 +62,16 @@ internal static class PoracleJsonHelper
     }
 
     /// <summary>Names that must never reach PoracleNG on an alarm write. See <see cref="SerializeToElement"/>.</summary>
+    /// <remarks>
+    /// <c>description</c> is PoracleNG's own rendering of the rule, handed back on every read. No
+    /// tracking table has a column for it, so sending it back is at best ignored -- and it travels on
+    /// three separate write paths, because <see cref="PreserveUnmodelled"/> and
+    /// <see cref="RewriteRows"/> both copy stored properties through verbatim. Stripping it here covers
+    /// all three at once. See #810.
+    /// </remarks>
     private static bool ShouldStrip(JsonProperty prop) =>
         prop.NameEquals("profile_no") ||
+        prop.NameEquals("description") ||
         (prop.NameEquals("uid") && prop.Value.ValueKind == JsonValueKind.Number && prop.Value.GetInt32() == 0);
 
     private static JsonElement StripAlarmMetadata(JsonElement obj)

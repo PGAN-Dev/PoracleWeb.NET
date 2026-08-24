@@ -18,6 +18,7 @@ public partial class SettingsController(
     IOptions<TelegramSettings> telegramSettings,
     IOptions<OidcSettings> oidcSettings,
     IUpstreamFeatureFlagService upstreamFlags,
+    ICostumeCapabilityService costumeCapability,
     IConfiguration configuration,
     IPoracleApiProxy poracleApiProxy,
     IMemoryCache cache,
@@ -79,6 +80,7 @@ public partial class SettingsController(
     private readonly IUpstreamFeatureFlagService _upstreamFlags = upstreamFlags;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IMemoryCache _cache = cache;
+    private readonly ICostumeCapabilityService _costumeCapability = costumeCapability;
     private readonly ILogger<SettingsController> _logger = logger;
 
     [HttpGet]
@@ -120,6 +122,28 @@ public partial class SettingsController(
     {
         var keys = await this._upstreamFlags.GetDisabledKeysAsync();
         return this.Ok(keys.OrderBy(k => k, StringComparer.Ordinal).ToList());
+    }
+
+    /// <summary>
+    /// Whether this deployment's PoracleNG can store the costume filter, per alarm type.
+    /// </summary>
+    /// <remarks>
+    /// Authenticated but not admin-only: the control it gates is an ordinary user control, and the
+    /// pokemon and raid dialogs have to know before an admin ever looks at the server-profile page.
+    /// Both false when PoracleNG is unreachable or predates the columns, which the caller must not be
+    /// able to tell apart. The alarm services refuse an unsupported costume independently, so this says
+    /// what to render, never what is allowed.
+    /// </remarks>
+    [HttpGet("costume-capability")]
+    public async Task<IActionResult> GetCostumeCapability()
+    {
+        var capability = await this._costumeCapability.GetAsync(this.HttpContext.RequestAborted);
+
+        return this.Ok(new
+        {
+            pokemon = capability.Pokemon,
+            raid = capability.Raid,
+        });
     }
 
     [AllowAnonymous]

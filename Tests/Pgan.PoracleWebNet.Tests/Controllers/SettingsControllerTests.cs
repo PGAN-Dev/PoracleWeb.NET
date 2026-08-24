@@ -16,6 +16,7 @@ public class SettingsControllerTests : ControllerTestBase
     private readonly Mock<ISiteSettingService> _siteService = new();
     private readonly Mock<IUpstreamFeatureFlagService> _upstreamFlags = new();
     private readonly Mock<IPoracleApiProxy> _poracleApi = new();
+    private readonly Mock<ICostumeCapabilityService> _costumes = new();
     private readonly SettingsController _sut;
 
     public SettingsControllerTests()
@@ -33,6 +34,7 @@ public class SettingsControllerTests : ControllerTestBase
         Options.Create(new TelegramSettings()),
         Options.Create(new OidcSettings()),
         this._upstreamFlags.Object,
+        this._costumes.Object,
         new ConfigurationBuilder().Build(),
         this._poracleApi.Object,
         new MemoryCache(new MemoryCacheOptions()),
@@ -495,5 +497,41 @@ public class SettingsControllerTests : ControllerTestBase
 
         var ok = Assert.IsType<OkObjectResult>(await this._sut.GetUpstreamDisabled());
         Assert.Empty(Assert.IsType<List<string>>(ok.Value));
+    }
+
+    // --- costume-capability ---
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    public async Task GetCostumeCapabilityReportsWhatTheServerCanStore(bool pokemon, bool raid)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._costumes.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CostumeCapability(pokemon, raid));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetCostumeCapability());
+
+        Assert.NotNull(ok.Value);
+        Assert.Equal(pokemon, (bool?)ok.Value.GetType().GetProperty("pokemon")?.GetValue(ok.Value));
+        Assert.Equal(raid, (bool?)ok.Value.GetType().GetProperty("raid")?.GetValue(ok.Value));
+    }
+
+    /// <summary>
+    /// The dialogs read this, not the admin page, so an admin-only answer would leave every ordinary
+    /// user with a control the server may not support.
+    /// </summary>
+    [Fact]
+    public async Task GetCostumeCapabilityAnswersNonAdmins()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._costumes.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CostumeCapability.None);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetCostumeCapability());
+
+        Assert.NotNull(ok.Value);
+        Assert.Equal(false, (bool?)ok.Value.GetType().GetProperty("pokemon")?.GetValue(ok.Value));
     }
 }

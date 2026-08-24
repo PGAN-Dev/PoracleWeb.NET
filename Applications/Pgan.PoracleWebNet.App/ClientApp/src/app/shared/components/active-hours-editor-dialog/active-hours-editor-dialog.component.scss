@@ -83,11 +83,35 @@ mat-dialog-content {
 .time-picker {
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 12px;
+  row-gap: 12px;
 }
 
 .time-field {
   width: 120px;
+}
+
+.step-field {
+  width: 140px;
+}
+
+.repeat-toggle {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.repeat-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}
+
+.range-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--warn, #d32f2f);
 }
 
 // Rules list
@@ -172,6 +196,14 @@ mat-dialog-content {
   border-radius: 4px;
 }
 
+.preview-span {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.22);
+}
+
 .preview-dot {
   position: absolute;
   top: 50%;
@@ -225,6 +257,10 @@ mat-dialog-actions {
   .preview-dot {
     background: #fbbf24;
   }
+
+  .preview-span {
+    background: rgba(251, 191, 36, 0.22);
+  }
 }
 
 @media (max-width: 600px) {
@@ -232,7 +268,20 @@ mat-dialog-actions {
     min-width: unset;
   }
 
+  // Five controls wrapping freely turns into a ragged stack, so pair them up instead:
+  // start hour/minute, then end hour/minute, then the repeat interval and Add across both columns.
   .time-picker {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .time-field,
+  .step-field {
+    width: 100%;
+  }
+
+  .step-field,
+  .add-btn {
+    grid-column: 1 / -1;
   }
 }

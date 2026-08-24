@@ -24,6 +24,26 @@ public interface IPoracleTrackingProxy
     public Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body);
 
     /// <summary>
+    /// Replaces one existing tracking alarm, addressed by its uid.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <paramref name="body"/> is a single v1-shaped alarm object — the same shape every alarm service
+    /// already builds, and the same shape <c>TrackingFieldPreserver</c> and <c>TrackingUpdateReconciler</c>
+    /// compare. Which PoracleNG surface it is written through is the proxy's business, not the caller's.
+    /// </para>
+    /// <para>
+    /// On PoracleNG 5.2.0 and later this is <c>PUT /api/v2/humans/{id}/tracking/{type}/{uid}</c>: scoped by
+    /// (human, uid), 404 when the uid is not theirs, 409 when the replacement would duplicate another rule,
+    /// and — because the engine is delete-then-insert — a NEW uid on the way back. On anything older it is
+    /// the v1 create-carrying-a-uid that PoracleWeb has always sent, byte for byte.
+    /// </para>
+    /// </remarks>
+    /// <returns>The uid the rule now lives under, which may differ from <paramref name="uid"/>.</returns>
+    public Task<Pgan.PoracleWebNet.Core.Models.TrackingUpdateResult> UpdateByUidAsync(
+        string type, string userId, int uid, System.Text.Json.JsonElement body);
+
+    /// <summary>
     /// Deletes a single tracking alarm by UID.
     /// Maps to DELETE /api/tracking/{type}/{userId}/byUid/{uid}
     /// </summary>

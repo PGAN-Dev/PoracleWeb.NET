@@ -27,6 +27,9 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// set, leaving the site settings in sole charge. Failing closed would let a Poracle outage disable
 /// every alarm type for everyone, which is a far worse failure than the one this feature prevents.
 /// </para>
+/// <para>
+/// <c>disable_showcase</c> is the single exception, and <see cref="ProbePokestopEventsAsync"/> says why.
+/// </para>
 /// </remarks>
 public sealed partial class UpstreamFeatureFlagService(
     IPoracleApiProxy poracleApiProxy,
@@ -68,7 +71,10 @@ public sealed partial class UpstreamFeatureFlagService(
         catch (Exception ex)
         {
             LogProbeFailed(this._logger, "disabledHooks", ex);
-            return None;
+
+            // Partial, not none. A hook list we could not read must not discard the probes below it —
+            // the showcase probe in particular is the only thing keeping the SPA off a route that does
+            // not exist on an older server.
         }
 
         try
@@ -85,7 +91,44 @@ public sealed partial class UpstreamFeatureFlagService(
             LogProbeFailed(this._logger, "general.disable_fort_update", ex);
         }
 
+        await this.ProbePokestopEventsAsync(keys);
+
         return keys;
+    }
+
+    /// <summary>
+    /// Decides whether the Pokestop Events surface is available, and is <strong>the one probe in this
+    /// class that fails closed</strong>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only an explicit <c>general.disable_showcase = false</c> opens the gate. Absent means the server
+    /// predates the option, and every such server also 404s the v2 <c>incident</c> route the page is
+    /// built on — verified: 5.1.0 has neither the config key nor the route, 5.2.1 has both. Unreadable
+    /// means we cannot tell, and a server whose config we cannot read is not one we can send v2 writes
+    /// to either.
+    /// </para>
+    /// <para>
+    /// This inverts the class's stated contract deliberately, and the reason is narrower than it looks:
+    /// failing open elsewhere leaves a working page switched on, while failing open here produces a page
+    /// whose every call 404s. The cost is bounded by the five-minute cache. Do not "fix" it back.
+    /// </para>
+    /// </remarks>
+    private async Task ProbePokestopEventsAsync(HashSet<string> keys)
+    {
+        try
+        {
+            if (await this._poracleApiProxy.GetShowcaseDisabledAsync() is false)
+            {
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogProbeFailed(this._logger, "general.disable_showcase", ex);
+        }
+
+        keys.Add(DisableFeatureKeys.PokestopEvents);
     }
 
     [LoggerMessage(

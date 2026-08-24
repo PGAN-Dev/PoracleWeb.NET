@@ -9,7 +9,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 !!! warning "PoracleNG is required"
     All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
-    **PoracleNG 5.1.0 or newer is required.** Older servers have no column to store per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without complaint and change nothing. PoracleWeb logs an error at startup when it finds an older server, and reports the version on Admin → Settings.
+    **PoracleNG 5.1.0 or newer is required.** Older servers have no column to store per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without complaint and change nothing. PoracleWeb logs an error at startup when it finds an older server, and reports the version on Admin → Settings. Which features need a newer server than that, and how support is decided, is in [PoracleNG Version Compatibility](architecture/poracleng-compatibility.md).
 
 ## Tech Stack
 
@@ -95,6 +95,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
     Solution structure, backend and frontend patterns
 
     [:octicons-arrow-right-24: Architecture Overview](architecture/overview.md)
+
+    [:octicons-arrow-right-24: PoracleNG Version Compatibility](architecture/poracleng-compatibility.md)
 
 -   :material-map-marker-radius:{ .lg .middle } **Custom Geofences**
 

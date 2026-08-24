@@ -16,6 +16,13 @@ public interface IMasterDataService
     /// localized equivalent.
     /// </summary>
     public Task<string?> GetMonsterDataAsync();
+
+    /// <summary>
+    /// Costume ID to name map (e.g. <c>{"85":"Halloween 2025"}</c>), sourced from the raw masterfile.
+    /// English only - no upstream source publishes translated costume names. Id 0 ("Unset") is
+    /// omitted; "no costume" is a choice the UI owns, not a named costume.
+    /// </summary>
+    public Task<string?> GetCostumeDataAsync();
     public Task RefreshCacheAsync();
 
     /// <summary>
