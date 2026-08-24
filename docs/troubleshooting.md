@@ -530,6 +530,46 @@ An empty array on the first call, with the type still locked, means the local `d
 
 ---
 
+## A feature is missing and nothing says why
+
+**Symptom**: Pokéstop Events is not in the sidebar, alarm cards have no quiet chip, the Pokécoins tab is
+absent from the quest dialog, or the costume filter is missing. No error, no toast, no empty state.
+
+**Cause**: PoracleNG is older than the feature. Every version-gated control is checked before it is
+rendered, and every check fails closed — an unreachable server, an unreadable migration number or an
+unparseable version all resolve to "not supported". Hiding a control that would have worked is a
+nuisance; showing one that writes a column the server does not have is a filter that silently never
+fires.
+
+**What needs what**:
+
+| Feature | Needs |
+|---|---|
+| Pokéstop Events, quiet periods, Pokécoin quest rewards | PoracleNG 5.2.0 |
+| Costume filter on pokemon alarms | PoracleNG database migration 6 |
+| Costume filter on raid alarms | PoracleNG database migration 7 |
+
+**Fix**: upgrade PoracleNG, or accept the gap. **Admin > Settings** shows the version and migration
+number the deployment is talking to — start there before assuming a bug.
+
+Hiding the control is the whole mechanism today. `PoracleUnsupportedException` exists as the backstop
+for a request that gets past it — a stale tab, a saved bookmark, a direct API call — and answers **409
+Conflict** naming what is missing, but nothing throws it yet:
+
+```json
+{
+  "error": "This PoracleNG does not support costume filters. It requires PoracleNG database migration 6.",
+  "feature": "costume filters",
+  "requires": "PoracleNG database migration 6"
+}
+```
+
+409 and not 403 on purpose: 403 is what a `disable_*` site setting answers, which is an operator's
+switch and a different conversation. A 409 carries the one detail worth reading, so the SPA shows it
+beside the control rather than bouncing you to the dashboard.
+
+---
+
 ## A delegate cannot see "My Webhooks"
 
 **Symptom**: You granted someone a webhook on **Admin > Webhooks**, and they report no *My Webhooks*

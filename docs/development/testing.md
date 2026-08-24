@@ -9,13 +9,17 @@ npm test
 
 Uses Jest with `jest-preset-angular`. Tests cover:
 
-- Services (`user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `profile.service.spec.ts`)
+- Services (`user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `profile.service.spec.ts`, `mute.service.spec.ts`)
 - Components (`region-selector.component.spec.ts`, `geofence-submissions.component.spec.ts`)
 - Dialogs (`geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`, `active-hours-editor-dialog.component.spec.ts`)
 - Utilities (`geo.utils.spec.ts`, `active-hours.models.spec.ts`)
 - Active hours (`active-hours-chip.component.spec.ts`, `location-warning.component.spec.ts`)
 - Pipes
 - Pokemon availability (`pokemon-availability.service.spec.ts`)
+- Quiet periods (`quiet-chip.component.spec.ts`, `quiet-sheet.component.spec.ts`, `quiet-list-sheet.component.spec.ts`, and `quiet-surface-parity.spec.ts`, which pins the six list templates that carry the chip and the four that must not)
+- Pokéstop Events (`pokestop-event-add-dialog.component.spec.ts`, `pokestop-event-edit-dialog.component.spec.ts`, `pokestop-event-list.component.spec.ts`)
+- Rule summaries (`rule-summary.component.spec.ts`, `rule-summary.spec.ts`)
+- Version-gated controls (`quest-add-dialog.pokecoins.spec.ts`)
 
 ## Backend tests (xUnit)
 
@@ -27,10 +31,12 @@ Uses xUnit with Moq. Tests cover:
 
 - Controllers (`UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `LocationControllerTests`, `ProfileControllerTests`, `AreaControllerTests`, `AdminControllerTests`, `SettingsControllerTests`, `ScannerControllerTests`, `PokemonAvailabilityControllerTests`, and all alarm controller tests)
 - Alarm services (`MonsterServiceTests`, `RaidServiceTests`, `EggServiceTests`, `QuestServiceTests`, `InvasionServiceTests`, `LureServiceTests`, `NestServiceTests`, `GymServiceTests`) -- these mock `IPoracleTrackingProxy`
-- Proxy classes (`PoracleTrackingProxyTests`, `PoracleHumanProxyTests`) -- verify HTTP request construction, URL encoding, response unwrapping
+- Proxy classes (`PoracleTrackingProxyTests`, `PoracleHumanProxyTests`, `PoracleMuteProxyTests`) -- verify HTTP request construction, URL encoding, response unwrapping
 - Human/profile services (`HumanServiceTests`, `ProfileServiceTests`) -- mock `IPoracleHumanProxy` for single-user ops, `IHumanRepository` for admin bulk ops
 - Active hours validation (`ActiveHoursValidationTests`) -- server-side active hours validation rules
 - Other services (`UserGeofenceServiceTests`, `DiscordNotificationServiceTests`, `GeoMathTests`, `CleaningServiceTests`, `DashboardServiceTests`, `SiteSettingServiceTests`, `WebhookDelegateServiceTests`, `SettingsMigrationServiceTests`, `QuickPickServiceSecurityTests`, `PokemonAvailabilityServiceTests`)
+- Version gating (`MuteCapabilityServiceTests`, `QuestPokecoinCapabilityServiceTests`, `QuestPokecoinCapabilityTests`, `PoracleUnsupportedExceptionFilterTests`) -- each capability service fails closed, and a shortfall answers 409 with what the server needs
+- v2 wire shapes (`PoracleProblemDetailsDescribeTests`, `AlarmDescriptionPassthroughTests`, `MuteControllerTests`)
 - Mapping extensions (`MappingExtensionTests`) -- alarm DTO `To*()` / `ApplyUpdate()` and entity `ToModel()` / `ToEntity()` / `ApplyTo()`
 
 !!! info "Alarm service tests mock IPoracleTrackingProxy"
@@ -43,8 +49,8 @@ Uses xUnit with Moq. Tests cover:
 
 Roughly one in five defects found in this project's audit sweeps was caused by an *earlier fix in the
 same sweep*. They cluster into two shapes: a constraint added without enumerating who legitimately
-depended on the loose rule, and a fix applied to one member of a set of ten while nine siblings are left
-alone.
+depended on the loose rule, and a fix applied to one member of a set of eleven while ten siblings are
+left alone.
 
 `.claude/commands/regression-lens.md` is a Claude Code slash command (`/regression-lens`) that audits
 recent merges asking only *what did these fixes break, and which siblings did they miss*. Run it after a

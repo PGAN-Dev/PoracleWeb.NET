@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- PoracleProblemDetails stays internal: it is how this assembly reads an error body, not a
+         contract. The tests reach it directly rather than through a proxy, the same arrangement
+         the API project already uses. -->
+    <InternalsVisibleTo Include="Pgan.PoracleWebNet.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.11" />

@@ -17,7 +17,8 @@ Pgan.PoracleWebNet.slnx
 │           ├── modules/            Feature pages (dashboard, pokemon, raids, etc.)
 │           └── shared/             Reusable components, utilities
 ├── Core/
-│   ├── Core.Abstractions/          Interfaces (IService, IPoracleTrackingProxy, IPoracleHumanProxy)
+│   ├── Core.Abstractions/          Interfaces (IService, and the five Poracle proxies:
+│   │                               Tracking, Human, Api, Mute, Incident)
 │   ├── Core.Models/                DTOs passed between layers
 │   ├── Core.Mappings/              Mapping extension methods (alarm DTOs, Human, Profile, PoracleWeb.NET tables)
 │   ├── Core.Repositories/          Data access (Human, Profile, PoracleWeb-owned tables)
@@ -40,8 +41,9 @@ graph TB
     subgraph Backend["ASP.NET Core API"]
         Controllers[Controllers<br/>20+ REST endpoints]
         AlarmServices[Alarm Services<br/>MonsterService, RaidService, etc.]
-        TrackingProxy[IPoracleTrackingProxy<br/>HTTP proxy to PoracleNG]
+        TrackingProxy[IPoracleTrackingProxy<br/>v1 tracking + the v2 pokemon PUT]
         HumanProxy[IPoracleHumanProxy<br/>HTTP proxy to PoracleNG]
+        V2Proxies["IPoracleMuteProxy / IPoracleIncidentProxy<br/>v2 only"]
         OtherServices[Other Services<br/>Geofences, Settings, QuickPicks]
         Repositories[Repositories<br/>Admin bulk ops, PoracleWeb DB]
     end
@@ -63,7 +65,10 @@ graph TB
     Controllers --> AlarmServices
     Controllers --> OtherServices
     AlarmServices --> TrackingProxy
+    AlarmServices --> V2Proxies
+    Controllers --> V2Proxies
     Controllers --> HumanProxy
+    V2Proxies -->|HttpClient<br/>X-Poracle-Secret| PoracleNG
     TrackingProxy -->|HttpClient<br/>X-Poracle-Secret| PoracleNG
     HumanProxy -->|HttpClient<br/>X-Poracle-Secret| PoracleNG
     PoracleNG --> PoracleDB
@@ -78,12 +83,12 @@ graph TB
 ```
 
 !!! info "All operations go through PoracleNG"
-    All alarm tracking CRUD (including Fort Change and Max Battle types) is proxied via `IPoracleTrackingProxy`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Direct database access is used for admin bulk operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`), for profile rename, for user-geofence area writes, for the per-alarm `override_areas` column, and for application-owned data (`poracle_web` database). PoracleNG's `schema_migrations` table is also read directly, by the server capability probe. See [Backend](backend.md#areas). Optional integrations include Pokemon availability from the Golbat API and weather from the optional scanner database via `IScannerService`. See [PoracleNG API Proxy](poracleng-proxy.md) for details.
+    Alarm tracking CRUD for ten of the eleven types (including Fort Change and Max Battle) is proxied via `IPoracleTrackingProxy`; Pokéstop Events go through `IPoracleIncidentProxy` instead, because that type exists only on PoracleNG's `/api/v2`. Single-user human/profile operations (reads, creates, location, areas, profile switch) are proxied via `IPoracleHumanProxy`. Direct database access is used for admin bulk operations (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`), for profile rename, for user-geofence area writes, for the per-alarm `override_areas` column, and for application-owned data (`poracle_web` database). PoracleNG's `schema_migrations` table is also read directly, by the server capability probe. See [Backend](backend.md#areas). Optional integrations include Pokemon availability from the Golbat API and weather from the optional scanner database via `IScannerService`. See [PoracleNG API Proxy](poracleng-proxy.md) for details.
 
 ## Key design decisions
 
 ### Operations proxied through PoracleNG
-All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, handles area dual-writes, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication from the Profiles page (`POST /api/profile-overview/duplicate/{n}`) copies each alarm with its own `CreateAsync` call and rolls back on failure; only `POST /api/profiles/duplicate` uses PoracleNG's copy endpoint. Supported alarm types include Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, and Max Battles. Test alerts are sent via PoracleNG's `POST /api/test` endpoint, which formats and delivers a mock notification to the user. See [PoracleNG API Proxy](poracleng-proxy.md).
+All alarm tracking writes (create, update, delete) and single-user human/profile operations go through the PoracleNG REST API, not directly to the database. PoracleNG applies field defaults (`cleanRow()`), detects duplicates, handles area dual-writes, and triggers immediate state reload. This eliminates data integrity bugs caused by missing defaults or stale state. Profile duplication from the Profiles page (`POST /api/profile-overview/duplicate/{n}`) copies each alarm with its own `CreateAsync` call and rolls back on failure; only `POST /api/profiles/duplicate` uses PoracleNG's copy endpoint. The eleven supported alarm types are Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles and Pokéstop Events. The last needs PoracleNG 5.2.0 or newer; so do mutes and Pokécoin quest rewards. See [Version compatibility](poracleng-compatibility.md). Test alerts are sent via PoracleNG's `POST /api/test` endpoint, which formats and delivers a mock notification to the user. See [PoracleNG API Proxy](poracleng-proxy.md).
 
 ### Separate databases
 PoracleWeb.NET does **not** modify the Poracle DB schema. The Poracle database is managed by PoracleNG. Application-owned data (user geofences, site settings, webhook delegates, quick pick definitions) lives in a separate `poracle_web` database managed by EF Core migrations.
@@ -97,5 +102,5 @@ Mapping lives in static extension methods under `Core.Mappings/` -- there is no 
 ### Gym picker
 The `GymPickerComponent` (shared) lets users search for specific gyms when creating team, raid, or egg alarms. It calls the `ScannerService` (frontend) which hits scanner gym search endpoints on the backend (`ScannerController`). Search results use the `GymSearchResult` model and include photo thumbnails and area names resolved via the `PointInPolygon` geo utility. The scanner DB is optional — when not configured, the gym picker is hidden.
 
-### Per-IP rate limiting
-Auth endpoints use per-IP partitioned rate limiting (not global). This prevents one user's activity from locking out others.
+### Partitioned rate limiting
+The six rate-limit policies partition by user or by IP, never one global bucket. This prevents one user's activity from locking out others. See [Backend Patterns](backend.md#rate-limiting).

@@ -31,6 +31,7 @@ const UNTRANSLATED_KEY = /^(poke|poke_type|form)_\d+$/;
 @Injectable({ providedIn: 'root' })
 export class MasterDataService {
   private readonly config = inject(ConfigService);
+  private costumeMap = new Map<number, string>();
   private readonly evoBaseMap = new Map<number, number>();
 
   private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
@@ -57,6 +58,11 @@ export class MasterDataService {
         this.fetch();
       }
     });
+  }
+
+  /** Whether any costume names loaded. False means the dialogs offer only the two sentinels. */
+  costumesAvailable(): boolean {
+    return this.costumeMap.size > 0;
   }
 
   getAllItems(): { id: number; name: string }[] {
@@ -93,6 +99,31 @@ export class MasterDataService {
   /** Get the base (first stage) evolution ID for a Pokemon. Returns the ID itself if no chain found. */
   getBaseEvolution(id: number): number {
     return this.evoBaseMap.get(id) ?? id;
+  }
+
+  /**
+   * The label for a costume id. An id the masterfile does not name -- a costume Niantic shipped
+   * before WatWowMap regenerated -- renders as "Costume 88" rather than blank, mirroring how an
+   * unknown form renders.
+   */
+  getCostumeName(id: number): string {
+    return this.costumeMap.get(id) ?? this.i18n.instant('POKEMON.COSTUME_FALLBACK', { id });
+  }
+
+  /**
+   * The named costumes, newest first.
+   *
+   * Costume tracking is event-driven -- the costume someone wants is almost always the one currently
+   * in the game -- so descending id puts the likely answer at the top of the list. The "any" and "no
+   * costume" choices are not in here: they are sentinels the dialogs pin above the named list.
+   */
+  getCostumes(): { id: number; name: string }[] {
+    const entries: { id: number; name: string }[] = [];
+    this.costumeMap.forEach((name, id) => {
+      entries.push({ id, name });
+    });
+    entries.sort((a, b) => b.id - a.id);
+    return entries;
   }
 
   getFormName(pokemonId: number, formId: number): string {
@@ -258,6 +289,12 @@ export class MasterDataService {
     this.loadedLocale = locale;
 
     forkJoin({
+      // Costume names are English at source (no upstream translated list exists), so unlike monsters
+      // they are not refetched on a language change. A failure degrades to "names unavailable" rather
+      // than blocking ready$ -- the two sentinel choices work without them.
+      costumes: this.http
+        .get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/costumes`)
+        .pipe(catchError(() => of({} as Record<string, string>))),
       items: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/items`),
       monsters: this.http
         .get<Record<string, MonsterEntry>>(`${this.config.apiHost}/api/masterdata/monsters`, { params: { locale } })
@@ -271,7 +308,7 @@ export class MasterDataService {
         this.loadRequested = false;
         this.ready$.next(true);
       },
-      next: ({ items, monsters, moves, pokemon }) => {
+      next: ({ costumes, items, monsters, moves, pokemon }) => {
         this.pokemonMap.clear();
         if (pokemon) {
           Object.entries(pokemon).forEach(([id, name]) => {
@@ -283,6 +320,13 @@ export class MasterDataService {
         if (items) {
           Object.entries(items).forEach(([id, name]) => {
             this.itemMap.set(Number(id), name as string);
+          });
+        }
+
+        this.costumeMap.clear();
+        if (costumes) {
+          Object.entries(costumes).forEach(([id, name]) => {
+            this.costumeMap.set(Number(id), name as string);
           });
         }
 

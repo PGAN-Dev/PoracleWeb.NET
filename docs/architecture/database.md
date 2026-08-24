@@ -23,6 +23,11 @@ The primary EF Core context connecting to the existing **Poracle database** mana
 
 The user-geofence area writes and the `override_areas` write are tagged `HACK: trusted-set-areas` in code and explained in [Backend](backend.md#areas).
 
+!!! note "Eleven tracking types, ten alarm tables"
+    Ten is the table count and it is right. The eleventh type, Pokéstop Events (`incident`), stores its
+    rows in the existing `invasion` table — PoracleNG filters each endpoint to its own rows, so a uid
+    from one type is invisible to the other. No table arrived with it.
+
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
 
@@ -45,6 +50,11 @@ The `active_hours` column stores a JSON array defining when alarm delivery is ac
 - `day` — ISO weekday (1 = Monday, 7 = Sunday)
 - `hours` / `mins` — stored as **strings** (zero-padded, e.g. `"09"`, `"00"`)
 
+An entry that repeats across a window carries three more fields, all snake_case and all omitted on a
+single fire: `step` (whole hours, 1–23), `end_hours` and `end_mins`. `{"day":1,"hours":9,"mins":0,
+"end_hours":17,"end_mins":0,"step":2}` fires at 09:00 and every two hours through 17:00. See
+[Active hours](backend.md#active-hours) for what is validated.
+
 !!! info "Managed by PoracleNG"
     The `active_hours` column is part of Poracle's own schema (managed by PoracleNG) — no PoracleWeb.NET migration is needed. PoracleWeb.NET reads and writes this field through the `IPoracleHumanProxy` API, not via direct DB access.
 
@@ -65,6 +75,22 @@ Two more columns on `monsters` alone, also 5.1.0:
 |---|---|---|
 | `pvp_ranking_evolution` | int, default 0 | Which form the PVP ranks are read from: 0 base, 1 any mega, 2 Mega X, 3 Mega Y. Only consulted when a league is set. |
 | `min_time` | int, default 0 | Seconds a spawn must still have left when it is found, or the alert is skipped. 0 means any. |
+
+#### Costume, after 5.1.0
+
+`costume` arrives later and on two tables at different times: `monsters.costume` at PoracleNG database
+migration **6**, `raid.costume` at migration **7**.
+
+| Value | Meaning |
+|---|---|
+| `9000` | Any costume |
+| `0` | No costume |
+| _n_ | That costume |
+
+The migration number is what decides whether the filter is offered, not the version string, and
+`IPoracleSchemaVersionReader` reads it straight from `schema_migrations` — no HTTP involved, so a
+server that cherry-picked the migration is judged on what it actually applied. See
+[Version compatibility](poracleng-compatibility.md#prefer-the-migration-number).
 
 #### `user_locations`
 

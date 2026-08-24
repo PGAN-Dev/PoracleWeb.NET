@@ -17,7 +17,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
@@ -25,6 +27,7 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
+import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 
 export interface RaidEditDialogData {
   item: Raid | Egg;
@@ -63,13 +66,18 @@ export class RaidEditDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
   private readonly levelLabelPipe = inject(LevelLabelPipe);
+  private readonly masterData = inject(MasterDataService);
   private readonly raidService = inject(RaidService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
 
   form = this.fb.group({
     clean: [isAutoDelete(this.data.item.clean)],
+    // Eggs have no costume column, and a rule stored before PoracleNG had one reads back undefined.
+    // Both widen to "any" rather than falling to 0, which is the real "no costume" filter.
+    costume: [this.data.type === 'raid' ? ((this.data.item as Raid).costume ?? ANY_COSTUME) : ANY_COSTUME],
     rsvpChanges: [this.data.item.rsvpChanges],
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
@@ -82,6 +90,21 @@ export class RaidEditDialogComponent {
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
   selectedGymId = signal<string | null>(this.data.item.gymId);
+
+  /** The hint under the costume select, which changes with the selection. */
+  costumeHint(): string {
+    return costumeHintKey(this.form.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());
+  }
+
+  /** Whether the masterfile's costume names loaded; drives the hint and nothing else. */
+  costumeNamesAvailable(): boolean {
+    return this.masterData.costumesAvailable();
+  }
+
+  /** The named costumes for the select, newest first. */
+  costumeOptions(): { id: number; name: string }[] {
+    return this.masterData.getCostumes();
+  }
 
   getImage(): string {
     if (this.data.type === 'egg') {
@@ -125,6 +148,7 @@ export class RaidEditDialogComponent {
         overrideAreas: scope.overrideAreas,
         overrideLocationLabel: scope.overrideLocationLabel,
         clean,
+        ...(this.showCostume() ? { costume: values.costume ?? ANY_COSTUME } : {}),
         distance: scope.distance,
         evolution: raid.evolution,
         exclusive: raid.exclusive,
@@ -180,5 +204,16 @@ export class RaidEditDialogComponent {
         },
       });
     }
+  }
+
+  /**
+   * Whether this rule has a specific boss, on a Poracle that can store the answer. A level rule
+   * matches whatever hatches, so it has no boss to filter a costume on; a Poracle without
+   * `raid.costume` takes the field, answers 200 and drops it, which is worse -- the rule would read
+   * "Halloween 2025" and match every boss. Either way the control is hidden, the update omits costume
+   * entirely, and the backend's null-skip merge leaves the stored value alone.
+   */
+  showCostume(): boolean {
+    return this.data.type === 'raid' && (this.data.item as Raid).pokemonId !== 9000 && this.settings.supportsCostume('raid');
   }
 }

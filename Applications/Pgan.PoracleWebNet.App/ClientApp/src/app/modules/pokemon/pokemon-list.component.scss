@@ -487,6 +487,12 @@
   background: #e8f5e9;
   color: #2e7d32;
 }
+// Indigo is the one Material hue the other seven pills leave free, and it reads as a label rather
+// than a threshold, which is what a costume is.
+.costume-pill {
+  background: #e8eaf6;
+  color: #283593;
+}
 // Teal is the one hue the other six pills leave free, and it reads as a clock rather than a threshold.
 .time-pill {
   background: #e0f2f1;

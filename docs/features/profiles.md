@@ -10,12 +10,19 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 - **Stats bar** at the top shows total alarm counts per type (Pokemon, Raids, Quests, etc.) across all profiles
 - **Search bar** filters alarms across all profiles by name, Pokemon, or other alarm attributes
-- **Type filter chips** (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) narrow the view to specific alarm types
+- **Type filter chips** narrow the view to specific alarm types. Ten of them: Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes
 - **Expandable panels** for each profile display grouped alarms with game asset images for quick identification
 - **Duplicate detection** -- alarms that exist on multiple profiles are highlighted with an orange border, making it easy to spot redundant filters
 
 !!! tip
     Use the search bar and type filters together to quickly find a specific alarm across all your profiles. For example, search for "Gible" with the Pokemon filter chip active to see which profiles are tracking it.
+
+!!! warning "Pokéstop Event rules are not here"
+    Showcase, Kecleon and Gold Stop rules are absent from the overview, from the stats bar, from
+    **Export** and from **Import**. Ten types are carried across these three surfaces; the eleventh is
+    not. An exported profile does not contain them, and importing that file will not recreate them, so a
+    profile you rebuild from a backup needs its Pokéstop Event rules added again by hand from the
+    [Pokéstop Events page](alarms.md#pokestop-event-alarms). The same applies to a profile you duplicate.
 
 ## Creating & Switching Profiles
 
@@ -26,7 +33,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 Each profile maintains its own independent:
 
-- Alarm filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles)
+- Alarm filters (Pokemon, Raids, Eggs, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes, Max Battles)
 - Area selections
 - Saved location
 - Custom geofence activations
@@ -39,7 +46,7 @@ Each profile maintains its own independent:
 The **copy icon** on any profile creates an exact duplicate with all alarm filters.
 
 - You are prompted for a new name (default: "Profile (Copy)")
-- All alarm filters from the source profile are copied to the new profile
+- All alarm filters from the source profile are copied to the new profile, except Pokéstop Event rules
 - Area selections, location and active hours **are** copied too
 
 !!! note "Duplication copies the whole profile, geography included"
@@ -94,12 +101,30 @@ The schedule editor is accessed from the Profiles page by clicking the **clock i
     - **Weekends** -- selects Saturday and Sunday
     - **Every day** -- selects all seven days
 2. **Choose a time** using the **hour** and **minute** dropdowns
-3. Click **Add** to create entries for all selected days at the chosen time
-4. Repeat to add additional activation times as needed
+3. Optionally turn on **Repeat until a later time** to make the rule repeat (see below)
+4. Click **Add** to create entries for all selected days at the chosen time
+5. Repeat to add additional activation times as needed
+
+#### Repeating rules
+
+![Active hours editor with Repeat until a later time switched on](../screenshots/active-hours-repeat.png)
+
+A rule can fire more than once. Turn on **Repeat until a later time**, pick an end time and a repeat
+interval, and the rule fires at its start time, then every *N* hours, up to and including the end.
+A 9:00 AM to 5:00 PM rule repeating every 2 hours fires at 9, 11, 1, 3 and 5.
+
+This is a repeat, not a continuous window. The profile is re-asserted at each of those moments; it is
+not held on between them. Nothing else switches the profile off in the meantime, so in practice the
+profile stays active until some other rule takes over -- but if you want a guaranteed hand-off, give the
+other profile its own rule at the time you want it to take back over.
+
+The end time must be later than the start time. A rule that spans midnight is not supported (this is
+PoracleNG's rule, not ours); use two rules instead. Ranges set from the Poracle bot with
+`!settime weekday:9-17/2` appear here exactly as you set them, and edit and save without being flattened.
 
 #### Managing rules
 
-- The **rules list** displays all configured rules, grouped by time when multiple days share the same activation time (e.g., "Mon-Fri at 9:00 AM" instead of five separate entries)
+- The **rules list** displays all configured rules, grouped by time when multiple days share the same activation time (e.g., "Mon-Fri at 9:00 AM" instead of five separate entries). A repeating rule carries a circular-arrow icon instead of the plain clock, and reads "Weekdays 9:00 AM-5:00 PM, every 2h"
 - Each rule or group has a **remove button** to delete it
 - **Clear all** removes every rule, making the profile manual-only again
 - **Save** persists the schedule to PoracleNG immediately
@@ -107,13 +132,13 @@ The schedule editor is accessed from the Profiles page by clicking the **clock i
 
 #### Mini weekly preview
 
-Below the rules list, a visual timeline shows when each activation time occurs during the week. This gives a quick at-a-glance view of your schedule coverage across all seven days.
+Below the rules list, a visual timeline shows when each activation time occurs during the week. This gives a quick at-a-glance view of your schedule coverage across all seven days. A repeating rule draws a translucent band across its window with a dot at each repeat; past a dozen repeats the dots are dropped and the band shows on its own.
 
 ### Schedule display on profile cards
 
 Each profile card on the Profiles page shows its schedule status:
 
-- **Amber schedule pills** display the configured activation times, grouped by day pattern (e.g., "Mon-Fri 9:00 AM", "Sat-Sun 7:00 AM")
+- **Amber schedule pills** display the configured activation times, grouped by day pattern (e.g., "Mon-Fri 9:00 AM", "Sat-Sun 7:00 AM"). Repeating rules read "Mon-Fri 9:00 AM-5:00 PM, every 2h", or "..., hourly" when the interval is one hour
 - **"Manual only"** label appears when no active hours are configured, meaning the profile is only activated by manually switching to it
 
 ### Location warning
@@ -129,6 +154,8 @@ To fix this, set the profile's pin from the **Dashboard** or the **Areas & Place
 | Day | Must be 1-7 (Monday through Sunday) |
 | Hour | Must be 0-23 |
 | Minute | Must be 0-59 |
+| Repeat interval | 1-23 hours when repeating; absent or 0 means a single activation |
+| End time | Must be later than the start time when repeating; cannot span midnight |
 | Maximum entries | 28 per profile (4 time slots per day x 7 days) |
 
 !!! note

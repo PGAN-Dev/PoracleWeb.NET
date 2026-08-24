@@ -60,6 +60,24 @@
       </mat-card>
     }
 
+    <!--
+      Quiet card. Present only when something is quiet, never as a permanent empty box -- and the only
+      place a mute set from the Discord bot (an 'everything' or 'pokestop' scope PoracleWeb.NET cannot
+      create) can be seen and lifted.
+    -->
+    @if (mutes.capable() && mutes.hasMutes()) {
+      <mat-card class="status-card quiet-card" (click)="openQuietList()">
+        <div class="status-icon-wrap quiet-icon">
+          <mat-icon>notifications_paused</mat-icon>
+        </div>
+        <div class="status-info">
+          <span class="status-label">{{ 'QUIET.CARD_LABEL' | translate }}</span>
+          <span class="status-value">{{ quietSummary() }}</span>
+        </div>
+        <mat-icon class="status-arrow">chevron_right</mat-icon>
+      </mat-card>
+    }
+
     <!-- Profile Card -->
     @if (profilesEnabled() && profiles().length > 1) {
       <mat-card class="status-card profile-card" [matMenuTriggerFor]="profileMenu">

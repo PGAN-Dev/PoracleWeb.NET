@@ -106,11 +106,13 @@ Each language file uses namespaced keys organized by feature area:
 | `RAIDS` | Raid & egg alarm management |
 | `QUESTS` | Quest alarm management |
 | `INVASIONS` | Invasion alarm management |
+| `POKESTOP_EVENTS` | Pokéstop Event alarm management |
 | `LURES` | Lure alarm management |
 | `NESTS` | Nest alarm management |
 | `GYMS` | Gym alarm management |
 | `FORT_CHANGES` | Fort change alarm management |
 | `MAX_BATTLES` | Max battle alarm management |
+| `QUIET` | Quiet periods: chips, duration sheet and dashboard card |
 | `AREAS` | Areas & Places page |
 | `PROFILES` | Profile management |
 | `GEOFENCES` | Custom geofences |
@@ -185,16 +187,23 @@ GET /api/masterdata/monsters?locale=de
 
 Switching the display language re-fetches them, so an open species picker updates in place. Searching works on the translated names too — typing `bi` finds Bisasam.
 
-Two things this does not cover:
+Three things this does not cover:
 
 - **Move and item names** stay English. Poracle serves no translated equivalent for them, so they come from the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) as before.
+- **Costume names** stay English too, in every interface language. They are not in the endpoint above: the poracle-shaped masterfile carries no costume map, so the [costume picker](alarms.md#costume-filter) reads the raw WatWowMap file — the same one Poracle downloads for its own costume lookups. Poracle does translate costume names internally, but exposes no endpoint serving them. A costume too new for that file shows as its number rather than a name.
 - **A Poracle that cannot answer** — an older build without the endpoint, or one that is unreachable — falls back to the same English masterfile, so the pickers keep working rather than emptying out.
+
+### Rule summaries follow the alert language
+
+The sentence at the foot of each alarm card describing what the rule does is written by Poracle, not by this site, so it arrives in your **alert** language while the pills above it follow your **display** language.
+
+When the two differ, the sentence is hidden rather than shown. A card carrying German chips over an English sentence is worse than a card carrying chips alone, and there is no way to ask Poracle for the summary in a second language. Set the two selectors to the same language to see it.
 
 Poracle ships translations for `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`, `ru`, `sv` and `zh-cn`. Four of this site's languages — `nl`, `pt`, `pt-BR` and `da` — have no counterpart there, so game data names appear in English while the interface around them is translated.
 
 ### What Is NOT Translated
 
-- **Move names and item names** — see above
+- **Move names, item names and costume names** — see above
 - **Admin-configured values** — site title, logo, custom navigation links
 - **User-generated content** — profile names, geofence names, area names
 

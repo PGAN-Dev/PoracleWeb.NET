@@ -5,6 +5,7 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -146,16 +147,20 @@ public class TrackingFieldCoverageTests
 
     private Task CreateAsync(string type) => type switch
     {
-        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object)
+        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported())
             .CreateAsync("u1", new MonsterCreate { PokemonId = 201 }.ToMonster()),
         "raid" => new RaidService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object)
+                this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object, CostumeCapabilityDoubles.Supported())
             .CreateAsync("u1", new RaidCreate { Level = 5, PokemonId = 9000 }.ToRaid()),
         "egg" => new EggService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object)
             .CreateAsync("u1", new EggCreate { Level = 5 }.ToEgg()),
         "quest" => new QuestService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<QuestService>.Instance, this._remapper.Object)
+                this._proxy.Object,
+                this._featureGate.Object,
+                PokecoinCapabilityStub.Supported,
+                NullLogger<QuestService>.Instance,
+                this._remapper.Object)
             .CreateAsync("u1", new QuestCreate { Reward = 25, RewardType = 7 }.ToQuest()),
         "invasion" => new InvasionService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)

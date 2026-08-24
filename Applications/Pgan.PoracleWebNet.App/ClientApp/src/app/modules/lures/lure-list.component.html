@@ -86,6 +86,7 @@
               [profileAreas]="profileAreas()"
               (click)="editScope(lure); $event.stopPropagation()" />
           </div>
+          <app-rule-summary [text]="lure.description" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button

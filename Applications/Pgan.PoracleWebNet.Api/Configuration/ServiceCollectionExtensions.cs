@@ -71,6 +71,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestService, QuestService>();
         services.AddScoped<IInvasionService, InvasionService>();
         services.AddScoped<ILureService, LureService>();
+        services.AddScoped<IPokestopEventService, PokestopEventService>();
         services.AddScoped<INestService, NestService>();
         services.AddScoped<IGymService, GymService>();
         services.AddScoped<IFortChangeService, FortChangeService>();
@@ -88,6 +89,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
+        services.AddScoped<IQuestPokecoinCapabilityService, QuestPokecoinCapabilityService>();
+        services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
+        services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
@@ -156,11 +160,21 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IUserAreaDualWriter>(),
             sp.GetRequiredService<ILogger<UserOwnedOverrideAreaProxy>>()));
 
+        // Pokestop events (upstream "incident") are v2-only, so they get their own proxy rather than a
+        // second wire shape inside the v1 one. Deliberately NOT wrapped in UserOwnedOverrideAreaProxy:
+        // that decorator speaks v1's stored-row JSON, so confining a pokestop-event alarm to a
+        // user-drawn geofence is refused by PoracleNG with its own message rather than being smuggled
+        // past. HACK: trusted-set-areas would need a v2 twin to change that.
+        services.AddHttpClient<IPoracleIncidentProxy, PoracleIncidentProxy>();
+
         // Register HttpClient for PoracleNG human/profile proxy (replaces direct DB writes)
         services.AddHttpClient<IPoracleHumanProxy, PoracleHumanProxy>();
 
         // Register HttpClient for PoracleNG summary schedule proxy (quest summary delivery)
         services.AddHttpClient<IPoracleSummaryProxy, PoracleSummaryProxy>();
+
+        // Register HttpClient for PoracleNG's v2 mute store (quiet periods). The only /api/v2 caller.
+        services.AddHttpClient<IPoracleMuteProxy, PoracleMuteProxy>();
 
         // Register HttpClient for Discord notification service
         services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>

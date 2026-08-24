@@ -216,6 +216,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_SHOWCASE_DESC',
+        key: 'disable_showcase',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_SHOWCASE_LABEL',
+        type: 'boolean',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_FORT_CHANGES_DESC',
         key: 'disable_fort_changes',
         labelKey: 'ADMIN_SETTINGS.DISABLE_FORT_CHANGES_LABEL',

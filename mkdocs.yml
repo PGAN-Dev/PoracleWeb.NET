@@ -85,11 +85,13 @@ nav:
   - Architecture:
       - Overview: architecture/overview.md
       - PoracleNG API Proxy: architecture/poracleng-proxy.md
+      - PoracleNG Version Compatibility: architecture/poracleng-compatibility.md
       - Backend Patterns: architecture/backend.md
       - Frontend Patterns: architecture/frontend.md
       - Database: architecture/database.md
   - Features:
       - Alarm Management: features/alarms.md
+      - Quiet Periods: features/quiet-periods.md
       - Profiles: features/profiles.md
       - Quest Summary Delivery: features/quest-summary-schedules.md
       - Webhooks & Delegates: features/webhooks.md
@@ -107,6 +109,7 @@ nav:
       - Code Style: development/code-style.md
   - Troubleshooting: troubleshooting.md
   - PoracleNG Enhancement Requests: poracleng-enhancement-requests.md
+  - PoracleNG v2 API Review: poracleng-v2-review.md
 
 extra:
   social:

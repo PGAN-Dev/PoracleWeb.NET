@@ -114,6 +114,7 @@
             [template]="quest.template"
             [editable]="true"
             (click)="editScope(quest); $event.stopPropagation()" />
+          <app-rule-summary [text]="quest.description" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button

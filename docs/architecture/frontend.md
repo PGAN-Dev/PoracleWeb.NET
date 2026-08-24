@@ -29,6 +29,7 @@ src/app/
 │   ├── gyms/            Gym alarm management
 │   ├── fort-changes/    Fort change alarm management
 │   ├── max-battles/     Max Battle (Dynamax) alarm management
+│   ├── pokestop-events/ Pokéstop Event alarm management (PoracleNG 5.2.0+)
 │   ├── areas/           Areas, the home pin, and saved places on one page
 │   ├── geofences/       Custom geofence drawing
 │   ├── profiles-overview/  Profile cards, the routed /profiles page
@@ -57,7 +58,25 @@ The `GymSearchResult` interface defines the shape: `id`, `name`, `url`, `lat`, `
 
 ### TestAlertService
 
-`TestAlertService` (`core/services/test-alert.service.ts`) manages test alert requests from alarm list cards. It tracks per-UID cooldowns (15-second TTL via a `Map`) and deduplicates in-flight requests to prevent duplicate API calls. After sending, it displays success/error/cooldown feedback via Material snackbar. The test button appears in `mat-card-actions` on all alarm card types (Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles).
+`TestAlertService` (`core/services/test-alert.service.ts`) manages test alert requests from alarm list cards. It tracks per-UID cooldowns (15-second TTL via a `Map`) and deduplicates in-flight requests to prevent duplicate API calls. After sending, it displays success/error/cooldown feedback via Material snackbar. The test button appears in `mat-card-actions` on eight of the eleven alarm types — Pokemon, Raids, Eggs, Quests, Invasions, Lures, Nests and Gyms. Fort Changes, Max Battles and Pokéstop Events have no test alert: `TestAlertController.ValidTypes` does not carry them, and a request naming one answers 400.
+
+### MuteService
+
+`MuteService` (`core/services/mute.service.ts`) holds the user's quiet periods as a live signal, read
+from and written to `/api/mutes`. The list response carries `capable` alongside the rules, so one call
+answers both whether this PoracleNG has the mute store (5.2.0 and later) and what is currently muted.
+When it does not, the quiet surface is not rendered at all.
+
+Two things about the upstream store shape the service. Mutes are keyed by `(scope, value)` with no id,
+so that pair is the key here too. And the store lives in the processor's memory, so a restart wipes it
+with no notification: nothing here trusts a fetched list for longer than a page view, and the countdown
+ticks rather than resolving to a clock time. PoracleNG holds seven scopes; the SPA writes four —
+`gym`, `pokemon`, `area`, `station`.
+
+### PokestopEventService
+
+`PokestopEventService` (`core/services/pokestop-event.service.ts`) backs the Pokéstop Events module.
+Same v2-only constraint as mutes: on an older PoracleNG the page is not reachable.
 
 ### ProfileService — active hours
 
@@ -135,7 +154,7 @@ Shows on the dashboard for new users until explicitly dismissed. Detects existin
 
 `ActiveHoursChipComponent` (`shared/components/active-hours-chip/`) renders a compact read-only summary of a profile's active hours schedule as a Material chip. Displayed inline on `ProfileOverviewComponent` cards.
 
-`ActiveHoursEditorDialogComponent` (`shared/components/active-hours-editor-dialog/`) provides a full editing UI for active hours rules. Opened from the profile overview when the user clicks the active hours chip or the "Set active hours" action. Validates entries client-side (day 1--7, hours 0--23, mins 0--59, max 28 entries) before submitting.
+`ActiveHoursEditorDialogComponent` (`shared/components/active-hours-editor-dialog/`) provides a full editing UI for active hours rules. Opened from the profile overview when the user clicks the active hours chip or the "Set active hours" action. Validates entries client-side (day 1--7, hours 0--23, mins 0--59, max 28 entries) before submitting. A rule can repeat across a window, which sends `step`, `end_hours` and `end_mins` alongside the start; see [Active hours](backend.md#active-hours).
 
 `LocationWarningComponent` (`shared/components/location-warning/`) displays a contextual warning when the user's location is not set, since active hours depend on the user's timezone derived from their location.
 
@@ -148,9 +167,33 @@ Shows on the dashboard for new users until explicitly dismissed. Detects existin
 
 `ScopePickerComponent` (`shared/components/scope-picker/`) is the one control for an alarm's delivery scope, wherever the question is asked. Three mutually exclusive options — inherit the profile's areas, a radius from a point or saved place, or only specific areas — modelled as a radio group because PoracleNG refuses every combination of them, so a state that would need validating cannot be expressed. It is rendered inline by every alarm add and edit dialog and by the quick-pick apply dialog. It previously existed as two copies, a two-option radio in the dialogs and a three-option sheet on the card, which drifted apart within a day and left no way to set a per-alarm area override before the alarm existed.
 
-`WhereChipComponent` (`shared/components/where-chip/`) states the answer on the alarm card as a sentence fragment — "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina" — and is the way into the sheet. It is rendered by six of the nine list templates (pokemon, gyms, invasions, lures, nests, fort changes); raid, quest and max-battle cards do not carry it yet. An `editable` input turns it into a plain statement where there is nothing to open, which is how `AlarmInfoComponent` uses it.
+`WhereChipComponent` (`shared/components/where-chip/`) states the answer on the alarm card as a sentence fragment — "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina" — and is the way into the sheet. It is rendered by seven of the ten list templates (pokemon, gyms, invasions, lures, nests, fort changes, Pokéstop events); raid, quest and max-battle cards do not carry it yet. An `editable` input turns it into a plain statement where there is nothing to open, which is how `AlarmInfoComponent` uses it.
 
 `WhereSheetComponent` (`shared/components/where-sheet/`) is a dialog shell around the scope picker and nothing else, for changing scope from a card where there is no form to put the control in.
+
+### Rule summary
+
+`RuleSummaryComponent` (`shared/components/rule-summary/`) renders the rule as one readable sentence on
+the card, from the `description` PoracleNG returns beside each rule — the same sentence its bot answers a
+`!pokemon` command with. It is on eight of the ten list templates, covering nine tracking types since the
+raid list holds both raids and eggs. Fort changes and Pokéstop events do not carry it.
+
+It renders nothing when there is nothing worth rendering: no description, or a Poracle too old to
+produce one, and the card is exactly what it was before. It also renders nothing when the alert language
+and the display language disagree, since Poracle localises this sentence with the alert language while
+the pills above it follow the display language.
+
+### Quiet periods
+
+Three components make up the quiet surface: `QuietChipComponent` on the card, `QuietSheetComponent` for
+muting one subject, and `QuietListSheetComponent` for reviewing what is muted.
+
+The chip appears only where the card names something a mute can be scoped to, which is six templates and
+four scopes: pokemon and nests (`pokemon`), gyms and raids (`gym`), max battles (`station`), and the
+areas list (`area`). Quests, invasions, lures and fort changes deliberately do not carry it — a quest is
+defined by its reward, an invasion by its grunt type, a lure by its lure type, and a fort change by
+nothing that maps to a mute scope. `quiet-surface-parity.spec.ts` pins both halves of that list, so
+adding the chip to a tenth surface or dropping it from one of the six fails the build.
 
 ### Places section
 

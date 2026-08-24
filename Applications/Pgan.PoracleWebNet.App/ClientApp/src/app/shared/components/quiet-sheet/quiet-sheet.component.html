@@ -1,0 +1,25 @@
+<h2 mat-dialog-title>{{ 'QUIET.SHEET_TITLE' | translate: { subject: data.subject } }}</h2>
+
+<mat-dialog-content class="quiet-sheet">
+  <mat-chip-listbox class="quiet-durations" [value]="minutes()" (change)="minutes.set($event.value ?? minutes())">
+    @for (duration of durations; track duration) {
+      <mat-chip-option [value]="duration" [selected]="duration === minutes()">{{ label(duration) }}</mat-chip-option>
+    }
+  </mat-chip-listbox>
+
+  <!--
+    Said once, plainly. Poracle holds mutes in memory, so a restart clears them; a countdown that
+    vanishes early reads as time passing, but a user who was never told reads it as the feature failing.
+  -->
+  <p class="quiet-volatility">{{ 'QUIET.VOLATILITY_NOTE' | translate }}</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (data.isQuiet) {
+    <button mat-button (click)="resume()">{{ 'QUIET.RESUME' | translate }}</button>
+  }
+  <button mat-button mat-dialog-close>{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-flat-button (click)="confirm()">
+    {{ (data.isQuiet ? 'QUIET.CONFIRM_EXTEND' : 'QUIET.CONFIRM') | translate: { duration: label(minutes()) } }}
+  </button>
+</mat-dialog-actions>
