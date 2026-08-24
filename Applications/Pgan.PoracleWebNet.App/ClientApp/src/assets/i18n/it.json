@@ -323,7 +323,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "{{count}} min rimasti",
     "PILL_TIME_LEFT_SECONDS": "{{count}} s rimasti",
-    "MIN_TIME_ANY": "Qualsiasi"
+    "MIN_TIME_ANY": "Qualsiasi",
+    "FILTER_COSTUME": "Costume",
+    "LABEL_COSTUME": "Costume",
+    "COSTUME_ANY": "Qualsiasi costume",
+    "COSTUME_NONE": "Nessun costume",
+    "COSTUME_HINT_ANY": "Corrisponde a ogni comparsa, con o senza costume.",
+    "COSTUME_HINT_NONE": "Ignora le comparse con costume.",
+    "COSTUME_HINT_SPECIFIC": "Solo le comparse con questo costume.",
+    "COSTUME_HINT_UNAVAILABLE": "I nomi dei costumi non sono disponibili al momento. Qualsiasi costume e Nessun costume funzionano comunque.",
+    "COSTUME_FALLBACK": "Costume {{id}}",
+    "NO_COSTUME_PILL": "Nessun costume"
   },
   "ALARM": {
     "LOCATION_MODE": "Modalità Posizione",
@@ -479,7 +489,8 @@
       "SR_REMOVE": "Rimuovi il livello personalizzato {{value}}",
       "REMOVED": "Livello {{value}} rimosso",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Costume"
   },
   "QUESTS": {
     "PAGE_TITLE": "Allarmi Missioni",
@@ -948,6 +959,16 @@
     "ACTIVE_HOURS_REMOVE_RULE": "Rimuovi regola",
     "ACTIVE_HOURS_WEEKLY_PREVIEW": "Anteprima Settimanale",
     "ACTIVE_HOURS_CLEAR_ALL": "Cancella Tutto",
+    "ACTIVE_HOURS_REPEAT": "Ripeti fino a un orario successivo",
+    "ACTIVE_HOURS_REPEAT_HINT": "Il profilo si riattiva a ogni ripetizione, fino all'orario di fine.",
+    "ACTIVE_HOURS_END_HOUR": "Fino a (ora)",
+    "ACTIVE_HOURS_END_MINUTE": "Fino a (minuto)",
+    "ACTIVE_HOURS_REPEAT_EVERY": "Ripeti ogni",
+    "ACTIVE_HOURS_HOURS_ONE": "1 ora",
+    "ACTIVE_HOURS_HOURS_OTHER": "{{step}} ore",
+    "ACTIVE_HOURS_END_AFTER_START": "L'orario di fine deve essere successivo a quello di inizio.",
+    "ACTIVE_HOURS_RANGE_HOURLY": "{{days}} {{start}}–{{end}}, ogni ora",
+    "ACTIVE_HOURS_RANGE_EVERY": "{{days}} {{start}}–{{end}}, ogni {{step}} ore",
     "TYPE_POKEMON": "Pokémon",
     "TYPE_RAIDS": "Raid",
     "TYPE_EGGS": "Uova",

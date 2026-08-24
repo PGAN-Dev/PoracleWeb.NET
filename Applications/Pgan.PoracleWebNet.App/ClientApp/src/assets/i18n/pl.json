@@ -323,7 +323,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "pozostało {{count}} min",
     "PILL_TIME_LEFT_SECONDS": "pozostało {{count}} s",
-    "MIN_TIME_ANY": "Dowolny"
+    "MIN_TIME_ANY": "Dowolny",
+    "FILTER_COSTUME": "Kostium",
+    "LABEL_COSTUME": "Kostium",
+    "COSTUME_ANY": "Dowolny kostium",
+    "COSTUME_NONE": "Bez kostiumu",
+    "COSTUME_HINT_ANY": "Pasuje do każdego pojawienia, z kostiumem lub bez.",
+    "COSTUME_HINT_NONE": "Pomija pojawienia w kostiumie.",
+    "COSTUME_HINT_SPECIFIC": "Tylko pojawienia w tym kostiumie.",
+    "COSTUME_HINT_UNAVAILABLE": "Nazwy kostiumów są teraz niedostępne. Dowolny kostium i Bez kostiumu nadal działają.",
+    "COSTUME_FALLBACK": "Kostium {{id}}",
+    "NO_COSTUME_PILL": "Bez kostiumu"
   },
   "ALARM": {
     "LOCATION_MODE": "Tryb lokalizacji",
@@ -479,7 +489,8 @@
       "SR_REMOVE": "Usuń własny poziom {{value}}",
       "REMOVED": "Usunięto poziom {{value}}",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostium"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmy zadań",
@@ -948,6 +959,16 @@
     "ACTIVE_HOURS_REMOVE_RULE": "Usuń regułę",
     "ACTIVE_HOURS_WEEKLY_PREVIEW": "Podgląd tygodniowy",
     "ACTIVE_HOURS_CLEAR_ALL": "Wyczyść wszystko",
+    "ACTIVE_HOURS_REPEAT": "Powtarzaj do późniejszej godziny",
+    "ACTIVE_HOURS_REPEAT_HINT": "Profil włącza się ponownie przy każdym powtórzeniu, aż do godziny końcowej.",
+    "ACTIVE_HOURS_END_HOUR": "Do (godzina)",
+    "ACTIVE_HOURS_END_MINUTE": "Do (minuta)",
+    "ACTIVE_HOURS_REPEAT_EVERY": "Powtarzaj co",
+    "ACTIVE_HOURS_HOURS_ONE": "1 godzinę",
+    "ACTIVE_HOURS_HOURS_OTHER": "{{step}} godz.",
+    "ACTIVE_HOURS_END_AFTER_START": "Godzina końcowa musi być późniejsza niż początkowa.",
+    "ACTIVE_HOURS_RANGE_HOURLY": "{{days}} {{start}}–{{end}}, co godzinę",
+    "ACTIVE_HOURS_RANGE_EVERY": "{{days}} {{start}}–{{end}}, co {{step}} godz.",
     "TYPE_POKEMON": "Pokémon",
     "TYPE_RAIDS": "Raidy",
     "TYPE_EGGS": "Jajka",

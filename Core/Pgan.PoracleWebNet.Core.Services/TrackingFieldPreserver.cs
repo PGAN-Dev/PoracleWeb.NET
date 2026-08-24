@@ -11,8 +11,15 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// An edit is sent as a create carrying the existing <c>uid</c>, which PoracleNG upserts. The body is
 /// built by serializing the typed model, so every property the model does not declare was absent from the
 /// write and PoracleNG stored the column's default over the user's value. PoracleNG 5.1.0 added
-/// <c>override_location_label</c>, <c>override_areas</c> and <c>pvp_ranking_evolution</c>; 5.2.0 adds
-/// <c>costume</c>. Set any of them with the bot, edit the alarm on the web, and they were gone. See #730.
+/// <c>override_location_label</c>, <c>override_areas</c> and <c>pvp_ranking_evolution</c>. Set any of
+/// them with the bot, edit the alarm on the web, and they were gone. See #730.
+/// </para>
+/// <para>
+/// <c>costume</c> was on that list until #804 put it on <c>Monster</c> and
+/// <c>Raid</c>. A modelled property is always present in the body, so this no longer
+/// carries it and the model value is what gets written. That is safe only because both models
+/// initialize it to 9000 ("any costume"), which is also what PoracleNG stores for an absent key --
+/// a plain <c>int</c> defaulting to 0 would rewrite every edited rule as "no costume".
 /// </para>
 /// <para>
 /// This runs BEFORE the collision guards on purpose. <c>CountUpdatableDifferences</c> only compares the

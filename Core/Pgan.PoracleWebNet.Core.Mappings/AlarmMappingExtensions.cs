@@ -33,6 +33,7 @@ public static class AlarmMappingExtensions
         PvpRankingEvolution = src.PvpRankingEvolution,
         MinTime = src.MinTime,
         Form = src.Form,
+        Costume = src.Costume,
         Size = src.Size,
         MaxSize = src.MaxSize,
         Gender = src.Gender,
@@ -68,6 +69,7 @@ public static class AlarmMappingExtensions
         if (src.PvpRankingEvolution != null) dest.PvpRankingEvolution = src.PvpRankingEvolution.Value;
         if (src.MinTime != null) dest.MinTime = src.MinTime.Value;
         if (src.Form != null) dest.Form = src.Form.Value;
+        if (src.Costume != null) dest.Costume = src.Costume.Value;
         if (src.Size != null) dest.Size = src.Size.Value;
         if (src.MaxSize != null) dest.MaxSize = src.MaxSize.Value;
         if (src.Gender != null) dest.Gender = src.Gender.Value;
@@ -87,6 +89,7 @@ public static class AlarmMappingExtensions
         Team = src.Team,
         Level = src.Level,
         Form = src.Form,
+        Costume = src.Costume,
         Clean = src.Clean,
         Template = src.Template,
         Move = src.Move,
@@ -105,6 +108,7 @@ public static class AlarmMappingExtensions
         if (src.Team != null) dest.Team = src.Team.Value;
         if (src.Level != null) dest.Level = src.Level.Value;
         if (src.Form != null) dest.Form = src.Form.Value;
+        if (src.Costume != null) dest.Costume = src.Costume.Value;
         if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
         if (src.Move != null) dest.Move = src.Move.Value;

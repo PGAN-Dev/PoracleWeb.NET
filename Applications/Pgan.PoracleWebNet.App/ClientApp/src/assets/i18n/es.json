@@ -323,7 +323,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "quedan {{count}} min",
     "PILL_TIME_LEFT_SECONDS": "quedan {{count}} s",
-    "MIN_TIME_ANY": "Cualquiera"
+    "MIN_TIME_ANY": "Cualquiera",
+    "FILTER_COSTUME": "Disfraz",
+    "LABEL_COSTUME": "Disfraz",
+    "COSTUME_ANY": "Cualquier disfraz",
+    "COSTUME_NONE": "Sin disfraz",
+    "COSTUME_HINT_ANY": "Coincide con todas las apariciones, con o sin disfraz.",
+    "COSTUME_HINT_NONE": "Omite las apariciones con disfraz.",
+    "COSTUME_HINT_SPECIFIC": "Solo las apariciones con este disfraz.",
+    "COSTUME_HINT_UNAVAILABLE": "Los nombres de los disfraces no están disponibles ahora mismo. Cualquier disfraz y Sin disfraz siguen funcionando.",
+    "COSTUME_FALLBACK": "Disfraz {{id}}",
+    "NO_COSTUME_PILL": "Sin disfraz"
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de ubicación",
@@ -479,7 +489,8 @@
       "SR_REMOVE": "Eliminar el nivel personalizado {{value}}",
       "REMOVED": "Nivel {{value}} eliminado",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Disfraz"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmas de Misión",
@@ -948,6 +959,16 @@
     "ACTIVE_HOURS_REMOVE_RULE": "Eliminar regla",
     "ACTIVE_HOURS_WEEKLY_PREVIEW": "Vista semanal",
     "ACTIVE_HOURS_CLEAR_ALL": "Borrar todo",
+    "ACTIVE_HOURS_REPEAT": "Repetir hasta una hora posterior",
+    "ACTIVE_HOURS_REPEAT_HINT": "El perfil se activa de nuevo en cada repetición, hasta la hora final.",
+    "ACTIVE_HOURS_END_HOUR": "Hasta (hora)",
+    "ACTIVE_HOURS_END_MINUTE": "Hasta (minuto)",
+    "ACTIVE_HOURS_REPEAT_EVERY": "Repetir cada",
+    "ACTIVE_HOURS_HOURS_ONE": "1 hora",
+    "ACTIVE_HOURS_HOURS_OTHER": "{{step}} horas",
+    "ACTIVE_HOURS_END_AFTER_START": "La hora final debe ser posterior a la hora de inicio.",
+    "ACTIVE_HOURS_RANGE_HOURLY": "{{days}} {{start}}–{{end}}, cada hora",
+    "ACTIVE_HOURS_RANGE_EVERY": "{{days}} {{start}}–{{end}}, cada {{step}} h",
     "TYPE_POKEMON": "Pokémon",
     "TYPE_RAIDS": "Incursiones",
     "TYPE_EGGS": "Huevos",

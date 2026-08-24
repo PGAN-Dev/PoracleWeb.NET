@@ -323,7 +323,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "noch {{count}} Min",
     "PILL_TIME_LEFT_SECONDS": "noch {{count}} s",
-    "MIN_TIME_ANY": "Beliebig"
+    "MIN_TIME_ANY": "Beliebig",
+    "FILTER_COSTUME": "Kostüm",
+    "LABEL_COSTUME": "Kostüm",
+    "COSTUME_ANY": "Jedes Kostüm",
+    "COSTUME_NONE": "Kein Kostüm",
+    "COSTUME_HINT_ANY": "Trifft auf jeden Spawn zu, mit oder ohne Kostüm.",
+    "COSTUME_HINT_NONE": "Überspringt Spawns mit Kostüm.",
+    "COSTUME_HINT_SPECIFIC": "Nur Spawns mit diesem Kostüm.",
+    "COSTUME_HINT_UNAVAILABLE": "Kostümnamen sind derzeit nicht verfügbar. Jedes Kostüm und Kein Kostüm funktionieren weiterhin.",
+    "COSTUME_FALLBACK": "Kostüm {{id}}",
+    "NO_COSTUME_PILL": "Kein Kostüm"
   },
   "ALARM": {
     "LOCATION_MODE": "Standortmodus",
@@ -479,7 +489,8 @@
       "SR_REMOVE": "Eigenes Level {{value}} entfernen",
       "REMOVED": "Level {{value}} entfernt",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostüm"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest-Alarme",
@@ -948,6 +959,16 @@
     "ACTIVE_HOURS_REMOVE_RULE": "Regel entfernen",
     "ACTIVE_HOURS_WEEKLY_PREVIEW": "Wochenvorschau",
     "ACTIVE_HOURS_CLEAR_ALL": "Alle löschen",
+    "ACTIVE_HOURS_REPEAT": "Bis zu einer späteren Zeit wiederholen",
+    "ACTIVE_HOURS_REPEAT_HINT": "Das Profil wird bei jeder Wiederholung erneut aktiviert, bis zur Endzeit.",
+    "ACTIVE_HOURS_END_HOUR": "Bis (Stunde)",
+    "ACTIVE_HOURS_END_MINUTE": "Bis (Minute)",
+    "ACTIVE_HOURS_REPEAT_EVERY": "Wiederholen alle",
+    "ACTIVE_HOURS_HOURS_ONE": "1 Stunde",
+    "ACTIVE_HOURS_HOURS_OTHER": "{{step}} Stunden",
+    "ACTIVE_HOURS_END_AFTER_START": "Die Endzeit muss nach der Startzeit liegen.",
+    "ACTIVE_HOURS_RANGE_HOURLY": "{{days}} {{start}}–{{end}}, stündlich",
+    "ACTIVE_HOURS_RANGE_EVERY": "{{days}} {{start}}–{{end}}, alle {{step}} Std.",
     "TYPE_POKEMON": "Pokémon",
     "TYPE_RAIDS": "Raids",
     "TYPE_EGGS": "Eier",

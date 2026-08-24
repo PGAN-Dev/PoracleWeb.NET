@@ -323,7 +323,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "nog {{count}} min",
     "PILL_TIME_LEFT_SECONDS": "nog {{count}} s",
-    "MIN_TIME_ANY": "Elke"
+    "MIN_TIME_ANY": "Elke",
+    "FILTER_COSTUME": "Kostuum",
+    "LABEL_COSTUME": "Kostuum",
+    "COSTUME_ANY": "Elk kostuum",
+    "COSTUME_NONE": "Geen kostuum",
+    "COSTUME_HINT_ANY": "Komt overeen met elke spawn, met of zonder kostuum.",
+    "COSTUME_HINT_NONE": "Slaat spawns met een kostuum over.",
+    "COSTUME_HINT_SPECIFIC": "Alleen spawns met dit kostuum.",
+    "COSTUME_HINT_UNAVAILABLE": "Kostuumnamen zijn nu niet beschikbaar. Elk kostuum en Geen kostuum werken nog steeds.",
+    "COSTUME_FALLBACK": "Kostuum {{id}}",
+    "NO_COSTUME_PILL": "Geen kostuum"
   },
   "ALARM": {
     "LOCATION_MODE": "Locatiemodus",
@@ -479,7 +489,8 @@
       "SR_REMOVE": "Eigen level {{value}} verwijderen",
       "REMOVED": "Level {{value}} verwijderd",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostuum"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest Alarmen",
@@ -948,6 +959,16 @@
     "ACTIVE_HOURS_REMOVE_RULE": "Regel verwijderen",
     "ACTIVE_HOURS_WEEKLY_PREVIEW": "Weekoverzicht",
     "ACTIVE_HOURS_CLEAR_ALL": "Alles Wissen",
+    "ACTIVE_HOURS_REPEAT": "Herhalen tot een later tijdstip",
+    "ACTIVE_HOURS_REPEAT_HINT": "Het profiel gaat bij elke herhaling opnieuw aan, tot de eindtijd.",
+    "ACTIVE_HOURS_END_HOUR": "Tot (uur)",
+    "ACTIVE_HOURS_END_MINUTE": "Tot (minuut)",
+    "ACTIVE_HOURS_REPEAT_EVERY": "Herhaal elke",
+    "ACTIVE_HOURS_HOURS_ONE": "1 uur",
+    "ACTIVE_HOURS_HOURS_OTHER": "{{step}} uur",
+    "ACTIVE_HOURS_END_AFTER_START": "De eindtijd moet later zijn dan de starttijd.",
+    "ACTIVE_HOURS_RANGE_HOURLY": "{{days}} {{start}}–{{end}}, elk uur",
+    "ACTIVE_HOURS_RANGE_EVERY": "{{days}} {{start}}–{{end}}, elke {{step}} uur",
     "TYPE_POKEMON": "Pokémon",
     "TYPE_RAIDS": "Raids",
     "TYPE_EGGS": "Eieren",

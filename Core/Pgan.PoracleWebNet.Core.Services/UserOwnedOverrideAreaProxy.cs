@@ -61,6 +61,51 @@ public partial class UserOwnedOverrideAreaProxy(
 
     public Task ReloadStateAsync() => this._inner.ReloadStateAsync();
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// The same workaround as <see cref="CreateAsync"/>, with one difference that matters: on the v2
+    /// surface the replacement rule is a NEW row with a NEW uid, so the area write-back has to target the
+    /// uid PoracleNG just reported rather than the one that was addressed. Writing to the old uid would
+    /// touch a row that no longer exists, and the alarm would silently widen to the whole profile.
+    /// </remarks>
+    public async Task<TrackingUpdateResult> UpdateByUidAsync(
+        string type, string userId, int uid, JsonElement body)
+    {
+        EnsureScopeIsCoherent(body);
+
+        if (!MentionsAnyOverrideArea(body))
+        {
+            return await this._inner.UpdateByUidAsync(type, userId, uid, body);
+        }
+
+        var owned = await this.OwnedGeofenceNamesAsync(userId);
+        var full = OverrideAreasOf(body);
+
+        if (owned.Count == 0 || full is null || !full.Any(a => owned.Contains(a)))
+        {
+            return await this._inner.UpdateByUidAsync(type, userId, uid, body);
+        }
+
+        var sanitised = StripOwned(body, owned);
+        var result = await this._inner.UpdateByUidAsync(type, userId, uid, sanitised);
+        var written = await this._areaWriter.SetAlarmOverrideAreasAsync(
+            userId, type, result.Uid > 0 ? result.Uid : uid, full);
+
+        if (!written)
+        {
+            // The row PoracleNG just reported is not there to write to. Refusing loudly beats an alarm
+            // that silently alerts on the whole profile instead of one small geofence.
+            LogWriteBackMissedRow(this._logger, type, result.Uid, userId);
+            throw new InvalidOperationException(
+                $"Could not apply the area restriction to the {type} alarm that was just saved.");
+        }
+
+        // PoracleNG reloads its state on its own mutations, and a direct column write is not one.
+        await this._inner.ReloadStateAsync();
+
+        return result;
+    }
+
     public async Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body)
     {
         // Refuse an incoherent scope before anything is written. PoracleNG enforces the same three rules

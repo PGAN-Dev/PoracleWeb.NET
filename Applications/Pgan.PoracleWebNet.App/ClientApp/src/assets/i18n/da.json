@@ -323,7 +323,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "{{count}} min tilbage",
     "PILL_TIME_LEFT_SECONDS": "{{count}} s tilbage",
-    "MIN_TIME_ANY": "Alle"
+    "MIN_TIME_ANY": "Alle",
+    "FILTER_COSTUME": "Kostume",
+    "LABEL_COSTUME": "Kostume",
+    "COSTUME_ANY": "Ethvert kostume",
+    "COSTUME_NONE": "Intet kostume",
+    "COSTUME_HINT_ANY": "Matcher alle spawns, med eller uden kostume.",
+    "COSTUME_HINT_NONE": "Springer spawns med kostume over.",
+    "COSTUME_HINT_SPECIFIC": "Kun spawns med dette kostume.",
+    "COSTUME_HINT_UNAVAILABLE": "Kostumenavne er ikke tilgængelige lige nu. Ethvert kostume og Intet kostume virker stadig.",
+    "COSTUME_FALLBACK": "Kostume {{id}}",
+    "NO_COSTUME_PILL": "Intet kostume"
   },
   "ALARM": {
     "LOCATION_MODE": "Placeringstilstand",
@@ -479,7 +489,8 @@
       "SR_REMOVE": "Fjern eget niveau {{value}}",
       "REMOVED": "Niveau {{value}} fjernet",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostume"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest-alarmer",
@@ -948,6 +959,16 @@
     "ACTIVE_HOURS_REMOVE_RULE": "Fjern regel",
     "ACTIVE_HOURS_WEEKLY_PREVIEW": "Ugentlig forhåndsvisning",
     "ACTIVE_HOURS_CLEAR_ALL": "Ryd alle",
+    "ACTIVE_HOURS_REPEAT": "Gentag indtil et senere tidspunkt",
+    "ACTIVE_HOURS_REPEAT_HINT": "Profilen slås til igen ved hver gentagelse, frem til sluttidspunktet.",
+    "ACTIVE_HOURS_END_HOUR": "Indtil (time)",
+    "ACTIVE_HOURS_END_MINUTE": "Indtil (minut)",
+    "ACTIVE_HOURS_REPEAT_EVERY": "Gentag hver",
+    "ACTIVE_HOURS_HOURS_ONE": "1 time",
+    "ACTIVE_HOURS_HOURS_OTHER": "{{step}} timer",
+    "ACTIVE_HOURS_END_AFTER_START": "Sluttidspunktet skal ligge efter starttidspunktet.",
+    "ACTIVE_HOURS_RANGE_HOURLY": "{{days}} {{start}}–{{end}}, hver time",
+    "ACTIVE_HOURS_RANGE_EVERY": "{{days}} {{start}}–{{end}}, hver {{step}}. time",
     "TYPE_POKEMON": "Pokémon",
     "TYPE_RAIDS": "Raids",
     "TYPE_EGGS": "Æg",

@@ -28,6 +28,12 @@ public class Raid
     {
         get; set;
     }
+
+    /// <summary>
+    /// Costume the raid boss must be wearing. 9000 = any costume, 0 = no costume, N = that costume.
+    /// See <see cref="Monster.Costume"/> for why the initializer matters.
+    /// </summary>
+    public int Costume { get; set; } = 9000;
     public int Clean
     {
         get; set;

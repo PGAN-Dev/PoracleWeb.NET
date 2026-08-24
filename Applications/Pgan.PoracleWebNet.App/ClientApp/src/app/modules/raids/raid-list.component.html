@@ -117,6 +117,12 @@
                     ><img [src]="getGymIcon(raid.team)" class="team-icon-inline" /> {{ getTeamName(raid.team) }}</span
                   >
                 </div>
+                @if (raid.costume !== 9000) {
+                  <div class="stat">
+                    <span class="stat-label">{{ 'RAIDS.COSTUME_LABEL' | translate }}</span>
+                    <span class="stat-value">{{ getCostumePillText(raid.costume) }}</span>
+                  </div>
+                }
               </div>
               <app-alarm-info
                 [clean]="raid.clean"
