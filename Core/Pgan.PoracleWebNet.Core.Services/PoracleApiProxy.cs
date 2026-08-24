@@ -222,6 +222,10 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     public Task<bool?> GetFortUpdateDisabledAsync() =>
         this.ReadConfigValueBoolAsync("general", "disable_fort_update");
 
+    /// <inheritdoc />
+    public Task<bool?> GetShowcaseDisabledAsync() =>
+        this.ReadConfigValueBoolAsync("general", "disable_showcase");
+
     /// <summary>
     /// Reads a single boolean out of <c>GET /api/config/values</c>, whose body is shaped
     /// <c>{ "values": { "&lt;section&gt;": { "&lt;key&gt;": true } } }</c>. Returns <c>null</c> when the

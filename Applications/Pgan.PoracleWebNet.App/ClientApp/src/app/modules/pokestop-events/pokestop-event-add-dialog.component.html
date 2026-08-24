@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>{{ 'POKESTOP_EVENTS.ADD_DIALOG_TITLE' | translate }}</h2>
+<mat-dialog-content>
+  <mat-tab-group animationDuration="200ms" class="alarm-tabs">
+    <!-- Tab 1: Settings -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>tune</mat-icon>
+        <span class="tab-label">{{ 'RAIDS.TAB_SETTINGS' | translate }}</span>
+      </ng-template>
+      <div class="tab-content">
+        <h4>{{ 'POKESTOP_EVENTS.PICK_EVENTS' | translate }}</h4>
+        <div class="change-type-grid">
+          <mat-checkbox [formControl]="form.controls.eventShowcase">
+            {{ options[0].displayKey | translate }}
+            @if (options[0].alreadyTracked) {
+              <span class="already-tracked">{{ 'POKESTOP_EVENTS.ALREADY_TRACKED' | translate }}</span>
+            }
+          </mat-checkbox>
+          <mat-checkbox [formControl]="form.controls.eventKecleon">
+            {{ options[1].displayKey | translate }}
+            @if (options[1].alreadyTracked) {
+              <span class="already-tracked">{{ 'POKESTOP_EVENTS.ALREADY_TRACKED' | translate }}</span>
+            }
+          </mat-checkbox>
+          <mat-checkbox [formControl]="form.controls.eventGoldStop">
+            {{ options[2].displayKey | translate }}
+            @if (options[2].alreadyTracked) {
+              <span class="already-tracked">{{ 'POKESTOP_EVENTS.ALREADY_TRACKED' | translate }}</span>
+            }
+          </mat-checkbox>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Delivery -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>notifications</mat-icon>
+        <span class="tab-label">{{ 'RAIDS.TAB_DELIVERY' | translate }}</span>
+      </ng-template>
+      <div class="tab-content">
+        <app-scope-picker [(scope)]="scope" />
+
+        <mat-slide-toggle [formControl]="form.controls.autoDelete" class="include-empty-toggle">
+          {{ 'ALARM.CLEAN_MODE' | translate }}
+        </mat-slide-toggle>
+
+        <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
+        <app-template-selector
+          [alarmType]="'incident'"
+          [value]="form.controls.template.value ?? ''"
+          (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close(false)">{{ 'ALARM.CANCEL' | translate }}</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !hasSelection()">
+    {{ saving() ? ('ALARM.SAVING' | translate) : ('ALARM.SAVE' | translate) }}
+  </button>
+</mat-dialog-actions>

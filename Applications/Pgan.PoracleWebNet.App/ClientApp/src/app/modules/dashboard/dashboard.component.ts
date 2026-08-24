@@ -160,6 +160,15 @@ export class DashboardComponent implements OnInit {
       subtitle: 'DASHBOARD.CARD_INVASIONS_SUB',
     },
     {
+      colorClass: 'card-pokestop-events',
+      disableKey: 'disable_showcase',
+      icon: 'celebration',
+      key: 'pokestopEvents',
+      label: 'DASHBOARD.CARD_POKESTOP_EVENTS',
+      route: '/pokestop-events',
+      subtitle: 'DASHBOARD.CARD_POKESTOP_EVENTS_SUB',
+    },
+    {
       colorClass: 'card-lures',
       disableKey: 'disable_lures',
       icon: 'location_on',

@@ -351,4 +351,26 @@ public static class AlarmMappingExtensions
         if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
         if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }
+
+    // ── PokestopEvent (upstream "incident") ──────────────────
+
+    public static PokestopEvent ToPokestopEvent(this PokestopEventCreate src) => new()
+    {
+        DisplayType = src.DisplayType,
+        Distance = src.Distance,
+        Template = src.Template,
+        Clean = src.Clean,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
+    };
+
+    public static void ApplyUpdate(this PokestopEventUpdate src, PokestopEvent dest)
+    {
+        if (src.DisplayType != null) dest.DisplayType = src.DisplayType.Value;
+        if (src.Distance != null) dest.Distance = src.Distance.Value;
+        if (src.Template != null) dest.Template = src.Template;
+        if (src.Clean != null) dest.Clean = src.Clean.Value;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
+    }
 }

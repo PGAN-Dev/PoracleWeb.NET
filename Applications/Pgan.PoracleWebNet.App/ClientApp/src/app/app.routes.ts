@@ -73,6 +73,11 @@ export const routes: Routes = [
     path: 'gyms',
   },
   {
+    canActivate: [authGuard, disabledFeatureGuard('disable_showcase')],
+    loadComponent: () => import('./modules/pokestop-events/pokestop-event-list.component').then(m => m.PokestopEventListComponent),
+    path: 'pokestop-events',
+  },
+  {
     canActivate: [authGuard, disabledFeatureGuard('disable_fort_changes')],
     loadComponent: () => import('./modules/fort-changes/fort-change-list.component').then(m => m.FortChangeListComponent),
     path: 'fort-changes',
