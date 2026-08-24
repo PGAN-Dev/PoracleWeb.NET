@@ -22,6 +22,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
@@ -249,7 +250,7 @@ export class FortChangeListComponent implements OnInit {
       .subscribe({
         error: () => this.loading.set(false),
         next: items => {
-          this.fortChanges.set(items);
+          this.fortChanges.set(orderAlarms(items, f => [f.fortType, f.changeTypes.join(',')]));
           this.loading.set(false);
         },
       });

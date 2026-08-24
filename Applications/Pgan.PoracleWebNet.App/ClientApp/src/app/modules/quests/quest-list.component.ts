@@ -27,6 +27,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
@@ -316,7 +317,7 @@ export class QuestListComponent implements OnInit {
           this.loading.set(false);
         },
         next: quests => {
-          this.quests.set(quests);
+          this.quests.set(orderAlarms(quests, q => [q.rewardType, q.reward, q.amount]));
           this.loading.set(false);
         },
       });

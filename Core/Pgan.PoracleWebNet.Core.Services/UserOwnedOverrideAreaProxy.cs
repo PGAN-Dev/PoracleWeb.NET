@@ -72,6 +72,43 @@ public partial class UserOwnedOverrideAreaProxy(
 
     /// <inheritdoc />
     /// <remarks>
+    /// The v2 replace needs the same write-back as <see cref="UpdateByUidAsync"/>, and needs it under the
+    /// same rule: the replacement is a new row under a new uid, so the areas go to the uid PoracleNG just
+    /// reported. A null answer means nothing was written, so there is nothing to write back to -- the
+    /// caller is about to take its own v1 path, which comes back through this decorator anyway.
+    /// </remarks>
+    public async Task<TrackingUpdateResult?> TryReplaceV2Async(
+        string type, string userId, int uid, JsonElement body)
+    {
+        EnsureScopeIsCoherent(body);
+
+        if (!MentionsAnyOverrideArea(body))
+        {
+            return await this._inner.TryReplaceV2Async(type, userId, uid, body);
+        }
+
+        var owned = await this.OwnedGeofenceNamesAsync(userId);
+        var full = OverrideAreasOf(body);
+
+        if (owned.Count == 0 || full is null || !full.Any(a => owned.Contains(a)))
+        {
+            return await this._inner.TryReplaceV2Async(type, userId, uid, body);
+        }
+
+        var sanitised = StripOwned(body, owned);
+
+        if (await this._inner.TryReplaceV2Async(type, userId, uid, sanitised) is not { } result)
+        {
+            return null;
+        }
+
+        await this.WriteBackOwnedAreasAsync(type, userId, result.Uid > 0 ? result.Uid : uid, full);
+
+        return result;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The same workaround as <see cref="CreateAsync"/>, with one difference that matters: on the v2
     /// surface the replacement rule is a NEW row with a NEW uid, so the area write-back has to target the
     /// uid PoracleNG just reported rather than the one that was addressed. Writing to the old uid would
@@ -97,22 +134,29 @@ public partial class UserOwnedOverrideAreaProxy(
 
         var sanitised = StripOwned(body, owned);
         var result = await this._inner.UpdateByUidAsync(type, userId, uid, sanitised);
-        var written = await this._areaWriter.SetAlarmOverrideAreasAsync(
-            userId, type, result.Uid > 0 ? result.Uid : uid, full);
 
-        if (!written)
+        await this.WriteBackOwnedAreasAsync(type, userId, result.Uid > 0 ? result.Uid : uid, full);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Writes the full area list, the user's own geofences included, straight onto the row PoracleNG just
+    /// stored.
+    /// </summary>
+    private async Task WriteBackOwnedAreasAsync(string type, string userId, int uid, List<string> areas)
+    {
+        if (!await this._areaWriter.SetAlarmOverrideAreasAsync(userId, type, uid, areas))
         {
             // The row PoracleNG just reported is not there to write to. Refusing loudly beats an alarm
             // that silently alerts on the whole profile instead of one small geofence.
-            LogWriteBackMissedRow(this._logger, type, result.Uid, userId);
+            LogWriteBackMissedRow(this._logger, type, uid, userId);
             throw new InvalidOperationException(
                 $"Could not apply the area restriction to the {type} alarm that was just saved.");
         }
 
         // PoracleNG reloads its state on its own mutations, and a direct column write is not one.
         await this._inner.ReloadStateAsync();
-
-        return result;
     }
 
     public async Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body)

@@ -113,7 +113,22 @@ describe('PokestopEventListComponent', () => {
         { ...base, uid: 3, displayType: GOLD_STOP, eventName: 'gold-stop' },
       ]);
 
-      expect(cardTitles()).toEqual(['INVASIONS.EVENT_TYPES.SHOWCASE', 'INVASIONS.EVENT_TYPES.KECLEON', 'INVASIONS.EVENT_TYPES.GOLD_STOP']);
+      // Ordered by display type rather than by the order PoracleNG returned them in.
+      expect(cardTitles()).toEqual(['INVASIONS.EVENT_TYPES.GOLD_STOP', 'INVASIONS.EVENT_TYPES.KECLEON', 'INVASIONS.EVENT_TYPES.SHOWCASE']);
+    });
+
+    it('keeps a rule where it was after an edit rotated its uid', () => {
+      // This type has only ever had a v2 write surface, and a v2 replace is delete-then-insert, so the
+      // edited rule comes back under the highest uid in the list. Rendering PoracleNG's own order threw
+      // the card the user had just saved to the end of the grid.
+      setup([
+        // PoracleNG's own order: by uid, with the just-edited Kecleon rule re-keyed to the highest.
+        { ...base, uid: 1, displayType: GOLD_STOP, eventName: 'gold-stop' },
+        { ...base, uid: 3, displayType: SHOWCASE },
+        { ...base, uid: 99, displayType: KECLEON, eventName: 'kecleon' },
+      ]);
+
+      expect(cardTitles()).toEqual(['INVASIONS.EVENT_TYPES.GOLD_STOP', 'INVASIONS.EVENT_TYPES.KECLEON', 'INVASIONS.EVENT_TYPES.SHOWCASE']);
     });
 
     it('shows the empty state, and no cards, when the profile tracks nothing', () => {

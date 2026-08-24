@@ -12,8 +12,9 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// The pokemon write path on PoracleNG's strict <c>/api/v2</c> surface, and every way it must decline to
-/// use it. See #805.
+/// The write path on PoracleNG's strict <c>/api/v2</c> surface -- routing, gating, error shapes and every
+/// way it must decline to use it. Exercised on pokemon; the per-type field tables have their own suite in
+/// <see cref="TrackingV2TypeTranslationTests"/>. See #805.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -115,16 +116,19 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Fact]
-    public async Task TheOtherNineTypesStayOnV1EvenOnA521Server()
+    public async Task InvasionStaysOnV1EvenOnA521Server()
     {
-        // #805 is a pilot on pokemon. Each remaining type needs its own field translation derived from its
-        // own schema, and v1 is frozen and unchanged on 5.2.1, so leaving them is a no-op not a deferral.
+        // The one type with a v2 surface PoracleWeb deliberately stays off. A v2 read of a named-grunt
+        // rule carries no targeting field at all, and PoracleWeb holds only the grunt name -- which live
+        // data fills with values it cannot reverse into a type_id or grunt_id (blanche, candela, spark,
+        // npc 0..npc 10, player team leader). Filed upstream; until it is answered, invasion has no
+        // faithful v2 body in either direction.
         var handler = ScriptedHandler.Ok("""{"newUids":[9],"alreadyPresent":0,"updates":1,"insert":0}""");
         var sut = CreateSut(handler, version: "5.2.1");
 
-        await sut.UpdateByUidAsync("raid", "user1", 9, Row("""{"uid":9,"pokemon_id":9000,"level":5}"""));
+        await sut.UpdateByUidAsync("invasion", "user1", 9, Row("""{"uid":9,"grunt_type":"blanche"}"""));
 
-        Assert.Equal($"{ApiAddress}/api/tracking/raid/user1?silent=true", Assert.Single(handler.Requests).Url);
+        Assert.Equal($"{ApiAddress}/api/tracking/invasion/user1?silent=true", Assert.Single(handler.Requests).Url);
     }
 
     [Theory]
@@ -176,6 +180,27 @@ public class PoracleTrackingProxyV2Tests
 
         Assert.Equal(3, handler.Requests.Count);
         Assert.All(handler.Requests.Skip(1), r => Assert.Equal(HttpMethod.Post, r.Method));
+    }
+
+    [Fact]
+    public async Task AnAbsentRouteOnOneTypeDoesNotDropTheOtherEightBackToV1()
+    {
+        // The absent flag is keyed per type. A single flag let one gin 404 from one route disable v2 for
+        // every type at once -- and the types do not ship together, so a build that carries the raid route
+        // and not the fort one is an ordinary state, not a broken server.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.NotFound, "404 page not found", "text/plain"),
+            new Reply(HttpStatusCode.OK, """{"newUids":[63],"alreadyPresent":0,"updates":1,"insert":0}"""),
+            new Reply(HttpStatusCode.OK, RotatedOk));
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var sut = CreateSut(handler, version: "5.2.1", cache: cache);
+
+        await sut.UpdateByUidAsync("fort", "user1", 63, Row("""{"uid":63,"fort_type":"gym","include_empty":0}"""));
+        var pokemon = await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow));
+
+        Assert.True(pokemon.UsedV2);
+        Assert.Equal(HttpMethod.Put, handler.Requests[2].Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/36486?silent=true", handler.Requests[2].Url);
     }
 
     [Fact]

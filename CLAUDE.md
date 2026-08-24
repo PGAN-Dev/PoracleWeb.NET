@@ -587,48 +587,94 @@ When comparing, **a field PoracleWeb does not supply cannot be compared** — Po
 
 See #462, #463, #531, #553, #561.
 
-### The `/api/v2` Pilot: Pokemon Edits Only, And Pokemon Now Rotates Its uid
+### `/api/v2` Writes: Nine Types, Edits Only, And Every Type Rotates Its uid
 
-PoracleNG 5.2.0 added a second tracking surface. `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}` is
+PoracleNG 5.2.0 added a second tracking surface. `PUT /api/v2/humans/{id}/tracking/{type}/{uid}` is
 addressed by uid: it 404s when the uid is not that human's and 409s when the replacement would exactly
 duplicate another rule, so the server enforces what `EnsureNoMergeIntoAnotherAlarmAsync` had to
 reconstruct from a 200. **v2 POST still diffs and merges** — the #561 takeover reproduces on it — so
 creates stay on v1 and the reconciler stays.
 
-**Only `MonsterService.UpdateAsync` uses it.** Everything else — every read, `CreateAsync`,
-`BulkCreateAsync`, both distance endpoints, and all nine other types — is unchanged on v1, which 5.2.1
-left frozen. Reads deliberately stay on v1: v2 answers `null` for every field at its wildcard where v1
-answers the sentinel, and both `Monster` (C#) and `Monster` (TS) are built on the sentinels. Rebuilding
-them from nulls means a per-field default table that must match PoracleNG exactly, and one wrong entry
-silently rewrites a filter on the user's next save.
+**Only `UpdateAsync` uses it, on nine of the ten types.** Everything else — every read, `CreateAsync`,
+`BulkCreateAsync`, both distance endpoints and cleaning — is unchanged on v1, which 5.2.1 left frozen.
+Reads deliberately stay on v1: v2 answers `null` for every field at its wildcard where v1 answers the
+sentinel, and the C# and TypeScript models are both built on the sentinels. Rebuilding them from nulls
+means a per-field default table that must match PoracleNG exactly, and one wrong entry silently rewrites
+a filter on the user's next save. Bulk distance and cleaning stay on v1 because v2 has no bulk write:
+305 uid-addressed PUTs at 7.8ms would replace one 20ms POST.
 
-**The v2 PUT is delete-then-insert, so pokemon now rotates its uid on edit like the other nine.** It was
-the one exception, and three places in this file used to say so. `MonsterService` therefore takes
-`ITrackedUidRemapper`, and `TrackedUidRemapperCoverageTests` lists it among the rotating services rather
-than exempting it. Quick-pick applied state is the thing that actually breaks without the remap (#403).
-Note that `EnsureNoMergeIntoAnotherAlarmAsync` already early-returned for pokemon *updates* (#606), so
-moving to v2 removes no guard that was running.
+**Invasion is the tenth and stays on v1 in both directions.** A v2 read of a named-grunt rule comes back
+with no targeting field at all, so a GET-then-PUT round-trip 422s, and PoracleWeb holds only `GruntType`
+as a string — live data fills it with values it cannot reverse into a `type_id` or `grunt_id`: `blanche`,
+`candela`, `spark`, `npc 0`…`npc 10`, `player team leader`. Filed upstream. `TrackingV2Translator.Handles`
+is the single place that decides, and having no field table for a type is what keeps it on v1.
 
-Three shape differences, all handled once at the wire in `TrackingV2Translator`:
+**The v2 PUT is delete-then-insert, so every type rotates its uid on edit.** Pokemon was the one exception
+and no longer is. Quick-pick applied state is the thing that actually breaks without the remap (#403), so
+every service hands `ITrackedUidRemapper` to `TrackingV2Replacement.TryApplyAsync`, the shared v2 branch
+each `UpdateAsync` takes before its own v1 path.
 
-| v1 | v2 |
+**Taking the v2 branch skips the whole v1 repair path, as a unit.** That is the point of moving, and it is
+where the wins are:
+
+| Type | What the v1 path does that v2 makes unnecessary |
 |---|---|
-| `clean` 3-bit mask | separate `clean` / `edit` / `summary` booleans |
-| `gender` 0-3 | `any` / `male` / `female` / `genderless` |
-| `pvp_ranking_league` any int | enum of `{0, 500, 1500, 2500}` |
+| lure | `NaturalKeyTrackingUpdate` deletes the row to free `lure_tracking(id, profile_no, lure_id)`, re-creates it, and restores the original if that fails — PoracleNG's v1 create has no upsert path for it |
+| maxbattle | delete-then-create, with a window where the alarm exists nowhere |
+| the other seven | `TrackingUpdateReconciler.ReconcileAsync` cleans up the duplicate a v1 create leaves behind |
 
-Plus `uid`, `id`, `profile_no`, `ping` and `description`, which v2 has no place for and refuses outright:
-`V2PokemonRule` sets `additionalProperties: false`, so one stray property is a 422 and the write fails.
+The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check and max
+battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
+only an exact duplicate.
+
+**One field table per type in `TrackingV2Translator`, never a shared one.** `V2PokemonRule` declares 28
+integer filters and `V2FortRule` declares one; every rule sets `additionalProperties: false`, so a leaked
+field is a 422 that the v1 fallback silently papers over — the failure nobody notices.
+`TrackingV2TypeTranslationTests` asserts each table against the schema's property list in both directions,
+so a field the table leaks and a field it misses both fail the build.
+
+Shape differences, all handled once at the wire:
+
+| v1 | v2 | Types |
+|---|---|---|
+| `clean` 3-bit mask | `clean` / `edit` / `summary` booleans | all but fort |
+| `gender` 0-3 | `any` / `male` / `female` / `genderless` | pokemon |
+| `team` 0-4 | `harmony` / `mystic` / `valor` / `instinct` / `any` | raid, egg, gym |
+| `rsvp_changes` 0-2 | `none` / `rsvp` / `rsvp_only` | raid, egg |
+| 0/1 columns | real booleans | `exclusive`, `slot_changes`, `battle_changes`, `gmax`, `shiny`, `include_empty` |
+| `change_types` JSON string | array | fort |
+| `pvp_ranking_league` any int | enum of `{0, 500, 1500, 2500}` | pokemon |
+
+Plus `uid`, `id`, `profile_no`, `ping` and `description`, which v2 has no place for and refuses outright.
 The v1 shape stays the single internal currency — `TrackingFieldPreserver`, `TrackingUpdateReconciler`,
 `BulkUidRemap` and `QuickPickService` all build and compare it — and the translator is the only exit onto
 v2, which is what stops a v1-shaped row reaching a v2 body.
 
-**The translator never changes what PoracleNG will accept.** A property it does not know, a gender outside
-0-3, a league outside the enum: it answers false and the row goes to v1. Refusing would mean a newer
-PoracleNG broke every pokemon edit; dropping the field would be #730 again.
+**Sentinels are sent verbatim, against the migration guide's advice.** The guide says to omit `level: 9000`,
+`costume: 9000`, `move: 9000` and the rest. Verified on 5.2.1 instead: a raid, an egg and a max battle
+written through both surfaces produced byte-identical v1 reads but for the rotated uid — the v2 *response*
+reports them as null, the row does not. Omitting them would leave `CountUpdatableDifferences` comparing a
+stored 9000 against an absent field.
+
+Three per-type traps, all verified live and each a 422 if ignored:
+
+- **egg `level` is required with minimum 1**, and `Egg.Level` is a plain int defaulting to 0. Profile
+  import, quick-pick apply and the cleaning fetch-mutate-POST all build eggs without one, so the
+  translator declines and they go to v1, which has stored level 0 for years.
+- **fort has no `clean`, `edit` or `summary`** — no v2 field and no column. A shared clean helper applied
+  blindly is a 422.
+- **fort `include_empty` defaults to TRUE on v2 and FALSE on v1.** A PUT that omitted it flipped a stored
+  0 to 1 and the alert text gained "including empty changes". The translator states it explicitly and
+  declines a fort row that carries none.
+
+**The translator never changes what PoracleNG will accept.** A property it does not know, an enum outside
+its range, an egg without a level: it answers false and the row goes to v1. Refusing would mean a newer
+PoracleNG broke every edit; dropping the field would be #730 again.
 
 **A v2 PUT is a full replace** — omitting `min_iv` wipes a stored 90, verified live — so
-`TrackingFieldPreserver` matters more here than it did on v1, not less.
+`TrackingFieldPreserver` matters more here than it did on v1, not less. `UserOwnedOverrideAreaProxy`
+decorates the v2 replace too, and has to write its areas back to the uid PoracleNG just reported rather
+than the one addressed, or the alarm silently widens from one geofence to the whole profile.
 
 Errors are RFC 9457 problem+json at **422**, not 400, in two shapes: a schema failure carries `errors[]`
 whose `location` is `body.x` on a PUT and `body[0].x` on a POST, and a semantic refusal carries only
@@ -641,8 +687,11 @@ Gating: `PoracleServerProfile.SupportsV2Tracking` is version >= 5.2.0. Not the `
 though `UpstreamFeatureFlagService` deliberately fails the other way. `Poracle:TrackingApiVersion`
 (`auto` | `v1` | `v2`, env `PORACLE_TRACKING_API_VERSION`) pins it for a fork whose version says the wrong
 thing, and the proxy falls back to v1 for five minutes when the route answers gin's plaintext
-`404 page not found` — that fallback is the only thing standing between a downgraded server and an outage
-window the length of the profile cache.
+`404 page not found`. **That flag is keyed per type**: one absent route must not drop the other eight, and
+for `incident` — whose only surface is v2 — a shared flag would mean the type vanishing rather than
+degrading. `PoracleServerProfileService.GetAsync` is single-flighted behind a static gate, because it is
+registered transient, a cold cache costs a `/health` GET plus a `schema_migrations` SELECT, and a
+dashboard load now sends several version-gated writes at once.
 
 ### Keep the PoracleNG Checkout Pinned To What Prod Runs
 
@@ -865,6 +914,7 @@ dotnet ef migrations script \
 | PoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleHumanProxy.cs` |
 | PoracleJsonHelper | `Core/Pgan.PoracleWebNet.Core.Services/PoracleJsonHelper.cs` |
 | TrackingV2Translator (v1 row -> /api/v2 body) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Translator.cs` |
+| TrackingV2Replacement (the v2 branch each UpdateAsync takes) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Replacement.cs` |
 | PoracleProblemDetails (RFC 9457 + v1 errors) | `Core/Pgan.PoracleWebNet.Core.Services/PoracleProblemDetails.cs` |
 | Repositories (non-alarm) | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
 | SiteSettingRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/SiteSettingRepository.cs` |

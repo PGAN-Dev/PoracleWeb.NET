@@ -17,18 +17,16 @@ public partial class PoracleTrackingProxy(
     ILogger<PoracleTrackingProxy> logger) : IPoracleTrackingProxy
 {
     /// <summary>
-    /// The only type this build writes through <c>/api/v2</c>. See #805 — the other nine stay on the
-    /// frozen v1 surface, which 5.2.1 left unchanged, so leaving them is a no-op rather than a deferred
-    /// defect. Each needs its own field translation derived from its own schema.
+    /// Set when the v2 route for one type answered gin's plaintext 404, meaning this server does not carry
+    /// it whatever its version said. Held for as long as the server profile is cached, so an upgrade is
+    /// picked up on the same clock as everything else version-gated.
     /// </summary>
-    private const string V2PilotType = "pokemon";
-
-    /// <summary>
-    /// Set when the v2 route answered gin's plaintext 404, meaning this server does not carry it whatever
-    /// its version said. Held for as long as the server profile is cached, so an upgrade is picked up on
-    /// the same clock as everything else version-gated.
-    /// </summary>
-    private const string V2AbsentCacheKey = "poracle:v2-tracking-absent";
+    /// <remarks>
+    /// Keyed per type on purpose. A single flag let one 404 from one route drop every type back to v1 —
+    /// which for <c>incident</c>, whose only surface is v2, would mean the type vanishing rather than
+    /// degrading.
+    /// </remarks>
+    private static string V2AbsentCacheKey(string type) => $"poracle:v2-tracking-absent:{type}";
 
     private static readonly TimeSpan V2AbsentFor = TimeSpan.FromMinutes(5);
 
@@ -131,25 +129,32 @@ public partial class PoracleTrackingProxy(
     }
 
     /// <inheritdoc />
+    public async Task<TrackingUpdateResult?> TryReplaceV2Async(
+        string type, string userId, int uid, JsonElement body)
+    {
+        if (uid <= 0 || !this.ShouldTryV2(type) || !await this.ServerCarriesV2Async(type))
+        {
+            return null;
+        }
+
+        if (!TrackingV2Translator.TryTranslate(type, body, out var v2Body, out var unsupported))
+        {
+            // Not a fault. The row carries something v2 has no faithful place for, so it goes to v1,
+            // which stores whatever it is given. See TrackingV2Translator.
+            LogV2Untranslatable(this._logger, type, uid, unsupported ?? "unknown");
+            return null;
+        }
+
+        return await this.PutV2Async(type, userId, uid, v2Body);
+    }
+
+    /// <inheritdoc />
     public async Task<TrackingUpdateResult> UpdateByUidAsync(
         string type, string userId, int uid, JsonElement body)
     {
-        if (uid > 0 && this.ShouldTryV2(type) && await this.ServerCarriesV2Async())
+        if (await this.TryReplaceV2Async(type, userId, uid, body) is { } replaced)
         {
-            if (TrackingV2Translator.TryTranslatePokemon(body, out var v2Body, out var unsupported))
-            {
-                var applied = await this.PutV2Async(type, userId, uid, v2Body);
-                if (applied is { } result)
-                {
-                    return result;
-                }
-            }
-            else
-            {
-                // Not a fault. The row carries something v2 has no faithful place for, so it goes to v1,
-                // which stores whatever it is given. See TrackingV2Translator.
-                LogV2Untranslatable(this._logger, type, uid, unsupported ?? "unknown");
-            }
+            return replaced;
         }
 
         // v1: an update is a create carrying the uid, which PoracleNG upserts. Byte-identical to what
@@ -225,18 +230,23 @@ public partial class PoracleTrackingProxy(
     }
 
     /// <summary>Whether this type and this deployment are in scope for the v2 write path at all.</summary>
+    /// <remarks>
+    /// Invasion is the one type with a v2 surface that PoracleWeb deliberately stays off. A v2 read of a
+    /// named-grunt rule carries no targeting field at all, and PoracleWeb holds only the grunt name, which
+    /// live data fills with values it cannot reverse into an id (<c>blanche</c>, <c>npc 0</c>, <c>player
+    /// team leader</c>). Filed upstream.
+    /// </remarks>
     private bool ShouldTryV2(string type) =>
-        string.Equals(type, V2PilotType, StringComparison.Ordinal)
-        && this._trackingApiVersion != "v1";
+        TrackingV2Translator.Handles(type) && this._trackingApiVersion != "v1";
 
     /// <summary>
     /// Whether the server is believed to carry v2. Pinned to <c>v2</c> this skips the probe but not the
     /// runtime fallback, so pinning a server that turns out not to have the route degrades to v1 rather
     /// than failing every edit.
     /// </summary>
-    private async Task<bool> ServerCarriesV2Async()
+    private async Task<bool> ServerCarriesV2Async(string type)
     {
-        if (this._cache.TryGetValue(V2AbsentCacheKey, out _))
+        if (this._cache.TryGetValue(V2AbsentCacheKey(type), out _))
         {
             return false;
         }
@@ -279,7 +289,7 @@ public partial class PoracleTrackingProxy(
             case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
                 // gin answers a missing route with plaintext "404 page not found", so the route does not
                 // exist on this build whatever /health claimed. Verified against 5.1.0.
-                this._cache.Set(V2AbsentCacheKey, true, V2AbsentFor);
+                this._cache.Set(V2AbsentCacheKey(type), true, V2AbsentFor);
                 LogV2RouteAbsent(this._logger, type);
                 return null;
 
