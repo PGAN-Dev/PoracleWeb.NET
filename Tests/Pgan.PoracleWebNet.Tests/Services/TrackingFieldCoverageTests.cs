@@ -146,7 +146,7 @@ public class TrackingFieldCoverageTests
 
     private Task CreateAsync(string type) => type switch
     {
-        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object)
+        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object)
             .CreateAsync("u1", new MonsterCreate { PokemonId = 201 }.ToMonster()),
         "raid" => new RaidService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object)

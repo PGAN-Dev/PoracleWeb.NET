@@ -21,6 +21,9 @@ public class UserOwnedOverrideAreaProxyTests
 {
     private const string User = "u1";
 
+    /// <summary>What the v2 full-replace PUT hands back: a new row, under a new uid.</summary>
+    private const int RotatedUid = 8;
+
     private readonly Mock<IPoracleTrackingProxy> _inner = new();
     private readonly Mock<IUserGeofenceRepository> _geofences = new();
     private readonly Mock<IUserAreaDualWriter> _writer = new();
@@ -32,6 +35,11 @@ public class UserOwnedOverrideAreaProxyTests
             .Setup(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => this._sentToPoracle.Add(body.Clone()))
             .ReturnsAsync(new TrackingCreateResult([7], 0, 0, 1));
+        this._inner
+            .Setup(p => p.UpdateByUidAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
+            .Callback<string, string, int, JsonElement>((_, _, _, body) => this._sentToPoracle.Add(body.Clone()))
+            .ReturnsAsync(new TrackingUpdateResult(RotatedUid, true));
         this._inner.Setup(p => p.ReloadStateAsync()).Returns(Task.CompletedTask);
         this._geofences.Setup(r => r.GetByHumanIdAsync(It.IsAny<string>()))
             .ReturnsAsync([new UserGeofence { KojiName = "back garden", HumanId = User }]);
@@ -63,6 +71,54 @@ public class UserOwnedOverrideAreaProxyTests
             w => w.SetAlarmOverrideAreasAsync(
                 User, "pokemon", 7, It.Is<IReadOnlyCollection<string>>(a => a.Contains("back garden"))),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task AnEditWritesTheAreaBackAgainstTheUidPoracleJustReported()
+    {
+        // The v2 PUT is delete-then-insert, so the row the areas belong to is NOT the one that was
+        // addressed. Writing to the old uid would touch a row that no longer exists and the alarm would
+        // silently widen to the whole profile -- the same failure the write-back guard exists to prevent.
+        var result = await this.Proxy().UpdateByUidAsync("pokemon", User, 7, Row(
+            """{"uid":7,"pokemon_id":201,"distance":0,"override_areas":["back garden"]}"""));
+
+        Assert.False(Assert.Single(this._sentToPoracle).TryGetProperty("override_areas", out _));
+        Assert.Equal(RotatedUid, result.Uid);
+
+        this._writer.Verify(
+            w => w.SetAlarmOverrideAreasAsync(
+                User, "pokemon", RotatedUid, It.Is<IReadOnlyCollection<string>>(a => a.Contains("back garden"))),
+            Times.Once);
+        this._writer.Verify(
+            w => w.SetAlarmOverrideAreasAsync(
+                It.IsAny<string>(), It.IsAny<string>(), 7, It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task AnEditThatNamesNoOwnedGeofenceGoesStraightThrough()
+    {
+        // The legitimate-case half: almost every edit carries no override at all, and this must not add a
+        // geofence query or a column write to any of them.
+        var result = await this.Proxy().UpdateByUidAsync("pokemon", User, 7, Row(
+            """{"uid":7,"pokemon_id":201,"distance":1000}"""));
+
+        Assert.Equal(RotatedUid, result.Uid);
+        this._writer.Verify(
+            w => w.SetAlarmOverrideAreasAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
+        this._inner.Verify(p => p.ReloadStateAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task AnEditWithAnIncoherentScopeIsRefusedBeforeAnythingIsWritten()
+    {
+        await Assert.ThrowsAsync<AlarmValidationException>(() => this.Proxy().UpdateByUidAsync(
+            "pokemon", User, 7, Row(
+                """{"uid":7,"pokemon_id":201,"distance":1000,"override_areas":["back garden"]}""")));
+
+        Assert.Empty(this._sentToPoracle);
     }
 
     [Fact]
