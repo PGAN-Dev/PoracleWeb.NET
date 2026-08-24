@@ -39,6 +39,20 @@ describe('PlacesService', () => {
     expect(service.canEdit()).toBe(false);
   });
 
+  it('keeps canEdit after adding a place', () => {
+    // add() replaces the whole signal from the POST reply, so that reply has to carry canEdit too.
+    // Without it the edit control vanished from every card the moment a place was added.
+    service.load().subscribe();
+    httpMock.expectOne(`${API}/api/location/places`).flush({ named: [], canEdit: true, default: null });
+
+    service.add({ label: 'work', latitude: 1, longitude: 2 }).subscribe();
+    httpMock
+      .expectOne(r => r.method === 'POST')
+      .flush({ named: [{ label: 'work', latitude: 1, longitude: 2 }], canEdit: true, default: null });
+
+    expect(service.canEdit()).toBe(true);
+  });
+
   it('puts the new point under the existing label', () => {
     service.move('work', 9.5, 8.5).subscribe();
 

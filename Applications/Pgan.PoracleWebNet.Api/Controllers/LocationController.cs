@@ -367,12 +367,16 @@ public class LocationController(
     /// refusal is unwrapped here and returned as a 400 the SPA can show against the field.
     /// </remarks>
     [HttpPost("places")]
-    public async Task<IActionResult> AddPlace([FromBody] SavedPlace place)
+    public async Task<IActionResult> AddPlace(
+        [FromBody] SavedPlace place, CancellationToken cancellationToken = default)
     {
         var refusal = await this._humanProxy.AddPlaceAsync(this.UserId, place);
 
+        // Answers the same shape as the GET and the PUT. The SPA replaces its whole places signal
+        // from this reply, so a body without canEdit cleared the flag and took the edit control off
+        // every card until the next reload -- the hazard already noted on the PUT, one path along.
         return refusal is null
-            ? this.Ok(await this._humanProxy.GetPlacesAsync(this.UserId))
+            ? this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken))
             : this.BadRequest(new { error = refusal });
     }
 

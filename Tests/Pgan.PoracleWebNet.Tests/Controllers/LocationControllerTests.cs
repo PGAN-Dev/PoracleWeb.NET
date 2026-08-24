@@ -102,6 +102,26 @@ public class LocationControllerTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task AddPlaceAnswersTheSameShapeAsTheList()
+    {
+        // The SPA replaces its whole places signal from this reply. A body without canEdit cleared
+        // the flag and took the edit control off every card until the next reload -- the exact
+        // hazard the PUT already guards against, on the sibling path.
+        this._humanProxy
+            .Setup(p => p.AddPlaceAsync("123456789", It.IsAny<SavedPlace>()))
+            .ReturnsAsync((string?)null);
+        this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
+        this._placeUpdateCapability
+            .Setup(c => c.IsPlaceUpdateAvailableAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var ok = Assert.IsType<OkObjectResult>(
+            await this._sut.AddPlace(new SavedPlace { Label = "work", Latitude = 1, Longitude = 2 }));
+
+        Assert.Equal(true, ok.Value?.GetType().GetProperty("canEdit")?.GetValue(ok.Value));
+    }
+
+    [Fact]
     public async Task UpdatePlaceMovesItAndAnswersTheNewList()
     {
         this._humanProxy

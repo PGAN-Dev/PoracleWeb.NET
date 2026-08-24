@@ -1,4 +1,3 @@
-using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Mappings;
@@ -11,10 +10,6 @@ namespace Pgan.PoracleWebNet.Core.Repositories;
 public class HumanRepository(PoracleContext context) : IHumanRepository
 {
     private readonly PoracleContext _context = context;
-
-    // Cached reflection results for EnsureNotNullDefaults
-    private static readonly PropertyInfo[] WritableStringProperties =
-        [.. typeof(HumanEntity).GetProperties().Where(p => p.PropertyType == typeof(string) && p.CanWrite)];
 
     public async Task<IEnumerable<Human>> GetAllAsync()
     {
@@ -86,13 +81,5 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
         this._context.Profiles.RemoveRange(this._context.Profiles.Where(p => p.Id == userId));
         await this._context.SaveChangesAsync();
         return true;
-    }
-
-    private static void EnsureNotNullDefaults(HumanEntity entity)
-    {
-        foreach (var prop in WritableStringProperties.Where(prop => prop.GetValue(entity) == null))
-        {
-            prop.SetValue(entity, string.Empty);
-        }
     }
 }
