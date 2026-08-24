@@ -30,7 +30,7 @@ public class CostumeGateTests
     }
 
     private MonsterService Monsters(ICostumeCapabilityService costumes) =>
-        new(this._proxy.Object, this._gate.Object, costumes);
+        new(this._proxy.Object, this._gate.Object, this._remapper.Object, costumes);
 
     private RaidService Raids(ICostumeCapabilityService costumes) =>
         new(this._proxy.Object, this._gate.Object, NullLogger<RaidService>.Instance, this._remapper.Object, costumes);

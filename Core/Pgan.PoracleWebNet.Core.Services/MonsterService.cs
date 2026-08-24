@@ -4,11 +4,16 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ICostumeCapabilityService costumes) : IMonsterService
+public class MonsterService(
+    IPoracleTrackingProxy proxy,
+    IFeatureGate featureGate,
+    ITrackedUidRemapper uidRemapper,
+    ICostumeCapabilityService costumes) : IMonsterService
 {
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
     private readonly ICostumeCapabilityService _costumes = costumes;
 
     // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
@@ -58,21 +63,34 @@ public class MonsterService(IPoracleTrackingProxy proxy, IFeatureGate featureGat
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
         await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
-        // PoracleNG's POST endpoint handles updates when the body includes a uid field.
         var body = SerializeToElement(model);
 
-        // Carry forward anything the stored row holds that the model does not declare. See #730.
+        // Carry forward anything the stored row holds that the model does not declare. See #730. This
+        // matters MORE on the v2 path than it did on v1: the v2 PUT is a full replace, so a filter left
+        // out of the body is reset to its default rather than left alone -- verified live against 5.2.1,
+        // where omitting min_iv wiped a stored 90.
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, model.Uid, body);
 
-        // Pokemon is the one type with no collision guard: PoracleNG updates it in place rather than
-        // merging, so an edit onto another alarm's exact settings wrote a byte-identical twin -- two rows
-        // on the page that cannot be told apart and must each be deleted. Creating that state directly is
-        // refused, so the edit path was the only way to reach it. See #537.
+        // Pokemon is the one type with no collision guard on the v1 update path: PoracleNG updates it in
+        // place rather than merging, so this call early-returns for pokemon edits (#606). It stays because
+        // it is the guard for the create path in CreateAsync, and because deleting it here would make the
+        // two paths look different for no reason. On v2 the guard is upstream's: the uid-addressed PUT
+        // answers 409 rather than taking another rule over.
         await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
             this._proxy, TrackingType, userId, model.Uid, body);
 
-        await this._proxy.CreateAsync(TrackingType, userId, body);
+        var result = await this._proxy.UpdateByUidAsync(TrackingType, userId, model.Uid, body);
+
+        // Pokemon used to be the one type whose uid survived an edit. The v2 PUT is delete-then-insert, so
+        // it now rotates like the other nine, and quick-pick applied state has to follow the row or its
+        // "remove" button silently deletes nothing. See #403 and #805.
+        if (result.Uid > 0 && result.Uid != model.Uid)
+        {
+            await this._uidRemapper.RemapAsync(userId, TrackingType, model.Uid, result.Uid);
+            model.Uid = result.Uid;
+        }
+
         return model;
     }
 
