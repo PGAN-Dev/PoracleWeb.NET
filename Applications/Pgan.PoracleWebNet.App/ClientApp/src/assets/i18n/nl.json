@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Alles Wissen",
     "ACTIVE_HOURS_REPEAT": "Herhalen tot een later tijdstip",
     "ACTIVE_HOURS_REPEAT_HINT": "Het profiel gaat bij elke herhaling opnieuw aan, tot de eindtijd.",
+    "ACTIVE_HOURS_STARTS_AT": "Begint om",
+    "ACTIVE_HOURS_UNTIL": "Tot",
     "ACTIVE_HOURS_END_HOUR": "Tot (uur)",
     "ACTIVE_HOURS_END_MINUTE": "Tot (minuut)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Herhaal elke",

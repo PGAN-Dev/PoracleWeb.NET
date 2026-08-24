@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Clear All",
     "ACTIVE_HOURS_REPEAT": "Repeat until a later time",
     "ACTIVE_HOURS_REPEAT_HINT": "The profile switches on again at each repeat, up to the end time.",
+    "ACTIVE_HOURS_STARTS_AT": "Starts at",
+    "ACTIVE_HOURS_UNTIL": "Until",
     "ACTIVE_HOURS_END_HOUR": "Until (hour)",
     "ACTIVE_HOURS_END_MINUTE": "Until (minute)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Repeat every",

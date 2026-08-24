@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Alle löschen",
     "ACTIVE_HOURS_REPEAT": "Bis zu einer späteren Zeit wiederholen",
     "ACTIVE_HOURS_REPEAT_HINT": "Das Profil wird bei jeder Wiederholung erneut aktiviert, bis zur Endzeit.",
+    "ACTIVE_HOURS_STARTS_AT": "Beginnt um",
+    "ACTIVE_HOURS_UNTIL": "Bis",
     "ACTIVE_HOURS_END_HOUR": "Bis (Stunde)",
     "ACTIVE_HOURS_END_MINUTE": "Bis (Minute)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Wiederholen alle",

@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Wyczyść wszystko",
     "ACTIVE_HOURS_REPEAT": "Powtarzaj do późniejszej godziny",
     "ACTIVE_HOURS_REPEAT_HINT": "Profil włącza się ponownie przy każdym powtórzeniu, aż do godziny końcowej.",
+    "ACTIVE_HOURS_STARTS_AT": "Start o",
+    "ACTIVE_HOURS_UNTIL": "Do",
     "ACTIVE_HOURS_END_HOUR": "Do (godzina)",
     "ACTIVE_HOURS_END_MINUTE": "Do (minuta)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Powtarzaj co",

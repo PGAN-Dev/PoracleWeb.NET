@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Borrar todo",
     "ACTIVE_HOURS_REPEAT": "Repetir hasta una hora posterior",
     "ACTIVE_HOURS_REPEAT_HINT": "El perfil se activa de nuevo en cada repetición, hasta la hora final.",
+    "ACTIVE_HOURS_STARTS_AT": "Empieza a",
+    "ACTIVE_HOURS_UNTIL": "Hasta",
     "ACTIVE_HOURS_END_HOUR": "Hasta (hora)",
     "ACTIVE_HOURS_END_MINUTE": "Hasta (minuto)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Repetir cada",

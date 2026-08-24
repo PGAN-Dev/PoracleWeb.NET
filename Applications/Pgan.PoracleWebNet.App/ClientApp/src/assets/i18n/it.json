@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Cancella Tutto",
     "ACTIVE_HOURS_REPEAT": "Ripeti fino a un orario successivo",
     "ACTIVE_HOURS_REPEAT_HINT": "Il profilo si riattiva a ogni ripetizione, fino all'orario di fine.",
+    "ACTIVE_HOURS_STARTS_AT": "Inizia alle",
+    "ACTIVE_HOURS_UNTIL": "Fino a",
     "ACTIVE_HOURS_END_HOUR": "Fino a (ora)",
     "ACTIVE_HOURS_END_MINUTE": "Fino a (minuto)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Ripeti ogni",

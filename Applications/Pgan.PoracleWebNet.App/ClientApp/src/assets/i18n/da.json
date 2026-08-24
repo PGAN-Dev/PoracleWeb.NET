@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Ryd alle",
     "ACTIVE_HOURS_REPEAT": "Gentag indtil et senere tidspunkt",
     "ACTIVE_HOURS_REPEAT_HINT": "Profilen slås til igen ved hver gentagelse, frem til sluttidspunktet.",
+    "ACTIVE_HOURS_STARTS_AT": "Starter",
+    "ACTIVE_HOURS_UNTIL": "Indtil",
     "ACTIVE_HOURS_END_HOUR": "Indtil (time)",
     "ACTIVE_HOURS_END_MINUTE": "Indtil (minut)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Gentag hver",

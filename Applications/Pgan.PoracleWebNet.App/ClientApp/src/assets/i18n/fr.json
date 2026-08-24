@@ -969,6 +969,8 @@
     "ACTIVE_HOURS_CLEAR_ALL": "Tout effacer",
     "ACTIVE_HOURS_REPEAT": "Répéter jusqu'à une heure ultérieure",
     "ACTIVE_HOURS_REPEAT_HINT": "Le profil se réactive à chaque répétition, jusqu'à l'heure de fin.",
+    "ACTIVE_HOURS_STARTS_AT": "Commence à",
+    "ACTIVE_HOURS_UNTIL": "Jusqu’à",
     "ACTIVE_HOURS_END_HOUR": "Jusqu'à (heure)",
     "ACTIVE_HOURS_END_MINUTE": "Jusqu'à (minute)",
     "ACTIVE_HOURS_REPEAT_EVERY": "Répéter toutes les",
