@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Poracle's newer error format is understood, ahead of the move to its v2 API.** PoracleNG 5.2.1 answers its new `/api/v2` with RFC 9457 problem+json and refuses invalid input with 422 rather than 400. Nothing changes for anyone today: every call this site makes is on Poracle's frozen v1 surface, which still answers in the older format on 5.2.1 -- verified against a 5.2.1 server rather than assumed. What changes is that the reader now understands both, and where the newer format names the individual field it refused, that field is named to the user instead of a general "validation failed". Without this the first endpoint moved to v2 would have reported every refusal as a server fault ([#803](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/803)).
+
 ### Fixed
 
 - **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).

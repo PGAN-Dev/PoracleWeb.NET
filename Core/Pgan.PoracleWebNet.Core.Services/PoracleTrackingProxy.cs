@@ -67,7 +67,11 @@ public partial class PoracleTrackingProxy(
         // an HttpRequestException that the global handler flattened into 500 "An unexpected error
         // occurred", so the user was told the server broke instead of what was wrong with their input,
         // and it was logged as a fault. Pass the explanation through as a 400. See #539.
-        if (response.StatusCode == HttpStatusCode.BadRequest)
+        //
+        // 422 is the same refusal wearing a different number: PoracleNG 5.2.1 moved several validation
+        // 400s to 422 when it adopted RFC 9457. Matching only 400 would have re-opened #539 on every
+        // one of them.
+        if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity)
         {
             throw new AlarmValidationException(await ExtractMessageAsync(response));
         }
@@ -163,32 +167,8 @@ public partial class PoracleTrackingProxy(
     }
 
     /// <summary>Reads whatever explanation PoracleNG returned, falling back to something honest.</summary>
-    private static async Task<string> ExtractMessageAsync(HttpResponseMessage response)
-    {
-        var body = await response.Content.ReadAsStringAsync();
-
-        try
-        {
-            var root = JsonDocument.Parse(body).RootElement;
-            foreach (var name in new[] { "message", "error", "status" })
-            {
-                if (root.TryGetProperty(name, out var value)
-                    && value.ValueKind == JsonValueKind.String
-                    && !string.IsNullOrWhiteSpace(value.GetString()))
-                {
-                    return value.GetString()!;
-                }
-            }
-        }
-        catch (JsonException)
-        {
-            // Not JSON; the raw body is still better than nothing, as long as it is short.
-        }
-
-        return string.IsNullOrWhiteSpace(body) || body.Length > 300
-            ? "Poracle rejected the alarm."
-            : body;
-    }
+    private static Task<string> ExtractMessageAsync(HttpResponseMessage response)
+        => PoracleErrorMessage.ExtractAsync(response, "Poracle rejected the alarm.");
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
     {
