@@ -15,6 +15,17 @@ public interface IPoracleApiProxy
     /// shape changed) so the caller can leave the site setting in sole charge.
     /// </summary>
     Task<bool?> GetFortUpdateDisabledAsync();
+
+    /// <summary>
+    /// Reads <c>general.disable_showcase</c> from PoracleNG's config-values endpoint. Like
+    /// <c>disable_fort_update</c> it is enforced upstream but omitted from <c>disabledHooks</c>.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> here means more than "cannot determine": the key is absent on every PoracleNG below
+    /// 5.2.0, which is exactly the set of servers with no <c>/api/v2/.../tracking/incident</c> route
+    /// to call. Verified: 5.1.0 has neither, 5.2.1 has both.
+    /// </remarks>
+    Task<bool?> GetShowcaseDisabledAsync();
     Task<string?> GetAreasAsync(string userId);
     Task<string?> GetTemplatesAsync();
     Task<string?> GetAdminRolesAsync(string userId);

@@ -303,6 +303,7 @@ export interface DashboardCounts {
   maxBattles: number;
   nests: number;
   pokemon: number;
+  pokestopEvents: number;
   quests: number;
   raids: number;
 }
@@ -747,3 +748,25 @@ export interface PoracleServerProfile {
   /** Whether this site is behind its own latest release. */
   webUpdate: UpdateStatus;
 }
+
+// ─── Pokestop Event ────────────────────────────────────────────────────────────
+// Showcase, Kecleon and Gold Stop. Upstream calls the tracking type `incident` and the rule field
+// `display_type`; neither word reaches this side of the API.
+
+export interface PokestopEvent {
+  clean: number;
+  displayType: number;
+  distance: number;
+  /** The stored grunt_type for `displayType`, served for display only. */
+  eventName: null | string;
+  id: string;
+  overrideAreas?: null | string[];
+  overrideLocationLabel?: null | string;
+  profileNo: number;
+  template: null | string;
+  uid: number;
+}
+
+export type PokestopEventCreate = Omit<PokestopEvent, 'eventName' | 'id' | 'profileNo' | 'uid'>;
+
+export type PokestopEventUpdate = Partial<PokestopEventCreate>;

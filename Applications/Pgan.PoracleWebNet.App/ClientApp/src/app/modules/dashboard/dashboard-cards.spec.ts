@@ -31,6 +31,7 @@ describe('DashboardComponent cards', () => {
     maxBattles: 0,
     nests: 0,
     pokemon: 0,
+    pokestopEvents: 0,
     quests: 0,
   };
 
@@ -75,6 +76,7 @@ describe('DashboardComponent cards', () => {
       'eggs',
       'quests',
       'invasions',
+      'pokestopEvents',
       'lures',
       'nests',
       'gyms',

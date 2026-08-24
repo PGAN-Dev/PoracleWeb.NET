@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Showcases, Kecleon and Gold Stops are trackable in their own right.** They were only ever reachable through the invasion add dialog, which files them as ordinary invasions, so the alert that arrived described a Team Rocket encounter that was not there. There is now a *Pokéstop Events* page: pick the events you want, set a radius or areas, and Poracle formats them with its showcase template. The rules live in the same table invasions do, so the invasion list stops listing them and the dashboard counts them separately — the total across all alarm types is unchanged, but the Invasions figure will drop by however many event alarms you had, and a *Pokéstop Events* figure appears beside it ([#806](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/806)).
+- **The new page appears only where Poracle can serve it.** It needs PoracleNG 5.2.0 or newer; on anything older the nav item, the route and the API are all absent, and the three events stay where they are today in the invasion dialog rather than disappearing from a site that has nowhere else to put them. Operators can switch it off with the new `disable_showcase` toggle in admin settings, which is the same option name PoracleNG uses in its own `[general]` config ([#806](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/806)).
+
 ### Fixed
 
 - **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).

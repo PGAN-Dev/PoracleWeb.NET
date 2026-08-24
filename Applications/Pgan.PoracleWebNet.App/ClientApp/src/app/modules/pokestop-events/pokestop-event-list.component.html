@@ -1,0 +1,107 @@
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>{{ 'POKESTOP_EVENTS.PAGE_TITLE' | translate }}</h1>
+    <p class="page-description">{{ 'POKESTOP_EVENTS.PAGE_DESC' | translate }}</p>
+  </div>
+  <div class="header-actions">
+    <button mat-fab (click)="openAddDialog()" style="background: #03aeb6; color: #fff"><mat-icon>add</mat-icon></button>
+  </div>
+</div>
+@if (!loading() && events().length > 0) {
+  <div class="filter-bar">
+    <span class="result-count">{{ 'ALARM.ALARMS_COUNT' | translate: { count: events().length } }}</span>
+    <div class="bulk-spacer"></div>
+    <button
+      mat-icon-button
+      (click)="toggleSelectMode()"
+      [class.select-mode-active]="selectMode()"
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
+      <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
+    </button>
+  </div>
+}
+
+@if (selectMode()) {
+  <div class="bulk-toolbar">
+    @if (selectedIds().size > 0) {
+      <span class="bulk-count">{{ 'ALARM.SELECTED_COUNT' | translate: { count: selectedIds().size } }}</span>
+    }
+    <button mat-stroked-button (click)="selectAll()"><mat-icon>select_all</mat-icon> {{ 'ALARM.SELECT_ALL' | translate }}</button>
+    @if (selectedIds().size > 0) {
+      <button mat-stroked-button (click)="deselectAll()">{{ 'ALARM.DESELECT_ALL' | translate }}</button>
+    }
+    <div class="bulk-spacer"></div>
+    <button mat-stroked-button (click)="bulkUpdateDistance()" [disabled]="selectedIds().size === 0">
+      <mat-icon>straighten</mat-icon> {{ 'ALARM.UPDATE_DISTANCE' | translate }}
+    </button>
+
+    <button mat-flat-button color="warn" (click)="bulkDelete()" [disabled]="selectedIds().size === 0">
+      <mat-icon>delete</mat-icon> {{ 'ALARM.DELETE' | translate }}
+    </button>
+  </div>
+}
+
+@if (loading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p class="loading-text">{{ 'ALARM.LOADING_ALARMS' | translate }}</p>
+  </div>
+} @else {
+  <div class="alarm-grid">
+    @for (item of events(); track item.uid) {
+      <mat-card class="alarm-card" [class.card-selected]="selectMode() && selectedIds().has(item.uid)">
+        @if (selectMode()) {
+          <mat-checkbox
+            [checked]="selectedIds().has(item.uid)"
+            (change)="toggleSelect(item.uid)"
+            (click)="$event.stopPropagation()"
+            class="card-checkbox"></mat-checkbox>
+        }
+        <div class="card-top" [style.border-top-color]="eventColor(item)">
+          <div class="event-icon-wrap" [style.background]="eventColor(item) + '1f'">
+            @if (eventImage(item)) {
+              <img class="event-img" [src]="eventImage(item)" [alt]="eventLabel(item)" />
+            } @else {
+              <mat-icon class="event-icon" [style.color]="eventColor(item)">{{ eventIcon(item) }}</mat-icon>
+            }
+          </div>
+          <div class="item-info">
+            <h3>{{ eventLabel(item) }}</h3>
+            <span class="event-subtitle">{{ 'POKESTOP_EVENTS.TRACKING_SUBTITLE' | translate }}</span>
+          </div>
+          <div class="card-top-actions">
+            @if (isAutoDelete(item.clean)) {
+              <span class="event-tag" [matTooltip]="'ALARM.CLEAN_HINT_INVASION' | translate">{{ 'ALARM.CLEAN_MODE' | translate }}</span>
+            }
+          </div>
+        </div>
+        <mat-card-content>
+          <div class="distance-chip-row">
+            <app-where-chip
+              [distance]="item.distance"
+              [overrideAreas]="item.overrideAreas"
+              [overrideLocationLabel]="item.overrideLocationLabel"
+              [profileAreas]="profileAreas()"
+              (click)="editScope(item); $event.stopPropagation()" />
+          </div>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-icon-button (click)="editItem(item)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+
+          <button mat-icon-button (click)="deleteItem(item)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <div class="empty-state">
+        <mat-icon class="empty-icon-large">celebration</mat-icon>
+        <h2 class="empty-title">{{ 'POKESTOP_EVENTS.EMPTY_TITLE' | translate }}</h2>
+        <p class="empty-subtitle">{{ 'POKESTOP_EVENTS.EMPTY_SUBTITLE' | translate }}</p>
+        <button mat-flat-button (click)="openAddDialog()" style="background: #03aeb6; color: #fff">
+          <mat-icon>add</mat-icon> {{ 'POKESTOP_EVENTS.ADD_EVENT' | translate }}
+        </button>
+      </div>
+    }
+  </div>
+}
