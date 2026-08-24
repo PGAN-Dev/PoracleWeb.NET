@@ -478,6 +478,14 @@
   background: rgba(0, 188, 212, 0.12);
   color: #00bcd4;
 }
+.card-pokestop-events {
+  border-left-color: #03aeb6;
+  background: rgba(3, 174, 182, 0.04) !important;
+}
+.card-pokestop-events .card-icon-wrap {
+  background: rgba(3, 174, 182, 0.12);
+  color: #03aeb6;
+}
 .card-fort-changes {
   border-left-color: #795548;
   background: rgba(121, 85, 72, 0.04) !important;

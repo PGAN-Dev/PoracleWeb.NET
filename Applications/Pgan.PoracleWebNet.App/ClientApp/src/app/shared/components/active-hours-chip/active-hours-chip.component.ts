@@ -3,7 +3,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import { ActiveHourEntry, compressDayRange, formatTime12h, groupActiveHours } from '../../../core/models/active-hours.models';
+import { ActiveHourEntry, formatRuleLabel, groupActiveHours } from '../../../core/models/active-hours.models';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,7 +23,7 @@ export class ActiveHoursChipComponent {
 
   readonly pills = computed(() =>
     this.groups().map(g => ({
-      label: `${compressDayRange(g.days)} ${formatTime12h(g.hours, g.mins)}`,
+      label: formatRuleLabel(g, (key, params) => this.translate.instant(key, params)),
     })),
   );
 

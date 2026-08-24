@@ -587,6 +587,63 @@ When comparing, **a field PoracleWeb does not supply cannot be compared** — Po
 
 See #462, #463, #531, #553, #561.
 
+### The `/api/v2` Pilot: Pokemon Edits Only, And Pokemon Now Rotates Its uid
+
+PoracleNG 5.2.0 added a second tracking surface. `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}` is
+addressed by uid: it 404s when the uid is not that human's and 409s when the replacement would exactly
+duplicate another rule, so the server enforces what `EnsureNoMergeIntoAnotherAlarmAsync` had to
+reconstruct from a 200. **v2 POST still diffs and merges** — the #561 takeover reproduces on it — so
+creates stay on v1 and the reconciler stays.
+
+**Only `MonsterService.UpdateAsync` uses it.** Everything else — every read, `CreateAsync`,
+`BulkCreateAsync`, both distance endpoints, and all nine other types — is unchanged on v1, which 5.2.1
+left frozen. Reads deliberately stay on v1: v2 answers `null` for every field at its wildcard where v1
+answers the sentinel, and both `Monster` (C#) and `Monster` (TS) are built on the sentinels. Rebuilding
+them from nulls means a per-field default table that must match PoracleNG exactly, and one wrong entry
+silently rewrites a filter on the user's next save.
+
+**The v2 PUT is delete-then-insert, so pokemon now rotates its uid on edit like the other nine.** It was
+the one exception, and three places in this file used to say so. `MonsterService` therefore takes
+`ITrackedUidRemapper`, and `TrackedUidRemapperCoverageTests` lists it among the rotating services rather
+than exempting it. Quick-pick applied state is the thing that actually breaks without the remap (#403).
+Note that `EnsureNoMergeIntoAnotherAlarmAsync` already early-returned for pokemon *updates* (#606), so
+moving to v2 removes no guard that was running.
+
+Three shape differences, all handled once at the wire in `TrackingV2Translator`:
+
+| v1 | v2 |
+|---|---|
+| `clean` 3-bit mask | separate `clean` / `edit` / `summary` booleans |
+| `gender` 0-3 | `any` / `male` / `female` / `genderless` |
+| `pvp_ranking_league` any int | enum of `{0, 500, 1500, 2500}` |
+
+Plus `uid`, `id`, `profile_no`, `ping` and `description`, which v2 has no place for and refuses outright:
+`V2PokemonRule` sets `additionalProperties: false`, so one stray property is a 422 and the write fails.
+The v1 shape stays the single internal currency — `TrackingFieldPreserver`, `TrackingUpdateReconciler`,
+`BulkUidRemap` and `QuickPickService` all build and compare it — and the translator is the only exit onto
+v2, which is what stops a v1-shaped row reaching a v2 body.
+
+**The translator never changes what PoracleNG will accept.** A property it does not know, a gender outside
+0-3, a league outside the enum: it answers false and the row goes to v1. Refusing would mean a newer
+PoracleNG broke every pokemon edit; dropping the field would be #730 again.
+
+**A v2 PUT is a full replace** — omitting `min_iv` wipes a stored 90, verified live — so
+`TrackingFieldPreserver` matters more here than it did on v1, not less.
+
+Errors are RFC 9457 problem+json at **422**, not 400, in two shapes: a schema failure carries `errors[]`
+whose `location` is `body.x` on a PUT and `body[0].x` on a POST, and a semantic refusal carries only
+`detail`. `PoracleProblemDetails` reads both, plus v1's `{"message":...}`. PR #811 adds
+`PoracleErrorMessage.cs` doing the same job for the create path; whichever lands second should collapse
+them.
+
+Gating: `PoracleServerProfile.SupportsV2Tracking` is version >= 5.2.0. Not the `/health` capability map —
+5.2.1 advertises nothing about v2. Unreachable answers false, which is the safe direction here even
+though `UpstreamFeatureFlagService` deliberately fails the other way. `Poracle:TrackingApiVersion`
+(`auto` | `v1` | `v2`, env `PORACLE_TRACKING_API_VERSION`) pins it for a fork whose version says the wrong
+thing, and the proxy falls back to v1 for five minutes when the route answers gin's plaintext
+`404 page not found` — that fallback is the only thing standing between a downgraded server and an outage
+window the length of the profile cache.
+
 ### Keep the PoracleNG Checkout Pinned To What Prod Runs
 
 `E:/PGAN/pogogit/PoracleNG` drifts. On 2026-08-08 it was four months behind prod, and its `DiffTracking` lacked the `totalDiffs == 1` clause entirely — reading it produced three wrong fixes in one day.
@@ -807,6 +864,8 @@ dotnet ef migrations script \
 | PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |
 | PoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleHumanProxy.cs` |
 | PoracleJsonHelper | `Core/Pgan.PoracleWebNet.Core.Services/PoracleJsonHelper.cs` |
+| TrackingV2Translator (v1 row -> /api/v2 body) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Translator.cs` |
+| PoracleProblemDetails (RFC 9457 + v1 errors) | `Core/Pgan.PoracleWebNet.Core.Services/PoracleProblemDetails.cs` |
 | Repositories (non-alarm) | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
 | SiteSettingRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/SiteSettingRepository.cs` |
 | WebhookDelegateRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/WebhookDelegateRepository.cs` |

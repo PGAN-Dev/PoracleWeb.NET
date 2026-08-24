@@ -87,6 +87,18 @@ public class Monster
     {
         get; set;
     }
+
+    /// <summary>
+    /// Costume the spawn must be wearing. 9000 = any costume, 0 = no costume, N = that costume.
+    /// </summary>
+    /// <remarks>
+    /// Costumed spawns arrive as form 598 "Normal", so a form filter can neither target nor exclude
+    /// them; this is the only field that can. The <c>= 9000</c> initializer is load-bearing: a stored
+    /// row that predates PoracleNG's costume columns, or a payload that omits the key, must widen to
+    /// "any" rather than fall to C#'s 0, which would silently narrow every existing rule to plain
+    /// spawns only. PoracleNG applies the same default on its side (trackingMonster.go).
+    /// </remarks>
+    public int Costume { get; set; } = 9000;
     /// <summary>
     /// Seconds a spawn must still have left when it is found, or the alert is skipped.
     /// </summary>
