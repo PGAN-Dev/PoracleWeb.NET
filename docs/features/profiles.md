@@ -10,12 +10,19 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 - **Stats bar** at the top shows total alarm counts per type (Pokemon, Raids, Quests, etc.) across all profiles
 - **Search bar** filters alarms across all profiles by name, Pokemon, or other alarm attributes
-- **Type filter chips** (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) narrow the view to specific alarm types
+- **Type filter chips** narrow the view to specific alarm types. Ten of them: Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes
 - **Expandable panels** for each profile display grouped alarms with game asset images for quick identification
 - **Duplicate detection** -- alarms that exist on multiple profiles are highlighted with an orange border, making it easy to spot redundant filters
 
 !!! tip
     Use the search bar and type filters together to quickly find a specific alarm across all your profiles. For example, search for "Gible" with the Pokemon filter chip active to see which profiles are tracking it.
+
+!!! warning "Pokéstop Event rules are not here"
+    Showcase, Kecleon and Gold Stop rules are absent from the overview, from the stats bar, from
+    **Export** and from **Import**. Ten types are carried across these three surfaces; the eleventh is
+    not. An exported profile does not contain them, and importing that file will not recreate them, so a
+    profile you rebuild from a backup needs its Pokéstop Event rules added again by hand from the
+    [Pokéstop Events page](alarms.md#pokestop-event-alarms). The same applies to a profile you duplicate.
 
 ## Creating & Switching Profiles
 
@@ -26,7 +33,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 Each profile maintains its own independent:
 
-- Alarm filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms, Fort Changes, Max Battles)
+- Alarm filters (Pokemon, Raids, Eggs, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes, Max Battles)
 - Area selections
 - Saved location
 - Custom geofence activations
@@ -39,7 +46,7 @@ Each profile maintains its own independent:
 The **copy icon** on any profile creates an exact duplicate with all alarm filters.
 
 - You are prompted for a new name (default: "Profile (Copy)")
-- All alarm filters from the source profile are copied to the new profile
+- All alarm filters from the source profile are copied to the new profile, except Pokéstop Event rules
 - Area selections, location and active hours **are** copied too
 
 !!! note "Duplication copies the whole profile, geography included"
@@ -99,6 +106,8 @@ The schedule editor is accessed from the Profiles page by clicking the **clock i
 5. Repeat to add additional activation times as needed
 
 #### Repeating rules
+
+![Active hours editor with Repeat until a later time switched on](../screenshots/active-hours-repeat.png)
 
 A rule can fire more than once. Turn on **Repeat until a later time**, pick an end time and a repeat
 interval, and the rule fires at its start time, then every *N* hours, up to and including the end.

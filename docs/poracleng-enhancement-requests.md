@@ -6,7 +6,7 @@ This document tracks PoracleNG API gaps that require workarounds in PoracleWeb.N
 
 PoracleWeb.NET now proxies all alarm tracking writes through the PoracleNG REST API (see [PoracleNG API Proxy](architecture/poracleng-proxy.md)). This migration was prompted by a March 31, 2026 incident where a NULL `template` column written directly by PoracleWeb.NET crashed PoracleNG's state reload for 15 hours.
 
-The migration is complete for all alarm CRUD operations. However, some operations lack dedicated PoracleNG endpoints and use fetch-modify-repost workarounds that are less efficient. The gaps listed below are these operations.
+The migration is complete for the ten alarm types that have a v1 tracking route. The eleventh, Pokéstop Events (`incident`), exists only on PoracleNG's `/api/v2` and never touches `IPoracleTrackingProxy` — its CRUD goes through `IPoracleIncidentProxy` instead. Some operations lack dedicated PoracleNG endpoints and use fetch-modify-repost workarounds that are less efficient. The gaps listed below are these operations.
 
 ---
 
@@ -270,5 +270,7 @@ PoracleNG answers `500 {"message":"database error"}` and the edit is discarded. 
 | `DELETE byUid` then re-post | `200 insert:1` |
 
 So the only way to edit these two types is to delete the row first, which is what PoracleWeb now does (`NaturalKeyTrackingUpdate`). The cost is that the `uid` rotates on every edit, which in turn orphans anything holding the old uid — quick-pick applied state tracks uids, for example.
+
+Pokemon now rotates too, for a different reason. On PoracleNG 5.2.0 and later its edits go through the v2 `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}`, whose engine is delete-then-insert, so the replacement comes back under a new uid. It used to be the one type whose uid survived an edit. `ITrackedUidRemapper` moves the applied state either way, so the orphaning is handled rather than merely known about — but this request no longer covers only lures and invasions.
 
 **Request:** make the create handler upsert when the natural key matches an existing row for the same `(id, profile_no)`, updating the non-key columns in place and returning `updates: 1` with the existing uid. That matches how the uid-only types already behave and would let PoracleWeb drop the delete-then-create workaround along with the uid churn it causes.

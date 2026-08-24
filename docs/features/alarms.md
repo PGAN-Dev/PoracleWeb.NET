@@ -8,11 +8,12 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 
 | Type | Description |
 |---|---|
-| **Pokemon** | Filter by species, IV, CP, level, PVP rank, gender, size |
-| **Raids** | Filter by raid boss, level, move, evolution, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
+| **Pokemon** | Filter by species, IV, CP, level, PVP rank, gender, size, costume. See [Costume filter](#costume-filter). |
+| **Raids** | Filter by raid boss, level, move, evolution, costume, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector) and [Costume filter](#costume-filter). |
 | **Eggs** | Filter by egg level, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
-| **Quests** | Filter by reward — Pokemon encounter, item, mega energy, candy or stardust — with an optional minimum amount. See [Quest alarm filters](#quest-alarm-filters). |
+| **Quests** | Filter by reward — Pokemon encounter, item, mega energy, candy, stardust or PokéCoins — with an optional minimum amount. See [Quest alarm filters](#quest-alarm-filters). |
 | **Invasions** | Filter by grunt type and shadow Pokemon |
+| **Pokéstop Events** | Showcase, Kecleon and Gold Stop events at a pokestop. See [Pokéstop Event alarms](#pokestop-event-alarms). |
 | **Lures** | Filter by lure type |
 | **Nests** | Filter by nesting Pokemon species |
 | **Gyms** | Filter by gym team changes, battle activity, specific gym |
@@ -29,6 +30,17 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 4. On the **Delivery** tab, answer "Where should this alert reach you?" — see [Where an alert reaches you](#where-an-alert-reaches-you)
 5. Optionally select a **template** for notification formatting
 6. Save the alarm
+
+## Editing alarms
+
+Open an alarm's edit dialog from its card. Changing anything and saving replaces the rule upstream.
+
+!!! note "An edit gives the alarm a new internal id"
+    PoracleNG implements an alarm edit as a delete followed by an insert, so the row comes back under a
+    new `uid`. Pokemon used to be the one type this did not apply to; on PoracleNG 5.2.0 and newer it
+    now behaves like the other ten. This is invisible in normal use — the card, its filters and its
+    scope are all unchanged — and [Quick Pick](#quick-picks) applied state is remapped to follow the new
+    id, so a pick's remove button keeps working on a rule you have since edited.
 
 ## Where an alert reaches you
 
@@ -74,7 +86,7 @@ The API is three endpoints on `LocationController`, all gated by `disable_locati
 
 ### Changing scope from a card
 
-Most alarm cards carry a scope chip reading the alarm's answer back to you — "Anywhere I get alerts" when the profile has no areas selected, otherwise "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina". Clicking it opens the same picker in a small dialog, so one alarm's scope can be changed without opening its edit dialog. Pokemon, gym, invasion, lure, nest and fort-change cards have the chip; raid, quest and max-battle cards do not, so those are changed from their edit dialog.
+Most alarm cards carry a scope chip reading the alarm's answer back to you — "Anywhere I get alerts" when the profile has no areas selected, otherwise "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina". Clicking it opens the same picker in a small dialog, so one alarm's scope can be changed without opening its edit dialog. Pokemon, gym, invasion, lure, nest, fort-change and Pokéstop Event cards have the chip; raid, egg, quest and max-battle cards do not, so those are changed from their edit dialog.
 
 ![Scope chip on an alarm card](../screenshots/where-chip.png)
 
@@ -133,7 +145,24 @@ Alarms are displayed as a card grid. Each card shows:
 - **Scope chip** — where the alert reaches you, in words: "Anywhere I get alerts", "Anywhere in my areas", "Within 2 km of Home", "Only in Terrigal, Erina". Click it to [change the scope from the card](#changing-scope-from-a-card)
 - Template name
 - **Targeted gym name** — Gym, Raid, and Egg alarm cards display the name of the targeted gym when a specific gym is selected (via the gym picker)
-- Edit/delete actions
+- **Rule summary** — see [What this rule does, in Poracle's words](#what-this-rule-does-in-poracles-words)
+- Edit/delete actions, and on the types that name a subject, a [quiet chip](quiet-periods.md)
+
+### What this rule does, in Poracle's words
+
+Under a hairline below the filter pills, each card carries the sentence PoracleNG itself uses to
+describe that rule. It states things the pills leave out — attack and defence floors, weight, the PVP
+CP cap — at the cost of restating some of what they already show. Long summaries are clamped to two
+lines with an expand control.
+
+Nine surfaces carry it: Pokemon, raids (both raid and egg cards), quests, invasions, lures, nests,
+gyms and Max Battles. Fort Changes does not, because upstream renders a raw JSON array there rather
+than a sentence. Pokéstop Events has no line either.
+
+The sentence follows your **Alert language**, not your display language, because Poracle writes it.
+When the two differ the line is hidden entirely rather than putting one language's prose under another
+language's chips. It is also absent on a Poracle too old to send the field, in which case the card is
+exactly what it was before. Nothing extra is fetched for it — the field was already on the response.
 
 ## Bulk operations
 
@@ -194,6 +223,43 @@ The size filter uses special sentinel values:
 - **`max_size = 5`** — Default upper bound.
 
 When a user selects a specific size, both `size` and `max_size` are set to the same value, creating an exact match. For example, selecting XXL sets `size = 5, max_size = 5`.
+
+### Costume filter
+
+A **Costume** select sits beside Form in both Pokemon dialogs, and on raid alarms that name a specific
+boss. Three kinds of answer, and the sentinels are not the ones used elsewhere on this page:
+
+| Value | Means |
+|---|---|
+| `9000` | Any costume, including none. The default. |
+| `0` | No costume — the plain form only. |
+| *N* | That costume and no other. |
+
+Note that `0` means "uncostumed" here, where on most other filters `0` means "any". The wildcard is
+`9000`, matching the raid and move sentinels rather than the size filter's `-1`.
+
+On raids the control appears on the **By Boss** tab of the add dialog only, and in the edit dialog only
+for a rule that names a boss. A by-level raid rule is always "any costume": PoracleNG forces the boss
+to the wildcard on those, so there is no species for a costume to belong to. Eggs have no costume
+column at all.
+
+Costume names come from the WatWowMap masterfile — the same file PoracleNG reads for its own costume
+lookups — and are **English in every interface language**. A costume too new for that file shows as its
+number rather than a name. See [Game data names](internationalization.md#game-data-names).
+
+!!! warning "Needs PoracleNG schema 6 (Pokemon) or 7 (raids)"
+    The costume column arrives in two separate PoracleNG database migrations: `monsters.costume` at
+    migration 6 and `raid.costume` at migration 7. A server sitting between the two stores a costumed
+    Pokemon rule and refuses a costumed raid rule, so the two controls are gated independently and the
+    select is simply absent where the column is missing.
+
+    PoracleWeb.NET reads the applied migration number from PoracleNG's `schema_migrations` table rather
+    than trusting the version string, because a self-hoster may cherry-pick and a locally built binary
+    reports `0.0.0`. A server that does not answer unlocks neither.
+
+    A costume that reaches the API anyway — through profile import or a Quick Pick — is refused with
+    *"This Poracle server cannot store a costume filter. It needs the costume column (PoracleNG schema
+    6)."* Create, update and the bulk path all enforce it, so nothing slips in by a side door.
 
 ### Level range
 
@@ -257,9 +323,9 @@ Egg alarms support:
 
 ## Quest alarm filters
 
-![Add Quest dialog with the five reward tabs](../screenshots/quests-add-dialog.png)
+![Add Quest dialog with the reward tabs](../screenshots/quests-add-dialog.png)
 
-A quest alarm matches one reward. Which of the five reward tabs you use decides the `reward_type` PoracleNG stores, and where the number you type ends up:
+A quest alarm matches one reward. Which of the six reward tabs you use decides the `reward_type` PoracleNG stores, and where the number you type ends up:
 
 | Tab | `reward_type` | What you pick | Minimum field |
 |---|---|---|---|
@@ -268,12 +334,24 @@ A quest alarm matches one reward. Which of the five reward tabs you use decides 
 | Mega Energy | `12` | Species whose energy is rewarded | `amount` |
 | Candy | `4` | Species whose candy is rewarded | `amount` |
 | Stardust | `3` | Nothing; the amount is the whole rule | `reward` |
+| PokéCoins | `8` | Nothing; the amount is the whole rule | `reward` |
 
 **Minimum Amount** is the fewest of the reward the quest has to give; `0` means any. It only applies where a reward comes in a quantity: items, candy and mega energy. A Pokemon encounter has nothing to count.
 
-Stardust is the exception worth knowing about. PoracleNG reads the stardust floor from `reward` rather than `amount`, so the Stardust tab has a single **Minimum Stardust** field that writes there, and `amount` stays `0` on a stardust alarm.
+![PokéCoins tab in the Add Quest dialog with the Minimum PokéCoins field](../screenshots/quests-pokecoins-tab.png)
 
-Quest cards render the amount ahead of the reward name — "3× Rare Candy" — but only when it is above one; an amount of 1 shows the reward name on its own. Stardust cards read "25000 Stardust", from `reward`.
+Stardust and PokéCoins work differently from the rest, and identically to each other. There is nothing to pick — Poracle matches on the amount alone — so each tab is a single number field, and PoracleNG reads the floor from `reward` rather than `amount`. On both, `amount` stays `0`.
+
+Quest cards render the amount ahead of the reward name — "3× Rare Candy" — but only when it is above one; an amount of 1 shows the reward name on its own. Stardust cards read "25000 Stardust", from `reward`, and PokéCoin cards read the same way.
+
+!!! warning "PokéCoins needs PoracleNG 5.2.0"
+    The PokéCoins tab is rendered last and is **hidden entirely below 5.2.0**, so if you cannot find it,
+    that is the reason. 5.2.0 widened PoracleNG's list of accepted reward types; it added no column and
+    no capability flag, so this is one of the few gates decided by the reported version rather than by a
+    database migration. A 5.1.0 server answers `400 "Unrecognised reward_type value"`.
+
+    Reads and deletes are not gated, so a PokéCoin rule set from the Discord bot stays visible and
+    removable on an older server.
 
 ## Gym alarm filters
 
@@ -371,6 +449,67 @@ The **gym picker** is a shared component (`app-gym-picker`) that allows users to
 
 Invasion alarms filter by grunt type. The `grunt_type` value is **automatically lowercased** on create because Poracle uses case-sensitive matching for grunt types.
 
+## Pokéstop Event alarms
+
+Showcases, Kecleon sightings and Gold Stops are the eleventh alarm type, on its own page at
+**Pokéstop Events** in the sidebar, directly after Invasions.
+
+| Event | Stored as | What it is |
+|---|---|---|
+| **Showcase** | `showcase` | A showcase running at a pokestop |
+| **Kecleon** | `kecleon` | A Kecleon hiding on a pokestop |
+| **Gold Stop** | `gold-stop` | A pokestop that has turned gold |
+
+### Creating one
+
+![Add Pokéstop event alarm dialog showing the Showcase, Kecleon and Gold Stop checkboxes](../screenshots/pokestop-events-add-dialog.png)
+
+The add dialog has two tabs. **Settings** holds three checkboxes, one per event; an event you already
+track is shown ticked and disabled, so you cannot create a duplicate. **Delivery** is the usual
+[scope picker](#where-an-alert-reaches-you), auto-delete toggle and template selector.
+
+Ticking more than one event creates one rule per event, not one rule covering several. The edit dialog
+handles a single rule, so it offers one **Event** select rather than checkboxes.
+
+### Eleven types, ten tables
+
+Pokéstop Event rules live in the **same `invasion` table** as invasion rules; the two are told apart by
+the stored `grunt_type`. Everything else follows from that.
+
+When you first see the Pokéstop Events page, your **Invasions count drops** by however many event
+rules you already had, and a Pokéstop Events count appears holding them. Nothing was created, deleted
+or moved — the same rows are being counted in two piles instead of one, and the overall total is
+unchanged.
+
+The split is conditional. Where the feature is unavailable — an older Poracle, or `disable_showcase`
+set — event rows stay listed and deletable under **Invasions**, and the invasion add dialog keeps
+offering the three events. The dashboard counts agree with whichever page the rows are on.
+
+The **Cleaning** page's invasion toggle sweeps event rows along with invasion rules, since it works on
+the table.
+
+### What this type does not do
+
+- **No test alert.** There is no mock payload builder for events, so no card carries the test button.
+- **No user-drawn geofence in the scope picker.** The override that lets an alarm point at a geofence
+  you drew yourself exists only on the v1 tracking path, and this type is v2-only. Admin areas, a
+  radius and a saved place all work.
+- **Not in the cross-profile overview, export or import.** Pokéstop Event rules are absent from all
+  three, so a profile export does not carry them and an import will not recreate them.
+
+!!! warning "Needs PoracleNG 5.2.0 and `disable_showcase = false`"
+    The page appears only when Poracle's configuration carries an explicit `general.disable_showcase =
+    false`. Absent, unreadable, or set to true all mean the page is hidden.
+
+    This is the one upstream probe in PoracleWeb.NET that **fails closed**, and deliberately so: a
+    server without the option is a server below 5.2.0, and every one of those answers 404 on the route
+    the page is built from. Showing the page on a guess would produce a page that only errors. Every
+    other upstream flag fails open, on the reasoning that a Poracle outage must not switch off alarm
+    types that work.
+
+    Operators can also switch the type off here, independently of Poracle, with the **`disable_showcase`**
+    site setting under **Admin → Settings → Alarms**.
+
 ## Delivery & message modes
 
 Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** controlling how the notification is delivered. PoracleWeb surfaces the bits the bot actually acts on as per-alarm toggles in the add/edit dialogs (and shows them as status badges on the alarm cards):
@@ -455,7 +594,7 @@ Max Battle-specific defaults:
 
 ## Test Alerts
 
-Every alarm card includes a **test button** (send/paper plane icon) that triggers a sample notification for that alarm. This lets users verify their alarm filters and notification formatting without waiting for a real event to occur.
+Most alarm cards include a **test button** (send/paper plane icon) that triggers a sample notification for that alarm. This lets users verify their alarm filters and notification formatting without waiting for a real event to occur.
 
 ![Pokemon alarm list showing test button](../screenshots/pokemon.png){ loading=lazy }
 
@@ -468,7 +607,7 @@ Every alarm card includes a **test button** (send/paper plane icon) that trigger
 
 ### Supported alarm types
 
-Test alerts are available for eight of the ten alarm types:
+Test alerts are available for eight of the eleven alarm types:
 
 - Pokemon
 - Raid
@@ -479,8 +618,8 @@ Test alerts are available for eight of the ten alarm types:
 - Nest
 - Gym
 
-**Not** Fort Change or Max Battle — `TestAlertController` rejects them, and neither module renders a test
-button. Those two have no mock payload builder, so there is nothing to send.
+**Not** Fort Change, Max Battle or Pokéstop Event — `TestAlertController` rejects all three, and none of
+those modules renders a test button. They have no mock payload builder, so there is nothing to send.
 
 ### Rate limiting
 
@@ -511,3 +650,12 @@ The dashboard shows the current in-game weather conditions at the user's pin.
 Admins can define **Quick Pick** templates — pre-configured alarm sets that users can apply with one click. Useful for onboarding new users or sharing recommended configurations.
 
 When applying a Quick Pick, the apply dialog's **Delivery** tab holds the same [scope picker](#where-an-alert-reaches-you) the add dialogs use, seeded from your [Alert Defaults](#default-delivery-scope-alert-defaults). Whatever you choose there — areas, a saved place, a radius, or a specific set of areas — applies to every alarm the pick creates.
+
+## Related
+
+- [Quiet Periods](quiet-periods.md) — silence one gym, area, species or station for a while without
+  touching the alarms themselves
+- [Quest Summary Delivery](quest-summary-schedules.md) — collecting matching quests into one digest
+- [Profiles](profiles.md) — keeping separate alarm sets and switching between them
+- [PoracleNG Version Compatibility](../architecture/poracleng-compatibility.md) — which features need
+  which server

@@ -4,7 +4,7 @@ template: home.html
 
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
 !!! warning "PoracleNG is required"
     All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
@@ -23,7 +23,7 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 ## Features
 
-- **Alarm Management** — Create, edit, and delete filters for Pokemon, Raids, Max Battles, Quests, Invasions, Lures, Nests, Gyms, and Fort Changes
+- **Alarm Management** — Create, edit, and delete filters for Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, and Fort Changes
 - **Gym Picker** — Search and target specific gyms for team, raid, and egg alarms with photo thumbnails and area names
 - **Pokemon Availability** — See which species are currently spawning when creating alarms (requires Golbat scanner)
 - **Bulk Operations** — Multi-select alarms with bulk delete and bulk distance update
@@ -46,8 +46,10 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 - **Single Sign-On** — Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md)
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
 - **[Webhooks & Delegates](features/webhooks.md)** — Channel feeds managed as their own accounts, with named people allowed to manage one without being made an administrator
-- **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes and Max Battles)
+- **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes, Max Battles and Pokéstop Events)
 - **Weather Display** — View current in-game weather at your pin and across all tracked areas on the dashboard
+- **[Quiet Periods](features/quiet-periods.md)** — Silence one gym, area, species or Power Spot for a set time without touching the alarms themselves (needs PoracleNG 5.2.0)
+- **Pokéstop Events** — Track Showcases, Kecleon sightings and Gold Stops (needs PoracleNG 5.2.0)
 - **Fort Change Tracking** — Get notified when pokestops or gyms are added, removed, renamed, relocated, re-described, or given a new image
 - **Max Battle (Dynamax) Alarms** — Track Dynamax and Gigantamax battles at Power Spots by level or specific Pokemon
 - **GeoJSON Import/Export** — Import and export custom geofences in standard GeoJSON format

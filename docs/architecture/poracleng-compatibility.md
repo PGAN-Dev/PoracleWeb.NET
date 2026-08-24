@@ -3,10 +3,16 @@
 PoracleWeb.NET works against any PoracleNG from 5.1.0 upwards, and switches on the extra features of a
 newer one when it finds them. There is nothing to configure.
 
-The line that matters is **5.1.0 versus 5.2.1 and newer**. There was briefly a second question — whether
-you were running PoracleNG's released `main` or its `develop` — and there no longer is: develop shipped
-as 5.2.1 and merged. Anything written in terms of branches is out of date, including earlier drafts of
+The line that matters is **5.1.0 versus 5.2.0 and newer**. There was briefly a second question — whether
+you were running PoracleNG's released `main` or its `develop` — and there no longer is: develop merged
+and shipped. Anything written in terms of branches is out of date, including earlier drafts of
 this page.
+
+Every gate in this build compares against **5.2.0**, not against what production happens to run. 5.2.1 is
+simply the first released build carrying those features, so a check written as `>= 5.2.1` would refuse a
+5.2.0 server that can serve the request. `PoracleServerProfile.FirstWithV2Tracking`,
+`MuteCapabilityService.MinimumVersion` and `QuestPokecoinCapabilityService.MinimumVersion` are all
+`new Version(5, 2, 0)`.
 
 Version support still matters, and always will, because self-hosters upgrade on their own schedule. The
 PGAN production instance moved to 5.2.1 on 2026-08-24 (migrations 5 through 8 applied cleanly); a server
@@ -50,13 +56,17 @@ capability key appeared. The version is the only thing that changed, so the vers
 |---|---|---|
 | Costume filter on pokemon alarms | Migration | PoracleNG database migration 6 |
 | Costume filter on raid alarms | Migration | PoracleNG database migration 7 |
-| Pokéstop-event tracking (`incident`) | v2 API surface | PoracleNG 5.2.1 |
-| Mutes | v2 API surface | PoracleNG 5.2.1 |
-| Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.1 |
+| Pokéstop-event tracking (`incident`) | v2 API surface | PoracleNG 5.2.0 |
+| Mutes | v2 API surface | PoracleNG 5.2.0 |
+| Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.0 |
+| Pokemon edits through `/api/v2` | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2` |
 | Rule descriptions on alarm cards | Response field | v1 `allProfiles`, or any v2 read |
 
-Each of these carries its own small capability service, shaped like `ISummaryCapabilityService` and
-resolving from `IPoracleServerProfileService`. There is deliberately no central registry: a registry
+Each of these carries its own small capability service — `SummaryCapabilityService`,
+`MuteCapabilityService`, `QuestPokecoinCapabilityService` and `CostumeCapabilityService` — all the same
+shape over `IPoracleServerProfileService`: one method, one question, no cache of its own, since the
+profile service already caches for five minutes and exposes `Invalidate()`. There is deliberately no
+central registry: a registry
 was written and abandoned, because the per-feature shape already existed and two mechanisms answering
 one question is how one of them ends up being the one nobody updates.
 
@@ -116,7 +126,11 @@ import all reach the alarm services without passing an action that could have ch
 3. **Guard the service write path**, on create, update and bulk alike, and throw
    `PoracleUnsupportedException(feature, requires)` with words the user can act on.
 4. **Give the SPA a way to ask.** `GET /api/admin/server-profile` is admin-only, so it cannot be the
-   answer for a user-facing control; `GET /api/summary-schedule/capability` is the pattern to copy.
+   answer for a user-facing control. Four ordinary authenticated endpoints answer instead, and one of
+   them is the pattern to copy: `GET /api/summary-schedules/capability`,
+   `GET /api/settings/costume-capability`, `GET /api/quests/capability`, and `GET /api/mutes`, which
+   folds the capability into the list response rather than answering separately — the quiet chip needs
+   both on every alarm page, so two calls would have been two calls every time.
 5. **Prefer hiding the control to disabling it with an explanation.** There is nothing the user can do
    about their operator's PoracleNG version.
 6. **Add a row to the table above.**
@@ -131,7 +145,11 @@ Verified by calling both surfaces on the same 5.2.1 server: a v1 tracking POST f
 exist answers `{"message":"User not found","status":"error"}`, byte-identical to 5.1.0, while a
 malformed v2 path parameter answers 422 with `Content-Type: application/problem+json` and an `errors`
 array. Assuming the new shapes applied everywhere cost a wrongly framed issue and pull request.
-PoracleWeb.NET is on v1.
+
+Because v1 did not move, almost all of PoracleWeb.NET stays on it: every read, every create, both
+distance endpoints and nine of the ten tracking types. Three things speak v2 — pokemon updates, mutes
+and Pokéstop events — and each reads errors through `PoracleProblemDetails`, which handles both
+dialects. See [PoracleNG API Proxy](poracleng-proxy.md#the-v2-pilot).
 
 **Do not take `active_hours` day numbering from PoracleNG's OpenAPI schema.** `V2ActiveHourEntry.day` is
 declared `minimum: 0, maximum: 6` and described as "0=Sunday … 6=Saturday". The scheduler uses ISO

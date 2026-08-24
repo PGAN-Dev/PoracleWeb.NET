@@ -24,6 +24,12 @@ All configuration can be provided via environment variables or `appsettings.json
 | Poracle API Secret | `PORACLE_API_SECRET` | `Poracle__ApiSecret` | PoracleNG API shared secret. Sent as the `X-Poracle-Secret` header on every request. |
 | Admin IDs | `PORACLE_ADMIN_IDS` | `Poracle__AdminIds` | Comma-separated Discord admin user IDs |
 
+### PoracleNG API surface
+
+| Setting | `.env` name | `.NET` env variable | Default | Description |
+|---|---|---|---|---|
+| Tracking API version | `PORACLE_TRACKING_API_VERSION` | `Poracle__TrackingApiVersion` | `auto` | Which PoracleNG tracking surface pokemon edits are written through: `auto`, `v1` or `v2`. `auto` uses the strict `/api/v2` surface on PoracleNG 5.2.0 and later and v1 below that. Set `v1` to stay on the old surface, or `v2` for a fork that carries the routes without reporting a version that says so. Nothing else moves: every read, every create and the other tracking types stay on v1 whatever this is set to. See [The v2 pilot](../architecture/poracleng-proxy.md#the-v2-pilot). |
+
 ## Optional settings
 
 ### Authentication
@@ -153,6 +159,9 @@ Required if anything terminates TLS in front of PoracleWeb.NET. See [Behind a re
 
 !!! warning "PoracleNG must be reachable"
     `Poracle:ApiAddress` must point to a running PoracleNG instance that is reachable from the PoracleWeb.NET container. All alarm tracking, human/profile management, location, area operations, and active hours management are proxied through this API. If PoracleNG is unreachable, alarm operations fail entirely and user management (registration, login, location, areas, profile switch, active hours) also fails. The `Poracle:ApiSecret` must match the `server.apiSecret` value in PoracleNG's config.
+
+!!! info "Minimum PoracleNG is 5.1.0; some features need 5.2.0"
+    Below 5.1.0 the app logs an error at startup and three filters write columns that do not exist. Pokéstop Events, quiet periods and Pokécoin quest rewards need **5.2.0** or newer and hide themselves on anything older. See [Version compatibility](../architecture/poracleng-compatibility.md).
 
 !!! note "Secrets"
     `appsettings.Development.json` is gitignored and holds all connection strings, JWT secret, Discord/Telegram credentials, and Poracle API address/secret. Never commit secrets to the repository.
