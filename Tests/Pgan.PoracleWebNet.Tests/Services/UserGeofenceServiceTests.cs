@@ -16,6 +16,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IHumanRepository> _humanRepo = new();
+    private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IUserAreaDualWriter> _areaWriter = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
@@ -34,6 +35,7 @@ public class UserGeofenceServiceTests
             this._poracleApiProxy.Object,
             this._humanProxy.Object,
             this._humanRepo.Object,
+            this._humanService.Object,
             this._areaWriter.Object,
             this._discordNotificationService.Object,
             this._featureGate.Object,
@@ -304,7 +306,7 @@ public class UserGeofenceServiceTests
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active", PolygonJson = "[[1,2],[3,4],[5,6]]" };
         this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
+        this._humanService.Setup(h => h.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
         this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(It.IsAny<GeofenceSubmissionPost>()))
             .ReturnsAsync((string?)null);
 
@@ -312,6 +314,28 @@ public class UserGeofenceServiceTests
 
         Assert.Equal("pending_review", result.Status);
         Assert.NotNull(result.SubmittedAt);
+    }
+
+    /// <summary>
+    /// The owner's display name now comes from PoracleNG rather than the database, so a PoracleNG
+    /// outage must not take the review card down with it -- the post still goes out and the mention
+    /// carries the identity.
+    /// </summary>
+    [Fact]
+    public async Task SubmitForReviewAsyncStillPostsWhenTheOwnerLookupFails()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", Status = "active", PolygonJson = "[[1,2],[3,4],[5,6]]" };
+        this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
+        this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
+        this._humanService.Setup(h => h.GetByIdAsync("u1")).ThrowsAsync(new HttpRequestException("Connection refused"));
+        this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(
+            It.Is<GeofenceSubmissionPost>(p => p.UserId == "u1" && p.UserName == null)))
+            .ReturnsAsync("thread_456");
+
+        var result = await this._sut.SubmitForReviewAsync("u1", "downtown");
+
+        Assert.Equal("pending_review", result.Status);
+        Assert.Equal("thread_456", result.DiscordThreadId);
     }
 
     [Fact]
@@ -346,7 +370,7 @@ public class UserGeofenceServiceTests
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown", GroupName = "City", Status = "active", PolygonJson = "[[1,2],[3,4],[5,6]]" };
         this._repository.Setup(r => r.GetByKojiNameAsync("downtown")).ReturnsAsync(geofence);
         this._repository.Setup(r => r.UpdateAsync(It.IsAny<UserGeofence>())).ReturnsAsync((UserGeofence g) => g);
-        this._humanRepo.Setup(r => r.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
+        this._humanService.Setup(h => h.GetByIdAsync("u1")).ReturnsAsync(new Human { Id = "u1", Name = "TestUser" });
         this._discordNotificationService.Setup(d => d.CreateGeofenceSubmissionPostAsync(
             It.Is<GeofenceSubmissionPost>(p => p.UserId == "u1" && p.UserName == "TestUser"
                 && p.DisplayName == "Downtown" && p.GroupName == "City" && p.PublicName == "downtown")))

@@ -23,6 +23,32 @@ somewhere is still on 5.1.0, and one is on something older than that.
     write columns that do not exist, so those three controls save without complaint and change nothing.
     PoracleWeb.NET logs an error at startup and shows the version on **Admin → Settings**.
 
+## The v2 migration does not raise the floor
+
+Moving to PoracleNG's `/api/v2` surface was the obvious moment to make 5.2.0 a hard minimum and delete
+the v1 code paths. It was considered and refused, so here is the reasoning in one place rather than
+scattered through commit messages.
+
+Dropping v1 would cost a self-hoster on 5.1.0 their Areas page, their saved places, the location pin,
+delegated-webhook resolution and all alarm editing. That is the application, not a feature.
+
+What it would buy is smaller than it looks. Most of the movable v2 operations are renames with no
+behaviour change at all. The genuine gains — the lure edit no longer having to delete and recreate the
+row, an upstream 409 refusing an alarm collision instead of PoracleWeb reconstructing it from a 200 —
+are workaround *removals*, and the fallback keeps them: the v2 path skips the workaround, the v1 path
+keeps it. Nothing user-visible is unlocked by deleting v1.
+
+Two things follow. Reads deliberately stay on v1, including the tempting full snapshot at
+`GET /api/v2/humans/{id}/tracking`; the moment reads move, the internal currency stops being v1-shaped
+and the fallback stops being free. And an operation that genuinely has no v1 equivalent —
+`PUT /v2/humans/{id}/locations/{label}` is the only one — gets a capability gate and degrades to the
+old flow, the pattern `MuteCapabilityService` already sets, rather than forcing a floor for one feature.
+
+Two v2 surfaces cannot serve PoracleWeb at all yet: invasion, whose reads omit the targeting field for a
+named grunt, and bulk distance, which has no batch write. So v1 has to stay in the codebase regardless.
+Revisit the floor when upstream closes both — see
+[the v2 findings](../poracleng-enhancement-requests.md#v2-findings-for-an-upstream-report).
+
 ## How support is decided
 
 Three signals, probed together and cached for five minutes. The mechanics are in

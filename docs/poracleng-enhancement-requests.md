@@ -226,6 +226,127 @@ the hook list already in hand.
 
 ---
 
+## v2 findings, for an upstream report
+
+Nine things found while planning the v1-to-v2 migration against **PoracleNG 5.2.1**. Every one below
+was confirmed by calling a running 5.2.1 instance on 2026-08-24, not by reading source; the requests
+above were mostly derived from source and are older. Two of them decide whether whole surfaces can
+move to v2 at all.
+
+### `active_hours.day` is bounded 0-6 while the scheduler reads ISO 1-7
+
+The v2 schema declares `day` as `minimum: 0, maximum: 6` and the migration guide documents it as
+"0 = Sunday". The scheduler does not agree: `isoDow` in `processor/cmd/processor/profiles.go` uses ISO
+weekdays, Monday 1 through Sunday 7, and nothing translates between the two.
+
+```
+PATCH /api/v2/humans/{id}/profiles/1  {"active_hours":[{"day":7,...}]}
+  -> 422 "expected number <= 6"  at body.active_hours[0].day
+PATCH /api/v2/humans/{id}/profiles/1  {"active_hours":[{"day":0,...}]}
+  -> 200
+```
+
+So through v2 a Sunday schedule cannot be expressed at all, and the value that *is* accepted matches
+no weekday. The official migration guide propagates the error, so any client following it writes
+schedules that never fire.
+
+**Consequence here:** v2 `active_hours` writes are blocked. PoracleWeb's own 1-7 validation is correct
+and stays.
+
+### v2 invasion reads omit the targeting field for a named grunt, so GET then PUT is impossible
+
+v2 requires exactly one of `type_id`, `grunt_id`, `everything`, `boss` on a write. For a rule whose
+`grunt_type` is a *type* name it returns `type_id` and round-trips fine. For a rule whose `grunt_type`
+is a named grunt it returns **no targeting field of any kind**:
+
+| stored `grunt_type` | v1 read | v2 read |
+|---|---|---|
+| `water` | `grunt_type: "water"` | `type_id: 11` |
+| `blanche` | `grunt_type: "blanche"` | *(nothing)* |
+| `player team leader` | `grunt_type: "player team leader"` | *(nothing)* |
+| `npc 0` | `grunt_type: "npc 0"` | *(nothing)* |
+
+Handing a v2 read straight back to a v2 write therefore fails:
+
+```
+PUT /api/v2/humans/{id}/tracking/invasion/757
+  -> 422 "exactly one of type_id, grunt_id, everything, boss must be set"
+```
+
+PoracleNG holds the forward name-to-id map and exposes no endpoint for it, and PoracleWeb stores only
+the name, so the id cannot be reconstructed on the client either. **Consequence here:** invasion is
+excluded from the v2 migration in both directions until a read returns `grunt_id`.
+
+### `override_areas` is not validated, on either version or either surface
+
+This is the one that most needs a second opinion, because it contradicts what PoracleWeb was built
+around. See [the verification note](poracleng-v2-review.md#override_areas-re-test-2026-08-24) for the
+full method. In short: a non-admin's `override_areas` was stored verbatim on 5.1.0 v1, on 5.2.1 v1 and
+on 5.2.1 v2 — for a real user-drawn fence carrying `userSelectable: false`, and for a fence name that
+does not exist at all. The `setAreas` filter on the same human, in the same session, stripped the same
+fence name, so the human was demonstrably non-admin and the filter was demonstrably live.
+
+There is a privacy edge if this holds: a crafted call can scope a rule to another user's private
+geofence name, which leaks nothing by itself but does let one account key alerts off another's area.
+Unreachable through PoracleWeb's UI, since #544 stopped those names being listed anywhere.
+
+### `language` validation depends on configuration the client cannot read
+
+`POST /api/v2/humans/{id}/language` accepted `"zz"` with 200 and stored it. On a deployment that
+configures `general.available_languages` the same call is refused — which is
+[#194](https://github.com/jfberry/PoracleNG/issues/194) above, still open. The write also lowercases:
+`"DE"` stores `de`. Worth documenting, since a client sending a stored casing back gets a different
+string than it sent.
+
+### `/health` carries no applied-migration number
+
+`/health` returns capabilities, status and version. It does not say which schema migration has been
+applied, and that is a different fact from the version: a 5.2.1 binary pointed at a database whose
+migrations did not run reports 5.2.1 and behaves like an older one. PoracleWeb reads
+`schema_migrations` directly for exactly this reason — it is the last read-only dependency
+`PoracleContext` has. One integer on `/health` would delete `PoracleSchemaVersionReader`, its
+interface, its registration and that dependency.
+
+### No list-humans and no delete-human, on either version
+
+```
+GET    /api/v2/humans              -> 404
+GET    /api/v2/humans?type=webhook -> 404
+GET    /api/humans                 -> 404
+DELETE /api/v2/humans/{id}         -> 404
+```
+
+Every human route is single-`{id}`. The admin user list and account deletion therefore keep
+`HumanRepository` and its direct database access alive. A `?type=webhook` filter alone would close the
+delegated-webhook half of it.
+
+### Profile create returns no `profile_no`
+
+`POST /api/v2/humans/{id}/profiles` answers `{"status":"ok"}`. PoracleNG assigns the lowest free
+number rather than max + 1, so the caller cannot predict it and must snapshot the list, create, re-read
+and diff — on names that are not unique. Returning the created resource, as the rest of v2 does, would
+remove that dance.
+
+### PATCH profile cannot write name, area or coordinates
+
+```
+PATCH /api/v2/humans/{id}/profiles/1  {"name":"renamed"}
+  -> 422  "expected required property active_hours to be present"  at body
+  -> 422  "unexpected property"                                    at body.name
+```
+
+`active_hours` is required and is the only writable field. There is no rename endpoint on either
+version, so `IProfileRepository.RenameAsync`'s direct database write stays.
+
+### v2 `setAreas` keeps the v1 `userSelectable` filter
+
+Re-confirmed on 5.2.1 rather than taken from source. `POST /api/v2/humans/{id}/areas` with
+`["<a user-drawn fence>", "aberdeen"]` stored `["aberdeen"]` — silently, 200, no warning, exactly as
+v1 does. This is the [trusted setAreas](#trusted-setareas-bypass-userselectable-filter) ask above, and v2
+does not close it.
+
+---
+
 ## Summary Table
 
 | Gap | Priority | Workaround in Use | Status |
