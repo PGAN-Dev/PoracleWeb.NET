@@ -85,6 +85,7 @@ nav:
   - Architecture:
       - Overview: architecture/overview.md
       - PoracleNG API Proxy: architecture/poracleng-proxy.md
+      - PoracleNG Version Compatibility: architecture/poracleng-compatibility.md
       - Backend Patterns: architecture/backend.md
       - Frontend Patterns: architecture/frontend.md
       - Database: architecture/database.md

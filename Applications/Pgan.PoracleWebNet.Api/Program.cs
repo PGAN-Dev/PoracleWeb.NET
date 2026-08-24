@@ -188,6 +188,7 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingConflictExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmValidationExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AccountGoneExceptionFilter>();
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleUnsupportedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.BlockedAccountFilter>();
 });
 
