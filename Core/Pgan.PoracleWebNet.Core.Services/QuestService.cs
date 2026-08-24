@@ -1,15 +1,21 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<QuestService> logger, ITrackedUidRemapper uidRemapper) : IQuestService
+public class QuestService(
+    IPoracleTrackingProxy proxy,
+    IFeatureGate featureGate,
+    IPoracleCapabilityService capabilities,
+    ILogger<QuestService> logger,
+    ITrackedUidRemapper uidRemapper) : IQuestService
 {
     private const string TrackingType = "quest";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
+    private readonly IPoracleCapabilityService _capabilities = capabilities;
     private readonly ILogger<QuestService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
@@ -29,6 +35,7 @@ public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate,
     public async Task<Quest> CreateAsync(string userId, Quest model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
+        await this.EnsureRewardTypeSupportedAsync(model.RewardType);
         model.Id = userId;
 
         // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
@@ -49,6 +56,7 @@ public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate,
     public async Task<Quest> UpdateAsync(string userId, Quest model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
+        await this.EnsureRewardTypeSupportedAsync(model.RewardType);
         var oldUid = model.Uid;
         var body = SerializeToElement(model);
 
@@ -174,6 +182,13 @@ public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate,
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Quests);
         var modelList = models.ToList();
 
+        // Checked for every row, not just the first: profile import and quick-pick apply both arrive
+        // here with a heterogeneous batch, and PoracleNG refuses the whole POST if any row is bad.
+        foreach (var rewardType in modelList.Select(m => m.RewardType).Distinct())
+        {
+            await this.EnsureRewardTypeSupportedAsync(rewardType);
+        }
+
         foreach (var model in modelList)
         {
             model.Id = userId;
@@ -190,6 +205,25 @@ public class QuestService(IPoracleTrackingProxy proxy, IFeatureGate featureGate,
         return modelList;
     }
 
+    /// <summary>
+    /// Refuses a reward type this PoracleNG cannot store, before anything is written.
+    /// </summary>
+    /// <remarks>
+    /// Pokecoins is the only gated type. PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type
+    /// value", which reaches the user as a generic failure that names neither the cause nor the fix;
+    /// this turns it into a 409 that says which version would be needed. It lives in the service rather
+    /// than the controller so quick-pick apply and profile import are covered too -- both reach
+    /// <c>BulkCreateAsync</c> without passing a quest action. See #565 for that shape.
+    /// </remarks>
+    private async Task EnsureRewardTypeSupportedAsync(int rewardType)
+    {
+        if (rewardType != QuestRewardTypes.Pokecoins)
+        {
+            return;
+        }
+
+        await this._capabilities.EnsureSupportedAsync(PoracleCapabilityKeys.QuestPokecoins);
+    }
     private static List<Quest> DeserializeItems(JsonElement json) =>
         PoracleJsonHelper.DeserializeList<Quest>(json);
 

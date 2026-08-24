@@ -35,12 +35,14 @@ describe('SettingsService', () => {
   afterEach(() => httpMock.verify());
 
   /**
-   * getAll() fans out to two endpoints: the settings themselves and the disable_* keys Poracle
-   * forces off upstream. Both have to be answered or httpMock.verify() reports the outstanding one.
+   * getAll() fans out to three endpoints: the settings themselves, the disable_* keys Poracle forces
+   * off upstream, and the optional PoracleNG features this server actually has. Every one has to be
+   * answered or httpMock.verify() reports the outstanding request.
    */
-  const flushGetAll = (settings: unknown, upstream: string[] = []): void => {
+  const flushGetAll = (settings: unknown, upstream: string[] = [], capabilities: string[] = []): void => {
     httpMock.expectOne(`${API}/api/settings`).flush(settings);
     httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush(upstream);
+    httpMock.expectOne(`${API}/api/settings/poracle-capabilities`).flush(capabilities);
   };
 
   describe('normalize', () => {
@@ -184,6 +186,7 @@ describe('SettingsService', () => {
       service.getAll().subscribe();
       httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
       httpMock.expectOne(`${API}/api/settings/upstream-disabled`).error(new ProgressEvent('network error'));
+      httpMock.expectOne(`${API}/api/settings/poracle-capabilities`).flush([]);
 
       // Failing closed here would blank the nav on any Poracle blip.
       expect(service.upstreamDisabled()).toEqual([]);
@@ -268,6 +271,50 @@ describe('SettingsService', () => {
         value: 'val',
         valueType: 'string',
       });
+    });
+  });
+  describe('optional PoracleNG capabilities', () => {
+    /**
+     * PoracleNG keeps a released `main` and a longer-running `develop`, and PoracleWeb supports both.
+     * These cover the two answers that matter: a develop server offers its extras, and everything else
+     * -- released server, unreachable server, failed call -- offers none of them.
+     */
+    it('reports what a develop-line server supports', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, [], ['monster_costume', 'quest_pokecoins', 'raid_costume']);
+
+      expect(service.supportsPoracle('quest_pokecoins')).toBe(true);
+      expect(service.supportsPoracle('monster_costume')).toBe(true);
+    });
+
+    it('supports nothing optional against the released line', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, [], []);
+
+      expect(service.poracleCapabilities()).toEqual([]);
+      expect(service.supportsPoracle('quest_pokecoins')).toBe(false);
+    });
+
+    it('fails closed when the capability call fails, and does not take the settings with it', () => {
+      service.getAll().subscribe();
+      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
+      httpMock.expectOne(`${API}/api/settings/poracle-capabilities`).error(new ProgressEvent('network error'));
+
+      // Off rather than on: showing a control that writes a column the server lacks is the silent
+      // no-op this whole mechanism exists to prevent.
+      expect(service.supportsPoracle('quest_pokecoins')).toBe(false);
+      expect(service.siteSettings()['site_name']).toBe('My Site');
+    });
+
+    it('keeps capabilities separate from the disable_* keys', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, ['disable_quests'], ['quest_pokecoins']);
+
+      // A supported capability says nothing about whether the type is switched on, and vice versa.
+      expect(service.supportsPoracle('quest_pokecoins')).toBe(true);
+      expect(service.isDisabled('disable_quests')).toBe(true);
+      expect(service.supportsPoracle('disable_quests')).toBe(false);
     });
   });
 });

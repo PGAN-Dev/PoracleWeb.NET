@@ -244,6 +244,9 @@ export class QuestListComponent implements OnInit {
     if (quest.rewardType === 3) {
       return this.iconService.getRewardUrl('stardust', quest.reward || 0);
     }
+    if (quest.rewardType === 8) {
+      return this.iconService.getRewardUrl('quest', 8);
+    }
     return this.iconService.getRewardUrl('quest', quest.rewardType);
   }
 
@@ -269,6 +272,9 @@ export class QuestListComponent implements OnInit {
       // type it does not recognise gets.
       case 3:
         return '#FBC02D';
+      // Pokecoins get their own gold rather than the grey fallback, for the same reason stardust did.
+      case 8:
+        return '#FFB300';
       default:
         return '#9E9E9E';
     }
@@ -284,6 +290,8 @@ export class QuestListComponent implements OnInit {
         return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
       case 4:
         return this.i18n.instant('QUESTS.REWARD_CANDY');
+      case 8:
+        return this.i18n.instant('QUESTS.POKECOINS');
       default:
         return this.i18n.instant('QUESTS.REWARD_TYPE_PREFIX', { type: rewardType });
     }
@@ -414,6 +422,13 @@ export class QuestListComponent implements OnInit {
       return quest.reward > 0
         ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
         : this.i18n.instant('QUESTS.STARDUST');
+    }
+    // Ungated on purpose: a pokecoin rule set with the bot, or left by a PoracleNG downgrade, still
+    // has to be readable and deletable here. Only creating one asks whether the server supports it.
+    if (quest.rewardType === 8) {
+      return quest.reward > 0
+        ? this.i18n.instant('QUESTS.POKECOINS_AMOUNT', { amount: quest.reward })
+        : this.i18n.instant('QUESTS.POKECOINS');
     }
     return this.getRewardTypeLabel(quest.rewardType);
   }

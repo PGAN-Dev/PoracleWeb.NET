@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.DataProtection;
+﻿using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
@@ -127,6 +127,10 @@ public static class ServiceCollectionExtensions
         // secret and still answers when the API key is wrong -- a state that otherwise looks exactly
         // like the server being down.
         services.AddScoped<IPoracleSchemaVersionReader, PoracleSchemaVersionReader>();
+
+        // Which optional PoracleNG features this server has. Pure resolution over the server
+        // profile, so it deliberately carries no cache of its own -- see PoracleCapabilityService.
+        services.AddScoped<IPoracleCapabilityService, PoracleCapabilityService>();
 
         // The one outbound call PoracleWeb makes. Anonymous, cached for six hours, and switchable off
         // with disable_update_check for deployments that do not want egress at all.

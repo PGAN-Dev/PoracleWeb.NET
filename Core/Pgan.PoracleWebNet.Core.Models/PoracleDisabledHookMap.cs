@@ -1,4 +1,4 @@
-namespace Pgan.PoracleWebNet.Core.Models;
+﻿namespace Pgan.PoracleWebNet.Core.Models;
 
 /// <summary>
 /// Translates PoracleNG's own per-webhook-type disable flags into the <c>disable_*</c> keys this
@@ -54,6 +54,13 @@ public static class PoracleDisabledHookMap
         ["nest"] = DisableFeatureKeys.Nests,
         ["gym"] = DisableFeatureKeys.Gyms,
         ["maxbattle"] = DisableFeatureKeys.MaxBattles,
+
+        // Only reported by PoracleNG 5.2.0 and newer, which replaced the vestigial "pokestop" entry
+        // with this one (jfberry/PoracleNG#197, filed from here as #195). Inert against 5.1.0, whose
+        // array never carries the name -- so it is safe on both branches and needs no version check.
+        // The separate general.disable_fort_update read stays regardless: on 5.1.0 it is the only
+        // source, and on 5.2.0 it agrees, because the keys are unioned rather than compared.
+        ["fort"] = DisableFeatureKeys.FortChanges,
     };
 
     /// <summary>

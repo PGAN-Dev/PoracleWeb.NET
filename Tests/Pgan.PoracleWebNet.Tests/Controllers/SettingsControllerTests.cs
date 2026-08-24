@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,6 +15,7 @@ public class SettingsControllerTests : ControllerTestBase
 {
     private readonly Mock<ISiteSettingService> _siteService = new();
     private readonly Mock<IUpstreamFeatureFlagService> _upstreamFlags = new();
+    private readonly Mock<IPoracleCapabilityService> _poracleCapabilities = new();
     private readonly Mock<IPoracleApiProxy> _poracleApi = new();
     private readonly SettingsController _sut;
 
@@ -33,6 +34,7 @@ public class SettingsControllerTests : ControllerTestBase
         Options.Create(new TelegramSettings()),
         Options.Create(new OidcSettings()),
         this._upstreamFlags.Object,
+        this._poracleCapabilities.Object,
         new ConfigurationBuilder().Build(),
         this._poracleApi.Object,
         new MemoryCache(new MemoryCacheOptions()),

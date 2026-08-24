@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Any PoracleNG from 5.1.0 upwards is supported, and a newer one gets its extra features.** PoracleWeb.NET was written against one version and assumed it everywhere, so anyone running a newer PoracleNG had a UI written down to the older one and no way to tell -- whether they were on the development branch or simply upgraded ahead of us. It now asks what the server on the other end can actually do -- from its version, its capability map and the migration it has applied -- and offers each install exactly what it can store. Nothing on `main` changes, and nothing on `develop` is required. Every gate fails closed: an unreachable Poracle offers none of the extras rather than offering controls that would save without complaint and change nothing.
+- **Pokecoin quest rewards, on a PoracleNG new enough to store them.** A sixth reward tab, working the way stardust does -- a minimum amount and no selector, since Poracle matches the reward on the amount alone. It is absent on PoracleNG 5.1.0, which refuses reward type 8 outright. A pokecoin rule that already exists stays visible and deletable on either branch, because a rule set with the bot is still yours to remove.
+
+### Changed
+
+- **Poracle's `disable_fort_update` is honoured on servers that report it.** PoracleNG 5.2.0 started naming fort changes in the list of hooks it has switched off, replacing an entry that never meant anything. Both spellings are understood, so this needs no version check and changes nothing on 5.1.0, where the older behaviour is still read from the config directly.
+- **A request an older Poracle cannot serve says so.** It used to arrive as an unexplained failure with the server's own wording; it now names the feature and the PoracleNG version it would need.
+
+### Documentation
+
+- **Which PoracleNG versions are supported, and what changes between them.** A new page setting out how support is decided, which features depend on the version you run, and the longer list of things that look like they should differ and do not.
+
 ## [2.17.1] - 2026-08-21
 
 ### Changed

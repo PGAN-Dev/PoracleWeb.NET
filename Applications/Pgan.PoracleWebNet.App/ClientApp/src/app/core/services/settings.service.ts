@@ -14,6 +14,17 @@ export class SettingsService {
   private readonly http = inject(HttpClient);
 
   private loaded = false;
+  /**
+   * Optional PoracleNG features this deployment's server actually has.
+   *
+   * PoracleNG maintains a released `main` and a longer-running `develop`, and PoracleWeb supports
+   * both: everything on `main` is assumed, and anything that exists only on `develop` is asked about
+   * here so the UI matches the server rather than the lowest common denominator. Empty when Poracle is
+   * unreachable or has none of them, which callers must not be able to tell apart. See
+   * `shared/utils/poracle-capabilities.ts`.
+   */
+  readonly poracleCapabilities = signal<readonly string[]>([]);
+
   /** Cached site settings as key→value map, loaded once at app init */
   readonly siteSettings = signal<Record<string, string>>({});
 
@@ -30,12 +41,14 @@ export class SettingsService {
     // Fetched together so a nav item never renders for a type the server will 403. A failure here is
     // not fatal: the settings still load and the server-side gate remains the real enforcement point.
     return forkJoin({
+      capabilities: this.http.get<string[]>(`${this.config.apiHost}/api/settings/poracle-capabilities`).pipe(catchError(() => of([]))),
       settings: this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings`),
       upstream: this.http.get<string[]>(`${this.config.apiHost}/api/settings/upstream-disabled`).pipe(catchError(() => of([]))),
     }).pipe(
-      tap(({ settings, upstream }) => {
+      tap(({ capabilities, settings, upstream }) => {
         this.siteSettings.set(this.normalize(settings));
         this.upstreamDisabled.set(upstream);
+        this.poracleCapabilities.set(capabilities);
         this.loaded = true;
       }),
       map(({ settings }) => settings),
@@ -100,6 +113,17 @@ export class SettingsService {
       if (key) map[key] = item.value ?? '';
     }
     return map;
+  }
+
+  /**
+   * True when the PoracleNG behind this install supports an optional feature.
+   *
+   * Distinct from {@link isDisabled}: nobody switched anything off, the server simply cannot do it.
+   * A control gated on this should be absent rather than disabled-with-an-explanation, since there is
+   * nothing the user can do about their operator's PoracleNG version.
+   */
+  supportsPoracle(capability: string): boolean {
+    return this.poracleCapabilities().includes(capability);
   }
 
   update(key: string, value: string, category?: string): Observable<AnySettingItem> {

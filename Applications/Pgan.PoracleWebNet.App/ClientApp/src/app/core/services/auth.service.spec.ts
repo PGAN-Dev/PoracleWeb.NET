@@ -126,6 +126,8 @@ describe('AuthService', () => {
       settingsReq.flush([]);
       // getAll() also asks which disable_* keys Poracle forces off upstream (#769).
       httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
+      // ... and which optional PoracleNG features this server has, for the develop-only controls.
+      httpMock.expectOne(`${API}/api/settings/poracle-capabilities`).flush([]);
       // The alert language is reconciled here too: App.ngOnInit skips it while signed out (#775), so a
       // login completed inside one page session would otherwise never pick up humans.language.
       httpMock.expectOne(`${API}/api/location/language`).flush({ language: 'de' });

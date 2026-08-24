@@ -31,11 +31,11 @@
             <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
           </mat-form-field>
         }
-        @if (isStardust) {
+        @if (usesRewardSlot) {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'QUESTS.MIN_STARDUST' | translate }}</mat-label>
-            <input matInput type="number" min="0" step="100" [formControl]="form.controls.stardust" />
-            <mat-hint>{{ 'QUESTS.MIN_STARDUST_HINT' | translate }}</mat-hint>
+            <mat-label>{{ (isPokecoins ? 'QUESTS.MIN_POKECOINS' : 'QUESTS.MIN_STARDUST') | translate }}</mat-label>
+            <input matInput type="number" min="0" [step]="isPokecoins ? 1 : 100" [formControl]="form.controls.stardust" />
+            <mat-hint>{{ (isPokecoins ? 'QUESTS.MIN_POKECOINS_HINT' : 'QUESTS.MIN_STARDUST_HINT') | translate }}</mat-hint>
           </mat-form-field>
         }
       </div>

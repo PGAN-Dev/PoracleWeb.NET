@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -184,6 +184,8 @@ if (string.IsNullOrWhiteSpace(discordClientSecret))
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.FeatureDisabledExceptionFilter>();
+    // ... and PoracleUnsupportedException into 409, for what an older PoracleNG cannot serve at all.
+    options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.PoracleUnsupportedExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.SummaryBackendUnavailableExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.TrackingConflictExceptionFilter>();
     options.Filters.Add<Pgan.PoracleWebNet.Api.Filters.AlarmValidationExceptionFilter>();

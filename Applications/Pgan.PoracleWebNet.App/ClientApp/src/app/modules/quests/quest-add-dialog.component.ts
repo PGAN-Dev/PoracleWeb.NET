@@ -19,12 +19,14 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuestService } from '../../core/services/quest.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { SummaryScheduleService } from '../../core/services/summary-schedule.service';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { compose } from '../../shared/utils/clean-flags';
+import { PORACLE_CAPABILITIES } from '../../shared/utils/poracle-capabilities';
 
 @Component({
   imports: [
@@ -60,6 +62,7 @@ export class QuestAddDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly masterData = inject(MasterDataService);
   private readonly questService = inject(QuestService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   candyForm = this.fb.group({
     amount: [0],
@@ -87,6 +90,19 @@ export class QuestAddDialogComponent {
     amount: [0],
   });
 
+  /**
+   * Stardust is the one reward PoracleNG matches on the amount alone, so it has no selector: the
+   * number is the whole rule. PoracleNG reads it from `reward`, not `amount`.
+   */
+  /**
+   * Pokecoins mirror stardust exactly: no selector, and PoracleNG reads the minimum from `reward`
+   * rather than `amount`. Only offered when the server can store reward_type 8 — see
+   * {@link supportsPokecoins}.
+   */
+  pokecoinsForm = this.fb.group({
+    reward: [0],
+  });
+
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
 
@@ -107,14 +123,10 @@ export class QuestAddDialogComponent {
   );
 
   selectedCandyPokemonIds = signal<number[]>([]);
-
   selectedMegaPokemonIds = signal<number[]>([]);
+
   selectedPokemonIds = signal<number[]>([]);
 
-  /**
-   * Stardust is the one reward PoracleNG matches on the amount alone, so it has no selector: the
-   * number is the whole rule. PoracleNG reads it from `reward`, not `amount`.
-   */
   stardustForm = this.fb.group({
     reward: [0],
   });
@@ -147,6 +159,10 @@ export class QuestAddDialogComponent {
         return this.selectedCandyPokemonIds().length > 0;
       case 4:
         // 0 is a rule in its own right: every stardust quest, whatever it pays.
+        return true;
+
+      case 5:
+        // Same as stardust: 0 means every pokecoin quest.
         return true;
       default:
         return false;
@@ -269,6 +285,23 @@ export class QuestAddDialogComponent {
           }),
         );
         break;
+      case 5:
+        creates.push(
+          this.questService.create({
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: 0,
+            clean: cleanValue,
+            distance: scope.distance,
+            pokemonId: 0,
+            // Pokecoins carry their floor in reward, the same slot stardust uses.
+            reward: this.pokecoinsForm.controls.reward.value ?? 0,
+            rewardType: 8,
+            shiny: 0,
+            template: common.template || null,
+          }),
+        );
+        break;
     }
 
     // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
@@ -306,5 +339,16 @@ export class QuestAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
+  }
+
+  /**
+   * Whether this PoracleNG can store pokecoin quest rewards at all.
+   *
+   * PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type value", so the tab is absent rather
+   * than present-and-failing. It is the last tab, which keeps every other tab's index stable whether
+   * it renders or not — `tabIndex` is positional and the save switch reads it.
+   */
+  supportsPokecoins(): boolean {
+    return this.settings.supportsPoracle(PORACLE_CAPABILITIES.QUEST_POKECOINS);
   }
 }

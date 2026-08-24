@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,6 +18,7 @@ public partial class SettingsController(
     IOptions<TelegramSettings> telegramSettings,
     IOptions<OidcSettings> oidcSettings,
     IUpstreamFeatureFlagService upstreamFlags,
+    IPoracleCapabilityService poracleCapabilities,
     IConfiguration configuration,
     IPoracleApiProxy poracleApiProxy,
     IMemoryCache cache,
@@ -77,6 +78,7 @@ public partial class SettingsController(
     private readonly OidcSettings _oidcSettings = oidcSettings.Value;
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
     private readonly IUpstreamFeatureFlagService _upstreamFlags = upstreamFlags;
+    private readonly IPoracleCapabilityService _poracleCapabilities = poracleCapabilities;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<SettingsController> _logger = logger;
@@ -120,6 +122,24 @@ public partial class SettingsController(
     {
         var keys = await this._upstreamFlags.GetDisabledKeysAsync();
         return this.Ok(keys.OrderBy(k => k, StringComparer.Ordinal).ToList());
+    }
+
+    /// <summary>
+    /// The optional PoracleNG features this deployment's server actually has.
+    /// </summary>
+    /// <remarks>
+    /// Authenticated but not admin-only, because the controls these gate are ordinary user controls:
+    /// the quest dialog has to know whether to offer pokecoins before an admin ever looks at the
+    /// server-profile page. Empty when PoracleNG is unreachable or has none of them, which the caller
+    /// must not be able to tell apart. The service layer refuses these operations independently, so
+    /// this list is what to render, never what is allowed. See <c>PoracleCapabilityKeys</c>.
+    /// </remarks>
+    [HttpGet("poracle-capabilities")]
+    public async Task<IActionResult> GetPoracleCapabilities()
+    {
+        var supported = await this._poracleCapabilities.GetSupportedAsync(this.HttpContext.RequestAborted);
+
+        return this.Ok(supported.OrderBy(k => k, StringComparer.Ordinal).ToList());
     }
 
     [AllowAnonymous]

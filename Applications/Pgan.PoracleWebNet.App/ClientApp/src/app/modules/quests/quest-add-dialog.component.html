@@ -73,6 +73,19 @@
               </mat-form-field>
             </div>
           </mat-tab>
+          <!-- Last on purpose: tabIndex is positional and the save switch reads it, so a tab that may
+               or may not render has to be the one that cannot shift the others. Needs PoracleNG 5.2.0. -->
+          @if (supportsPokecoins()) {
+            <mat-tab [label]="'QUESTS.TAB_POKECOINS' | translate">
+              <div class="tab-content">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'QUESTS.MIN_POKECOINS' | translate }}</mat-label>
+                  <input matInput type="number" min="0" step="1" [formControl]="pokecoinsForm.controls.reward" />
+                  <mat-hint>{{ 'QUESTS.MIN_POKECOINS_HINT' | translate }}</mat-hint>
+                </mat-form-field>
+              </div>
+            </mat-tab>
+          }
         </mat-tab-group>
       </div>
     </mat-tab>

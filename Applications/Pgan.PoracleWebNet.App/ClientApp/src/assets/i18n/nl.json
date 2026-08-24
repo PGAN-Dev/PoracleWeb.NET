@@ -550,7 +550,12 @@
     "MIN_AMOUNT_HINT": "0 = elk aantal",
     "MIN_STARDUST": "Minimaal sterrenstof",
     "MIN_STARDUST_HINT": "0 = elke sterrenstof-opdracht",
-    "AMOUNT_PREFIX": "{{count}}× {{reward}}"
+    "AMOUNT_PREFIX": "{{count}}× {{reward}}",
+    "POKECOINS": "PokéMunten",
+    "POKECOINS_AMOUNT": "{{amount}}+ PokéMunten",
+    "TAB_POKECOINS": "PokéMunten",
+    "MIN_POKECOINS": "Minimum PokéMunten",
+    "MIN_POKECOINS_HINT": "0 = elke PokéMunten-quest"
   },
   "INVASIONS": {
     "PAGE_TITLE": "Invasie Alarmen",

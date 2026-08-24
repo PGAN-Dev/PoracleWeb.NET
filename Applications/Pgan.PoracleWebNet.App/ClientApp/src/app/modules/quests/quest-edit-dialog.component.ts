@@ -29,6 +29,21 @@ const QUANTITY_REWARD_TYPES = new Set([2, 4, 12]);
 /** Stardust reads its floor from `reward`; `amount` is ignored for this type. */
 const STARDUST = 3;
 
+/**
+ * Pokecoins. Like stardust, PoracleNG matches on the amount alone and reads it from `reward` rather
+ * than `amount`, so the two share a control.
+ */
+const POKECOINS = 8;
+
+/**
+ * The reward types whose minimum lives in the `reward` slot.
+ *
+ * Editing a pokecoin rule is deliberately NOT gated on the server supporting pokecoins. The rule can
+ * exist already -- set with the bot, or left behind by a PoracleNG downgrade -- and a row nobody can
+ * see is a row nobody can delete. Only creating one is gated.
+ */
+const REWARD_SLOT_TYPES = new Set([STARDUST, POKECOINS]);
+
 @Component({
   imports: [
     ReactiveFormsModule,
@@ -69,13 +84,15 @@ export class QuestEditDialogComponent {
     // changing which reward it is about, so unlike the reward itself they are editable here.
     amount: [this.data.amount ?? 0],
     clean: [isAutoDelete(this.data.clean)],
-    stardust: [this.data.rewardType === STARDUST ? (this.data.reward ?? 0) : 0],
+    stardust: [REWARD_SLOT_TYPES.has(this.data.rewardType) ? (this.data.reward ?? 0) : 0],
     summary: [isSummary(this.data.clean)],
     template: [this.data.template ?? ''],
   });
 
   /** Reward types that come in quantities, so "at least N" means something. */
   readonly hasAmount = QUANTITY_REWARD_TYPES.has(this.data.rewardType);
+
+  readonly isPokecoins = this.data.rewardType === POKECOINS;
 
   readonly isStardust = this.data.rewardType === STARDUST;
 
@@ -87,6 +104,9 @@ export class QuestEditDialogComponent {
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
 
   readonly summaryService = inject(SummaryScheduleService);
+
+  /** True when the minimum travels in `reward`: stardust and pokecoins both do. */
+  readonly usesRewardSlot = REWARD_SLOT_TYPES.has(this.data.rewardType);
 
   private get questPokemonId(): number {
     return this.data.pokemonId > 0 ? this.data.pokemonId : this.data.reward;
@@ -114,6 +134,8 @@ export class QuestEditDialogComponent {
         return this.i18n.instant('QUESTS.REWARD_ITEM');
       case 3:
         return this.i18n.instant('QUESTS.STARDUST');
+      case 8:
+        return this.i18n.instant('QUESTS.POKECOINS');
       case 12:
         return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
       case 4:
@@ -142,6 +164,11 @@ export class QuestEditDialogComponent {
         ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: this.data.reward })
         : this.i18n.instant('QUESTS.STARDUST');
     }
+    if (this.data.rewardType === 8) {
+      return this.data.reward > 0
+        ? this.i18n.instant('QUESTS.POKECOINS_AMOUNT', { amount: this.data.reward })
+        : this.i18n.instant('QUESTS.POKECOINS');
+    }
     if (this.data.rewardType === 2) {
       return this.masterData.getItemName(this.data.reward);
     }
@@ -168,7 +195,7 @@ export class QuestEditDialogComponent {
       clean: preserve(this.data.clean, AUTO_DELETE | SUMMARY, compose(!!values.clean, false, !!values.summary)),
       distance: scope.distance,
       pokemonId: this.data.pokemonId,
-      reward: this.isStardust ? (values.stardust ?? 0) : this.data.reward,
+      reward: this.usesRewardSlot ? (values.stardust ?? 0) : this.data.reward,
       rewardType: this.data.rewardType,
       shiny: this.data.shiny,
       template: values.template || '',

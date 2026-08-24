@@ -1,4 +1,5 @@
-using Pgan.PoracleWebNet.Core.Abstractions.Services;
+﻿using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Services;
@@ -44,6 +45,20 @@ public partial class PoracleCompatibilityStartupService(
                 profile.Version ?? "unknown",
                 profile.SchemaVersion?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "unknown",
                 profile.Capabilities.Count == 0 ? "none reported" : string.Join(", ", profile.Capabilities.Where(c => c.Value).Select(c => c.Key)));
+
+            // Named out loud because these are the difference between a PoracleNG main and a develop
+            // build, and "the costume box isn't there" is otherwise unanswerable without a debugger.
+            var supported = PoracleCapabilityService.Resolve(profile);
+            LogOptionalFeatures(
+                logger,
+                supported.Count == 0 ? "none" : string.Join(", ", supported.OrderBy(k => k, StringComparer.Ordinal)),
+                string.Join(
+                    ", ",
+                    PoracleCapabilityKeys.All
+                        .Where(r => !supported.Contains(r.Key))
+                        .Select(r => $"{r.Key} (needs {r.Requires})")) is { Length: > 0 } missing
+                    ? missing
+                    : "none");
         }
         catch (Exception ex)
         {
@@ -57,6 +72,12 @@ public partial class PoracleCompatibilityStartupService(
         Level = LogLevel.Information,
         Message = "Connected to PoracleNG {Version} (schema {SchemaVersion}). Capabilities: {Capabilities}.")]
     private static partial void LogConnected(ILogger logger, string version, string schemaVersion, string capabilities);
+
+    [LoggerMessage(
+        EventId = 6114,
+        Level = LogLevel.Information,
+        Message = "Optional PoracleNG features available: {Supported}. Unavailable: {Unavailable}.")]
+    private static partial void LogOptionalFeatures(ILogger logger, string supported, string unavailable);
 
     [LoggerMessage(
         EventId = 6111,

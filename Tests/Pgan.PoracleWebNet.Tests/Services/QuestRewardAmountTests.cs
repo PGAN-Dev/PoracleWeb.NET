@@ -1,10 +1,11 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Mappings;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -41,7 +42,7 @@ public class QuestRewardAmountTests
     private async Task<JsonElement> WriteAsync(QuestCreate create)
     {
         await new QuestService(
-                this._proxy.Object, this._featureGate.Object, NullLogger<QuestService>.Instance, this._remapper.Object)
+                this._proxy.Object, this._featureGate.Object, PoracleCapabilityStub.Permissive, NullLogger<QuestService>.Instance, this._remapper.Object)
             .CreateAsync("u1", create.ToQuest());
 
         return this._sent.ValueKind == JsonValueKind.Array ? this._sent.EnumerateArray().First() : this._sent;

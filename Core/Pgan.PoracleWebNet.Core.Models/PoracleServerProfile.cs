@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Pgan.PoracleWebNet.Core.Models;
 
@@ -13,9 +13,14 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// </para>
 /// <para>
 /// Deliberately not a branch. PoracleNG stamps its branch into the binary but publishes only the
-/// version on <c>/health</c>, so a develop build between releases reports the last release's number and
-/// cannot be told apart. Branch would be the wrong question anyway: self-hosters run forks and
-/// cherry-picks, and what matters is whether this server can store a given field, not what it is called.
+/// version on <c>/health</c>. That version does separate the two lines in practice, because the
+/// constant is bumped on develop as features land rather than at release-cut: develop reported 5.2.0
+/// while main was still 5.1.0. It is a convention, not a contract, so it is used as a signal of last
+/// resort -- see <see cref="PoracleCapabilityKeys"/>.
+/// </para>
+/// <para>
+/// Branch would be the wrong question anyway: self-hosters run forks and cherry-picks, and what
+/// matters is whether this server can store a given field, not what the line it came from is called.
 /// </para>
 /// </remarks>
 public sealed class PoracleServerProfile

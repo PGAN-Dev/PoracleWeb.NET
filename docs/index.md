@@ -11,6 +11,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
     **PoracleNG 5.1.0 or newer is required.** Older servers have no column to store per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without complaint and change nothing. PoracleWeb logs an error at startup when it finds an older server, and reports the version on Admin → Settings.
 
+    Any PoracleNG from 5.1.0 upwards works, with nothing to configure. Features a newer one adds are detected and switched on; everything else behaves identically whatever version you run — see [PoracleNG Version Compatibility](architecture/poracleng-compatibility.md).
+
 ## Tech Stack
 
 | Layer | Technology |
