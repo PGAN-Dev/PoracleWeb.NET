@@ -147,7 +147,7 @@ public class ControllerDependencyRegistrationTests
 
         foreach (var implementation in services
             .Select(d => d.ImplementationType)
-            .Where(t => t is not null && !t.IsAbstract)
+            .Where(t => t is not null && !t.IsAbstract && IsOurs(t))
             .Distinct()
             .Cast<Type>())
         {
@@ -178,6 +178,16 @@ public class ControllerDependencyRegistrationTests
             "AddPoracleServices registers implementations whose own dependencies it does not register: "
             + string.Join(", ", missing.Distinct()));
     }
+
+    /// <summary>
+    /// Only types this solution owns. Framework registrations bring their own graph and their own
+    /// platform rules -- <c>AddDataProtection</c> registers <c>KeyManagementOptionsSetup</c>, which
+    /// takes an <c>IRegistryPolicyResolver</c> that exists on Windows and not on Linux. Walking those
+    /// asserts something about .NET rather than about this application, and it answers differently on a
+    /// developer machine and on CI, which is how this test first failed.
+    /// </summary>
+    private static bool IsOurs(Type type) =>
+        type.Assembly.GetName().Name?.StartsWith("Pgan.PoracleWebNet", StringComparison.Ordinal) == true;
 
     private static Type Unwrap(Type type) =>
         type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
