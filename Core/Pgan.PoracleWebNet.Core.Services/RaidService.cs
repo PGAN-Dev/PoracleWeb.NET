@@ -78,6 +78,15 @@ public class RaidService(
         await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
             this._proxy, TrackingType, userId, oldUid, body);
 
+        // /api/v2 replaces the rule in place, addressed by its uid, and answers 409 itself when the
+        // replacement would duplicate another rule. None of the v1 repair below applies to it.
+        if (await TrackingV2Replacement.TryApplyAsync(
+                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
+        {
+            model.Uid = v2Uid;
+            return model;
+        }
+
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
         // PoracleNG inserts instead of upserting when the edit changes a dedup-key field,

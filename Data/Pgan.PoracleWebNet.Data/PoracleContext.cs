@@ -3,18 +3,20 @@ using Pgan.PoracleWebNet.Data.Entities;
 
 namespace Pgan.PoracleWebNet.Data;
 
+/// <summary>
+/// The Poracle database, read and written only where PoracleNG's API cannot serve the operation.
+/// </summary>
+/// <remarks>
+/// There are deliberately no alarm entities here. Every tracking write goes through PoracleNG so that
+/// its dedup, defaults and state reload run; the two places that still reach the alarm tables directly
+/// (<c>IUserAreaDualWriter</c>) do so with raw SQL over a validated table name, not through EF. Mapping
+/// the tables again would make a direct alarm write one <c>DbSet</c> away, which is the thing the 2.0
+/// migration existed to prevent.
+/// </remarks>
 public class PoracleContext(DbContextOptions<PoracleContext> options) : DbContext(options)
 {
     public DbSet<HumanEntity> Humans => this.Set<HumanEntity>();
     public DbSet<ProfileEntity> Profiles => this.Set<ProfileEntity>();
-    public DbSet<MonsterEntity> Monsters => this.Set<MonsterEntity>();
-    public DbSet<RaidEntity> Raids => this.Set<RaidEntity>();
-    public DbSet<EggEntity> Eggs => this.Set<EggEntity>();
-    public DbSet<QuestEntity> Quests => this.Set<QuestEntity>();
-    public DbSet<InvasionEntity> Invasions => this.Set<InvasionEntity>();
-    public DbSet<LureEntity> Lures => this.Set<LureEntity>();
-    public DbSet<NestEntity> Nests => this.Set<NestEntity>();
-    public DbSet<GymEntity> Gyms => this.Set<GymEntity>();
     public DbSet<PwebSettingEntity> PwebSettings => this.Set<PwebSettingEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -33,63 +35,5 @@ public class PoracleContext(DbContextOptions<PoracleContext> options) : DbContex
 
         // Ensure pweb_settings.value can hold JSON blobs (quick pick definitions, applied states)
         modelBuilder.Entity<PwebSettingEntity>().Property(e => e.Value).HasColumnType("longtext");
-
-        // Set default values for NOT NULL text columns across all alarm entities
-        modelBuilder.Entity<MonsterEntity>().Property(e => e.Ping).HasDefaultValue("");
-        modelBuilder.Entity<RaidEntity>().Property(e => e.Ping).HasDefaultValue("");
-        modelBuilder.Entity<EggEntity>().Property(e => e.Ping).HasDefaultValue("");
-        modelBuilder.Entity<QuestEntity>().Property(e => e.Ping).HasDefaultValue("");
-        modelBuilder.Entity<InvasionEntity>().Property(e => e.Ping).HasDefaultValue("");
-        modelBuilder.Entity<LureEntity>().Property(e => e.Ping).HasDefaultValue("");
-        modelBuilder.Entity<NestEntity>().Property(e => e.Ping).HasDefaultValue("");
-        modelBuilder.Entity<GymEntity>().Property(e => e.Ping).HasDefaultValue("");
-
-        // Human -> Monsters relationship
-        modelBuilder.Entity<MonsterEntity>()
-            .HasOne(m => m.Human)
-            .WithMany(h => h.Monsters)
-            .HasForeignKey(m => m.Id);
-
-        // Human -> Raids relationship
-        modelBuilder.Entity<RaidEntity>()
-            .HasOne(r => r.Human)
-            .WithMany(h => h.Raids)
-            .HasForeignKey(r => r.Id);
-
-        // Human -> Eggs relationship
-        modelBuilder.Entity<EggEntity>()
-            .HasOne(e => e.Human)
-            .WithMany(h => h.Eggs)
-            .HasForeignKey(e => e.Id);
-
-        // Human -> Quests relationship
-        modelBuilder.Entity<QuestEntity>()
-            .HasOne(q => q.Human)
-            .WithMany(h => h.Quests)
-            .HasForeignKey(q => q.Id);
-
-        // Human -> Invasions relationship
-        modelBuilder.Entity<InvasionEntity>()
-            .HasOne(i => i.Human)
-            .WithMany(h => h.Invasions)
-            .HasForeignKey(i => i.Id);
-
-        // Human -> Lures relationship
-        modelBuilder.Entity<LureEntity>()
-            .HasOne(l => l.Human)
-            .WithMany(h => h.Lures)
-            .HasForeignKey(l => l.Id);
-
-        // Human -> Nests relationship
-        modelBuilder.Entity<NestEntity>()
-            .HasOne(n => n.Human)
-            .WithMany(h => h.Nests)
-            .HasForeignKey(n => n.Id);
-
-        // Human -> Gyms relationship
-        modelBuilder.Entity<GymEntity>()
-            .HasOne(g => g.Human)
-            .WithMany(h => h.Gyms)
-            .HasForeignKey(g => g.Id);
     }
 }

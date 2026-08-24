@@ -76,13 +76,25 @@ public class LureService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
             }
         }
 
-        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
-
         var body = SerializeToElement(model);
 
         // Carry forward anything the stored row holds that the model does not declare. See #730.
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, oldUid, body);
+
+        // /api/v2's PUT is addressed by uid and replaces the row rather than inserting beside it, so the
+        // natural key is never in contention and none of the delete-create-restore below is needed --
+        // which is the single biggest reason to move this type. Verified live on 5.2.1: a PUT changing
+        // only the distance of lure 266 replaced it as 267, where the v1 create-carrying-a-uid inserts a
+        // second row and leaves 266 behind.
+        if (await TrackingV2Replacement.TryApplyAsync(
+                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
+        {
+            model.Uid = v2Uid;
+            return model;
+        }
+
+        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
 
         model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
             this._proxy,

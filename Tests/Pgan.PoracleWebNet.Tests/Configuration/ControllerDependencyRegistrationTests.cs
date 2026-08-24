@@ -41,6 +41,15 @@ public class ControllerDependencyRegistrationTests
         "IMemoryCache",
         "IServiceProvider",
         "IHttpContextAccessor",
+        "IServiceScopeFactory",
+        "ILoggerProvider",
+        "IConfigureOptions`1",
+        "IPostConfigureOptions`1",
+        "IValidateOptions`1",
+        "IOptionsChangeTokenSource`1",
+        "IOptionsFactory`1",
+        "IOptionsMonitorCache`1",
+        "IMetricsListener",
     ];
 
     public static TheoryData<Type> Controllers()
@@ -112,5 +121,94 @@ public class ControllerDependencyRegistrationTests
                 ? d.ServiceType.GetGenericTypeDefinition().Name
                 : d.ServiceType.Name)
             .ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// The same check one level deeper: every interface a registered implementation asks for must also
+    /// be registered.
+    /// </summary>
+    /// <remarks>
+    /// The controller sweep above only sees a controller's own constructor. A service that gains a
+    /// dependency -- <c>UserGeofenceService</c> taking <c>IHumanService</c>, say -- is invisible to it,
+    /// and an unregistered one there fails exactly the same way: the controller resolves, its service
+    /// does not, and the endpoint answers 500.
+    /// </remarks>
+    [Fact]
+    public void EveryRegisteredImplementationsDependenciesAreRegistered()
+    {
+        var services = BuildServices();
+        var registered = services
+            .Select(d => d.ServiceType.IsGenericType
+                ? d.ServiceType.GetGenericTypeDefinition().Name
+                : d.ServiceType.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var missing = new List<string>();
+
+        foreach (var implementation in services
+            .Select(d => d.ImplementationType)
+            .Where(t => t is not null && !t.IsAbstract && IsOurs(t))
+            .Distinct()
+            .Cast<Type>())
+        {
+            var ctor = implementation.GetConstructors()
+                .OrderByDescending(c => c.GetParameters().Length)
+                .FirstOrDefault();
+
+            if (ctor is null)
+            {
+                continue;
+            }
+
+            foreach (var name in ctor.GetParameters()
+                .Where(p => !p.HasDefaultValue)
+                // An IEnumerable<T> always resolves -- to an empty sequence when nothing implements T,
+                // which is the silent failure, so the element type is what has to be registered.
+                .Select(p => Unwrap(p.ParameterType))
+                .Where(t => t.IsInterface)
+                .Select(t => t.IsGenericType ? t.GetGenericTypeDefinition().Name : t.Name)
+                .Where(name => !HostProvided.Contains(name) && !registered.Contains(name)))
+            {
+                missing.Add($"{implementation.Name} -> {name}");
+            }
+        }
+
+        Assert.True(
+            missing.Count == 0,
+            "AddPoracleServices registers implementations whose own dependencies it does not register: "
+            + string.Join(", ", missing.Distinct()));
+    }
+
+    /// <summary>
+    /// Only types this solution owns. Framework registrations bring their own graph and their own
+    /// platform rules -- <c>AddDataProtection</c> registers <c>KeyManagementOptionsSetup</c>, which
+    /// takes an <c>IRegistryPolicyResolver</c> that exists on Windows and not on Linux. Walking those
+    /// asserts something about .NET rather than about this application, and it answers differently on a
+    /// developer machine and on CI, which is how this test first failed.
+    /// </summary>
+    private static bool IsOurs(Type type) =>
+        type.Assembly.GetName().Name?.StartsWith("Pgan.PoracleWebNet", StringComparison.Ordinal) == true;
+
+    private static Type Unwrap(Type type) =>
+        type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+            ? type.GetGenericArguments()[0]
+            : type;
+
+    private static ServiceCollection BuildServices()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPoracleServices(new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Poracle:ApiAddress"] = "http://localhost:3030",
+                ["Poracle:ApiSecret"] = "test-secret",
+                ["Jwt:Secret"] = "test-secret-that-is-long-enough-for-hmac-sha256-signing",
+                ["ConnectionStrings:PoracleDb"] = "server=localhost;database=poracle;user=root;password=x",
+                ["ConnectionStrings:PoracleWebDb"] = "server=localhost;database=poracle_web;user=root;password=x",
+            })
+            .Build());
+
+        return services;
     }
 }

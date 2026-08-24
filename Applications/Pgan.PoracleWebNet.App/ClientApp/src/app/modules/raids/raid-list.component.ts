@@ -32,6 +32,7 @@ import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.c
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 
@@ -406,8 +407,8 @@ export class RaidListComponent implements OnInit {
           this.loading.set(false);
         },
         next: ([raids, eggs]) => {
-          this.raids.set(raids);
-          this.eggs.set(eggs);
+          this.raids.set(orderAlarms(raids, r => [r.pokemonId, r.level, r.form, r.gymId]));
+          this.eggs.set(orderAlarms(eggs, e => [e.level, e.team, e.gymId]));
           this.loading.set(false);
           this.resolveGymNames([...raids, ...eggs]);
         },

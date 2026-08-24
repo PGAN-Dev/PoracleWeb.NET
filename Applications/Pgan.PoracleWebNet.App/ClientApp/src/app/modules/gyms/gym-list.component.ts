@@ -22,10 +22,11 @@ import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
@@ -264,7 +265,7 @@ export class GymListComponent implements OnInit {
       .subscribe({
         error: () => this.loading.set(false),
         next: g => {
-          this.gyms.set(g);
+          this.gyms.set(orderAlarms(g, x => [x.team, x.gymId]));
           this.loading.set(false);
           this.resolveGymNames(g);
         },

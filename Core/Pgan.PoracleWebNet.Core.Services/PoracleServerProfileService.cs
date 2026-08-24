@@ -38,6 +38,18 @@ public partial class PoracleServerProfileService(
     /// </summary>
     private static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// One probe at a time, process-wide.
+    /// </summary>
+    /// <remarks>
+    /// A cold cache costs an HTTP <c>/health</c> GET and a <c>schema_migrations</c> SELECT, and the callers
+    /// arrive in parallel: every version-gated tracking write consults this, and a dashboard load fires
+    /// several at once. Without the gate they all miss the same empty cache and each runs the pair. The
+    /// gate is static because <c>AddHttpClient</c> registers this transient, so an instance field would
+    /// serialise nothing; the cache it guards is the shared singleton either way.
+    /// </remarks>
+    private static readonly SemaphoreSlim ProbeGate = new(1, 1);
+
     private readonly HttpClient _httpClient = httpClient;
     private readonly IPoracleSchemaVersionReader _schemaReader = schemaReader;
     private readonly IMemoryCache _cache = cache;
@@ -47,15 +59,42 @@ public partial class PoracleServerProfileService(
     /// <inheritdoc />
     public async Task<PoracleServerProfile> GetAsync(CancellationToken cancellationToken = default)
     {
-        if (this._cache.TryGetValue(CacheKey, out PoracleServerProfile? cached) && cached is not null)
+        if (this.TryGetCached(out var cached))
         {
             return cached;
         }
 
-        var profile = await this.ProbeAsync(cancellationToken);
-        this._cache.Set(CacheKey, profile, CacheFor);
+        await ProbeGate.WaitAsync(cancellationToken);
 
-        return profile;
+        try
+        {
+            // Someone else may have probed while this call was queued behind the gate.
+            if (this.TryGetCached(out cached))
+            {
+                return cached;
+            }
+
+            var profile = await this.ProbeAsync(cancellationToken);
+            this._cache.Set(CacheKey, profile, CacheFor);
+
+            return profile;
+        }
+        finally
+        {
+            ProbeGate.Release();
+        }
+    }
+
+    private bool TryGetCached(out PoracleServerProfile profile)
+    {
+        if (this._cache.TryGetValue(CacheKey, out PoracleServerProfile? cached) && cached is not null)
+        {
+            profile = cached;
+            return true;
+        }
+
+        profile = null!;
+        return false;
     }
 
     /// <inheritdoc />
