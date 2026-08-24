@@ -39,11 +39,17 @@ internal static class PoracleProblemDetails
     /// Reads an explanation out of a response body. Never throws: an unreadable body still has to produce
     /// something to show, and the alternative is a 500 for a request PoracleNG already described.
     /// </summary>
-    public static string Describe(string? body)
+    public static string Describe(string? body) => Describe(body, Unexplained);
+
+    /// <summary>
+    /// As <see cref="Describe(string?)"/>, but says something other than "alarm" when the body explains
+    /// nothing. The human, profile, area and location routes refuse requests that are not alarms.
+    /// </summary>
+    public static string Describe(string? body, string fallback)
     {
         if (string.IsNullOrWhiteSpace(body))
         {
-            return Unexplained;
+            return fallback;
         }
 
         JsonElement root;
@@ -56,12 +62,12 @@ internal static class PoracleProblemDetails
         {
             // Not JSON. gin's plaintext "404 page not found" lands here, as does an HTML error page from
             // whatever proxy sits in front. Short bodies are still better than nothing.
-            return body.Length > 300 ? Unexplained : body.Trim();
+            return body.Length > 300 ? fallback : body.Trim();
         }
 
         if (root.ValueKind != JsonValueKind.Object)
         {
-            return Unexplained;
+            return fallback;
         }
 
         var fieldErrors = FieldErrors(root);
@@ -81,7 +87,7 @@ internal static class PoracleProblemDetails
             }
         }
 
-        return Unexplained;
+        return fallback;
     }
 
     /// <summary>True when this body is PoracleNG's problem+json rather than the v1 shape.</summary>
