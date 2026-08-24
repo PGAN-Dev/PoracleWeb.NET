@@ -33,6 +33,22 @@ describe('cleanRuleSummary', () => {
     );
   });
 
+  it('leaves an underscore that is part of a name alone', () => {
+    // Poracle interpolates user-chosen strings -- template names, and the areas and saved-place labels
+    // a scope override renders -- straight into this sentence without escaping them. A place called
+    // work_gym is not italics, and losing the underscore renames it on the card.
+    expect(cleanRuleSummary('**Bulbasaur** | distance: 5000m | template: my_template ')).toBe(
+      'Bulbasaur | distance: 5000m | template: my_template',
+    );
+    expect(cleanRuleSummary('**Pikachu** | areas: north_side, east_side ')).toBe('Pikachu | areas: north_side, east_side');
+  });
+
+  it('strips the other Discord emphasis, but only where it is paired', () => {
+    expect(cleanRuleSummary('_Bulbasaur_ | distance: 5000m')).toBe('Bulbasaur | distance: 5000m');
+    expect(cleanRuleSummary('__Bulbasaur__ | distance: 5000m')).toBe('Bulbasaur | distance: 5000m');
+    expect(cleanRuleSummary('*Bulbasaur* | `iv: 90%-100%`')).toBe('Bulbasaur | iv: 90%-100%');
+  });
+
   it('is empty for the absent, null and blank cases, so the card renders nothing', () => {
     expect(cleanRuleSummary(undefined)).toBe('');
     expect(cleanRuleSummary(null)).toBe('');
