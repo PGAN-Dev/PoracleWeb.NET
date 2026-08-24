@@ -145,6 +145,14 @@ export const HELP_SECTIONS: HelpSection[] = [
     titleKey: 'HELP.SECTION_ALERTS_LOGOUT',
   },
   {
+    id: 'quiet',
+    contentKey: 'HELP.CONTENT_QUIET',
+    icon: 'notifications_paused',
+    iconColor: '#5c6bc0',
+    subtitleKey: 'HELP.SECTION_QUIET_SUB',
+    titleKey: 'HELP.SECTION_QUIET',
+  },
+  {
     id: 'faq',
     contentKey: 'HELP.CONTENT_FAQ',
     icon: 'help_outline',
