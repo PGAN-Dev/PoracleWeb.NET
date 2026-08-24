@@ -4,6 +4,7 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -299,7 +300,11 @@ public class UnmodelledFieldPreservationTests
         "egg" => new EggService(
             this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),
         "quest" => new QuestService(
-            this._proxy.Object, this._featureGate.Object, NullLogger<QuestService>.Instance, this._remapper.Object),
+            this._proxy.Object,
+            this._featureGate.Object,
+            PokecoinCapabilityStub.Supported,
+            NullLogger<QuestService>.Instance,
+            this._remapper.Object),
         "invasion" => new InvasionService(
             this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object),
         "lure" => new LureService(

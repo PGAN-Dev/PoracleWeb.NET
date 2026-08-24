@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Quest alarms can track PokéCoin rewards.** Poracle started accepting them in 5.2.0, so quest alarms gained a sixth reward tab that works the way Stardust does: a minimum amount and no item picker, because Poracle matches this reward on the amount alone. The tab appears only on a Poracle new enough to store it -- an older one refuses the reward type outright -- and a PokéCoin rule you already have, set with the bot or left behind by a downgrade, stays visible and deletable either way.
 - **A request an older Poracle cannot serve now says which feature it was and what the server would need.** Nothing throws it yet, so there is no visible change today: it is the answer waiting for the first control that depends on a newer PoracleNG than the one an instance is pointed at. Until now such a request came back either in Poracle's own wording, which names a database column, or as a plain server error. It now answers with the feature named as this site names it and the version or database migration that would serve it, in words, beside the control that asked -- rather than borrowing the disabled-by-your-administrator wording, which would be untrue and would send the reader looking for a switch nobody turned off.
 
 ### Documentation

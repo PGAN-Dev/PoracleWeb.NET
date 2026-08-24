@@ -566,6 +566,11 @@
     "MIN_AMOUNT_HINT": "0 = toute quantité",
     "MIN_STARDUST": "Poussière étoilée minimum",
     "MIN_STARDUST_HINT": "0 = toute étude en poussière étoilée",
+    "POKECOINS": "Poképièces",
+    "POKECOINS_AMOUNT": "{{amount}}+ Poképièces",
+    "TAB_POKECOINS": "Poképièces",
+    "MIN_POKECOINS": "Poképièces minimum",
+    "MIN_POKECOINS_HINT": "0 = toute étude en Poképièces",
     "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {

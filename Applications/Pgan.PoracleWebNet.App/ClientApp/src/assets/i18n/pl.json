@@ -566,6 +566,11 @@
     "MIN_AMOUNT_HINT": "0 = dowolna liczba",
     "MIN_STARDUST": "Minimalny gwiezdny pył",
     "MIN_STARDUST_HINT": "0 = każde zadanie z gwiezdnym pyłem",
+    "POKECOINS": "PokéMonety",
+    "POKECOINS_AMOUNT": "{{amount}}+ PokéMonet",
+    "TAB_POKECOINS": "PokéMonety",
+    "MIN_POKECOINS": "Minimalna liczba PokéMonet",
+    "MIN_POKECOINS_HINT": "0 = każde zadanie z PokéMonetami",
     "AMOUNT_PREFIX": "{{count}}× {{reward}}"
   },
   "INVASIONS": {
