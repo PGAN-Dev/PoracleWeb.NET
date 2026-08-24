@@ -310,6 +310,52 @@ Two traps, both verified against 5.1.0 and both load-bearing: `pokestop` is in `
 
 **Caching:** `SiteSettingService.GetByKeyAsync` is wrapped in `IMemoryCache` with a 5-min TTL and explicit invalidation on writes. Without this, gate checks would add ~10 MySQL roundtrips per dashboard load. There's a documented TOCTOU window (slow read overlapping a write can leak a stale value for up to the TTL) — acceptable for admin-rare toggles.
 
+### Quiet Periods (PoracleNG Mutes)
+
+A quiet period is a time-boxed `(scope, value)` mute on a human, over PoracleNG's `/api/v2/humans/{id}/mutes`.
+`IPoracleMuteProxy` is the **only /api/v2 caller in the codebase**: v2 is huma-generated, so its error
+envelope is `{title, status, detail}` plus an `errors[]` array for schema violations. A handler that reads
+`err.error.error` -- v1's shape, and what every other proxy here does -- renders blank against it.
+
+It is **not** *Pause Alerts*, which toggles the human's `enabled` flag: account-wide, indefinite, persisted.
+
+Four traps, all verified by calling the live 5.2.1 instance rather than reading the source:
+
+**The store is in memory and dies with the processor.** Nothing about a mute is persisted. The UI therefore
+shows a relative countdown and never an absolute expiry -- "Quiet until 3:15pm" is a promise the server
+cannot keep, and a deadline that vanishes early reads as a lie where a countdown reads as time passing.
+`MuteService` refetches on window focus and every time a chip appears, and the sheet states the volatility
+in one plain line. Do not cache the list across a page's lifetime.
+
+**POST canonicalises the area name; DELETE matches the stored string exactly.** `scope=area value=aberdeen`
+is stored and returned as `Aberdeen` (the fence's own casing), and `DELETE ?value=aberdeen` then 404s.
+PoracleWeb.NET holds area names lowercase everywhere because Poracle's matching is case-sensitive, so the
+resume path must send back the value the LIST returned, and the chip must match the area row
+case-insensitively. Get this wrong and the user has a quiet period nobody can lift until it expires.
+
+**`scope=tracking` is deliberately not offered.** Tracking uids are per-table auto-increments whose ranges
+overlap heavily on live data -- gym 31-121 sits wholly inside raid 59-343 and monster 4-36480 -- and
+upstream's matcher compares the uid with no type qualifier. "Quiet this one rule" would silently quiet up
+to ten unrelated rules and light the chip on their cards too, since the mute list is scope+value only and
+cannot say which type it meant. That needs an upstream fix, not a client workaround. `scope=pokestop` is
+read-only here for a duller reason: neither the lure nor the invasion model carries a fort id.
+
+**Capability is the reported version, not the `/health` map.** 5.2.1's map is
+`{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}` -- no mutes key -- so
+"improving" `MuteCapabilityService` to consult `Supports("mutes")` switches the whole feature off, because
+absent means false by that map's own contract. The gate is `ParsedVersion >= 5.2.0` and it fails closed.
+
+Two smaller ones. **Nobody validates a gym or station id**: `scope=gym value=abc123` is accepted verbatim,
+so only ever create those from an existing alarm's `gymId`/`stationId`, never from free text. And **mutes
+are per-human, not per-profile** -- switching profile does not lift them, and the copy must not imply it does.
+
+Writes are refused while impersonating (`IsImpersonating` on `MuteController`), because `UserId` is the
+inspected account and an unguarded write silences somebody else's alerts -- the #663 shape. Reads stay open
+so an admin can diagnose "why am I getting nothing".
+
+`quiet-surface-parity.spec.ts` pins the six surfaces that carry the chip and the four list components that
+must not, so a future alarm type cannot quietly miss it.
+
 ### Test Alerts
 - `POST /api/test-alert/{type}/{uid}` triggers a test notification for a specific alarm. Supported types: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`.
 - **Parallel data fetch**: `TestAlertService` uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) concurrently.
@@ -541,6 +587,63 @@ When comparing, **a field PoracleWeb does not supply cannot be compared** — Po
 
 See #462, #463, #531, #553, #561.
 
+### The `/api/v2` Pilot: Pokemon Edits Only, And Pokemon Now Rotates Its uid
+
+PoracleNG 5.2.0 added a second tracking surface. `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}` is
+addressed by uid: it 404s when the uid is not that human's and 409s when the replacement would exactly
+duplicate another rule, so the server enforces what `EnsureNoMergeIntoAnotherAlarmAsync` had to
+reconstruct from a 200. **v2 POST still diffs and merges** — the #561 takeover reproduces on it — so
+creates stay on v1 and the reconciler stays.
+
+**Only `MonsterService.UpdateAsync` uses it.** Everything else — every read, `CreateAsync`,
+`BulkCreateAsync`, both distance endpoints, and all nine other types — is unchanged on v1, which 5.2.1
+left frozen. Reads deliberately stay on v1: v2 answers `null` for every field at its wildcard where v1
+answers the sentinel, and both `Monster` (C#) and `Monster` (TS) are built on the sentinels. Rebuilding
+them from nulls means a per-field default table that must match PoracleNG exactly, and one wrong entry
+silently rewrites a filter on the user's next save.
+
+**The v2 PUT is delete-then-insert, so pokemon now rotates its uid on edit like the other nine.** It was
+the one exception, and three places in this file used to say so. `MonsterService` therefore takes
+`ITrackedUidRemapper`, and `TrackedUidRemapperCoverageTests` lists it among the rotating services rather
+than exempting it. Quick-pick applied state is the thing that actually breaks without the remap (#403).
+Note that `EnsureNoMergeIntoAnotherAlarmAsync` already early-returned for pokemon *updates* (#606), so
+moving to v2 removes no guard that was running.
+
+Three shape differences, all handled once at the wire in `TrackingV2Translator`:
+
+| v1 | v2 |
+|---|---|
+| `clean` 3-bit mask | separate `clean` / `edit` / `summary` booleans |
+| `gender` 0-3 | `any` / `male` / `female` / `genderless` |
+| `pvp_ranking_league` any int | enum of `{0, 500, 1500, 2500}` |
+
+Plus `uid`, `id`, `profile_no`, `ping` and `description`, which v2 has no place for and refuses outright:
+`V2PokemonRule` sets `additionalProperties: false`, so one stray property is a 422 and the write fails.
+The v1 shape stays the single internal currency — `TrackingFieldPreserver`, `TrackingUpdateReconciler`,
+`BulkUidRemap` and `QuickPickService` all build and compare it — and the translator is the only exit onto
+v2, which is what stops a v1-shaped row reaching a v2 body.
+
+**The translator never changes what PoracleNG will accept.** A property it does not know, a gender outside
+0-3, a league outside the enum: it answers false and the row goes to v1. Refusing would mean a newer
+PoracleNG broke every pokemon edit; dropping the field would be #730 again.
+
+**A v2 PUT is a full replace** — omitting `min_iv` wipes a stored 90, verified live — so
+`TrackingFieldPreserver` matters more here than it did on v1, not less.
+
+Errors are RFC 9457 problem+json at **422**, not 400, in two shapes: a schema failure carries `errors[]`
+whose `location` is `body.x` on a PUT and `body[0].x` on a POST, and a semantic refusal carries only
+`detail`. `PoracleProblemDetails` reads both, plus v1's `{"message":...}`. PR #811 adds
+`PoracleErrorMessage.cs` doing the same job for the create path; whichever lands second should collapse
+them.
+
+Gating: `PoracleServerProfile.SupportsV2Tracking` is version >= 5.2.0. Not the `/health` capability map —
+5.2.1 advertises nothing about v2. Unreachable answers false, which is the safe direction here even
+though `UpstreamFeatureFlagService` deliberately fails the other way. `Poracle:TrackingApiVersion`
+(`auto` | `v1` | `v2`, env `PORACLE_TRACKING_API_VERSION`) pins it for a fork whose version says the wrong
+thing, and the proxy falls back to v1 for five minutes when the route answers gin's plaintext
+`404 page not found` — that fallback is the only thing standing between a downgraded server and an outage
+window the length of the profile cache.
+
 ### Keep the PoracleNG Checkout Pinned To What Prod Runs
 
 `E:/PGAN/pogogit/PoracleNG` drifts. On 2026-08-08 it was four months behind prod, and its `DiffTracking` lacked the `totalDiffs == 1` clause entirely — reading it produced three wrong fixes in one day.
@@ -761,6 +864,8 @@ dotnet ef migrations script \
 | PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |
 | PoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleHumanProxy.cs` |
 | PoracleJsonHelper | `Core/Pgan.PoracleWebNet.Core.Services/PoracleJsonHelper.cs` |
+| TrackingV2Translator (v1 row -> /api/v2 body) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Translator.cs` |
+| PoracleProblemDetails (RFC 9457 + v1 errors) | `Core/Pgan.PoracleWebNet.Core.Services/PoracleProblemDetails.cs` |
 | Repositories (non-alarm) | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
 | SiteSettingRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/SiteSettingRepository.cs` |
 | WebhookDelegateRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/WebhookDelegateRepository.cs` |
@@ -784,6 +889,13 @@ dotnet ef migrations script \
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
 | Test Alert Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/TestAlertController.cs` |
 | ITestAlertService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/ITestAlertService.cs` |
+| Mute Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/MuteController.cs` |
+| IPoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleMuteProxy.cs` |
+| PoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleMuteProxy.cs` |
+| MuteCapabilityService | `Core/Pgan.PoracleWebNet.Core.Services/MuteCapabilityService.cs` |
+| Mute / MuteScopes Models | `Core/Pgan.PoracleWebNet.Core.Models/Mute.cs`, `MuteScopes.cs` |
+| Mute Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/mute.service.ts` |
+| Quiet Chip / Sheet / List Sheet | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/quiet-chip/`, `quiet-sheet/`, `quiet-list-sheet/` |
 | TestAlertService | `Core/Pgan.PoracleWebNet.Core.Services/TestAlertService.cs` |
 | TestAlertRequest Model | `Core/Pgan.PoracleWebNet.Core.Models/TestAlertRequest.cs` |
 | Test Alert Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/test-alert.service.ts` |

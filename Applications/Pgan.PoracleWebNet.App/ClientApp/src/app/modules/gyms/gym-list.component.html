@@ -90,6 +90,10 @@
           <app-rule-summary [text]="gym.description" />
         </mat-card-content>
         <mat-card-actions align="end">
+          @if (gym.gymId; as gymId) {
+            <app-quiet-chip scope="gym" [value]="gymId" [subject]="gymNames()[gymId]" />
+          }
+
           <button
             mat-icon-button
             (click)="sendTestAlert(gym)"

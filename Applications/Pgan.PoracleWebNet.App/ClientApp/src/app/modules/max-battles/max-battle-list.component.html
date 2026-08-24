@@ -132,6 +132,10 @@
           <app-rule-summary [text]="mb.description" />
         </mat-card-content>
         <mat-card-actions align="end">
+          @if (mb.stationId; as stationId) {
+            <app-quiet-chip scope="station" [value]="stationId" />
+          }
+
           <button mat-icon-button (click)="editMaxBattle(mb)" [matTooltip]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>

@@ -29,15 +29,18 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
+import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { NO_COSTUME } from '../../shared/utils/costumes';
 import { minTimePillLabel } from '../../shared/utils/min-time';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    QuietChipComponent,
     ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
@@ -313,6 +316,14 @@ export class PokemonListComponent implements OnInit {
       return `${(meters / 1000).toFixed(1)} km`;
     }
     return `${meters} m`;
+  }
+
+  /**
+   * The costume pill's text: "No costume" for 0, the costume's name otherwise. Never called for
+   * 9000 -- "any costume" is the default and gets no pill, like every other unfiltered field.
+   */
+  getCostumePillText(costume: number): string {
+    return costume === NO_COSTUME ? this.i18n.instant('POKEMON.NO_COSTUME_PILL') : this.masterData.getCostumeName(costume);
   }
 
   getGenderDisplay(gender: number): string {
