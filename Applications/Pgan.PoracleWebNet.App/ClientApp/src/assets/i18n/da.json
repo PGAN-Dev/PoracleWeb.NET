@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "{{count}} min tilbage",
     "PILL_TIME_LEFT_SECONDS": "{{count}} s tilbage",
-    "MIN_TIME_ANY": "Alle"
+    "MIN_TIME_ANY": "Alle",
+    "FILTER_COSTUME": "Kostume",
+    "LABEL_COSTUME": "Kostume",
+    "COSTUME_ANY": "Ethvert kostume",
+    "COSTUME_NONE": "Intet kostume",
+    "COSTUME_HINT_ANY": "Matcher alle spawns, med eller uden kostume.",
+    "COSTUME_HINT_NONE": "Springer spawns med kostume over.",
+    "COSTUME_HINT_SPECIFIC": "Kun spawns med dette kostume.",
+    "COSTUME_HINT_UNAVAILABLE": "Kostumenavne er ikke tilgængelige lige nu. Ethvert kostume og Intet kostume virker stadig.",
+    "COSTUME_FALLBACK": "Kostume {{id}}",
+    "NO_COSTUME_PILL": "Intet kostume"
   },
   "ALARM": {
     "LOCATION_MODE": "Placeringstilstand",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Fjern eget niveau {{value}}",
       "REMOVED": "Niveau {{value}} fjernet",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostume"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest-alarmer",

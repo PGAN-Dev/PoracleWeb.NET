@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "{{count}} min restantes",
     "PILL_TIME_LEFT_SECONDS": "{{count}} s restantes",
-    "MIN_TIME_ANY": "Toute"
+    "MIN_TIME_ANY": "Toute",
+    "FILTER_COSTUME": "Costume",
+    "LABEL_COSTUME": "Costume",
+    "COSTUME_ANY": "N'importe quel costume",
+    "COSTUME_NONE": "Sans costume",
+    "COSTUME_HINT_ANY": "Correspond à toutes les apparitions, avec ou sans costume.",
+    "COSTUME_HINT_NONE": "Ignore les apparitions avec costume.",
+    "COSTUME_HINT_SPECIFIC": "Uniquement les apparitions portant ce costume.",
+    "COSTUME_HINT_UNAVAILABLE": "Les noms de costumes sont indisponibles pour le moment. N'importe quel costume et Sans costume fonctionnent toujours.",
+    "COSTUME_FALLBACK": "Costume {{id}}",
+    "NO_COSTUME_PILL": "Sans costume"
   },
   "ALARM": {
     "LOCATION_MODE": "Mode de localisation",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Supprimer le niveau personnalisé {{value}}",
       "REMOVED": "Niveau {{value}} supprimé",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Costume"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmes Quête",

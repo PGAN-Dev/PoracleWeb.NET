@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}}s",
     "PILL_TIME_LEFT_MINUTES": "{{count}} min left",
     "PILL_TIME_LEFT_SECONDS": "{{count}}s left",
-    "MIN_TIME_ANY": "Any"
+    "MIN_TIME_ANY": "Any",
+    "FILTER_COSTUME": "Costume",
+    "LABEL_COSTUME": "Costume",
+    "COSTUME_ANY": "Any costume",
+    "COSTUME_NONE": "No costume",
+    "COSTUME_HINT_ANY": "Matches every spawn, costumed or not.",
+    "COSTUME_HINT_NONE": "Skips costumed spawns.",
+    "COSTUME_HINT_SPECIFIC": "Only spawns wearing this costume.",
+    "COSTUME_HINT_UNAVAILABLE": "Costume names are unavailable right now. Any costume and No costume still work.",
+    "COSTUME_FALLBACK": "Costume {{id}}",
+    "NO_COSTUME_PILL": "No costume"
   },
   "ALARM": {
     "LOCATION_MODE": "Location Mode",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Remove custom level {{value}}",
       "REMOVED": "Removed level {{value}}",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Costume"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest Alarms",

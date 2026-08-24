@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "noch {{count}} Min",
     "PILL_TIME_LEFT_SECONDS": "noch {{count}} s",
-    "MIN_TIME_ANY": "Beliebig"
+    "MIN_TIME_ANY": "Beliebig",
+    "FILTER_COSTUME": "Kostüm",
+    "LABEL_COSTUME": "Kostüm",
+    "COSTUME_ANY": "Jedes Kostüm",
+    "COSTUME_NONE": "Kein Kostüm",
+    "COSTUME_HINT_ANY": "Trifft auf jeden Spawn zu, mit oder ohne Kostüm.",
+    "COSTUME_HINT_NONE": "Überspringt Spawns mit Kostüm.",
+    "COSTUME_HINT_SPECIFIC": "Nur Spawns mit diesem Kostüm.",
+    "COSTUME_HINT_UNAVAILABLE": "Kostümnamen sind derzeit nicht verfügbar. Jedes Kostüm und Kein Kostüm funktionieren weiterhin.",
+    "COSTUME_FALLBACK": "Kostüm {{id}}",
+    "NO_COSTUME_PILL": "Kein Kostüm"
   },
   "ALARM": {
     "LOCATION_MODE": "Standortmodus",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Eigenes Level {{value}} entfernen",
       "REMOVED": "Level {{value}} entfernt",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostüm"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest-Alarme",

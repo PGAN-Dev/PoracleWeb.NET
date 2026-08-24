@@ -197,6 +197,9 @@
                 monster.gender === 1 ? '\u2642' : monster.gender === 2 ? '\u2640' : ('POKEMON.GENDER_GENDERLESS' | translate)
               }}</span>
             }
+            @if (monster.costume !== 9000) {
+              <span class="filter-pill costume-pill">{{ getCostumePillText(monster.costume) }}</span>
+            }
             @if (monster.size > 0 || monster.maxSize < 5) {
               <span class="filter-pill size-pill">{{ getSizePillText(monster) }}</span>
             }

@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "restam {{count}} min",
     "PILL_TIME_LEFT_SECONDS": "restam {{count}} s",
-    "MIN_TIME_ANY": "Qualquer"
+    "MIN_TIME_ANY": "Qualquer",
+    "FILTER_COSTUME": "Fantasia",
+    "LABEL_COSTUME": "Fantasia",
+    "COSTUME_ANY": "Qualquer fantasia",
+    "COSTUME_NONE": "Sem fantasia",
+    "COSTUME_HINT_ANY": "Corresponde a todos os aparecimentos, com ou sem fantasia.",
+    "COSTUME_HINT_NONE": "Ignora aparecimentos com fantasia.",
+    "COSTUME_HINT_SPECIFIC": "Apenas aparecimentos com esta fantasia.",
+    "COSTUME_HINT_UNAVAILABLE": "Os nomes das fantasias estão indisponíveis no momento. Qualquer fantasia e Sem fantasia continuam funcionando.",
+    "COSTUME_FALLBACK": "Fantasia {{id}}",
+    "NO_COSTUME_PILL": "Sem fantasia"
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de Localização",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Remover o nível personalizado {{value}}",
       "REMOVED": "Nível {{value}} removido",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Fantasia"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmes de Quest",
