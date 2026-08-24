@@ -79,7 +79,7 @@ internal static class TrackingV2Translator
     /// <summary>
     /// Every field each <c>V2*Rule</c> declares, taken from 5.2.1's <c>openapi.golden.json</c>, sorted into
     /// how it has to be written. A schema field missing from its type's table would go to v1 forever
-    /// without anyone noticing, which is why <c>TrackingV2SchemaCoverageTests</c> asserts the tables against
+    /// without anyone noticing, which is why <c>TrackingV2TypeTranslationTests</c> asserts the tables against
     /// the schema rather than against themselves.
     /// </summary>
     private static readonly Dictionary<string, TypeSpec> Specs = new(StringComparer.Ordinal)
