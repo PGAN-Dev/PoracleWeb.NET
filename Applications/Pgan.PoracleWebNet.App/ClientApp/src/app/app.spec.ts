@@ -106,6 +106,7 @@ describe('App nav filtering (#236)', () => {
     ['disable_nests', '/nests'],
     ['disable_gyms', '/gyms'],
     ['disable_maxbattles', '/max-battles'],
+    ['disable_showcase', '/pokestop-events'],
     ['disable_fort_changes', '/fort-changes'],
   ];
 

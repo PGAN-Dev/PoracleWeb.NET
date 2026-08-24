@@ -15,20 +15,21 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 describe('PokemonAddDialogComponent', () => {
   let component: PokemonAddDialogComponent;
   let dialogRef: { close: jest.Mock };
   let monsterService: { create: jest.Mock };
   let snackBar: { open: jest.Mock };
-  let masterData: { getFormsForPokemon: jest.Mock };
+  let masterData: { costumesAvailable: jest.Mock; getCostumeName: jest.Mock; getCostumes: jest.Mock; getFormsForPokemon: jest.Mock };
 
   /** Meowth (52) with two non-Normal forms: Alolan + Galarian. */
   const MEOWTH = 52;
   const ALOLAN = 78;
   const GALARIAN = 79;
 
-  function setup() {
+  function setup(costumeSupported = true) {
     dialogRef = { close: jest.fn() };
     // A create answers 200 with uid 0 when the submission duplicates an alarm the user already has, so
     // the uid is what says whether anything was made. See #495.
@@ -36,6 +37,9 @@ describe('PokemonAddDialogComponent', () => {
     monsterService = { create: jest.fn().mockImplementation(() => of({ uid: nextUid++ } as Monster)) };
     snackBar = { open: jest.fn() };
     masterData = {
+      costumesAvailable: jest.fn().mockReturnValue(true),
+      getCostumeName: jest.fn().mockReturnValue('Halloween 2025'),
+      getCostumes: jest.fn().mockReturnValue([{ id: 85, name: 'Halloween 2025' }]),
       getFormsForPokemon: jest.fn().mockReturnValue([
         { id: ALOLAN, name: 'Alolan' },
         { id: GALARIAN, name: 'Galarian' },
@@ -53,6 +57,7 @@ describe('PokemonAddDialogComponent', () => {
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
@@ -87,6 +92,48 @@ describe('PokemonAddDialogComponent', () => {
 
   it('defaults the multi-select forms control to empty', () => {
     expect(component.filtersForm.controls.forms.value).toEqual([]);
+  });
+
+  // 9000 is "any costume". A control that defaulted to 0 would ship "no costume" on every new
+  // alarm and quietly stop it firing on every costumed event. See #804.
+  it('defaults the costume filter to "any", not "none"', () => {
+    expect(component.filtersForm.controls.costume.value).toBe(9000);
+
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(9000);
+  });
+
+  it('sends the chosen costume on every form the selection fans out to', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.filtersForm.controls.forms.setValue([ALOLAN, GALARIAN]);
+    component.filtersForm.controls.costume.setValue(85);
+    component.save();
+
+    expect(monsterService.create.mock.calls.map(c => (c[0] as MonsterCreate).costume)).toEqual([85, 85]);
+  });
+
+  it('sends "no costume" as 0 rather than dropping it', () => {
+    component.selectedPokemonIds.set([MEOWTH]);
+    component.filtersForm.controls.costume.setValue(0);
+    component.save();
+
+    expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(0);
+  });
+
+  it('names the hint after the current selection', () => {
+    expect(component.costumeHint()).toBe('POKEMON.COSTUME_HINT_ANY');
+    component.filtersForm.controls.costume.setValue(0);
+    expect(component.costumeHint()).toBe('POKEMON.COSTUME_HINT_NONE');
+    component.filtersForm.controls.costume.setValue(85);
+    expect(component.costumeHint()).toBe('POKEMON.COSTUME_HINT_SPECIFIC');
+  });
+
+  it('says so when the costume names failed to load', () => {
+    masterData.costumesAvailable.mockReturnValue(false);
+
+    expect(component.costumeHint()).toBe('POKEMON.COSTUME_HINT_UNAVAILABLE');
   });
 
   it('creates one alarm per selected form (multi-select fan-out)', () => {
@@ -233,5 +280,26 @@ describe('PokemonAddDialogComponent', () => {
     component.filtersForm.controls.forms.setValue([ALOLAN]);
     component.save();
     expect(monsterService.create).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The gate. A Poracle without the monsters.costume column takes the field, answers 200 and drops it, so an
+   * offered control produces a rule that reads "Halloween 2025" and matches every spawn. The rest of
+   * the dialog is untouched -- only this one control goes.
+   */
+  describe('server capability', () => {
+    it('offers the costume filter when Poracle has the column', () => {
+      expect(component.showCostume()).toBe(true);
+    });
+
+    it('hides the costume filter when Poracle does not', () => {
+      setup(false);
+
+      expect(component.showCostume()).toBe(false);
+      // The wildcard still goes out, which is what an old Poracle stores for an absent key anyway.
+      component.selectedPokemonIds.set([25]);
+      component.save();
+      expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(9000);
+    });
   });
 });

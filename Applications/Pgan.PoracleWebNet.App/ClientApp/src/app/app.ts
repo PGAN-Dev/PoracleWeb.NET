@@ -144,6 +144,17 @@ export class App implements OnInit {
       route: '/invasions',
     },
     {
+      // Directly after Invasions: showcases used to live in that dialog, so this is where a user
+      // who remembers them will look.
+      countKey: 'pokestopEvents',
+      disableKey: 'disable_showcase',
+      group: 'alarms',
+      icon: 'celebration',
+      iconColor: '#03aeb6',
+      label: 'NAV.POKESTOP_EVENTS',
+      route: '/pokestop-events',
+    },
+    {
       countKey: 'lures',
       disableKey: 'disable_lures',
       group: 'alarms',

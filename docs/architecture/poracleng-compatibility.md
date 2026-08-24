@@ -55,9 +55,10 @@ capability key appeared. The version is the only thing that changed, so the vers
 | Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.1 |
 | Rule descriptions on alarm cards | Response field | v1 `allProfiles`, or any v2 read |
 
-At the time of writing none of these has a control on `develop`. The machinery that decides support is
-in place and the failure path is wired; the pickers arrive with the feature branches currently in
-review, each bringing its own small capability service.
+Each of these carries its own small capability service, shaped like `ISummaryCapabilityService` and
+resolving from `IPoracleServerProfileService`. There is deliberately no central registry: a registry
+was written and abandoned, because the per-feature shape already existed and two mechanisms answering
+one question is how one of them ends up being the one nobody updates.
 
 Costume names are the awkward one. PoracleNG loads them into its game data under `costume_{id}` keys
 but publishes them nowhere -- `/api/masterdata/` offers only `monsters` and `grunts` -- so the costume

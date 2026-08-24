@@ -30,6 +30,16 @@ public static class DisableFeatureKeys
     public const string FortChanges = "disable_fort_changes";
 
     /// <summary>
+    /// Disables the Pokestop Events page (Showcase, Kecleon, Gold Stop).
+    /// </summary>
+    /// <remarks>
+    /// The key says <c>showcase</c> while the page says Pokestop Events because it is upstream's own
+    /// <c>[general] disable_showcase</c> option, and an admin who has switched it off in PoracleNG will
+    /// look for that name here. Renaming it would put the two out of step for the sake of tidiness.
+    /// </remarks>
+    public const string PokestopEvents = "disable_showcase";
+
+    /// <summary>
     /// Disables the user-submitted custom-geofence feature (drawing/creating, submitting for review,
     /// and GeoJSON import). Not an alarm type — gates <c>UserGeofenceController</c> directly. Existing
     /// user geofences keep being served by the geofence feed so in-flight alerts don't break.
@@ -94,5 +104,7 @@ public static class DisableFeatureKeys
         ["gym"] = Gyms,
         ["maxbattle"] = MaxBattles,
         ["fort"] = FortChanges,
+        // "incident" is PoracleNG's tracking-type name; the page is /pokestop-events.
+        ["incident"] = PokestopEvents,
     };
 }

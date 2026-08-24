@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { ConfigService } from './config.service';
-import { ActiveHourEntry, parseActiveHours, Profile, ProfileCreate } from '../models';
+import { ActiveHourEntry, parseActiveHours, Profile, ProfileCreate, serializeActiveHours } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
@@ -47,7 +47,7 @@ export class ProfileService {
 
   updateActiveHours(profileNo: number, activeHours: ActiveHourEntry[] | null): Observable<void> {
     return this.http.put<void>(`${this.config.apiHost}/api/profiles/${profileNo}`, {
-      activeHours: activeHours ? JSON.stringify(activeHours) : null,
+      activeHours: activeHours ? serializeActiveHours(activeHours) : null,
     });
   }
 }
