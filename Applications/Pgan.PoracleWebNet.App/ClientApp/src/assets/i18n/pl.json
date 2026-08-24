@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "pozostało {{count}} min",
     "PILL_TIME_LEFT_SECONDS": "pozostało {{count}} s",
-    "MIN_TIME_ANY": "Dowolny"
+    "MIN_TIME_ANY": "Dowolny",
+    "FILTER_COSTUME": "Kostium",
+    "LABEL_COSTUME": "Kostium",
+    "COSTUME_ANY": "Dowolny kostium",
+    "COSTUME_NONE": "Bez kostiumu",
+    "COSTUME_HINT_ANY": "Pasuje do każdego pojawienia, z kostiumem lub bez.",
+    "COSTUME_HINT_NONE": "Pomija pojawienia w kostiumie.",
+    "COSTUME_HINT_SPECIFIC": "Tylko pojawienia w tym kostiumie.",
+    "COSTUME_HINT_UNAVAILABLE": "Nazwy kostiumów są teraz niedostępne. Dowolny kostium i Bez kostiumu nadal działają.",
+    "COSTUME_FALLBACK": "Kostium {{id}}",
+    "NO_COSTUME_PILL": "Bez kostiumu"
   },
   "ALARM": {
     "LOCATION_MODE": "Tryb lokalizacji",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Usuń własny poziom {{value}}",
       "REMOVED": "Usunięto poziom {{value}}",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostium"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmy zadań",

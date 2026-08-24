@@ -31,6 +31,7 @@ import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.c
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { NO_COSTUME } from '../../shared/utils/costumes';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -284,6 +285,14 @@ export class RaidListComponent implements OnInit {
       return `${(meters / 1000).toFixed(1)} km`;
     }
     return `${meters} m`;
+  }
+
+  /**
+   * The costume pill's text: "No costume" for 0, the costume's name otherwise. Never called for
+   * 9000 -- "any costume" is the default and gets no pill, like every other unfiltered field.
+   */
+  getCostumePillText(costume: number): string {
+    return costume === NO_COSTUME ? this.i18n.instant('POKEMON.NO_COSTUME_PILL') : this.masterData.getCostumeName(costume);
   }
 
   getEggImage(level: number): string {

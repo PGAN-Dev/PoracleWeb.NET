@@ -53,7 +53,7 @@ public class PokemonFilterRoundTripTests
 
     private async Task<JsonElement> WriteAsync(MonsterCreate create)
     {
-        await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object).CreateAsync("u1", create.ToMonster());
+        await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported()).CreateAsync("u1", create.ToMonster());
 
         return this._sent.ValueKind == JsonValueKind.Array ? this._sent.EnumerateArray().First() : this._sent;
     }
@@ -97,7 +97,7 @@ public class PokemonFilterRoundTripTests
             .ReturnsAsync(JsonDocument.Parse(
                 """[{"uid":7,"pokemon_id":6,"pvp_ranking_evolution":3,"min_time":600}]""").RootElement.Clone());
 
-        var monster = await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object).GetByUidAsync("u1", 7);
+        var monster = await new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported()).GetByUidAsync("u1", 7);
 
         Assert.Equal(3, monster!.PvpRankingEvolution);
         Assert.Equal(600, monster.MinTime);

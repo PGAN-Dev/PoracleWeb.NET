@@ -13,12 +13,17 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 /// The bulk and edit paths built their body by serializing the typed alarm model, so any column PoracleNG
 /// grew that PoracleWeb never modelled was absent from the write. Because the POST carries a uid,
 /// PoracleNG upserted the row and stored the column default over the user's value. PoracleNG 5.1.0 added
-/// <c>override_location_label</c>, <c>override_areas</c> and <c>pvp_ranking_evolution</c>; 5.2.0 adds
-/// <c>costume</c>. Set one with the bot, press Update Distance on the web, and it was gone. See #730.
+/// <c>override_location_label</c>, <c>override_areas</c> and <c>pvp_ranking_evolution</c>. Set one with
+/// the bot, press Update Distance on the web, and it was gone. See #730.
 /// </para>
 /// <para>
-/// The fields asserted here are the ones PoracleWeb still does not model — <c>rarity</c>, which it
-/// deliberately does not offer, and <c>costume</c>, which 5.2.0 has not shipped yet. Once a field is
+/// <c>rarity</c> is asserted because PoracleWeb deliberately does not offer it. <c>costume</c> is
+/// asserted for two reasons at once: #804 modelled it on <c>Monster</c> and <c>Raid</c> only, so the
+/// other eight types still carry it as an unmodelled passthrough, and the bulk distance paths rewrite
+/// raw rows rather than round-tripping the model, so it must survive verbatim on all ten regardless.
+/// The two edit tests seed it on the model instead, which is where it now comes from for those two
+/// types. It is deliberately NOT 9000 anywhere here: at the model default every one of these
+/// assertions would pass whether the value was carried, rebuilt, or invented. Once a field is
 /// modelled its value comes from the caller, which is a different guarantee: see
 /// <see cref="TrackingFieldCoverageTests"/>.
 /// </para>
@@ -53,7 +58,7 @@ public class UnmodelledFieldPreservationTests
         + "\"override_areas\": [\"terrigal\"],"
         + "\"pvp_ranking_evolution\": 2,"
         + "\"rarity\": 3,"
-        + "\"costume\": 9000"
+        + "\"costume\": 85"
         + "}]";
 
     public UnmodelledFieldPreservationTests()
@@ -154,9 +159,13 @@ public class UnmodelledFieldPreservationTests
     [Fact]
     public async Task EditKeepsUnmodelledFieldsOnPokemon()
     {
-        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
+        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
 
-        await service.UpdateAsync("u1", new Monster { Uid = 7, PokemonId = 201, Distance = 1500 });
+        // Costume is modelled on Monster since #804, so it is no longer carried forward -- it rides on
+        // the model. The controller gets it there by merging the stored row (GetByUidAsync deserializes
+        // costume) before calling this, so the value that reaches the wire is the stored one. Seeded
+        // here the same way: a mapping that dropped it would send the 9000 default and go red.
+        await service.UpdateAsync("u1", new Monster { Uid = 7, PokemonId = 201, Distance = 1500, Costume = 85 });
 
         var row = this.OnlyRowSent();
         Assert.Equal(1500, row.GetProperty("distance").GetInt32());
@@ -167,9 +176,10 @@ public class UnmodelledFieldPreservationTests
     public async Task EditKeepsUnmodelledFieldsOnRaid()
     {
         var service = new RaidService(
-            this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object);
+            this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object, CostumeCapabilityDoubles.Supported());
 
-        await service.UpdateAsync("u1", new Raid { Uid = 7, PokemonId = 9000, Level = 5, Distance = 1500 });
+        // Modelled since #804, seeded the way the controller's merge seeds it. See the pokemon case.
+        await service.UpdateAsync("u1", new Raid { Uid = 7, PokemonId = 9000, Level = 5, Distance = 1500, Costume = 85 });
 
         AssertCarriedForward(this.OnlyRowSent());
     }
@@ -205,7 +215,7 @@ public class UnmodelledFieldPreservationTests
     {
         // The other half of the null rule. Null means "not stated, keep what is stored"; empty is how a
         // person says "remove it". Without this, an override could be set but never taken off.
-        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
+        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
 
         await service.UpdateAsync("u1", new Monster
         {
@@ -226,7 +236,7 @@ public class UnmodelledFieldPreservationTests
     {
         // uid 0 is a create. There is no stored row to carry anything forward from, and matching on
         // "some row the user already has" would staple a stranger's location override onto a new alarm.
-        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
+        var service = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
 
         await service.CreateAsync("u1", new Monster { PokemonId = 999, Distance = 1500 });
 
@@ -242,7 +252,7 @@ public class UnmodelledFieldPreservationTests
         Assert.Equal("work", row.GetProperty("override_location_label").GetString());
         Assert.Equal("terrigal", row.GetProperty("override_areas").EnumerateArray().Single().GetString());
         Assert.Equal(3, row.GetProperty("rarity").GetInt32());
-        Assert.Equal(9000, row.GetProperty("costume").GetInt32());
+        Assert.Equal(85, row.GetProperty("costume").GetInt32());
     }
 
     private static Task<int> UpdateAllDistance(object service, int distance) => service switch
@@ -283,9 +293,9 @@ public class UnmodelledFieldPreservationTests
 
     private object ServiceFor(string trackingType) => trackingType switch
     {
-        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object),
+        "pokemon" => new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
         "raid" => new RaidService(
-            this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object),
+            this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._remapper.Object, CostumeCapabilityDoubles.Supported()),
         "egg" => new EggService(
             this._proxy.Object, this._featureGate.Object, NullLogger<EggService>.Instance, this._remapper.Object),
         "quest" => new QuestService(

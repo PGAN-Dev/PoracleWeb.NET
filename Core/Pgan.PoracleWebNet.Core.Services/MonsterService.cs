@@ -7,12 +7,14 @@ namespace Pgan.PoracleWebNet.Core.Services;
 public class MonsterService(
     IPoracleTrackingProxy proxy,
     IFeatureGate featureGate,
-    ITrackedUidRemapper uidRemapper) : IMonsterService
+    ITrackedUidRemapper uidRemapper,
+    ICostumeCapabilityService costumes) : IMonsterService
 {
     private const string TrackingType = "pokemon";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly ICostumeCapabilityService _costumes = costumes;
 
     // profileNo is kept for interface compatibility only. PoracleNG scopes reads to the user's active
     // profile (humans.current_profile_no), and writes no longer carry profile_no at all — see
@@ -36,6 +38,10 @@ public class MonsterService(
     public async Task<Monster> CreateAsync(string userId, Monster model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
+
+        // A server without monsters.costume takes the field, answers 200 and drops it, so an unguarded
+        // write would leave a rule whose card says "Halloween 2025" and which matches every spawn.
+        await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
         model.Id = userId;
 
         // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
@@ -56,6 +62,7 @@ public class MonsterService(
     public async Task<Monster> UpdateAsync(string userId, Monster model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Pokemon);
+        await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
         var body = SerializeToElement(model);
 
         // Carry forward anything the stored row holds that the model does not declare. See #730. This
@@ -165,6 +172,9 @@ public class MonsterService(
 
         foreach (var model in modelList)
         {
+            // Profile import and quick-pick apply arrive here without passing a dialog, so the gate the
+            // SPA applies to the control cannot cover them.
+            await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
             model.Id = userId;
         }
 

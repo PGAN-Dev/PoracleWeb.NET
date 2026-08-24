@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "{{count}} min rimasti",
     "PILL_TIME_LEFT_SECONDS": "{{count}} s rimasti",
-    "MIN_TIME_ANY": "Qualsiasi"
+    "MIN_TIME_ANY": "Qualsiasi",
+    "FILTER_COSTUME": "Costume",
+    "LABEL_COSTUME": "Costume",
+    "COSTUME_ANY": "Qualsiasi costume",
+    "COSTUME_NONE": "Nessun costume",
+    "COSTUME_HINT_ANY": "Corrisponde a ogni comparsa, con o senza costume.",
+    "COSTUME_HINT_NONE": "Ignora le comparse con costume.",
+    "COSTUME_HINT_SPECIFIC": "Solo le comparse con questo costume.",
+    "COSTUME_HINT_UNAVAILABLE": "I nomi dei costumi non sono disponibili al momento. Qualsiasi costume e Nessun costume funzionano comunque.",
+    "COSTUME_FALLBACK": "Costume {{id}}",
+    "NO_COSTUME_PILL": "Nessun costume"
   },
   "ALARM": {
     "LOCATION_MODE": "Modalità Posizione",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Rimuovi il livello personalizzato {{value}}",
       "REMOVED": "Livello {{value}} rimosso",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Costume"
   },
   "QUESTS": {
     "PAGE_TITLE": "Allarmi Missioni",
