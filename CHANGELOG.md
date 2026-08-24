@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A request an older Poracle cannot serve now says which feature it was and what the server would need.** Nothing throws it yet, so there is no visible change today: it is the answer waiting for the first control that depends on a newer PoracleNG than the one an instance is pointed at. Until now such a request came back either in Poracle's own wording, which names a database column, or as a plain server error. It now answers with the feature named as this site names it and the version or database migration that would serve it, in words, beside the control that asked -- rather than borrowing the disabled-by-your-administrator wording, which would be untrue and would send the reader looking for a switch nobody turned off.
+
+### Documentation
+
+- **The PoracleNG version compatibility page has been rewritten, and its premise replaced.** It described PoracleNG as having two long-lived branches and this site supporting both; develop shipped as 5.2.1 and merged, so the real question is 5.1.0 versus 5.2.1 and newer. It now covers how support is decided, why a database migration number is a better thing to gate on than a version string, which features need a newer server, how to add another, and two traps worth knowing: PoracleNG's v1 API is unchanged on 5.2.1 -- the new error format and status codes in its release notes apply to v2 only -- and its OpenAPI document numbers the days of the week differently from the scheduler that reads them.
 ### Changed
 
 - **A refused alarm explains itself the same way whichever Poracle surface answered.** The v2 write path already read PoracleNG's newer RFC 9457 error bodies and named the individual field it refused; the older v1 path, still the one most installs use, was reading only the older shape and answering a validation refusal as though the server had broken. Both paths now share one reader, and where many fields are refused at once the message names the first few and counts the rest rather than rendering a dozen clauses into a snackbar ([#803](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/803)).
