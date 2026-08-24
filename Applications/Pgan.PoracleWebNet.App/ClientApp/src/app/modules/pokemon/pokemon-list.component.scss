@@ -347,6 +347,9 @@
   background: #e3f2fd;
   color: #1565c0;
 }
+// The band keeps its fixed light background in both themes, so every colour on it is
+// fixed too. A theme variable here (--text-muted is white at 50% under .dark-theme)
+// paints white on #f5f5f5 and the rank range vanishes. See #800.
 .pvp-row {
   display: flex;
   align-items: center;
@@ -362,7 +365,8 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #f57f17;
+  // #f57f17 reads at 2.4:1 on this band; #e65100 (the cp-pill orange) clears 4.5:1.
+  color: #e65100;
 }
 .pvp-badge mat-icon {
   font-size: 16px;
@@ -371,7 +375,7 @@
 }
 .pvp-rank {
   font-size: 12px;
-  color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  color: rgba(0, 0, 0, 0.64);
 }
 .ping-info {
   display: flex;
