@@ -353,9 +353,17 @@ public partial class PoracleTrackingProxy(
         return null;
     }
 
-    /// <summary>Reads whatever explanation PoracleNG returned, falling back to something honest.</summary>
-    private static Task<string> ExtractMessageAsync(HttpResponseMessage response)
-        => PoracleErrorMessage.ExtractAsync(response, "Poracle rejected the alarm.");
+    /// <summary>
+    /// Reads whatever explanation PoracleNG returned, falling back to something honest.
+    /// </summary>
+    /// <remarks>
+    /// The same reader the v2 path uses. v1 and v2 disagree about the shape of an error -- v1 answers
+    /// <c>{message, status}</c> and v2 answers RFC 9457 problem+json -- but one reader covers both,
+    /// because the field names do not collide. Two readers would be two places to fix a wording bug,
+    /// and one of them would eventually be the one nobody updated.
+    /// </remarks>
+    private static async Task<string> ExtractMessageAsync(HttpResponseMessage response)
+        => PoracleProblemDetails.Describe(await response.Content.ReadAsStringAsync());
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
     {

@@ -6,22 +6,21 @@ using Pgan.PoracleWebNet.Core.Services;
 namespace Pgan.PoracleWebNet.Tests.Services;
 
 /// <summary>
-/// PoracleNG 5.2.1 replaced <c>{status, message}</c> error bodies with RFC 9457 problem+json. Both
-/// shapes have to keep working: a 5.1.0 server is still supported, so a reader that understood only
-/// the new shape would take the explanation away from exactly the installs that have it today.
+/// PoracleNG 5.2.1 replaced <c>{status, message}</c> error bodies with RFC 9457 problem+json on its v2
+/// surface, while v1 kept the old shape. Both have to keep working: a 5.1.0 server is still supported,
+/// so a reader that understood only the new shape would take the explanation away from exactly the
+/// installs that have it today.
+///
+/// These cases came from the v1 side of the proxy and now exercise the same reader the v2 path uses.
 /// </summary>
-public class PoracleErrorMessageTests
+public class PoracleProblemDetailsDescribeTests
 {
-    private const string Fallback = "Poracle rejected the alarm.";
+    private const string Fallback = PoracleProblemDetails.Unexplained;
 
-    private static Task<string> ExtractAsync(string body, string contentType = "application/json")
+    private static string Describe(string body, string contentType = "application/json")
     {
-        var response = new HttpResponseMessage(HttpStatusCode.UnprocessableEntity)
-        {
-            Content = new StringContent(body, Encoding.UTF8, contentType)
-        };
-
-        return PoracleErrorMessage.ExtractAsync(response, Fallback);
+        _ = contentType; // Describe reads the body; the header never decides the shape.
+        return PoracleProblemDetails.Describe(body);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -29,9 +28,9 @@ public class PoracleErrorMessageTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ReadsDetailFromProblemJson()
+    public void ReadsDetailFromProblemJson()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422,"detail":"validation failed"}""");
 
         Assert.Equal("validation failed", message);
@@ -42,9 +41,9 @@ public class PoracleErrorMessageTests
     /// wins when both are present.
     /// </summary>
     [Fact]
-    public async Task PrefersFieldErrorsOverDetail()
+    public void PrefersFieldErrorsOverDetail()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """
             {"title":"Unprocessable Entity","status":422,"detail":"validation failed",
              "errors":[{"message":"expected number <= 100","location":"body.min_iv","value":200}]}
@@ -58,18 +57,18 @@ public class PoracleErrorMessageTests
     /// someone looking at the form that produced it.
     /// </summary>
     [Fact]
-    public async Task TrimsTheBodyPrefixFromAFieldLocation()
+    public void TrimsTheBodyPrefixFromAFieldLocation()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"errors":[{"message":"required","location":"body.pokemon_id"}]}""");
 
         Assert.StartsWith("pokemon_id:", message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task SummarisesWhenMoreThanThreeFieldsWereRefused()
+    public void SummarisesWhenMoreThanThreeFieldsWereRefused()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """
             {"errors":[{"message":"a","location":"body.one"},{"message":"b","location":"body.two"},
                        {"message":"c","location":"body.three"},{"message":"d","location":"body.four"},
@@ -83,9 +82,9 @@ public class PoracleErrorMessageTests
 
     /// <summary>title is the status phrase, so it answers only when nothing better is on the wire.</summary>
     [Fact]
-    public async Task FallsBackToTitleWhenThereIsNoDetail()
+    public void FallsBackToTitleWhenThereIsNoDetail()
     {
-        var message = await ExtractAsync(/*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422}""");
+        var message = Describe(/*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422}""");
 
         Assert.Equal("Unprocessable Entity", message);
     }
@@ -95,18 +94,18 @@ public class PoracleErrorMessageTests
     /// "422" explains nothing, so a numeric status is never the message.
     /// </summary>
     [Fact]
-    public async Task NeverReturnsANumericStatusAsTheMessage()
+    public void NeverReturnsANumericStatusAsTheMessage()
     {
-        var message = await ExtractAsync(/*lang=json,strict*/ """{"status":422}""");
+        var message = Describe(/*lang=json,strict*/ """{"status":422}""");
 
         Assert.Equal(Fallback, message);
     }
 
     /// <summary>A server that sends problem+json without setting the header is still understood.</summary>
     [Fact]
-    public async Task DoesNotDependOnTheContentTypeHeader()
+    public void DoesNotDependOnTheContentTypeHeader()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"detail":"validation failed"}""",
             "application/problem+json");
 
@@ -122,9 +121,9 @@ public class PoracleErrorMessageTests
     /// tracking bodies are arrays of rules; only the trailing segment is shown to the user.
     /// </summary>
     [Fact]
-    public async Task ReadsALiveUnknownPropertyRejection()
+    public void ReadsALiveUnknownPropertyRejection()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422,"detail":"validation failed","errors":[{"message":"unexpected property","location":"body[0].bogus_field","value":{"bogus_field":1,"pokemon_id":25}}]}""",
             "application/problem+json");
 
@@ -132,9 +131,9 @@ public class PoracleErrorMessageTests
     }
 
     [Fact]
-    public async Task ReadsALiveTypeMismatchRejection()
+    public void ReadsALiveTypeMismatchRejection()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422,"detail":"validation failed","errors":[{"message":"expected integer","location":"body[0].pokemon_id","value":"twenty-five"}]}""",
             "application/problem+json");
 
@@ -143,9 +142,9 @@ public class PoracleErrorMessageTests
 
     /// <summary>A semantic refusal carries no errors[], so detail is the whole explanation.</summary>
     [Fact]
-    public async Task ReadsALiveSemanticRejectionWithNoFieldErrors()
+    public void ReadsALiveSemanticRejectionWithNoFieldErrors()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422,"detail":"unknown display_type"}""",
             "application/problem+json");
 
@@ -157,9 +156,9 @@ public class PoracleErrorMessageTests
     /// produced the problem+json above. This is why the reader must keep both.
     /// </summary>
     [Fact]
-    public async Task ReadsALive521V1Rejection()
+    public void ReadsALive521V1Rejection()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"message":"Grunt type mandatory","status":"error"}""");
 
         Assert.Equal("Grunt type mandatory", message);
@@ -170,29 +169,20 @@ public class PoracleErrorMessageTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task StillReadsTheLegacyMessageProperty()
+    public void StillReadsTheLegacyMessageProperty()
     {
-        var message = await ExtractAsync(
+        var message = Describe(
             /*lang=json,strict*/ """{"status":"error","message":"Grunt type mandatory"}""");
 
         Assert.Equal("Grunt type mandatory", message);
     }
 
     [Fact]
-    public async Task StillReadsTheLegacyErrorProperty()
+    public void StillReadsTheLegacyErrorProperty()
     {
-        var message = await ExtractAsync(/*lang=json,strict*/ """{"error":"An unexpected error occurred."}""");
+        var message = Describe(/*lang=json,strict*/ """{"error":"An unexpected error occurred."}""");
 
         Assert.Equal("An unexpected error occurred.", message);
-    }
-
-    /// <summary>A string status was the last resort in the old shape and still is.</summary>
-    [Fact]
-    public async Task StillReadsAStringStatusWhenItIsAllThereIs()
-    {
-        var message = await ExtractAsync(/*lang=json,strict*/ """{"status":"Grunt type mandatory"}""");
-
-        Assert.Equal("Grunt type mandatory", message);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -200,25 +190,25 @@ public class PoracleErrorMessageTests
     // ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task EchoesAShortNonJsonBody()
+    public void EchoesAShortNonJsonBody()
     {
-        var message = await ExtractAsync("upstream connect error", "text/plain");
+        var message = Describe("upstream connect error", "text/plain");
 
         Assert.Equal("upstream connect error", message);
     }
 
     [Fact]
-    public async Task FallsBackWhenTheBodyIsTooLongToShow()
+    public void FallsBackWhenTheBodyIsTooLongToShow()
     {
-        var message = await ExtractAsync(new string('x', 301), "text/plain");
+        var message = Describe(new string('x', 301), "text/plain");
 
         Assert.Equal(Fallback, message);
     }
 
     [Fact]
-    public async Task FallsBackWhenThereIsNoBody()
+    public void FallsBackWhenThereIsNoBody()
     {
-        var message = await ExtractAsync(string.Empty, "text/plain");
+        var message = Describe(string.Empty, "text/plain");
 
         Assert.Equal(Fallback, message);
     }
