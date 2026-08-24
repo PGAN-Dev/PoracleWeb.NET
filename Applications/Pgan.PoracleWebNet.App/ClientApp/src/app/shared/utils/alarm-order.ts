@@ -1,7 +1,7 @@
 /**
  * A stable display order for an alarm list, independent of the rule id.
  *
- * PoracleNG returns tracking rows in id order, and eight of the ten lists rendered that order straight
+ * PoracleNG returns tracking rows in id order, and nine of the eleven lists rendered that order straight
  * through. On PoracleNG 5.2.0 and newer an edit is a replace: the rule comes back under a new, higher id,
  * so the card the user just saved jumped to the end of the grid and, on a long list, off the screen —
  * with nothing to say it had moved.
@@ -13,7 +13,9 @@
  * than the problem being fixed — and the resolved name changes with the display language, so the order
  * would too.
  *
- * Invasion is deliberately absent: it stays on PoracleNG's v1 write surface, so its ids do not rotate.
+ * Invasion is deliberately absent: it stays on PoracleNG's v1 write surface, so its ids do not rotate. The
+ * pokemon list already sorts on its own controls. Pokestop events are here too — that type has only ever
+ * had a v2 surface, so its ids have rotated on every edit since it shipped.
  */
 export function orderAlarms<T extends { uid: number }>(
   items: readonly T[],

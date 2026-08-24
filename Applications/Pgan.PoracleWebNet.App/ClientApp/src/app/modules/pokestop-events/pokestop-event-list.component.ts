@@ -22,6 +22,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
 import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
@@ -241,7 +242,7 @@ export class PokestopEventListComponent implements OnInit {
       .subscribe({
         error: () => this.loading.set(false),
         next: items => {
-          this.events.set(items);
+          this.events.set(orderAlarms(items, e => [e.displayType]));
           this.loading.set(false);
         },
       });
