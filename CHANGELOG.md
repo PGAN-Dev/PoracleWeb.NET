@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A schedule rule can now repeat, instead of only firing once.** Turn on *Repeat until a later time* in the schedule editor, give it an end time and an interval, and the rule fires at its start and then every N hours up to the end -- so a profile can take over at 9:00 AM and re-assert itself hourly until 5:00 PM without adding eight separate rules. Quest summary schedules use the same editor and gained the same thing. PoracleNG has supported this on the wire all along, and its bot can set one with `!settime weekday:9-17/2`; this site was dropping the range fields when it read a schedule, so opening the editor and saving quietly flattened a bot-set range back to a single moment. It no longer does ([#808](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/808)).
+
 ### Fixed
 
 - **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).

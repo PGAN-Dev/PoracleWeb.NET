@@ -67,11 +67,14 @@ Choose **Edit schedule** to open the schedule editor -- the same editor used for
     - **Weekends** -- Saturday and Sunday
     - **Every day** -- all seven days
 2. **Choose a time** with the hour and minute dropdowns.
-3. Choose **Add** to create entries for all selected days at that time.
-4. Repeat to add more delivery times, then **Save**.
+3. Optionally turn on **Repeat until a later time** to deliver more than once, picking an end time
+   and a repeat interval. A rule from 9:00 AM to 5:00 PM repeating every 2 hours delivers at 9, 11,
+   1, 3 and 5. The end must be later than the start; a rule cannot span midnight.
+4. Choose **Add** to create entries for all selected days at that time.
+5. Repeat to add more delivery times, then **Save**.
 
-Saved delivery times appear as **amber pills** in the dialog (for example, "Mon-Fri 8:00 AM"),
-grouped by day pattern. A short note beneath them explains what **Send summary now** does.
+Saved delivery times appear as **amber pills** in the dialog (for example, "Mon-Fri 8:00 AM", or
+"Mon-Fri 9:00 AM-5:00 PM, every 2h" for a repeating rule), grouped by day pattern. A short note beneath them explains what **Send summary now** does.
 
 !!! warning "Timezone is determined by your location"
     PoracleNG decides when the schedule fires using your saved coordinates. If your active
@@ -89,6 +92,8 @@ The schedule uses the same structure and limits as profile active hours:
 | Day | Must be 1-7 (Monday through Sunday) |
 | Hour | Must be 0-23 |
 | Minute | Must be 0-59 |
+| Repeat interval | 1-23 hours when repeating; absent or 0 delivers once |
+| End time | Must be later than the start time when repeating; cannot span midnight |
 | Maximum entries | 28 (up to 4 delivery times per day across all 7 days) |
 
 ## Send summary now
