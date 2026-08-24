@@ -28,6 +28,9 @@ public sealed class PoracleServerProfile
     /// </remarks>
     public static readonly System.Version MinimumSupported = new(5, 1, 0);
 
+    /// <summary>The first PoracleNG that serves the strict <c>/api/v2</c> tracking surface.</summary>
+    public static readonly System.Version FirstWithV2Tracking = new(5, 2, 0);
+
     /// <summary>Version string as reported, e.g. <c>5.1.0</c>. Null when the server could not be reached.</summary>
     public string? Version
     {
@@ -80,6 +83,30 @@ public sealed class PoracleServerProfile
     /// </remarks>
     [JsonIgnore]
     public bool IsBelowMinimum => this.ParsedVersion is { } v && v < MinimumSupported;
+
+    /// <summary>
+    /// True when this server carries the strict <c>/api/v2</c> tracking surface.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Version, not the capability map. 5.2.1 reports
+    /// <c>{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}</c> and says
+    /// nothing at all about v2, so there is no key to read. 5.2.0 is where the surface arrives.
+    /// </para>
+    /// <para>
+    /// Unreachable or unparseable answers false, which routes writes at v1. That is the opposite of
+    /// <c>UpstreamFeatureFlagService</c>, which fails open on purpose — but the failure modes are not
+    /// alike. Failing open there disables alarm types nobody asked to disable; failing open here would
+    /// point every pokemon edit at a route that may not exist.
+    /// </para>
+    /// <para>
+    /// A fork that carries v2 while reporting an older number, or reports 5.2.1 without it, is exactly
+    /// what a version probe cannot see. <c>Poracle:TrackingApiVersion</c> pins the answer for those, and
+    /// the proxy falls back to v1 at runtime when the route answers gin's plaintext 404.
+    /// </para>
+    /// </remarks>
+    [JsonIgnore]
+    public bool SupportsV2Tracking => this.ParsedVersion is { } v && v >= FirstWithV2Tracking;
 
     /// <summary>The profile for a server that did not answer: nothing known, nothing assumed.</summary>
     public static PoracleServerProfile Unknown(DateTimeOffset checkedAt) => new()

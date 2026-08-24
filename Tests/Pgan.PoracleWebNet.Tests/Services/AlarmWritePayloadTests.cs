@@ -22,6 +22,7 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class AlarmWritePayloadTests
 {
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<ITrackedUidRemapper> _remapper = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly List<JsonElement> _sent = [];
 
@@ -32,9 +33,14 @@ public class AlarmWritePayloadTests
             .Setup(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => this._sent.Add(body.Clone()))
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
+        this._proxy
+            .Setup(p => p.UpdateByUidAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()))
+            .Callback<string, string, int, JsonElement>((_, _, _, body) => this._sent.Add(body.Clone()))
+            .ReturnsAsync((string _, string _, int uid, JsonElement _) => new TrackingUpdateResult(uid, false));
     }
 
-    private MonsterService Monsters() => new(this._proxy.Object, this._featureGate.Object);
+    private MonsterService Monsters() => new(this._proxy.Object, this._featureGate.Object, this._remapper.Object);
 
     private static IEnumerable<JsonElement> Objects(JsonElement sent) =>
         sent.ValueKind == JsonValueKind.Array ? sent.EnumerateArray() : [sent];
