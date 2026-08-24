@@ -99,6 +99,23 @@ export class QuestAddDialogComponent {
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
 
+  /** Which reward the alarm is for. `save()` and `canSave()` switch on it. */
+  rewardKind = 0;
+
+  /**
+   * The reward types, with the numbers `save()` switches on written down rather than inferred from
+   * render order. Pokecoins is hidden on a PoracleNG that would refuse it (see `supportsPokecoins`);
+   * declaring its value keeps every other type where it was whether it renders or not.
+   */
+  readonly rewardKinds: { label: string; value: number }[] = [
+    { label: 'QUESTS.TAB_POKEMON', value: 0 },
+    { label: 'QUESTS.TAB_ITEMS', value: 1 },
+    { label: 'QUESTS.TAB_MEGA_ENERGY', value: 2 },
+    { label: 'QUESTS.TAB_CANDY', value: 3 },
+    { label: 'QUESTS.TAB_STARDUST', value: 4 },
+    { label: 'QUESTS.TAB_POKECOINS', value: 5 },
+  ];
+
   saving = signal(false);
 
   /**
@@ -118,6 +135,7 @@ export class QuestAddDialogComponent {
   selectedCandyPokemonIds = signal<number[]>([]);
 
   selectedMegaPokemonIds = signal<number[]>([]);
+
   selectedPokemonIds = signal<number[]>([]);
 
   /**
@@ -129,8 +147,6 @@ export class QuestAddDialogComponent {
   });
 
   readonly summaryService = inject(SummaryScheduleService);
-
-  tabIndex = 0;
 
   constructor() {
     this.masterData.loadData().subscribe(() => {
@@ -145,7 +161,7 @@ export class QuestAddDialogComponent {
   }
 
   canSave(): boolean {
-    switch (this.tabIndex) {
+    switch (this.rewardKind) {
       case 0:
         return this.selectedPokemonIds().length > 0;
       case 1:
@@ -192,7 +208,7 @@ export class QuestAddDialogComponent {
 
     const creates: ReturnType<typeof this.questService.create>[] = [];
 
-    switch (this.tabIndex) {
+    switch (this.rewardKind) {
       case 0:
         for (const pokemonId of this.selectedPokemonIds()) {
           creates.push(
@@ -340,9 +356,9 @@ export class QuestAddDialogComponent {
   /**
    * Whether this PoracleNG can store pokecoin quest rewards at all.
    *
-   * PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type value", so the tab is absent rather
-   * than present-and-failing. It is the last tab, which keeps every other tab's index stable whether it
-   * renders or not -- `tabIndex` is positional and the save switch reads it.
+   * PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type value", so the reward type is absent
+   * rather than present-and-failing. Hiding it shifts nothing: the values in `rewardKinds` are
+   * declared, not positional.
    */
   supportsPokecoins(): boolean {
     return this.questService.pokecoinsSupported();

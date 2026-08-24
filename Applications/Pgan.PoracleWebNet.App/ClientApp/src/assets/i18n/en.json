@@ -568,6 +568,7 @@
     "MIN_STARDUST_HINT": "0 = any stardust quest",
     "POKECOINS": "PokéCoins",
     "POKECOINS_AMOUNT": "{{amount}}+ PokéCoins",
+    "REWARD_TYPE": "Reward type",
     "TAB_POKECOINS": "PokéCoins",
     "MIN_POKECOINS": "Minimum PokéCoins",
     "MIN_POKECOINS_HINT": "0 = any PokéCoin quest",
