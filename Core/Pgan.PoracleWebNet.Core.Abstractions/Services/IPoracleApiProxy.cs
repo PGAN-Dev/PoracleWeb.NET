@@ -26,9 +26,7 @@ public interface IPoracleApiProxy
     /// to call. Verified: 5.1.0 has neither, 5.2.1 has both.
     /// </remarks>
     Task<bool?> GetShowcaseDisabledAsync();
-    Task<string?> GetAreasAsync(string userId);
     Task<string?> GetTemplatesAsync();
-    Task<string?> GetAdminRolesAsync(string userId);
     Task<string?> GetGruntsAsync();
 
     /// <summary>

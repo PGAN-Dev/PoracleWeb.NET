@@ -61,6 +61,26 @@ public interface IPoracleHumanProxy
     public Task SetLocationAsync(string userId, double lat, double lon);
 
     /// <summary>
+    /// The channels, webhooks and users this human may administer on Discord and Telegram.
+    /// </summary>
+    /// <remarks>
+    /// GET /api/v2/humans/{userId}/admin-roles, or v1's getAdministrationRoles. Both compute the same
+    /// answer -- v2's handler calls the same delegated-administration logic -- and the only difference
+    /// on the wire is v1's extra "status":"ok".
+    /// <para>
+    /// This sits on the delegated-webhook path, which has broken four separate times by one surface
+    /// disagreeing with another (#564, #601, #626, #786), so the distinction below is load-bearing: an
+    /// empty answer and an unknown answer must not look the same to the caller.
+    /// </para>
+    /// </remarks>
+    /// <returns>The roles JSON, or null when PoracleNG says it has no such human.</returns>
+    /// <exception cref="HttpRequestException">
+    /// Upstream is degraded. The caller must not read that as "this user administers nothing" -- doing
+    /// so denies a legitimate delegate for the whole cache TTL.
+    /// </exception>
+    public Task<string?> GetAdminRolesAsync(string userId);
+
+    /// <summary>
     /// Sets user area subscriptions. PoracleNG handles the dual-write to
     /// humans.area + profiles.area atomically.
     /// Maps to POST /api/humans/{userId}/setAreas

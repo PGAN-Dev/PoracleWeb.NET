@@ -295,6 +295,27 @@ public partial class PoracleHumanProxy(
         await EnsureAcceptedAsync(response);
     }
 
+    /// <inheritdoc />
+    public async Task<string?> GetAdminRolesAsync(string userId)
+    {
+        var (response, payload) =
+            await this.TryV2Async(HttpMethod.Get, "admin-roles", $"/api/v2/humans/{Encode(userId)}/admin-roles")
+            ?? await this.SendReadAsync(
+                HttpMethod.Get, $"/api/humans/{Encode(userId)}/getAdministrationRoles");
+
+        // A 404 is PoracleNG answering: this human has no roles because it has no such human. Anything
+        // else non-2xx is PoracleNG failing to answer, and returning null for it -- which is what this
+        // did for every status -- told UserRoleResolver "no delegated webhooks" confidently enough to
+        // cache for a minute. That is #656 and #667 on the one source their fix did not cover.
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return payload;
+    }
+
     public async Task SetAreasAsync(string userId, string[] areas)
     {
         var body = JsonSerializer.Serialize(areas);

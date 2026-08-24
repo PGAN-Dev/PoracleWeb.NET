@@ -46,6 +46,7 @@ public interface IUserRoleResolver
 /// </remarks>
 public sealed partial class UserRoleResolver(
     IPoracleApiProxy poracleApiProxy,
+    IPoracleHumanProxy poracleHumanProxy,
     IWebhookDelegateService webhookDelegateService,
     IHumanService humanService,
     IOptions<PoracleSettings> poracleSettings,
@@ -57,6 +58,7 @@ public sealed partial class UserRoleResolver(
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<UserRoleResolver> _logger = logger;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPoracleHumanProxy _poracleHumanProxy = poracleHumanProxy;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IHumanService _humanService = humanService;
@@ -115,44 +117,34 @@ public sealed partial class UserRoleResolver(
             configReadable = false;
         }
 
-        // Call getAdministrationRoles once — resolves delegation including Discord guild roles
+        // Ask PoracleNG once for the delegated webhooks, Discord guild roles included.
         var managed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var isAdmin = false;
 
         try
         {
-            var rolesJson = await this._poracleApiProxy.GetAdminRolesAsync(userId);
+            var rolesJson = await this._poracleHumanProxy.GetAdminRolesAsync(userId);
             if (!string.IsNullOrEmpty(rolesJson))
             {
                 using var doc = JsonDocument.Parse(rolesJson);
                 var root = doc.RootElement;
 
-                // Some versions return isAdmin at root; others wrap under admin.discord
-                if (root.TryGetProperty("isAdmin", out var isAdminProp) && isAdminProp.ValueKind == JsonValueKind.True)
-                {
-                    isAdmin = true;
-                }
-
-                // Parse admin.discord.webhooks — the authoritative delegate webhook list
+                // admin.discord.webhooks is the authoritative delegate webhook list.
+                //
+                // Two isAdmin branches used to sit here, one at the root and one under admin.discord.
+                // Neither has ever fired: both API versions build this body from the same
+                // adminRolesResult, whose only fields are channels, webhooks and users, and v2's schema
+                // is additionalProperties:false so an isAdmin could not appear even by accident.
+                // Admin status is resolved above, from the configured ids and Poracle's own config.
                 if (root.TryGetProperty("admin", out var adminEl) &&
-                    adminEl.TryGetProperty("discord", out var discordEl))
+                    adminEl.TryGetProperty("discord", out var discordEl) &&
+                    discordEl.TryGetProperty("webhooks", out var webhooks) &&
+                    webhooks.ValueKind == JsonValueKind.Array)
                 {
-                    if (!isAdmin &&
-                        discordEl.TryGetProperty("isAdmin", out var discordAdmin) &&
-                        discordAdmin.ValueKind == JsonValueKind.True)
+                    foreach (var wh in webhooks.EnumerateArray())
                     {
-                        isAdmin = true;
-                    }
-
-                    if (discordEl.TryGetProperty("webhooks", out var webhooks) &&
-                        webhooks.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var wh in webhooks.EnumerateArray())
+                        if (wh.GetString() is { } id)
                         {
-                            if (wh.GetString() is { } id)
-                            {
-                                managed.Add(id);
-                            }
+                            managed.Add(id);
                         }
                     }
                 }
@@ -162,11 +154,6 @@ public sealed partial class UserRoleResolver(
         {
             LogAdminRolesFetchFailed(this._logger, ex, userId);
             rolesReadable = false;
-        }
-
-        if (isAdmin)
-        {
-            return new UserRoles(true, null);
         }
 
         // Also merge our own webhook delegate service layer

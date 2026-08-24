@@ -363,6 +363,52 @@ public class PoracleHumanProxyV2Tests
     }
 
     [Fact]
+    public async Task AdminRolesReadsWhicheverRouteTheServerHas()
+    {
+        // The response is identical apart from v1's extra "status":"ok", because v2's handler calls the
+        // same delegated-administration logic. Verified live against both.
+        const string Body = """{"admin":{"discord":{"channels":[],"webhooks":["teamharmonyrares"],"users":false}}}""";
+
+        var v2 = ScriptedHandler.Ok(Body);
+        Assert.NotNull(await CreateSut(v2, "5.2.1").GetAdminRolesAsync("user1"));
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/admin-roles", Assert.Single(v2.Requests).Url);
+
+        var v1 = ScriptedHandler.Ok(Body);
+        Assert.NotNull(await CreateSut(v1, "5.1.0").GetAdminRolesAsync("user1"));
+        Assert.Equal(
+            $"{ApiAddress}/api/humans/user1/getAdministrationRoles", Assert.Single(v1.Requests).Url);
+    }
+
+    [Fact]
+    public async Task AdminRolesTellsAMissingHumanApartFromAServerThatCouldNotAnswer()
+    {
+        // The whole point of this method's contract. Answering null for both -- which it did for every
+        // non-2xx -- told UserRoleResolver "administers nothing" confidently enough to cache, denying a
+        // legitimate delegate for the full minute after a blip. See #656 and #667.
+        var missing = ScriptedHandler.Problem(
+            HttpStatusCode.NotFound, """{"title":"Not Found","status":404,"detail":"human not found"}""");
+        Assert.Null(await CreateSut(missing, "5.2.1").GetAdminRolesAsync("nobody"));
+
+        var degraded = new ScriptedHandler(new Reply(HttpStatusCode.ServiceUnavailable, "{}"));
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => CreateSut(degraded, "5.2.1").GetAdminRolesAsync("user1"));
+    }
+
+    [Fact]
+    public async Task AWebhookIdIsEncodedIntoTheAdminRolesPath()
+    {
+        // A webhook human's id is a URL. The v1 call did not encode it, so its slashes became extra path
+        // segments and the request could only 404 -- which then read as "administers nothing".
+        var handler = ScriptedHandler.Ok("""{"admin":{"discord":{"channels":[],"webhooks":[],"users":false}}}""");
+
+        await CreateSut(handler, "5.2.1").GetAdminRolesAsync("https://discordapp.com/api/webhooks/1/tok");
+
+        Assert.Equal(
+            $"{ApiAddress}/api/v2/humans/https%3A%2F%2Fdiscordapp.com%2Fapi%2Fwebhooks%2F1%2Ftok/admin-roles",
+            Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
     public async Task AnUnreachableServerStaysOnV1()
     {
         // Unknown version means unknown routes. Guessing v2 costs an extra round-trip on every call
