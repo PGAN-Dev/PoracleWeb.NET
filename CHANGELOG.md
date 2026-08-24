@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Quest alarms can track PokéCoin rewards.** Poracle started accepting them in 5.2.0, so quest alarms gained a sixth reward tab that works the way Stardust does: a minimum amount and no item picker, because Poracle matches this reward on the amount alone. The tab appears only on a Poracle new enough to store it -- an older one refuses the reward type outright -- and a PokéCoin rule you already have, set with the bot or left behind by a downgrade, stays visible and deletable either way.
+
 ### Fixed
 
 - **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).

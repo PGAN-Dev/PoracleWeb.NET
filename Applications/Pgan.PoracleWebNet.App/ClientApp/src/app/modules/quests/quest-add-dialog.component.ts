@@ -87,6 +87,15 @@ export class QuestAddDialogComponent {
     amount: [0],
   });
 
+  /**
+   * Pokecoins mirror stardust exactly: no selector, and PoracleNG reads the minimum from `reward`
+   * rather than `amount`. Only offered when the server can store reward_type 8 -- see
+   * {@link supportsPokecoins}.
+   */
+  pokecoinsForm = this.fb.group({
+    reward: [0],
+  });
+
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
 
@@ -147,6 +156,9 @@ export class QuestAddDialogComponent {
         return this.selectedCandyPokemonIds().length > 0;
       case 4:
         // 0 is a rule in its own right: every stardust quest, whatever it pays.
+        return true;
+      case 5:
+        // Same as stardust: 0 means every pokecoin quest.
         return true;
       default:
         return false;
@@ -269,6 +281,23 @@ export class QuestAddDialogComponent {
           }),
         );
         break;
+      case 5:
+        creates.push(
+          this.questService.create({
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: 0,
+            clean: cleanValue,
+            distance: scope.distance,
+            pokemonId: 0,
+            // Pokecoins carry their floor in reward, the same slot stardust uses.
+            reward: this.pokecoinsForm.controls.reward.value ?? 0,
+            rewardType: 8,
+            shiny: 0,
+            template: common.template || null,
+          }),
+        );
+        break;
     }
 
     // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
@@ -306,5 +335,16 @@ export class QuestAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
+  }
+
+  /**
+   * Whether this PoracleNG can store pokecoin quest rewards at all.
+   *
+   * PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type value", so the tab is absent rather
+   * than present-and-failing. It is the last tab, which keeps every other tab's index stable whether it
+   * renders or not -- `tabIndex` is positional and the save switch reads it.
+   */
+  supportsPokecoins(): boolean {
+    return this.questService.pokecoinsSupported();
   }
 }

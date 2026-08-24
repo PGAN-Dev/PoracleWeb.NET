@@ -8,9 +8,25 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/quests")]
 [RequireFeatureEnabled(DisableFeatureKeys.Quests)]
-public class QuestController(IQuestService questService) : BaseApiController
+public class QuestController(IQuestService questService, IQuestPokecoinCapabilityService pokecoinCapability) : BaseApiController
 {
     private readonly IQuestService _questService = questService;
+    private readonly IQuestPokecoinCapabilityService _pokecoinCapability = pokecoinCapability;
+
+    /// <summary>
+    /// Which optional quest reward types the PoracleNG behind this install can actually store.
+    /// </summary>
+    /// <remarks>
+    /// Degrades to <c>pokecoins:false</c> on any fault -- never 5xx -- so a transient outage hides the
+    /// tab rather than offering one every save of which would be refused. Mirrors the shape of
+    /// <c>GET /api/summary-schedules/capability</c>. This is presentation only: the real refusal lives
+    /// in <c>QuestService</c>, because quick-pick apply and profile import never pass through a dialog.
+    /// </remarks>
+    [HttpGet("capability")]
+    public async Task<IActionResult> GetCapability() => this.Ok(new
+    {
+        pokecoins = await this._pokecoinCapability.ArePokecoinRewardsSupportedAsync()
+    });
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
