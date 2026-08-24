@@ -15,6 +15,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 describe('PokemonAddDialogComponent', () => {
   let component: PokemonAddDialogComponent;
@@ -28,7 +29,7 @@ describe('PokemonAddDialogComponent', () => {
   const ALOLAN = 78;
   const GALARIAN = 79;
 
-  function setup() {
+  function setup(costumeSupported = true) {
     dialogRef = { close: jest.fn() };
     // A create answers 200 with uid 0 when the submission duplicates an alarm the user already has, so
     // the uid is what says whether anything was made. See #495.
@@ -56,6 +57,7 @@ describe('PokemonAddDialogComponent', () => {
         { provide: MonsterService, useValue: monsterService },
         { provide: MasterDataService, useValue: masterData },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
         {
           provide: AlertDefaultsService,
           useValue: { defaultDistanceKm: () => 1, defaultMode: () => 'areas', defaultPlaceLabel: () => '' },
@@ -278,5 +280,26 @@ describe('PokemonAddDialogComponent', () => {
     component.filtersForm.controls.forms.setValue([ALOLAN]);
     component.save();
     expect(monsterService.create).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The gate. A Poracle without the monsters.costume column takes the field, answers 200 and drops it, so an
+   * offered control produces a rule that reads "Halloween 2025" and matches every spawn. The rest of
+   * the dialog is untouched -- only this one control goes.
+   */
+  describe('server capability', () => {
+    it('offers the costume filter when Poracle has the column', () => {
+      expect(component.showCostume()).toBe(true);
+    });
+
+    it('hides the costume filter when Poracle does not', () => {
+      setup(false);
+
+      expect(component.showCostume()).toBe(false);
+      // The wildcard still goes out, which is what an old Poracle stores for an absent key anyway.
+      component.selectedPokemonIds.set([25]);
+      component.save();
+      expect((monsterService.create.mock.calls[0][0] as MonsterCreate).costume).toBe(9000);
+    });
   });
 });

@@ -19,6 +19,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
@@ -67,6 +68,7 @@ export class RaidEditDialogComponent {
   private readonly levelLabelPipe = inject(LevelLabelPipe);
   private readonly masterData = inject(MasterDataService);
   private readonly raidService = inject(RaidService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
@@ -205,11 +207,13 @@ export class RaidEditDialogComponent {
   }
 
   /**
-   * Whether this rule has a specific boss. A level rule matches whatever hatches, so it has no boss
-   * to filter a costume on and the control is hidden -- the update then omits costume entirely and
-   * the backend's null-skip merge leaves the stored value alone.
+   * Whether this rule has a specific boss, on a Poracle that can store the answer. A level rule
+   * matches whatever hatches, so it has no boss to filter a costume on; a Poracle without
+   * `raid.costume` takes the field, answers 200 and drops it, which is worse -- the rule would read
+   * "Halloween 2025" and match every boss. Either way the control is hidden, the update omits costume
+   * entirely, and the backend's null-skip merge leaves the stored value alone.
    */
   showCostume(): boolean {
-    return this.data.type === 'raid' && (this.data.item as Raid).pokemonId !== 9000;
+    return this.data.type === 'raid' && (this.data.item as Raid).pokemonId !== 9000 && this.settings.supportsCostume('raid');
   }
 }

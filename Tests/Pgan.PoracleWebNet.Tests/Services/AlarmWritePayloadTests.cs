@@ -34,7 +34,8 @@ public class AlarmWritePayloadTests
             .ReturnsAsync(new TrackingCreateResult([1], 0, 0, 1));
     }
 
-    private MonsterService Monsters() => new(this._proxy.Object, this._featureGate.Object);
+    private MonsterService Monsters() =>
+        new(this._proxy.Object, this._featureGate.Object, CostumeCapabilityDoubles.Supported());
 
     private static IEnumerable<JsonElement> Objects(JsonElement sent) =>
         sent.ValueKind == JsonValueKind.Array ? sent.EnumerateArray() : [sent];

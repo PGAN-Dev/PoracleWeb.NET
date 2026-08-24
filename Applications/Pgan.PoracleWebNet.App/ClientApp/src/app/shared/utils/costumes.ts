@@ -7,15 +7,13 @@
  */
 
 /**
- * NOT YET GATED ON SERVER CAPABILITY.
+ * Gated on the server's applied migration, not on its version string.
  *
- * The costume columns arrive with PoracleNG migrations 6 and 7, i.e. 5.2.x. `PoracleServerProfile`
- * already reads the applied migration number and `HasSchema()` already answers the question, but the
- * `PoracleCapabilityKeys.MonsterCostume` / `RaidCostume` constants that name it live on
- * feat/poracleng-two-branch-support and are not in this tree. Until they land, a self-hoster on 5.1.0
- * sees a costume control that does nothing: verified against a live 5.1.0 instance, it accepts the
- * extra key, answers 200 and drops it, so nothing else breaks -- but "Halloween 2025" quietly matches
- * every Pikachu. Wrap the four dialog controls in that capability check before release.
+ * The costume columns arrive with PoracleNG migrations 6 (`monsters.costume`) and 7 (`raid.costume`),
+ * and a server without them accepts the extra key, answers 200 and drops it -- verified against a live
+ * 5.1.0 instance. Nothing breaks; "Halloween 2025" just quietly matches every Pikachu. The four dialog
+ * controls therefore ask `SettingsService.supportsCostume()` before rendering, and the alarm services
+ * refuse a narrower costume than the wildcard on a server that cannot store it. Both fail closed.
  */
 
 /** Matches every spawn, costumed or not. What PoracleNG stores when the key is absent. */
