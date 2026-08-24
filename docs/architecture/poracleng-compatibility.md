@@ -53,20 +53,30 @@ capability key appeared. The version is the only thing that changed, so the vers
 | Pokéstop-event tracking (`incident`) | v2 API surface | PoracleNG 5.2.1 |
 | Mutes | v2 API surface | PoracleNG 5.2.1 |
 | Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.1 |
+| Rule descriptions on alarm cards | Response field | v1 `allProfiles`, or any v2 read |
 
-None of these has a control in the UI yet. The machinery that decides support is in place and the
-failure path is wired; the pickers are not built. Costume in particular is blocked on PoracleNG serving
-no costume-name list — the data is loaded into its game data under `costume_{id}` keys, but
-`/api/masterdata/` offers only `monsters` and `grunts`, and a numeric costume id box would be worse than
-nothing.
+At the time of writing none of these has a control on `develop`. The machinery that decides support is
+in place and the failure path is wired; the pickers arrive with the feature branches currently in
+review, each bringing its own small capability service.
+
+Costume names are the awkward one. PoracleNG loads them into its game data under `costume_{id}` keys
+but publishes them nowhere -- `/api/masterdata/` offers only `monsters` and `grunts` -- so the costume
+picker reads the same WatWowMap masterfile PoracleNG itself reads. The names are therefore English in
+every language, and a costume too new for that file shows as its number.
 
 Costume values set elsewhere are already safe at every version. `TrackingFieldPreserver` and
 `PoracleJsonHelper.RewriteRows` carry forward every stored field PoracleWeb.NET has no model for, so a
 costume set with the bot survives a web edit on a server that has the column.
 
-Rule descriptions are sometimes named alongside these. No `description` field appears on any tracking
-rule schema on a 5.2.1 server, so nothing here gates on them and there is nothing to state about what
-they need.
+Rule descriptions belong on this list too. A v2 tracking read takes `?include_descriptions=true` and
+returns a `description` on each rule -- the same sentence PoracleNG's bot answers a `!pokemon` command
+with. It is easy to conclude otherwise: `description` is not on the named `V2PokemonRule` request
+schema, and the response envelope that carries it is an inline object under `rules.items` rather than a
+named component, so a search of `components/schemas` finds nothing. Resolve
+`V2ListOutput...Body.properties.rules.items` before believing a field is absent.
+
+The v1 `allProfiles` endpoint accepts the same `includeDescriptions` flag, so this one has a path on
+both versions.
 
 Reading and deleting an existing rule is **never** gated, only creating one. A rule can already exist —
 set with the bot, or left behind by a downgrade — and a row nobody can see is a row nobody can delete.
