@@ -96,6 +96,33 @@ describe('AlertLanguageService', () => {
     expect(store['poracle-language']).toBe('it');
   });
 
+  it('should recognise a stored language whose case Poracle changed', () => {
+    // Poracle lowercases what it stores, on both API versions and from the bot's !language command, so
+    // humans.language reads back 'pt-br' where this list says 'pt-BR'. An exact match dropped it and
+    // the picker silently reverted to the server default.
+    locationService.getLanguage.mockReturnValue(of({ language: 'pt-br' }));
+    const { alert, i18n } = create();
+    i18n.init(undefined, 'de');
+
+    alert.load();
+
+    expect(alert.selected()).toBe('pt-BR');
+    expect(store['poracle-language']).toBe('pt-BR');
+  });
+
+  it('should still ignore a language this UI does not ship', () => {
+    // The other half: Poracle carries translations we do not, and coercing one of them onto a UI
+    // language would put Japanese prose behind an English flag.
+    locationService.getLanguage.mockReturnValue(of({ language: 'ja' }));
+    const { alert, i18n } = create();
+    i18n.init(undefined, 'de');
+
+    alert.load();
+
+    expect(alert.selected()).toBe('de');
+    expect(store['poracle-language']).toBeUndefined();
+  });
+
   it('should keep the server locale when humans.language is unset', () => {
     const { alert, i18n } = create();
     i18n.init(undefined, 'de');

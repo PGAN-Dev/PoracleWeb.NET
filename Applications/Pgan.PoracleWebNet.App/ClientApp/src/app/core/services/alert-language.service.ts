@@ -65,9 +65,14 @@ export class AlertLanguageService {
     this.locationService.getLanguage().subscribe({
       error: () => undefined,
       next: ({ language }) => {
-        if (language && this.languages.some(l => l.code === language)) {
-          this.chosen.set(language);
-          localStorage.setItem(STORAGE_KEY, language);
+        // Case-insensitively, and stored back in this list's casing. Poracle lowercases what it stores,
+        // on both API versions and from the bot's own !language command, so humans.language for a
+        // Brazilian Portuguese user reads back as 'pt-br' while the code here is 'pt-BR'. An exact
+        // comparison dropped it silently and the picker fell back to the server default.
+        const known = language ? this.languages.find(l => l.code.toLowerCase() === language.toLowerCase()) : undefined;
+        if (known) {
+          this.chosen.set(known.code);
+          localStorage.setItem(STORAGE_KEY, known.code);
         }
       },
     });

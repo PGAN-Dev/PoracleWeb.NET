@@ -1,7 +1,12 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
@@ -27,10 +32,31 @@ public class PoracleHumanProxyTests
         })
         .Build();
 
-    private static PoracleHumanProxy CreateSut(MockHttpMessageHandler handler, IConfiguration? config = null)
+    /// <summary>
+    /// A proxy pointed at a PoracleNG with no /api/v2, so every test here exercises the v1 path it has
+    /// always exercised. The v2 paths get their own file; what this one guards is that a self-hoster on
+    /// 5.1.0 still gets byte-identical requests.
+    /// </summary>
+    private static PoracleHumanProxy CreateSut(
+        MockHttpMessageHandler handler, IConfiguration? config = null, string? version = null)
     {
         var client = new HttpClient(handler);
-        return new PoracleHumanProxy(client, config ?? CreateConfig());
+        return new PoracleHumanProxy(
+            client, config ?? CreateConfig(), ServerProfile(version),
+            new MemoryCache(new MemoryCacheOptions()), Mock.Of<ILogger<PoracleHumanProxy>>());
+    }
+
+    /// <summary>A server profile reporting the given version, or an unreachable one when null.</summary>
+    internal static IPoracleServerProfileService ServerProfile(string? version)
+    {
+        var profile = new Mock<IPoracleServerProfileService>();
+        profile
+            .Setup(p => p.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(version is null
+                ? PoracleServerProfile.Unknown(DateTimeOffset.UtcNow)
+                : new PoracleServerProfile { Version = version, Reachable = true, CheckedAt = DateTimeOffset.UtcNow });
+
+        return profile.Object;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -109,7 +135,9 @@ public class PoracleHumanProxyTests
     [Fact]
     public async Task CreateHumanAsyncThrowsOnNon2xx()
     {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.Conflict, "{}");
+        // 500 rather than 409: a conflict is now read as a refusal and reported as one. See
+        // PoracleHumanProxyRefusalTests.AConflictIsPassedOnAsAConflict.
+        var handler = new MockHttpMessageHandler(HttpStatusCode.InternalServerError, "{}");
         var sut = CreateSut(handler);
 
         var body = JsonDocument.Parse("{}").RootElement;
@@ -454,47 +482,6 @@ public class PoracleHumanProxyTests
         var sut = CreateSut(handler);
 
         await Assert.ThrowsAsync<HttpRequestException>(() => sut.DeleteProfileAsync("user1", 1));
-    }
-
-    // ──────────────────────────────────────────────────────────────
-    // CheckLocationAsync
-    // ──────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task CheckLocationAsyncReturnsJsonOn200()
-    {
-        var responseBody = /*lang=json,strict*/ """{"areas":["downtown"]}""";
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, responseBody);
-        var sut = CreateSut(handler);
-
-        var result = await sut.CheckLocationAsync("user1", 40.7128, -74.006);
-
-        Assert.NotNull(result);
-        Assert.True(result.Value.TryGetProperty("areas", out _));
-    }
-
-    [Fact]
-    public async Task CheckLocationAsyncReturnsNullOnNon2xx()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.NotFound, "{}");
-        var sut = CreateSut(handler);
-
-        var result = await sut.CheckLocationAsync("user1", 0, 0);
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task CheckLocationAsyncCallsCorrectUrl()
-    {
-        var handler = new MockHttpMessageHandler(HttpStatusCode.OK, "{}");
-        var sut = CreateSut(handler);
-
-        await sut.CheckLocationAsync("user1", 51.5, -0.12);
-
-        Assert.NotNull(handler.LastRequest);
-        Assert.Equal(HttpMethod.Get, handler.LastRequest.Method);
-        Assert.Contains("/api/humans/user1/checkLocation/51.5/-0.12", handler.LastRequest.RequestUri?.ToString());
     }
 
     // ──────────────────────────────────────────────────────────────

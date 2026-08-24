@@ -11,7 +11,7 @@ public interface IPoracleHumanProxy
 {
     /// <summary>
     /// Fetches a single human record.
-    /// Maps to GET /api/humans/one/{userId}
+    /// GET /api/v2/humans/{userId}, or GET /api/humans/one/{userId} on a PoracleNG without v2.
     /// </summary>
     public Task<JsonElement?> GetHumanAsync(string userId);
 
@@ -23,15 +23,30 @@ public interface IPoracleHumanProxy
 
     /// <summary>
     /// Enables alerts for a user.
-    /// Maps to POST /api/humans/{userId}/start
+    /// POST /api/v2/humans/{userId}/enable, or POST /api/humans/{userId}/start without v2.
     /// </summary>
     public Task StartAsync(string userId);
 
     /// <summary>
     /// Disables alerts for a user.
-    /// Maps to POST /api/humans/{userId}/stop
+    /// POST /api/v2/humans/{userId}/disable, or POST /api/humans/{userId}/stop without v2.
     /// </summary>
     public Task StopAsync(string userId);
+
+    /// <summary>
+    /// Sets the language PoracleNG writes this user's alerts in.
+    /// </summary>
+    /// <remarks>
+    /// POST /api/v2/humans/{userId}/language, falling back to POST /api/humans/{userId}/language, which
+    /// exists on both supported releases. Replaces a direct write to <c>humans.language</c>: the handler
+    /// also reloads PoracleNG's in-memory state, which the direct write never did, so a language change
+    /// now takes effect on the next alert instead of at the next restart.
+    /// <para>
+    /// Both handlers lowercase and trim what they store, so <c>pt-BR</c> comes back as <c>pt-br</c>.
+    /// Verified on 5.2.1 against v1 and v2 alike.
+    /// </para>
+    /// </remarks>
+    public Task SetLanguageAsync(string userId, string language);
 
     /// <summary>
     /// Admin-disables or re-enables a user.
@@ -41,9 +56,29 @@ public interface IPoracleHumanProxy
 
     /// <summary>
     /// Sets user location.
-    /// Maps to POST /api/humans/{userId}/setLocation/{lat}/{lon}
+    /// POST /api/v2/humans/{userId}/location with a {lat,lon} body, or v1's coordinates-in-the-path form.
     /// </summary>
     public Task SetLocationAsync(string userId, double lat, double lon);
+
+    /// <summary>
+    /// The channels, webhooks and users this human may administer on Discord and Telegram.
+    /// </summary>
+    /// <remarks>
+    /// GET /api/v2/humans/{userId}/admin-roles, or v1's getAdministrationRoles. Both compute the same
+    /// answer -- v2's handler calls the same delegated-administration logic -- and the only difference
+    /// on the wire is v1's extra "status":"ok".
+    /// <para>
+    /// This sits on the delegated-webhook path, which has broken four separate times by one surface
+    /// disagreeing with another (#564, #601, #626, #786), so the distinction below is load-bearing: an
+    /// empty answer and an unknown answer must not look the same to the caller.
+    /// </para>
+    /// </remarks>
+    /// <returns>The roles JSON, or null when PoracleNG says it has no such human.</returns>
+    /// <exception cref="HttpRequestException">
+    /// Upstream is degraded. The caller must not read that as "this user administers nothing" -- doing
+    /// so denies a legitimate delegate for the whole cache TTL.
+    /// </exception>
+    public Task<string?> GetAdminRolesAsync(string userId);
 
     /// <summary>
     /// Sets user area subscriptions. PoracleNG handles the dual-write to
@@ -90,12 +125,6 @@ public interface IPoracleHumanProxy
     public Task DeleteProfileAsync(string userId, int profileNo);
 
     /// <summary>
-    /// Checks if a location is inside any geofence.
-    /// Maps to GET /api/humans/{userId}/checkLocation/{lat}/{lon}
-    /// </summary>
-    public Task<JsonElement?> CheckLocationAsync(string userId, double lat, double lon);
-
-    /// <summary>
     /// Copies all tracking rules from one profile to another.
     /// Maps to POST /api/profiles/{userId}/copy/{fromProfileNo}/{toProfileNo}
     /// </summary>
@@ -114,6 +143,17 @@ public interface IPoracleHumanProxy
     /// </summary>
     /// <returns>Null on success, or PoracleNG's reason for refusing this label.</returns>
     public Task<string?> AddPlaceAsync(string userId, SavedPlace place);
+
+    /// <summary>
+    /// Moves a saved place, keeping its label so every alarm pointing at it follows.
+    /// </summary>
+    /// <remarks>
+    /// PUT /api/v2/humans/{id}/locations/{label}. There is no v1 equivalent, which is why moving a place
+    /// an alarm referenced was impossible before: the delete answers 409 while anything still points at
+    /// it, so the only route was to repoint every alarm, delete, re-add and repoint back.
+    /// </remarks>
+    /// <returns>False when this PoracleNG has no such route; the caller should say so rather than retry.</returns>
+    public Task<bool> UpdatePlaceAsync(string userId, string label, double latitude, double longitude);
 
     /// <summary>
     /// Deletes a saved place.

@@ -252,33 +252,11 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         return null;
     }
 
-    public async Task<string?> GetAreasAsync(string userId)
-    {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/humans/{userId}");
-        var response = await this._httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
-    }
-
     public async Task<string?> GetTemplatesAsync()
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/templates");
         var response = await this._httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
-    }
-
-    public async Task<string?> GetAdminRolesAsync(string userId)
-    {
-        var request = this.CreateRequest(HttpMethod.Get,
-            $"{this._apiAddress}/api/humans/{userId}/getAdministrationRoles");
-        var response = await this._httpClient.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
         return await response.Content.ReadAsStringAsync();
     }
 
