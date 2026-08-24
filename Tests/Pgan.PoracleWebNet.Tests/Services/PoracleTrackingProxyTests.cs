@@ -235,6 +235,42 @@ public class PoracleTrackingProxyTests
         Assert.Contains("Invalid level", ex.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// PoracleNG 5.2.1 moved several validation 400s to 422 when it adopted RFC 9457. Matching only 400
+    /// sent every one of them through EnsureSuccessStatusCode instead, which is the exact path #539 fixed:
+    /// the user is told the server broke rather than what was wrong with their alarm.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncSurfacesPoracleNgsOwnExplanationForAnUnprocessableEntity()
+    {
+        var handler = new MockHttpMessageHandler(
+            HttpStatusCode.UnprocessableEntity,
+            /*lang=json,strict*/ """{"title":"Unprocessable Entity","status":422,"detail":"unknown display_type"}""");
+        var sut = CreateSut(handler);
+
+        var body = JsonDocument.Parse("{}").RootElement;
+
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => sut.CreateAsync("invasion", "user1", body));
+        Assert.Contains("unknown display_type", ex.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The field-level detail problem+json carries reaches the user, not just the summary.</summary>
+    [Fact]
+    public async Task CreateAsyncSurfacesTheFieldThatWasRefused()
+    {
+        var handler = new MockHttpMessageHandler(
+            HttpStatusCode.UnprocessableEntity,
+            /*lang=json,strict*/ """{"detail":"validation failed","errors":[{"message":"expected number <= 100","location":"body.min_iv"}]}""");
+        var sut = CreateSut(handler);
+
+        var body = JsonDocument.Parse("{}").RootElement;
+
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => sut.CreateAsync("pokemon", "user1", body));
+        Assert.Contains("min_iv", ex.Message, StringComparison.Ordinal);
+    }
+
     // ──────────────────────────────────────────────────────────────
     // DeleteByUidAsync
     // ──────────────────────────────────────────────────────────────

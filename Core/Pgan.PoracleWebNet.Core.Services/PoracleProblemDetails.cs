@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -30,6 +31,9 @@ internal static class PoracleProblemDetails
 {
     /// <summary>What to say when PoracleNG refused and explained nothing usable.</summary>
     public const string Unexplained = "Poracle rejected the alarm.";
+
+    /// <summary>Field errors quoted before the rest are summarised, to keep the message readable.</summary>
+    private const int MaxFieldErrors = 3;
 
     /// <summary>
     /// Reads an explanation out of a response body. Never throws: an unreadable body still has to produce
@@ -114,6 +118,9 @@ internal static class PoracleProblemDetails
         }
 
         var described = new StringBuilder();
+        var shown = 0;
+        var hidden = 0;
+
         foreach (var error in errors.EnumerateArray())
         {
             if (error.ValueKind != JsonValueKind.Object)
@@ -127,6 +134,14 @@ internal static class PoracleProblemDetails
                 continue;
             }
 
+            // A body refused on a dozen fields would otherwise render a dozen clauses into a snackbar.
+            // The first few name the problem; the count says there is more without spelling it out.
+            if (shown == MaxFieldErrors)
+            {
+                hidden++;
+                continue;
+            }
+
             var field = TrimBodyPointer(StringOf(error, "location"));
 
             if (described.Length > 0)
@@ -135,6 +150,12 @@ internal static class PoracleProblemDetails
             }
 
             described.Append(string.IsNullOrWhiteSpace(field) ? message : $"{field}: {message}");
+            shown++;
+        }
+
+        if (hidden > 0)
+        {
+            described.Append(CultureInfo.InvariantCulture, $" (and {hidden} more)");
         }
 
         return described.Length > 0 ? described.ToString() : null;
