@@ -2,7 +2,29 @@
 
 *Lead architect synthesis of architecture, db-elimination, tracking-types, performance, security, testing, optimization, and source-verification (researcher) reviews of PoracleNG v2 ([issue #138](https://github.com/jfberry/PoracleNG/issues/138) / [PR #139](https://github.com/jfberry/PoracleNG/pull/139), "huma" framework).*
 
-> Companion to [`poracleng-enhancement-requests.md`](poracleng-enhancement-requests.md). That doc tracks v1-era workaround gaps; this doc evaluates whether v2 closes them and what we must still ask for. **PR #139 is OPEN — wire shapes are not yet frozen.**
+> Companion to [`poracleng-enhancement-requests.md`](poracleng-enhancement-requests.md). That doc tracks v1-era workaround gaps; this doc evaluated whether v2 closes them and what we would still have to ask for.
+
+!!! warning "Historical record, written 2026-08 against an open pull request"
+    This review was written against PoracleNG PR #139 (branch `huma-api-migration`) while it was still
+    open. Every "source-verified" claim in it is a claim about that branch, not about a release. v2 has
+    since shipped in **PoracleNG 5.2.0**, and PGAN production runs 5.2.1.
+
+    Read it for the reasoning, not for the current state. Three of its recommendations were overtaken:
+
+    - The flag is `Poracle:TrackingApiVersion` (`auto` | `v1` | `v2`), not `Poracle:ApiVersion`.
+    - It recommends migrating **reads first, writes after**. The opposite shipped, and for a reason the
+      review could not have known: v2 answers `null` for every field at its wildcard where v1 answers
+      the sentinel, so a v2 read would need a per-field default table matching PoracleNG's exactly. One
+      write moved instead — the pokemon PUT.
+    - Its advice to keep `include_descriptions` off except on the profiles-overview page is superseded.
+      Descriptions are now on for nine tracking types across eight alarm list pages, which is what
+      `RuleSummaryComponent` renders.
+
+    What actually shipped is documented in
+    [The v2 pilot](architecture/poracleng-proxy.md#the-v2-pilot) and
+    [Version compatibility](architecture/poracleng-compatibility.md). Kept as written, apart from this
+    banner and the corrections marked below, because the reasoning behind each ask is still the
+    reasoning.
 
 ---
 
@@ -18,7 +40,9 @@ But the headline goal of this review — **eliminate all direct access to the Po
 
 Net consequence: **without three explicit asks to jfberry, the keystone deletion (`PoracleContext` + the 10 alarm entities, ~800 LOC) cannot happen.** What we *can* delete unconditionally on v2 is the proxy unwrap helpers, `StripUidZero`, `PoracleJsonHelper`'s coercion machinery, and the dead `ProfileRepository` / dead `HumanRepository` methods — a real but smaller win (~600–700 LOC).
 
-**Recommended posture:** adopt v2 behind a `Poracle:ApiVersion` flag, migrate reads first (snapshot), then writes after a strict-payload audit, while sending jfberry the three High-priority asks below (trusted setAreas, admin list, batch resolve). Treat v2 wire shapes as **not yet frozen** — PR #139 is still OPEN.
+**Recommended posture (as written):** adopt v2 behind a `Poracle:ApiVersion` flag, migrate reads first (snapshot), then writes after a strict-payload audit, while sending jfberry the three High-priority asks below (trusted setAreas, admin list, batch resolve). Treat v2 wire shapes as **not yet frozen** — PR #139 is still OPEN.
+
+> **What shipped instead:** the flag is `Poracle:TrackingApiVersion` and the order reversed — one write path (the pokemon PUT) moved first, reads stayed on v1. See the banner above.
 
 > **Source-verified against branch `huma-api-migration` (PR #139):** the `userSelectable` filter in `registerV2HumanSetAreas` (`v2_humans.go:518-522`), the `override_areas` → `GetAvailableAreas` gate (`tracking.go:266,322`), the absence of any admin list/delete-human endpoint (full `RegisterV2Humans` set), the `active_hours` `day` 0-6/Sun=0 schema with no cross-midnight (`v2_profiles.go:43,71`), and `blocked_alerts` as a read-only field on the human GET. **Correction vs our older gap-tracker:** `monsters.go` now already does `COALESCE(template, '') AS template` on this branch — the template crash vector is closed; only `ping` is still selected raw (see ask #4).
 
@@ -70,7 +94,7 @@ Net consequence: **without three explicit asks to jfberry, the keystone deletion
 
 ## New Capabilities to Build (unblocked by v2)
 
-- **`incident` alarm type** — genuinely new (facade over invasion, `display_type` int). Full four-layer wiring per CLAUDE.md (model + `IncidentCreate/Update`, controller with `[RequireFeatureEnabled]`, `DisableFeatureKeys` entry, Angular module/route/guard/nav). **Do not under-scope as "another invasion"** — `display_type` is a different dictionary. Effort: L.
+- **`incident` alarm type** *(shipped)* — genuinely new (facade over invasion, `display_type` int). Full four-layer wiring per CLAUDE.md (model + `IncidentCreate/Update`, controller with `[RequireFeatureEnabled]`, `DisableFeatureKeys` entry, Angular module/route/guard/nav). **Do not under-scope as "another invasion"** — `display_type` is a different dictionary. Effort: L.
 - **`fort` type** — we already have `FortChange` model/UI; reconcile `include_empty` default (v2 = TRUE, ours = 0) and convert int flags to bools. Effort: S–M.
 - **`maxbattle`** — model/UI exist; add `gmax` bool + `move` int coverage. Effort: S.
 - **`pokemon.pvp_ranking_evolution`** (int 0/2/3) — additive field on `MonsterCreate/Update`. Effort: S.
@@ -82,13 +106,13 @@ Net consequence: **without three explicit asks to jfberry, the keystone deletion
 ## Risks & Gotchas
 
 1. **`override_areas` is a trap.** Per-*rule*, not the human/profile area subscription list, and source-verified to be gated by the same `userSelectable` filter. Adopting it expecting a filter-bypass would silently reintroduce the geofence-persistence regression. **Do not delete `UserAreaDualWriter` until a confirmed trusted human-level areas op exists.**
-2. **PUT full-replace footgun.** v2 PUT resets omitted fields to defaults — incompatible with our `ApplyUpdate` null-skip merge. A naive partial PUT silently zeroes IV/CP/PvP/template — echoing the NULL-template incident. Route single-field edits through POST-array-diff or send the complete object.
-3. **`active_hours` day off-by-one.** 1-7 Mon-Sun → 0-6 Sun=0 is a silent, high-blast-radius corruption. v2 also bans cross-midnight ranges. Needs a translation shim **and dedicated round-trip tests** (the existing suite tests string coercion `'09'`/`'00'` and 1-7 numbering — these *invert* under v2 and must be rewritten, not find-replaced).
+2. **PUT full-replace footgun.** v2 PUT resets omitted fields to defaults — incompatible with our `ApplyUpdate` null-skip merge. A naive partial PUT silently zeroes IV/CP/PvP/template — echoing the NULL-template incident. Route single-field edits through POST-array-diff or send the complete object. *(Confirmed live on 5.2.1: omitting `min_iv` wiped a stored 90. The complete object is what ships — `TrackingFieldPreserver` re-reads the row and fills in anything the model does not declare before the PUT.)*
+3. **`active_hours` day off-by-one.** 1-7 Mon-Sun → 0-6 Sun=0 is a silent, high-blast-radius corruption. v2 also bans cross-midnight ranges. *(Correction: the 0-6 numbering is the OpenAPI schema's, and the schema is wrong. The scheduler uses ISO weekdays, Monday 1 through Sunday 7 (`isoDow` in `processor/cmd/processor/profiles.go`), so the schema rejects Sunday and accepts a meaningless 0. No shim was needed or written; 1-7 is correct and stayed. The cross-midnight ban is real, and `ActiveHoursValidator` enforces it on repeating entries.)* Needs a translation shim **and dedicated round-trip tests** (the existing suite tests string coercion `'09'`/`'00'` and 1-7 numbering — these *invert* under v2 and must be rewritten, not find-replaced).
 4. **Strict 422 rejection.** Unknown fields and wrong types hard-fail. Our snake_case proxy currently sends ints for enums and string-coerced hours in places — a full payload audit is mandatory before flipping writes.
 5. **Snapshot payload bloat.** For power users (500+ alarms) the snapshot is hundreds of KB. Do **not** use it for the lightweight badge path — use a counts projection/selective includes, keep `include_descriptions` OFF except on the Profiles-overview page, add client-side dedupe + ETag/304 if offered.
 6. **RFC 9457 reflected input.** `errors[].value`/`detail` echo submitted input — sanitize at the proxy boundary before surfacing to the SPA.
 7. **Trust model unchanged.** `X-Poracle-Secret` = full impersonation of any human id. If admin list/delete/resolve are added but reachable without the secret (e.g. via public `/docs`), they become mass-enumeration/deletion vulns. **Verify secret-gating before adopting.**
-8. **PR #139 is OPEN.** Wire shapes may shift; pin a vendored `openapi.json` as a golden contract fixture and treat shapes as not-yet-frozen.
+8. **PR #139 is OPEN.** Wire shapes may shift; pin a vendored `openapi.json` as a golden contract fixture and treat shapes as not-yet-frozen. *(Closed: PR #139 merged and shipped as 5.2.0. `TrackingV2Translator` is built from 5.2.1's `openapi.golden.json`.)*
 9. **`monsters.go` COALESCE — `template` fixed on the v2 branch, `ping` still raw.** Verified on `huma-api-migration`: `COALESCE(template, '') AS template, clean, ping,` — the template DoS vector (one NULL row crashing state reload for everyone) is closed there. `ping` remains raw; if nullable it's the same crash class. Confirm the template fix is in the release line we actually deploy (our older gap-tracker still lists it as live), and COALESCE `ping` for parity.
 
 ---
@@ -125,7 +149,7 @@ The three **High** asks (trusted setAreas, admin list, batch resolve) are the ga
 | 0b | Swap `UserGeofenceService:292` display-name read to proxy `GetHumanAsync`. | S |
 | 0c | Delete dead `ProfileRepository`/`IProfileRepository` + `ProfileService` CRUD; dead `HumanRepository` methods (`GetByIdAsync`/`ExistsAsync`/`CreateAsync`; `DeleteAllAlarmsByUserAsync` already gone in #707) + `EnsureNotNullDefaults`. Update test mocks. Keep only `GetAllAsync`/`GetByIdsAsync`/`DeleteUserAsync` until v2 admin endpoints land. | M |
 
-**Phase 1 — v2 read path (behind `Poracle:ApiVersion` flag):**
+**Phase 1 — v2 read path (behind `Poracle:ApiVersion` flag):** *(not taken; see the banner — the flag is `Poracle:TrackingApiVersion` and the write path moved first)*
 
 | Step | Detail | Effort |
 |---|---|---|

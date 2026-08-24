@@ -2,7 +2,9 @@
 
 ## Alarm services (PoracleNG API proxy)
 
-All alarm tracking services (`MonsterService`, `RaidService`, `EggService`, `QuestService`, `InvasionService`, `LureService`, `NestService`, `GymService`, `FortChangeService`, `MaxBattleService`) use `IPoracleTrackingProxy` to proxy CRUD operations through the PoracleNG REST API. They do **not** use repositories or direct database access.
+Ten alarm tracking services (`MonsterService`, `RaidService`, `EggService`, `QuestService`, `InvasionService`, `LureService`, `NestService`, `GymService`, `FortChangeService`, `MaxBattleService`) use `IPoracleTrackingProxy` to proxy CRUD operations through the PoracleNG REST API. They do **not** use repositories or direct database access.
+
+`PokestopEventService` is the eleventh, and the exception: Pokéstop Events have no v1 route, so it uses `IPoracleIncidentProxy` against `/api/v2/humans/{id}/tracking/incident` instead. It never touches `IPoracleTrackingProxy`.
 
 See [PoracleNG API Proxy](poracleng-proxy.md) for the full architecture, request flow, and how to add new alarm types.
 
@@ -23,6 +25,8 @@ private static readonly JsonSerializerOptions SnakeCaseOptions = new()
 PoracleNG's tracking POST endpoint handles both creates and updates. When the request body includes a `uid` field, it updates the existing alarm. Services use the same `CreateAsync` proxy method for both operations.
 
 An edit therefore sends the whole row, and the body is built by serializing the typed model — so every column PoracleWeb has no property for arrives absent and PoracleNG stores the default over what the user had. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
+
+On PoracleNG 5.2.0 and later a pokemon edit takes a different route: `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so the pokemon uid rotates on edit and `ITrackedUidRemapper` moves quick-pick applied state to the new one. See [The v2 pilot](poracleng-proxy.md#the-v2-pilot).
 
 The merge runs *before* the collision guards, because `TrackingUpdateReconciler.CountUpdatableDifferences` only compares properties present in the submission — an unmodelled property could not tell two alarms apart, so the guard refused edits PoracleNG would have accepted. See [PoracleNG API Proxy](poracleng-proxy.md#insert-update-or-duplicate) for what the guards are mirroring.
 
@@ -77,7 +81,7 @@ PoracleNG accepts any positive integer as a raid/egg level, so the picker's `+ A
 
 ## Test alert service
 
-`TestAlertService` lets users trigger a sample notification for any configured alarm. It uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) in parallel. It then constructs a realistic mock webhook payload based on the alarm's filter fields (e.g., `pokemon_id`, `raid_level`, `quest_reward`) using the user's location as the event coordinates. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification. Rate-limited at 5 requests per 60s per IP via the `test-alert` policy.
+`TestAlertService` lets users trigger a sample notification for an alarm of one of the eight types `TestAlertController.ValidTypes` names: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`. Fort Changes, Max Battles and Pokéstop Events have no test alert, and the controller answers 400 for any other type. It uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) in parallel. It then constructs a realistic mock webhook payload based on the alarm's filter fields (e.g., `pokemon_id`, `raid_level`, `quest_reward`) using the user's location as the event coordinates. The payload is sent to PoracleNG's `POST /api/test` endpoint, which formats and delivers the notification. Rate-limited at 5 requests per 60s per user (falling back to the IP) via the `test-alert` policy.
 
 ## Fort change and Max Battle services
 
@@ -136,6 +140,21 @@ Wraps HttpClient calls for non-tracking Poracle API operations.
 - Used for: fetching config, areas/geofences, templates, sending commands
 - Registered via `AddHttpClient<IPoracleApiProxy, PoracleApiProxy>()`
 
+### IPoracleMuteProxy (quiet periods)
+
+Proxies the mute store at `/api/v2/humans/{id}/mutes`. **v2 only** — there is no v1 equivalent, so
+`MuteCapabilityService` gates every call and `MuteController` answers the capability alongside the list
+rather than from a separate endpoint.
+
+### IPoracleIncidentProxy (Pokéstop Events)
+
+Proxies Pokéstop-event alarm CRUD at `/api/v2/humans/{id}/tracking/incident`, again v2 only. It is
+deliberately separate from `IPoracleTrackingProxy`: the v2 wire shape is a different contract (named
+envelopes, the clean bitmask split into three booleans, a strict rule object rather than a stored row),
+and bending the v1 proxy to serve both would mean a second shape inside every one of its methods.
+
+That makes five Poracle proxies in total: tracking, human, api, mute and incident.
+
 ### Config parsing
 
 `PoracleConfig` is parsed from Poracle's JSON configuration. The `defaultTemplateName` field can be a number or string — deserialization handles both via `JsonElement`.
@@ -168,6 +187,26 @@ The profile is cached in `IMemoryCache` for five minutes and the HttpClient's ti
 an unreachable server answers "unknown" quickly instead of stalling the admin page.
 `GET /api/admin/server-profile` serves it (admin only); `?refresh=true` invalidates the cache and the
 GitHub update check first.
+
+### Per-feature capability services
+
+Four services sit over the profile and answer one question each:
+`SummaryCapabilityService`, `MuteCapabilityService`, `QuestPokecoinCapabilityService` and
+`CostumeCapabilityService`. All the same shape — one method, fail closed, no cache of their own, since
+`IPoracleServerProfileService` already caches for five minutes and exposes `Invalidate()`. Each picks
+the narrowest signal that predicts its feature: `CostumeCapabilityService` reads the migration number
+(`monsters.costume` at 6, `raid.costume` at 7), the mute and Pokécoin services read the version, and
+both version gates compare against **5.2.0** — the release that added the features, not the 5.2.1
+production happens to run.
+
+There is deliberately no central registry. A user-facing control cannot ask the admin-only
+`GET /api/admin/server-profile`, so four ordinary authenticated endpoints answer instead:
+`GET /api/settings/costume-capability`, `GET /api/quests/capability`,
+`GET /api/summary-schedules/capability`, and `GET /api/mutes`, which folds its capability into the list
+response because the quiet chip needs both on every alarm page.
+
+See [Version compatibility](poracleng-compatibility.md) for how to choose a signal and what each
+feature needs.
 
 ## Areas
 
@@ -257,6 +296,25 @@ so the two cannot drift:
 
 It accepts `hours` and `mins` as either numbers or strings, because PoracleNG stores them inconsistently.
 
+#### Repeating entries
+
+An entry can also fire repeatedly across a window, which adds three snake_case fields to the stored
+JSON:
+
+```json
+{"day": 1, "hours": 9, "mins": 0, "end_hours": 17, "end_mins": 0, "step": 2}
+```
+
+That fires at 09:00 and every two hours up to and including 17:00. A single fire omits all three
+fields entirely.
+
+`step` must be a whole number of hours no greater than 23, and when it is positive the end time must be
+strictly later than the start — a window spanning midnight is not supported. A `step` of zero or less is
+a single fire, and any end fields beside it are ignored rather than refused, matching what
+`ActiveHourEntry.Fires()` does upstream. The end fields carry `omitempty` in PoracleNG, so a window
+ending on the hour arrives with `end_mins` missing: a missing end field reads as 0 and is never an
+error.
+
 ## Scanner service
 
 The scanner DB (`ScannerDb` connection string) is optional. When not configured, `IScannerService` is not registered and scanner endpoints return appropriate fallback responses.
@@ -270,7 +328,7 @@ The scanner DB (`ScannerDb` connection string) is optional. When not configured,
 | `GET /api/scanner/gyms?search=term&limit=20` | Search gyms by name prefix (`term%`, index-sargable). User input is escaped for LIKE wildcards (`%`, `_`, `\`). Search length 2--100 chars; `limit` clamped to `[1, 50]`. |
 | `GET /api/scanner/gyms/{id}` | Return a single gym by its ID (max 128 chars). |
 
-Both endpoints are rate-limited under the `scanner-search` policy (60 requests/min per IP).
+Both endpoints are rate-limited under the `scanner-search` policy (60 requests/min per user, falling back to the IP).
 
 Both endpoints resolve the gym's area name by running point-in-polygon checks against cached Koji admin geofences (via `IKojiService.GetAdminGeofencesAsync()`). The first matching fence name is set on the result's `Area` property.
 
@@ -338,17 +396,21 @@ Weather data is served via `IScannerService` from the scanner DB (`ScannerWeathe
 
 ## Rate limiting
 
-Sensitive endpoints use **per-IP** partitioned rate limiting:
+Sensitive endpoints use **partitioned** rate limiting, never one global bucket:
 
 | Policy | Limit | Window | Applied to |
 |---|---|---|---|
 | `auth` | 30 requests | 60 seconds | Login / callback / token exchange |
 | `auth-read` | 120 requests | 60 seconds | Current user, profile switch |
 | `test-alert` | 5 requests | 60 seconds | Test-alert sends |
+| `mutes` | 60 requests | 60 seconds | Quiet-period reads and writes |
 | `geojson-import` | 5 requests | 60 seconds | Admin GeoJSON import |
 | `scanner-search` | 60 requests | 60 seconds | Scanner gym search / lookup |
 
-Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
+Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter`. `auth` keys on
+`RemoteIpAddress`; the other five key on the authenticated user, falling back to the IP. The `mutes` limit
+is set for reads — the quiet chip is read on every alarm page, and the store is written a few times a
+day at most.
 
 !!! danger "Never use global rate limiting for auth"
     Global (non-partitioned) `AddFixedWindowLimiter` for auth causes cascading login failures — multiple users share one bucket.
