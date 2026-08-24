@@ -36,7 +36,7 @@ public class CleaningService(
             ["raids"] = AllClean(allTracking, "raid"),
             ["eggs"] = AllClean(allTracking, "egg"),
             ["quests"] = AllClean(allTracking, "quest"),
-            ["invasions"] = AllClean(allTracking, "invasion"),
+            ["invasions"] = AllClean(allTracking, "invasion", await this.OwnRowPredicateAsync("invasion")),
             ["lures"] = AllClean(allTracking, "lure"),
             ["nests"] = AllClean(allTracking, "nest"),
             ["gyms"] = AllClean(allTracking, "gym"),
@@ -73,6 +73,35 @@ public class CleaningService(
 
 
     /// <summary>
+    /// Which rows of a tracking type this page owns.
+    /// </summary>
+    /// <remarks>
+    /// Invasion and incident rules share one table, and PoracleWeb reads invasions over v1, which does
+    /// not partition them. So a clean toggle over "invasion" swept up the user's Kecleon, Showcase and
+    /// Gold Stop rules, set the auto-delete bit on them and POSTed them back through the invasion
+    /// endpoint -- a write to rows that belong to the Pokestop Events page, from a switch that never
+    /// mentions it. <see cref="InvasionService"/> and <c>DashboardService</c> both draw this line at the
+    /// same boundary; cleaning did not.
+    /// </remarks>
+    /// <remarks>
+    /// Conditional for the same reason as <see cref="InvasionService"/>: when the Pokestop Events
+    /// surface is switched off there is no other page holding those rows, and the invasion switch is
+    /// the only control the user has over them.
+    /// </remarks>
+    private async Task<Func<JsonElement, bool>> OwnRowPredicateAsync(string type)
+    {
+        if (type != "invasion" || !await this._featureGate.IsEnabledAsync(DisableFeatureKeys.PokestopEvents))
+        {
+            return _ => true;
+        }
+
+        return row => !PokestopEventTypes.IsEventName(
+            row.TryGetProperty("grunt_type", out var gt) && gt.ValueKind == JsonValueKind.String
+                ? gt.GetString()
+                : null);
+    }
+
+    /// <summary>
     /// Workaround: PoracleNG has no bulk clean toggle endpoint. We fetch all alarms of the type,
     /// set the clean field on each, and POST them back via CreateAsync (which upserts by UID).
     /// This is expensive for users with many alarms but functional until a dedicated bulk clean
@@ -99,10 +128,18 @@ public class CleaningService(
             return 0;
         }
 
-        var count = trackingJson.GetArrayLength();
+        var isOurs = await this.OwnRowPredicateAsync(type);
+        var ownRows = trackingJson.EnumerateArray().Where(isOurs).ToList();
+
+        if (ownRows.Count == 0)
+        {
+            return 0;
+        }
+
+        var count = ownRows.Count;
         var updatedAlarms = new JsonArray();
 
-        foreach (var alarm in trackingJson.EnumerateArray())
+        foreach (var alarm in ownRows)
         {
             var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(alarm.GetRawText())!;
 
@@ -121,7 +158,7 @@ public class CleaningService(
         // upsert on uid and must not be deleted.
         if (InsertOnlyTypes.Contains(type))
         {
-            var uids = trackingJson.EnumerateArray()
+            var uids = ownRows
                 .Where(a => a.TryGetProperty("uid", out var u) && u.ValueKind == JsonValueKind.Number)
                 .Select(a => a.GetProperty("uid").GetInt32())
                 .ToList();
@@ -135,7 +172,8 @@ public class CleaningService(
             catch
             {
                 // Put the originals back rather than leaving the user with no alarms at all.
-                await this._trackingProxy.CreateAsync(type, userId, trackingJson);
+                await this._trackingProxy.CreateAsync(
+                    type, userId, JsonSerializer.SerializeToElement(ownRows));
                 throw;
             }
 
@@ -167,15 +205,24 @@ public class CleaningService(
     /// Checks whether all items in a tracking array have clean == true or clean == 1.
     /// Returns false if the array is empty or missing.
     /// </summary>
-    private static bool AllClean(JsonElement root, string key)
+    private static bool AllClean(JsonElement root, string key, Func<JsonElement, bool>? isOurs = null)
     {
         if (!root.TryGetProperty(key, out var arr) || arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0)
         {
             return false;
         }
 
+        var any = false;
+
         foreach (var item in arr.EnumerateArray())
         {
+            if (isOurs != null && !isOurs(item))
+            {
+                continue;
+            }
+
+            any = true;
+
             if (!item.TryGetProperty("clean", out var cleanVal))
             {
                 return false;
@@ -200,6 +247,7 @@ public class CleaningService(
             }
         }
 
-        return true;
+        // An array holding nothing but somebody else's rows is the empty case, not the all-clean one.
+        return any;
     }
 }

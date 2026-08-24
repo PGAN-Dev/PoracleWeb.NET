@@ -176,3 +176,47 @@ The three **High** asks (trusted setAreas, admin list, batch resolve) are the ga
 **Phase 4 — new capabilities:** `incident` (four-layer, distinct dictionary), invasion two-axis, `pvp_ranking_evolution`, `fort.include_empty` reconcile, saved-locations editor, `blocked_alerts` consumption. Effort: L.
 
 **Phase 5 — gated on bulk PATCH:** replace fetch-modify-POST across 8 alarm services + `CleaningService` with one PATCH; reconcile `poracleng-enhancement-requests.md` with v2. Effort: M.
+
+
+---
+
+## `override_areas` re-test, 2026-08-24
+
+The claim in the Executive Summary above — that `validateOverrideFields` refuses a `userSelectable:
+false` fence with a 400, "the single most important blocker" — **did not reproduce.** It was a source
+read against an open pull request, and it has never been confirmed by calling a server. It has now been
+tested against two, and both accept.
+
+**Method.** A real user-drawn geofence was inserted into the dev `poracle_web` database so PoracleWeb's
+feed served it with `userSelectable: false` and `displayInMatches: false` — the same shape a user's own
+geofence takes. Both PoracleNG instances read that one feed, so both saw it after a reload. A human with
+no admin role and no area restriction was created on each. This matters: the earlier probe used a fence
+name that did not exist, which never reaches the filter being tested.
+
+**Control, run on the same human in the same session.** `setAreas` with
+`["v2probe-fence", "aberdeen"]` stored `["aberdeen"]` on 5.1.0 v1 and on 5.2.1 v2. So the human was
+demonstrably non-admin and the `userSelectable` filter was demonstrably live.
+
+**Result.** With the filter proven live on the areas surface, the same fence name was accepted and
+stored verbatim in `override_areas` by every write path tested:
+
+| Server | Surface | `override_areas` sent | Stored |
+|---|---|---|---|
+| 5.1.0 | v1 `POST /api/tracking/pokemon/{id}` | `["v2probe-fence"]` | `["v2probe-fence"]` |
+| 5.2.1 | v1 `POST /api/tracking/pokemon/{id}` | `["v2probe-fence"]` | `["v2probe-fence"]` |
+| 5.2.1 | v2 `POST /api/v2/humans/{id}/tracking/pokemon` | `["v2probe-fence"]` | `["v2probe-fence"]` |
+| 5.1.0 | v1 | `["definitely-not-a-real-fence"]` | stored verbatim |
+| 5.2.1 | v2 | `["definitely-not-a-real-fence"]` | stored verbatim |
+
+All probe rows, the probe humans and the probe geofence were deleted afterwards and both instances
+reloaded; the feed is back to its 793 admin fences.
+
+**What this does and does not settle.** It settles that `UserOwnedOverrideAreaProxy`'s stated premise is
+wrong for the exact request shape PoracleWeb sends, on both versions. It does not settle *why* — the
+filter may be conditional on configuration this deployment does not set, or the validation may have been
+removed. So the class stays: it is currently sending PoracleNG a filtered list and then writing the full
+list to the row itself, which produces the correct stored value whether or not validation exists. The
+finding is recorded so that whoever removes it does so on evidence rather than on the doc comment.
+
+It also does **not** weaken blocker 1. The `setAreas` control above re-confirms it on 5.2.1 v2:
+`IUserAreaDualWriter` and its `HACK: trusted-set-areas` sites stay on direct DB.

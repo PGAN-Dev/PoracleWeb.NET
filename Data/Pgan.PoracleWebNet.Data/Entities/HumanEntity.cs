@@ -86,12 +86,4 @@ public class HumanEntity
     }
 
     public ICollection<ProfileEntity> Profiles { get; set; } = [];
-    public ICollection<MonsterEntity> Monsters { get; set; } = [];
-    public ICollection<RaidEntity> Raids { get; set; } = [];
-    public ICollection<EggEntity> Eggs { get; set; } = [];
-    public ICollection<QuestEntity> Quests { get; set; } = [];
-    public ICollection<InvasionEntity> Invasions { get; set; } = [];
-    public ICollection<LureEntity> Lures { get; set; } = [];
-    public ICollection<NestEntity> Nests { get; set; } = [];
-    public ICollection<GymEntity> Gyms { get; set; } = [];
 }
