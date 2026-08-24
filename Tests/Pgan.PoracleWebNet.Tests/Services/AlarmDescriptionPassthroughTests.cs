@@ -24,12 +24,13 @@ public class AlarmDescriptionPassthroughTests
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly Mock<IFeatureGate> _featureGate = new();
+    private readonly Mock<ITrackedUidRemapper> _remapper = new();
     private readonly MonsterService _monsters;
 
     public AlarmDescriptionPassthroughTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object);
+        this._monsters = new MonsterService(this._proxy.Object, this._featureGate.Object, this._remapper.Object, CostumeCapabilityDoubles.Supported());
     }
 
     private static JsonElement StoredRow(int uid, string? description) => JsonSerializer.SerializeToElement(
@@ -57,6 +58,21 @@ public class AlarmDescriptionPassthroughTests
             .Setup(p => p.CreateAsync("pokemon", "user1", It.IsAny<JsonElement>()))
             .Callback<string, string, JsonElement>((_, _, body) => slot[0] = body.Clone())
             .ReturnsAsync(new TrackingCreateResult([], 0, 0, 0));
+        return slot;
+    }
+
+    /// <summary>
+    /// Edits go through UpdateByUidAsync, not CreateAsync -- #805 moved the pokemon update path onto
+    /// PoracleNG's uid-addressed v2 PUT, and the proxy chooses v1 or v2 underneath. Capturing the create
+    /// call here would observe nothing and assert nothing.
+    /// </summary>
+    private JsonElement[] CaptureUpdates()
+    {
+        var slot = new JsonElement[1];
+        this._proxy
+            .Setup(p => p.UpdateByUidAsync("pokemon", "user1", It.IsAny<int>(), It.IsAny<JsonElement>()))
+            .Callback<string, string, int, JsonElement>((_, _, _, body) => slot[0] = body.Clone())
+            .ReturnsAsync(new TrackingUpdateResult(7, true));
         return slot;
     }
 
@@ -135,7 +151,7 @@ public class AlarmDescriptionPassthroughTests
         // TrackingFieldPreserver copies every stored property the model does not state (#730), so the
         // description was going back out on every edit even before the models carried it.
         this._proxy.Setup(p => p.GetByUserAsync("pokemon", "user1")).ReturnsAsync(StoredRow(7, LiveDescription));
-        var written = this.CaptureWrites();
+        var written = this.CaptureUpdates();
 
         await this._monsters.UpdateAsync(
             "user1",
