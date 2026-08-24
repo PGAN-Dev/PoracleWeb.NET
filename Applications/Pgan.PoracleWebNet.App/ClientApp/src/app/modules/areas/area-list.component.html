@@ -119,6 +119,11 @@
           @for (area of selectedAreas(); track area) {
             <mat-chip highlighted color="primary" (removed)="removeAreaDirect(area)">
               {{ area }}
+              <!--
+                A second trailing affordance beside remove. Anyone who works from the chips rather than
+                the checklist would otherwise have no sight of what is quiet.
+              -->
+              <app-quiet-chip scope="area" [value]="area" [subject]="area" />
               <button matChipRemove><mat-icon>cancel</mat-icon></button>
             </mat-chip>
           }
@@ -188,6 +193,12 @@
                 <span class="area-row-name">{{ area.name }}</span>
                 @if (hasMultipleGroups() && !activeGroup()) {
                   <span class="area-row-group">{{ area.group }}</span>
+                }
+                <!-- Only a subscribed area has alerts to quiet. -->
+                @if (area.selected) {
+                  <span class="area-row-quiet" (click)="$event.stopPropagation()">
+                    <app-quiet-chip appearance="chip" scope="area" [value]="area.name" [subject]="area.name" />
+                  </span>
                 }
               </div>
             } @empty {

@@ -1,0 +1,40 @@
+// Metrics borrowed from where-chip so the two read as the same family of affordance.
+.quiet-chip {
+  align-items: center;
+  background: var(--chip-bg, rgb(0 0 0 / 6%));
+  border: none;
+  border-radius: 999px;
+  color: var(--chip-fg, inherit);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.75rem;
+  gap: 0.25rem;
+  line-height: 1.4;
+  max-width: 100%;
+  padding: 0.25rem 0.6rem;
+}
+
+// The same amber the active-hours chip uses for "scheduled, and temporary".
+.quiet-chip-on {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 500;
+}
+
+:host-context(.dark-theme) .quiet-chip-on {
+  background: rgb(245 158 11 / 15%);
+  color: #fbbf24;
+}
+
+.quiet-chip-icon {
+  font-size: 1rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+.quiet-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -228,6 +228,11 @@
           }
         </mat-card-content>
         <mat-card-actions align="end">
+          <!-- Species, not this one rule: quieting Pikachu quiets every Pikachu alert for an hour. -->
+          @if (monster.pokemonId > 0) {
+            <app-quiet-chip scope="pokemon" [value]="monster.pokemonId.toString()" [subject]="getPokemonName(monster.pokemonId)" />
+          }
+
           <button
             mat-icon-button
             (click)="sendTestAlert(monster)"

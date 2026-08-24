@@ -259,6 +259,19 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true,
             }));
+    // Quiet periods. Read on every alarm page and written a few times a day at most, so the limit is
+    // set for the reads: generous enough that navigating around never trips it, tight enough that a
+    // loop hammering PoracleNG's mute store gets stopped.
+    options.AddPolicy("mutes", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            UserOrIpPartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromSeconds(60),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
     options.AddPolicy("geojson-import", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             UserOrIpPartitionKey(httpContext),

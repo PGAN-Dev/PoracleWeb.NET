@@ -90,6 +90,10 @@
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
+          @if (nest.pokemonId > 0) {
+            <app-quiet-chip scope="pokemon" [value]="nest.pokemonId.toString()" [subject]="getPokemonName(nest.pokemonId)" />
+          }
+
           <button
             mat-icon-button
             (click)="sendTestAlert(nest)"

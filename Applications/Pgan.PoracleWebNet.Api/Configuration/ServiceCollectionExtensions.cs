@@ -88,6 +88,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
         services.AddScoped<ISiteSettingService, SiteSettingService>();
         services.AddScoped<ISummaryCapabilityService, SummaryCapabilityService>();
+        services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
         services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
@@ -161,6 +162,9 @@ public static class ServiceCollectionExtensions
 
         // Register HttpClient for PoracleNG summary schedule proxy (quest summary delivery)
         services.AddHttpClient<IPoracleSummaryProxy, PoracleSummaryProxy>();
+
+        // Register HttpClient for PoracleNG's v2 mute store (quiet periods). The only /api/v2 caller.
+        services.AddHttpClient<IPoracleMuteProxy, PoracleMuteProxy>();
 
         // Register HttpClient for Discord notification service
         services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>(client =>

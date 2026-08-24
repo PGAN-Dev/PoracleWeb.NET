@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Quiet one gym, one area or one species for a while, instead of deleting the rule.** A notifications-paused button now sits in the actions row of every alarm card that names something specific -- Pokemon and nest cards name a species, gym, raid and egg cards name a gym, max battle cards name a station -- and on the Areas page, on both the checklist rows and the selected-area chips. Pick a duration from fifteen minutes to a day and that subject goes quiet; the button becomes a live countdown, and pressing it again extends or lifts it. The dashboard grows a Quiet card while anything is silenced, which lists everything including quiet periods set from the Discord bot and offers Resume on each. This is not *Pause Alerts*, which stays what it was: account-wide, indefinite, and saved. A quiet period is one subject for a while, and Poracle holds it in memory -- a restart of the processor clears every one, which the sheet says out loud rather than showing a deadline it cannot keep. Requires PoracleNG 5.2.0 or newer; on anything older the control does not appear at all ([#809](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/809)).
+
 ### Fixed
 
 - **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).

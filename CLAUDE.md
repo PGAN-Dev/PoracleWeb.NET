@@ -310,6 +310,52 @@ Two traps, both verified against 5.1.0 and both load-bearing: `pokestop` is in `
 
 **Caching:** `SiteSettingService.GetByKeyAsync` is wrapped in `IMemoryCache` with a 5-min TTL and explicit invalidation on writes. Without this, gate checks would add ~10 MySQL roundtrips per dashboard load. There's a documented TOCTOU window (slow read overlapping a write can leak a stale value for up to the TTL) — acceptable for admin-rare toggles.
 
+### Quiet Periods (PoracleNG Mutes)
+
+A quiet period is a time-boxed `(scope, value)` mute on a human, over PoracleNG's `/api/v2/humans/{id}/mutes`.
+`IPoracleMuteProxy` is the **only /api/v2 caller in the codebase**: v2 is huma-generated, so its error
+envelope is `{title, status, detail}` plus an `errors[]` array for schema violations. A handler that reads
+`err.error.error` -- v1's shape, and what every other proxy here does -- renders blank against it.
+
+It is **not** *Pause Alerts*, which toggles the human's `enabled` flag: account-wide, indefinite, persisted.
+
+Four traps, all verified by calling the live 5.2.1 instance rather than reading the source:
+
+**The store is in memory and dies with the processor.** Nothing about a mute is persisted. The UI therefore
+shows a relative countdown and never an absolute expiry -- "Quiet until 3:15pm" is a promise the server
+cannot keep, and a deadline that vanishes early reads as a lie where a countdown reads as time passing.
+`MuteService` refetches on window focus and every time a chip appears, and the sheet states the volatility
+in one plain line. Do not cache the list across a page's lifetime.
+
+**POST canonicalises the area name; DELETE matches the stored string exactly.** `scope=area value=aberdeen`
+is stored and returned as `Aberdeen` (the fence's own casing), and `DELETE ?value=aberdeen` then 404s.
+PoracleWeb.NET holds area names lowercase everywhere because Poracle's matching is case-sensitive, so the
+resume path must send back the value the LIST returned, and the chip must match the area row
+case-insensitively. Get this wrong and the user has a quiet period nobody can lift until it expires.
+
+**`scope=tracking` is deliberately not offered.** Tracking uids are per-table auto-increments whose ranges
+overlap heavily on live data -- gym 31-121 sits wholly inside raid 59-343 and monster 4-36480 -- and
+upstream's matcher compares the uid with no type qualifier. "Quiet this one rule" would silently quiet up
+to ten unrelated rules and light the chip on their cards too, since the mute list is scope+value only and
+cannot say which type it meant. That needs an upstream fix, not a client workaround. `scope=pokestop` is
+read-only here for a duller reason: neither the lure nor the invasion model carries a fort id.
+
+**Capability is the reported version, not the `/health` map.** 5.2.1's map is
+`{buttons, snapshots, autocreate, tomlDts, buttonResponseObject, derivedDtsTypes}` -- no mutes key -- so
+"improving" `MuteCapabilityService` to consult `Supports("mutes")` switches the whole feature off, because
+absent means false by that map's own contract. The gate is `ParsedVersion >= 5.2.0` and it fails closed.
+
+Two smaller ones. **Nobody validates a gym or station id**: `scope=gym value=abc123` is accepted verbatim,
+so only ever create those from an existing alarm's `gymId`/`stationId`, never from free text. And **mutes
+are per-human, not per-profile** -- switching profile does not lift them, and the copy must not imply it does.
+
+Writes are refused while impersonating (`IsImpersonating` on `MuteController`), because `UserId` is the
+inspected account and an unguarded write silences somebody else's alerts -- the #663 shape. Reads stay open
+so an admin can diagnose "why am I getting nothing".
+
+`quiet-surface-parity.spec.ts` pins the six surfaces that carry the chip and the four list components that
+must not, so a future alarm type cannot quietly miss it.
+
 ### Test Alerts
 - `POST /api/test-alert/{type}/{uid}` triggers a test notification for a specific alarm. Supported types: `pokemon`, `raid`, `egg`, `quest`, `invasion`, `lure`, `nest`, `gym`.
 - **Parallel data fetch**: `TestAlertService` uses `Task.WhenAll` to fetch the alarm (via `IPoracleTrackingProxy`) and the human record (via `IPoracleHumanProxy`) concurrently.
@@ -784,6 +830,13 @@ dotnet ef migrations script \
 | GymSearchResult Model | `Core/Pgan.PoracleWebNet.Core.Models/GymSearchResult.cs` |
 | Test Alert Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/TestAlertController.cs` |
 | ITestAlertService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/ITestAlertService.cs` |
+| Mute Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/MuteController.cs` |
+| IPoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleMuteProxy.cs` |
+| PoracleMuteProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleMuteProxy.cs` |
+| MuteCapabilityService | `Core/Pgan.PoracleWebNet.Core.Services/MuteCapabilityService.cs` |
+| Mute / MuteScopes Models | `Core/Pgan.PoracleWebNet.Core.Models/Mute.cs`, `MuteScopes.cs` |
+| Mute Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/mute.service.ts` |
+| Quiet Chip / Sheet / List Sheet | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/quiet-chip/`, `quiet-sheet/`, `quiet-list-sheet/` |
 | TestAlertService | `Core/Pgan.PoracleWebNet.Core.Services/TestAlertService.cs` |
 | TestAlertRequest Model | `Core/Pgan.PoracleWebNet.Core.Models/TestAlertRequest.cs` |
 | Test Alert Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/test-alert.service.ts` |
