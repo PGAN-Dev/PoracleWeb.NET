@@ -46,16 +46,50 @@
           }
         </mat-select>
       </mat-form-field>
+      @if (repeatEnabled()) {
+        <mat-form-field appearance="outline" class="time-field">
+          <mat-label>{{ 'PROFILES.ACTIVE_HOURS_END_HOUR' | translate }}</mat-label>
+          <mat-select [value]="selectedEndHour()" (selectionChange)="selectedEndHour.set($event.value)">
+            @for (h of hourOptions; track h) {
+              <mat-option [value]="h">{{ formatHour(h) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="time-field">
+          <mat-label>{{ 'PROFILES.ACTIVE_HOURS_END_MINUTE' | translate }}</mat-label>
+          <mat-select [value]="selectedEndMinute()" (selectionChange)="selectedEndMinute.set($event.value)">
+            @for (m of minuteOptions; track m) {
+              <mat-option [value]="m">{{ formatMinute(m) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="step-field">
+          <mat-label>{{ 'PROFILES.ACTIVE_HOURS_REPEAT_EVERY' | translate }}</mat-label>
+          <mat-select [value]="selectedStep()" (selectionChange)="selectedStep.set($event.value)">
+            @for (s of stepOptions; track s) {
+              <mat-option [value]="s">{{ formatStep(s) }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
       <button
         mat-flat-button
         color="primary"
         type="button"
+        class="add-btn"
         (click)="addEntries()"
-        [disabled]="selectedDays().size === 0"
+        [disabled]="selectedDays().size === 0 || rangeInvalid()"
         [matTooltip]="'PROFILES.ACTIVE_HOURS_ADD_TOOLTIP' | translate">
         <mat-icon>add</mat-icon> {{ 'PROFILES.ACTIVE_HOURS_ADD' | translate }}
       </button>
     </div>
+    <mat-slide-toggle class="repeat-toggle" [checked]="repeatEnabled()" (change)="repeatEnabled.set($event.checked)">
+      {{ 'PROFILES.ACTIVE_HOURS_REPEAT' | translate }}
+    </mat-slide-toggle>
+    <p class="repeat-hint">{{ 'PROFILES.ACTIVE_HOURS_REPEAT_HINT' | translate }}</p>
+    @if (rangeInvalid()) {
+      <p class="range-error">{{ 'PROFILES.ACTIVE_HOURS_END_AFTER_START' | translate }}</p>
+    }
   </section>
 
   <!-- Rules list -->
@@ -65,9 +99,9 @@
       <div class="empty-rules">{{ data.emptyStateKey ?? 'PROFILES.ACTIVE_HOURS_NO_RULES' | translate }}</div>
     } @else {
       <div class="rules-list">
-        @for (group of groups(); track formatGroupLabel(group)) {
+        @for (group of groups(); track groupKey(group)) {
           <div class="rule-item">
-            <mat-icon class="rule-icon">schedule</mat-icon>
+            <mat-icon class="rule-icon">{{ isRange(group) ? 'update' : 'schedule' }}</mat-icon>
             <span class="rule-label">{{ formatGroupLabel(group) }}</span>
             <button
               mat-icon-button
@@ -92,8 +126,13 @@
           <div class="preview-row">
             <span class="preview-day">{{ dayLetters[row.day] }}</span>
             <div class="preview-bar">
-              @for (marker of row.markers; track marker.hours * 60 + marker.mins) {
-                <span class="preview-dot" [style.left]="markerLeft(marker.hours, marker.mins)"></span>
+              @for (rule of row.rules; track rule.key) {
+                @if (rule.isRange) {
+                  <span class="preview-span" [style.left]="spanLeft(rule.start)" [style.width]="spanWidth(rule.start, rule.end)"></span>
+                }
+                @for (marker of rule.markers; track marker.hours * 60 + marker.mins) {
+                  <span class="preview-dot" [style.left]="markerLeft(marker.hours, marker.mins)"></span>
+                }
               }
             </div>
           </div>

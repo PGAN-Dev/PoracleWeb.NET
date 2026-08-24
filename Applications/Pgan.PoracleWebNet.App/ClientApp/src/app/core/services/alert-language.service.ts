@@ -26,6 +26,16 @@ export class AlertLanguageService {
   /** Every language Poracle can write alerts in. */
   readonly languages = this.i18n.allLanguages;
 
+  /**
+   * The language Poracle will actually write in, or null when we cannot tell.
+   *
+   * Deliberately not `selected()`. That one coerces to 'en' so the picker always has a row highlighted,
+   * which is right for a menu and wrong for anything that acts on the answer: when Poracle's own locale
+   * maps onto no UI language (ja, ru, zh-cn), coercing would claim English and put Japanese prose on an
+   * English card. Null says "unknown", and callers are expected to do nothing rather than guess.
+   */
+  readonly resolved = computed<string | null>(() => this.chosen() ?? this.i18n.serverDefaultLanguage());
+
   readonly selected = computed(() => this.chosen() ?? this.i18n.serverDefaultLanguage() ?? 'en');
 
   /** Sets the alert language, rolling back if the write fails. Returns whether it stuck. */

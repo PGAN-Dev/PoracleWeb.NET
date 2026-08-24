@@ -52,6 +52,21 @@
           <mat-tab [label]="'RAIDS.BY_BOSS' | translate">
             <div class="tab-content">
               <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
+
+              @if (showCostume()) {
+                <h4>{{ 'POKEMON.FILTER_COSTUME' | translate }}</h4>
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'POKEMON.LABEL_COSTUME' | translate }}</mat-label>
+                  <mat-select [formControl]="commonForm.controls.costume">
+                    <mat-option [value]="9000">{{ 'POKEMON.COSTUME_ANY' | translate }}</mat-option>
+                    <mat-option [value]="0">{{ 'POKEMON.COSTUME_NONE' | translate }}</mat-option>
+                    @for (c of costumeOptions(); track c.id) {
+                      <mat-option [value]="c.id">{{ c.name }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>{{ costumeHint() | translate }}</mat-hint>
+                </mat-form-field>
+              }
               @if (selectedPokemonIds().length > 0) {
                 <p class="selection-count">{{ 'RAIDS.POKEMON_SELECTED' | translate: { count: selectedPokemonIds().length } }}</p>
               }

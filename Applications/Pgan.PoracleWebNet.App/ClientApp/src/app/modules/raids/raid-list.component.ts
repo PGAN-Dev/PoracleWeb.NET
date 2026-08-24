@@ -27,14 +27,18 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { NO_COSTUME } from '../../shared/utils/costumes';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    QuietChipComponent,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -43,6 +47,7 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
     MatTooltipModule,
     MatSnackBarModule,
     MatTabsModule,
+    RuleSummaryComponent,
     TranslatePipe,
     AlarmInfoComponent,
     RsvpPillComponent,
@@ -284,6 +289,14 @@ export class RaidListComponent implements OnInit {
       return `${(meters / 1000).toFixed(1)} km`;
     }
     return `${meters} m`;
+  }
+
+  /**
+   * The costume pill's text: "No costume" for 0, the costume's name otherwise. Never called for
+   * 9000 -- "any costume" is the default and gets no pill, like every other unfiltered field.
+   */
+  getCostumePillText(costume: number): string {
+    return costume === NO_COSTUME ? this.i18n.instant('POKEMON.NO_COSTUME_PILL') : this.masterData.getCostumeName(costume);
   }
 
   getEggImage(level: number): string {

@@ -15,6 +15,14 @@ public class UpstreamFeatureFlagServiceTests
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly MemoryCache _cache = new(new MemoryCacheOptions());
 
+    /// <summary>
+    /// Every test below assumes a PoracleNG new enough to serve pokestop events, with the feature on.
+    /// Absent or unreadable is a different answer — see the showcase tests at the bottom — and left
+    /// unstubbed it would leak <c>disable_showcase</c> into every assertion here.
+    /// </summary>
+    public UpstreamFeatureFlagServiceTests() =>
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync(false);
+
     private UpstreamFeatureFlagService CreateSut() =>
         new(this._proxy.Object, this._cache, NullLogger<UpstreamFeatureFlagService>.Instance);
 
@@ -185,5 +193,75 @@ public class UpstreamFeatureFlagServiceTests
 
         Assert.Equal([DisableFeatureKeys.Gyms], second);
         this._proxy.Verify(p => p.GetConfigAsync(), Times.Once);
+    }
+
+    // ── disable_showcase: the one probe that fails closed ────────────────────
+
+    /// <summary>
+    /// The legitimate case. A 5.2.x server with the option present and off leaves the page available,
+    /// and does not disable anything else on the way past.
+    /// </summary>
+    [Fact]
+    public async Task ShowcaseOptionPresentAndOffLeavesPokestopEventsAvailable()
+    {
+        this.UpstreamHooks();
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync(false);
+
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    [Fact]
+    public async Task ShowcaseOptionOnDisablesPokestopEvents()
+    {
+        this.UpstreamHooks();
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync(true);
+
+        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    /// <summary>
+    /// An absent option means a PoracleNG below 5.2.0, and every such server 404s the v2 incident
+    /// route the page is built on. Verified: 5.1.0 has neither the option nor the route.
+    /// </summary>
+    [Fact]
+    public async Task AbsentShowcaseOptionDisablesPokestopEvents()
+    {
+        this.UpstreamHooks();
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync((bool?)null);
+
+        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    /// <summary>
+    /// The deliberate inversion of this class's fail-open rule. Everywhere else an unreadable config
+    /// leaves the site settings in charge; here it closes the gate, because a server whose config we
+    /// cannot read is not one we can send v2 writes to either — and failing open would produce a page
+    /// whose every call 404s.
+    /// </summary>
+    [Fact]
+    public async Task UnreadableShowcaseOptionDisablesPokestopEvents()
+    {
+        this.UpstreamHooks();
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ThrowsAsync(new HttpRequestException("boom"));
+
+        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    /// <summary>
+    /// A hook list that could not be read used to abandon the whole probe. That would have skipped the
+    /// showcase question entirely and left the page on for a server that cannot serve it.
+    /// </summary>
+    [Fact]
+    public async Task FailedHookReadStillAnswersTheShowcaseQuestion()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("boom"));
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
+        this._proxy.Setup(p => p.GetShowcaseDisabledAsync()).ReturnsAsync((bool?)null);
+
+        Assert.Equal([DisableFeatureKeys.PokestopEvents], await this.CreateSut().GetDisabledKeysAsync());
     }
 }

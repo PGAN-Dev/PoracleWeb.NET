@@ -87,6 +87,18 @@ public class Monster
     {
         get; set;
     }
+
+    /// <summary>
+    /// Costume the spawn must be wearing. 9000 = any costume, 0 = no costume, N = that costume.
+    /// </summary>
+    /// <remarks>
+    /// Costumed spawns arrive as form 598 "Normal", so a form filter can neither target nor exclude
+    /// them; this is the only field that can. The <c>= 9000</c> initializer is load-bearing: a stored
+    /// row that predates PoracleNG's costume columns, or a payload that omits the key, must widen to
+    /// "any" rather than fall to C#'s 0, which would silently narrow every existing rule to plain
+    /// spawns only. PoracleNG applies the same default on its side (trackingMonster.go).
+    /// </remarks>
+    public int Costume { get; set; } = 9000;
     /// <summary>
     /// Seconds a spawn must still have left when it is found, or the alert is skipped.
     /// </summary>
@@ -139,6 +151,20 @@ public class Monster
     /// exclusive with a distance. Names are lowercase with spaces, matching the geofence convention.
     /// </remarks>
     public List<string>? OverrideAreas
+    {
+        get; set;
+    }
+    /// <summary>
+    /// The sentence PoracleNG renders for this rule, in the user's alert language.
+    /// </summary>
+    /// <remarks>
+    /// Read-only, and read-only in both directions. PoracleNG returns it on every v1 per-type tracking
+    /// read with no query parameter asked for -- verified live against 5.1.0 and 5.2.1 -- and there is no
+    /// <c>description</c> column on any of the ten tracking tables, so it is rendered from the other
+    /// fields on the way out and means nothing on the way in. <c>PoracleJsonHelper.ShouldStrip</c>
+    /// therefore removes it from every write body. A PoracleNG too old to send it leaves this null.
+    /// </remarks>
+    public string? Description
     {
         get; set;
     }

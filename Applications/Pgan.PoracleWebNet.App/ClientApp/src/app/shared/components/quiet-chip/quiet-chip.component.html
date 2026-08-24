@@ -1,0 +1,17 @@
+@if (mutes.capable()) {
+  @if (appearance() === 'chip') {
+    <button type="button" class="quiet-chip" [class.quiet-chip-on]="isQuiet()" [matTooltip]="tooltip()" (click)="open($event)">
+      <mat-icon class="quiet-chip-icon">notifications_paused</mat-icon>
+      <span class="quiet-chip-label">{{ label() }}</span>
+    </button>
+  } @else if (isQuiet()) {
+    <button type="button" class="quiet-chip quiet-chip-on" [matTooltip]="tooltip()" (click)="open($event)">
+      <mat-icon class="quiet-chip-icon">notifications_paused</mat-icon>
+      <span class="quiet-chip-label">{{ label() }}</span>
+    </button>
+  } @else {
+    <button mat-icon-button [matTooltip]="tooltip()" (click)="open($event)">
+      <mat-icon>notifications_paused</mat-icon>
+    </button>
+  }
+}

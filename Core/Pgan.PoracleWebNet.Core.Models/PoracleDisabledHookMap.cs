@@ -33,6 +33,11 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// <c>disabledHooks</c>. It is read separately from <c>general.disable_fort_update</c> on
 /// <c>GET /api/config/values</c> — see <c>IPoracleApiProxy.GetFortUpdateDisabledAsync</c>.
 /// </para>
+/// <para>
+/// <c>disable_showcase</c> is the same shape and has deliberately no entry here either: verified on
+/// a live 5.2.1, it is present in <c>general</c> on <c>GET /api/config/values</c> and absent from
+/// <c>disabledHooks</c>. See <c>IPoracleApiProxy.GetShowcaseDisabledAsync</c>.
+/// </para>
 /// </remarks>
 public static class PoracleDisabledHookMap
 {

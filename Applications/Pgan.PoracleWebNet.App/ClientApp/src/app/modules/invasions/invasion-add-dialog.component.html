@@ -24,19 +24,22 @@
             }
           </div>
 
-          <h4>{{ 'INVASIONS.POKESTOP_EVENTS' | translate }}</h4>
-          <div class="grunt-grid event-grid">
-            @for (evt of eventGrunts(); track evt.key) {
-              <mat-checkbox [checked]="evt.selected" (change)="toggleGrunt(evt.key)">
-                @if (evt.imgUrl) {
-                  <img [src]="evt.imgUrl" class="grunt-type-icon" />
-                } @else {
-                  <mat-icon class="event-type-icon" [style.color]="evt.color">{{ evt.icon }}</mat-icon>
-                }
-                {{ getGruntLabel(evt) }}
-              </mat-checkbox>
-            }
-          </div>
+          <!-- Offered only where there is no Pokestop Events page to offer them instead. See ngOnInit. -->
+          @if (eventGrunts().length > 0) {
+            <h4>{{ 'INVASIONS.POKESTOP_EVENTS' | translate }}</h4>
+            <div class="grunt-grid event-grid">
+              @for (evt of eventGrunts(); track evt.key) {
+                <mat-checkbox [checked]="evt.selected" (change)="toggleGrunt(evt.key)">
+                  @if (evt.imgUrl) {
+                    <img [src]="evt.imgUrl" class="grunt-type-icon" />
+                  } @else {
+                    <mat-icon class="event-type-icon" [style.color]="evt.color">{{ evt.icon }}</mat-icon>
+                  }
+                  {{ getGruntLabel(evt) }}
+                </mat-checkbox>
+              }
+            </div>
+          }
 
           @if (selectedCount() > 0) {
             <p class="selection-count">{{ 'INVASIONS.TYPES_SELECTED' | translate: { count: selectedCount() } }}</p>
