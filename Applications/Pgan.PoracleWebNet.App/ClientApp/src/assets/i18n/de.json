@@ -375,7 +375,9 @@
     "TEST_SEND": "Testbenachrichtigung senden",
     "TAB_DELIVERY": "Zustellung",
     "COMMON_SETTINGS": "Allgemeine Einstellungen",
-    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} erstellt, {{duplicates}} bereits verfolgt"
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} erstellt, {{duplicates}} bereits verfolgt",
+    "RULE_SUMMARY_MORE": "Ganze Regel anzeigen",
+    "RULE_SUMMARY_LESS": "Weniger anzeigen"
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-Benachrichtigungen",

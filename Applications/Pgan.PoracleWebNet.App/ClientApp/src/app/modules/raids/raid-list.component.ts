@@ -29,6 +29,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/componen
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -46,6 +47,7 @@ import { NO_COSTUME } from '../../shared/utils/costumes';
     MatTooltipModule,
     MatSnackBarModule,
     MatTabsModule,
+    RuleSummaryComponent,
     TranslatePipe,
     AlarmInfoComponent,
     RsvpPillComponent,

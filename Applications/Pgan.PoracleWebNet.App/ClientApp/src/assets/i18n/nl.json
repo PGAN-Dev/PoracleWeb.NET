@@ -375,7 +375,9 @@
     "TEST_SEND": "Testmelding versturen",
     "TAB_DELIVERY": "Bezorging",
     "COMMON_SETTINGS": "Gemeenschappelijke Instellingen",
-    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} aangemaakt, {{duplicates}} al gevolgd"
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} aangemaakt, {{duplicates}} al gevolgd",
+    "RULE_SUMMARY_MORE": "Toon de hele regel",
+    "RULE_SUMMARY_LESS": "Toon minder"
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-meldingen",

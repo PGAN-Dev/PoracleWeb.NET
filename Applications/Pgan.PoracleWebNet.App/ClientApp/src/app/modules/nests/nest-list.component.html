@@ -88,6 +88,7 @@
               [profileAreas]="profileAreas()"
               (click)="editScope(nest); $event.stopPropagation()" />
           </div>
+          <app-rule-summary [text]="nest.description" />
         </mat-card-content>
         <mat-card-actions align="end">
           @if (nest.pokemonId > 0) {

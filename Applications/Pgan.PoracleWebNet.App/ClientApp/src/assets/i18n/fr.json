@@ -375,7 +375,9 @@
     "TEST_SEND": "Envoyer une notification test",
     "TAB_DELIVERY": "Livraison",
     "COMMON_SETTINGS": "Paramètres communs",
-    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} creees, {{duplicates}} deja suivies"
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} creees, {{duplicates}} deja suivies",
+    "RULE_SUMMARY_MORE": "Afficher toute la règle",
+    "RULE_SUMMARY_LESS": "Afficher moins"
   },
   "RAIDS": {
     "RSVP_LABEL": "Notifications RSVP",

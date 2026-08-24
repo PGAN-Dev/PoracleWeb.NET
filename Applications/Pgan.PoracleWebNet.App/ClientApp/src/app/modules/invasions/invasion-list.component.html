@@ -104,6 +104,7 @@
               [profileAreas]="profileAreas()"
               (click)="editScope(invasion); $event.stopPropagation()" />
           </div>
+          <app-rule-summary [text]="invasion.description" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button

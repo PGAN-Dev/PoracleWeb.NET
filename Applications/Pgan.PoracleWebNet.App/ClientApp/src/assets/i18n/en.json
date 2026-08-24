@@ -375,7 +375,9 @@
     "TEST_SEND": "Send test notification",
     "TAB_DELIVERY": "Delivery",
     "COMMON_SETTINGS": "Common Settings",
-    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} created, {{duplicates}} already tracked"
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} created, {{duplicates}} already tracked",
+    "RULE_SUMMARY_MORE": "Show the whole rule",
+    "RULE_SUMMARY_LESS": "Show less"
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP notifications",

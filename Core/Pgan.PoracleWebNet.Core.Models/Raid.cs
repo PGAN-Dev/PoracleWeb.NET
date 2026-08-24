@@ -85,4 +85,18 @@ public class Raid
     {
         get; set;
     }
+    /// <summary>
+    /// The sentence PoracleNG renders for this rule, in the user's alert language.
+    /// </summary>
+    /// <remarks>
+    /// Read-only, and read-only in both directions. PoracleNG returns it on every v1 per-type tracking
+    /// read with no query parameter asked for -- verified live against 5.1.0 and 5.2.1 -- and there is no
+    /// <c>description</c> column on any of the ten tracking tables, so it is rendered from the other
+    /// fields on the way out and means nothing on the way in. <c>PoracleJsonHelper.ShouldStrip</c>
+    /// therefore removes it from every write body. A PoracleNG too old to send it leaves this null.
+    /// </remarks>
+    public string? Description
+    {
+        get; set;
+    }
 }
