@@ -135,6 +135,11 @@
                 (click)="editScope(raid, 'raid'); $event.stopPropagation()" />
             </mat-card-content>
             <mat-card-actions align="end">
+              <!-- The gym, not the raid rule: quieting a gym silences every raid and egg alert there. -->
+              @if (raid.gymId; as gymId) {
+                <app-quiet-chip scope="gym" [value]="gymId" [subject]="gymNames()[gymId]" />
+              }
+
               <button
                 mat-icon-button
                 (click)="sendTestAlert('raid', raid)"
@@ -249,6 +254,10 @@
                 (click)="editScope(egg, 'egg'); $event.stopPropagation()" />
             </mat-card-content>
             <mat-card-actions align="end">
+              @if (egg.gymId; as eggGymId) {
+                <app-quiet-chip scope="gym" [value]="eggGymId" [subject]="gymNames()[eggGymId]" />
+              }
+
               <button
                 mat-icon-button
                 (click)="sendTestAlert('egg', egg)"

@@ -27,6 +27,7 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
@@ -36,6 +37,7 @@ import { NO_COSTUME } from '../../shared/utils/costumes';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    QuietChipComponent,
     MatCardModule,
     MatButtonModule,
     MatIconModule,

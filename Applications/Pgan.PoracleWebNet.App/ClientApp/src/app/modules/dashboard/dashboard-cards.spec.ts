@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -42,6 +44,9 @@ describe('DashboardComponent cards', () => {
     TestBed.configureTestingModule({
       providers: [
         provideNoopAnimations(),
+        // The dashboard reads the quiet list, which is an HTTP-backed root service.
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([]),
         provideTranslateService(),
         {

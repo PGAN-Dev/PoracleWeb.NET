@@ -19,11 +19,13 @@ import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LocationService } from '../../core/services/location.service';
+import { MuteService } from '../../core/services/mute.service';
 import { ProfileService } from '../../core/services/profile.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { AreaOverviewMapComponent } from '../../shared/components/area-overview-map/area-overview-map.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { OnboardingComponent } from '../../shared/components/onboarding/onboarding.component';
+import { QuietListSheetComponent } from '../../shared/components/quiet-list-sheet/quiet-list-sheet.component';
 import { polygonCentroid } from '../../shared/utils/geo.utils';
 
 interface DashboardCard {
@@ -99,7 +101,6 @@ export class DashboardComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly settingsService = inject(SettingsService);
-
   private readonly snackBar = inject(MatSnackBar);
 
   readonly alertsPaused = computed(() => {
@@ -111,8 +112,8 @@ export class DashboardComponent implements OnInit {
   // opened with an error toast for a feature the user had not touched -- and kept rendering buttons that
   // bounced straight back with the same toast. A disabled feature is simply absent here. See #516.
   readonly areasEnabled = computed(() => !this.settingsService.isDisabled('disable_areas'));
-  readonly areaWeather = signal<Record<string, WeatherData>>({});
 
+  readonly areaWeather = signal<Record<string, WeatherData>>({});
   readonly cards: DashboardCard[] = [
     {
       colorClass: 'card-pokemon',
@@ -226,7 +227,9 @@ export class DashboardComponent implements OnInit {
   readonly locationAddress = signal<string>('');
 
   readonly locationEnabled = computed(() => !this.settingsService.isDisabled('disable_location'));
+
   readonly locationMapUrl = signal<string>('');
+  protected readonly mutes = inject(MuteService);
   readonly profileNo = computed(() => this.authService.user()?.profileNo ?? 1);
   readonly profiles = signal<Profile[]>([]);
 
@@ -239,11 +242,26 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly profilesEnabled = computed(() => !this.settingsService.isDisabled('disable_profiles'));
+  /**
+   * "3 quiet, next back in 47m". A count on its own says nothing about when it ends, and the soonest
+   * expiry is the one the user is waiting on.
+   */
+  protected readonly quietSummary = computed(() => {
+    const count = this.mutes.mutes().length;
+    const soonest = this.mutes.soonestExpiry();
+    const remaining = soonest === null ? 0 : Math.max(0, soonest - Math.floor(Date.now() / 1000));
+
+    return this.i18n.instant('QUIET.CARD_SUMMARY', {
+      count,
+      countdown: this.mutes.countdownLabel(remaining),
+    });
+  });
+
   readonly selectedAreas = signal<string[]>([]);
 
   readonly showOnboarding = signal(!localStorage.getItem('poracle-onboarding-complete'));
-
   readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
   readonly userLocation = computed(() => {
     const loc = this.location();
     if (!loc) return false;
@@ -367,6 +385,9 @@ export class DashboardComponent implements OnInit {
     // Re-check on each visit so wizard reappears after navigating away
     this.showOnboarding.set(!localStorage.getItem('poracle-onboarding-complete'));
     this.loadDashboardData();
+    // Read fresh rather than trusting whatever an alarm page left behind: the store is upstream's
+    // memory and a restart empties it without telling anyone.
+    this.mutes.refresh(true);
 
     // Notify user if PoracleNG changed their active profile (via active_hours or bot command)
     if (this.authService.profileResynced()) {
@@ -411,6 +432,10 @@ export class DashboardComponent implements OnInit {
             });
         }
       });
+  }
+
+  openQuietList(): void {
+    this.dialog.open(QuietListSheetComponent, { width: '420px' });
   }
 
   switchProfile(profile: Profile): void {
