@@ -365,8 +365,9 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  // #f57f17 reads at 2.4:1 on this band; #e65100 (the cp-pill orange) clears 4.5:1.
-  color: #e65100;
+  // The band's #f5f5f5 is a light surface in both themes, so the amber has to clear 4.5:1
+  // against it at 12px. #f57f17 measured 2.4:1 and #e65100 3.5:1; #bf360c is 5.1:1.
+  color: #bf360c;
 }
 .pvp-badge mat-icon {
   font-size: 16px;
