@@ -94,8 +94,6 @@ export class QuestEditDialogComponent {
 
   readonly isPokecoins = this.data.rewardType === POKECOINS;
 
-  readonly isStardust = this.data.rewardType === STARDUST;
-
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);

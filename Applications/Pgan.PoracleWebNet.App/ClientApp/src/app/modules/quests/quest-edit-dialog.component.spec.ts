@@ -168,7 +168,7 @@ describe('QuestEditDialogComponent', () => {
     it('offers the stardust floor, which PoracleNG keeps in reward', () => {
       setup({ ...baseQuest, pokemonId: 0, reward: 1000, rewardType: 3 });
 
-      expect(component.isStardust).toBe(true);
+      expect(component.usesRewardSlot).toBe(true);
       expect(component.form.controls.stardust.value).toBe(1000);
 
       component.form.controls.stardust.setValue(1500);
@@ -183,7 +183,7 @@ describe('QuestEditDialogComponent', () => {
       setup({ ...baseQuest, reward: 25, rewardType: 7 });
 
       expect(component.hasAmount).toBe(false);
-      expect(component.isStardust).toBe(false);
+      expect(component.usesRewardSlot).toBe(false);
 
       component.save();
 
