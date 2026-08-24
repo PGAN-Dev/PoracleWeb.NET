@@ -93,6 +93,17 @@ export class PokestopEventAddDialogComponent {
         },
   );
 
+  constructor() {
+    // Disabling has to happen on the control, not with [disabled] in the template. A reactive form
+    // control drives the checkbox through its value accessor, and the accessor's setDisabledState --
+    // called with the control's own enabled state -- runs after the input binding and puts the box
+    // back. The box stayed tickable, and ticking it did nothing: chosen() filters alreadyTracked out,
+    // so Save stayed disabled with nothing on screen saying why.
+    for (const option of this.options.filter(o => o.alreadyTracked)) {
+      this.form.controls[this.controlFor(option.name)].disable();
+    }
+  }
+
   controlFor(name: string): 'eventGoldStop' | 'eventKecleon' | 'eventShowcase' {
     return name === 'kecleon' ? 'eventKecleon' : name === 'gold-stop' ? 'eventGoldStop' : 'eventShowcase';
   }

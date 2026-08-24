@@ -266,6 +266,24 @@ describe('PokestopEventAddDialogComponent', () => {
       expect(pokestopEventService.create).not.toHaveBeenCalled();
     });
 
+    it('disables the control for a tracked event, so its box cannot be ticked', () => {
+      setup([tracked]);
+
+      expect(component.form.controls.eventShowcase.disabled).toBe(true);
+      expect(component.form.controls.eventKecleon.disabled).toBe(false);
+      expect(component.form.controls.eventGoldStop.disabled).toBe(false);
+    });
+
+    it('renders the tracked event as a disabled checkbox', () => {
+      setup([tracked]);
+
+      // [disabled] in the template does not survive a reactive form's value accessor, which reapplies
+      // the control's own state after the binding. Assert the rendered input, not the binding.
+      const boxes = fixture.nativeElement.querySelectorAll('mat-checkbox input[type="checkbox"]');
+      expect(boxes[0].disabled).toBe(true);
+      expect(boxes[1].disabled).toBe(false);
+    });
+
     it('starts with everything pickable when the profile tracks nothing', () => {
       setup([]);
 

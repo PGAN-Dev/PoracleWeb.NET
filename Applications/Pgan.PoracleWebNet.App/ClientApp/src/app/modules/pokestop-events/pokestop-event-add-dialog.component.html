@@ -10,19 +10,19 @@
       <div class="tab-content">
         <h4>{{ 'POKESTOP_EVENTS.PICK_EVENTS' | translate }}</h4>
         <div class="change-type-grid">
-          <mat-checkbox [formControl]="form.controls.eventShowcase" [disabled]="options[0].alreadyTracked">
+          <mat-checkbox [formControl]="form.controls.eventShowcase">
             {{ options[0].displayKey | translate }}
             @if (options[0].alreadyTracked) {
               <span class="already-tracked">{{ 'POKESTOP_EVENTS.ALREADY_TRACKED' | translate }}</span>
             }
           </mat-checkbox>
-          <mat-checkbox [formControl]="form.controls.eventKecleon" [disabled]="options[1].alreadyTracked">
+          <mat-checkbox [formControl]="form.controls.eventKecleon">
             {{ options[1].displayKey | translate }}
             @if (options[1].alreadyTracked) {
               <span class="already-tracked">{{ 'POKESTOP_EVENTS.ALREADY_TRACKED' | translate }}</span>
             }
           </mat-checkbox>
-          <mat-checkbox [formControl]="form.controls.eventGoldStop" [disabled]="options[2].alreadyTracked">
+          <mat-checkbox [formControl]="form.controls.eventGoldStop">
             {{ options[2].displayKey | translate }}
             @if (options[2].alreadyTracked) {
               <span class="already-tracked">{{ 'POKESTOP_EVENTS.ALREADY_TRACKED' | translate }}</span>
