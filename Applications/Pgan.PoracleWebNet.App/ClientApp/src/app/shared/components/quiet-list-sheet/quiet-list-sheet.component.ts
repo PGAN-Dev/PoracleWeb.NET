@@ -33,6 +33,17 @@ interface QuietRow {
 })
 export class QuietListSheetComponent {
   private readonly masterData = inject(MasterDataService);
+  /**
+   * Ids a lookup has already been fired for, whatever it answered.
+   *
+   * Separate from resolvedNames on purpose. The effect below reruns every second (the mutes list is
+   * recomputed by the countdown ticker, so it hands back a fresh array each tick), and a gym the
+   * scanner cannot name never lands in resolvedNames -- so guarding on that map alone reissued the
+   * lookup once a second for as long as the sheet stayed open. That is every gym mute with no scanner
+   * DB behind it.
+   */
+  private readonly requestedIds = new Set<string>();
+
   /** Gym and station ids resolved to names as the scanner answers, keyed by id. */
   private readonly resolvedNames = signal<Record<string, string>>({});
   private readonly scanner = inject(ScannerService);
@@ -77,7 +88,8 @@ export class QuietListSheetComponent {
     for (const mute of mutes) {
       if (mute.scope !== 'gym' || !mute.value) continue;
       const id = mute.value;
-      if (id in this.resolvedNames()) continue;
+      if (this.requestedIds.has(id)) continue;
+      this.requestedIds.add(id);
       this.scanner.getGymById(id).subscribe({
         error: () => undefined,
         next: gym => {

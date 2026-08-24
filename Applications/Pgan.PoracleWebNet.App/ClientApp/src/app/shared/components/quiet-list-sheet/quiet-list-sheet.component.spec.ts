@@ -14,9 +14,10 @@ describe('QuietListSheetComponent', () => {
   const resume = jest.fn(() => of(undefined));
   const resumeAll = jest.fn(() => of(undefined));
   const getGymById = jest.fn(() => of(null));
+  let list = signal<Mute[]>([]);
 
   const build = (mutes: Mute[]) => {
-    const list = signal(mutes);
+    list = signal(mutes);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -90,6 +91,26 @@ describe('QuietListSheetComponent', () => {
     sheet.resume(sheet.rows()[0]);
 
     expect(resume).toHaveBeenCalledWith('area', 'Aberdeen');
+  });
+
+  /**
+   * The countdown ticker recomputes MuteService.mutes() once a second, handing back a fresh array
+   * every tick, so the name-resolution effect reruns every tick too. A gym the scanner cannot name
+   * never reaches the resolved map, so guarding on that map alone reissued the lookup once a second
+   * for as long as the sheet stayed open -- which is every gym mute on an install with no scanner DB.
+   */
+  it('looks a gym id up once, not once per countdown tick', () => {
+    build([aMute()]);
+
+    expect(getGymById).toHaveBeenCalledTimes(1);
+
+    // What the ticker does: same mutes, new array identity.
+    for (let tick = 0; tick < 5; tick++) {
+      list.set([...list()]);
+      fixture.detectChanges();
+    }
+
+    expect(getGymById).toHaveBeenCalledTimes(1);
   });
 
   it('offers resume everything only when more than one thing is quiet', () => {
