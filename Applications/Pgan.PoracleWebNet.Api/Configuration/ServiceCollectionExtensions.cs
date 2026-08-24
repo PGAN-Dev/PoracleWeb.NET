@@ -71,6 +71,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestService, QuestService>();
         services.AddScoped<IInvasionService, InvasionService>();
         services.AddScoped<ILureService, LureService>();
+        services.AddScoped<IPokestopEventService, PokestopEventService>();
         services.AddScoped<INestService, NestService>();
         services.AddScoped<IGymService, GymService>();
         services.AddScoped<IFortChangeService, FortChangeService>();
