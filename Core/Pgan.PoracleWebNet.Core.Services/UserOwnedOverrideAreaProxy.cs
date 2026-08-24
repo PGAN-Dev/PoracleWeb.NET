@@ -18,6 +18,15 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// <c>setAreas</c>, which strips silently, this one rejects.
 /// </para>
 /// <para>
+/// <strong>That premise did not reproduce on 2026-08-24.</strong> Tested with a real user-drawn fence
+/// carrying <c>userSelectable: false</c>, from a human proven non-admin by the same fence being stripped
+/// from <c>setAreas</c> in the same session: 5.1.0 v1, 5.2.1 v1 and 5.2.1 v2 all accepted it and stored
+/// it verbatim, as they did a fence name that does not exist. Why is unknown -- the filter may be
+/// conditional on configuration those deployments do not set. The class stays because it produces the
+/// correct stored value either way, and because nobody should delete a workaround on an unexplained
+/// negative. See docs/poracleng-v2-review.md, "override_areas re-test".
+/// </para>
+/// <para>
 /// Matching never consults <c>userSelectable</c> — <c>resolveOverride</c> hands the rule's areas
 /// straight to <c>areaOverlap</c>, a name comparison against the fences the spawn fell in. So the fix
 /// is to send PoracleNG only the names it will accept, then write the full list into the row

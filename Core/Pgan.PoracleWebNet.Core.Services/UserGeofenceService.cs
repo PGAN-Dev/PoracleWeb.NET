@@ -15,6 +15,7 @@ public partial class UserGeofenceService(
     IPoracleApiProxy poracleApiProxy,
     IPoracleHumanProxy humanProxy,
     IHumanRepository humanRepository,
+    IHumanService humanService,
     IUserAreaDualWriter areaWriter,
     IDiscordNotificationService discordNotificationService,
     IFeatureGate featureGate,
@@ -28,6 +29,7 @@ public partial class UserGeofenceService(
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IHumanRepository _humanRepository = humanRepository;
+    private readonly IHumanService _humanService = humanService;
     private readonly IUserAreaDualWriter _areaWriter = areaWriter;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly IFeatureGate _featureGate = featureGate;
@@ -503,9 +505,19 @@ public partial class UserGeofenceService(
     /// </summary>
     private async Task<GeofenceSubmissionPost> BuildSubmissionPostAsync(UserGeofence geofence, GeofenceReviewState state)
     {
-        // Profile-agnostic on purpose. GetByIdAndProfileAsync(id, 1) also filters on current_profile_no, so
-        // it finds nobody whose active profile isn't #1 -- which is most people, since the default is 0.
-        var human = await this._humanRepository.GetByIdAsync(geofence.HumanId);
+        // Read through the service, which asks PoracleNG rather than the database. Its own failure is
+        // caught here rather than left to the caller, so the owner's display name degrades on its own
+        // like every other piece of this card -- the post still goes out, with the mention carrying the
+        // identity instead of a name.
+        Human? human = null;
+        try
+        {
+            human = await this._humanService.GetByIdAsync(geofence.HumanId);
+        }
+        catch (Exception ex)
+        {
+            LogOwnerNameLookupFailed(this._logger, ex, geofence.HumanId);
+        }
 
         double[][]? polygon = null;
         if (!string.IsNullOrEmpty(geofence.PolygonJson))
@@ -956,6 +968,9 @@ public partial class UserGeofenceService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Admin {AdminId} deleted geofence '{KojiName}' (ID {Id}, status: {Status})")]
     private static partial void LogAdminDeletedGeofence(ILogger logger, string adminId, string kojiName, int id, string status);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read the owner of a geofence submission ({HumanId}); the review card will show the mention without a name")]
+    private static partial void LogOwnerNameLookupFailed(ILogger logger, Exception ex, string humanId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch static map for geofence '{KojiName}'")]
     private static partial void LogStaticMapFetchFailed(ILogger logger, Exception ex, string kojiName);
