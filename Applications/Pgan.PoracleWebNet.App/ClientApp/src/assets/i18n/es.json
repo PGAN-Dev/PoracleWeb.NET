@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "quedan {{count}} min",
     "PILL_TIME_LEFT_SECONDS": "quedan {{count}} s",
-    "MIN_TIME_ANY": "Cualquiera"
+    "MIN_TIME_ANY": "Cualquiera",
+    "FILTER_COSTUME": "Disfraz",
+    "LABEL_COSTUME": "Disfraz",
+    "COSTUME_ANY": "Cualquier disfraz",
+    "COSTUME_NONE": "Sin disfraz",
+    "COSTUME_HINT_ANY": "Coincide con todas las apariciones, con o sin disfraz.",
+    "COSTUME_HINT_NONE": "Omite las apariciones con disfraz.",
+    "COSTUME_HINT_SPECIFIC": "Solo las apariciones con este disfraz.",
+    "COSTUME_HINT_UNAVAILABLE": "Los nombres de los disfraces no están disponibles ahora mismo. Cualquier disfraz y Sin disfraz siguen funcionando.",
+    "COSTUME_FALLBACK": "Disfraz {{id}}",
+    "NO_COSTUME_PILL": "Sin disfraz"
   },
   "ALARM": {
     "LOCATION_MODE": "Modo de ubicación",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Eliminar el nivel personalizado {{value}}",
       "REMOVED": "Nivel {{value}} eliminado",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Disfraz"
   },
   "QUESTS": {
     "PAGE_TITLE": "Alarmas de Misión",

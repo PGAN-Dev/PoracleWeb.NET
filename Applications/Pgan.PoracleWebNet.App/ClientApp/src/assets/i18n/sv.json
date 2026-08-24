@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "{{count}} min kvar",
     "PILL_TIME_LEFT_SECONDS": "{{count}} s kvar",
-    "MIN_TIME_ANY": "Alla"
+    "MIN_TIME_ANY": "Alla",
+    "FILTER_COSTUME": "Dräkt",
+    "LABEL_COSTUME": "Dräkt",
+    "COSTUME_ANY": "Valfri dräkt",
+    "COSTUME_NONE": "Ingen dräkt",
+    "COSTUME_HINT_ANY": "Matchar alla spawns, med eller utan dräkt.",
+    "COSTUME_HINT_NONE": "Hoppar över spawns med dräkt.",
+    "COSTUME_HINT_SPECIFIC": "Endast spawns med den här dräkten.",
+    "COSTUME_HINT_UNAVAILABLE": "Dräktnamnen är inte tillgängliga just nu. Valfri dräkt och Ingen dräkt fungerar ändå.",
+    "COSTUME_FALLBACK": "Dräkt {{id}}",
+    "NO_COSTUME_PILL": "Ingen dräkt"
   },
   "ALARM": {
     "LOCATION_MODE": "Platsläge",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Ta bort egen nivå {{value}}",
       "REMOVED": "Nivå {{value}} borttagen",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Dräkt"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest-larm",

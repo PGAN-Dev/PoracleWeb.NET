@@ -27,6 +27,7 @@ import { PokemonSelectorComponent } from '../../shared/components/pokemon-select
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
+import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
 @Component({
@@ -79,6 +80,8 @@ export class PokemonAddDialogComponent implements OnInit {
 
   filtersForm = this.fb.group({
     atk: [0, [Validators.min(0), Validators.max(15)]],
+    // 9000 = any costume. Never let this default to 0 -- that is "no costume", a real filter.
+    costume: [ANY_COSTUME],
     def: [0, [Validators.min(0), Validators.max(15)]],
     form: [0],
     forms: [[] as number[]],
@@ -142,6 +145,21 @@ export class PokemonAddDialogComponent implements OnInit {
   /** Whether to render the cap picker at all — only when Poracle offers more than one cap. */
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
+  /** The hint under the costume select, which changes with the selection. */
+  costumeHint(): string {
+    return costumeHintKey(this.filtersForm.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());
+  }
+
+  /** Whether the masterfile's costume names loaded; drives the hint and nothing else. */
+  costumeNamesAvailable(): boolean {
+    return this.masterData.costumesAvailable();
+  }
+
+  /** The named costumes for the select, newest first. */
+  costumeOptions(): { id: number; name: string }[] {
+    return this.masterData.getCostumes();
+  }
+
   isFormValid(): boolean {
     return this.selectedPokemonIds().length > 0 && this.filtersForm.valid && this.notifForm.valid;
   }
@@ -197,6 +215,7 @@ export class PokemonAddDialogComponent implements OnInit {
           overrideLocationLabel: scope.overrideLocationLabel,
           atk: filters.atk ?? 0,
           clean: notif.clean ? 1 : 0,
+          costume: filters.costume ?? ANY_COSTUME,
           def: filters.def ?? 0,
           distance: scope.distance,
           form,

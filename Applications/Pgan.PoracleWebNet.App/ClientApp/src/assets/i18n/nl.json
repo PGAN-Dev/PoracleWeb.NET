@@ -320,7 +320,17 @@
     "MIN_TIME_SECONDS": "{{count}} s",
     "PILL_TIME_LEFT_MINUTES": "nog {{count}} min",
     "PILL_TIME_LEFT_SECONDS": "nog {{count}} s",
-    "MIN_TIME_ANY": "Elke"
+    "MIN_TIME_ANY": "Elke",
+    "FILTER_COSTUME": "Kostuum",
+    "LABEL_COSTUME": "Kostuum",
+    "COSTUME_ANY": "Elk kostuum",
+    "COSTUME_NONE": "Geen kostuum",
+    "COSTUME_HINT_ANY": "Komt overeen met elke spawn, met of zonder kostuum.",
+    "COSTUME_HINT_NONE": "Slaat spawns met een kostuum over.",
+    "COSTUME_HINT_SPECIFIC": "Alleen spawns met dit kostuum.",
+    "COSTUME_HINT_UNAVAILABLE": "Kostuumnamen zijn nu niet beschikbaar. Elk kostuum en Geen kostuum werken nog steeds.",
+    "COSTUME_FALLBACK": "Kostuum {{id}}",
+    "NO_COSTUME_PILL": "Geen kostuum"
   },
   "ALARM": {
     "LOCATION_MODE": "Locatiemodus",
@@ -476,7 +486,8 @@
       "SR_REMOVE": "Eigen level {{value}} verwijderen",
       "REMOVED": "Level {{value}} verwijderd",
       "MORE_RAID_TYPES": "More raid types…"
-    }
+    },
+    "COSTUME_LABEL": "Kostuum"
   },
   "QUESTS": {
     "PAGE_TITLE": "Quest Alarmen",

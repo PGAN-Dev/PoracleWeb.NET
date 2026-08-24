@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Pokemon and raid alarms can filter on costume.** A costumed spawn arrives wearing form 598, "Normal", so no form filter could ever pick one out or keep one away -- the only way to escape a costume flood during an event was to stop tracking the species. Both dialogs now carry a Costume field beside Form, offering *Any costume*, *No costume* and the named list, and the cards show which one a rule is on. Requires PoracleNG 5.2.1 or later, which is where the columns exist; on an older server the field is accepted and ignored, so treat it as unavailable there until the server-capability check lands. Costume names are English in every language: PoracleNG translates them internally but publishes them nowhere, so they come from the same WatWowMap masterfile it reads, and a costume too new for that file shows as its number rather than a blank ([#804](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/804)).
+
 ### Fixed
 
 - **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).

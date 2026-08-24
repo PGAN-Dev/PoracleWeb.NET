@@ -7,6 +7,8 @@ export * from './active-hours.models';
 export interface Monster {
   atk: number;
   clean: number;
+  /** Costume filter: 9000 any, 0 none, N that costume. See shared/utils/costumes.ts. */
+  costume: number;
   def: number;
   distance: number;
   form: number;
@@ -51,6 +53,8 @@ export type MonsterUpdate = Partial<MonsterCreate>;
 
 export interface Raid {
   clean: number;
+  /** Costume filter on the boss: 9000 any, 0 none, N that costume. See shared/utils/costumes.ts. */
+  costume: number;
   distance: number;
   evolution: number;
   exclusive: number;
