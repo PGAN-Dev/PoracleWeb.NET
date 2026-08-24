@@ -233,6 +233,16 @@ each time because one surface disagreed with another:
 | #626 | resolving from the local table alone refused a PoracleJS-configured delegate the nav item had just offered |
 | #786 | `/api/auth/me` still read the claim, so a *new* delegate could not find a page that would have let them in |
 | #797 | all three agreed on the union and disagreed on what the strings in it *identify* — see below |
+| v2humans | `GetAdminRolesAsync` returned null on **any** non-2xx, so a 503 read as "administers nothing" with `Resolved:true` and got cached — #656/#667 on the one source they missed |
+
+**A degraded source must throw, not answer.** `Resolved` only protects what actually reports failure.
+The admin-roles read now lives on `IPoracleHumanProxy`: a 404 means PoracleNG has no such human and
+answers null; anything else non-2xx throws so the resolver records the answer as unresolved.
+
+**Admin status never comes from the roles body.** Two `isAdmin` branches read one and neither could
+ever fire — both API versions build it from the same `adminRolesResult` (`channels`, `webhooks`,
+`users`), and v2's schema is `additionalProperties:false`. They are deleted; do not re-add a promotion
+path from a field upstream does not send.
 
 **A grant names a webhook; it is not necessarily its id.** PoracleNG returns whatever key the operator
 wrote in `[[discord.webhook_admins]] target`, and upstream that key is the webhook's **name** — the bot

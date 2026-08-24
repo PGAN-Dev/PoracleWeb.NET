@@ -11,7 +11,8 @@ this page.
 Every gate in this build compares against **5.2.0**, not against what production happens to run. 5.2.1 is
 simply the first released build carrying those features, so a check written as `>= 5.2.1` would refuse a
 5.2.0 server that can serve the request. `PoracleServerProfile.FirstWithV2Tracking`,
-`MuteCapabilityService.MinimumVersion` and `QuestPokecoinCapabilityService.MinimumVersion` are all
+`MuteCapabilityService.MinimumVersion`, `PlaceUpdateCapabilityService.MinimumVersion` and
+`QuestPokecoinCapabilityService.MinimumVersion` are all
 `new Version(5, 2, 0)`.
 
 Version support still matters, and always will, because self-hosters upgrade on their own schedule. The
@@ -60,10 +61,17 @@ capability key appeared. The version is the only thing that changed, so the vers
 | Mutes | v2 API surface | PoracleNG 5.2.0 |
 | Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.0 |
 | Pokemon edits through `/api/v2` | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2` |
+| Moving a saved place | Version | PoracleNG 5.2.0 |
 | Rule descriptions on alarm cards | Response field | v1 `allProfiles`, or any v2 read |
 
+Moving a saved place is the only one of these with no older equivalent to fall back to — v1 has no
+update route for a saved location at all, and its delete answers 409 while an alarm still references
+the label. So it is gated rather than degraded: on 5.1.0 the pencil is absent and the delete-and-re-add
+flow is what it has always been.
+
 Each of these carries its own small capability service — `SummaryCapabilityService`,
-`MuteCapabilityService`, `QuestPokecoinCapabilityService` and `CostumeCapabilityService` — all the same
+`MuteCapabilityService`, `QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and
+`CostumeCapabilityService` — all the same
 shape over `IPoracleServerProfileService`: one method, one question, no cache of its own, since the
 profile service already caches for five minutes and exposes `Invalidate()`. There is deliberately no
 central registry: a registry

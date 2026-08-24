@@ -13,6 +13,7 @@ public class LocationControllerTests : ControllerTestBase
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
+    private readonly Mock<IPlaceUpdateCapabilityService> _placeUpdateCapability = new();
     private readonly LocationController _sut;
 
     public LocationControllerTests()
@@ -22,7 +23,8 @@ public class LocationControllerTests : ControllerTestBase
             this._profileService.Object,
             this._humanProxy.Object,
             this._proxy.Object,
-            this._httpClientFactory.Object);
+            this._httpClientFactory.Object,
+            this._placeUpdateCapability.Object);
         SetupUser(this._sut);
     }
 
@@ -82,6 +84,80 @@ public class LocationControllerTests : ControllerTestBase
 
         Assert.IsType<NotFoundResult>(
             await this._sut.UpdateLocation(new LocationController.LocationUpdateRequest { Latitude = 0, Longitude = 0 }));
+    }
+
+    // --- Places ---
+
+    [Fact]
+    public async Task GetPlacesReportsWhetherThisServerCanMoveOne()
+    {
+        this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
+        this._placeUpdateCapability
+            .Setup(c => c.IsPlaceUpdateAvailableAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPlaces(CancellationToken.None));
+
+        Assert.Equal(true, ok.Value?.GetType().GetProperty("canEdit")?.GetValue(ok.Value));
+    }
+
+    [Fact]
+    public async Task UpdatePlaceMovesItAndAnswersTheNewList()
+    {
+        this._humanProxy
+            .Setup(p => p.UpdatePlaceAsync("123456789", "home", 9.5, 8.5))
+            .ReturnsAsync(true);
+        this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
+
+        var result = await this._sut.UpdatePlace(
+            "home", new LocationController.PlaceMoveRequest { Latitude = 9.5, Longitude = 8.5 });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdatePlaceSaysSoWhenTheServerCannotDoIt()
+    {
+        // No v1 equivalent exists, so there is nothing to fall back to. 501 rather than a 500, because
+        // the request was fine and the server simply cannot.
+        this._humanProxy
+            .Setup(p => p.UpdatePlaceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<double>()))
+            .ReturnsAsync(false);
+
+        var result = await this._sut.UpdatePlace(
+            "home", new LocationController.PlaceMoveRequest { Latitude = 9.5, Longitude = 8.5 });
+
+        Assert.Equal(501, Assert.IsType<ObjectResult>(result).StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null, 8.5)]
+    [InlineData(9.5, null)]
+    [InlineData(91.0, 8.5)]
+    [InlineData(9.5, 181.0)]
+    public async Task UpdatePlaceRefusesCoordinatesThatAreNotOnEarth(double? latitude, double? longitude)
+    {
+        var result = await this._sut.UpdatePlace(
+            "home", new LocationController.PlaceMoveRequest { Latitude = latitude, Longitude = longitude });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._humanProxy.Verify(
+            p => p.UpdatePlaceAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<double>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdatePlaceAcceptsTheEdgesOfTheRange()
+    {
+        // The legitimate case beside the refusal: -90 and 180 are real places, and a guard written as
+        // an exclusive range would have quietly refused the poles and the antimeridian.
+        this._humanProxy.Setup(p => p.UpdatePlaceAsync("123456789", "home", -90, 180)).ReturnsAsync(true);
+        this._humanProxy.Setup(p => p.GetPlacesAsync("123456789")).ReturnsAsync(new SavedPlaces());
+
+        var result = await this._sut.UpdatePlace(
+            "home", new LocationController.PlaceMoveRequest { Latitude = -90, Longitude = 180 });
+
+        Assert.IsType<OkObjectResult>(result);
     }
 
     // --- UpdateLanguage ---

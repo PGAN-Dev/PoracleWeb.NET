@@ -15,6 +15,7 @@ public class LocationController(
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
     IHttpClientFactory httpClientFactory,
+    IPlaceUpdateCapabilityService placeUpdateCapability,
     IScannerService? scannerService = null) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
@@ -22,6 +23,7 @@ public class LocationController(
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly IPlaceUpdateCapabilityService _placeUpdateCapability = placeUpdateCapability;
     private readonly IScannerService? _scannerService = scannerService;
 
     [HttpGet]
@@ -283,9 +285,79 @@ public class LocationController(
     /// <summary>
     /// The user's saved places, plus the profile pin every alarm falls back to.
     /// </summary>
+    /// <remarks>
+    /// <c>canEdit</c> rides along rather than sitting on its own endpoint, matching
+    /// <c>MuteController</c>: the list is read on every visit to the Areas page, and a second call for
+    /// one boolean would double that for no gain.
+    /// </remarks>
     [HttpGet("places")]
-    public async Task<IActionResult> GetPlaces() =>
-        this.Ok(await this._humanProxy.GetPlacesAsync(this.UserId));
+    public async Task<IActionResult> GetPlaces(CancellationToken cancellationToken) =>
+        this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken));
+
+    /// <summary>
+    /// The place list in the one shape every caller gets, capability included. The PUT answers it too:
+    /// a reply missing canEdit would clear the flag the SPA is holding and hide the control the user
+    /// just used.
+    /// </summary>
+    private async Task<object> PlacesWithCapabilityAsync(CancellationToken cancellationToken)
+    {
+        var places = await this._humanProxy.GetPlacesAsync(this.UserId);
+
+        return new
+        {
+            places.Default,
+            places.Named,
+            canEdit = await this._placeUpdateCapability.IsPlaceUpdateAvailableAsync(cancellationToken),
+        };
+    }
+
+    /// <summary>
+    /// Moves a saved place, keeping its label so every alarm pointing at it follows.
+    /// </summary>
+    /// <remarks>
+    /// New on PoracleNG 5.2.0. Before it, a place an alarm referenced could not be moved at all: the
+    /// delete answers 409 while anything still points at it, so the only route was to repoint every
+    /// alarm, delete, re-add and repoint back. An older server answers 501 and the SPA hides the control.
+    /// </remarks>
+    [HttpPut("places/{label}")]
+    public async Task<IActionResult> UpdatePlace(
+        string label, [FromBody] PlaceMoveRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.Latitude is not { } latitude || request.Longitude is not { } longitude)
+        {
+            return this.BadRequest(new { error = "Latitude and longitude are required." });
+        }
+
+        if (latitude is < -90 or > 90 || longitude is < -180 or > 180)
+        {
+            return this.BadRequest(new { error = "Latitude must be -90 to 90 and longitude -180 to 180." });
+        }
+
+        var moved = await this._humanProxy.UpdatePlaceAsync(this.UserId, label, latitude, longitude);
+
+        return moved
+            ? this.Ok(await this.PlacesWithCapabilityAsync(cancellationToken))
+            : this.StatusCode(StatusCodes.Status501NotImplemented, new
+            {
+                error = "This Poracle server cannot move a saved place. Delete it and add it again.",
+            });
+    }
+
+    /// <summary>New coordinates for a saved place. The label is the path segment and does not change.</summary>
+    public class PlaceMoveRequest
+    {
+        [Range(-90, 90)]
+        public double? Latitude
+        {
+            get; set;
+        }
+
+        [Range(-180, 180)]
+        public double? Longitude
+        {
+            get; set;
+        }
+    }
 
     /// <summary>
     /// Saves a place an alarm can be anchored to.

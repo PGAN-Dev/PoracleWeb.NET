@@ -215,7 +215,33 @@ asked for it. Nothing throws it yet — the capability services hide their contr
 The user-geofence area writes and the per-alarm `override_areas` write are tagged `HACK: trusted-set-areas` in code — `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every reversion point. See [Backend → Areas](backend.md#areas) for the mechanism; this table and the one in [Database](database.md#poraclecontext) describe the same set.
 
 !!! note "Single-user human/profile operations are fully proxied"
-    `HumanService` reads, creates, and checks existence via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, profile CRUD, and profile copy all go through the proxy. Only admin bulk operations remain on direct DB.
+    `HumanService` reads, creates, and checks existence via `IPoracleHumanProxy` with **no DB fallback**. Location, areas, profile switch, profile CRUD, profile copy and the notification language all go through the proxy. Only admin bulk operations remain on direct DB — `GetAllAsync`, `GetWebhooksAsync` and `DeleteUserAsync`, none of which either API version exposes an endpoint for.
+
+## Which human operations use /api/v2
+
+Nine of them prefer `/api/v2/humans`, each keeping its v1 path as a fallback, so **there is no version floor**: a server without the routes gets exactly the requests it got before.
+
+| Operation | v2 | v1 fallback |
+|---|---|---|
+| Get human | `GET /v2/humans/{id}` | `GET /humans/one/{id}` |
+| Enable / disable | `POST .../enable` `.../disable` | `.../start` `.../stop` |
+| Admin disable | `POST .../admin-disable` `{disabled}` | `.../adminDisabled` `{state}` |
+| Set location | `POST .../location` `{lat,lon}` | `.../setLocation/{lat}/{lon}` |
+| Switch profile | `POST .../profile` `{profile_no}` | `.../switchProfile/{n}` |
+| Set language | `POST .../language` | `POST /humans/{id}/language` |
+| List saved places | `GET .../locations` | same path, v1 |
+| Add saved place | `POST .../locations` `{label,lat,lon}` | `.../locations/add` `{label,latitude,longitude}` |
+| Admin roles | `GET .../admin-roles` | `.../getAdministrationRoles` |
+
+`PUT /v2/humans/{id}/locations/{label}` — moving a place — has **no** v1 equivalent and is therefore gated by `IPlaceUpdateCapabilityService` rather than given a fallback.
+
+Three things are worth knowing about how the fallback decides:
+
+- **The version is a belief, not a fact.** A fork can carry the routes while reporting an older number, or the reverse, so `TryV2Async` also handles the route being absent at request time. gin answers a route it does not have with the plaintext `404 page not found`; the v2 surface answers a missing human or place with problem+json at the same status. **The content type is the only thing separating them**, which is why `PoracleProblemDetails.IsProblemJson` is consulted before concluding anything.
+- **Absence is remembered per route, not per surface.** A single shared flag would let one missing route drop every other call back to v1.
+- **Bodies differ in more than shape.** `admin-disable` renames `state` to `disabled`, and `POST .../locations` takes `lat`/`lon` on the way in while the read still answers `latitude`/`longitude`. That asymmetry is upstream's.
+
+Deliberately **not** moved, because the swap is a rename with a real trap attached: the profile list read (the wrapper key changes from `profile` to `profiles` *and* `active_hours` changes from a string to an array, and the two v2 endpoints disagree with each other about that encoding), profile copy (the arguments invert and the copy replaces, so getting it backwards destroys the source), any `active_hours` write (v2's schema bounds `day` at 0–6 while the scheduler uses ISO 1–7, so Sunday cannot be expressed), and `POST /location?profile=N` (it writes the named profile's row *and* clobbers `humans.latitude/longitude`, the exact drift the dual writer exists to prevent).
 
 ## IPoracleTrackingProxy interface
 
@@ -266,7 +292,7 @@ All alarm services use `PoracleJsonHelper.SerializeToElement()` for serializatio
 
 PoracleNG wraps certain responses in container objects:
 
-- **Human responses**: `GET /api/humans/one/{id}` returns `{ "human": { ... }, "status": "ok" }`. `PoracleHumanProxy.GetHumanAsync()` unwraps the `"human"` property.
+- **Human responses**: `GET /api/humans/one/{id}` returns `{ "human": { ... }, "status": "ok" }`, and `GET /api/v2/humans/{id}` returns the same wrapper without the `status`. `PoracleHumanProxy.GetHumanAsync()` unwraps the `"human"` property either way.
 - **Profile responses**: `GET /api/profiles/{id}` returns a JSON array or object depending on the endpoint.
 - **Tracking responses**: `GET /api/tracking/{type}/{id}` returns an array of alarm objects.
 
