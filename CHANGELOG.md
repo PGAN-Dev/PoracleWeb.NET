@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Every alarm card says in a sentence what its rule actually does.** A card gave you the species and a row of filter chips, and working out that a rule meant "Bulbasaur within 5 km, 90% IV or better, level 20 to 35" was a matter of decoding the chips. Poracle already writes that sentence -- it is the same wording the bot answers a `!pokemon` command with -- and was returning it on every read of this page, where it was thrown away. It now sits at the foot of each card, under a hairline, below the chips that still read first when you are scanning forty rules. Long ones are clamped to two lines with a control to open them. On the nine card types Poracle words well; fort-change cards keep their chips, because the sentence Poracle renders for them still has a raw JSON array in the middle of it. The line appears only when the language Poracle writes your alerts in is the language you are reading the site in, so a card never carries two languages at once -- and only on a Poracle new enough to send it, which older instances are not; in both cases the card is exactly what it was before ([#810](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/810)).
+
 ### Fixed
 
 - **The PVP rank range is readable again on a dark-themed alarm card.** The band under a PVP alarm showed its league and nothing else, so the ranks you had set looked like they had been dropped. They were being drawn, in white, on a band that stays light in both themes. The league name gained some contrast on the way past ([#800](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/800)).

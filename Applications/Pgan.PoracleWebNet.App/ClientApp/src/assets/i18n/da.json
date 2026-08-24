@@ -362,7 +362,9 @@
     "TEST_SEND": "Send testnotifikation",
     "TAB_DELIVERY": "Levering",
     "COMMON_SETTINGS": "Fælles indstillinger",
-    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} oprettet, {{duplicates}} spores allerede"
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} oprettet, {{duplicates}} spores allerede",
+    "RULE_SUMMARY_MORE": "Vis hele reglen",
+    "RULE_SUMMARY_LESS": "Vis mindre"
   },
   "RAIDS": {
     "RSVP_LABEL": "RSVP-notifikationer",

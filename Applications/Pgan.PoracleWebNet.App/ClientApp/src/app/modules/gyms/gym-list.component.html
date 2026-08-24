@@ -87,6 +87,7 @@
               [profileAreas]="profileAreas()"
               (click)="editScope(gym); $event.stopPropagation()" />
           </div>
+          <app-rule-summary [text]="gym.description" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button

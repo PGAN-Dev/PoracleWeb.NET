@@ -28,6 +28,7 @@ import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-inf
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -43,6 +44,7 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
     MatTooltipModule,
     MatSnackBarModule,
     MatTabsModule,
+    RuleSummaryComponent,
     TranslatePipe,
     AlarmInfoComponent,
     RsvpPillComponent,

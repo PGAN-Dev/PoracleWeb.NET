@@ -127,6 +127,7 @@
                 [template]="raid.template"
                 [editable]="true"
                 (click)="editScope(raid, 'raid'); $event.stopPropagation()" />
+              <app-rule-summary [text]="raid.description" />
             </mat-card-content>
             <mat-card-actions align="end">
               <button
@@ -241,6 +242,7 @@
                 [template]="egg.template"
                 [editable]="true"
                 (click)="editScope(egg, 'egg'); $event.stopPropagation()" />
+              <app-rule-summary [text]="egg.description" />
             </mat-card-content>
             <mat-card-actions align="end">
               <button

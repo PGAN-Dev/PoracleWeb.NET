@@ -1,0 +1,18 @@
+@if (visible()) {
+  @if (expandable()) {
+    <button
+      class="rule-summary rule-summary-toggle"
+      type="button"
+      [attr.aria-expanded]="expanded()"
+      [attr.aria-label]="(expanded() ? 'ALARM.RULE_SUMMARY_LESS' : 'ALARM.RULE_SUMMARY_MORE') | translate"
+      [matTooltip]="(expanded() ? 'ALARM.RULE_SUMMARY_LESS' : 'ALARM.RULE_SUMMARY_MORE') | translate"
+      (click)="toggle(); $event.stopPropagation()">
+      <span class="rule-summary-text" [class.rule-summary-clamped]="!expanded()">{{ cleaned() }}</span>
+      <mat-icon class="rule-summary-icon">{{ expanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+    </button>
+  } @else {
+    <span class="rule-summary">
+      <span class="rule-summary-text">{{ cleaned() }}</span>
+    </span>
+  }
+}

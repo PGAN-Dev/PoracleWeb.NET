@@ -129,6 +129,7 @@
             [template]="mb.template"
             [editable]="true"
             (click)="editScope(mb); $event.stopPropagation()" />
+          <app-rule-summary [text]="mb.description" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button mat-icon-button (click)="editMaxBattle(mb)" [matTooltip]="'COMMON.EDIT' | translate">

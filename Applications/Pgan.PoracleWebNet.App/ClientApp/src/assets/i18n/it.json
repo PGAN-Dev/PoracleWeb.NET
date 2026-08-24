@@ -362,7 +362,9 @@
     "TEST_SEND": "Invia notifica di prova",
     "TAB_DELIVERY": "Consegna",
     "COMMON_SETTINGS": "Impostazioni comuni",
-    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} create, {{duplicates}} gia tracciate"
+    "SNACK_CREATED_WITH_DUPLICATES": "{{count}} create, {{duplicates}} gia tracciate",
+    "RULE_SUMMARY_MORE": "Mostra tutta la regola",
+    "RULE_SUMMARY_LESS": "Mostra meno"
   },
   "RAIDS": {
     "RSVP_LABEL": "Notifiche RSVP",

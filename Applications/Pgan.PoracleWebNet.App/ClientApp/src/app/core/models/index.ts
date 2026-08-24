@@ -8,6 +8,8 @@ export interface Monster {
   atk: number;
   clean: number;
   def: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   form: number;
   gender: number;
@@ -43,7 +45,7 @@ export interface Monster {
   uid: number;
 }
 
-export type MonsterCreate = Omit<Monster, 'uid' | 'id' | 'profileNo'>;
+export type MonsterCreate = Omit<Monster, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type MonsterUpdate = Partial<MonsterCreate>;
 
@@ -51,6 +53,8 @@ export type MonsterUpdate = Partial<MonsterCreate>;
 
 export interface Raid {
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   evolution: number;
   exclusive: number;
@@ -70,7 +74,7 @@ export interface Raid {
   uid: number;
 }
 
-export type RaidCreate = Omit<Raid, 'uid' | 'id' | 'profileNo'>;
+export type RaidCreate = Omit<Raid, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type RaidUpdate = Partial<RaidCreate>;
 
@@ -78,6 +82,8 @@ export type RaidUpdate = Partial<RaidCreate>;
 
 export interface MaxBattle {
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   evolution: number;
   form: number;
@@ -95,7 +101,7 @@ export interface MaxBattle {
   uid: number;
 }
 
-export type MaxBattleCreate = Omit<MaxBattle, 'uid' | 'id' | 'profileNo'>;
+export type MaxBattleCreate = Omit<MaxBattle, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type MaxBattleUpdate = Partial<MaxBattleCreate>;
 
@@ -103,6 +109,8 @@ export type MaxBattleUpdate = Partial<MaxBattleCreate>;
 
 export interface Egg {
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   exclusive: number;
   gymId: string | null;
@@ -118,7 +126,7 @@ export interface Egg {
   uid: number;
 }
 
-export type EggCreate = Omit<Egg, 'uid' | 'id' | 'profileNo'>;
+export type EggCreate = Omit<Egg, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type EggUpdate = Partial<EggCreate>;
 
@@ -128,6 +136,8 @@ export interface Quest {
   /** Fewest of the reward the quest must give. Items, candy and mega energy only; 0 means any. */
   amount: number;
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   id: string;
   overrideAreas?: null | string[];
@@ -142,7 +152,7 @@ export interface Quest {
   uid: number;
 }
 
-export type QuestCreate = Omit<Quest, 'uid' | 'id' | 'profileNo'>;
+export type QuestCreate = Omit<Quest, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type QuestUpdate = Partial<QuestCreate>;
 
@@ -150,6 +160,8 @@ export type QuestUpdate = Partial<QuestCreate>;
 
 export interface Invasion {
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   gender: number;
   gruntType: string | null;
@@ -162,7 +174,7 @@ export interface Invasion {
   uid: number;
 }
 
-export type InvasionCreate = Omit<Invasion, 'uid' | 'id' | 'profileNo'>;
+export type InvasionCreate = Omit<Invasion, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type InvasionUpdate = Partial<InvasionCreate>;
 
@@ -170,6 +182,8 @@ export type InvasionUpdate = Partial<InvasionCreate>;
 
 export interface Lure {
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   id: string;
   lureId: number;
@@ -181,7 +195,7 @@ export interface Lure {
   uid: number;
 }
 
-export type LureCreate = Omit<Lure, 'uid' | 'id' | 'profileNo'>;
+export type LureCreate = Omit<Lure, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type LureUpdate = Partial<LureCreate>;
 
@@ -189,6 +203,8 @@ export type LureUpdate = Partial<LureCreate>;
 
 export interface Nest {
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   id: string;
   minSpawnAvg: number;
@@ -201,7 +217,7 @@ export interface Nest {
   uid: number;
 }
 
-export type NestCreate = Omit<Nest, 'uid' | 'id' | 'profileNo'>;
+export type NestCreate = Omit<Nest, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type NestUpdate = Partial<NestCreate>;
 
@@ -209,6 +225,8 @@ export type NestUpdate = Partial<NestCreate>;
 
 export interface FortChange {
   changeTypes: string[];
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   fortType: string | null;
   id: string;
@@ -221,7 +239,7 @@ export interface FortChange {
   uid: number;
 }
 
-export type FortChangeCreate = Omit<FortChange, 'uid' | 'id' | 'profileNo'>;
+export type FortChangeCreate = Omit<FortChange, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type FortChangeUpdate = Partial<FortChangeCreate>;
 
@@ -230,6 +248,8 @@ export type FortChangeUpdate = Partial<FortChangeCreate>;
 export interface Gym {
   battleChanges: number;
   clean: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   gymId: string | null;
   id: string;
@@ -243,7 +263,7 @@ export interface Gym {
   uid: number;
 }
 
-export type GymCreate = Omit<Gym, 'uid' | 'id' | 'profileNo'>;
+export type GymCreate = Omit<Gym, 'description' | 'uid' | 'id' | 'profileNo'>;
 
 export type GymUpdate = Partial<GymCreate>;
 
