@@ -31,10 +31,15 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </remarks>
 internal static class TrackingV2Translator
 {
-    /// <summary>Addressing and presentation. v2 carries none of it in the rule body.</summary>
+    /// <summary>
+    /// Addressing and presentation. v2 carries none of it in the rule body, and reconstructs all of it
+    /// itself: <c>uid</c>/<c>id</c>/<c>profile_no</c> come from the route, and <c>description</c> is a
+    /// display string PoracleNG computes rather than a stored column. <c>ping</c> is NOT here — it is a
+    /// real column that v2 blanks, so it is handled in <see cref="TryWriteProperty"/>.
+    /// </summary>
     private static readonly HashSet<string> Dropped = new(StringComparer.Ordinal)
     {
-        "uid", "id", "profile_no", "ping", "description",
+        "uid", "id", "profile_no", "description",
     };
 
     /// <summary>Every integer filter <c>V2PokemonRule</c> declares, taken from 5.2.1's openapi.golden.json.</summary>
@@ -111,6 +116,9 @@ internal static class TrackingV2Translator
             case "clean":
                 return TryWriteClean(writer, property.Value, out unsupported);
 
+            case "ping":
+                return TryWritePing(property.Value, out unsupported);
+
             case "gender":
                 return TryWriteGender(writer, property.Value, out unsupported);
 
@@ -179,6 +187,32 @@ internal static class TrackingV2Translator
         writer.WriteBoolean("edit", CleanFlags.IsEdit(mask));
         writer.WriteBoolean("summary", CleanFlags.IsSummary(mask));
         return true;
+    }
+
+    /// <summary>
+    /// <c>ping</c> is the mention prepended to the DM — a role or user the alert is meant to notify. It is
+    /// a real <c>monsters</c> column and the v1 body carries it, but <c>V2PokemonRule</c> has no field for
+    /// it and the handler stores <c>Ping: ""</c> unconditionally ("server-managed"). Verified live against
+    /// 5.2.1: a rule holding <c>&lt;@&amp;400027130022592512&gt;</c> came back with an empty ping after one
+    /// v2 PUT.
+    /// </summary>
+    /// <remarks>
+    /// So an empty ping is dropped — v2 would store the same empty string — but a set one sends the row to
+    /// v1, which keeps it. Silently discarding it here is exactly the #730 shape this translator exists to
+    /// avoid, and it lands on webhook alarms, where the role mention is the entire point of the alert.
+    /// </remarks>
+    private static bool TryWritePing(JsonElement value, out string? unsupported)
+    {
+        unsupported = null;
+
+        if (value.ValueKind is JsonValueKind.Null
+            || (value.ValueKind == JsonValueKind.String && string.IsNullOrEmpty(value.GetString())))
+        {
+            return true;
+        }
+
+        unsupported = "ping is set, and v2 would blank it";
+        return false;
     }
 
     private static bool TryWriteGender(Utf8JsonWriter writer, JsonElement value, out string? unsupported)

@@ -271,6 +271,7 @@ public class PoracleTrackingProxyV2Tests
     [InlineData("""{"uid":7,"pokemon_id":25,"gender":9}""")]
     [InlineData("""{"uid":7,"pokemon_id":25,"clean":9}""")]
     [InlineData("""{"uid":7,"distance":1000}""")]
+    [InlineData("""{"uid":7,"pokemon_id":25,"ping":"<@&400027130022592512>"}""")]
     public async Task ARowV2CannotCarryFaithfullyGoesToV1InsteadOfFailing(string row)
     {
         // Refusing outright would mean a PoracleNG newer than this build broke every pokemon edit;
@@ -284,6 +285,47 @@ public class PoracleTrackingProxyV2Tests
         Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", request.Url);
         Assert.Equal(row.Replace(" ", string.Empty, StringComparison.Ordinal), request.Body);
         Assert.Equal(7, result.Uid);
+    }
+
+    [Fact]
+    public async Task ASetPingSurvivesTheEditInsteadOfBeingBlanked()
+    {
+        // v2 stores Ping: "" unconditionally ("server-managed" in v2_pokemon.go), so translating a rule
+        // that carries one would discard it. Verified live against the 5.2.1 copy: a rule holding
+        // <@&400027130022592512> came back with an empty ping after a single v2 PUT. Two rules in
+        // production carry a ping and both are webhook alarms, where the role mention IS the alert.
+        const string WithPing = """
+            {"uid":7,"pokemon_id":25,"min_iv":90,"ping":"<@&400027130022592512>"}
+            """;
+
+        var handler = ScriptedHandler.Ok("""{"newUids":[7],"alreadyPresent":0,"updates":1,"insert":0}""");
+        var sut = CreateSut(handler, version: "5.2.1");
+
+        await sut.UpdateByUidAsync("pokemon", "user1", 7, Row(WithPing));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", request.Url);
+
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal("<@&400027130022592512>", body.RootElement.GetProperty("ping").GetString());
+    }
+
+    [Fact]
+    public async Task AnEmptyPingIsStillDroppedAndTheRowStaysOnV2()
+    {
+        // The legitimate-case half: 18488 of 18490 production rules carry no ping, and v2 would store the
+        // same empty string, so those must not all be pushed onto v1 by the guard above.
+        var handler = ScriptedHandler.Ok(RotatedOk);
+        var sut = CreateSut(handler, version: "5.2.1");
+
+        await sut.UpdateByUidAsync(
+            "pokemon", "user1", 7, Row("""{"uid":7,"pokemon_id":25,"min_iv":90,"ping":""}"""));
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", request.Url);
+
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.False(body.RootElement.TryGetProperty("ping", out _));
     }
 
     [Fact]
