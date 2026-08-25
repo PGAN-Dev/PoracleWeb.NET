@@ -164,4 +164,46 @@ describe('AlertLanguageService', () => {
     expect(alert.selected()).toBe('fr');
     expect(store['poracle-language']).toBe('fr');
   });
+  describe('the languages Poracle will accept', () => {
+    it('should offer all eleven when Poracle restricts nothing', () => {
+      const { alert, i18n } = create();
+      i18n.init();
+      alert.restrictTo(undefined);
+
+      expect(alert.languages().length).toBe(i18n.allLanguages.length);
+    });
+
+    it('should offer all eleven on a Poracle too old to say', () => {
+      // 5.1.0 has no availableLanguages field, so the settings response carries no such key at all.
+      const { alert, i18n } = create();
+      i18n.init();
+
+      expect(alert.languages().length).toBe(i18n.allLanguages.length);
+    });
+
+    it('should offer only what Poracle accepts when it is restricted', () => {
+      const { alert, i18n } = create();
+      i18n.init();
+      alert.restrictTo('en,de,ja');
+
+      // ja is Poracle's to offer and not this UI's to render -- there is no flag row for it.
+      expect(alert.languages().map(l => l.code)).toEqual(['en', 'de']);
+    });
+
+    it('should match case-insensitively, because Poracle keeps its own casing', () => {
+      const { alert, i18n } = create();
+      i18n.init();
+      alert.restrictTo('EN,pt-br');
+
+      expect(alert.languages().map(l => l.code)).toEqual(['en', 'pt-BR']);
+    });
+
+    it('should offer nothing when Poracle accepts nothing this UI ships', () => {
+      const { alert, i18n } = create();
+      i18n.init();
+      alert.restrictTo('ja,ru');
+
+      expect(alert.languages()).toEqual([]);
+    });
+  });
 });

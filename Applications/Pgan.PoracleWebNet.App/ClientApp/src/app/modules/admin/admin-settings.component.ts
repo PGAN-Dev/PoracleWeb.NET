@@ -68,7 +68,7 @@ interface SettingGroup {
  * synthesized value, so one save pins it forever and stops tracking Poracle. Writes are refused
  * server-side too; this only keeps the box off the page. See #780.
  */
-export const PROJECTED_KEYS = ['poracle_locale'];
+export const PROJECTED_KEYS = ['poracle_locale', 'poracle_alert_languages'];
 
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and

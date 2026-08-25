@@ -359,6 +359,11 @@ export class App implements OnInit {
         // have been the obvious source for the locale and is [Authorize] -- see #426.
         const settings = this.settingsService.siteSettings();
         this.i18n.init(settings['allowed_languages'], settings['poracle_locale']);
+        // A different restriction on a different menu: allowed_languages is this site's own list for the
+        // display language, poracle_alert_languages is what Poracle will accept for the alert language.
+        // Absent means unrestricted -- both from a Poracle that restricts nothing and from one too old
+        // to report the field.
+        this.alertLanguage.restrictTo(settings['poracle_alert_languages']);
       },
     });
 

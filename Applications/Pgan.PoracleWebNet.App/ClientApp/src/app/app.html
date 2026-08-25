@@ -133,10 +133,12 @@
       }
       <!-- Two language controls that do different jobs. Adjacent and distinctly labelled, the
            difference is visible at a glance; apart, each one looked like "the" language setting. -->
-      <button mat-menu-item [matMenuTriggerFor]="alertLanguageMenu">
-        <mat-icon>forum</mat-icon>
-        <span>{{ 'MENU.ALERT_LANGUAGE' | translate }}</span>
-      </button>
+      @if (alertLanguage.languages().length > 0) {
+        <button mat-menu-item [matMenuTriggerFor]="alertLanguageMenu">
+          <mat-icon>forum</mat-icon>
+          <span>{{ 'MENU.ALERT_LANGUAGE' | translate }}</span>
+        </button>
+      }
       <mat-divider></mat-divider>
       <button mat-menu-item (click)="logout()">
         <mat-icon>logout</mat-icon>
@@ -190,7 +192,7 @@
 
     <mat-menu #alertLanguageMenu="matMenu" class="language-menu-panel">
       <p class="alert-language-hint">{{ 'MENU.ALERT_LANGUAGE_HINT' | translate }}</p>
-      @for (lang of alertLanguage.languages; track lang.code) {
+      @for (lang of alertLanguage.languages(); track lang.code) {
         <button mat-menu-item (click)="chooseAlertLanguage(lang.code)" class="language-menu-item">
           <img class="lang-flag" [src]="'assets/flags/' + lang.countryCode + '.svg'" [alt]="lang.name" />
           <span class="lang-name">{{ lang.name }}</span>

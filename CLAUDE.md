@@ -400,6 +400,14 @@ Pokemon names, types, form names and evolution chains come from PoracleNG, which
 
 `poracle_locale` is synthesized onto the settings response from Poracle's `general.locale`; the SPA uses it as the last display-language fallback. It is **not stored**, `SettingsController.Upsert` refuses to write it, and it is declared in `PROJECTED_KEYS` so it never reaches the admin page's "Other" catch-all as an editable box. A stored row would win over the projected value, so one accidental save would pin the language default permanently. Any future projection needs the same two halves — the write refusal is the guarantee, the declaration is cosmetics. See #780, and #560 for the same mistake with retired keys.
 
+`poracle_alert_languages` is the second, added with the same two halves: `Upsert` refuses it and it is
+in `PROJECTED_KEYS`. It carries Poracle's `availableLanguages` as CSV and governs the **alert** language
+menu — which codes Poracle will accept for `humans.language`, answering 422 to anything else. Not the
+display language, and nothing to do with `allowed_languages`, which is this site's own restriction on
+the display menu. No row is served when Poracle restricts nothing, and absent, `null` and an empty list
+all mean exactly that: a 5.2.1 with nothing configured and a 5.1.0 that cannot say both accept any code,
+so both get the full menu.
+
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
 - `DashboardService` now uses a single `GetAllTrackingAsync` call to PoracleNG instead of 8 separate DB count queries.

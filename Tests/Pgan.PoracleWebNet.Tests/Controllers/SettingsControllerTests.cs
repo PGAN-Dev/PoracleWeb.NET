@@ -236,6 +236,119 @@ public class SettingsControllerTests : ControllerTestBase
         Assert.Equal("fr", settings[0].Value);
     }
 
+    // --- poracle_alert_languages: the codes Poracle will accept for a human's alert language ---
+
+    /// <summary>
+    /// A restricted server. The list is exhaustive upstream, so it is served verbatim for the alert
+    /// language menu to filter itself against.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesPoraclesAvailableLanguagesWhenRestricted()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            ReportsAvailableLanguages = true,
+            AvailableLanguages = ["en", "de", "pt-BR"],
+        });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetAll());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == SettingsController.PoracleAlertLanguagesKey && s.Value == "en,de,pt-BR");
+    }
+
+    /// <summary>
+    /// A 5.2.1 with nothing configured. Present and null means unrestricted, so no row is served and the
+    /// SPA offers the full menu.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesNoAlertLanguagesRowWhenPoracleIsUnrestricted()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            Locale = "en",
+            ReportsAvailableLanguages = true,
+        });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        Assert.DoesNotContain(SettingsController.PoracleAlertLanguagesKey, await this.GetAllKeysAsync());
+    }
+
+    /// <summary>
+    /// The legitimate older case: 5.1.0 has no such field, accepts any code, and must keep the full menu.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesNoAlertLanguagesRowForAServerTooOldToReportThem()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "en" });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        var keys = await this.GetAllKeysAsync();
+
+        Assert.DoesNotContain(SettingsController.PoracleAlertLanguagesKey, keys);
+        Assert.Contains(SettingsController.PoracleLocaleKey, keys);
+    }
+
+    /// <summary>Anonymous visitors get it too: the user menu renders before the settings call resolves.</summary>
+    [Fact]
+    public async Task GetPublicServesPoraclesAvailableLanguages()
+    {
+        this._sut.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            ReportsAvailableLanguages = true,
+            AvailableLanguages = ["en", "sv"],
+        });
+        this._siteService.Setup(s => s.GetPublicAsync()).ReturnsAsync([]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPublic());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == SettingsController.PoracleAlertLanguagesKey && s.Value == "en,sv");
+    }
+
+    /// <summary>
+    /// The other half of a projection. A stored row wins over the synthesized value, so one accidental
+    /// save would pin the alert language menu to a list Poracle stopped agreeing with. See #780.
+    /// </summary>
+    [Fact]
+    public async Task UpsertRefusesToStorePoraclesAvailableLanguages()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.Upsert(
+            SettingsController.PoracleAlertLanguagesKey,
+            new SettingsController.SiteSettingRequest { Value = "en" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    /// <summary>Junk from upstream is dropped per code rather than poisoning the whole list.</summary>
+    [Fact]
+    public async Task GetAllDropsAlertLanguageCodesThatAreNotShapedLikeOne()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            ReportsAvailableLanguages = true,
+            AvailableLanguages = ["en", "en; DROP TABLE humans", "de"],
+        });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetAll());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == SettingsController.PoracleAlertLanguagesKey && s.Value == "en,de");
+    }
+
     /// <summary>
     /// Locales this UI ships no translation for (ja, ru, zh-cn) pass the shape check deliberately -- the SPA
     /// matches them against its own language list and the allowed_languages filter, and falls back to en.
