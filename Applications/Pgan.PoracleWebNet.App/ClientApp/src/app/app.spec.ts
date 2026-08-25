@@ -169,7 +169,7 @@ describe('App bootstrap language defaults (#770)', () => {
     const loadOnce = jest.fn(() => of([]));
     const loadPublic = jest.fn(() => of([]));
     const init = jest.fn();
-    const alertLanguage = { languages: [], load: jest.fn(), selected: signal('en') };
+    const alertLanguage = { languages: signal([]), load: jest.fn(), restrictTo: jest.fn(), selected: signal('en') };
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -236,6 +236,19 @@ describe('App bootstrap language defaults (#770)', () => {
     const { init } = setup({ authenticated: false, settings: {} });
 
     expect(init).toHaveBeenLastCalledWith(undefined, undefined);
+  });
+
+  it("forwards Poracle's alert-language allow-list to the alert language menu", () => {
+    const { alertLanguage } = setup({ authenticated: true, settings: { poracle_alert_languages: 'en,de' } });
+
+    expect(alertLanguage.restrictTo).toHaveBeenLastCalledWith('en,de');
+  });
+
+  it('restricts nothing when Poracle is too old to report an allow-list', () => {
+    // 5.1.0 sends no availableLanguages, so the key is absent and every language stays on offer.
+    const { alertLanguage } = setup({ authenticated: true, settings: { poracle_locale: 'en' } });
+
+    expect(alertLanguage.restrictTo).toHaveBeenLastCalledWith(undefined);
   });
 
   it('does not reconcile the alert language while signed out (#775)', () => {

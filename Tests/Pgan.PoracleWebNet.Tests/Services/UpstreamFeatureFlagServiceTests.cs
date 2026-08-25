@@ -30,6 +30,17 @@ public class UpstreamFeatureFlagServiceTests
         this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { DisabledHooks = [.. hooks] });
 
     /// <summary>
+    /// A 5.2.1-or-later server: it reports <c>availableLanguages</c>, which is how this class tells a
+    /// server that lists <c>fort</c> in <c>disabledHooks</c> from one that does not.
+    /// </summary>
+    private void UpstreamModern(params string[] hooks) =>
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            DisabledHooks = [.. hooks],
+            ReportsAvailableLanguages = true,
+        });
+
+    /// <summary>
     /// What prod serves. An empty array is a positive statement that nothing is disabled upstream,
     /// and must leave every type enabled rather than being read as "no data, assume the worst".
     /// </summary>
@@ -125,6 +136,61 @@ public class UpstreamFeatureFlagServiceTests
         this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ThrowsAsync(new HttpRequestException("no such route"));
 
         Assert.Equal([DisableFeatureKeys.Lures], await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    // --- fort: reported in disabledHooks from 5.2.1 on ---
+
+    /// <summary>
+    /// The upstream fix. <c>fort</c> joined <c>hookTypes</c> in PoracleNG 5.2.1, named to match the
+    /// tracking type, so the flag arrives in the array like every other one.
+    /// </summary>
+    [Fact]
+    public async Task FortInDisabledHooksDisablesFortChanges()
+    {
+        this.UpstreamHooks("fort");
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(false);
+
+        Assert.Equal([DisableFeatureKeys.FortChanges], await this.CreateSut().GetDisabledKeysAsync());
+    }
+
+    /// <summary>
+    /// A server that reports <c>availableLanguages</c> also reports <c>fort</c>, so the second
+    /// <c>/api/config/values</c> round-trip has nothing left to tell us and is not made.
+    /// </summary>
+    [Fact]
+    public async Task ServerReportingAvailableLanguagesIsNotAskedForTheFortFlag()
+    {
+        this.UpstreamModern();
+
+        Assert.Empty(await this.CreateSut().GetDisabledKeysAsync());
+        this._proxy.Verify(p => p.GetFortUpdateDisabledAsync(), Times.Never);
+    }
+
+    /// <summary>
+    /// The legitimate case the discriminator exists to protect: 5.1.0 omits <c>fort</c> from the array
+    /// and only <c>general.disable_fort_update</c> knows, so the probe must still be made.
+    /// </summary>
+    [Fact]
+    public async Task ServerWithoutAvailableLanguagesIsStillAskedForTheFortFlag()
+    {
+        this.UpstreamHooks();
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(true);
+
+        Assert.Equal([DisableFeatureKeys.FortChanges], await this.CreateSut().GetDisabledKeysAsync());
+        this._proxy.Verify(p => p.GetFortUpdateDisabledAsync(), Times.Once);
+    }
+
+    /// <summary>
+    /// A config read that failed says nothing about the server's age, so the older-server probe is
+    /// still made rather than skipped on an assumption.
+    /// </summary>
+    [Fact]
+    public async Task UnreadableConfigStillAsksForTheFortFlag()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new HttpRequestException("connection refused"));
+        this._proxy.Setup(p => p.GetFortUpdateDisabledAsync()).ReturnsAsync(true);
+
+        Assert.Equal([DisableFeatureKeys.FortChanges], await this.CreateSut().GetDisabledKeysAsync());
     }
 
     // --- degradation: the site settings must stay in sole charge ---

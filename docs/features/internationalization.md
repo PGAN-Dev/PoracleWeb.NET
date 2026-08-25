@@ -45,6 +45,10 @@ There are two, and they sit next to each other in the **user menu** (top-right t
 - **Display language** changes this site's text and nothing else. Its submenu is hidden when an admin has restricted the selector to a single language.
 - **Alert language** is what Poracle writes your DMs in: alert text, Pokemon names, move names. The authoritative copy lives on your Poracle account (`humans.language`), with a browser cache used only for the first render, so it follows you between devices and reconciles if the bot changes it.
 
+Its list is Poracle's to restrict, not this site's. Poracle 5.2.1 and newer publish the language codes they accept (`available_languages` in Poracle's own config), and the alert-language submenu offers only those — intersected with the eleven this UI has a flag row for. Restrict Poracle to English and German and those are the two rows you get; restrict it to languages this UI does not ship and the menu item disappears rather than offering a write Poracle answers 422 to. A Poracle that restricts nothing, or one older than 5.2.1, publishes no list and every language stays on offer.
+
+`allowed_languages` does not apply here. It is this site's restriction on the display language, and it has nothing to say about what Poracle writes DMs in — the two menus answer to different owners.
+
 Note that Pokemon names, types and forms **in this site's own screens** follow the *display* language, not the alert language — see [Game data names](#game-data-names) below. Setting the display language to German gives you Bisasam in the species picker and Käfer on the type chips; the alert language decides what your DMs say.
 
 Each submenu opens with its own hint line ("Changes this site's text only." / "Used for alert text and Pokemon names.") and lists the languages as flag and native name, with a check mark against the active one. Both draw from the same list of 11.
@@ -63,7 +67,7 @@ Admins can restrict which languages appear in the selector by setting the `allow
 | `allowed_languages` | *(empty)* | All 11 languages available |
 | `allowed_languages` | `en,de,fr` | Only English, German, and French shown |
 
-English is always available regardless of the `allowed_languages` setting. The restriction applies to the signed-out login page as well as to signed-in users.
+English is always available regardless of the `allowed_languages` setting. The restriction applies to the signed-out login page as well as to signed-in users. It governs the **display** language only — see the alert-language note above.
 
 ![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
 

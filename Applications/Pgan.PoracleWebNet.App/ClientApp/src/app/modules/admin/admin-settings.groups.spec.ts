@@ -40,6 +40,10 @@ describe('PROJECTED_KEYS', () => {
     expect(PROJECTED_KEYS).toContain('poracle_locale');
   });
 
+  it("covers poracle_alert_languages, which is Poracle's list and not this page's to edit", () => {
+    expect(PROJECTED_KEYS).toContain('poracle_alert_languages');
+  });
+
   it('declares nothing that is also a real, editable setting', () => {
     const editable = new Set(SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)));
     const overlap = PROJECTED_KEYS.filter(k => editable.has(k));

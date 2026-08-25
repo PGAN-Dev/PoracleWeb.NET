@@ -23,8 +23,26 @@ export class AlertLanguageService {
 
   private readonly locationService = inject(LocationService);
 
-  /** Every language Poracle can write alerts in. */
-  readonly languages = this.i18n.allLanguages;
+  /**
+   * The codes Poracle will accept, lower-cased. Empty means unrestricted, which covers a Poracle that
+   * restricts nothing and one too old to have an opinion -- both accept any code.
+   */
+  private readonly poracleCodes = signal<string[]>([]);
+
+  /**
+   * The languages that can actually be picked: those this UI has a flag row for, and that Poracle will
+   * accept for `humans.language`.
+   *
+   * Poracle validates a set language against its own `available_languages` and answers 422 for anything
+   * outside it, so offering more than this would be offering a write that fails. Deliberately *not*
+   * filtered by `allowed_languages`, which is this site's own restriction on the display language and
+   * has nothing to say about what Poracle writes DMs in.
+   */
+  readonly languages = computed(() => {
+    const accepted = this.poracleCodes();
+    if (accepted.length === 0) return this.i18n.allLanguages;
+    return this.i18n.allLanguages.filter(l => accepted.includes(l.code.toLowerCase()));
+  });
 
   /**
    * The language Poracle will actually write in, or null when we cannot tell.
@@ -69,12 +87,31 @@ export class AlertLanguageService {
         // on both API versions and from the bot's own !language command, so humans.language for a
         // Brazilian Portuguese user reads back as 'pt-br' while the code here is 'pt-BR'. An exact
         // comparison dropped it silently and the picker fell back to the server default.
-        const known = language ? this.languages.find(l => l.code.toLowerCase() === language.toLowerCase()) : undefined;
+        // Against every language this UI ships, not the narrowed menu: this is recognising what Poracle
+        // already stored, which can predate a restriction, and losing it would report the wrong language
+        // rather than a disallowed one.
+        const known = language ? this.i18n.allLanguages.find(l => l.code.toLowerCase() === language.toLowerCase()) : undefined;
         if (known) {
           this.chosen.set(known.code);
           localStorage.setItem(STORAGE_KEY, known.code);
         }
       },
     });
+  }
+
+  /**
+   * Narrows the menu to the languages Poracle accepts, from `availableLanguages` on its config.
+   *
+   * @param codes comma-separated, or undefined/empty for unrestricted. Both an unrestricted server and
+   * one older than PoracleNG 5.2.1 send nothing, and both accept any code, so the two need no telling
+   * apart here.
+   */
+  restrictTo(codes: string | undefined): void {
+    this.poracleCodes.set(
+      (codes ?? '')
+        .split(',')
+        .map(c => c.trim().toLowerCase())
+        .filter(Boolean),
+    );
   }
 }

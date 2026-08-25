@@ -10,11 +10,12 @@ namespace Pgan.PoracleWebNet.Core.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Two upstream reads are needed because the flags are split across two shapes. The
-/// <c>disabledHooks</c> array on <c>GET /api/config/poracleWeb</c> covers the nine webhook types in
-/// PoracleNG's <c>hookTypes</c> list; <c>general.disable_fort_update</c> on
-/// <c>GET /api/config/values</c> covers fort changes, which PoracleNG enforces in the processor and
-/// the bot but leaves out of the array.
+/// The <c>disabledHooks</c> array on <c>GET /api/config/poracleWeb</c> carries the flags. Up to
+/// PoracleNG 5.1.0 it left out fort changes, which the processor and the bot enforced from
+/// <c>general.disable_fort_update</c>, so that value had to be fetched separately from
+/// <c>GET /api/config/values</c>. PoracleNG 5.2.1 put <c>fort</c> in the array
+/// (jfberry/PoracleNG#197) and the extra read is now made only against a server old enough to need
+/// it — see <see cref="ProbeAsync"/> for how one is recognised.
 /// </para>
 /// <para>
 /// The result is cached server-wide for five minutes, matching <c>SiteSettingService</c>. Upstream
@@ -59,6 +60,7 @@ public sealed partial class UpstreamFeatureFlagService(
     private async Task<IReadOnlySet<string>> ProbeAsync()
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
+        var hookListCarriesFort = false;
 
         try
         {
@@ -67,6 +69,8 @@ public sealed partial class UpstreamFeatureFlagService(
             {
                 keys.Add(key);
             }
+
+            hookListCarriesFort = config?.ReportsAvailableLanguages == true;
         }
         catch (Exception ex)
         {
@@ -77,6 +81,36 @@ public sealed partial class UpstreamFeatureFlagService(
             // not exist on an older server.
         }
 
+        if (!hookListCarriesFort)
+        {
+            await this.ProbeFortUpdateAsync(keys);
+        }
+
+        await this.ProbePokestopEventsAsync(keys);
+
+        return keys;
+    }
+
+    /// <summary>
+    /// Reads <c>general.disable_fort_update</c>, the only place a PoracleNG older than 5.2.1 reports
+    /// fort changes being switched off.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Skipped entirely when the config response carried <c>availableLanguages</c>, which is the
+    /// discriminator rather than a version string: both arrived in the same release, the field's
+    /// presence is unambiguous where an empty <c>disabledHooks</c> is not (nothing disabled, or too old
+    /// to say?), and PoracleNG serves no version endpoint worth parsing. Verified live — absent on
+    /// 5.1.0, present and null on 5.2.1.
+    /// </para>
+    /// <para>
+    /// A config read that failed leaves the discriminator unanswered, so the probe is made rather than
+    /// skipped: guessing "new" there would silently stop honouring the flag on every older server the
+    /// moment Poracle hiccuped.
+    /// </para>
+    /// </remarks>
+    private async Task ProbeFortUpdateAsync(HashSet<string> keys)
+    {
         try
         {
             if (await this._poracleApiProxy.GetFortUpdateDisabledAsync() == true)
@@ -90,10 +124,6 @@ public sealed partial class UpstreamFeatureFlagService(
             // we already have. PoracleJS does not serve that route at all.
             LogProbeFailed(this._logger, "general.disable_fort_update", ex);
         }
-
-        await this.ProbePokestopEventsAsync(keys);
-
-        return keys;
     }
 
     /// <summary>

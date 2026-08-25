@@ -306,9 +306,11 @@ Deliberately **not** gated: `/api/auth/me` under `disable_profiles`, so the JWT 
 
 `disable_geomap` and `disable_geomap_select` were removed from the admin UI and from `SettingsMigrationService` in the same change. They are legacy PoracleJS keys describing a map picker PoracleWeb does not have, so there was nothing to wire them to and inventing a meaning would have been worse than deleting them. Any rows left in `site_settings` are harmless -- nothing reads them. `disable_userlist` was never a toggle in this UI (the migration carries `admin_disable_userlist` as a legacy key only).
 
-**Poracle's own flags are a floor under these (#769).** `UpstreamFeatureFlagService` reads `disabledHooks` from `/api/config/poracleWeb` plus `general.disable_fort_update` from `/api/config/values`, maps them to `disable_*` keys via `PoracleDisabledHookMap`, and `FeatureGate` treats a type as off if **either** source disables it. Cached 5 min. It **fails open**: any fault, timeout or absent field yields an empty set, because a Poracle outage disabling every alarm type for everyone is worse than the problem being solved. `GET /api/settings/upstream-disabled` exposes the resolved keys so nav, route guards and the admin toggles agree with the API.
+**Poracle's own flags are a floor under these (#769).** `UpstreamFeatureFlagService` reads `disabledHooks` from `/api/config/poracleWeb`, plus `general.disable_fort_update` from `/api/config/values` on a server too old to report `fort` in the array, maps them to `disable_*` keys via `PoracleDisabledHookMap`, and `FeatureGate` treats a type as off if **either** source disables it. Cached 5 min. It **fails open**: any fault, timeout or absent field yields an empty set, because a Poracle outage disabling every alarm type for everyone is worse than the problem being solved. `GET /api/settings/upstream-disabled` exposes the resolved keys so nav, route guards and the admin toggles agree with the API.
 
-Two traps, both verified against 5.1.0 and both load-bearing: `pokestop` is in `disabledHooks` but `DisablePokestop` has no consumer in the processor, so it maps to **nothing** — mapping it to lures/invasions/quests would disable three working types; and `disable_fort_update` is enforced upstream but omitted from the array, which is the only reason the second config call exists. Both filed upstream (jfberry/PoracleNG#195).
+Two traps, both verified against 5.1.0, both filed upstream as jfberry/PoracleNG#195 and both fixed in 5.2.1 (jfberry/PoracleNG#197). `pokestop` was in `disabledHooks` while `DisablePokestop` had no consumer in the processor, so it maps to **nothing** — mapping it to lures/invasions/quests would disable three working types. It is gone from the array now, and the mapping stays empty for the older servers that still send it. `disable_fort_update` was enforced upstream but omitted from the array; `fort` is in it as of 5.2.1 and maps like any other hook.
+
+The second `/api/config/values` read for `disable_fort_update` survives for those older servers only, and **`availableLanguages` is how one is recognised** — not a version number. Both landed in the same release, the field's presence is unambiguous where an empty `disabledHooks` is not (nothing disabled, or too old to say?), and PoracleNG serves no version endpoint. A config read that failed answers the question with nothing, so the probe is made rather than skipped: assuming "new" there would stop honouring the flag on every older server the moment Poracle hiccuped.
 
 **Adding a new alarm type? Wire it through all four layers:**
 
@@ -397,6 +399,14 @@ Pokemon names, types, form names and evolution chains come from PoracleNG, which
 ### Settings That Are Projections, Not Rows
 
 `poracle_locale` is synthesized onto the settings response from Poracle's `general.locale`; the SPA uses it as the last display-language fallback. It is **not stored**, `SettingsController.Upsert` refuses to write it, and it is declared in `PROJECTED_KEYS` so it never reaches the admin page's "Other" catch-all as an editable box. A stored row would win over the projected value, so one accidental save would pin the language default permanently. Any future projection needs the same two halves — the write refusal is the guarantee, the declaration is cosmetics. See #780, and #560 for the same mistake with retired keys.
+
+`poracle_alert_languages` is the second, added with the same two halves: `Upsert` refuses it and it is
+in `PROJECTED_KEYS`. It carries Poracle's `availableLanguages` as CSV and governs the **alert** language
+menu — which codes Poracle will accept for `humans.language`, answering 422 to anything else. Not the
+display language, and nothing to do with `allowed_languages`, which is this site's own restriction on
+the display menu. No row is served when Poracle restricts nothing, and absent, `null` and an empty list
+all mean exactly that: a 5.2.1 with nothing configured and a 5.1.0 that cannot say both accept any code,
+so both get the full menu.
 
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
