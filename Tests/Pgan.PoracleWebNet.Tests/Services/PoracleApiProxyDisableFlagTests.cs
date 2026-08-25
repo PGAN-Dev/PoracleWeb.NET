@@ -95,6 +95,50 @@ public class PoracleApiProxyDisableFlagTests
         Assert.Null(await sut.GetFortUpdateDisabledAsync());
     }
 
+    // --- availableLanguages: absent, null and a list are three different answers ---
+
+    /// <summary>
+    /// Verified against a live 5.1.0: the key is absent. That absence is the only signal telling this
+    /// application it is talking to a server that leaves <c>fort</c> out of <c>disabledHooks</c>.
+    /// </summary>
+    [Fact]
+    public async Task AbsentAvailableLanguagesMarksTheServerAsNotReportingThem()
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"locale":"en"}"""));
+
+        var config = await sut.GetConfigAsync();
+
+        Assert.False(config?.ReportsAvailableLanguages);
+        Assert.Null(config?.AvailableLanguages);
+    }
+
+    /// <summary>
+    /// Verified against a live 5.2.1: present and null, meaning unrestricted. Upstream reports null for
+    /// both an unset and an empty map, because its own write path only validates a non-empty one.
+    /// </summary>
+    [Fact]
+    public async Task NullAvailableLanguagesReportsTheFieldButRestrictsNothing()
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(HttpStatusCode.OK, /*lang=json,strict*/ """{"availableLanguages":null}"""));
+
+        var config = await sut.GetConfigAsync();
+
+        Assert.True(config?.ReportsAvailableLanguages);
+        Assert.Null(config?.AvailableLanguages);
+    }
+
+    [Fact]
+    public async Task AvailableLanguagesArrayIsParsedAsTheExhaustiveAllowList()
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(
+            HttpStatusCode.OK, /*lang=json,strict*/ """{"availableLanguages":["en","de","pt-BR"]}"""));
+
+        var config = await sut.GetConfigAsync();
+
+        Assert.True(config?.ReportsAvailableLanguages);
+        Assert.Equal(["en", "de", "pt-BR"], config?.AvailableLanguages);
+    }
+
     [Fact]
     public async Task QuestSummaryFlagStillReadsFromTheTrackingSection()
     {

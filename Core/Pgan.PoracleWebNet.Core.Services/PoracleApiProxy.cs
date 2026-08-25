@@ -143,6 +143,26 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             }
         }
 
+        if (root.TryGetProperty("availableLanguages", out var availableLanguages))
+        {
+            // Presence is the signal, value is the restriction. Absent means a PoracleNG older than
+            // 5.2.1; present-and-null means present-and-unrestricted, which upstream reports for an
+            // unset and an empty map alike.
+            config.ReportsAvailableLanguages = true;
+
+            if (availableLanguages.ValueKind == JsonValueKind.Array)
+            {
+                config.AvailableLanguages = [];
+                foreach (var code in availableLanguages.EnumerateArray())
+                {
+                    if (code.ValueKind == JsonValueKind.String && code.GetString() is { Length: > 0 } value)
+                    {
+                        config.AvailableLanguages.Add(value);
+                    }
+                }
+            }
+        }
+
         if (root.TryGetProperty("admins", out var admins))
         {
             config.Admins = new PoracleAdmins();

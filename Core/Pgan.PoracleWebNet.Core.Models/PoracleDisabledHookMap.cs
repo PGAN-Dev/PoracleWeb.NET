@@ -14,29 +14,25 @@ namespace Pgan.PoracleWebNet.Core.Models;
 /// agree with the two surfaces that already do. See #769.
 /// </para>
 /// <para>
-/// Two entries in the upstream array deliberately map to nothing:
-/// </para>
-/// <list type="bullet">
-/// <item><description>
-/// <c>pokestop</c> looks like the parent hook for lures, invasions and quests, but
-/// <c>DisablePokestop</c> appears nowhere in the PoracleNG 5.1.0 processor outside the
-/// <c>disabledHooks</c> list itself. Mapping it would take three working alarm types away from any
-/// server that sets a flag which currently does nothing.
-/// </description></item>
-/// <item><description>
-/// <c>weather</c> has no counterpart because PoracleWeb has no weather alarms.
-/// </description></item>
-/// </list>
-/// <para>
-/// <c>disable_fort_update</c> is the mirror-image case: PoracleNG honours it in both the processor
-/// and the bot, but omits it from the <c>hookTypes</c> list, so it never appears in
-/// <c>disabledHooks</c>. It is read separately from <c>general.disable_fort_update</c> on
-/// <c>GET /api/config/values</c> — see <c>IPoracleApiProxy.GetFortUpdateDisabledAsync</c>.
+/// <c>weather</c> maps to nothing because PoracleWeb.NET has no weather alarms. So does
+/// <c>pokestop</c>, which looks like the parent hook for lures, invasions and quests but was
+/// vestigial: <c>DisablePokestop</c> appeared nowhere in the 5.1.0 processor outside the array
+/// itself, and mapping it would have taken three working types away for a flag that did nothing.
+/// PoracleNG 5.2.1 dropped it from the array and marked the config field deprecated
+/// (jfberry/PoracleNG#197), so it now only reaches here from an older server — where ignoring it is
+/// still the right answer.
 /// </para>
 /// <para>
-/// <c>disable_showcase</c> is the same shape and has deliberately no entry here either: verified on
-/// a live 5.2.1, it is present in <c>general</c> on <c>GET /api/config/values</c> and absent from
-/// <c>disabledHooks</c>. See <c>IPoracleApiProxy.GetShowcaseDisabledAsync</c>.
+/// <c>fort</c> was the mirror-image case up to 5.1.0: enforced in the processor and the bot but left
+/// out of <c>hookTypes</c>, so it had to be read separately from <c>general.disable_fort_update</c>
+/// on <c>GET /api/config/values</c>. The same upstream release added it to the array under the name
+/// its tracking type already used, so it maps here like any other hook and the second read is now
+/// made only for a server too old to report it — see <c>UpstreamFeatureFlagService.ProbeAsync</c>.
+/// </para>
+/// <para>
+/// <c>disable_showcase</c> still has deliberately no entry: verified on a live 5.2.1, it is present in
+/// <c>general</c> on <c>GET /api/config/values</c> and absent from <c>disabledHooks</c>. See
+/// <c>IPoracleApiProxy.GetShowcaseDisabledAsync</c>.
 /// </para>
 /// </remarks>
 public static class PoracleDisabledHookMap
@@ -59,6 +55,8 @@ public static class PoracleDisabledHookMap
         ["nest"] = DisableFeatureKeys.Nests,
         ["gym"] = DisableFeatureKeys.Gyms,
         ["maxbattle"] = DisableFeatureKeys.MaxBattles,
+        // Reported from PoracleNG 5.2.1 on. Older servers say so only via general.disable_fort_update.
+        ["fort"] = DisableFeatureKeys.FortChanges,
     };
 
     /// <summary>
