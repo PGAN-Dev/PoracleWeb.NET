@@ -82,18 +82,39 @@ mat-dialog-content {
 // Time picker
 .time-picker {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   flex-wrap: wrap;
   gap: 12px;
   row-gap: 12px;
+}
+
+// An hour and a minute are one answer, so they wrap together or not at all.
+.time-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-pair {
+  display: flex;
+  gap: 12px;
+}
+
+.group-caption {
+  margin: 0 0 2px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-hint, rgba(0, 0, 0, 0.5));
 }
 
 .time-field {
   width: 120px;
 }
 
+// Wide enough for the longest of the eleven translations of "Repeat every".
 .step-field {
-  width: 140px;
+  width: 172px;
 }
 
 .repeat-toggle {
@@ -268,9 +289,17 @@ mat-dialog-actions {
     min-width: unset;
   }
 
-  // Five controls wrapping freely turns into a ragged stack, so pair them up instead:
-  // start hour/minute, then end hour/minute, then the repeat interval and Add across both columns.
+  // One pair per row, each field taking half of it, then the repeat interval and Add on their own.
+  // The hour and its minute stay together on every width; what wraps is whole answers.
   .time-picker {
+    display: block;
+  }
+
+  .time-group {
+    margin-bottom: 12px;
+  }
+
+  .time-pair {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
@@ -280,8 +309,7 @@ mat-dialog-actions {
     width: 100%;
   }
 
-  .step-field,
   .add-btn {
-    grid-column: 1 / -1;
+    width: 100%;
   }
 }

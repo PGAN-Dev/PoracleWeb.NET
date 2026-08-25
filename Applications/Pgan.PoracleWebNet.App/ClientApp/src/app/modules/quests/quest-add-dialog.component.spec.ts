@@ -113,7 +113,7 @@ describe('QuestAddDialogComponent', () => {
 
   it('creates a stardust rule from the amount alone', () => {
     // PoracleNG matches stardust on the reward column, not the amount one, so the floor travels there.
-    component.tabIndex = 4;
+    component.rewardKind = 4;
     component.stardustForm.controls.reward.setValue(1500);
 
     component.save();
@@ -124,7 +124,7 @@ describe('QuestAddDialogComponent', () => {
   });
 
   it('treats a stardust rule with no floor as every stardust quest', () => {
-    component.tabIndex = 4;
+    component.rewardKind = 4;
 
     component.save();
 
@@ -132,7 +132,7 @@ describe('QuestAddDialogComponent', () => {
   });
 
   it('sends the minimum amount with an item rule', () => {
-    component.tabIndex = 1;
+    component.rewardKind = 1;
     component.itemForm.controls.reward.setValue(1301);
     component.itemForm.controls.amount.setValue(3);
 
@@ -144,7 +144,7 @@ describe('QuestAddDialogComponent', () => {
   });
 
   it('sends the minimum amount with a mega energy rule, on every selected pokemon', () => {
-    component.tabIndex = 2;
+    component.rewardKind = 2;
     component.selectedMegaPokemonIds.set([6, 9]);
     component.megaForm.controls.amount.setValue(50);
 
@@ -157,7 +157,7 @@ describe('QuestAddDialogComponent', () => {
   });
 
   it('sends the minimum amount with a candy rule', () => {
-    component.tabIndex = 3;
+    component.rewardKind = 3;
     component.selectedCandyPokemonIds.set([133]);
     component.candyForm.controls.amount.setValue(5);
 

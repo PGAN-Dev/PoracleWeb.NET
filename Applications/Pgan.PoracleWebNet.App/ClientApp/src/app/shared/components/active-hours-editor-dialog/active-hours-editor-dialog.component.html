@@ -30,39 +30,61 @@
   <section class="section">
     <label class="section-label">{{ 'PROFILES.ACTIVE_HOURS_TIME' | translate }}</label>
     <div class="time-picker">
-      <mat-form-field appearance="outline" class="time-field">
-        <mat-label>{{ 'PROFILES.ACTIVE_HOURS_HOUR' | translate }}</mat-label>
-        <mat-select [value]="selectedHour()" (selectionChange)="selectedHour.set($event.value)">
-          @for (h of hourOptions; track h) {
-            <mat-option [value]="h">{{ formatHour(h) }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="time-field">
-        <mat-label>{{ 'PROFILES.ACTIVE_HOURS_MINUTE' | translate }}</mat-label>
-        <mat-select [value]="selectedMinute()" (selectionChange)="selectedMinute.set($event.value)">
-          @for (m of minuteOptions; track m) {
-            <mat-option [value]="m">{{ formatMinute(m) }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <!-- A repeat puts five controls in this row. The qualifier lives on the pair rather than inside
+           each field's label, because "Until (minute)" does not fit a field narrow enough for two to
+           sit side by side on a phone -- and is longer still in most of the ten other locales. The
+           full wording stays as each field's accessible name. -->
+      <div class="time-group">
+        @if (repeatEnabled()) {
+          <span class="group-caption">{{ 'PROFILES.ACTIVE_HOURS_STARTS_AT' | translate }}</span>
+        }
+        <div class="time-pair">
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'PROFILES.ACTIVE_HOURS_HOUR' | translate }}</mat-label>
+            <mat-select [value]="selectedHour()" (selectionChange)="selectedHour.set($event.value)">
+              @for (h of hourOptions; track h) {
+                <mat-option [value]="h">{{ formatHour(h) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'PROFILES.ACTIVE_HOURS_MINUTE' | translate }}</mat-label>
+            <mat-select [value]="selectedMinute()" (selectionChange)="selectedMinute.set($event.value)">
+              @for (m of minuteOptions; track m) {
+                <mat-option [value]="m">{{ formatMinute(m) }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
       @if (repeatEnabled()) {
-        <mat-form-field appearance="outline" class="time-field">
-          <mat-label>{{ 'PROFILES.ACTIVE_HOURS_END_HOUR' | translate }}</mat-label>
-          <mat-select [value]="selectedEndHour()" (selectionChange)="selectedEndHour.set($event.value)">
-            @for (h of hourOptions; track h) {
-              <mat-option [value]="h">{{ formatHour(h) }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="time-field">
-          <mat-label>{{ 'PROFILES.ACTIVE_HOURS_END_MINUTE' | translate }}</mat-label>
-          <mat-select [value]="selectedEndMinute()" (selectionChange)="selectedEndMinute.set($event.value)">
-            @for (m of minuteOptions; track m) {
-              <mat-option [value]="m">{{ formatMinute(m) }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <div class="time-group">
+          <span class="group-caption">{{ 'PROFILES.ACTIVE_HOURS_UNTIL' | translate }}</span>
+          <div class="time-pair">
+            <mat-form-field appearance="outline" class="time-field">
+              <mat-label>{{ 'PROFILES.ACTIVE_HOURS_HOUR' | translate }}</mat-label>
+              <mat-select
+                [value]="selectedEndHour()"
+                (selectionChange)="selectedEndHour.set($event.value)"
+                [aria-label]="'PROFILES.ACTIVE_HOURS_END_HOUR' | translate">
+                @for (h of hourOptions; track h) {
+                  <mat-option [value]="h">{{ formatHour(h) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="time-field">
+              <mat-label>{{ 'PROFILES.ACTIVE_HOURS_MINUTE' | translate }}</mat-label>
+              <mat-select
+                [value]="selectedEndMinute()"
+                (selectionChange)="selectedEndMinute.set($event.value)"
+                [aria-label]="'PROFILES.ACTIVE_HOURS_END_MINUTE' | translate">
+                @for (m of minuteOptions; track m) {
+                  <mat-option [value]="m">{{ formatMinute(m) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
         <mat-form-field appearance="outline" class="step-field">
           <mat-label>{{ 'PROFILES.ACTIVE_HOURS_REPEAT_EVERY' | translate }}</mat-label>
           <mat-select [value]="selectedStep()" (selectionChange)="selectedStep.set($event.value)">

@@ -18,8 +18,8 @@ import { QuestService } from '../../core/services/quest.service';
  * Pokecoin quests are offered only when the PoracleNG behind this install can store them.
  *
  * PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type value" -- confirmed by POSTing to a live
- * 5.1.0 -- so the tab is absent rather than present-and-failing. The pairing matters more than either
- * half: a test that only proved the tab hides on an old server would pass just as well if it never
+ * 5.1.0 -- so the reward type is absent rather than present-and-failing. The pairing matters more than
+ * either half: a test that only proved it hides on an old server would pass just as well if it never
  * rendered at all.
  */
 describe('QuestAddDialogComponent — pokecoins capability', () => {
@@ -66,46 +66,67 @@ describe('QuestAddDialogComponent — pokecoins capability', () => {
     fixture.detectChanges();
   }
 
-  /** Reward tab labels, in order. `tabIndex` is positional, so the order is load-bearing. */
-  function rewardTabLabels(): string[] {
-    return Array.from(fixture.nativeElement.querySelectorAll('.reward-tabs .mat-mdc-tab .mdc-tab__text-label')).map(el =>
-      (el as HTMLElement).textContent!.trim(),
-    );
+  /** The reward types offered, as `value` numbers. `save()` switches on them, so they are load-bearing. */
+  function rewardKindValues(): number[] {
+    return component.rewardKinds.filter(kind => kind.value !== 5 || component.supportsPokecoins()).map(kind => kind.value);
   }
 
-  it('offers no pokecoins tab against a PoracleNG that would refuse it', () => {
+  /** The reward types as they render, in order. */
+  function renderedRewardOptions(): string[] {
+    const trigger = fixture.nativeElement.querySelector('.reward-kind-field mat-select') as HTMLElement;
+    trigger.querySelector('.mat-mdc-select-trigger')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+    const options = Array.from(document.querySelectorAll('mat-option')).map(el => (el as HTMLElement).textContent!.trim());
+    (document.querySelector('.cdk-overlay-backdrop') as HTMLElement | null)?.click();
+    fixture.detectChanges();
+    return options;
+  }
+
+  it('offers no pokecoins reward against a PoracleNG that would refuse it', () => {
     setup(false);
 
     expect(component.supportsPokecoins()).toBe(false);
-    expect(rewardTabLabels()).toHaveLength(5);
+    expect(renderedRewardOptions()).toHaveLength(5);
   });
 
-  it('offers a pokecoins tab against a 5.2.0 or newer PoracleNG', () => {
+  it('offers a pokecoins reward against a 5.2.0 or newer PoracleNG', () => {
     setup(true);
 
     expect(component.supportsPokecoins()).toBe(true);
-    expect(rewardTabLabels()).toHaveLength(6);
+    expect(renderedRewardOptions()).toHaveLength(6);
   });
 
   /**
-   * The five original tabs must keep their indices whether the sixth renders or not: `save()` reads
-   * `tabIndex` positionally, so a tab inserted anywhere but the end would file every reward under the
-   * wrong type.
+   * `save()` switches on `rewardKind`, so the numbers are the contract. They are declared per reward
+   * type rather than taken from render order, which is what makes the pokecoins one safe to hide.
    */
-  it('leaves the existing tab indices untouched when the pokecoins tab appears', () => {
+  it('leaves the existing reward type values untouched when pokecoins appears', () => {
     setup(false);
-    const withoutPokecoins = rewardTabLabels();
+    const withoutPokecoins = rewardKindValues();
 
     setup(true);
-    const withPokecoins = rewardTabLabels();
+    const withPokecoins = rewardKindValues();
 
-    expect(withPokecoins.slice(0, 5)).toEqual(withoutPokecoins);
+    expect(withoutPokecoins).toEqual([0, 1, 2, 3, 4]);
+    expect(withPokecoins).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  /**
+   * The six reward types are chosen from one control, not a strip that runs out of room. A nested tab
+   * strip clipped the sixth label to "Pok" and hid it behind a pagination arrow at dialog width -- and
+   * would do the same to the fifth in the several locales whose words are longer than English's.
+   */
+  it('puts every reward type in one control rather than a strip that can overflow', () => {
+    setup(true);
+
+    expect(fixture.nativeElement.querySelectorAll('.reward-kind-field mat-select')).toHaveLength(1);
+    expect(fixture.nativeElement.querySelectorAll('.reward-tabs')).toHaveLength(0);
   });
 
   it('creates a pokecoin quest with the minimum in the reward slot', () => {
     setup(true);
 
-    component.tabIndex = 5;
+    component.rewardKind = 5;
     component.pokecoinsForm.controls.reward.setValue(50);
     component.save();
 
@@ -119,7 +140,7 @@ describe('QuestAddDialogComponent — pokecoins capability', () => {
   it('treats a minimum of 0 as every pokecoin quest, not as an incomplete form', () => {
     setup(true);
 
-    component.tabIndex = 5;
+    component.rewardKind = 5;
 
     expect(component.canSave()).toBe(true);
   });
@@ -128,7 +149,7 @@ describe('QuestAddDialogComponent — pokecoins capability', () => {
   it('still creates a stardust quest against an older PoracleNG', () => {
     setup(false);
 
-    component.tabIndex = 4;
+    component.rewardKind = 4;
     component.stardustForm.controls.reward.setValue(1000);
     component.save();
 

@@ -8,85 +8,83 @@
         <span class="tab-label">{{ 'QUESTS.TAB_REWARDS' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <mat-tab-group [(selectedIndex)]="tabIndex" class="reward-tabs">
-          <mat-tab [label]="'QUESTS.TAB_POKEMON' | translate">
-            <div class="tab-content">
-              <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
-              @if (selectedPokemonIds().length > 0) {
-                <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedPokemonIds().length } }}</p>
+        <!-- One control rather than a strip of six: a nested tab strip could not fit six labels at
+             dialog width, and the words are longer still in most of the other ten locales. The values
+             are declared, so the one reward type that may not render cannot shift the others. -->
+        <mat-form-field appearance="outline" class="full-width reward-kind-field">
+          <mat-label>{{ 'QUESTS.REWARD_TYPE' | translate }}</mat-label>
+          <mat-select [(value)]="rewardKind">
+            @for (kind of rewardKinds; track kind.value) {
+              @if (kind.value !== 5 || supportsPokecoins()) {
+                <mat-option [value]="kind.value">{{ kind.label | translate }}</mat-option>
               }
-            </div>
-          </mat-tab>
-          <mat-tab [label]="'QUESTS.TAB_ITEMS' | translate">
-            <div class="tab-content">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'QUESTS.ITEM_REWARD' | translate }}</mat-label>
-                <mat-select [formControl]="itemForm.controls.reward">
-                  <mat-option [value]="0">{{ 'QUESTS.ANY_ITEM' | translate }}</mat-option>
-                  @for (item of questItems(); track item.id) {
-                    <mat-option [value]="item.id">
-                      <img [src]="iconService.getItemUrl(item.id)" class="option-icon" (error)="onOptionIconError($event)" />
-                      {{ item.name }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
-                <input matInput type="number" min="0" [formControl]="itemForm.controls.amount" />
-                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
-              </mat-form-field>
-            </div>
-          </mat-tab>
-          <mat-tab [label]="'QUESTS.TAB_MEGA_ENERGY' | translate">
-            <div class="tab-content">
-              <app-pokemon-selector [multi]="true" (selectionChange)="onMegaPokemonSelected($event)" />
-              @if (selectedMegaPokemonIds().length > 0) {
-                <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedMegaPokemonIds().length } }}</p>
-              }
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
-                <input matInput type="number" min="0" [formControl]="megaForm.controls.amount" />
-                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
-              </mat-form-field>
-            </div>
-          </mat-tab>
-          <mat-tab [label]="'QUESTS.TAB_CANDY' | translate">
-            <div class="tab-content">
-              <app-pokemon-selector [multi]="true" (selectionChange)="onCandyPokemonSelected($event)" />
-              @if (selectedCandyPokemonIds().length > 0) {
-                <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedCandyPokemonIds().length } }}</p>
-              }
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
-                <input matInput type="number" min="0" [formControl]="candyForm.controls.amount" />
-                <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
-              </mat-form-field>
-            </div>
-          </mat-tab>
-          <mat-tab [label]="'QUESTS.TAB_STARDUST' | translate">
-            <div class="tab-content">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ 'QUESTS.MIN_STARDUST' | translate }}</mat-label>
-                <input matInput type="number" min="0" step="100" [formControl]="stardustForm.controls.reward" />
-                <mat-hint>{{ 'QUESTS.MIN_STARDUST_HINT' | translate }}</mat-hint>
-              </mat-form-field>
-            </div>
-          </mat-tab>
-          <!-- Last on purpose: tabIndex is positional and the save switch reads it, so the tab that may
-               or may not render has to be the one that cannot shift the others. Needs PoracleNG 5.2.0. -->
-          @if (supportsPokecoins()) {
-            <mat-tab [label]="'QUESTS.TAB_POKECOINS' | translate">
-              <div class="tab-content">
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>{{ 'QUESTS.MIN_POKECOINS' | translate }}</mat-label>
-                  <input matInput type="number" min="0" step="1" [formControl]="pokecoinsForm.controls.reward" />
-                  <mat-hint>{{ 'QUESTS.MIN_POKECOINS_HINT' | translate }}</mat-hint>
-                </mat-form-field>
-              </div>
-            </mat-tab>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @switch (rewardKind) {
+          @case (0) {
+            <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
+            @if (selectedPokemonIds().length > 0) {
+              <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedPokemonIds().length } }}</p>
+            }
           }
-        </mat-tab-group>
+          @case (1) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'QUESTS.ITEM_REWARD' | translate }}</mat-label>
+              <mat-select [formControl]="itemForm.controls.reward">
+                <mat-option [value]="0">{{ 'QUESTS.ANY_ITEM' | translate }}</mat-option>
+                @for (item of questItems(); track item.id) {
+                  <mat-option [value]="item.id">
+                    <img [src]="iconService.getItemUrl(item.id)" class="option-icon" (error)="onOptionIconError($event)" />
+                    {{ item.name }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+              <input matInput type="number" min="0" [formControl]="itemForm.controls.amount" />
+              <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+            </mat-form-field>
+          }
+          @case (2) {
+            <app-pokemon-selector [multi]="true" (selectionChange)="onMegaPokemonSelected($event)" />
+            @if (selectedMegaPokemonIds().length > 0) {
+              <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedMegaPokemonIds().length } }}</p>
+            }
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+              <input matInput type="number" min="0" [formControl]="megaForm.controls.amount" />
+              <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+            </mat-form-field>
+          }
+          @case (3) {
+            <app-pokemon-selector [multi]="true" (selectionChange)="onCandyPokemonSelected($event)" />
+            @if (selectedCandyPokemonIds().length > 0) {
+              <p class="selection-count">{{ 'QUESTS.SELECTION_COUNT' | translate: { count: selectedCandyPokemonIds().length } }}</p>
+            }
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'QUESTS.MIN_AMOUNT' | translate }}</mat-label>
+              <input matInput type="number" min="0" [formControl]="candyForm.controls.amount" />
+              <mat-hint>{{ 'QUESTS.MIN_AMOUNT_HINT' | translate }}</mat-hint>
+            </mat-form-field>
+          }
+          @case (4) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'QUESTS.MIN_STARDUST' | translate }}</mat-label>
+              <input matInput type="number" min="0" step="100" [formControl]="stardustForm.controls.reward" />
+              <mat-hint>{{ 'QUESTS.MIN_STARDUST_HINT' | translate }}</mat-hint>
+            </mat-form-field>
+          }
+          @case (5) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'QUESTS.MIN_POKECOINS' | translate }}</mat-label>
+              <input matInput type="number" min="0" step="1" [formControl]="pokecoinsForm.controls.reward" />
+              <mat-hint>{{ 'QUESTS.MIN_POKECOINS_HINT' | translate }}</mat-hint>
+            </mat-form-field>
+          }
+        }
       </div>
     </mat-tab>
 
