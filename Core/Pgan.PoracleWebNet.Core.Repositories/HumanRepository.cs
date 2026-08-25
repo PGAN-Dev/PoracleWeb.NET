@@ -23,12 +23,6 @@ public class HumanRepository(PoracleContext context) : IHumanRepository
         return entities.Select(e => e.ToModel());
     }
 
-    public async Task<Human?> GetByIdAsync(string id)
-    {
-        var entity = await this._context.Humans.FirstOrDefaultAsync(h => h.Id == id);
-        return entity is null ? null : entity.ToModel();
-    }
-
     public async Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids)
     {
         var idArray = ids.ToArray();

@@ -8,7 +8,6 @@ public interface IHumanRepository
 
     /// <summary>The webhook humans, id and name. Used to resolve a delegated webhook named by name.</summary>
     public Task<IEnumerable<Human>> GetWebhooksAsync();
-    public Task<Human?> GetByIdAsync(string id);
     public Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids);
     public Task<bool> ExistsAsync(string id);
     public Task<bool> DeleteUserAsync(string userId);
