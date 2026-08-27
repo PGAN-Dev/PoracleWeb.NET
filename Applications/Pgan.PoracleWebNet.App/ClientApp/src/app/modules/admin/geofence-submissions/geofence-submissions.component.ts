@@ -3,14 +3,14 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
+  effect,
   ElementRef,
+  inject,
   NgZone,
   OnDestroy,
   OnInit,
-  computed,
-  effect,
-  inject,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -28,6 +28,7 @@ import { firstValueFrom } from 'rxjs';
 import { GeofenceData, GeofenceRegion, UserGeofence } from '../../../core/models';
 import { AdminGeofenceService } from '../../../core/services/admin-geofence.service';
 import { AreaService } from '../../../core/services/area.service';
+import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { UserGeofenceService } from '../../../core/services/user-geofence.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -70,6 +71,7 @@ export interface RegionGroup {
 export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly adminGeofenceService = inject(AdminGeofenceService);
   private readonly areaService = inject(AreaService);
+  private readonly basemap = inject(BasemapService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly elementRef = inject(ElementRef);
@@ -381,9 +383,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
         zoomControl: false,
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-      }).addTo(map);
+      this.basemap.createLayer().addTo(map);
 
       const color = GEOFENCE_STATUS_COLORS[geofence.status] || '#9e9e9e';
       const polygon = L.polygon(

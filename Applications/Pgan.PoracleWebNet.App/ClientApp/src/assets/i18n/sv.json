@@ -1751,7 +1751,14 @@
     "AUTH_MODE_LOCAL_DESC": "Logga in direkt med Discord eller Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Lokal inloggning tvingas av serverkonfigurationen.",
     "DISABLE_UPDATE_CHECK_LABEL": "Sök inte efter uppdateringar",
-    "DISABLE_UPDATE_CHECK_DESC": "Hindrar webbplatsen från att fråga GitHub om en nyare PoracleWeb eller Poracle har släppts. Det är den enda förfrågan utanför ditt eget nätverk och inget skickas med."
+    "DISABLE_UPDATE_CHECK_DESC": "Hindrar webbplatsen från att fråga GitHub om en nyare PoracleWeb eller Poracle har släppts. Det är den enda förfrågan utanför ditt eget nätverk och inget skickas med.",
+    "GROUP_MAPS": "Kartor",
+    "BASEMAP_KEY_LABEL": "API-nyckel för bakgrundskarta",
+    "BASEMAP_KEY_DESC": "Nyckel till kakelleverantören. Utan nyckel returnerar CARTO kakel med vattenstämpeln ”API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "Kakel-URL för bakgrundskarta",
+    "BASEMAP_URL_DESC": "URL-mall för kakel. Placera {key} där leverantören förväntar sig nyckeln. Lämna tomt för den ljusa CARTO-kartan.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Attribution för bakgrundskarta",
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution som visas på varje karta. Måste följa kakelleverantörens villkor."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",

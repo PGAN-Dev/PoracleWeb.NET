@@ -1,7 +1,8 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, effect, input, viewChild } from '@angular/core';
+import { AfterViewInit, Component, effect, ElementRef, inject, input, OnDestroy, viewChild } from '@angular/core';
 import * as L from 'leaflet';
 
 import { GeofenceData } from '../../../core/models';
+import { BasemapService } from '../../../core/services/basemap.service';
 
 const AREA_COLORS = ['#43a047', '#1e88e5', '#e53935', '#fb8c00', '#8e24aa', '#00acc1', '#f4511e', '#3949ab', '#7cb342', '#d81b60'];
 
@@ -26,6 +27,7 @@ const AREA_COLORS = ['#43a047', '#1e88e5', '#e53935', '#fb8c00', '#8e24aa', '#00
   template: '<div #mapContainer class="overview-map-container"></div>',
 })
 export class AreaOverviewMapComponent implements AfterViewInit, OnDestroy {
+  private readonly basemap = inject(BasemapService);
   private map: L.Map | null = null;
   private readonly mapContainer = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
   private polygonLayer: L.LayerGroup | null = null;
@@ -54,9 +56,7 @@ export class AreaOverviewMapComponent implements AfterViewInit, OnDestroy {
       zoomControl: false,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 18,
-    }).addTo(this.map);
+    this.basemap.createLayer({ maxZoom: 18 }).addTo(this.map);
 
     this.polygonLayer = L.layerGroup().addTo(this.map);
     this.drawPolygons();

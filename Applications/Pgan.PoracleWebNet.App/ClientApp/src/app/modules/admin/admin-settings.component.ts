@@ -291,6 +291,31 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    color: '#2e7d32',
+    icon: 'map',
+    labelKey: 'ADMIN_SETTINGS.GROUP_MAPS',
+    settings: [
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_KEY_DESC',
+        key: 'basemap_key',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_KEY_LABEL',
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_URL_DESC',
+        key: 'basemap_url',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_URL_LABEL',
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_DESC',
+        key: 'basemap_attribution',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_LABEL',
+        type: 'text',
+      },
+    ],
+  },
+  {
     color: '#f44336',
     icon: 'admin_panel_settings',
     labelKey: 'ADMIN_SETTINGS.GROUP_ADMINISTRATION',

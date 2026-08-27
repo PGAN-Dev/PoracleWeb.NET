@@ -1751,7 +1751,14 @@
     "AUTH_MODE_LOCAL_DESC": "Connexion directe avec Discord ou Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "La connexion locale est imposée par la configuration du serveur.",
     "DISABLE_UPDATE_CHECK_LABEL": "Ne pas rechercher de mises à jour",
-    "DISABLE_UPDATE_CHECK_DESC": "Empêche le site de demander à GitHub si une version plus récente de PoracleWeb ou de Poracle est parue. C’est la seule requête sortant de votre réseau, et elle n’envoie rien."
+    "DISABLE_UPDATE_CHECK_DESC": "Empêche le site de demander à GitHub si une version plus récente de PoracleWeb ou de Poracle est parue. C’est la seule requête sortant de votre réseau, et elle n’envoie rien.",
+    "GROUP_MAPS": "Cartes",
+    "BASEMAP_KEY_LABEL": "Clé API du fond de carte",
+    "BASEMAP_KEY_DESC": "Clé du fournisseur de tuiles. Sans clé, CARTO renvoie des tuiles filigranées « API KEY REQUIRED ».",
+    "BASEMAP_URL_LABEL": "URL des tuiles du fond de carte",
+    "BASEMAP_URL_DESC": "Modèle d’URL des tuiles. Placez {key} là où le fournisseur attend la clé. Laissez vide pour le fond CARTO clair.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Attribution du fond de carte",
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution affichée sur chaque carte. Doit respecter les conditions de votre fournisseur de tuiles."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nom",

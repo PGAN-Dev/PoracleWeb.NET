@@ -1751,7 +1751,14 @@
     "AUTH_MODE_LOCAL_DESC": "Inicia sessão diretamente com o Discord ou o Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "O início de sessão local é imposto pela configuração do servidor.",
     "DISABLE_UPDATE_CHECK_LABEL": "Não procurar atualizações",
-    "DISABLE_UPDATE_CHECK_DESC": "Impede o site de perguntar ao GitHub se saiu uma versão mais recente do PoracleWeb ou do Poracle. É o único pedido que sai da tua rede e não envia nada."
+    "DISABLE_UPDATE_CHECK_DESC": "Impede o site de perguntar ao GitHub se saiu uma versão mais recente do PoracleWeb ou do Poracle. É o único pedido que sai da tua rede e não envia nada.",
+    "GROUP_MAPS": "Mapas",
+    "BASEMAP_KEY_LABEL": "Chave de API do mapa base",
+    "BASEMAP_KEY_DESC": "Chave do fornecedor de mosaicos. Sem ela, o CARTO devolve mosaicos com a marca de água “API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "URL de mosaicos do mapa base",
+    "BASEMAP_URL_DESC": "Modelo de URL dos mosaicos. Coloque {key} onde o fornecedor espera a chave. Deixe vazio para o mapa base claro do CARTO.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Atribuição do mapa base",
+    "BASEMAP_ATTRIBUTION_DESC": "Atribuição apresentada em todos os mapas. Deve cumprir os termos do seu fornecedor de mosaicos."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

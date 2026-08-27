@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy, ElementRef, viewChild, afterNextRender } from '@angular/core';
+import { afterNextRender, Component, ElementRef, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +15,7 @@ import { Subject } from 'rxjs';
 import { debounceTime, switchMap, takeUntil, filter, distinctUntilChanged } from 'rxjs/operators';
 
 import { Location, GeocodingResult } from '../../../core/models';
+import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
 import { SettingsService } from '../../../core/services/settings.service';
@@ -45,6 +46,7 @@ export interface LocationDialogData {
   templateUrl: './location-dialog.component.html',
 })
 export class LocationDialogComponent implements OnInit, OnDestroy {
+  private readonly basemap = inject(BasemapService);
   private readonly destroy$ = new Subject<void>();
   private readonly i18n = inject(I18nService);
 
@@ -272,10 +274,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
 
     this.map = L.map(el, { attributionControl: false, zoomControl: true }).setView([lat, lng], zoom);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd',
-    }).addTo(this.map);
+    this.basemap.createLayer().addTo(this.map);
 
     if (lat !== 0 || lng !== 0) {
       this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);

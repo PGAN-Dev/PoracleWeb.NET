@@ -1751,7 +1751,14 @@
     "AUTH_MODE_LOCAL_DESC": "Meld je rechtstreeks aan met Discord of Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Lokaal aanmelden wordt afgedwongen door de serverconfiguratie.",
     "DISABLE_UPDATE_CHECK_LABEL": "Niet op updates controleren",
-    "DISABLE_UPDATE_CHECK_DESC": "Voorkomt dat de site aan GitHub vraagt of er een nieuwere PoracleWeb of Poracle is uitgebracht. Dit is het enige verzoek buiten je eigen netwerk en er wordt niets meegestuurd."
+    "DISABLE_UPDATE_CHECK_DESC": "Voorkomt dat de site aan GitHub vraagt of er een nieuwere PoracleWeb of Poracle is uitgebracht. Dit is het enige verzoek buiten je eigen netwerk en er wordt niets meegestuurd.",
+    "GROUP_MAPS": "Kaarten",
+    "BASEMAP_KEY_LABEL": "API-sleutel achtergrondkaart",
+    "BASEMAP_KEY_DESC": "Sleutel voor de tegelprovider. Zonder sleutel levert CARTO tegels met het watermerk “API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "Tegel-URL achtergrondkaart",
+    "BASEMAP_URL_DESC": "URL-sjabloon voor tegels. Zet {key} waar de provider de sleutel verwacht. Laat leeg voor de lichte CARTO-kaart.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Bronvermelding achtergrondkaart",
+    "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding op elke kaart. Moet voldoen aan de voorwaarden van je tegelprovider."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",
