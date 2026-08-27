@@ -1751,7 +1751,15 @@
     "EXPAND_SECTION": "Expand section",
     "SUMMARY_ENABLED": "{{count}} of {{total}} enabled",
     "DISABLE_UPDATE_CHECK_LABEL": "Do not check for updates",
-    "DISABLE_UPDATE_CHECK_DESC": "Stops the site asking GitHub whether a newer PoracleWeb or Poracle has been released. This is the only request it makes outside your own network; nothing is sent with it."
+    "DISABLE_UPDATE_CHECK_DESC": "Stops the site asking GitHub whether a newer PoracleWeb or Poracle has been released. This is the only request it makes outside your own network; nothing is sent with it.",
+    "GROUP_MAPS": "Maps",
+    "BASEMAP_KEY_LABEL": "Basemap API Key",
+    "BASEMAP_KEY_DESC": "Key for the map tile provider. Without one, CARTO returns tiles watermarked “API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "Basemap Tile URL",
+    "BASEMAP_URL_DESC": "Tile URL template. Put {key} where the provider expects the key. Leave blank for the CARTO light basemap.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Basemap Attribution",
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution shown on every map. Must match your tile provider's terms.",
+    "BASEMAP_KEY_MISSING": "No key is set, so every map on the site renders with CARTO’s “API KEY REQUIRED” watermark. CARTO still returns working tiles without one, so nothing else will report this."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

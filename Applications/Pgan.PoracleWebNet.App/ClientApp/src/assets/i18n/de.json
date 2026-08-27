@@ -1751,7 +1751,15 @@
     "AUTH_MODE_LOCAL_DESC": "Direkt mit Discord oder Telegram anmelden.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Die lokale Anmeldung wird durch die Serverkonfiguration erzwungen.",
     "DISABLE_UPDATE_CHECK_LABEL": "Nicht nach Updates suchen",
-    "DISABLE_UPDATE_CHECK_DESC": "Verhindert, dass die Seite bei GitHub nachfragt, ob ein neueres PoracleWeb oder Poracle erschienen ist. Das ist die einzige Anfrage außerhalb deines Netzwerks; es werden keine Daten übermittelt."
+    "DISABLE_UPDATE_CHECK_DESC": "Verhindert, dass die Seite bei GitHub nachfragt, ob ein neueres PoracleWeb oder Poracle erschienen ist. Das ist die einzige Anfrage außerhalb deines Netzwerks; es werden keine Daten übermittelt.",
+    "GROUP_MAPS": "Karten",
+    "BASEMAP_KEY_LABEL": "Kartenhintergrund-API-Schlüssel",
+    "BASEMAP_KEY_DESC": "Schlüssel für den Kartenkachel-Anbieter. Ohne Schlüssel liefert CARTO Kacheln mit dem Wasserzeichen „API KEY REQUIRED“.",
+    "BASEMAP_URL_LABEL": "Kachel-URL des Kartenhintergrunds",
+    "BASEMAP_URL_DESC": "URL-Vorlage für Kacheln. {key} dort einsetzen, wo der Anbieter den Schlüssel erwartet. Leer lassen für die helle CARTO-Karte.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Kartenhintergrund-Quellenangabe",
+    "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe auf jeder Karte. Muss den Bedingungen des Kachel-Anbieters entsprechen.",
+    "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher zeigt jede Karte der Website das CARTO-Wasserzeichen „API KEY REQUIRED“. CARTO liefert auch ohne Schlüssel funktionierende Kacheln, deshalb meldet dies sonst nichts."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

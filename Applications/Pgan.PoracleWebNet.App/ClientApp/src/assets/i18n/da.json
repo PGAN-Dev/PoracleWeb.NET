@@ -1751,7 +1751,15 @@
     "AUTH_MODE_LOCAL_DESC": "Log ind direkte med Discord eller Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Lokalt login er gennemtvunget af serverkonfigurationen.",
     "DISABLE_UPDATE_CHECK_LABEL": "Søg ikke efter opdateringer",
-    "DISABLE_UPDATE_CHECK_DESC": "Stopper siden i at spørge GitHub, om der er udgivet en nyere PoracleWeb eller Poracle. Det er den eneste forespørgsel uden for dit eget netværk, og der sendes ingen data med."
+    "DISABLE_UPDATE_CHECK_DESC": "Stopper siden i at spørge GitHub, om der er udgivet en nyere PoracleWeb eller Poracle. Det er den eneste forespørgsel uden for dit eget netværk, og der sendes ingen data med.",
+    "GROUP_MAPS": "Kort",
+    "BASEMAP_KEY_LABEL": "API-nøgle til baggrundskort",
+    "BASEMAP_KEY_DESC": "Nøgle til flisleverandøren. Uden en nøgle returnerer CARTO fliser med vandmærket ”API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "Flise-URL til baggrundskort",
+    "BASEMAP_URL_DESC": "URL-skabelon til fliser. Indsæt {key} der, hvor leverandøren forventer nøglen. Lad stå tom for det lyse CARTO-kort.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Kildeangivelse for baggrundskort",
+    "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse vist på alle kort. Skal overholde flisleverandørens betingelser.",
+    "BASEMAP_KEY_MISSING": "Der er ikke angivet nogen nøgle, så alle kort på sitet vises med CARTOs vandmærke ”API KEY REQUIRED”. CARTO returnerer stadig fungerende fliser uden en nøgle, så intet andet vil melde om det."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",

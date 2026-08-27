@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, OnDestroy, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -8,6 +8,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 
 import { GeofenceData, UserGeofence } from '../../../core/models';
+import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { polygonAreaSqKm } from '../../utils/geo.utils';
 import { GEOFENCE_STATUS_COLORS } from '../../utils/geofence.utils';
@@ -44,6 +45,7 @@ export interface GeofenceDetailDialogData {
   templateUrl: './geofence-detail-dialog.component.html',
 })
 export class GeofenceDetailDialogComponent implements OnDestroy {
+  private readonly basemap = inject(BasemapService);
   private readonly dialogRef = inject(MatDialogRef<GeofenceDetailDialogComponent>);
   private readonly i18n = inject(I18nService);
 
@@ -111,11 +113,7 @@ export class GeofenceDetailDialogComponent implements OnDestroy {
       zoomControl: true,
     }).setView([0, 0], 2);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 19,
-      subdomains: 'abcd',
-    }).addTo(this.map);
+    this.basemap.createLayer().addTo(this.map);
 
     // Draw region/area geofences from Poracle using the same color palette as area-map
     const refs = this.data.referenceGeofences ?? [];

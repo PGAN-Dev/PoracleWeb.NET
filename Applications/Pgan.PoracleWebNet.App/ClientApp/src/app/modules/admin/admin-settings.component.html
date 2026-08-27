@@ -292,6 +292,13 @@
             }
           </div>
 
+          @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_MAPS' && basemap.missingKey()) {
+            <div class="config-hint warning basemap-key-warning">
+              <mat-icon>info_outline</mat-icon>
+              <span>{{ 'ADMIN_SETTINGS.BASEMAP_KEY_MISSING' | translate }}</span>
+            </div>
+          }
+
           @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_TELEGRAM' && telegramConfig()) {
             @if (!telegramConfig()!.enabled) {
               <div class="config-hint warning">

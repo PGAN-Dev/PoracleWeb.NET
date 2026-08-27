@@ -26,6 +26,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -291,6 +292,31 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    color: '#2e7d32',
+    icon: 'map',
+    labelKey: 'ADMIN_SETTINGS.GROUP_MAPS',
+    settings: [
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_KEY_DESC',
+        key: 'basemap_key',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_KEY_LABEL',
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_URL_DESC',
+        key: 'basemap_url',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_URL_LABEL',
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_DESC',
+        key: 'basemap_attribution',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_LABEL',
+        type: 'text',
+      },
+    ],
+  },
+  {
     color: '#f44336',
     icon: 'admin_panel_settings',
     labelKey: 'ADMIN_SETTINGS.GROUP_ADMINISTRATION',
@@ -350,7 +376,6 @@ export const SETTING_GROUPS: SettingGroup[] = [
 })
 export class AdminSettingsComponent implements OnInit {
   private static readonly COLLAPSED_STORAGE_KEY = 'poracle-admin-settings-collapsed';
-
   private readonly allDefinedKeys = new Set([
     ...SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)),
     'uicons_pkmn',
@@ -371,8 +396,8 @@ export class AdminSettingsComponent implements OnInit {
   ]);
 
   private readonly destroyRef = inject(DestroyRef);
-  private readonly dialog = inject(MatDialog);
 
+  private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
 
   private readonly internalPrefixes = [
@@ -429,6 +454,8 @@ export class AdminSettingsComponent implements OnInit {
       'ADMIN_SETTINGS.AUTH_MODE_OIDC',
     ].some(key => this.i18n.instant(key).toLowerCase().includes(query));
   });
+
+  protected readonly basemap = inject(BasemapService);
 
   readonly bulkSaving = signal(false);
 

@@ -1,30 +1,32 @@
 import {
   AfterViewInit,
   Component,
+  computed,
+  effect,
   ElementRef,
   EventEmitter,
   inject,
   Input,
+  input,
   OnChanges,
   OnDestroy,
   Output,
-  SimpleChanges,
-  ViewChild,
-  computed,
-  effect,
-  input,
   output,
   signal,
+  SimpleChanges,
+  ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
+
 import 'leaflet-draw';
 
 import { INITIAL_VIEW_MAX_ZOOM, LOCATION_ONLY_ZOOM, planInitialView } from './initial-view';
 import { GeofenceData } from '../../../core/models';
+import { BasemapService } from '../../../core/services/basemap.service';
 import { I18nService } from '../../../core/services/i18n.service';
 import { RegionOption, RegionSelectorComponent } from '../region-selector/region-selector.component';
 
@@ -73,6 +75,7 @@ interface RegionEntry {
 })
 export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private allBoundsRect: L.LatLngBounds | null = null;
+  private readonly basemap = inject(BasemapService);
   private customBoundsRect: L.LatLngBounds | null = null;
   private customGeofenceLayer: L.LayerGroup = L.layerGroup();
   private drawControl: L.Control.Draw | null = null;
@@ -510,11 +513,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       zoomControl: true,
     }).setView([37.5, -77.4], 10);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 19,
-      subdomains: 'abcd',
-    }).addTo(this.map);
+    this.basemap.createLayer().addTo(this.map);
 
     // Once the user has touched the map, stop repositioning it. Raw DOM input events are used
     // rather than Leaflet's movestart/zoomstart because those fire for our own fitBounds calls too,

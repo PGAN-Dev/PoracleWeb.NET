@@ -1751,7 +1751,15 @@
     "AUTH_MODE_LOCAL_DESC": "Inicia sesión directamente con Discord o Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "El inicio de sesión local está forzado por la configuración del servidor.",
     "DISABLE_UPDATE_CHECK_LABEL": "No buscar actualizaciones",
-    "DISABLE_UPDATE_CHECK_DESC": "Impide que el sitio pregunte a GitHub si hay una versión más reciente de PoracleWeb o Poracle. Es la única petición que sale de tu red y no envía ningún dato."
+    "DISABLE_UPDATE_CHECK_DESC": "Impide que el sitio pregunte a GitHub si hay una versión más reciente de PoracleWeb o Poracle. Es la única petición que sale de tu red y no envía ningún dato.",
+    "GROUP_MAPS": "Mapas",
+    "BASEMAP_KEY_LABEL": "Clave API del mapa base",
+    "BASEMAP_KEY_DESC": "Clave del proveedor de teselas. Sin ella, CARTO devuelve teselas con la marca de agua “API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "URL de teselas del mapa base",
+    "BASEMAP_URL_DESC": "Plantilla de URL de teselas. Coloca {key} donde el proveedor espera la clave. Déjalo vacío para el mapa base claro de CARTO.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Atribución del mapa base",
+    "BASEMAP_ATTRIBUTION_DESC": "Atribución mostrada en cada mapa. Debe cumplir los términos de tu proveedor de teselas.",
+    "BASEMAP_KEY_MISSING": "No hay ninguna clave configurada, así que todos los mapas del sitio muestran la marca de agua “API KEY REQUIRED” de CARTO. CARTO sigue devolviendo teselas funcionales sin ella, por lo que nada más lo advertirá."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nombre",

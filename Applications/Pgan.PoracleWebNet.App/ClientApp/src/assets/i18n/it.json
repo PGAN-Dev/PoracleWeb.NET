@@ -1751,7 +1751,15 @@
     "AUTH_MODE_LOCAL_DESC": "Accedi direttamente con Discord o Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "L'accesso locale è imposto dalla configurazione del server.",
     "DISABLE_UPDATE_CHECK_LABEL": "Non cercare aggiornamenti",
-    "DISABLE_UPDATE_CHECK_DESC": "Impedisce al sito di chiedere a GitHub se è uscita una versione più recente di PoracleWeb o Poracle. È l’unica richiesta che esce dalla tua rete e non invia nulla."
+    "DISABLE_UPDATE_CHECK_DESC": "Impedisce al sito di chiedere a GitHub se è uscita una versione più recente di PoracleWeb o Poracle. È l’unica richiesta che esce dalla tua rete e non invia nulla.",
+    "GROUP_MAPS": "Mappe",
+    "BASEMAP_KEY_LABEL": "Chiave API della mappa base",
+    "BASEMAP_KEY_DESC": "Chiave del fornitore di tile. Senza chiave, CARTO restituisce tile con la filigrana “API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "URL delle tile della mappa base",
+    "BASEMAP_URL_DESC": "Modello di URL delle tile. Inserisci {key} dove il fornitore si aspetta la chiave. Lascia vuoto per la mappa base chiara di CARTO.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Attribuzione della mappa base",
+    "BASEMAP_ATTRIBUTION_DESC": "Attribuzione mostrata su ogni mappa. Deve rispettare i termini del fornitore di tile.",
+    "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi ogni mappa del sito mostra la filigrana “API KEY REQUIRED” di CARTO. CARTO restituisce comunque tile funzionanti, quindi nient’altro lo segnalerà."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

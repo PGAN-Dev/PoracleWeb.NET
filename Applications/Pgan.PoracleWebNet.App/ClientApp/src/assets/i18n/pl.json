@@ -1751,7 +1751,15 @@
     "AUTH_MODE_LOCAL_DESC": "Zaloguj się bezpośrednio przez Discord lub Telegram.",
     "AUTH_FORCE_LOCAL_ACTIVE": "Logowanie lokalne jest wymuszone przez konfigurację serwera.",
     "DISABLE_UPDATE_CHECK_LABEL": "Nie sprawdzaj aktualizacji",
-    "DISABLE_UPDATE_CHECK_DESC": "Wyłącza pytanie GitHuba o nowsze wydanie PoracleWeb lub Poracle. To jedyne żądanie wychodzące poza twoją sieć i nie wysyła żadnych danych."
+    "DISABLE_UPDATE_CHECK_DESC": "Wyłącza pytanie GitHuba o nowsze wydanie PoracleWeb lub Poracle. To jedyne żądanie wychodzące poza twoją sieć i nie wysyła żadnych danych.",
+    "GROUP_MAPS": "Mapy",
+    "BASEMAP_KEY_LABEL": "Klucz API mapy podkładowej",
+    "BASEMAP_KEY_DESC": "Klucz dostawcy kafelków. Bez niego CARTO zwraca kafelki ze znakiem wodnym „API KEY REQUIRED”.",
+    "BASEMAP_URL_LABEL": "Adres URL kafelków mapy podkładowej",
+    "BASEMAP_URL_DESC": "Szablon adresu URL kafelków. Wstaw {key} tam, gdzie dostawca oczekuje klucza. Pozostaw puste dla jasnej mapy CARTO.",
+    "BASEMAP_ATTRIBUTION_LABEL": "Atrybucja mapy podkładowej",
+    "BASEMAP_ATTRIBUTION_DESC": "Atrybucja widoczna na każdej mapie. Musi być zgodna z warunkami dostawcy kafelków.",
+    "BASEMAP_KEY_MISSING": "Nie ustawiono klucza, więc każda mapa w serwisie wyświetla znak wodny CARTO „API KEY REQUIRED”. CARTO nadal zwraca działające kafelki bez klucza, więc nic innego tego nie zgłosi."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nazwa",
