@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "URL de teselas del mapa base",
     "BASEMAP_URL_DESC": "Plantilla de URL de teselas. Coloca {key} donde el proveedor espera la clave. Déjalo vacío para el mapa base claro de CARTO.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribución del mapa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Atribución mostrada en cada mapa. Debe cumplir los términos de tu proveedor de teselas."
+    "BASEMAP_ATTRIBUTION_DESC": "Atribución mostrada en cada mapa. Debe cumplir los términos de tu proveedor de teselas.",
+    "BASEMAP_KEY_MISSING": "No hay ninguna clave configurada, así que todos los mapas del sitio muestran la marca de agua “API KEY REQUIRED” de CARTO. CARTO sigue devolviendo teselas funcionales sin ella, por lo que nada más lo advertirá."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nombre",

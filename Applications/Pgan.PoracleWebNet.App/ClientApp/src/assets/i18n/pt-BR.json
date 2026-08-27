@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "URL de blocos do mapa base",
     "BASEMAP_URL_DESC": "Modelo de URL dos blocos. Coloque {key} onde o provedor espera a chave. Deixe em branco para o mapa base claro do CARTO.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribuição do mapa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Atribuição exibida em todos os mapas. Deve seguir os termos do seu provedor de blocos."
+    "BASEMAP_ATTRIBUTION_DESC": "Atribuição exibida em todos os mapas. Deve seguir os termos do seu provedor de blocos.",
+    "BASEMAP_KEY_MISSING": "Nenhuma chave definida, então todos os mapas do site aparecem com a marca-d’água “API KEY REQUIRED” do CARTO. O CARTO continua retornando blocos funcionais sem ela, então nada mais vai avisar sobre isso."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

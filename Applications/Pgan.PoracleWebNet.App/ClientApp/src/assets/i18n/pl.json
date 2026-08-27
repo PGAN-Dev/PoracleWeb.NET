@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "Adres URL kafelków mapy podkładowej",
     "BASEMAP_URL_DESC": "Szablon adresu URL kafelków. Wstaw {key} tam, gdzie dostawca oczekuje klucza. Pozostaw puste dla jasnej mapy CARTO.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atrybucja mapy podkładowej",
-    "BASEMAP_ATTRIBUTION_DESC": "Atrybucja widoczna na każdej mapie. Musi być zgodna z warunkami dostawcy kafelków."
+    "BASEMAP_ATTRIBUTION_DESC": "Atrybucja widoczna na każdej mapie. Musi być zgodna z warunkami dostawcy kafelków.",
+    "BASEMAP_KEY_MISSING": "Nie ustawiono klucza, więc każda mapa w serwisie wyświetla znak wodny CARTO „API KEY REQUIRED”. CARTO nadal zwraca działające kafelki bez klucza, więc nic innego tego nie zgłosi."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nazwa",

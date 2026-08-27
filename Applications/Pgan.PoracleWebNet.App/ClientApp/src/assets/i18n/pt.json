@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "URL de mosaicos do mapa base",
     "BASEMAP_URL_DESC": "Modelo de URL dos mosaicos. Coloque {key} onde o fornecedor espera a chave. Deixe vazio para o mapa base claro do CARTO.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribuição do mapa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Atribuição apresentada em todos os mapas. Deve cumprir os termos do seu fornecedor de mosaicos."
+    "BASEMAP_ATTRIBUTION_DESC": "Atribuição apresentada em todos os mapas. Deve cumprir os termos do seu fornecedor de mosaicos.",
+    "BASEMAP_KEY_MISSING": "Não está definida nenhuma chave, por isso todos os mapas do site apresentam a marca de água “API KEY REQUIRED” do CARTO. O CARTO continua a devolver mosaicos funcionais sem ela, pelo que mais nada o irá assinalar."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

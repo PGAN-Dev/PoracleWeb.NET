@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "Flise-URL til baggrundskort",
     "BASEMAP_URL_DESC": "URL-skabelon til fliser. Indsæt {key} der, hvor leverandøren forventer nøglen. Lad stå tom for det lyse CARTO-kort.",
     "BASEMAP_ATTRIBUTION_LABEL": "Kildeangivelse for baggrundskort",
-    "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse vist på alle kort. Skal overholde flisleverandørens betingelser."
+    "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse vist på alle kort. Skal overholde flisleverandørens betingelser.",
+    "BASEMAP_KEY_MISSING": "Der er ikke angivet nogen nøgle, så alle kort på sitet vises med CARTOs vandmærke ”API KEY REQUIRED”. CARTO returnerer stadig fungerende fliser uden en nøgle, så intet andet vil melde om det."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",

@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { PROJECTED_KEYS, SETTING_GROUPS } from './admin-settings.component';
 
 /**
@@ -49,5 +52,27 @@ describe('PROJECTED_KEYS', () => {
     const overlap = PROJECTED_KEYS.filter(k => editable.has(k));
 
     expect(overlap).toEqual([]);
+  });
+});
+
+/**
+ * A group or a setting whose label key is absent from en.json renders the raw key -- "ADMIN_SETTINGS.
+ * GROUP_MAPS" sitting where a heading should be. Nothing else catches it: locale parity compares the
+ * locales against each other, so a key missing from all twelve files is consistent and passes.
+ */
+describe('SETTING_GROUPS translation keys', () => {
+  const english = JSON.parse(fs.readFileSync(path.join(__dirname, '../../../assets/i18n/en.json'), 'utf8')) as {
+    ADMIN_SETTINGS: Record<string, string>;
+  };
+
+  const resolves = (key: string) => key.startsWith('ADMIN_SETTINGS.') && key.slice('ADMIN_SETTINGS.'.length) in english.ADMIN_SETTINGS;
+
+  it('resolves every group label', () => {
+    expect(SETTING_GROUPS.map(g => g.labelKey).filter(k => !resolves(k))).toEqual([]);
+  });
+
+  it('resolves every setting label and description', () => {
+    const keys = SETTING_GROUPS.flatMap(g => g.settings.flatMap(s => [s.labelKey, s.descriptionKey]));
+    expect(keys.filter(k => !resolves(k))).toEqual([]);
   });
 });

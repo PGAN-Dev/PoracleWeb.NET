@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "Kachel-URL des Kartenhintergrunds",
     "BASEMAP_URL_DESC": "URL-Vorlage für Kacheln. {key} dort einsetzen, wo der Anbieter den Schlüssel erwartet. Leer lassen für die helle CARTO-Karte.",
     "BASEMAP_ATTRIBUTION_LABEL": "Kartenhintergrund-Quellenangabe",
-    "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe auf jeder Karte. Muss den Bedingungen des Kachel-Anbieters entsprechen."
+    "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe auf jeder Karte. Muss den Bedingungen des Kachel-Anbieters entsprechen.",
+    "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher zeigt jede Karte der Website das CARTO-Wasserzeichen „API KEY REQUIRED“. CARTO liefert auch ohne Schlüssel funktionierende Kacheln, deshalb meldet dies sonst nichts."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

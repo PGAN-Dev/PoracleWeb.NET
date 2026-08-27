@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "Tegel-URL achtergrondkaart",
     "BASEMAP_URL_DESC": "URL-sjabloon voor tegels. Zet {key} waar de provider de sleutel verwacht. Laat leeg voor de lichte CARTO-kaart.",
     "BASEMAP_ATTRIBUTION_LABEL": "Bronvermelding achtergrondkaart",
-    "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding op elke kaart. Moet voldoen aan de voorwaarden van je tegelprovider."
+    "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding op elke kaart. Moet voldoen aan de voorwaarden van je tegelprovider.",
+    "BASEMAP_KEY_MISSING": "Er is geen sleutel ingesteld, dus elke kaart op de site toont het CARTO-watermerk “API KEY REQUIRED”. CARTO levert ook zonder sleutel werkende tegels, dus niets anders meldt dit."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",

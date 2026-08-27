@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "Kakel-URL för bakgrundskarta",
     "BASEMAP_URL_DESC": "URL-mall för kakel. Placera {key} där leverantören förväntar sig nyckeln. Lämna tomt för den ljusa CARTO-kartan.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribution för bakgrundskarta",
-    "BASEMAP_ATTRIBUTION_DESC": "Attribution som visas på varje karta. Måste följa kakelleverantörens villkor."
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution som visas på varje karta. Måste följa kakelleverantörens villkor.",
+    "BASEMAP_KEY_MISSING": "Ingen nyckel är angiven, så alla kartor på webbplatsen visas med CARTOs vattenstämpel ”API KEY REQUIRED”. CARTO returnerar fortfarande fungerande kakel utan nyckel, så inget annat kommer att rapportera det."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",

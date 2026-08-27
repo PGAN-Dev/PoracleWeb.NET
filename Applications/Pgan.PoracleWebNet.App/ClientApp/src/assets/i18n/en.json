@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "Basemap Tile URL",
     "BASEMAP_URL_DESC": "Tile URL template. Put {key} where the provider expects the key. Leave blank for the CARTO light basemap.",
     "BASEMAP_ATTRIBUTION_LABEL": "Basemap Attribution",
-    "BASEMAP_ATTRIBUTION_DESC": "Attribution shown on every map. Must match your tile provider's terms."
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution shown on every map. Must match your tile provider's terms.",
+    "BASEMAP_KEY_MISSING": "No key is set, so every map on the site renders with CARTO’s “API KEY REQUIRED” watermark. CARTO still returns working tiles without one, so nothing else will report this."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

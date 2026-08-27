@@ -1758,7 +1758,8 @@
     "BASEMAP_URL_LABEL": "URL delle tile della mappa base",
     "BASEMAP_URL_DESC": "Modello di URL delle tile. Inserisci {key} dove il fornitore si aspetta la chiave. Lascia vuoto per la mappa base chiara di CARTO.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribuzione della mappa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Attribuzione mostrata su ogni mappa. Deve rispettare i termini del fornitore di tile."
+    "BASEMAP_ATTRIBUTION_DESC": "Attribuzione mostrata su ogni mappa. Deve rispettare i termini del fornitore di tile.",
+    "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi ogni mappa del sito mostra la filigrana “API KEY REQUIRED” di CARTO. CARTO restituisce comunque tile funzionanti, quindi nient’altro lo segnalerà."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
