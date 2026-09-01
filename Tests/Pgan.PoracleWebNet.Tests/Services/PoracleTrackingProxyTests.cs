@@ -285,7 +285,7 @@ public class PoracleTrackingProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Delete, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/raid/user1/byUid/42", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/tracking/raid/user1/byUid/42?silent=true", handler.LastRequest.RequestUri?.ToString());
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class PoracleTrackingProxyTests
 
         Assert.NotNull(handler.LastRequest);
         Assert.Equal(HttpMethod.Post, handler.LastRequest.Method);
-        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1/delete", handler.LastRequest.RequestUri?.ToString());
+        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1/delete?silent=true", handler.LastRequest.RequestUri?.ToString());
 
         var sentBody = await handler.LastRequest.Content!.ReadAsStringAsync();
         var uids = JsonSerializer.Deserialize<List<long>>(sentBody);

@@ -165,7 +165,7 @@ public partial class PoracleTrackingProxy(
 
     public async Task DeleteByUidAsync(string type, string userId, int uid)
     {
-        var request = this.CreateRequest(HttpMethod.Delete, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/byUid/{uid}");
+        var request = this.CreateRequest(HttpMethod.Delete, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/byUid/{uid}?silent=true");
         var response = await this._httpClient.SendAsync(request);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -186,7 +186,7 @@ public partial class PoracleTrackingProxy(
             return;
         }
 
-        var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/delete");
+        var request = this.CreateRequest(HttpMethod.Post, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/delete?silent=true");
         request.Content = new StringContent(
             JsonSerializer.Serialize(uidList.Select(u => (long)u)),
             Encoding.UTF8,
