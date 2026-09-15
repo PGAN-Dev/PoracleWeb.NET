@@ -232,6 +232,9 @@ The app will now be available at `http://your-server:9090`. Remember to update y
 **Container crashes: "Configuration 'Cors:AllowedOrigins' is required"**
 : Set `CORS_ORIGIN` in your `.env` to the URL you access PoracleWeb.NET from (e.g., `CORS_ORIGIN=http://192.168.1.50:8082`). This is required in production mode.
 
+**Maps show "API KEY REQUIRED" or "Access blocked"**
+: A tile provider is refusing the request and drawing the refusal into the image — it still returns success, so nothing appears in the logs. A fresh install needs no map configuration at all; if you have set one, see [Maps](../configuration/site-settings.md#maps) and [Troubleshooting](../troubleshooting.md#maps-are-watermarked-blocked-blank-or-ignoring-the-setting).
+
 **Can't connect to database**
 : If your database is on the host machine (not in Docker), set `DB_HOST=host.docker.internal` in `.env`. The default in `.env.example` is `localhost` (for standalone use); Docker users connecting to the host must change this.
 

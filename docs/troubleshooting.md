@@ -299,6 +299,77 @@ SELECT * FROM monsters WHERE size = 0;
 
 ---
 
+## Maps are watermarked, blocked, blank, or ignoring the setting
+
+**Symptom**: Every map on the site — areas, the location picker, geofence thumbnails — shows one of:
+diagonal `API KEY REQUIRED` text, black-and-yellow `403 Access blocked` tiles, nothing at all, or a
+basemap that is not the one configured.
+
+!!! warning "A tile provider refusing you still answers HTTP 200"
+    Both CARTO and OpenStreetMap draw their refusal *into the image* and return success. Nothing
+    appears in the container logs, no health check fails, and the browser's network tab shows 200s.
+    The only place these faults are visible is on the map itself, so do not go looking for an error.
+
+**Causes and fixes**:
+
+1. **`API KEY REQUIRED` across the tiles**: a CARTO or Stadia basemap is being requested without a
+   key. Set **Basemap API Key** in **Admin > Settings > Maps**. Takes effect on the next page load,
+   no restart.
+
+2. **Still watermarked after setting a key**: the key is wrong, not missing. The site can detect an
+   absent key and avoid the request; it cannot detect an invalid one, because the response is
+   identical. Check the key itself, and — for a custom tile URL — check the parameter name. CARTO's
+   is `key`, not `api_key`; the wrong name also returns 200 and also watermarks.
+
+3. **`403 Access blocked — App is not following the tile usage policy`**: OpenStreetMap refuses
+   requests it cannot identify. The built-in OpenStreetMap entry handles this by sending the site's
+   origin on its tile images. If you see this, you are on a **custom tile URL pointing at
+   `tile.openstreetmap.org`** rather than the built-in entry — switch the provider to
+   **OpenStreetMap**, which carries the required behaviour.
+
+4. **Blank map, no tiles, no message**: a custom tile URL over plain `http://`. The site's
+   Content-Security-Policy allows images from `https:` only, so the browser blocks them silently.
+   Serve your tiles over HTTPS.
+
+5. **Blank map with a custom URL over HTTPS**: check the template. It must be an absolute URL
+   containing Leaflet's `{z}`, `{x}` and `{y}` placeholders. A URL that is not a tile template is
+   never requested at all, and the site falls back to OpenStreetMap and says so in the Maps section.
+
+6. **The basemap is not the one you configured**: you have picked a different one for yourself. Each
+   viewer's choice is stored per-browser and outranks the site setting, so an admin who clicked the
+   layers button once while testing will see every later change to the setting do nothing. Open the
+   layers button on any map and choose **Site default**. The Maps section says so when it applies to
+   the admin reading it.
+
+7. **The Maps section shows a key field on an install you never configured**: you are running a build
+   older than the fix that made "not set" mean OpenStreetMap. Older builds resolved an unset provider
+   to CARTO, then fell back, so they asked for a key nobody had chosen. Update.
+
+**Diagnostic**:
+
+```bash
+# Fetch a tile the way the browser does and look at the bytes.
+# A refusal tile is small (~7 KB); a real one is much larger.
+curl -s -o /tmp/tile.png -w '%{http_code} %{size_download} bytes\n' \
+  'https://tile.openstreetmap.org/11/582/792.png'
+
+# Same tile, identified. If this one is large and the first was small,
+# the provider is refusing anonymous requests rather than failing.
+curl -s -o /tmp/tile-ref.png -w '%{http_code} %{size_download} bytes\n' \
+  -H 'Referer: https://your-site.example/' \
+  'https://tile.openstreetmap.org/11/582/792.png'
+
+# Then open both images. The refusal is legible.
+```
+
+In the browser, the active basemap and why it was chosen are visible without any tooling: open the
+layers button on a map. The entry marked active is what you are looking at, and a line beneath the
+list names the problem when the configured basemap could not be drawn.
+
+See [Site Settings > Maps](configuration/site-settings.md#maps) for the full setting reference.
+
+---
+
 ## Pokemon availability not showing
 
 **Symptom**: The "Live > Spawning" filter doesn't appear in the Pokemon selector.

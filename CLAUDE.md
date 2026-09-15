@@ -409,6 +409,49 @@ the display menu. No row is served when Poracle restricts nothing, and absent, `
 all mean exactly that: a 5.2.1 with nothing configured and a 5.1.0 that cannot say both accept any code,
 so both get the full menu.
 
+### Basemaps: A Tile Provider Refusing You Still Answers 200
+
+`BasemapService` builds every tile layer on the site; the five components call `attach(map, …)` and
+nothing else. The catalogue is `shared/utils/basemaps.ts`, the settings are `basemap_*`, and the
+user-facing reference is `docs/configuration/site-settings.md#maps`.
+
+**The failure mode that keeps recurring: the refusal is drawn into the tile.** CARTO answers 200
+without a key and returns a working image with `API KEY REQUIRED` across it. OpenStreetMap answers
+200 without a `Referer` and returns `403 Access blocked` as a picture. Nothing logs, no health check
+notices, and the browser's network tab shows success. #842 was this, and the fix for it walked into
+it a second time with OSM. **Never conclude tiles work because the status code is 200 — look at the
+bytes** (a refusal tile is ~7 KB, a real one much larger) **or at the image.**
+
+A *missing* key is detectable and falls back to `FALLBACK_BASEMAP_ID`. A *wrong* key is not: the
+response is byte-identical to the no-key one. Do not add code that claims otherwise.
+
+**`Referrer-Policy: same-origin` (#383) is why OSM needs `sendReferrer`.** The header strips the
+identification OSM's usage policy requires. The fix is Leaflet's per-layer `referrerPolicy`, which
+overrides the document policy for those images alone — *not* relaxing the header, which exists so a
+remote image host cannot learn where a private instance lives. `sendReferrer` is per provider because
+OSM is the only entry needing it; Esri and CARTO return the same bytes either way, which was checked
+by fetching them rather than assumed.
+
+**Three constants decide what "default" means and they must agree** — `DEFAULT_BASEMAP_ID` (nothing
+configured), `KEYED_DEFAULT_BASEMAP_ID` (a key and nothing else, which is all the pre-#863 settings
+could say), `FALLBACK_BASEMAP_ID` (the chosen provider cannot be drawn). #871 happened because
+#868 changed the fallback and left the default stale: the map drew OSM while the admin page reported
+a missing CARTO key on an install that had never mentioned CARTO. Change one, check the other two.
+
+**A viewer's own choice outranks the admin setting**, stored per browser. That is the feature, but it
+needs the escape: the picker's first entry is *Site default*, and the active mark follows the
+viewer's choice rather than what is drawn, so an override reads as one. Without it an admin who
+clicked the layers button once concludes the setting does nothing — which is exactly how it was
+reported.
+
+**`ng serve` sends none of `SecurityHeaders`.** CSP and `Referrer-Policy` come from the .NET
+middleware, which only runs when the API serves the SPA. Anything depending on them cannot be
+reproduced *or ruled out* against the dev server; the OSM breakage looked perfect in every local
+browser check and appeared the moment it deployed. Build the image and hit the API's own port.
+
+Four tile URLs are pinned in `basemap.service.spec.ts` against ReactMap's `config/default.json`, so
+the same basemap looks the same on both sites and a catalogue edit cannot drift silently.
+
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
 - `DashboardService` now uses a single `GetAllTrackingAsync` call to PoracleNG instead of 8 separate DB count queries.
@@ -929,6 +972,8 @@ dotnet ef migrations script \
 | UpstreamFeatureFlagService | `Core/Pgan.PoracleWebNet.Core.Services/UpstreamFeatureFlagService.cs` |
 | PoracleDisabledHookMap | `Core/Pgan.PoracleWebNet.Core.Models/PoracleDisabledHookMap.cs` |
 | Pokemon type id-to-name table | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/pokemon-types.ts` |
+| Basemap catalogue | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/basemaps.ts` |
+| BasemapService | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/basemap.service.ts` |
 | IPoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleTrackingProxy.cs` |
 | IPoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleHumanProxy.cs` |
 | PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |

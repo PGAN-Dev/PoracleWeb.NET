@@ -22,7 +22,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
     **Export** and from **Import**. Ten types are carried across these three surfaces; the eleventh is
     not. An exported profile does not contain them, and importing that file will not recreate them, so a
     profile you rebuild from a backup needs its Pokéstop Event rules added again by hand from the
-    [Pokéstop Events page](alarms.md#pokestop-event-alarms). The same applies to a profile you duplicate.
+    [Pokéstop Events page](alarms.md#pokéstop-event-alarms). The same applies to a profile you duplicate.
 
 ## Creating & Switching Profiles
 

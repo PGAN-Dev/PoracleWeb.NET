@@ -223,8 +223,8 @@ describe('BasemapService', () => {
    * ReactMap runs beside this site on the same deployment, and a viewer moving between the two should
    * not find the same basemap drawing different tiles. These are the URLs from its
    * `config/default.json` tileServers block, pinned so a catalogue edit here cannot drift from it
-   * silently. Ours carry `?key=` where its do not -- CARTO watermarks the unkeyed ones, which is the
-   * whole of #842, and ReactMap is serving them.
+   * silently. The one difference is the key: ours carry `?key=`, which is what keeps CARTO's
+   * watermark off them -- the whole of #842.
    */
   describe('ReactMap parity', () => {
     const withoutKey = (url: string) => url.replace('?key={key}', '');
