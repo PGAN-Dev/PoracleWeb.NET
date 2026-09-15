@@ -5,6 +5,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 
 import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog.component';
 import { IconPackProbeService } from '../../../core/services/icon-pack-probe.service';
+import { ICON_SOURCE_KEYS } from '../../../core/services/icon.service';
 import { IconRepo } from '../../../shared/utils/icon-repos';
 
 describe('IconRepoDialogComponent', () => {
@@ -107,8 +108,73 @@ describe('IconRepoDialogComponent', () => {
 
     expect(sut.editing).toBe(true);
     expect(sut.duplicate()).toBe(false);
-    // An entry in the list was probed when it was added; re-probing on open would block fixing a
-    // typo in the name while the pack's host happens to be down.
+  });
+
+  it('renames an entry already in the list without demanding a fresh check', () => {
+    // The case worth protecting: a pack whose host is down for an hour should not also block fixing
+    // a typo in its name.
+    const repo: IconRepo = { name: 'Mine', base: 'https://a.test/UICONS' };
+    const sut = create({ existingBases: [repo.base], repo });
+
+    sut.name.set('Mine, renamed');
+
     expect(sut.canSave()).toBe(true);
+    expect(probe).not.toHaveBeenCalled();
+  });
+
+  it('demands a check once a listed entry points somewhere new', () => {
+    const repo: IconRepo = { name: 'Mine', base: 'https://a.test/UICONS' };
+    const sut = create({ existingBases: [repo.base], repo });
+
+    sut.onBaseChanged('https://somewhere-else.test/UICONS');
+
+    expect(sut.canSave()).toBe(false);
+  });
+
+  /**
+   * The unlisted "currently configured" card reaches this dialog through the same call as the pencil,
+   * carrying a pack that is not in the list. Treating that as an edit marked it checked without
+   * checking, and the dialog printed "Every category loaded" over five broken thumbnails -- about
+   * whitewillem/PogoAssets, the deleted repository this whole feature exists because of.
+   */
+  describe('adding the pack this instance is configured to', () => {
+    const configured: IconRepo = { name: 'raw.githubusercontent.com/main/uicons', base: 'https://dead.test/uicons' };
+
+    it('is an add, not an edit', () => {
+      const sut = create({ existingBases: ['https://other.test/UICONS'], repo: configured });
+
+      expect(sut.editing).toBe(false);
+    });
+
+    it('will not save it unchecked', () => {
+      const sut = create({ existingBases: ['https://other.test/UICONS'], repo: configured });
+      sut.name.set('Ours');
+
+      expect(sut.probeOk()).toBe(false);
+      expect(sut.canSave()).toBe(false);
+    });
+
+    it('claims nothing about it until a probe has actually run', () => {
+      const sut = create({ existingBases: ['https://other.test/UICONS'], repo: configured });
+
+      expect(sut.probeState().kind).toBe('idle');
+    });
+
+    it('refuses it once the check reports the pack is gone', async () => {
+      const sut = create({ existingBases: ['https://other.test/UICONS'], repo: configured });
+      sut.name.set('Ours');
+      probe.mockResolvedValue({ base: configured.base, missing: [...ICON_SOURCE_KEYS] });
+      await sut.check();
+
+      expect(sut.canSave()).toBe(false);
+      expect(sut.missingKeys()).toEqual([...ICON_SOURCE_KEYS]);
+    });
+
+    it('takes the URL but not the derived label, which is display text rather than a name', () => {
+      const sut = create({ existingBases: [], repo: configured });
+
+      expect(sut.base()).toBe(configured.base);
+      expect(sut.name()).toBe('');
+    });
   });
 });

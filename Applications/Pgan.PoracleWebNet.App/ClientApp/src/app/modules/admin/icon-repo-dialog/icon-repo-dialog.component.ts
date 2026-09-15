@@ -56,11 +56,36 @@ export class IconRepoDialogComponent {
   });
 
   readonly name = signal('');
-  readonly canSave = computed(() => this.name().trim().length > 0 && !!this.normalizedBase() && !this.duplicate() && this.probeOk());
+
+  /**
+   * Whether this is a genuine edit of an entry already in the list, rather than an add.
+   *
+   * Derived from the list instead of trusted from a flag, because the two paths reach this dialog
+   * through the same call: the pack-card pencil passes a listed entry, and the unlisted "currently
+   * configured" card's *Add to list* passes one that is not in the list at all. Treating the second
+   * as an edit is what let an unchecked pack through -- see the note on `canSave`.
+   */
+  readonly listedEdit = this.data.repo !== null && this.data.existingBases.includes(this.data.repo.base);
+
+  /**
+   * An entry already in the list, whose URL has not been touched. Renaming one is allowed without a
+   * fresh check -- that is the case worth protecting, because a pack whose host is down for an hour
+   * should not also block fixing a typo in its name.
+   *
+   * It has to be both halves. This started as "editing, so assume checked", which was seeded into
+   * `probeState` in the constructor, and the dialog then printed *Every category loaded* about a
+   * pack nothing had ever loaded. On the unlisted card that meant claiming a deleted repository was
+   * fine -- the precise failure this check exists to catch.
+   */
+  readonly unchangedListedEntry = computed(() => this.listedEdit && this.normalizedBase() === this.data.repo?.base);
+
+  readonly canSave = computed(
+    () => this.name().trim().length > 0 && !!this.normalizedBase() && !this.duplicate() && (this.probeOk() || this.unchangedListedEntry()),
+  );
 
   readonly dialogRef = inject(MatDialogRef<IconRepoDialogComponent, IconRepo>);
 
-  readonly editing = this.data.repo !== null;
+  readonly editing = this.listedEdit;
 
   readonly previews = ICON_REPO_PREVIEWS;
 
@@ -68,11 +93,10 @@ export class IconRepoDialogComponent {
 
   constructor() {
     if (this.data.repo) {
-      this.name.set(this.data.repo.name);
       this.base.set(this.data.repo.base);
-      // An entry already in the list was probed when it was added. Re-probing on open would block
-      // editing a typo in the name while the pack's host happens to be down.
-      this.probeState.set({ kind: 'checked', missing: [] });
+      // Only a listed entry brings its name. The unlisted card's name is a label this page derived
+      // from the URL for display; saving that as a pack name would put machine text in the menu.
+      if (this.listedEdit) this.name.set(this.data.repo.name);
     }
   }
 
