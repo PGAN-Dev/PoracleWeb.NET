@@ -9,6 +9,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import { HELP_SECTIONS, HelpSection } from './help-sections';
 import { I18nService } from '../../core/services/i18n.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { ImageViewerDialogComponent } from '../../shared/components/image-viewer-dialog/image-viewer-dialog.component';
 
 @Component({
@@ -20,7 +21,16 @@ import { ImageViewerDialogComponent } from '../../shared/components/image-viewer
 })
 export class HelpComponent {
   private readonly contentHosts = viewChildren<ElementRef<HTMLElement>>('sectionContent');
+
   private readonly dialog = inject(MatDialog);
+
+  private readonly poracleConfig = inject(PoracleConfigService);
+  /**
+   * The bot's command prefix, so the FAQ can name the real command. Clearing test DMs is something
+   * only the bot can do -- it sent them -- and the command is `{prefix}poracle-clean`. Naming the
+   * wrong prefix is worse than naming nothing, so this comes from the server rather than a guess.
+   */
+  readonly botPrefix = computed(() => this.poracleConfig.serverConfig().prefix || '!');
   protected readonly i18n = inject(I18nService);
   protected readonly searchQuery = signal('');
 
