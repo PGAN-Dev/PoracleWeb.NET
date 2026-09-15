@@ -128,9 +128,15 @@ describe('Maps field visibility', () => {
     expect(shown(values)).toContain('basemap_key');
   });
 
-  it('asks an unconfigured install for the key its default provider needs', () => {
-    // Nothing chosen resolves to CARTO, so the key is the one field that matters.
-    expect(shown({})).toEqual(['basemap_provider', 'basemap_key']);
+  it('asks an unconfigured install for nothing at all', () => {
+    // Nothing chosen resolves to OpenStreetMap, which wants no key and no URL. Resolving it to CARTO
+    // instead put a key field, and a warning about a missing key, on every fresh install.
+    expect(shown({})).toEqual(['basemap_provider']);
+  });
+
+  it('asks for the key on an install that set one and never picked a provider', () => {
+    // That combination is all the pre-#863 settings could express, and it still means CARTO.
+    expect(shown({ basemap_key: 'abc123' })).toEqual(['basemap_provider', 'basemap_key']);
   });
 
   it('treats an install that set only a tile URL as custom, which is what it meant', () => {

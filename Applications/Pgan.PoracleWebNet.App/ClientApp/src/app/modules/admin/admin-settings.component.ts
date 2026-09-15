@@ -74,7 +74,7 @@ interface SettingMeta {
  */
 /** True when the tile URL fields are the ones that matter, rather than a built-in provider's name. */
 const isCustomBasemap = (get: (key: string) => string) =>
-  resolveBasemapProviderId(get('basemap_provider'), get('basemap_url')) === CUSTOM_BASEMAP_ID;
+  resolveBasemapProviderId(get('basemap_provider'), get('basemap_url'), get('basemap_key')) === CUSTOM_BASEMAP_ID;
 
 const BASEMAP_PROVIDER_OPTIONS: SettingOption[] = [
   // An unset provider is a real state, not a missing one: it is what every install upgrading into
@@ -345,7 +345,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
         labelKey: 'ADMIN_SETTINGS.BASEMAP_KEY_LABEL',
         // Hidden for a provider that does not want one, rather than sitting there inert beside a
         // choice it has nothing to do with.
-        showIf: get => basemapNeedsKey(get('basemap_provider'), get('basemap_url')),
+        showIf: get => basemapNeedsKey(get('basemap_provider'), get('basemap_url'), get('basemap_key')),
         type: 'text',
       },
       {

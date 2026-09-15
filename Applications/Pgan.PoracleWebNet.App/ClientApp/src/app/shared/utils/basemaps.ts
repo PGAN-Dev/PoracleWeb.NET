@@ -63,11 +63,22 @@ const STADIA_ATTRIBUTION =
 export const CUSTOM_BASEMAP_ID = 'custom';
 
 /**
- * What an install with nothing configured asks for. CARTO, because that is what every map used
- * before this was configurable and changing the look of working installs is not this feature's job.
- * Without a key it never actually renders — see {@link FALLBACK_BASEMAP_ID}.
+ * What an install with nothing configured asks for.
+ *
+ * OpenStreetMap, so that "no provider chosen" means a provider that actually draws. Resolving it to
+ * CARTO instead put a key nobody had asked for in the way: the map fell through to OSM anyway, and
+ * the admin page reported a missing CARTO key on an install that had never mentioned CARTO.
  */
-export const DEFAULT_BASEMAP_ID = 'carto-positron';
+export const DEFAULT_BASEMAP_ID = 'osm';
+
+/**
+ * What an install with a key but no provider asks for.
+ *
+ * Before `basemap_provider` existed there was only `basemap_key`, and setting it meant "use CARTO".
+ * Such an install still means that, so the key is what distinguishes the two defaults -- otherwise
+ * upgrading would quietly move a working CARTO deployment onto OpenStreetMap.
+ */
+export const KEYED_DEFAULT_BASEMAP_ID = 'carto-positron';
 
 /**
  * Where a keyed provider lands when its key is missing.
@@ -172,18 +183,21 @@ export function isTileTemplate(url: string): boolean {
  * Which provider a stored configuration actually selects.
  *
  * An empty `basemap_provider` is a real state, not a missing one -- it is what every install
- * configured before the setting existed has -- and it means "the custom URL if there is one".
- * Shared with the admin page so the fields it shows and the basemap it draws cannot disagree.
+ * configured before the setting existed has -- and what it means depends on what else is set: a
+ * custom URL if there is one, CARTO if there is a key (which is all the older settings could say),
+ * and OpenStreetMap otherwise. Shared with the admin page so the fields it shows and the basemap it
+ * draws cannot disagree.
  */
-export function resolveBasemapProviderId(provider: string, customUrl: string): string {
+export function resolveBasemapProviderId(provider: string, customUrl: string, key = ''): string {
   const configured = provider.trim();
   if (configured) return configured;
-  return isTileTemplate(customUrl) ? CUSTOM_BASEMAP_ID : DEFAULT_BASEMAP_ID;
+  if (isTileTemplate(customUrl)) return CUSTOM_BASEMAP_ID;
+  return key.trim() ? KEYED_DEFAULT_BASEMAP_ID : DEFAULT_BASEMAP_ID;
 }
 
 /** True when the selected provider wants an API key, which for a custom URL means it carries {key}. */
-export function basemapNeedsKey(provider: string, customUrl: string): boolean {
-  const id = resolveBasemapProviderId(provider, customUrl);
+export function basemapNeedsKey(provider: string, customUrl: string, key = ''): boolean {
+  const id = resolveBasemapProviderId(provider, customUrl, key);
   return id === CUSTOM_BASEMAP_ID ? customUrl.includes('{key}') : !!findBasemap(id)?.keyFamily;
 }
 

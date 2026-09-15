@@ -75,7 +75,22 @@ describe('BasemapService', () => {
 
   describe('fallbackReason', () => {
     it("names a missing key when the configured provider wants one and there isn't one", () => {
+      siteSettings.set({ basemap_provider: 'carto-positron' });
       expect(service.fallbackReason()).toBe('missing-key');
+    });
+
+    it('says nothing at all about an install that has configured nothing', () => {
+      // Resolving "unset" to CARTO made this report a missing key for a provider nobody had chosen,
+      // on every fresh install. Unset now means OpenStreetMap, which wants no key.
+      expect(service.fallbackReason()).toBeNull();
+      expect(service.active().id).toBe('osm');
+    });
+
+    it('still means CARTO on an install that set a key and nothing else', () => {
+      // All the pre-#863 settings could say. Upgrading such an install must not move it to OSM.
+      siteSettings.set({ basemap_key: 'abc123' });
+      expect(service.active().id).toBe('carto-positron');
+      expect(service.fallbackReason()).toBeNull();
     });
 
     it('is null once a key is set', () => {
@@ -94,8 +109,13 @@ describe('BasemapService', () => {
     });
 
     it('names a missing key for a whitespace-only one, which is the same as none', () => {
-      siteSettings.set({ basemap_key: '   ' });
+      siteSettings.set({ basemap_key: '   ', basemap_provider: 'carto-positron' });
       expect(service.fallbackReason()).toBe('missing-key');
+    });
+
+    it('treats a whitespace-only key as no key when deciding what unset means', () => {
+      siteSettings.set({ basemap_key: '   ' });
+      expect(service.active().id).toBe('osm');
     });
 
     it('names a missing key for a custom URL that asks for one it has not been given', () => {
@@ -460,6 +480,7 @@ describe('BasemapService', () => {
     });
 
     it('says so in the picker when the configured basemap has no key', () => {
+      siteSettings.set({ basemap_provider: 'carto-positron' });
       const map = makeMap();
       service.attach(map, { picker: true });
 
