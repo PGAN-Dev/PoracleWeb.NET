@@ -248,6 +248,7 @@ export class BasemapService {
     return L.tileLayer(this.tileUrl(), {
       attribution: definition.attribution,
       maxZoom: Math.min(definition.maxZoom, options.maxZoom ?? definition.maxZoom),
+      referrerPolicy: definition.sendReferrer ? 'origin' : undefined,
       subdomains: definition.subdomains ?? 'abc',
     });
   }
@@ -357,6 +358,9 @@ export class BasemapService {
     const layer = L.tileLayer(url, {
       attribution: definition.attribution,
       maxZoom: Math.min(definition.maxZoom, attachment.options.maxZoom ?? definition.maxZoom),
+      // Set on the tile images themselves, which overrides the document's Referrer-Policy for these
+      // requests and nothing else. 'origin' sends the site's host and no path.
+      referrerPolicy: definition.sendReferrer ? 'origin' : undefined,
       subdomains: definition.subdomains ?? 'abc',
     });
     layer.addTo(attachment.map);

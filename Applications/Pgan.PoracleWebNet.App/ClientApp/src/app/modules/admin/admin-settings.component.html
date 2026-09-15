@@ -319,7 +319,8 @@
             <div class="config-hint warning basemap-key-warning">
               <mat-icon>info_outline</mat-icon>
               <span>{{
-                (reason === 'missing-key' ? 'ADMIN_SETTINGS.BASEMAP_KEY_MISSING' : 'ADMIN_SETTINGS.BASEMAP_UNAVAILABLE') | translate
+                (reason === 'missing-key' ? 'ADMIN_SETTINGS.BASEMAP_KEY_MISSING' : 'ADMIN_SETTINGS.BASEMAP_UNAVAILABLE')
+                  | translate: { provider: basemap.siteDefault().label }
               }}</span>
             </div>
           }

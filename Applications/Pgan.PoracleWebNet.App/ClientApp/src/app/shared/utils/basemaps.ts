@@ -33,6 +33,16 @@ export interface BasemapDefinition {
 
   maxZoom: number;
 
+  /**
+   * Send this provider the site's origin as a Referer.
+   *
+   * Off by default, because the app sets `Referrer-Policy: same-origin` so that a remote image host
+   * cannot learn where a private instance lives (#383). OpenStreetMap's tile usage policy requires
+   * the opposite -- an unidentified request is refused -- so its entry opts in, per tile layer, and
+   * nothing else the page loads is affected.
+   */
+  sendReferrer?: boolean;
+
   subdomains?: string;
 
   /** Tile URL template. `{key}` is substituted by {@link applyBasemapKey}; the rest is Leaflet's. */
@@ -65,8 +75,13 @@ export const DEFAULT_BASEMAP_ID = 'carto-positron';
  * Not a cosmetic choice. CARTO answers 200 without a key and draws "API KEY REQUIRED" into the tile
  * itself, so serving the keyed URL anyway produces a map that looks broken and reports nothing. A
  * keyless provider is worse-looking than the intended basemap and better than a watermark. See #842.
+ *
+ * Esri and not OpenStreetMap, for two reasons. OSM's volunteer servers are not somewhere to send
+ * every unconfigured install of a self-hosted project by default; and its usage policy refuses a
+ * request it cannot identify, which this app's `Referrer-Policy` makes every request. Esri answers
+ * the same bytes with or without a Referer, so the fallback needs nothing from the operator.
  */
-export const FALLBACK_BASEMAP_ID = 'osm';
+export const FALLBACK_BASEMAP_ID = 'esri-street';
 
 export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
   {
@@ -74,7 +89,17 @@ export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
     attribution: OSM_ATTRIBUTION,
     label: 'OpenStreetMap',
     maxZoom: 19,
+    // Without this OSM answers 200 and draws "Access blocked -- App is not following the tile usage
+    // policy" into the tile, which is the CARTO watermark's failure mode wearing a different hat.
+    sendReferrer: true,
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  },
+  {
+    id: 'esri-street',
+    attribution: ESRI_ATTRIBUTION,
+    label: 'Esri Streets',
+    maxZoom: 19,
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
   },
   {
     id: 'carto-positron',

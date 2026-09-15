@@ -1769,8 +1769,8 @@
     "BASEMAP_URL_DARK_DESC": "Opcional. Substitui o URL acima enquanto o modo escuro estiver ativo.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribuição do mapa base",
     "BASEMAP_ATTRIBUTION_DESC": "Atribuição do URL de mosaicos personalizado. Deve respeitar os termos do seu fornecedor. Mostrada como texto simples.",
-    "BASEMAP_KEY_MISSING": "Não há chave definida, por isso os mapas recorrem ao OpenStreetMap. O fornecedor escolhido devolveria mosaicos na mesma — a CARTO desenha «API KEY REQUIRED» neles — e mais nada o comunicaria.",
-    "BASEMAP_UNAVAILABLE": "O mapa base escolhido não tem um URL de mosaicos utilizável, por isso os mapas recorrem ao OpenStreetMap. Escolha um fornecedor ou defina um URL de mosaicos começado por http:// ou https://."
+    "BASEMAP_KEY_MISSING": "Não há chave definida, por isso os mapas recorrem ao {{provider}}. O fornecedor escolhido devolveria mosaicos na mesma — a CARTO desenha «API KEY REQUIRED» neles — e mais nada o comunicaria.",
+    "BASEMAP_UNAVAILABLE": "O mapa base escolhido não tem um URL de mosaicos utilizável, por isso os mapas recorrem ao {{provider}}. Escolha um fornecedor ou defina um URL de mosaicos começado por http:// ou https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",

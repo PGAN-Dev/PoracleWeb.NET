@@ -1769,8 +1769,8 @@
     "BASEMAP_URL_DARK_DESC": "Opcjonalny. Zastępuje powyższy adres, gdy włączony jest tryb ciemny.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atrybucja mapy podkładowej",
     "BASEMAP_ATTRIBUTION_DESC": "Atrybucja dla własnego adresu kafelków. Musi być zgodna z warunkami dostawcy. Wyświetlana jako zwykły tekst.",
-    "BASEMAP_KEY_MISSING": "Nie ustawiono klucza, więc mapy wracają do OpenStreetMap. Wybrany dostawca i tak zwróciłby kafelki — CARTO rysuje na nich „API KEY REQUIRED” — i nic innego by tego nie zgłosiło.",
-    "BASEMAP_UNAVAILABLE": "Wybrana mapa nie ma użytecznego adresu kafelków, więc mapy wracają do OpenStreetMap. Wybierz dostawcę albo podaj adres kafelków zaczynający się od http:// lub https://."
+    "BASEMAP_KEY_MISSING": "Nie ustawiono klucza, więc mapy wracają do {{provider}}. Wybrany dostawca i tak zwróciłby kafelki — CARTO rysuje na nich „API KEY REQUIRED” — i nic innego by tego nie zgłosiło.",
+    "BASEMAP_UNAVAILABLE": "Wybrana mapa nie ma użytecznego adresu kafelków, więc mapy wracają do {{provider}}. Wybierz dostawcę albo podaj adres kafelków zaczynający się od http:// lub https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nazwa",

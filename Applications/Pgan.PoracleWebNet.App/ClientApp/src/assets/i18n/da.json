@@ -1769,8 +1769,8 @@
     "BASEMAP_URL_DARK_DESC": "Valgfri. Erstatter URL’en ovenfor, mens mørk tilstand er slået til.",
     "BASEMAP_ATTRIBUTION_LABEL": "Kildeangivelse for baggrundskort",
     "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse for den egne flise-URL. Skal overholde din udbyders vilkår. Vises som almindelig tekst.",
-    "BASEMAP_KEY_MISSING": "Der er ingen nøgle sat, så kortene falder tilbage til OpenStreetMap. Den valgte udbyder ville stadig returnere fliser — CARTO tegner ”API KEY REQUIRED” ind i dem — og intet andet ville melde det.",
-    "BASEMAP_UNAVAILABLE": "Det valgte baggrundskort har ingen brugbar flise-URL, så kortene falder tilbage til OpenStreetMap. Vælg en udbyder, eller angiv en flise-URL, der begynder med http:// eller https://."
+    "BASEMAP_KEY_MISSING": "Der er ingen nøgle sat, så kortene falder tilbage til {{provider}}. Den valgte udbyder ville stadig returnere fliser — CARTO tegner ”API KEY REQUIRED” ind i dem — og intet andet ville melde det.",
+    "BASEMAP_UNAVAILABLE": "Det valgte baggrundskort har ingen brugbar flise-URL, så kortene falder tilbage til {{provider}}. Vælg en udbyder, eller angiv en flise-URL, der begynder med http:// eller https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",

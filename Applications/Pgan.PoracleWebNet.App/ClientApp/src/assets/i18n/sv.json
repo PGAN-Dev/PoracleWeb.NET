@@ -1769,8 +1769,8 @@
     "BASEMAP_URL_DARK_DESC": "Valfritt. Ersätter URL:en ovan medan mörkt läge är på.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribution för bakgrundskarta",
     "BASEMAP_ATTRIBUTION_DESC": "Attribution för den egna rut-URL:en. Måste följa din leverantörs villkor. Visas som vanlig text.",
-    "BASEMAP_KEY_MISSING": "Ingen nyckel är satt, så kartorna faller tillbaka på OpenStreetMap. Den valda leverantören skulle ändå returnera rutor — CARTO ritar in ”API KEY REQUIRED” i dem — och inget annat skulle rapportera det.",
-    "BASEMAP_UNAVAILABLE": "Den valda bakgrundskartan har ingen användbar rut-URL, så kartorna faller tillbaka på OpenStreetMap. Välj en leverantör, eller ange en rut-URL som börjar med http:// eller https://."
+    "BASEMAP_KEY_MISSING": "Ingen nyckel är satt, så kartorna faller tillbaka på {{provider}}. Den valda leverantören skulle ändå returnera rutor — CARTO ritar in ”API KEY REQUIRED” i dem — och inget annat skulle rapportera det.",
+    "BASEMAP_UNAVAILABLE": "Den valda bakgrundskartan har ingen användbar rut-URL, så kartorna faller tillbaka på {{provider}}. Välj en leverantör, eller ange en rut-URL som börjar med http:// eller https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",
