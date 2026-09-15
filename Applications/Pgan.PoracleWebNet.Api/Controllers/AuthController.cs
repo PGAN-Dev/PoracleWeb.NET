@@ -937,11 +937,19 @@ public partial class AuthController(
     /// the last consumer of the claim and the one that decided whether the others were reachable.
     /// </para>
     /// <para>
-    /// Two cases keep the claim instead. An impersonation session, where resolving the impersonated
-    /// account's own delegations answers a different question entirely — the same trap #663 fixed for
-    /// admin status. And a degraded resolve, where an unreachable PoracleNG or a <c>poracle_web</c> blip
-    /// would otherwise strip a legitimate delegate's nav item mid-session (#656, #667); there the two
-    /// sets are unioned, since a partial answer may have found a new grant while missing an old one.
+    /// One case keeps the claim: a degraded resolve, where an unreachable PoracleNG or a
+    /// <c>poracle_web</c> blip would otherwise strip a legitimate delegate's nav item mid-session (#656,
+    /// #667); there the two sets are unioned, since a partial answer may have found a new grant while
+    /// missing an old one.
+    /// </para>
+    /// <para>
+    /// An impersonation session resolves live like any other. <c>this.UserId</c> names the impersonated
+    /// account, which is exactly what <c>GET /api/admin/my-webhooks</c> and <c>POST /api/admin/impersonate</c>
+    /// already answer for, so short-circuiting to a claim the impersonation token never carries hid a nav
+    /// item whose page would have worked. This is not the #663 trap: that one re-elevated ADMIN rights the
+    /// impersonation token deliberately drops, and <c>isAdmin</c> still comes from the claim. Chaining a
+    /// second impersonation off the list is refused server-side, since the SPA has one slot to stash the
+    /// caller's own token in. See #797.
     /// </para>
     /// <para>
     /// Nothing authorises off the claim any more — it is a cold fallback for the degraded path only.
@@ -951,11 +959,6 @@ public partial class AuthController(
     private async Task<string[]?> ResolveManagedWebhooksAsync()
     {
         var claimed = this.ManagedWebhooks;
-
-        if (this.IsImpersonating)
-        {
-            return claimed.Length > 0 ? claimed : null;
-        }
 
         var roles = await this._roleResolver.ResolveAsync(this.UserId);
         var resolved = roles.ManagedWebhooks ?? [];

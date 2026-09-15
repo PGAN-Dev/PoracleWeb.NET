@@ -21,12 +21,16 @@ import { MaxBattleService } from '../../core/services/max-battle.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    QuietChipComponent,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -34,6 +38,7 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
+    RuleSummaryComponent,
     TranslatePipe,
     AlarmInfoComponent,
   ],
@@ -293,7 +298,7 @@ export class MaxBattleListComponent implements OnInit {
           this.loading.set(false);
         },
         next: maxBattles => {
-          this.maxBattles.set(maxBattles);
+          this.maxBattles.set(orderAlarms(maxBattles, m => [m.pokemonId, m.level, m.form, m.stationId]));
           this.loading.set(false);
         },
       });

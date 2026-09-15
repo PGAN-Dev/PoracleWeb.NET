@@ -46,6 +46,11 @@
             </div>
           </div>
           <div class="place-card-footer">
+            @if (places.canEdit()) {
+              <button mat-icon-button [disabled]="busy()" [matTooltip]="'WHERE.PLACE_MOVE_TITLE' | translate" (click)="movePlace(place)">
+                <mat-icon>edit_location_alt</mat-icon>
+              </button>
+            }
             <button
               mat-icon-button
               [disabled]="busy()"

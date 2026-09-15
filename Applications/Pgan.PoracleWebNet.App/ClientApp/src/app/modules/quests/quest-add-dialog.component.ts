@@ -87,8 +87,34 @@ export class QuestAddDialogComponent {
     amount: [0],
   });
 
+  /**
+   * Pokecoins mirror stardust exactly: no selector, and PoracleNG reads the minimum from `reward`
+   * rather than `amount`. Only offered when the server can store reward_type 8 -- see
+   * {@link supportsPokecoins}.
+   */
+  pokecoinsForm = this.fb.group({
+    reward: [0],
+  });
+
   /** Quest-relevant items (balls, berries, potions, revives, TMs, etc.) */
   readonly questItems = signal<{ id: number; name: string }[]>([]);
+
+  /** Which reward the alarm is for. `save()` and `canSave()` switch on it. */
+  rewardKind = 0;
+
+  /**
+   * The reward types, with the numbers `save()` switches on written down rather than inferred from
+   * render order. Pokecoins is hidden on a PoracleNG that would refuse it (see `supportsPokecoins`);
+   * declaring its value keeps every other type where it was whether it renders or not.
+   */
+  readonly rewardKinds: { label: string; value: number }[] = [
+    { label: 'QUESTS.TAB_POKEMON', value: 0 },
+    { label: 'QUESTS.TAB_ITEMS', value: 1 },
+    { label: 'QUESTS.TAB_MEGA_ENERGY', value: 2 },
+    { label: 'QUESTS.TAB_CANDY', value: 3 },
+    { label: 'QUESTS.TAB_STARDUST', value: 4 },
+    { label: 'QUESTS.TAB_POKECOINS', value: 5 },
+  ];
 
   saving = signal(false);
 
@@ -109,6 +135,7 @@ export class QuestAddDialogComponent {
   selectedCandyPokemonIds = signal<number[]>([]);
 
   selectedMegaPokemonIds = signal<number[]>([]);
+
   selectedPokemonIds = signal<number[]>([]);
 
   /**
@@ -120,8 +147,6 @@ export class QuestAddDialogComponent {
   });
 
   readonly summaryService = inject(SummaryScheduleService);
-
-  tabIndex = 0;
 
   constructor() {
     this.masterData.loadData().subscribe(() => {
@@ -136,7 +161,7 @@ export class QuestAddDialogComponent {
   }
 
   canSave(): boolean {
-    switch (this.tabIndex) {
+    switch (this.rewardKind) {
       case 0:
         return this.selectedPokemonIds().length > 0;
       case 1:
@@ -147,6 +172,9 @@ export class QuestAddDialogComponent {
         return this.selectedCandyPokemonIds().length > 0;
       case 4:
         // 0 is a rule in its own right: every stardust quest, whatever it pays.
+        return true;
+      case 5:
+        // Same as stardust: 0 means every pokecoin quest.
         return true;
       default:
         return false;
@@ -180,7 +208,7 @@ export class QuestAddDialogComponent {
 
     const creates: ReturnType<typeof this.questService.create>[] = [];
 
-    switch (this.tabIndex) {
+    switch (this.rewardKind) {
       case 0:
         for (const pokemonId of this.selectedPokemonIds()) {
           creates.push(
@@ -269,6 +297,23 @@ export class QuestAddDialogComponent {
           }),
         );
         break;
+      case 5:
+        creates.push(
+          this.questService.create({
+            overrideAreas: scope.overrideAreas,
+            overrideLocationLabel: scope.overrideLocationLabel,
+            amount: 0,
+            clean: cleanValue,
+            distance: scope.distance,
+            pokemonId: 0,
+            // Pokecoins carry their floor in reward, the same slot stardust uses.
+            reward: this.pokecoinsForm.controls.reward.value ?? 0,
+            rewardType: 8,
+            shiny: 0,
+            template: common.template || null,
+          }),
+        );
+        break;
     }
 
     // forkJoin fails fast, so one refused alarm aborted the whole batch: the creates that had already
@@ -306,5 +351,16 @@ export class QuestAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
+  }
+
+  /**
+   * Whether this PoracleNG can store pokecoin quest rewards at all.
+   *
+   * PoracleNG below 5.2.0 answers 400 "Unrecognised reward_type value", so the reward type is absent
+   * rather than present-and-failing. Hiding it shifts nothing: the values in `rewardKinds` are
+   * declared, not positional.
+   */
+  supportsPokecoins(): boolean {
+    return this.questService.pokecoinsSupported();
   }
 }

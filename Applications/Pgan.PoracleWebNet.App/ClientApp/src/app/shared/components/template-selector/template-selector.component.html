@@ -48,7 +48,7 @@
                 }
               </div>
               @if (hasThumbnail()) {
-                <img [src]="iconService.getPokemonUrl(25)" class="embed-thumbnail" alt="Pokemon" />
+                <img [src]="iconService.getPokemonUrl(25)" class="embed-thumbnail" [alt]="'TEMPLATE.PREVIEW_THUMBNAIL_ALT' | translate" />
               }
             </div>
             @if (embed.fields?.length) {

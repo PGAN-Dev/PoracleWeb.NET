@@ -20,6 +20,7 @@ import { LocationService } from '../../core/services/location.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { LocationDialogComponent } from '../../shared/components/location-dialog/location-dialog.component';
 import { PlacesSectionComponent } from '../../shared/components/places-section/places-section.component';
+import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RegionOption, RegionSelectorComponent } from '../../shared/components/region-selector/region-selector.component';
 import { hasPin, pinOrNull } from '../../shared/utils/location.utils';
 
@@ -38,6 +39,7 @@ interface GroupInfo {
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    QuietChipComponent,
     SlicePipe,
     FormsModule,
     MatButtonModule,
@@ -60,24 +62,39 @@ interface GroupInfo {
   templateUrl: './area-list.component.html',
 })
 export class AreaListComponent implements OnInit {
+  readonly availableAreas = signal<AreaDefinition[]>([]);
+  /**
+   * Lowercased stored name to the name Poracle actually publishes.
+   *
+   * Subscriptions are stored lowercased in `humans.area` and `profiles.area` because Poracle matches
+   * area names case-sensitively and the lowercase form is what matches. That is the storage contract,
+   * not a display decision, and rendering it verbatim is why the chips and the quiet dialog read
+   * "mechanicsville". Of 934 fences on one instance, 883 carry capitals.
+   */
+  private readonly areaNamesByLower = computed(() => new Map(this.availableAreas().map(area => [area.name.toLowerCase(), area.name])));
+
   private readonly areaService = inject(AreaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
   private readonly locationService = inject(LocationService);
+
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
+
   // Saved state (what's in the DB)
   private savedSelection: string[] = [];
-
   private readonly snackBar = inject(MatSnackBar);
-
+  /** Label for areas Koji reports with no group. Doubles as the key the group filter matches on. */
+  private readonly ungroupedLabel = this.i18n.instant('AREAS.GROUP_UNGROUPED');
   readonly activeGroup = signal<string | null>(null);
+
   readonly areas = signal<AreaItem[]>([]);
+
   readonly allGroups = computed((): GroupInfo[] => {
     const all = this.areas();
     const groupMap = new Map<string, { selected: number; total: number }>();
     for (const area of all) {
-      const key = area.group || 'Ungrouped';
+      const key = area.group || this.ungroupedLabel;
       if (!groupMap.has(key)) groupMap.set(key, { selected: 0, total: 0 });
       const g = groupMap.get(key)!;
       g.total++;
@@ -87,8 +104,6 @@ export class AreaListComponent implements OnInit {
       .map(([name, counts]) => ({ name, selectedCount: counts.selected, totalCount: counts.total }))
       .sort((a, b) => a.name.localeCompare(b.name));
   });
-
-  readonly availableAreas = signal<AreaDefinition[]>([]);
 
   readonly geofenceData = computed(() => {
     const available = this.availableAreas();
@@ -129,13 +144,13 @@ export class AreaListComponent implements OnInit {
   });
 
   readonly loading = signal(true);
-  readonly location = signal<Location | null>(null);
 
+  readonly location = signal<Location | null>(null);
   readonly locationAddress = signal<string>('');
 
   readonly locationMapUrl = signal<string>('');
-  manualAreaName = '';
 
+  manualAreaName = '';
   readonly saving = signal(false);
 
   searchText = '';
@@ -158,7 +173,7 @@ export class AreaListComponent implements OnInit {
     const group = this.activeGroup();
     return this.areas().filter(a => {
       if (search && !a.name.toLowerCase().includes(search)) return false;
-      if (group && (a.group || 'Ungrouped') !== group) return false;
+      if (group && (a.group || this.ungroupedLabel) !== group) return false;
       return true;
     });
   });
@@ -174,6 +189,15 @@ export class AreaListComponent implements OnInit {
 
   applyFilter(): void {
     // Triggers visibleAreas recomputation via searchText binding
+  }
+
+  /**
+   * The name to show for a selected area. Falls back to the stored string, which is what a
+   * subscription to an area since deleted resolves to -- it has no definition to look up, and it has
+   * to keep rendering so the user can see it and remove it.
+   */
+  areaDisplayName(area: string): string {
+    return this.areaNamesByLower().get(area.toLowerCase()) ?? area;
   }
 
   cancelChanges(): void {

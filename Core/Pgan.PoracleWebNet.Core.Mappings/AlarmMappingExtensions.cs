@@ -33,6 +33,7 @@ public static class AlarmMappingExtensions
         PvpRankingEvolution = src.PvpRankingEvolution,
         MinTime = src.MinTime,
         Form = src.Form,
+        Costume = src.Costume,
         Size = src.Size,
         MaxSize = src.MaxSize,
         Gender = src.Gender,
@@ -68,6 +69,7 @@ public static class AlarmMappingExtensions
         if (src.PvpRankingEvolution != null) dest.PvpRankingEvolution = src.PvpRankingEvolution.Value;
         if (src.MinTime != null) dest.MinTime = src.MinTime.Value;
         if (src.Form != null) dest.Form = src.Form.Value;
+        if (src.Costume != null) dest.Costume = src.Costume.Value;
         if (src.Size != null) dest.Size = src.Size.Value;
         if (src.MaxSize != null) dest.MaxSize = src.MaxSize.Value;
         if (src.Gender != null) dest.Gender = src.Gender.Value;
@@ -87,6 +89,7 @@ public static class AlarmMappingExtensions
         Team = src.Team,
         Level = src.Level,
         Form = src.Form,
+        Costume = src.Costume,
         Clean = src.Clean,
         Template = src.Template,
         Move = src.Move,
@@ -105,6 +108,7 @@ public static class AlarmMappingExtensions
         if (src.Team != null) dest.Team = src.Team.Value;
         if (src.Level != null) dest.Level = src.Level.Value;
         if (src.Form != null) dest.Form = src.Form.Value;
+        if (src.Costume != null) dest.Costume = src.Costume.Value;
         if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.Template != null) dest.Template = src.Template;
         if (src.Move != null) dest.Move = src.Move.Value;
@@ -344,6 +348,28 @@ public static class AlarmMappingExtensions
         if (src.Move != null) dest.Move = src.Move.Value;
         if (src.Evolution != null) dest.Evolution = src.Evolution.Value;
         if (src.StationId != null) dest.StationId = src.StationId;
+        if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
+        if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
+    }
+
+    // ── PokestopEvent (upstream "incident") ──────────────────
+
+    public static PokestopEvent ToPokestopEvent(this PokestopEventCreate src) => new()
+    {
+        DisplayType = src.DisplayType,
+        Distance = src.Distance,
+        Template = src.Template,
+        Clean = src.Clean,
+        OverrideLocationLabel = src.OverrideLocationLabel,
+        OverrideAreas = src.OverrideAreas,
+    };
+
+    public static void ApplyUpdate(this PokestopEventUpdate src, PokestopEvent dest)
+    {
+        if (src.DisplayType != null) dest.DisplayType = src.DisplayType.Value;
+        if (src.Distance != null) dest.Distance = src.Distance.Value;
+        if (src.Template != null) dest.Template = src.Template;
+        if (src.Clean != null) dest.Clean = src.Clean.Value;
         if (src.OverrideLocationLabel != null) dest.OverrideLocationLabel = src.OverrideLocationLabel;
         if (src.OverrideAreas != null) dest.OverrideAreas = src.OverrideAreas;
     }

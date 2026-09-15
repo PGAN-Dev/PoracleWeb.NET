@@ -117,6 +117,12 @@
                     ><img [src]="getGymIcon(raid.team)" class="team-icon-inline" /> {{ getTeamName(raid.team) }}</span
                   >
                 </div>
+                @if (raid.costume !== 9000) {
+                  <div class="stat">
+                    <span class="stat-label">{{ 'RAIDS.COSTUME_LABEL' | translate }}</span>
+                    <span class="stat-value">{{ getCostumePillText(raid.costume) }}</span>
+                  </div>
+                }
               </div>
               <app-alarm-info
                 [clean]="raid.clean"
@@ -127,8 +133,14 @@
                 [template]="raid.template"
                 [editable]="true"
                 (click)="editScope(raid, 'raid'); $event.stopPropagation()" />
+              <app-rule-summary [text]="raid.description" />
             </mat-card-content>
             <mat-card-actions align="end">
+              <!-- The gym, not the raid rule: quieting a gym silences every raid and egg alert there. -->
+              @if (raid.gymId; as gymId) {
+                <app-quiet-chip scope="gym" [value]="gymId" [subject]="gymNames()[gymId]" />
+              }
+
               <button
                 mat-icon-button
                 (click)="sendTestAlert('raid', raid)"
@@ -241,8 +253,13 @@
                 [template]="egg.template"
                 [editable]="true"
                 (click)="editScope(egg, 'egg'); $event.stopPropagation()" />
+              <app-rule-summary [text]="egg.description" />
             </mat-card-content>
             <mat-card-actions align="end">
+              @if (egg.gymId; as eggGymId) {
+                <app-quiet-chip scope="gym" [value]="eggGymId" [subject]="gymNames()[eggGymId]" />
+              }
+
               <button
                 mat-icon-button
                 (click)="sendTestAlert('egg', egg)"

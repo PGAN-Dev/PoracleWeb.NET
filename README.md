@@ -1,8 +1,10 @@
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
 > **PoracleNG 5.1.0 or newer is required.** All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. On an older server, per-alarm delivery scope, the PVP mega evolution filter and the minimum time-left filter write columns that don't exist: the controls accept input, save, and change nothing. PoracleWeb logs an error at startup and shows the mismatch on the Versions card under Admin > Settings.
+>
+> Some newer features — quiet periods, Pokéstop Event alarms, PokéCoin quest rewards, costume filters — need a server newer than 5.1.0, and hide themselves rather than failing when they do not find one. Which feature needs what, and how support is decided, is in [PoracleNG Version Compatibility](https://pgan-dev.github.io/PoracleWeb.NET/architecture/poracleng-compatibility/).
 >
 > [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
@@ -44,12 +46,13 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 
 ## Features
 
-- **Alarm Management** — Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms, Fort Changes
+- **Alarm Management** — Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes
 - **Gym Picker** — Search and target specific gyms for team change, raid, and egg alarms
 - **Bulk Operations** — Multi-select with bulk delete and distance update
 - **Per-Alarm Delivery Scope** — Aim each alert anywhere in your areas, at only specific areas, or within a radius of your pin or a saved place
 - **Saved Places** — Name the points your alerts measure from, so an alarm doesn't have to follow your profile pin
-- **Test Alerts** — Send yourself a sample notification for any alarm to check its filters and template
+- **Test Alerts** — Send yourself a sample notification for an alarm to check its filters and template (every type except Fort Changes, Max Battles and Pokéstop Events)
+- **Quiet Periods** — Silence one gym, area, species or Power Spot for a set time, without touching the alarms themselves
 - **Alert Defaults** — Choose where new alerts default to reaching you: your areas, or a radius from your pin or a saved place
 - **Custom Geofences** — Draw polygons, auto-served to the Poracle bot via unified feed
 - **Geofence Admin Review** — Approve/reject with Discord forum integration

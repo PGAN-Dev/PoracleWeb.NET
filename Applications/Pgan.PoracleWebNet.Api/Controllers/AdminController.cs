@@ -89,6 +89,10 @@ public partial class AdminController(
         // poracle_web.webhook_delegates only meant a delegate configured in PoracleJS -- the
         // delegateAdministration mechanism -- saw the nav item, got an empty page here, and a 403 from
         // impersonate. See #626.
+        // Grants arrive canonicalised to humans.id -- PoracleNG hands back whatever key the operator wrote
+        // in [[discord.webhook_admins]], and upstream that key is the webhook's NAME. Matched case-
+        // insensitively for the same reason the resolver's set is: nothing guarantees an operator typed the
+        // URL in the case the humans row stores it. See #797.
         var managed = (await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [];
         if (managed.Length == 0)
         {
@@ -98,7 +102,7 @@ public partial class AdminController(
         var humans = await this._humanService.GetAllAsync();
 
         var webhooks = humans
-            .Where(h => managed.Contains(h.Id, StringComparer.Ordinal))
+            .Where(h => managed.Contains(h.Id, StringComparer.OrdinalIgnoreCase))
             .Select(h => new
             {
                 h.Id,
@@ -632,9 +636,19 @@ public partial class AdminController(
         // impersonating the webhook until they next signed in. See #601.
         // Same union as the claim and as my-webhooks, so a PoracleJS-configured delegate is not refused
         // by an endpoint the nav item just offered them. See #626.
+        // No hop from inside an impersonation session. The SPA stashes the caller's own token in a single
+        // poracle_admin_token slot, so a second hop overwrites it with the first impersonated one and
+        // strands whoever started with no way back to their own account. Nothing legitimate chained before:
+        // the nav item that reaches this endpoint was hidden under impersonation, and the admin user list
+        // refuses it anyway because the impersonation token carries isAdmin = false. See #797.
+        if (this.IsImpersonating)
+        {
+            return this.Forbid();
+        }
+
         var isDelegate = !this.IsAdmin
             && ((await this._roleResolver.ResolveAsync(this.UserId)).ManagedWebhooks ?? [])
-                .Contains(request.UserId, StringComparer.Ordinal);
+                .Contains(request.UserId, StringComparer.OrdinalIgnoreCase);
         if (!this.IsAdmin && !isDelegate)
         {
             return this.Forbid();

@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>{{ 'QUIET.LIST_TITLE' | translate }}</h2>
+
+<mat-dialog-content class="quiet-list">
+  @for (row of rows(); track row.key) {
+    <div class="quiet-row">
+      <div class="quiet-row-text">
+        <span class="quiet-row-subject">{{ row.subject }}</span>
+        <span class="quiet-row-meta">{{ row.scopeLabel }} &middot; {{ row.countdown }}</span>
+      </div>
+      <button mat-button (click)="resume(row)">{{ 'QUIET.RESUME' | translate }}</button>
+    </div>
+  } @empty {
+    <!-- An empty screen is an invitation, and the second line says where to go. -->
+    <div class="quiet-empty">
+      <mat-icon>notifications_active</mat-icon>
+      <p class="quiet-empty-title">{{ 'QUIET.EMPTY_TITLE' | translate }}</p>
+      <p class="quiet-empty-hint">{{ 'QUIET.EMPTY_HINT' | translate }}</p>
+    </div>
+  }
+
+  @if (rows().length > 0) {
+    <p class="quiet-volatility">{{ 'QUIET.VOLATILITY_NOTE' | translate }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (rows().length > 1) {
+    <button mat-button (click)="resumeAll()">{{ 'QUIET.RESUME_ALL' | translate }}</button>
+  }
+  <button mat-flat-button mat-dialog-close>{{ 'COMMON.CLOSE' | translate }}</button>
+</mat-dialog-actions>

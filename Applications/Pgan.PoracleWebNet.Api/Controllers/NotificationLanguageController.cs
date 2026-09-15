@@ -49,12 +49,16 @@ public class NotificationLanguageController(IHumanService humanService) : BaseAp
             return this.BadRequest(new { error = "Language must be 255 characters or fewer." });
         }
 
-        human.Language = request.Language;
-        await this._humanService.UpdateAsync(human);
+        await this._humanService.SetLanguageAsync(this.UserId, request.Language);
+
+        // Read back rather than echo. PoracleNG lowercases and trims what it stores -- "pt-BR" becomes
+        // "pt-br" -- and an endpoint that reported the request instead of the row would leave the SPA
+        // holding a value the server does not have. Verified on 5.2.1 against both API versions.
+        var stored = await this._humanService.GetByIdAsync(this.UserId);
 
         return this.Ok(new
         {
-            language = human.Language
+            language = stored?.Language ?? request.Language
         });
     }
 

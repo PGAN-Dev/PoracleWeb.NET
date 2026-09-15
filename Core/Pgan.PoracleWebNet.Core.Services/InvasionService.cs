@@ -13,16 +13,61 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     private readonly ILogger<InvasionService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
 
-    public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo)
+    /// <summary>
+    /// Whether pokestop-event rows belong to the Pokestop Events page rather than this list.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Invasion and incident rows share the <c>invasion</c> table, and PoracleWeb reads invasions over
+    /// v1, which applies no filter — verified against 5.2.1, a Showcase rule created through
+    /// <c>/api/v2/.../tracking/incident</c> comes straight back out of
+    /// <c>GET /api/tracking/invasion/{id}</c>. So this list has to do the partition PoracleNG does for
+    /// the v2 endpoints.
+    /// </para>
+    /// <para>
+    /// <strong>Conditional, and that is the whole point.</strong> When the Pokestop Events surface is
+    /// unavailable — an older PoracleNG, or an operator who set <c>disable_showcase</c> — the page that
+    /// would hold these rows does not exist, and filtering them out here would leave alarms that fire
+    /// and cannot be seen or deleted. Event rows are creatable from the invasion add dialog on 5.1.0
+    /// today, so this is not hypothetical.
+    /// </para>
+    /// </remarks>
+    private Task<bool> EventsLiveElsewhereAsync() =>
+        this._featureGate.IsEnabledAsync(DisableFeatureKeys.PokestopEvents);
+
+    /// <summary>
+    /// The same partition as <see cref="ReadOwnRowsAsync"/>, over a raw stored row, for the bulk
+    /// paths that rewrite rows in place instead of round-tripping the model.
+    /// </summary>
+    private async Task<Func<JsonElement, bool>> OwnRowPredicateAsync()
     {
-        var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        return DeserializeItems(json);
+        if (!await this.EventsLiveElsewhereAsync())
+        {
+            return _ => true;
+        }
+
+        return row => !PokestopEventTypes.IsEventName(
+            row.TryGetProperty("grunt_type", out var gt) && gt.ValueKind == JsonValueKind.String
+                ? gt.GetString()
+                : null);
     }
 
-    public async Task<Invasion?> GetByUidAsync(string userId, int uid)
+    private async Task<List<Invasion>> ReadOwnRowsAsync(string userId)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         var items = DeserializeItems(json);
+
+        return await this.EventsLiveElsewhereAsync()
+            ? [.. items.Where(x => !PokestopEventTypes.IsEventName(x.GruntType))]
+            : items;
+    }
+
+    public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo) =>
+        await this.ReadOwnRowsAsync(userId);
+
+    public async Task<Invasion?> GetByUidAsync(string userId, int uid)
+    {
+        var items = await this.ReadOwnRowsAsync(userId);
         return items.FirstOrDefault(x => x.Uid == uid);
     }
 
@@ -109,8 +154,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
     public async Task<int> DeleteAllByUserAsync(string userId, int profileNo)
     {
-        var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        var items = DeserializeItems(json);
+        var items = await this.ReadOwnRowsAsync(userId);
         var uids = items.Select(x => x.Uid).ToList();
 
         if (uids.Count == 0)
@@ -125,9 +169,10 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
     public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
+        var isOurs = await this.OwnRowPredicateAsync();
         // The stored rows are rewritten in place rather than round-tripped through the typed model,
         // so fields PoracleWeb does not model survive the write-back. See #730.
-        var body = PoracleJsonHelper.RewriteRows(json, _ => true, ("distance", distance));
+        var body = PoracleJsonHelper.RewriteRows(json, isOurs, ("distance", distance));
         var count = body.GetArrayLength();
 
         if (count == 0)
@@ -161,9 +206,10 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
         // The stored rows are rewritten in place rather than round-tripped through the typed model,
         // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
+        var isOurs = await this.OwnRowPredicateAsync();
         var body = PoracleJsonHelper.RewriteRows(
             json,
-            row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
+            row => isOurs(row) && PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
             ("distance", distance));
         var count = body.GetArrayLength();
 
@@ -194,8 +240,7 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)
     {
-        var json = await this._proxy.GetByUserAsync(TrackingType, userId);
-        var items = DeserializeItems(json);
+        var items = await this.ReadOwnRowsAsync(userId);
         return items.Count;
     }
 

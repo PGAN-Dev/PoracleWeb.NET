@@ -11,14 +11,20 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class TrackedUidRemapperCoverageTests
 {
     /// <summary>
-    /// Every service whose update rotates the uid — all of them except monsters, which PoracleNG
-    /// genuinely upserts in place.
+    /// Every service whose update rotates the uid.
     /// </summary>
+    /// <remarks>
+    /// Monsters were the exception until #805: PoracleNG upserts pokemon in place on the v1 surface, so
+    /// there was no rotation to follow, and this class carried a fact asserting MonsterService did NOT take
+    /// the remapper. The v2 full-replace PUT is delete-then-insert, so pokemon rotates like the other nine
+    /// whenever the server carries v2. The tripwire fired exactly as it was written to; it has been moved
+    /// rather than weakened.
+    /// </remarks>
     public static TheoryData<Type> RotatingServices =>
     [
-        typeof(RaidService), typeof(EggService), typeof(QuestService), typeof(NestService),
-        typeof(GymService), typeof(FortChangeService), typeof(InvasionService), typeof(LureService),
-        typeof(MaxBattleService)
+        typeof(MonsterService), typeof(RaidService), typeof(EggService), typeof(QuestService),
+        typeof(NestService), typeof(GymService), typeof(FortChangeService), typeof(InvasionService),
+        typeof(LureService), typeof(MaxBattleService)
     ];
 
     [Theory]
@@ -33,17 +39,5 @@ public class TrackedUidRemapperCoverageTests
             takesRemapper,
             $"{serviceType.Name} rewrites the row on update, so its uid changes. Without ITrackedUidRemapper "
             + "any quick pick that created the alarm keeps pointing at the dead uid and can never remove it.");
-    }
-
-    [Fact]
-    public void MonsterServiceDoesNotNeedIt()
-    {
-        // Documented deliberately: monsters are the one type PoracleNG updates in place, so there is no
-        // rotation to follow. If that ever changes, this test failing is the reminder.
-        var takesRemapper = typeof(MonsterService)
-            .GetConstructors()
-            .Any(c => c.GetParameters().Any(p => p.ParameterType == typeof(ITrackedUidRemapper)));
-
-        Assert.False(takesRemapper);
     }
 }

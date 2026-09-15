@@ -1,22 +1,17 @@
 using System.Text.Json;
 
-using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Proxy-first service for profile reads. Create/Update/Delete are already proxied by
-/// ProfileController via IPoracleHumanProxy; this service provides reads for
-/// LocationController, UserGeofenceService, and ProfileController.GetAll.
-/// IProfileRepository is kept for non-active profile operations in UserGeofenceService.
+/// Profile reads and copy, all served by PoracleNG. Create, delete and switch are proxied directly by
+/// ProfileController through IPoracleHumanProxy; rename and the area/coordinate write go straight to
+/// the database through IProfileRepository, because PoracleNG's API serves neither.
 /// </summary>
-public class ProfileService(
-    IProfileRepository repository,
-    IPoracleHumanProxy humanProxy) : IProfileService
+public class ProfileService(IPoracleHumanProxy humanProxy) : IProfileService
 {
-    private readonly IProfileRepository _repository = repository;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
 
     public async Task<IEnumerable<Profile>> GetByUserAsync(string userId)
@@ -79,12 +74,6 @@ public class ProfileService(
         var profiles = DeserializeProfiles(json);
         return profiles.Find(p => p.ProfileNo == profileNo);
     }
-
-    public async Task<Profile> CreateAsync(Profile profile) => await this._repository.CreateAsync(profile);
-
-    public async Task<Profile> UpdateAsync(Profile profile) => await this._repository.UpdateAsync(profile);
-
-    public async Task<bool> DeleteAsync(string userId, int profileNo) => await this._repository.DeleteAsync(userId, profileNo);
 
     public async Task CopyAsync(string userId, int fromProfileNo, int toProfileNo) =>
         await this._humanProxy.CopyProfileAsync(userId, fromProfileNo, toProfileNo);

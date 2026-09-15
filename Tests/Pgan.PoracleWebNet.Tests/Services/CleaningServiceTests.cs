@@ -541,4 +541,88 @@ public class CleaningServiceTests
         Assert.DoesNotContain("fortchanges", status.Keys);
     }
 
+
+    /// <summary>
+    /// Kecleon, Showcase and Gold Stop rules live in the invasion table but belong to the Pokestop
+    /// Events page. The invasion clean switch used to rewrite them too.
+    /// </summary>
+    [Fact]
+    public async Task ToggleCleanInvasionsLeavesPokestopEventRowsAlone()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(true);
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, clean = 0, grunt_type = "water" },
+            new { uid = 2, clean = 0, grunt_type = "kecleon" },
+            new { uid = 3, clean = 0, grunt_type = "showcase" }));
+
+        JsonElement sent = default;
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, body) => sent = body.Clone())
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        Assert.Equal(1, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
+        Assert.Equal([1], sent.EnumerateArray().Select(r => r.GetProperty("uid").GetInt32()));
+    }
+
+    /// <summary>
+    /// The legitimate case the partition must not break: with the Pokestop Events surface switched off
+    /// there is no other page holding those rows, so the invasion switch still owns them.
+    /// </summary>
+    [Fact]
+    public async Task ToggleCleanInvasionsIncludesEventRowsWhenThatPageIsOff()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(false);
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, clean = 0, grunt_type = "water" },
+            new { uid = 2, clean = 0, grunt_type = "kecleon" }));
+
+        JsonElement sent = default;
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, body) => sent = body.Clone())
+            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+
+        Assert.Equal(2, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
+        Assert.Equal([1, 2], sent.EnumerateArray().Select(r => r.GetProperty("uid").GetInt32()));
+    }
+
+    [Fact]
+    public async Task ToggleCleanInvasionsWritesNothingWhenOnlyEventRowsExist()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(true);
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 2, clean = 0, grunt_type = "kecleon" }));
+
+        Assert.Equal(0, await this._sut.ToggleCleanInvasionsAsync("u1", 1, 1));
+        this._proxy.Verify(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetCleanStatusIgnoresPokestopEventRowsForInvasions()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(true);
+        var json = JsonSerializer.SerializeToElement(new
+        {
+            invasion = new object[]
+            {
+                new { uid = 1, clean = 1, grunt_type = "water" },
+                new { uid = 2, clean = 0, grunt_type = "showcase" },
+            },
+        });
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        Assert.True((await this._sut.GetCleanStatusAsync("u1", 1))["invasions"]);
+    }
+
+    [Fact]
+    public async Task GetCleanStatusReportsNotCleanWhenOnlyEventRowsExist()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(true);
+        var json = JsonSerializer.SerializeToElement(new
+        {
+            invasion = new object[] { new { uid = 2, clean = 1, grunt_type = "showcase" } },
+        });
+        this._proxy.Setup(p => p.GetAllTrackingAsync("u1")).ReturnsAsync(json);
+
+        Assert.False((await this._sut.GetCleanStatusAsync("u1", 1))["invasions"]);
+    }
 }

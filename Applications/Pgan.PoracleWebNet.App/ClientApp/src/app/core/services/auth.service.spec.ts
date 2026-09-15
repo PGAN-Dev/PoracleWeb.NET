@@ -124,8 +124,10 @@ describe('AuthService', () => {
       // Settings are loaded after token is stored (fixes title not showing after OAuth redirect)
       const settingsReq = httpMock.expectOne(`${API}/api/settings`);
       settingsReq.flush([]);
-      // getAll() also asks which disable_* keys Poracle forces off upstream (#769).
+      // getAll() also asks which disable_* keys Poracle forces off upstream (#769), and whether
+      // Poracle can store a costume filter (#804).
       httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
+      httpMock.expectOne(`${API}/api/settings/costume-capability`).flush({ raid: true, pokemon: true });
       // The alert language is reconciled here too: App.ngOnInit skips it while signed out (#775), so a
       // login completed inside one page session would otherwise never pick up humans.language.
       httpMock.expectOne(`${API}/api/location/language`).flush({ language: 'de' });

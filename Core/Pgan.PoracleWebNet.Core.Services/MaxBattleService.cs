@@ -78,6 +78,16 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
                 "You already have an identical max battle alarm.");
         }
 
+        // /api/v2 replaces the rule in place, addressed by its uid, so this type stops being insert-only
+        // and the delete-then-create above it is skipped entirely -- with it, the window where the alarm
+        // exists nowhere.
+        if (await TrackingV2Replacement.TryApplyAsync(
+                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
+        {
+            model.Uid = v2Uid;
+            return model;
+        }
+
         await this._proxy.DeleteByUidAsync(TrackingType, userId, oldUid);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 

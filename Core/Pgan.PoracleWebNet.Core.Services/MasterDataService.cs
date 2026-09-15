@@ -20,10 +20,18 @@ public partial class MasterDataService(
     private const string MoveCacheKey = "MasterData_Moves";
     private const string MonsterCacheKey = "MasterData_Monsters";
     private const string BaseStatsCacheKey = "MasterData_BaseStats";
+    private const string CostumeCacheKey = "MasterData_Costumes";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(24);
 
     private const string MasterfileUrl =
         "https://raw.githubusercontent.com/WatWowMap/Masterfile-Generator/master/master-latest-poracle.json";
+
+    // The poracle-shaped masterfile carries no costume map, so costume names come from the raw one -
+    // the same file PoracleNG downloads for its own costume lookups. English only: PoracleNG translates
+    // costume names internally from gamelocale keys but exposes no endpoint serving them, verified
+    // against 5.2.1 (GET /api/masterdata/costumes answers 404).
+    private const string RawMasterfileUrl =
+        "https://raw.githubusercontent.com/WatWowMap/Masterfile-Generator/master/master-latest-raw.json";
 
     private bool _initialized;
 
@@ -52,6 +60,13 @@ public partial class MasterDataService(
     {
         await this.EnsureInitializedAsync();
         this._cache.TryGetValue(MonsterCacheKey, out string? data);
+        return data;
+    }
+
+    public async Task<string?> GetCostumeDataAsync()
+    {
+        await this.EnsureInitializedAsync();
+        this._cache.TryGetValue(CostumeCacheKey, out string? data);
         return data;
     }
 
@@ -184,6 +199,61 @@ public partial class MasterDataService(
         {
             LogRefreshCacheFailed(this._logger, ex);
         }
+
+        await this.RefreshCostumeCacheAsync();
+    }
+
+    /// <summary>
+    /// Costume id to name, from the raw masterfile.
+    /// </summary>
+    /// <remarks>
+    /// Its own request and its own try/catch on purpose: pokemon, items, moves and base stats all come
+    /// from one fetch, and folding a second URL into that try would let a hiccup on this one blank all
+    /// four. A costume failure only costs the names - the "any costume" and "no costume" choices are
+    /// sentinels the UI owns and keep working.
+    /// </remarks>
+    private async Task RefreshCostumeCacheAsync()
+    {
+        try
+        {
+            var client = this._httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PGAN-PoracleWeb/1.0");
+            client.Timeout = TimeSpan.FromSeconds(30);
+
+            var json = await client.GetStringAsync(RawMasterfileUrl);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("costumes", out var costumes) || costumes.ValueKind != JsonValueKind.Object)
+            {
+                return;
+            }
+
+            var costumeMap = new Dictionary<string, string>();
+            foreach (var entry in costumes.EnumerateObject())
+            {
+                // Id 0 is "Unset", the wire's word for "no costume". The UI offers that as its own
+                // choice in the user's words, so listing it again as a named costume would be two
+                // controls for one state.
+                if (entry.Name == "0")
+                {
+                    continue;
+                }
+
+                if (entry.Value.ValueKind == JsonValueKind.Object
+                    && entry.Value.TryGetProperty("name", out var nameProp)
+                    && nameProp.GetString() is { Length: > 0 } name)
+                {
+                    costumeMap[entry.Name] = name;
+                }
+            }
+
+            this._cache.Set(CostumeCacheKey, JsonSerializer.Serialize(costumeMap), CacheDuration);
+            LogCachedCostumeEntries(this._logger, costumeMap.Count);
+        }
+        catch (Exception ex)
+        {
+            LogRefreshCostumeCacheFailed(this._logger, ex);
+        }
     }
 
     private async Task EnsureInitializedAsync()
@@ -212,6 +282,12 @@ public partial class MasterDataService(
     [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} item entries.")]
     private static partial void LogCachedItemEntries(ILogger logger, int count);
 
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cached {Count} costume entries.")]
+    private static partial void LogCachedCostumeEntries(ILogger logger, int count);
+
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to refresh master data cache.")]
     private static partial void LogRefreshCacheFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to refresh costume name cache; costume names will be unavailable.")]
+    private static partial void LogRefreshCostumeCacheFailed(ILogger logger, Exception ex);
 }

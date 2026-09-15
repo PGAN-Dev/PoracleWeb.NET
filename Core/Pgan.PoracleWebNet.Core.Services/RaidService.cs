@@ -5,13 +5,19 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
-public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, ILogger<RaidService> logger, ITrackedUidRemapper uidRemapper) : IRaidService
+public class RaidService(
+    IPoracleTrackingProxy proxy,
+    IFeatureGate featureGate,
+    ILogger<RaidService> logger,
+    ITrackedUidRemapper uidRemapper,
+    ICostumeCapabilityService costumes) : IRaidService
 {
     private const string TrackingType = "raid";
     private readonly IPoracleTrackingProxy _proxy = proxy;
     private readonly IFeatureGate _featureGate = featureGate;
     private readonly ILogger<RaidService> _logger = logger;
     private readonly ITrackedUidRemapper _uidRemapper = uidRemapper;
+    private readonly ICostumeCapabilityService _costumes = costumes;
 
     public async Task<IEnumerable<Raid>> GetByUserAsync(string userId, int profileNo)
     {
@@ -29,6 +35,10 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     public async Task<Raid> CreateAsync(string userId, Raid model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
+
+        // raid.costume is its own migration, one later than the monsters one, so a server can store a
+        // costumed pokemon rule and silently drop a costumed raid rule.
+        await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
         model.Id = userId;
 
         // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
@@ -55,6 +65,7 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
     public async Task<Raid> UpdateAsync(string userId, Raid model)
     {
         await this._featureGate.EnsureEnabledAsync(DisableFeatureKeys.Raids);
+        await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
         var oldUid = model.Uid;
         var body = SerializeToElement(model);
 
@@ -66,6 +77,15 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
         // the reconciler would then delete this one, losing a row the user never touched. See #531.
         await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
             this._proxy, TrackingType, userId, oldUid, body);
+
+        // /api/v2 replaces the rule in place, addressed by its uid, and answers 409 itself when the
+        // replacement would duplicate another rule. None of the v1 repair below applies to it.
+        if (await TrackingV2Replacement.TryApplyAsync(
+                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
+        {
+            model.Uid = v2Uid;
+            return model;
+        }
 
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
 
@@ -182,6 +202,9 @@ public class RaidService(IPoracleTrackingProxy proxy, IFeatureGate featureGate, 
 
         foreach (var model in modelList)
         {
+            // Profile import and quick-pick apply arrive here without passing a dialog, so the gate the
+            // SPA applies to the control cannot cover them.
+            await this._costumes.EnsureCostumeWritableAsync(TrackingType, model.Costume);
             model.Id = userId;
         }
 

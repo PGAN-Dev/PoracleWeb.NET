@@ -20,7 +20,10 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
@@ -29,6 +32,7 @@ import { ScopePickerComponent } from '../../shared/components/scope-picker/scope
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
+import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 
 @Component({
   imports: [
@@ -59,15 +63,22 @@ import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 })
 export class RaidAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
-
   private readonly eggService = inject(EggService);
-
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
+
+  private readonly icons = inject(IconService);
+  private readonly masterData = inject(MasterDataService);
   private readonly raidService = inject(RaidService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   commonForm = this.fb.group({
     clean: [false],
+    // Only the By Boss tab renders this. A level-only rule has no boss to wear a costume, and
+    // PoracleNG stores costume on level rules too, so offering it there would create a rule that is
+    // silently narrower than it looks -- the by-level path hardcodes "any" instead.
+    costume: [ANY_COSTUME],
     rsvpChanges: [0],
     team: [4],
     template: [''],
@@ -78,6 +89,7 @@ export class RaidAddDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
   /**
    * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
    * picker owns it from there.
@@ -93,11 +105,11 @@ export class RaidAddDialogComponent {
   );
 
   selectedEggLevels = signal<number[]>([]);
+
   selectedGymId = signal<string | null>(null);
-
   selectedPokemonIds = signal<number[]>([]);
-  selectedRaidLevels = signal<number[]>([]);
 
+  selectedRaidLevels = signal<number[]>([]);
   tabIndex = 0;
 
   canSave(): boolean {
@@ -107,11 +119,31 @@ export class RaidAddDialogComponent {
     return this.selectedPokemonIds().length > 0;
   }
 
-  /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
+  /** The hint under the costume select, which changes with the selection. */
+  costumeHint(): string {
+    return costumeHintKey(this.commonForm.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());
+  }
+
+  /** Whether the masterfile's costume names loaded; drives the hint and nothing else. */
+  costumeNamesAvailable(): boolean {
+    return this.masterData.costumesAvailable();
+  }
+
+  /** The named costumes for the select, newest first. */
+  costumeOptions(): { id: number; name: string }[] {
+    return this.masterData.getCostumes();
+  }
+
+  /** A team badge for the dropdown. Takes the pack's gym number, not the form's team value: "any" is team 4 and gym 0. */
+  getGymIcon(gymIcon: number): string {
+    return this.icons.getGymUrl(gymIcon);
+  }
 
   onPokemonSelected(ids: number[]): void {
     this.selectedPokemonIds.set(ids);
   }
+
+  /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
 
   save(): void {
     if (!this.canSave()) return;
@@ -134,6 +166,8 @@ export class RaidAddDialogComponent {
           overrideAreas: scope.overrideAreas,
           overrideLocationLabel: scope.overrideLocationLabel,
           clean,
+          // A level rule matches whatever boss hatches, so it cannot sensibly filter on a costume.
+          costume: ANY_COSTUME,
           distance: scope.distance,
           evolution: 9000,
           exclusive: 0,
@@ -172,6 +206,7 @@ export class RaidAddDialogComponent {
           overrideAreas: scope.overrideAreas,
           overrideLocationLabel: scope.overrideLocationLabel,
           clean,
+          costume: common.costume ?? ANY_COSTUME,
           distance: scope.distance,
           evolution: 9000,
           exclusive: 0,
@@ -223,5 +258,14 @@ export class RaidAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
+  }
+
+  /**
+   * Whether to offer the costume filter at all. False on a Poracle without the raid.costume column: it
+   * takes the field, answers 200 and drops it, so the control would produce a rule that reads
+   * "Halloween 2025" and matches every spawn. Unknown counts as absent.
+   */
+  showCostume(): boolean {
+    return this.settings.supportsCostume('raid');
   }
 }

@@ -12,6 +12,7 @@ const FALLBACK: PoracleServerConfig = {
   locale: 'en',
   maxDistance: 10726000,
   poracleVersion: 'unknown',
+  prefix: '!',
   pvpCaps: [],
   pvpFilterGreatMinCp: 0,
   pvpFilterLittleMinCp: 0,

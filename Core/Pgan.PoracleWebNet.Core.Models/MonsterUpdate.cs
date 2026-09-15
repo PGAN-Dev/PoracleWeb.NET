@@ -152,6 +152,13 @@ public class MonsterUpdate
         get; set;
     }
 
+    // 9000 = any costume, 0 = no costume, N = that costume. Null leaves the stored value alone.
+    [Range(0, int.MaxValue)]
+    public int? Costume
+    {
+        get; set;
+    }
+
     [Range(-1, 5)]
     public int? Size
     {

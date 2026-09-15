@@ -82,12 +82,57 @@ mat-dialog-content {
 // Time picker
 .time-picker {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
+  flex-wrap: wrap;
   gap: 12px;
+  row-gap: 12px;
+}
+
+// An hour and a minute are one answer, so they wrap together or not at all.
+.time-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-pair {
+  display: flex;
+  gap: 12px;
+}
+
+.group-caption {
+  margin: 0 0 2px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-hint, rgba(0, 0, 0, 0.5));
 }
 
 .time-field {
   width: 120px;
+}
+
+// Wide enough for the longest of the eleven translations of "Repeat every".
+.step-field {
+  width: 172px;
+}
+
+.repeat-toggle {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.repeat-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.38));
+}
+
+.range-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--warn, #d32f2f);
 }
 
 // Rules list
@@ -172,6 +217,14 @@ mat-dialog-content {
   border-radius: 4px;
 }
 
+.preview-span {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.22);
+}
+
 .preview-dot {
   position: absolute;
   top: 50%;
@@ -225,6 +278,10 @@ mat-dialog-actions {
   .preview-dot {
     background: #fbbf24;
   }
+
+  .preview-span {
+    background: rgba(251, 191, 36, 0.22);
+  }
 }
 
 @media (max-width: 600px) {
@@ -232,7 +289,27 @@ mat-dialog-actions {
     min-width: unset;
   }
 
+  // One pair per row, each field taking half of it, then the repeat interval and Add on their own.
+  // The hour and its minute stay together on every width; what wraps is whole answers.
   .time-picker {
-    flex-wrap: wrap;
+    display: block;
+  }
+
+  .time-group {
+    margin-bottom: 12px;
+  }
+
+  .time-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .time-field,
+  .step-field {
+    width: 100%;
+  }
+
+  .add-btn {
+    width: 100%;
   }
 }

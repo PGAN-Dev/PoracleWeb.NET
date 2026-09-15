@@ -69,7 +69,7 @@
           </div>
           <div class="card-top-actions">
             @if (isAutoDelete(nest.clean)) {
-              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_NEST' | translate }}">clean</span>
+              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_NEST' | translate }}">{{ 'ALARM.CLEAN_TAG' | translate }}</span>
             }
           </div>
         </div>
@@ -88,8 +88,13 @@
               [profileAreas]="profileAreas()"
               (click)="editScope(nest); $event.stopPropagation()" />
           </div>
+          <app-rule-summary [text]="nest.description" />
         </mat-card-content>
         <mat-card-actions align="end">
+          @if (nest.pokemonId > 0) {
+            <app-quiet-chip scope="pokemon" [value]="nest.pokemonId.toString()" [subject]="getPokemonName(nest.pokemonId)" />
+          }
+
           <button
             mat-icon-button
             (click)="sendTestAlert(nest)"

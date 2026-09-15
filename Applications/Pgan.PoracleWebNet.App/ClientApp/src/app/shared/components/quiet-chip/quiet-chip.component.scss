@@ -1,0 +1,83 @@
+// Metrics borrowed from where-chip so the two read as the same family of affordance.
+.quiet-chip {
+  align-items: center;
+  background: var(--chip-bg, rgb(0 0 0 / 6%));
+  border: none;
+  border-radius: 999px;
+  color: var(--chip-fg, inherit);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.75rem;
+  gap: 0.25rem;
+  line-height: 1.4;
+  max-width: 100%;
+  padding: 0.25rem 0.6rem;
+}
+
+// The same amber the active-hours chip uses for "scheduled, and temporary".
+.quiet-chip-on {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 500;
+}
+
+:host-context(.dark-theme) .quiet-chip-on {
+  background: rgb(245 158 11 / 15%);
+  color: #fbbf24;
+}
+
+.quiet-chip-icon {
+  font-size: 1rem;
+  height: 1rem;
+  width: 1rem;
+}
+
+.quiet-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ─── Inside a mat-chip ────────────────────────────────
+// A mat-chip is 32px and owns the rhythm of its own trailing slot, so the control is sized to sit in
+// that slot rather than in a card's action row. The card form is a 40px mat-icon-button: dropped into
+// a 32px chip it overflowed by 4px top and bottom, pushed the chip's label line box from 26px to 40px,
+// and left 16px between the bell and the remove icon where the chip's own rhythm is 8px. Both states
+// are pinned to the same 24px here, because a quiet chip and a noisy one sit side by side in one bar.
+// The spacing below is measured against the 8px a chip with no quiet control at all leaves between its
+// label and its remove icon: the rhythm the bar already had. See #865.
+.quiet-chip-trailing {
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 0.5rem;
+  vertical-align: middle;
+}
+
+// Not quiet, so nothing to announce: the bell alone. A second filled pill inside a filled chip reads
+// as two chips, and the amber is what should carry the eye to the ones that are actually quiet.
+// The 24px box is 4px wider than its glyph on each side and the remove button that follows brings 8px
+// of its own padding, so 4px in and 4px back out leaves the bell 8px from the label and 8px from the
+// remove icon while keeping a 24px hit target.
+.quiet-chip-trailing:not(.quiet-chip-on) {
+  background: none;
+  border-radius: 50%;
+  justify-content: center;
+  margin-inline: 4px -4px;
+  padding: 0;
+  width: 24px;
+}
+
+// Quiet: the amber pill is a mark in its own right, so it is the pill's edges that want the 8px and
+// not the bell inside it. Its own right-hand padding already meets the remove button's.
+.quiet-chip-trailing.quiet-chip-on {
+  margin-inline-start: 8px;
+}
+
+.quiet-chip-trailing:not(.quiet-chip-on):hover {
+  background: rgb(0 0 0 / 8%);
+}
+
+:host-context(.dark-theme) .quiet-chip-trailing:not(.quiet-chip-on):hover {
+  background: rgb(255 255 255 / 14%);
+}

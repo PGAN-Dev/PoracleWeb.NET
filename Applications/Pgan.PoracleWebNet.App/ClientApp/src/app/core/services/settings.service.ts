@@ -8,12 +8,34 @@ import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, Telegr
 /** Union of old and new setting response shapes */
 type AnySettingItem = PwebSetting | SiteSetting;
 
+/** Which alarm types this deployment's Poracle can store a costume filter on. */
+export interface CostumeCapability {
+  pokemon: boolean;
+  raid: boolean;
+}
+
+/**
+ * What to assume until the server says otherwise, and what a failed request leaves behind. Offering a
+ * control whose value the server silently discards is worse than not offering it at all.
+ */
+const NO_COSTUME_SUPPORT: CostumeCapability = { raid: false, pokemon: false };
+
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
 
   private loaded = false;
+  /**
+   * Whether Poracle has the costume columns, per alarm type. They arrive in separate migrations
+   * (`monsters.costume` in 6, `raid.costume` in 7), so a server can have one and not the other.
+   *
+   * A server without the column takes the field, answers 200 and drops it, so an ungated control
+   * produces a rule that reads "Halloween 2025" and matches everything. This only decides what is
+   * rendered — the alarm endpoints refuse an unsupported costume independently.
+   */
+  readonly costumeCapability = signal<CostumeCapability>(NO_COSTUME_SUPPORT);
+
   /** Cached site settings as key→value map, loaded once at app init */
   readonly siteSettings = signal<Record<string, string>>({});
 
@@ -30,12 +52,16 @@ export class SettingsService {
     // Fetched together so a nav item never renders for a type the server will 403. A failure here is
     // not fatal: the settings still load and the server-side gate remains the real enforcement point.
     return forkJoin({
+      costumes: this.http
+        .get<CostumeCapability>(`${this.config.apiHost}/api/settings/costume-capability`)
+        .pipe(catchError(() => of(NO_COSTUME_SUPPORT))),
       settings: this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings`),
       upstream: this.http.get<string[]>(`${this.config.apiHost}/api/settings/upstream-disabled`).pipe(catchError(() => of([]))),
     }).pipe(
-      tap(({ settings, upstream }) => {
+      tap(({ costumes, settings, upstream }) => {
         this.siteSettings.set(this.normalize(settings));
         this.upstreamDisabled.set(upstream);
+        this.costumeCapability.set(costumes ?? NO_COSTUME_SUPPORT);
         this.loaded = true;
       }),
       map(({ settings }) => settings),
@@ -100,6 +126,14 @@ export class SettingsService {
       if (key) map[key] = item.value ?? '';
     }
     return map;
+  }
+
+  /**
+   * True when Poracle can store a costume filter on this alarm type. False whenever that is unknown —
+   * request failed, settings not loaded yet, server too old.
+   */
+  supportsCostume(type: 'pokemon' | 'raid'): boolean {
+    return this.costumeCapability()[type] === true;
   }
 
   update(key: string, value: string, category?: string): Observable<AnySettingItem> {

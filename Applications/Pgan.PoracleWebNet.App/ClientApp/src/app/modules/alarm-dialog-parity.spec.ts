@@ -24,12 +24,17 @@ describe('add and edit dialogs offer the same fields', () => {
     ['nest', 'nests/nest'],
     ['gym', 'gyms/gym'],
     ['fort change', 'fort-changes/fort-change'],
+    ['pokestop event', 'pokestop-events/pokestop-event'],
     ['max battle', 'max-battles/max-battle'],
   ] as const;
 
   /** Controls an add dialog may have that its edit twin does not, and why. */
   const ADD_ONLY: Record<string, string> = {
     'max battle.gmaxOnly': 'The edit dialog exposes the same flag under the name PoracleNG uses for it, `gmax`.',
+    'pokestop event.eventGoldStop':
+      'One checkbox per event, fanning out into one alarm each. The edit dialog changes the single event of one alarm, as `displayType`.',
+    'pokestop event.eventKecleon': 'See eventGoldStop.',
+    'pokestop event.eventShowcase': 'See eventGoldStop.',
     'pokemon.forms': 'Multi-select that fans out into one alarm per form. The edit dialog changes the single form of one alarm.',
     'quest.reward':
       'Which item or pokemon the quest must give — the identity of the alarm, not a threshold. Stardust is the ' +
@@ -39,6 +44,8 @@ describe('add and edit dialogs offer the same fields', () => {
   /** Controls an edit dialog may have that its add twin does not, and why. */
   const EDIT_ONLY: Record<string, string> = {
     'max battle.gmax': 'Named `gmaxOnly` in the add dialog.',
+    'pokestop event.displayType':
+      'The add dialog picks events with checkboxes and fans out one alarm per event, so it has no single-event control.',
     'max battle.level': 'The add dialog picks levels with checkboxes and fans out one alarm per level, so it has no single-level control.',
     'quest.stardust': 'The stardust floor, which the add dialog collects on its own tab as `reward`.',
   };

@@ -1,0 +1,20 @@
+@if (mutes.capable()) {
+  @if (appearance() === 'icon' && !isQuiet()) {
+    <button mat-icon-button [matTooltip]="tooltip()" (click)="open($event)">
+      <mat-icon>notifications_paused</mat-icon>
+    </button>
+  } @else {
+    <button
+      type="button"
+      class="quiet-chip"
+      [class.quiet-chip-on]="isQuiet()"
+      [class.quiet-chip-trailing]="appearance() === 'trailing'"
+      [matTooltip]="tooltip()"
+      (click)="open($event)">
+      <mat-icon class="quiet-chip-icon">notifications_paused</mat-icon>
+      @if (appearance() !== 'trailing' || isQuiet()) {
+        <span class="quiet-chip-label">{{ label() }}</span>
+      }
+    </button>
+  }
+}

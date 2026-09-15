@@ -14,6 +14,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 /**
  * The edit dialog is where filters go to die: it is written second, drifts from the add dialog, and a
@@ -24,7 +25,7 @@ describe('PokemonEditDialogComponent', () => {
   let component: PokemonEditDialogComponent;
   let monsterService: { update: jest.Mock };
 
-  function setup(monster: Partial<Monster>) {
+  function setup(monster: Partial<Monster>, costumeSupported = true) {
     monsterService = { update: jest.fn().mockReturnValue(of({})) };
 
     TestBed.resetTestingModule();
@@ -37,8 +38,18 @@ describe('PokemonEditDialogComponent', () => {
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
         { provide: MAT_DIALOG_DATA, useValue: { uid: 7, maxIv: 100, minIv: 0, pokemonId: 52, ...monster } },
         { provide: MonsterService, useValue: monsterService },
-        { provide: MasterDataService, useValue: { getFormsForPokemon: () => [], getPokemonName: () => 'Meowth' } },
+        {
+          provide: MasterDataService,
+          useValue: {
+            costumesAvailable: () => true,
+            getCostumeName: () => 'Halloween 2025',
+            getCostumes: () => [{ id: 85, name: 'Halloween 2025' }],
+            getFormsForPokemon: () => [],
+            getPokemonName: () => 'Meowth',
+          },
+        },
         { provide: I18nService, useValue: { instant: (k: string) => k } },
+        { provide: SettingsService, useValue: { supportsCostume: () => costumeSupported } },
         {
           provide: PoracleConfigService,
           useValue: { load: () => of({ defaultPvpCap: 0 }), serverConfig: () => ({ pvpCaps: [] }) },
@@ -90,6 +101,59 @@ describe('PokemonEditDialogComponent', () => {
     component.save();
 
     expect(sent().minTime).toBe(0);
+  });
+
+  // A rule stored before PoracleNG had costume columns reads back undefined. Seeding the control
+  // with 0 instead of 9000 would rewrite it as "no costume" on the very next save. See #804.
+  it('widens a costume-less rule to "any" rather than "none"', () => {
+    setup({});
+
+    expect(component.form.controls.costume.value).toBe(9000);
+
+    component.save();
+
+    expect(sent().costume).toBe(9000);
+  });
+
+  it('round-trips a costume it did not change', () => {
+    setup({ costume: 85 });
+
+    expect(component.form.controls.costume.value).toBe(85);
+
+    component.save();
+
+    expect(sent().costume).toBe(85);
+  });
+
+  it('saves a changed costume, including "no costume"', () => {
+    setup({ costume: 85 });
+    component.form.controls.costume.setValue(0);
+
+    component.save();
+
+    expect(sent().costume).toBe(0);
+  });
+
+  /**
+   * The gate. A Poracle without monsters.costume takes the field, answers 200 and drops it, so an
+   * offered control would leave a rule that reads "Halloween 2025" and matches every spawn. Everything
+   * else about the dialog is unchanged, and the wildcard still goes out -- which is what an old
+   * Poracle stores for an absent key anyway.
+   */
+  it('hides the costume filter when Poracle does not have the column', () => {
+    setup({}, false);
+
+    expect(component.showCostume()).toBe(false);
+
+    component.save();
+
+    expect(sent().costume).toBe(9000);
+  });
+
+  it('offers the costume filter when Poracle has the column', () => {
+    setup({ costume: 85 });
+
+    expect(component.showCostume()).toBe(true);
   });
 
   it('keeps the mega mode of a PVP rule it did not change', () => {

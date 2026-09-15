@@ -20,16 +20,30 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { IconRepoDialogComponent, IconRepoDialogData } from './icon-repo-dialog/icon-repo-dialog.component';
 import { DiscordServerConfig, OidcServerConfig, PwebSetting, SiteSetting, TelegramServerConfig } from '../../core/models';
+import { BasemapService } from '../../core/services/basemap.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ServerProfileCardComponent } from '../../shared/components/server-profile-card/server-profile-card.component';
+import { BUILTIN_BASEMAPS, CUSTOM_BASEMAP_ID, basemapNeedsKey, resolveBasemapProviderId } from '../../shared/utils/basemaps';
+import {
+  DEFAULT_ICON_REPOS,
+  ICON_REPO_PREVIEWS,
+  ICON_REPO_SETTING_KEY,
+  IconRepo,
+  MAX_ICON_REPOS,
+  describeRepoBase,
+  parseIconRepos,
+  serializeIconRepos,
+} from '../../shared/utils/icon-repos';
 
 /** Union type for backward compatibility during migration */
 type AnySettingItem = PwebSetting | SiteSetting;
@@ -39,14 +53,48 @@ function settingKey(item: AnySettingItem): string {
   return 'key' in item ? item.key : item.setting;
 }
 
+interface SettingOption {
+  /** Shown verbatim. For provider names, which are brand names and are not translated. */
+  label?: string;
+  /** Translation key, for options whose text is a word rather than a name. */
+  labelKey?: string;
+  value: string;
+}
+
 interface SettingMeta {
   descriptionKey: string;
   key: string;
   labelKey: string;
+  /** Required by, and only meaningful for, type 'select'. */
+  options?: SettingOption[];
+  /**
+   * Only show this setting when the current values say it applies. Reads other settings through
+   * `get`, which answers '' for anything unset. For conditions a single boolean cannot express --
+   * the basemap fields, where which ones matter depends on which provider is selected.
+   */
+  showIf?: (get: (key: string) => string) => boolean;
   /** Only show this setting when another boolean setting is True */
   showWhen?: string;
-  type: 'text' | 'url' | 'boolean';
+  type: 'text' | 'url' | 'boolean' | 'select';
 }
+
+/**
+ * Basemaps an admin can nominate as the site default. Built from the catalogue rather than typed out
+ * here, so a provider added to one is offered by the other -- a free-text box would accept a typo,
+ * store it, and silently fall back to the default with nothing to show for it.
+ */
+/** True when the tile URL fields are the ones that matter, rather than a built-in provider's name. */
+const isCustomBasemap = (get: (key: string) => string) =>
+  resolveBasemapProviderId(get('basemap_provider'), get('basemap_url'), get('basemap_key')) === CUSTOM_BASEMAP_ID;
+
+const BASEMAP_PROVIDER_OPTIONS: SettingOption[] = [
+  // An unset provider is a real state, not a missing one: it is what every install upgrading into
+  // this setting has. "Automatic" named it after its mechanism rather than its effect, which told
+  // nobody what their site was drawing; the hint beneath the dropdown says that instead.
+  { labelKey: 'ADMIN_SETTINGS.BASEMAP_PROVIDER_UNSET', value: '' },
+  ...BUILTIN_BASEMAPS.map(basemap => ({ label: basemap.label, value: basemap.id })),
+  { labelKey: 'ADMIN_SETTINGS.BASEMAP_PROVIDER_CUSTOM', value: CUSTOM_BASEMAP_ID },
+];
 
 interface SettingGroup {
   color: string;
@@ -68,7 +116,7 @@ interface SettingGroup {
  * synthesized value, so one save pins it forever and stops tracking Poracle. Writes are refused
  * server-side too; this only keeps the box off the page. See #780.
  */
-export const PROJECTED_KEYS = ['poracle_locale'];
+export const PROJECTED_KEYS = ['poracle_locale', 'poracle_alert_languages'];
 
 const RETIRED_KEYS = [
   // Legacy Poracle keys describing a map picker this app does not have. Removed from the settings UI and
@@ -216,6 +264,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
         type: 'boolean',
       },
       {
+        descriptionKey: 'ADMIN_SETTINGS.DISABLE_SHOWCASE_DESC',
+        key: 'disable_showcase',
+        labelKey: 'ADMIN_SETTINGS.DISABLE_SHOWCASE_LABEL',
+        type: 'boolean',
+      },
+      {
         descriptionKey: 'ADMIN_SETTINGS.DISABLE_FORT_CHANGES_DESC',
         key: 'disable_fort_changes',
         labelKey: 'ADMIN_SETTINGS.DISABLE_FORT_CHANGES_LABEL',
@@ -285,6 +339,57 @@ export const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    color: '#2e7d32',
+    icon: 'map',
+    labelKey: 'ADMIN_SETTINGS.GROUP_MAPS',
+    settings: [
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_PROVIDER_DESC',
+        key: 'basemap_provider',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_PROVIDER_LABEL',
+        options: BASEMAP_PROVIDER_OPTIONS,
+        type: 'select',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_KEY_DESC',
+        key: 'basemap_key',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_KEY_LABEL',
+        // Hidden for a provider that does not want one, rather than sitting there inert beside a
+        // choice it has nothing to do with.
+        showIf: get => basemapNeedsKey(get('basemap_provider'), get('basemap_url'), get('basemap_key')),
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_NAME_DESC',
+        key: 'basemap_name',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_NAME_LABEL',
+        showIf: isCustomBasemap,
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_URL_DESC',
+        key: 'basemap_url',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_URL_LABEL',
+        showIf: isCustomBasemap,
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_URL_DARK_DESC',
+        key: 'basemap_url_dark',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_URL_DARK_LABEL',
+        showIf: isCustomBasemap,
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_DESC',
+        key: 'basemap_attribution',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_LABEL',
+        showIf: isCustomBasemap,
+        type: 'text',
+      },
+    ],
+  },
+  {
     color: '#f44336',
     icon: 'admin_panel_settings',
     labelKey: 'ADMIN_SETTINGS.GROUP_ADMINISTRATION',
@@ -330,6 +435,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
     MatInputModule,
     MatFormFieldModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     MatSnackBarModule,
     MatSlideToggleModule,
     MatDividerModule,
@@ -344,13 +450,17 @@ export const SETTING_GROUPS: SettingGroup[] = [
 })
 export class AdminSettingsComponent implements OnInit {
   private static readonly COLLAPSED_STORAGE_KEY = 'poracle-admin-settings-collapsed';
-
   private readonly allDefinedKeys = new Set([
     ...SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)),
     'uicons_pkmn',
     'uicons_gym',
     'uicons_raid',
     'uicons_reward',
+    'uicons_type',
+    'uicons_invasion',
+    // The pack list itself, which the picker below edits. A stored JSON array, so left undeclared it
+    // would fall through to the "Other" catch-all as a raw text box over the list's own serialization.
+    ICON_REPO_SETTING_KEY,
     // Driven by the Authentication mode switch rather than a generic group row, but still
     // a known key so it doesn't fall through to the "Other" catch-all section.
     'enable_oidc',
@@ -363,6 +473,14 @@ export class AdminSettingsComponent implements OnInit {
     ...RETIRED_KEYS,
     ...PROJECTED_KEYS,
   ]);
+
+  /** The pack root the Pokemon base implies, which is what `isRepoActive` compares against. */
+  private readonly configuredRepoBase = computed(() => {
+    const pkmn = (this.getSettingValue('uicons_pkmn') ?? '').trim().replace(/\/+$/, '');
+    if (!pkmn) return '';
+    const cut = pkmn.lastIndexOf('/');
+    return cut > 0 ? pkmn.slice(0, cut) : '';
+  });
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
@@ -424,68 +542,37 @@ export class AdminSettingsComponent implements OnInit {
     ].some(key => this.i18n.instant(key).toLowerCase().includes(query));
   });
 
-  readonly bulkSaving = signal(false);
+  protected readonly basemap = inject(BasemapService);
 
+  readonly bulkSaving = signal(false);
   readonly collapsedGroups = signal<Set<string>>(AdminSettingsComponent.loadCollapsed());
+
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
-  readonly iconRepos = [
-    {
-      name: 'Whitewillem (Ingame)',
-      base: 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
-    {
-      name: 'Nileplumb (Home)',
-      base: 'https://raw.githubusercontent.com/nileplumb/PkmnHomeIcons/master/UICONS',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
-    {
-      name: 'Nileplumb (Shuffle)',
-      base: 'https://raw.githubusercontent.com/nileplumb/PkmnShuffleMap/master/UICONS',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
-    {
-      name: 'Jms412 (Home)',
-      base: 'https://raw.githubusercontent.com/jms412/PkmnHomeIcons/master/UICONS',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
-    {
-      name: 'Jms412 (Pokedex)',
-      base: 'https://raw.githubusercontent.com/jms412/PkmnPokedexIcons/master/UICONS',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
-  ];
+  /**
+   * The packs on offer, from the `icon_repos` setting rather than from this file.
+   *
+   * It was a hardcoded array of five, which meant removing a repository that had been deleted from
+   * GitHub -- and every instance still pointing at it -- needed a release. See #877.
+   */
+  readonly iconRepos = computed<IconRepo[]>(() => parseIconRepos(this.getSettingValue(ICON_REPO_SETTING_KEY)));
+
+  /**
+   * What the picker renders: the list, plus the pack this instance is actually using when that is
+   * not in the list.
+   *
+   * Derived rather than migrated. An instance configured to a pack nobody listed -- by hand, or by a
+   * list edited afterwards -- would otherwise show no active card at all, which reads as "nothing is
+   * configured" on a site whose icons are working. The extra card cannot be removed, because it is
+   * not an entry; it is what the settings say. It offers to be added to the list instead.
+   */
+  readonly displayedRepos = computed<(IconRepo & { listed: boolean })[]>(() => {
+    const repos = this.iconRepos().map(r => ({ ...r, listed: true }));
+    const configured = this.configuredRepoBase();
+    if (!configured || repos.some(r => r.base === configured)) return repos;
+
+    return [...repos, { name: describeRepoBase(configured), base: configured, listed: false }];
+  });
 
   readonly modifiedSettings = signal<Map<string, string>>(new Map());
 
@@ -506,6 +593,10 @@ export class AdminSettingsComponent implements OnInit {
    * sees. Read-only -- it is Poracle's to set, and writes to it are refused (#780).
    */
   readonly poracleLocale = computed(() => this.settingMap().get('poracle_locale') ?? '');
+
+  readonly repoListFull = computed(() => this.iconRepos().length >= MAX_ICON_REPOS);
+
+  readonly repoPreviews = ICON_REPO_PREVIEWS;
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   readonly settingsLoading = signal(true);
@@ -553,6 +644,20 @@ export class AdminSettingsComponent implements OnInit {
       // Ignore malformed/inaccessible storage.
     }
     return new Set();
+  }
+
+  addRepo(existing: IconRepo | null = null): void {
+    const data: IconRepoDialogData = { existingBases: this.iconRepos().map(r => r.base), repo: existing };
+    this.dialog
+      .open(IconRepoDialogComponent, { width: '520px', data })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: IconRepo | undefined) => {
+        if (!result) return;
+        const repos = this.iconRepos();
+        const at = existing ? repos.findIndex(r => r.base === existing.base) : -1;
+        this.setRepoList(at >= 0 ? repos.map((r, i) => (i === at ? result : r)) : [...repos, result]);
+      });
   }
 
   discardAllModified(): void {
@@ -627,12 +732,18 @@ export class AdminSettingsComponent implements OnInit {
     return meta.key.startsWith('disable_');
   }
 
+  /**
+   * Compares pack roots rather than asking whether the Pokemon base starts with this one. A prefix
+   * test marks two cards active whenever one pack's URL is a prefix of another's, which an operator
+   * adding `.../UICONS` and `.../UICONS-Shuffle` can do by accident.
+   */
   isRepoActive(repo: { base: string }): boolean {
-    const current = (this.getSettingValue('uicons_pkmn') ?? '').toLowerCase();
-    return current.startsWith(repo.base.toLowerCase());
+    const configured = this.configuredRepoBase();
+    return !!configured && configured.toLowerCase() === repo.base.toLowerCase();
   }
 
   isSettingVisible(meta: SettingMeta): boolean {
+    if (meta.showIf && !meta.showIf(key => this.getSettingValue(key) ?? '')) return false;
     if (!meta.showWhen) return true;
     return this.getBool(meta.showWhen);
   }
@@ -716,6 +827,48 @@ export class AdminSettingsComponent implements OnInit {
     this.applyChange(key, value);
   }
 
+  /**
+   * What a dropdown entry is called. The custom basemap answers with the name the admin gave it, so
+   * the option reads as the map it selects rather than as the word "Custom".
+   */
+  optionLabel(option: SettingOption): string {
+    if (option.value === CUSTOM_BASEMAP_ID) {
+      const name = (this.getSettingValue('basemap_name') ?? '').trim();
+      if (name) return name;
+    }
+    return option.labelKey ? this.i18n.instant(option.labelKey) : (option.label ?? '');
+  }
+
+  /**
+   * Take a pack out of the menu.
+   *
+   * This does not unset the `uicons_*` settings, so removing the pack the site is currently using
+   * changes nothing about what renders -- it stops being offered, and reappears as the unlisted
+   * "currently configured" card. Clearing the icon settings from here would blank every icon on the
+   * site as a side effect of tidying a list.
+   */
+  removeRepo(repo: IconRepo): void {
+    const messageKey = this.isRepoActive(repo) ? 'ADMIN_SETTINGS.ICON_REPO_REMOVE_ACTIVE' : 'ADMIN_SETTINGS.ICON_REPO_REMOVE_CONFIRM';
+    const data: ConfirmDialogData = {
+      confirmText: this.i18n.instant('COMMON.DELETE'),
+      message: this.i18n.instant(messageKey, { name: repo.name }),
+      title: this.i18n.instant('ADMIN_SETTINGS.ICON_REPO_REMOVE_TITLE'),
+      warn: true,
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { data })
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((confirmed: boolean | undefined) => {
+        if (confirmed) this.setRepoList(this.iconRepos().filter(r => r.base !== repo.base));
+      });
+  }
+
+  /** Put the built-in list back, for an operator who has edited it into a corner. */
+  restoreDefaultRepos(): void {
+    this.setRepoList(DEFAULT_ICON_REPOS.map(r => ({ ...r })));
+  }
+
   saveAllModified(): void {
     // Enables first. The anti-lockout guard on the server reads the *other* login key from the
     // database, so turning Discord off and Telegram on in one batch failed on whichever request landed
@@ -752,12 +905,23 @@ export class AdminSettingsComponent implements OnInit {
     }
   }
 
+  /**
+   * Point every icon category at one pack.
+   *
+   * Every key IconService reads must be here. It used to write four of five, leaving `uicons_type`
+   * wherever it already was -- which for most instances was the hardcoded default, and that default
+   * pointed at a repository which has since been deleted. The result was a site whose icon settings
+   * looked configured while the Pokemon filter chips rendered nothing. See #877, and
+   * `IconSourceKeys` for the check that keeps the two in step.
+   */
   selectRepo(repo: { base: string }): void {
     const keys: Record<string, string> = {
       uicons_raid: `${repo.base}/raid`,
       uicons_gym: `${repo.base}/gym`,
+      uicons_invasion: `${repo.base}/invasion`,
       uicons_pkmn: `${repo.base}/pokemon`,
       uicons_reward: `${repo.base}/reward`,
+      uicons_type: `${repo.base}/type`,
     };
     for (const [key, value] of Object.entries(keys)) {
       this.applyChange(key, value);
@@ -854,6 +1018,11 @@ export class AdminSettingsComponent implements OnInit {
   /** Whether a pending value would switch a login method off. See #633. */
   private isDisablingLogin(value: unknown): boolean {
     return String(value).toLowerCase() === 'false';
+  }
+
+  /** Stage a new pack list. Saved with everything else, like picking a pack is. */
+  private setRepoList(repos: IconRepo[]): void {
+    this.applyChange(ICON_REPO_SETTING_KEY, serializeIconRepos(repos));
   }
 
   private settingMatches(meta: SettingMeta): boolean {

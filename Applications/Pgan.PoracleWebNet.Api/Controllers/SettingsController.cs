@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ public partial class SettingsController(
     IOptions<TelegramSettings> telegramSettings,
     IOptions<OidcSettings> oidcSettings,
     IUpstreamFeatureFlagService upstreamFlags,
+    ICostumeCapabilityService costumeCapability,
     IConfiguration configuration,
     IPoracleApiProxy poracleApiProxy,
     IMemoryCache cache,
@@ -39,16 +41,24 @@ public partial class SettingsController(
         // only -- the one group that least needs it -- so an admin configuring it saw it work and had no
         // way to tell it was invisible to everyone else. See #513.
         "custom_page_name", "custom_page_url", "custom_page_icon",
-        // Poracle's own locale, synthesized rather than stored -- see GetPoracleLocaleAsync.
-        PoracleLocaleKey,
+        // Poracle's own locale and its alert-language allow-list, synthesized rather than stored --
+        // see GetPoracleProjectionsAsync.
+        PoracleLocaleKey, PoracleAlertLanguagesKey,
     };
 
     /// <summary>
     /// Key families the SPA reads dynamically rather than by literal name: feature gates via
-    /// <c>isDisabled(key)</c> / <c>disabledFeatureGuard</c>, and the uicons URL set. All are
-    /// booleans or public asset URLs.
+    /// <c>isDisabled(key)</c> / <c>disabledFeatureGuard</c>, the uicons URL set, and the basemap
+    /// configuration. All are booleans or public asset URLs.
     /// </summary>
-    private static readonly string[] UserVisibleKeyPrefixes = ["disable_", "enable_", "uicons_"];
+    /// <remarks>
+    /// <c>basemap_key</c> reads like a credential and is the one exception the allowlist has to make:
+    /// it travels in every tile URL the browser requests, so a basemap this server hides from a user
+    /// is a basemap that user cannot load. Withholding it does not protect the key, it just leaves
+    /// every non-admin on the unkeyed provider -- which is how #842's watermark survived its own fix,
+    /// visible to everyone except the admins looking for it.
+    /// </remarks>
+    private static readonly string[] UserVisibleKeyPrefixes = ["basemap_", "disable_", "enable_", "uicons_"];
 
     private static readonly HashSet<string> InternalKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -65,7 +75,34 @@ public partial class SettingsController(
     /// </summary>
     internal const string PoracleLocaleKey = "poracle_locale";
 
-    private const string PoracleLocaleCacheKey = "settings:poracle_locale";
+    /// <summary>
+    /// Pseudo-setting carrying the language codes Poracle will accept for a human's <em>alert</em>
+    /// language, comma-separated, from <c>availableLanguages</c> on <c>GET /api/config/poracleWeb</c>.
+    /// </summary>
+    /// <remarks>
+    /// Absent when Poracle restricts nothing — which covers both an unrestricted 5.2.1 and any server
+    /// too old to report the field — so the SPA reads an absent value as "offer everything". Nothing to
+    /// do with <c>allowed_languages</c>, which is this site's own restriction on the <em>display</em>
+    /// language; the two govern different menus and neither substitutes for the other.
+    /// </remarks>
+    internal const string PoracleAlertLanguagesKey = "poracle_alert_languages";
+
+    /// <summary>
+    /// The admin page's list of icon packs, stored as a JSON array of <c>{ name, base }</c>.
+    /// </summary>
+    /// <remarks>
+    /// Admin-only, deliberately: the SPA renders icons from the six <c>uicons_*</c> bases, so a
+    /// non-admin never needs this and it stays off the user-visible allowlist. It is validated on the
+    /// way in because it is the one setting whose value is a structure rather than a scalar -- a row
+    /// this page cannot parse would take the picker's list away, and the value is written back into
+    /// the <c>uicons_*</c> rows that every image on the site is built from.
+    /// </remarks>
+    internal const string IconReposKey = "icon_repos";
+
+    /// <summary>Generous. The list is a menu, not a catalogue.</summary>
+    private const int MaxIconRepos = 25;
+
+    private const string PoracleProjectionsCacheKey = "settings:poracle_projections";
 
     /// <summary>Matches the shape of a locale tag (<c>de</c>, <c>pt-BR</c>, <c>zh-cn</c>) and nothing else.</summary>
     [GeneratedRegex("^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$")]
@@ -79,6 +116,7 @@ public partial class SettingsController(
     private readonly IUpstreamFeatureFlagService _upstreamFlags = upstreamFlags;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IMemoryCache _cache = cache;
+    private readonly ICostumeCapabilityService _costumeCapability = costumeCapability;
     private readonly ILogger<SettingsController> _logger = logger;
 
     [HttpGet]
@@ -95,7 +133,7 @@ public partial class SettingsController(
             settings = settings.Where(s => IsUserVisible(s.Key));
         }
 
-        return this.Ok(await this.WithPoracleLocaleAsync(settings));
+        return this.Ok(await this.WithPoracleProjectionsAsync(settings));
     }
 
     /// <summary>True when a non-admin may read <paramref name="key"/>.</summary>
@@ -122,13 +160,35 @@ public partial class SettingsController(
         return this.Ok(keys.OrderBy(k => k, StringComparer.Ordinal).ToList());
     }
 
+    /// <summary>
+    /// Whether this deployment's PoracleNG can store the costume filter, per alarm type.
+    /// </summary>
+    /// <remarks>
+    /// Authenticated but not admin-only: the control it gates is an ordinary user control, and the
+    /// pokemon and raid dialogs have to know before an admin ever looks at the server-profile page.
+    /// Both false when PoracleNG is unreachable or predates the columns, which the caller must not be
+    /// able to tell apart. The alarm services refuse an unsupported costume independently, so this says
+    /// what to render, never what is allowed.
+    /// </remarks>
+    [HttpGet("costume-capability")]
+    public async Task<IActionResult> GetCostumeCapability()
+    {
+        var capability = await this._costumeCapability.GetAsync(this.HttpContext.RequestAborted);
+
+        return this.Ok(new
+        {
+            pokemon = capability.Pokemon,
+            raid = capability.Raid,
+        });
+    }
+
     [AllowAnonymous]
     [EnableRateLimiting("auth-read")]
     [HttpGet("public")]
     public async Task<IActionResult> GetPublic()
     {
         var publicSettings = await this._siteSettingService.GetPublicAsync();
-        return this.Ok(await this.WithPoracleLocaleAsync(publicSettings));
+        return this.Ok(await this.WithPoracleProjectionsAsync(publicSettings));
     }
 
     [HttpGet("discord-config")]
@@ -228,14 +288,24 @@ public partial class SettingsController(
             });
         }
 
-        // poracle_locale is a projection of Poracle's config, not a row this page owns. Nothing stopped
-        // it being written, and because a real row wins over the synthesized value, one accidental save
+        // Both of these are projections of Poracle's config, not rows this page owns. Nothing stopped
+        // them being written, and because a real row wins over the synthesized value, one accidental save
         // would have pinned the language default forever and silently stopped tracking Poracle. See #780.
-        if (string.Equals(key, PoracleLocaleKey, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(key, PoracleLocaleKey, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(key, PoracleAlertLanguagesKey, StringComparison.OrdinalIgnoreCase))
         {
             return this.BadRequest(new
             {
-                error = "poracle_locale is read from Poracle's configuration and cannot be set here."
+                error = $"{key} is read from Poracle's configuration and cannot be set here."
+            });
+        }
+
+        if (string.Equals(key, IconReposKey, StringComparison.OrdinalIgnoreCase)
+            && !TryValidateIconRepos(request.Value, out var iconReposError))
+        {
+            return this.BadRequest(new
+            {
+                error = iconReposError
             });
         }
 
@@ -280,58 +350,87 @@ public partial class SettingsController(
     }
 
     /// <summary>
-    /// Appends the Poracle locale pseudo-setting to <paramref name="settings"/>, unless a real row of the
-    /// same key already exists -- an admin-set value wins over what Poracle reports.
+    /// Appends the two Poracle pseudo-settings to <paramref name="settings"/>, each unless a real row of
+    /// the same key already exists -- an admin-set value wins over what Poracle reports.
     /// </summary>
-    private async Task<List<SiteSetting>> WithPoracleLocaleAsync(IEnumerable<SiteSetting> settings)
+    private async Task<List<SiteSetting>> WithPoracleProjectionsAsync(IEnumerable<SiteSetting> settings)
     {
         var list = settings.ToList();
-        if (list.Exists(s => string.Equals(s.Key, PoracleLocaleKey, StringComparison.OrdinalIgnoreCase)))
-        {
-            return list;
-        }
+        var (locale, alertLanguages) = await this.GetPoracleProjectionsAsync();
 
-        var locale = await this.GetPoracleLocaleAsync();
-        if (!string.IsNullOrEmpty(locale))
-        {
-            list.Add(new SiteSetting
-            {
-                Key = PoracleLocaleKey,
-                Value = locale,
-                Category = "branding",
-                ValueType = "string",
-            });
-        }
+        Project(list, PoracleLocaleKey, locale);
+        Project(list, PoracleAlertLanguagesKey, alertLanguages);
 
         return list;
     }
 
-    /// <summary>
-    /// Reads <c>locale</c> from Poracle's config, cached for five minutes. Both the settings endpoints that
-    /// serve it are hit on every page load, and one of them is anonymous, so an uncached read would put a
-    /// PoracleNG roundtrip in front of the login page. A Poracle outage caches a null and the SPA keeps its
-    /// existing stored/browser/<c>en</c> ordering -- the locale is a nicety, never a blocker.
-    /// </summary>
-    private async Task<string?> GetPoracleLocaleAsync()
+    private static void Project(List<SiteSetting> list, string key, string? value)
     {
-        if (this._cache.TryGetValue<string?>(PoracleLocaleCacheKey, out var cached))
+        if (string.IsNullOrEmpty(value)
+            || list.Exists(s => string.Equals(s.Key, key, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        list.Add(new SiteSetting
+        {
+            Key = key,
+            Value = value,
+            Category = "branding",
+            ValueType = "string",
+        });
+    }
+
+    /// <summary>
+    /// Reads Poracle's <c>locale</c> and its alert-language allow-list from one config call, cached for
+    /// five minutes. Both the settings endpoints that serve them are hit on every page load, and one of
+    /// them is anonymous, so an uncached read would put a PoracleNG roundtrip in front of the login page.
+    /// A Poracle outage caches two nulls: the SPA keeps its existing stored/browser/<c>en</c> ordering
+    /// and offers the full alert-language menu, both of which are what an unrestricted server would give
+    /// anyway. Neither value is ever a blocker.
+    /// </summary>
+    private async Task<(string? Locale, string? AlertLanguages)> GetPoracleProjectionsAsync()
+    {
+        if (this._cache.TryGetValue<(string?, string?)>(PoracleProjectionsCacheKey, out var cached))
         {
             return cached;
         }
 
-        string? locale = null;
+        (string? Locale, string? AlertLanguages) projections = (null, null);
         try
         {
             var config = await this._poracleApiProxy.GetConfigAsync();
-            locale = NormalizeLocale(config?.Locale);
+            projections = (NormalizeLocale(config?.Locale), NormalizeAlertLanguages(config?.AvailableLanguages));
         }
         catch (Exception ex)
         {
             LogFetchLocaleFailed(this._logger, ex);
         }
 
-        this._cache.Set(PoracleLocaleCacheKey, locale, TimeSpan.FromMinutes(5));
-        return locale;
+        this._cache.Set(PoracleProjectionsCacheKey, projections, TimeSpan.FromMinutes(5));
+        return projections;
+    }
+
+    /// <summary>
+    /// Renders Poracle's <c>availableLanguages</c> as a comma-separated list, or null when it restricts
+    /// nothing. Null upstream means unrestricted -- an unset and an empty map both report it, because
+    /// Poracle's own write path only validates a non-empty one -- and so does an absent field, which is
+    /// what a server older than 5.2.1 sends. All three are the same answer here: no row, full menu.
+    /// Individual codes are shape-checked and dropped rather than the whole list being discarded.
+    /// </summary>
+    internal static string? NormalizeAlertLanguages(IEnumerable<string>? availableLanguages)
+    {
+        if (availableLanguages is null)
+        {
+            return null;
+        }
+
+        var codes = availableLanguages
+            .Select(NormalizeLocale)
+            .Where(c => !string.IsNullOrEmpty(c))
+            .ToList();
+
+        return codes.Count == 0 ? null : string.Join(',', codes);
     }
 
     /// <summary>
@@ -346,8 +445,85 @@ public partial class SettingsController(
         return !string.IsNullOrEmpty(trimmed) && LocalePattern().IsMatch(trimmed) ? trimmed : null;
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to read Poracle's configured locale")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to read Poracle's configuration for the settings projections")]
     private static partial void LogFetchLocaleFailed(ILogger logger, Exception ex);
+
+    /// <summary>
+    /// Refuses an <c>icon_repos</c> value the admin page could not render, and a <c>base</c> that is
+    /// not an absolute <c>http(s)</c> URL.
+    /// </summary>
+    /// <remarks>
+    /// This bounds the shape rather than listing acceptable hosts. An allowlist of icon hosts would
+    /// refuse the self-hosted pack this feature exists to allow, and the thing actually worth refusing
+    /// is a scheme that is not a URL at all -- the value ends up in <c>uicons_*</c>, which every
+    /// <c>&lt;img src&gt;</c> on the site is built from. Angular's sanitizer would drop a
+    /// <c>javascript:</c> base rather than run it, so this is the second lock, not the only one.
+    /// </remarks>
+    internal static bool TryValidateIconRepos(string? value, out string error)
+    {
+        error = string.Empty;
+
+        // Absent or empty means "no stored list", which the SPA reads as the built-in one. Refusing it
+        // would make the list unresettable.
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        JsonElement root;
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            root = document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            error = $"{IconReposKey} must be a JSON array of {{ name, base }} entries.";
+            return false;
+        }
+
+        if (root.ValueKind != JsonValueKind.Array)
+        {
+            error = $"{IconReposKey} must be a JSON array of {{ name, base }} entries.";
+            return false;
+        }
+
+        if (root.GetArrayLength() > MaxIconRepos)
+        {
+            error = $"{IconReposKey} may hold at most {MaxIconRepos} entries.";
+            return false;
+        }
+
+        foreach (var entry in root.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Object
+                || !entry.TryGetProperty("name", out var name)
+                || !entry.TryGetProperty("base", out var packBase)
+                || name.ValueKind != JsonValueKind.String
+                || packBase.ValueKind != JsonValueKind.String)
+            {
+                error = $"Every {IconReposKey} entry needs a name and a base, both strings.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(name.GetString()) || name.GetString()!.Length > 100)
+            {
+                error = $"Every {IconReposKey} entry needs a name of 1 to 100 characters.";
+                return false;
+            }
+
+            var url = packBase.GetString();
+            if (string.IsNullOrWhiteSpace(url) || url.Length > 500
+                || !Uri.TryCreate(url, UriKind.Absolute, out var parsed)
+                || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
+            {
+                error = $"Every {IconReposKey} base must be an absolute http or https URL of at most 500 characters.";
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public class SiteSettingRequest
     {

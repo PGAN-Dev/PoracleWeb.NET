@@ -22,7 +22,7 @@ Customize the appearance and navigation of your PoracleWeb.NET instance.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `custom_title` | Site Title | string | Name shown in the browser tab and page header. One of the five keys served without authentication, alongside `enable_discord`, `enable_telegram`, `favicon_url` and `signup_url`. |
+| `custom_title` | Site Title | string | Name shown in the browser tab and page header. One of the six keys served without authentication, alongside `allowed_languages`, `enable_discord`, `enable_telegram`, `favicon_url` and `signup_url`. |
 | `header_logo_url` | Header Logo URL | url | URL for a custom logo image in the header (replaces the default Pokeball). Leave empty for the default logo. |
 | `hide_header_logo` | Hide Header Logo | boolean | Hide the logo from the header entirely. |
 | `favicon_url` | Favicon URL | url | URL for the browser-tab icon. Square image recommended (32×32 minimum). Supports `.ico`, `.png`, and `.svg`. Leave empty to use the bundled default. Also loads on the public login page. See [Favicon caveats](#favicon-caveats) below. |
@@ -54,6 +54,7 @@ Control which alarm categories are available to users. Disabling a type hides it
 | `disable_gyms` | Gyms | boolean | Hide gym alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_fort_changes` | Fort Changes | boolean | Hide fort-change alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
 | `disable_maxbattles` | Max Battles | boolean | Hide max-battle alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. |
+| `disable_showcase` | Pokéstop Events | boolean | Hide Showcase, Kecleon and Gold Stop alarms from all users. The page, the sidebar item and the API all go; rules already stored stay dormant and return if you switch it back on. PoracleNG's own `[general] disable_showcase` also forces this off, and a PoracleNG older than 5.2.0 cannot serve the page at all — in either case the three events remain available from the invasion add dialog. |
 
 !!! info "A disabled type disappears completely"
     The sidebar item, the dashboard card and the page all go, and every endpoint for that type answers
@@ -94,6 +95,152 @@ first-time visitor lands on when neither a stored choice nor their browser can a
 from Poracle and cannot be set here — see [Values that are not settings](#values-that-are-not-settings).
 
 ![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
+
+---
+
+## Maps
+
+Which tiles every map on the site draws with: the areas map, the location picker, the geofence
+detail map and the geofence thumbnails.
+
+!!! tip "If you just want working maps, do nothing"
+    A fresh install draws OpenStreetMap without any configuration. Everything below is for choosing
+    something else.
+
+### Settings
+
+| Key | Label | Type | Description |
+|---|---|---|---|
+| `basemap_provider` | Basemap Provider | string | Provider id: `osm`, `esri-street`, `esri-canvas`, `esri-imagery`, `carto-positron`, `carto-voyager`, `stadia-smooth`, or `custom` for your own tile URL. Empty means nothing has been chosen — see [What "not set" means](#what-not-set-means). |
+| `basemap_key` | Basemap API Key | string | API key for the chosen provider. Required by CARTO and Stadia, ignored by the rest. **Not a secret** — see [The key is public](#the-key-is-public). |
+| `basemap_name` | Custom Basemap Name | string | What `custom` is called in the layers menu on each map. Empty renders as "Custom", which tells a viewer nothing about the map they are being offered. Capped at 40 characters and always rendered as text, never as markup. |
+| `basemap_url` | Basemap Tile URL | url | Tile template for `custom`. Must be an absolute `http(s)` URL. Put `{key}` where the provider expects the key; `{s}`, `{z}`, `{x}`, `{y}` and `{r}` are Leaflet's. |
+| `basemap_url_dark` | Basemap Tile URL (Dark) | url | Optional. Used in place of `basemap_url` while a viewer has the dark theme on. |
+| `basemap_attribution` | Basemap Attribution | string | Attribution for `custom`. Rendered as plain text, so a link in it shows as text rather than a link. Built-in providers carry their own and ignore this. |
+
+### Choosing a provider
+
+Pick the provider first. What you fill in after that follows from the pick, and the admin page hides
+the fields that do not apply — so the section never shows you a box with no bearing on your choice.
+
+| Provider | What to fill in |
+|---|---|
+| OpenStreetMap, Esri Streets, Esri Gray Canvas, Esri World Imagery | Nothing. They are keyless and carry their own URL, attribution and zoom limit. |
+| CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API Key**, and nothing else. |
+| Custom tile URL | **Name**, **Tile URL**, optionally a **dark** URL, and **Attribution**. The key field appears only if your URL contains `{key}`. |
+
+Picking a name sets the URL, the attribution and the zoom limit together, so there is one decision
+rather than three chances to get it wrong.
+
+| Id | Provider | Needs a key | Dark variant | Max zoom |
+|---|---|---|---|---|
+| `osm` | OpenStreetMap | no | — | 19 |
+| `esri-street` | Esri Streets | no | — | 19 |
+| `esri-canvas` | Esri Gray Canvas | no | yes | **16** |
+| `esri-imagery` | Esri World Imagery (satellite) | no | — | 19 |
+| `carto-positron` | CARTO Positron | yes | yes (Dark Matter) | 20 |
+| `carto-voyager` | CARTO Voyager | yes | yes (Dark Matter) | 20 |
+| `stadia-smooth` | Stadia Alidade Smooth | yes | yes | 20 |
+
+A provider with no dark variant reuses its light tiles when the theme is dark. Esri Gray Canvas stops
+at zoom 16, which is further out than the location picker usually wants — the map simply will not
+zoom past it while that basemap is active.
+
+A key unlocks every style in the same family, so a CARTO key gives you both CARTO entries. It never
+unlocks another vendor's: one key cannot be a CARTO key and a Stadia key at once, so the styles you
+have no key for are not offered.
+
+### What "not set" means
+
+Leaving the provider empty is a real state, not a missing one — it is what every install configured
+before this setting existed has. It resolves by what else is set:
+
+| Also set | Resolves to | Why |
+|---|---|---|
+| nothing | OpenStreetMap | A provider that needs no key, rather than one that reports a missing key nobody asked for. |
+| `basemap_key` only | CARTO Positron | Before the provider setting existed, a key was the only way to say "use CARTO". Upgrading does not move a working CARTO install onto something else. |
+| `basemap_url` only | Custom | Same reason: a tile URL on its own meant "use this URL". |
+
+The admin page says which of these applies, so you can leave it or make it explicit.
+
+### The key is public
+
+`basemap_key` travels in every tile URL the browser requests, so every signed-in user receives it.
+That is how a client-side basemap works and there is no way around it; restrict the key by referrer
+or domain at the provider rather than trying to hide it.
+
+It is served to non-admins deliberately, under the `basemap_` prefix in the settings allowlist.
+Withholding it would protect nothing and would leave every non-admin looking at a different basemap
+from the admin checking the site.
+
+### When the chosen basemap cannot be drawn
+
+Maps fall back to OpenStreetMap, and both the Maps section and the layers menu say so. Two things
+cause it:
+
+- **The provider needs a key and none is set.** CARTO answers **200** to a keyless request and
+  returns working tiles with `API KEY REQUIRED` drawn into the image, so nothing logs and no health
+  check notices ([#842](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/842)). Rather than serve
+  that, the site does not request it.
+- **The provider cannot be resolved at all** — `custom` with a blank or malformed tile URL, which is
+  what picking it and saving before filling the field leaves behind, or a provider id this build does
+  not know after a downgrade.
+
+Neither produces an error to notice. A URL that is not a tile template is simply never requested.
+
+!!! warning "A wrong key is not detectable"
+    Only a *missing* key can be caught. CARTO answers 200 and watermarks identically whether the key
+    is absent or invalid, so a typo gets you a watermarked map with nothing to report it. If the
+    watermark persists after setting a key, check the key itself.
+
+### Each viewer can choose their own
+
+From the layers button in the top-right corner of any interactive map. The choice is theirs alone and
+is kept in their browser, like the theme and the accent colour. On offer are the keyless built-ins,
+the custom URL if one is set — under the name you gave it — and the keyed styles in whichever family
+your key belongs to.
+
+!!! warning "A viewer's own choice outranks this setting, including yours"
+    The menu's first entry is **Site default**, which names the provider set here and clears the
+    viewer's choice. This matters most for whoever configures the setting: click the layers button
+    once while testing, and every later change to `basemap_provider` will appear to do nothing on
+    your own screen, because you are no longer on the site default. The Maps section says so when it
+    applies to you.
+
+### OpenStreetMap and the referrer
+
+OSM's [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) refuses a request it
+cannot identify, and this site sends `Referrer-Policy: same-origin` so that remote image hosts cannot
+learn where a private instance lives. Refererless tile requests come back **200** with "Access
+blocked" drawn into the image — the CARTO watermark's failure mode wearing a different hat.
+
+So the OpenStreetMap entry sets `referrerPolicy="origin"` on its own tile images: your site's host, no
+path, on map tiles alone. Every other remote request the page makes — uicons, Discord avatars, fonts
+— stays as unidentified as before, and nothing else in the catalogue needs the exception.
+
+Since OpenStreetMap is what an unconfigured install draws, that disclosure is the default. If you
+would rather your instance's address never reached a tile provider, pick one that needs neither a key
+nor a referrer: Esri Streets, Esri Gray Canvas and Esri World Imagery all return the same bytes with
+or without one. OSM also asks that heavy users run their own tiles rather than lean on its
+volunteers, which is worth knowing if your instance is a busy one.
+
+### Custom tile URLs
+
+!!! warning "The CARTO parameter is `key`, not `api_key`"
+    Both spellings return 200 and both watermark, so it is easy to "fix" this and change nothing. The
+    built-in CARTO entries have it right; only a `custom` URL can get it wrong.
+
+!!! note "Custom tile URLs must be HTTPS"
+    The site's Content-Security-Policy allows images from any `https:` origin and nothing over plain
+    `http:`. A custom tile server on `http://` is blocked by the browser with no error on the page —
+    the map simply stays blank.
+
+!!! info "These are the same tiles ReactMap draws"
+    OSM, Satellite and Dark Matter use the URLs from ReactMap's `config/default.json`, and CARTO
+    Voyager uses its `voyager_labels_under` variant, so the same basemap looks the same on both
+    sites. `basemap.service.spec.ts` pins those four URLs against a catalogue edit drifting away from
+    it. The one difference is the key: the CARTO entries here carry one, which is what keeps the
+    watermark off them.
 
 ---
 
@@ -192,26 +339,67 @@ URL is actually read from — the site setting was a duplicate that fed nothing.
 
 ## Icon Repository
 
-Icon URLs are configured via the visual **Icon Repository** picker in the admin settings UI. The picker sets all icon URLs at once from a preset repository. You can also set them individually.
+Icon URLs are configured through the visual **Icon Repository** picker in the admin settings UI. Picking
+a pack writes all six keys at once; you can also set them individually.
 
 | Key | Type | Description |
 |---|---|---|
 | `uicons_pkmn` | url | Base URL for Pokémon icon images. |
 | `uicons_gym` | url | Base URL for gym icon images. |
-| `uicons_raid` | url | Base URL for raid icon images. |
-| `uicons_reward` | url | Base URL for reward/quest icon images. |
-| `uicons_item` | url | Base URL for item icon images. |
-| `uicons_type` | url | Base URL for type icon images. |
+| `uicons_raid` | url | Base URL for raid icon images. Egg icons are read from `raid/egg/`. |
+| `uicons_reward` | url | Base URL for quest reward images. Items are read from `reward/item/`. |
+| `uicons_type` | url | Base URL for Pokémon type icons, used by the filter chips. |
+| `uicons_invasion` | url | Base URL for Team Rocket grunt artwork. |
 
-Built-in icon repositories include:
+All six must point somewhere. They are independent rows, so setting five of them leaves the sixth on
+the built-in default — which is how type icons on a fully configured instance ended up resolving to a
+repository that had been deleted. The picker writes every key precisely so this cannot happen; a
+hand-edited row can still get it wrong.
 
-- **Whitewillem (Ingame)** — In-game style assets
+`uicons_invasion` is new. Grunt icons were built from a base hardcoded in the invasion pages rather
+than read from a setting, so they ignored whichever pack the operator had chosen and went on
+requesting the deleted one. They now come from this key like everything else.
+
+There is no `uicons_item`. Items live under `reward/item/` in every UICONS pack, so the item URL is
+built from `uicons_reward`. A row of that name was read for a while and never used; if your database
+still has one, nothing reads it.
+
+### The pack list
+
+The picker starts with four packs, all in the [UICONS](https://github.com/UIcons/UIcons) format:
+
 - **Nileplumb (Home)** — Pokémon HOME style
 - **Nileplumb (Shuffle)** — Pokémon Shuffle style
-- **Jms412 (Home)** — Alternative HOME style
+- **Jms412 (Home)** — Alternative HOME style, and what an unconfigured install uses
 - **Jms412 (Pokedex)** — Pokédex style
 
-All repositories use the [UICONS](https://github.com/UIcons/UIcons) standard format.
+**The list is editable.** *Add pack* takes a name and the URL of a pack's UICONS folder — the one with
+`pokemon/`, `gym/` and `type/` inside it — and each entry has a pencil and a bin. Your own pack on your
+own network is as valid an entry as a GitHub one; plain `http://` is accepted for exactly that reason.
+
+Adding a pack requires **Check pack** to pass first. It loads one file per category from the URL you
+gave and refuses the pack if any category comes back with nothing, which is the failure this is here
+to prevent: a URL that looks right, saves cleanly, and renders empty squares. It uses image loads
+rather than reading the pack's `index.json`, because that would be a cross-origin request and a pack
+served off your own web server very likely sends no CORS headers — refusing it would be refusing
+something that works.
+
+**Removing a pack does not change your icon settings.** If you remove the pack the site is currently
+using, the icons carry on exactly as they were; the pack simply stops being offered, and reappears as
+a card marked *In use* that you can add back. The same card shows up when an instance is pointed at a
+pack that was never in the list, so a hand-configured instance does not look unconfigured.
+
+*Restore built-in list* puts the four back. An empty list stays empty — it is a choice, not a missing
+value — so the four do not creep back on the next page load.
+
+The list is stored in the `icon_repos` setting as a JSON array of `{ name, base }`. It is admin-only,
+and the API refuses a value it could not render: a base must be an absolute `http` or `https` URL, and
+the list holds at most 25 entries.
+
+**Whitewillem (Ingame) was removed**: the `whitewillem/PogoAssets` repository no longer exists on
+GitHub. It was both the first entry in this list and the source of every built-in default, so an
+instance that had never touched these settings was pointing at a dead host. That removing it took a
+release is why the list is editable now. See #877.
 
 ---
 
@@ -237,12 +425,14 @@ another system's configuration, present so the SPA can read them like any other 
 | Key | Source | What it is |
 |---|---|---|
 | `poracle_locale` | Poracle's `general.locale` | The language a first-time visitor lands on, when neither a stored choice nor their browser can answer. See [Internationalization](../features/internationalization.md). |
+| `poracle_alert_languages` | `availableLanguages` on Poracle's `/api/config/poracleWeb` | The language codes Poracle will accept for a user's *alert* language, comma-separated. Absent when Poracle restricts nothing, which is also what a server too old to report the field sends — the SPA reads absent as "offer everything". Nothing to do with `allowed_languages`, which restricts the *display* language. |
 
-A projection is read fresh from Poracle, cached briefly, and **cannot be written**. `PUT /api/settings/poracle_locale`
-answers 400, and the admin page renders the value as a read-only line under Allowed UI Languages
-rather than as an editable box. The refusal matters more than it looks: a stored row would take
-precedence over the projected value, so a single accidental save would pin the language default
-permanently and stop the site tracking Poracle's configuration at all.
+Both are read fresh from Poracle on one config call, cached five minutes, and **cannot be written**.
+`PUT /api/settings/poracle_locale` and `PUT /api/settings/poracle_alert_languages` answer 400, and the
+admin page renders the locale as a read-only line under Allowed UI Languages rather than as an editable
+box. The refusal matters more than it looks: a stored row would take precedence over the projected
+value, so a single accidental save would pin the language default permanently and stop the site
+tracking Poracle's configuration at all.
 
 There is also `GET /api/settings/upstream-disabled`, which lists the `disable_*` keys Poracle's own
 config is forcing off. Any signed-in user can read it — the nav and the route guards need it — and it
@@ -267,7 +457,8 @@ UI groups but **are** readable by admins through the API. Prefer configuring the
 Neither the scanner keys nor the Cloudflare pair appear in `SettingsMigrationService.CategoryMap`, so rows migrated from `pweb_settings` land in the catch-all `other` category.
 
 `GET /api/settings` decides what a non-admin sees with an **allowlist**, not a denylist: the exact keys
-in `SettingsController.UserVisibleKeys` plus anything beginning `disable_`, `enable_` or `uicons_`.
+in `SettingsController.UserVisibleKeys` plus anything beginning `basemap_`, `disable_`, `enable_` or
+`uicons_`.
 Everything else is admin-only. That direction matters — the previous denylist named a key `scan_db`
 that matches no real row and never mentioned `cf_id` / `cf_secret`, so a scanner password and a
 Cloudflare token were served to every signed-in session. With an allowlist, a new credential key is

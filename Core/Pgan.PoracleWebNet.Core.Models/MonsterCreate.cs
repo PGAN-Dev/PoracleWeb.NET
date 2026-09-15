@@ -130,6 +130,12 @@ public class MonsterCreate
         get; set;
     }
 
+    // 9000 = any costume, 0 = no costume, N = that costume. The range refuses only the genuinely
+    // impossible rather than allowlisting the costume ids that exist today -- the next event ships a
+    // new one and an allowlist would refuse it on day one.
+    [Range(0, int.MaxValue)]
+    public int Costume { get; set; } = 9000;
+
     // Seconds of remaining despawn time. A pokemon spawn lasts an hour at the very most, and a value
     // above its lifetime is a rule that can never match.
     [Range(0, 3600)]

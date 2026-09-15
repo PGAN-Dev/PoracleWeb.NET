@@ -4,12 +4,12 @@ template: home.html
 
 # PoracleWeb.NET
 
-A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids, Quests, Invasions, Lures, Nests, Gyms) through a browser-based UI.
+A web application for managing Pokemon GO notification alarms through the [PoracleNG](https://github.com/jfberry/PoracleNG) bot. Users authenticate via Discord OAuth2 or Telegram and configure personalized alert filters (Pokemon, Raids and Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, Fort Changes) through a browser-based UI.
 
 !!! warning "PoracleNG is required"
     All alarm management, profile handling, and user operations are proxied through PoracleNG's REST API. [PoracleJS](https://github.com/KartulUdus/PoracleJS) is not a tested or supported configuration — some operations that rely on PoracleNG-specific endpoints will not work.
 
-    **PoracleNG 5.1.0 or newer is required.** Older servers have no column to store per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without complaint and change nothing. PoracleWeb logs an error at startup when it finds an older server, and reports the version on Admin → Settings.
+    **PoracleNG 5.1.0 or newer is required.** Older servers have no column to store per-alarm delivery scope, the PVP mega evolution filter or the minimum time-left filter, so those three controls save without complaint and change nothing. PoracleWeb logs an error at startup when it finds an older server, and reports the version on Admin → Settings. Which features need a newer server than that, and how support is decided, is in [PoracleNG Version Compatibility](architecture/poracleng-compatibility.md).
 
 ## Tech Stack
 
@@ -23,8 +23,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 ## Features
 
-- **Alarm Management** — Create, edit, and delete filters for Pokemon, Raids, Max Battles, Quests, Invasions, Lures, Nests, Gyms, and Fort Changes
-- **Gym Picker** — Search and target specific gyms for team, raid, and egg alarms with photo thumbnails and area names
+- **Alarm Management** — Create, edit, and delete filters for Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms, and Fort Changes
+- **Gym Picker** — Search and target specific gyms for team, raid, and egg alarms with photo thumbnails and area names (requires the scanner database)
 - **Pokemon Availability** — See which species are currently spawning when creating alarms (requires Golbat scanner)
 - **Bulk Operations** — Multi-select alarms with bulk delete and bulk distance update
 - **Alert Defaults** — Set where new alerts reach you by default: your areas, or a radius from your pin or a saved place
@@ -46,8 +46,10 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 - **Single Sign-On** — Discord and Telegram login, plus any OIDC provider ([setup](configuration/external-sso.md)), with optional [silent refresh and single logout](configuration/oidc-refresh-tokens.md)
 - **Admin Panel** — User management, webhook configuration, site settings, geofence submission review
 - **[Webhooks & Delegates](features/webhooks.md)** — Channel feeds managed as their own accounts, with named people allowed to manage one without being made an administrator
-- **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes and Max Battles)
-- **Weather Display** — View current in-game weather at your pin and across all tracked areas on the dashboard
+- **Test Alerts** — Send a sample notification from an alarm card to preview exactly what your alerts look like (all types except Fort Changes, Max Battles and Pokéstop Events)
+- **Weather Display** — View current in-game weather at your pin and across all tracked areas on the dashboard (requires the scanner database)
+- **[Quiet Periods](features/quiet-periods.md)** — Silence one gym, area, species or Power Spot for a set time without touching the alarms themselves (needs PoracleNG 5.2.0)
+- **Pokéstop Events** — Track Showcases, Kecleon sightings and Gold Stops (governed by Poracle's own `general.disable_showcase`, not by a version check — a Poracle that does not publish that option does not get the page)
 - **Fort Change Tracking** — Get notified when pokestops or gyms are added, removed, renamed, relocated, re-described, or given a new image
 - **Max Battle (Dynamax) Alarms** — Track Dynamax and Gigantamax battles at Power Spots by level or specific Pokemon
 - **GeoJSON Import/Export** — Import and export custom geofences in standard GeoJSON format
@@ -58,13 +60,14 @@ A web application for managing Pokemon GO notification alarms through the [Porac
 
 | Requirement | Version | Purpose |
 |---|---|---|
-| MySQL | 5.7+ or 8.0+ | Poracle database (existing Poracle installation) |
+| MySQL or MariaDB | Whatever your Poracle installation runs | The Poracle database from your existing Poracle installation, plus a second `poracle_web` database this application creates its own tables in |
 | Poracle | [PoracleNG](https://github.com/jfberry/PoracleNG) 5.1.0 or newer | Running instance with REST API enabled. All alarm, profile, and user operations are proxied through PoracleNG's REST API. PoracleJS is not a tested configuration. |
 | Discord App | — | OAuth2 application for user authentication |
-| Koji | — | Geofence management server (required for custom geofences feature) |
+| Koji | — | Geofence server. Supplies the admin areas in the unified geofence feed and receives user geofences an admin approves. Drawing a private geofence still works while Koji is unreachable |
 | .NET SDK | 10.0 | Backend development (not needed for Docker) |
 | Node.js | 22+ | Frontend development (not needed for Docker) |
-| Docker | 20+ | Production deployment |
+| Scanner DB | — | Optional. Powers the gym picker and the weather display; both hide themselves when it is not configured |
+| Docker | Engine with the Compose V2 plugin (`docker compose`) | Production deployment |
 
 ## Quick Links
 
@@ -95,6 +98,8 @@ A web application for managing Pokemon GO notification alarms through the [Porac
     Solution structure, backend and frontend patterns
 
     [:octicons-arrow-right-24: Architecture Overview](architecture/overview.md)
+
+    [:octicons-arrow-right-24: PoracleNG Version Compatibility](architecture/poracleng-compatibility.md)
 
 -   :material-map-marker-radius:{ .lg .middle } **Custom Geofences**
 

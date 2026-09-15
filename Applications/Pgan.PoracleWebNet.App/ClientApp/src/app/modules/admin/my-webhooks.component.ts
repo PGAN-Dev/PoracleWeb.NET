@@ -39,6 +39,8 @@ export class MyWebhooksComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   readonly columns = ['name', 'url', 'status', 'actions'];
+  /** One slot holds the pre-impersonation token, so a second hop would strand the caller. See #797. */
+  readonly isImpersonating = this.auth.isImpersonating;
   readonly loading = signal(true);
   readonly webhooks = signal<AdminUser[]>([]);
 
@@ -53,13 +55,15 @@ export class MyWebhooksComponent implements OnInit {
       });
   }
 
+  /**
+   * The rows come back scoped to the caller, so they are rendered as they arrive.
+   *
+   * They used to be intersected with `auth.managedWebhooks()` first, which turned any disagreement
+   * between the two lists into an empty table with no error -- the shape of #797, where the server
+   * resolved a name-keyed grant to a webhook the client's copy of the list still named by name.
+   * The second filter could only ever subtract from an already-authorised set.
+   */
   ngOnInit(): void {
-    const managedIds = this.auth.managedWebhooks();
-    if (managedIds.length === 0) {
-      this.loading.set(false);
-      return;
-    }
-
     this.adminService
       .getManagedWebhooks()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -69,7 +73,7 @@ export class MyWebhooksComponent implements OnInit {
           this.snackBar.open(this.i18n.instant('ADMIN.SNACK_FAILED_LOAD_WEBHOOKS'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: users => {
-          this.webhooks.set(users.filter(u => managedIds.includes(u.id)));
+          this.webhooks.set(users);
           this.loading.set(false);
         },
       });

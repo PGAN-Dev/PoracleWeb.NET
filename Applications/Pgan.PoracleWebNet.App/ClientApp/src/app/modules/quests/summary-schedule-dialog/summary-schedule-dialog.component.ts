@@ -5,10 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { catchError, finalize, of } from 'rxjs';
 
-import { ActiveHourEntry, compressDayRange, formatTime12h, groupActiveHours } from '../../../core/models/active-hours.models';
+import { ActiveHourEntry, formatRuleLabel, groupActiveHours } from '../../../core/models/active-hours.models';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LocationService } from '../../../core/services/location.service';
 import { SummarySchedule, SummaryScheduleService } from '../../../core/services/summary-schedule.service';
@@ -52,6 +52,7 @@ export class SummaryScheduleDialogComponent {
   private readonly locationService = inject(LocationService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly summaryService = inject(SummaryScheduleService);
+  private readonly translate = inject(TranslateService);
 
   readonly coolingDown = computed(() => Date.now() < this.cooldownUntil());
 
@@ -64,7 +65,7 @@ export class SummaryScheduleDialogComponent {
   readonly loading = signal(true);
   /** Grouped amber pills mirroring the active-hours-chip idiom. */
   readonly pills = computed(() =>
-    groupActiveHours(this.entries()).map(g => ({ label: `${compressDayRange(g.days)} ${formatTime12h(g.hours, g.mins)}` })),
+    groupActiveHours(this.entries()).map(g => ({ label: formatRuleLabel(g, (key, params) => this.translate.instant(key, params)) })),
   );
 
   readonly saving = signal(false);

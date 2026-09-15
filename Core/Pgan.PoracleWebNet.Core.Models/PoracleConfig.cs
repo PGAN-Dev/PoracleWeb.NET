@@ -6,6 +6,13 @@ public class PoracleConfig
 {
     public string Locale { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The prefix the Poracle bot's commands take, e.g. <c>$!</c> or <c>!</c>. Needed because the only
+    /// way a user can clear the bot's DMs is to send it <c>{prefix}poracle-clean</c>, and telling them
+    /// the wrong prefix is worse than telling them nothing.
+    /// </summary>
+    public string Prefix { get; set; } = string.Empty;
+
     [JsonPropertyName("providerURL")]
     public string ProviderUrl { get; set; } = string.Empty;
 
@@ -68,6 +75,36 @@ public class PoracleConfig
     /// enforced upstream but never appears here.
     /// </remarks>
     public List<string>? DisabledHooks
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// The exact set of language codes Poracle will accept for a human's alert language, as reported by
+    /// <c>availableLanguages</c> on <c>GET /api/config/poracleWeb</c>.
+    /// </summary>
+    /// <remarks>
+    /// <c>null</c> means unrestricted — any code is accepted. Upstream reports null for an unset and an
+    /// empty map alike, because its own write path only validates a non-empty one, so the two are
+    /// genuinely the same answer. Use <see cref="ReportsAvailableLanguages"/>, not this, to tell whether
+    /// the server said anything at all. Added in PoracleNG 5.2.1 (jfberry/PoracleNG#197).
+    /// </remarks>
+    public List<string>? AvailableLanguages
+    {
+        get; set;
+    }
+
+    /// <summary>
+    /// True when the response carried an <c>availableLanguages</c> field, whatever its value.
+    /// </summary>
+    /// <remarks>
+    /// Doubles as this application's "is the server 5.2.1 or later" test. The field arrived in the same
+    /// release that added <c>fort</c> to <c>disabledHooks</c>, and unlike the hook array its presence is
+    /// unambiguous: an empty <c>disabledHooks</c> could mean either "nothing is disabled" or "too old to
+    /// say", whereas an absent field can only mean the latter. See
+    /// <c>UpstreamFeatureFlagService.ProbeAsync</c>.
+    /// </remarks>
+    public bool ReportsAvailableLanguages
     {
         get; set;
     }

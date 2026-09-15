@@ -232,4 +232,44 @@ public class PoracleServerProfileTests
         Assert.Empty(profile.Capabilities);
         Assert.True(profile.IsBelowMinimum);
     }
+
+    [Fact]
+    public async Task ManyCallersArrivingOnAColdCacheProbeOnce()
+    {
+        // AddHttpClient registers this transient, so every caller gets its own instance and the cache is
+        // the only thing they share. A dashboard load fires several version-gated tracking writes at
+        // once; without the gate each of them misses the same empty cache and runs its own /health GET
+        // and schema_migrations SELECT.
+        var probes = 0;
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async () =>
+            {
+                // Slow enough that every caller is genuinely in flight before the first one answers.
+                Interlocked.Increment(ref probes);
+                await Task.Delay(50);
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(HealthyResponse) };
+            });
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Poracle:ApiAddress"] = "http://poracle:3030" })
+            .Build();
+        var shared = new MemoryCache(new MemoryCacheOptions());
+
+        PoracleServerProfileService Instance() => new(
+            new HttpClient(handler.Object),
+            this._schema.Object,
+            shared,
+            configuration,
+            NullLogger<PoracleServerProfileService>.Instance);
+
+        var results = await Task.WhenAll(
+            Enumerable.Range(0, 8).Select(_ => Task.Run(() => Instance().GetAsync())));
+
+        Assert.Equal(1, probes);
+        this._schema.Verify(r => r.GetAppliedMigrationAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.All(results, profile => Assert.Equal("5.1.0", profile.Version));
+    }
 }

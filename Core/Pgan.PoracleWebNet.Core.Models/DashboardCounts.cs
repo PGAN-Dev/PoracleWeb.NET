@@ -45,4 +45,10 @@ public class DashboardCounts
     {
         get; set;
     }
+
+    /// <summary>Showcase, Kecleon and Gold Stop alarms. Upstream calls the type <c>incident</c>.</summary>
+    public int PokestopEvents
+    {
+        get; set;
+    }
 }

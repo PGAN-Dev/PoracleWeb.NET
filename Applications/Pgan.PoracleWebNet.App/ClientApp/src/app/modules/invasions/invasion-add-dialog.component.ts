@@ -14,12 +14,14 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, forkJoin, of } from 'rxjs';
 
-import { getGruntDisplayName, isGenderFixed, UICONS_BASE } from './invasion.constants';
+import { getGruntDisplayName, isGenderFixed } from './invasion.constants';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -66,8 +68,8 @@ interface GruntOption {
   templateUrl: './invasion-add-dialog.component.html',
 })
 export class InvasionAddDialogComponent implements OnInit {
-  private static readonly EVENT_TYPES: { color: string; icon: string; imgUrl?: string; key: string }[] = [
-    { color: '#B3CA78', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png`, key: 'kecleon' },
+  private static readonly EVENT_TYPES: { color: string; icon: string; imgPath?: string; key: string }[] = [
+    { color: '#B3CA78', icon: 'visibility_off', imgPath: 'pokemon/352.png', key: 'kecleon' },
     { color: '#F9E418', icon: 'paid', key: 'gold-stop' },
     { color: '#03AEB6', icon: 'emoji_events', key: 'showcase' },
   ];
@@ -112,8 +114,11 @@ export class InvasionAddDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
 
   private readonly i18n = inject(I18nService);
+
+  private readonly icons = inject(IconService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<InvasionAddDialogComponent>);
   gruntOptions = signal<GruntOption[]>([]);
@@ -163,9 +168,9 @@ export class InvasionAddDialogComponent implements OnInit {
 
   getGruntIcon(grunt: GruntOption): string {
     if (grunt.typeId > 0) {
-      return `${UICONS_BASE}/type/${grunt.typeId}.png`;
+      return this.icons.getTypeUrlById(grunt.typeId);
     }
-    return `${UICONS_BASE}/invasion/${grunt.invasionId}.png`;
+    return this.icons.getInvasionUrl(grunt.invasionId);
   }
 
   getGruntLabel(grunt: GruntOption): string {
@@ -178,14 +183,21 @@ export class InvasionAddDialogComponent implements OnInit {
       isEvent: false,
       selected: false,
     }));
-    const events: GruntOption[] = InvasionAddDialogComponent.EVENT_TYPES.map(e => ({
-      ...e,
-      gruntType: e.key,
-      invasionId: 0,
-      isEvent: true,
-      selected: false,
-      typeId: 0,
-    }));
+    // Pokestop events have their own page now, and their rows are filtered out of the invasion list
+    // to match. But that split only happens where the page exists: on a PoracleNG too old to serve
+    // it, or with disable_showcase set, this dialog is still the only way to track a Showcase, and
+    // the rows it makes still appear in the invasion list. Keep it in that case, or the feature
+    // disappears entirely for those servers.
+    const events: GruntOption[] = this.settings.isDisabled('disable_showcase')
+      ? InvasionAddDialogComponent.EVENT_TYPES.map(e => ({
+          ...e,
+          gruntType: e.key,
+          invasionId: 0,
+          isEvent: true,
+          selected: false,
+          typeId: 0,
+        }))
+      : [];
     this.gruntOptions.set([...grunts, ...events]);
   }
 

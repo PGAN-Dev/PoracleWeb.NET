@@ -144,6 +144,17 @@ export class App implements OnInit {
       route: '/invasions',
     },
     {
+      // Directly after Invasions: showcases used to live in that dialog, so this is where a user
+      // who remembers them will look.
+      countKey: 'pokestopEvents',
+      disableKey: 'disable_showcase',
+      group: 'alarms',
+      icon: 'celebration',
+      iconColor: '#03aeb6',
+      label: 'NAV.POKESTOP_EVENTS',
+      route: '/pokestop-events',
+    },
+    {
       countKey: 'lures',
       disableKey: 'disable_lures',
       group: 'alarms',
@@ -348,6 +359,11 @@ export class App implements OnInit {
         // have been the obvious source for the locale and is [Authorize] -- see #426.
         const settings = this.settingsService.siteSettings();
         this.i18n.init(settings['allowed_languages'], settings['poracle_locale']);
+        // A different restriction on a different menu: allowed_languages is this site's own list for the
+        // display language, poracle_alert_languages is what Poracle will accept for the alert language.
+        // Absent means unrestricted -- both from a Poracle that restricts nothing and from one too old
+        // to report the field.
+        this.alertLanguage.restrictTo(settings['poracle_alert_languages']);
       },
     });
 

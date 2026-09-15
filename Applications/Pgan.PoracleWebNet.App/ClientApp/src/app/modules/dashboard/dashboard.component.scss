@@ -74,6 +74,12 @@
   background: #e8f5e9;
   color: #2e7d32;
 }
+
+// The same amber the active-hours chip uses for "scheduled, and temporary".
+.quiet-icon {
+  background: #fef3c7;
+  color: #92400e;
+}
 .profile-icon {
   background: #f3e5f5;
   color: #7b1fa2;
@@ -471,6 +477,14 @@
 .card-gyms .card-icon-wrap {
   background: rgba(0, 188, 212, 0.12);
   color: #00bcd4;
+}
+.card-pokestop-events {
+  border-left-color: #03aeb6;
+  background: rgba(3, 174, 182, 0.04) !important;
+}
+.card-pokestop-events .card-icon-wrap {
+  background: rgba(3, 174, 182, 0.12);
+  color: #03aeb6;
 }
 .card-fort-changes {
   border-left-color: #795548;

@@ -1,0 +1,21 @@
+.quiet-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+// Wraps to two rows below about 360px, which is the only mobile-specific behaviour this needs -- the
+// dialog is already near-full-width at that size.
+.quiet-durations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.quiet-volatility {
+  color: var(--mat-sys-on-surface-variant, rgb(0 0 0 / 60%));
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  margin: 0;
+}

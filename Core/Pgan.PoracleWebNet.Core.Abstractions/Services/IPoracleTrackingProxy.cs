@@ -24,6 +24,46 @@ public interface IPoracleTrackingProxy
     public Task<TrackingCreateResult> CreateAsync(string type, string userId, JsonElement body);
 
     /// <summary>
+    /// Replaces one existing tracking alarm, addressed by its uid.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <paramref name="body"/> is a single v1-shaped alarm object — the same shape every alarm service
+    /// already builds, and the same shape <c>TrackingFieldPreserver</c> and <c>TrackingUpdateReconciler</c>
+    /// compare. Which PoracleNG surface it is written through is the proxy's business, not the caller's.
+    /// </para>
+    /// <para>
+    /// On PoracleNG 5.2.0 and later this is <c>PUT /api/v2/humans/{id}/tracking/{type}/{uid}</c>: scoped by
+    /// (human, uid), 404 when the uid is not theirs, 409 when the replacement would duplicate another rule,
+    /// and — because the engine is delete-then-insert — a NEW uid on the way back. On anything older it is
+    /// the v1 create-carrying-a-uid that PoracleWeb has always sent, byte for byte.
+    /// </para>
+    /// </remarks>
+    /// <returns>The uid the rule now lives under, which may differ from <paramref name="uid"/>.</returns>
+    public Task<Pgan.PoracleWebNet.Core.Models.TrackingUpdateResult> UpdateByUidAsync(
+        string type, string userId, int uid, System.Text.Json.JsonElement body);
+
+    /// <summary>
+    /// Full-replaces one existing tracking alarm through <c>/api/v2</c>, or answers null when that surface
+    /// cannot be used for this write.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null is the ordinary answer, not a fault: the type has no v2 field table, the operator pinned v1,
+    /// the server does not carry the route, or the row holds something v2 could not be told faithfully
+    /// (see <c>TrackingV2Translator</c>). The caller then takes its own v1 path, which is why this is
+    /// separate from <see cref="UpdateByUidAsync"/> — every alarm service wraps its v1 update in guards
+    /// and repairs that the v2 PUT makes unnecessary, and those have to be skipped as a unit rather than
+    /// run against a write that already happened.
+    /// </para>
+    /// <para>
+    /// <paramref name="body"/> is the same single v1-shaped alarm object every other write takes.
+    /// </para>
+    /// </remarks>
+    public Task<Pgan.PoracleWebNet.Core.Models.TrackingUpdateResult?> TryReplaceV2Async(
+        string type, string userId, int uid, System.Text.Json.JsonElement body);
+
+    /// <summary>
     /// Deletes a single tracking alarm by UID.
     /// Maps to DELETE /api/tracking/{type}/{userId}/byUid/{uid}
     /// </summary>

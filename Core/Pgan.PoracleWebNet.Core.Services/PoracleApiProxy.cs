@@ -143,6 +143,26 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
             }
         }
 
+        if (root.TryGetProperty("availableLanguages", out var availableLanguages))
+        {
+            // Presence is the signal, value is the restriction. Absent means a PoracleNG older than
+            // 5.2.1; present-and-null means present-and-unrestricted, which upstream reports for an
+            // unset and an empty map alike.
+            config.ReportsAvailableLanguages = true;
+
+            if (availableLanguages.ValueKind == JsonValueKind.Array)
+            {
+                config.AvailableLanguages = [];
+                foreach (var code in availableLanguages.EnumerateArray())
+                {
+                    if (code.ValueKind == JsonValueKind.String && code.GetString() is { Length: > 0 } value)
+                    {
+                        config.AvailableLanguages.Add(value);
+                    }
+                }
+            }
+        }
+
         if (root.TryGetProperty("admins", out var admins))
         {
             config.Admins = new PoracleAdmins();
@@ -222,6 +242,10 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     public Task<bool?> GetFortUpdateDisabledAsync() =>
         this.ReadConfigValueBoolAsync("general", "disable_fort_update");
 
+    /// <inheritdoc />
+    public Task<bool?> GetShowcaseDisabledAsync() =>
+        this.ReadConfigValueBoolAsync("general", "disable_showcase");
+
     /// <summary>
     /// Reads a single boolean out of <c>GET /api/config/values</c>, whose body is shaped
     /// <c>{ "values": { "&lt;section&gt;": { "&lt;key&gt;": true } } }</c>. Returns <c>null</c> when the
@@ -248,33 +272,11 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
         return null;
     }
 
-    public async Task<string?> GetAreasAsync(string userId)
-    {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/humans/{userId}");
-        var response = await this._httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
-    }
-
     public async Task<string?> GetTemplatesAsync()
     {
         var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/config/templates");
         var response = await this._httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
-    }
-
-    public async Task<string?> GetAdminRolesAsync(string userId)
-    {
-        var request = this.CreateRequest(HttpMethod.Get,
-            $"{this._apiAddress}/api/humans/{userId}/getAdministrationRoles");
-        var response = await this._httpClient.SendAsync(request);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
         return await response.Content.ReadAsStringAsync();
     }
 

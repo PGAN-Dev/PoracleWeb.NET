@@ -54,10 +54,9 @@ interface ProfileGroup {
   totalAlarms: number;
 }
 
-interface DuplicateInfo {
-  alarm: ProfileOverviewAlarm;
-  profileNames: string[];
-  type: string;
+/** Alarm identity across types. Poracle numbers each tracking table separately, so uid alone is ambiguous. */
+function duplicateKey(type: string, uid: number): string {
+  return `${type}:${uid}`;
 }
 
 @Component({
@@ -111,43 +110,18 @@ export class ProfileOverviewComponent implements OnInit {
 
   readonly overview = signal<ProfileOverview | null>(null);
 
-  readonly duplicates = computed<DuplicateInfo[]>(() => {
-    const data = this.overview();
-    if (!data) return [];
-
-    const duplicates: DuplicateInfo[] = [];
-    const profileMap = new Map(data.profile.map(p => [p.profile_no, p.name]));
-
-    for (const type of this.alarmTypes) {
-      const alarms = (data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
-      const keyMap = new Map<string, ProfileOverviewAlarm[]>();
-
-      for (const alarm of alarms) {
-        const key = this.getAlarmKey(alarm, type.key);
-        const existing = keyMap.get(key) ?? [];
-        existing.push(alarm);
-        keyMap.set(key, existing);
-      }
-
-      for (const [, group] of keyMap) {
-        if (group.length > 1) {
-          duplicates.push({
-            alarm: group[0],
-            profileNames: group.map(a => profileMap.get(a.profile_no) ?? `Profile ${a.profile_no}`),
-            type: type.key,
-          });
-        }
-      }
-    }
-
-    return duplicates;
-  });
-
-  readonly duplicateUids = computed<Set<number>>(() => {
+  /// <summary>Every alarm that shares its identity with another, keyed type-first.</summary>
+  /// <remarks>
+  /// Keyed `type:uid` rather than by uid alone because Poracle's uids are per-table and collide freely:
+  /// production carries 46 uids shared between monsters and quest, and 14 between monsters and raid. A
+  /// uid-only set tagged a raid rule as duplicated because some unrelated Pokemon rule happened to share
+  /// its number, and the duplicates filter then listed rules that were not duplicates of anything.
+  /// </remarks>
+  readonly duplicateKeys = computed<Set<string>>(() => {
     const data = this.overview();
     if (!data) return new Set();
 
-    const uidSet = new Set<number>();
+    const keys = new Set<string>();
 
     for (const type of this.alarmTypes) {
       const alarms = (data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
@@ -163,13 +137,13 @@ export class ProfileOverviewComponent implements OnInit {
       for (const [, group] of keyMap) {
         if (group.length > 1) {
           for (const alarm of group) {
-            uidSet.add(alarm.uid);
+            keys.add(duplicateKey(type.key, alarm.uid));
           }
         }
       }
     }
 
-    return uidSet;
+    return keys;
   });
 
   readonly expandedProfiles = signal(new Set<number>());
@@ -184,7 +158,9 @@ export class ProfileOverviewComponent implements OnInit {
     const overviewProfiles = data?.profile ?? [];
     const profileList: ProfileOverviewProfile[] = managed.map(mp => {
       const op = overviewProfiles.find(p => p.profile_no === mp.profileNo);
-      return op ?? { id: '', name: mp.name ?? `Profile ${mp.profileNo}`, profile_no: mp.profileNo };
+      return (
+        op ?? { id: '', name: mp.name ?? this.i18n.instant('PROFILES.PROFILE_NUM', { number: mp.profileNo }), profile_no: mp.profileNo }
+      );
     });
 
     // Add any profiles from overview that aren't in managed (shouldn't happen, but be safe)
@@ -223,7 +199,7 @@ export class ProfileOverviewComponent implements OnInit {
     const search = this.searchTerm().toLowerCase();
     const typeFilter = this.selectedType();
     const dupsOnly = this.showDuplicatesOnly();
-    const dupUids = dupsOnly ? this.duplicateUids() : null;
+    const dupKeys = dupsOnly ? this.duplicateKeys() : null;
     const allProfiles = this.profiles();
 
     return allProfiles
@@ -235,7 +211,7 @@ export class ProfileOverviewComponent implements OnInit {
           if (typeFilter && type !== typeFilter) continue;
 
           let matchingAlarms = search ? alarms.filter(a => this.alarmMatchesSearch(a, type, search)) : alarms;
-          if (dupUids) matchingAlarms = matchingAlarms.filter(a => dupUids.has(a.uid));
+          if (dupKeys) matchingAlarms = matchingAlarms.filter(a => dupKeys.has(duplicateKey(type, a.uid)));
 
           if (matchingAlarms.length > 0) {
             filtered.set(type, matchingAlarms);
@@ -272,7 +248,7 @@ export class ProfileOverviewComponent implements OnInit {
     }
 
     return {
-      duplicateCount: this.duplicates().length,
+      duplicateCount: this.duplicateKeys().size,
       profileCount: data.profile.length,
       totalAlarms,
       typeCounts,
@@ -350,6 +326,23 @@ export class ProfileOverviewComponent implements OnInit {
           });
       }
     });
+  }
+
+  /**
+   * What the duplicate tag says when you hover it.
+   *
+   * A rule can be duplicated entirely inside one profile -- 36 identical Pokemon rules on a single
+   * profile is a real account on this instance -- and `getDuplicateProfiles` reports only OTHER
+   * profiles, so it answers empty there. Composed in the template, that rendered a bare "Also on:"
+   * with nothing after it, which reads exactly like the cross-type false positive this page used to
+   * produce. Two different faults with one appearance is how you lose an afternoon.
+   */
+  duplicateTooltip(alarm: ProfileOverviewAlarm, type: string): string {
+    const others = this.getDuplicateProfiles(alarm, type);
+
+    return others.length > 0
+      ? `${this.i18n.instant('PROFILES.ALSO_ON')} ${others.join(', ')}`
+      : this.i18n.instant('PROFILES.DUPLICATED_ON_THIS_PROFILE');
   }
 
   editActiveHours(profile: ProfileOverviewProfile): void {
@@ -522,7 +515,7 @@ export class ProfileOverviewComponent implements OnInit {
         return '';
       }
       case 'lure':
-        return alarm.lure_id ? `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${alarm.lure_id}.png` : '';
+        return alarm.lure_id ? this.iconService.getItemUrl(alarm.lure_id) : '';
       case 'gym':
         return this.iconService.getGymUrl(alarm.team ?? 0);
       case 'maxbattle':
@@ -569,9 +562,12 @@ export class ProfileOverviewComponent implements OnInit {
     const alarms = (data[type as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
     const profileMap = new Map(data.profile.map(p => [p.profile_no, p.name]));
 
-    return alarms
+    const others = alarms
       .filter(a => this.getAlarmKey(a, type) === key && a.profile_no !== alarm.profile_no)
-      .map(a => profileMap.get(a.profile_no) ?? `Profile ${a.profile_no}`);
+      .map(a => profileMap.get(a.profile_no) ?? this.i18n.instant('PROFILES.PROFILE_NUM', { number: a.profile_no }));
+
+    // Deduped because a profile holding two copies of the rule would otherwise be named twice.
+    return [...new Set(others)];
   }
 
   getManagedProfile(profileNo: number): Profile | undefined {
@@ -664,8 +660,8 @@ export class ProfileOverviewComponent implements OnInit {
     return (clean & 1) !== 0;
   }
 
-  isDuplicate(alarm: ProfileOverviewAlarm): boolean {
-    return this.duplicateUids().has(alarm.uid);
+  isDuplicate(alarm: ProfileOverviewAlarm, type: string): boolean {
+    return this.duplicateKeys().has(duplicateKey(type, alarm.uid));
   }
 
   ngOnInit(): void {

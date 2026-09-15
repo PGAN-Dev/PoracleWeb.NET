@@ -35,12 +35,14 @@ describe('SettingsService', () => {
   afterEach(() => httpMock.verify());
 
   /**
-   * getAll() fans out to two endpoints: the settings themselves and the disable_* keys Poracle
-   * forces off upstream. Both have to be answered or httpMock.verify() reports the outstanding one.
+   * getAll() fans out to three endpoints: the settings themselves, the disable_* keys Poracle forces
+   * off upstream, and whether Poracle can store a costume filter. All three have to be answered or
+   * httpMock.verify() reports the outstanding one.
    */
-  const flushGetAll = (settings: unknown, upstream: string[] = []): void => {
+  const flushGetAll = (settings: unknown, upstream: string[] = [], costumes = { raid: true, pokemon: true }): void => {
     httpMock.expectOne(`${API}/api/settings`).flush(settings);
     httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush(upstream);
+    httpMock.expectOne(`${API}/api/settings/costume-capability`).flush(costumes);
   };
 
   describe('normalize', () => {
@@ -184,6 +186,7 @@ describe('SettingsService', () => {
       service.getAll().subscribe();
       httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
       httpMock.expectOne(`${API}/api/settings/upstream-disabled`).error(new ProgressEvent('network error'));
+      httpMock.expectOne(`${API}/api/settings/costume-capability`).flush({ raid: true, pokemon: true });
 
       // Failing closed here would blank the nav on any Poracle blip.
       expect(service.upstreamDisabled()).toEqual([]);
@@ -218,6 +221,7 @@ describe('SettingsService', () => {
 
       httpMock.expectNone(`${API}/api/settings`);
       httpMock.expectNone(`${API}/api/settings/upstream-disabled`);
+      httpMock.expectNone(`${API}/api/settings/costume-capability`);
     });
   });
 
@@ -268,6 +272,54 @@ describe('SettingsService', () => {
         value: 'val',
         valueType: 'string',
       });
+    });
+  });
+
+  /**
+   * The costume columns arrive in PoracleNG migrations 6 and 7, so a server can have one, both or
+   * neither. Every answer here is about what the dialogs render; the API refuses an unsupported
+   * costume regardless.
+   */
+  describe('costume capability', () => {
+    it('reports both types when the server has both columns', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, [], { raid: true, pokemon: true });
+
+      expect(service.supportsCostume('pokemon')).toBe(true);
+      expect(service.supportsCostume('raid')).toBe(true);
+    });
+
+    it('reports pokemon only when the server stopped between the two migrations', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, [], { raid: false, pokemon: true });
+
+      expect(service.supportsCostume('pokemon')).toBe(true);
+      expect(service.supportsCostume('raid')).toBe(false);
+    });
+
+    it('reports neither on a server too old for the columns', () => {
+      service.getAll().subscribe();
+      flushGetAll(mockSiteSettings, [], { raid: false, pokemon: false });
+
+      expect(service.supportsCostume('pokemon')).toBe(false);
+      expect(service.supportsCostume('raid')).toBe(false);
+    });
+
+    it('fails closed when the capability call fails', () => {
+      service.getAll().subscribe();
+      httpMock.expectOne(`${API}/api/settings`).flush(mockSiteSettings);
+      httpMock.expectOne(`${API}/api/settings/upstream-disabled`).flush([]);
+      httpMock.expectOne(`${API}/api/settings/costume-capability`).error(new ProgressEvent('network error'));
+
+      // The opposite call to upstreamDisabled above, and deliberately: a blank nav on a blip is a
+      // nuisance, a control that silently writes nothing is the bug this gate exists for.
+      expect(service.supportsCostume('pokemon')).toBe(false);
+      expect(service.siteSettings()['site_name']).toBe('My Site');
+    });
+
+    it('offers nothing before the settings have loaded', () => {
+      expect(service.supportsCostume('pokemon')).toBe(false);
+      expect(service.supportsCostume('raid')).toBe(false);
     });
   });
 });

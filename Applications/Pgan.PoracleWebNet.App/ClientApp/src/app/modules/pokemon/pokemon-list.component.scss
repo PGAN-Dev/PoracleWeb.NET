@@ -347,6 +347,9 @@
   background: #e3f2fd;
   color: #1565c0;
 }
+// The band keeps its fixed light background in both themes, so every colour on it is
+// fixed too. A theme variable here (--text-muted is white at 50% under .dark-theme)
+// paints white on #f5f5f5 and the rank range vanishes. See #800.
 .pvp-row {
   display: flex;
   align-items: center;
@@ -362,7 +365,9 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: #f57f17;
+  // The band's #f5f5f5 is a light surface in both themes, so the amber has to clear 4.5:1
+  // against it at 12px. #f57f17 measured 2.4:1 and #e65100 3.5:1; #bf360c is 5.1:1.
+  color: #bf360c;
 }
 .pvp-badge mat-icon {
   font-size: 16px;
@@ -371,7 +376,7 @@
 }
 .pvp-rank {
   font-size: 12px;
-  color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  color: rgba(0, 0, 0, 0.64);
 }
 .ping-info {
   display: flex;
@@ -481,6 +486,12 @@
 .size-pill {
   background: #e8f5e9;
   color: #2e7d32;
+}
+// Indigo is the one Material hue the other seven pills leave free, and it reads as a label rather
+// than a threshold, which is what a costume is.
+.costume-pill {
+  background: #e8eaf6;
+  color: #283593;
 }
 // Teal is the one hue the other six pills leave free, and it reads as a clock rather than a threshold.
 .time-pill {

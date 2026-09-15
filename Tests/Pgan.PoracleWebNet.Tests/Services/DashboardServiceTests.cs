@@ -8,9 +8,15 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 public class DashboardServiceTests
 {
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly DashboardService _sut;
 
-    public DashboardServiceTests() => this._sut = new DashboardService(this._proxy.Object);
+    public DashboardServiceTests()
+    {
+        // Default: the Pokestop Events page is available, so event rows are counted under it.
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
+        this._sut = new DashboardService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetCountsAsyncReturnsAllCounts()

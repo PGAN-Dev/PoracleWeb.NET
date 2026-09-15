@@ -22,7 +22,7 @@ public class RaidServiceTests
     public RaidServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new RaidService(this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._uidRemapper.Object);
+        this._sut = new RaidService(this._proxy.Object, this._featureGate.Object, NullLogger<RaidService>.Instance, this._uidRemapper.Object, CostumeCapabilityDoubles.Supported());
     }
 
     [Fact]

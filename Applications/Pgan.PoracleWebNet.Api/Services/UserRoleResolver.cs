@@ -46,7 +46,9 @@ public interface IUserRoleResolver
 /// </remarks>
 public sealed partial class UserRoleResolver(
     IPoracleApiProxy poracleApiProxy,
+    IPoracleHumanProxy poracleHumanProxy,
     IWebhookDelegateService webhookDelegateService,
+    IHumanService humanService,
     IOptions<PoracleSettings> poracleSettings,
     IMemoryCache cache,
     ILogger<UserRoleResolver> logger) : IUserRoleResolver
@@ -56,8 +58,10 @@ public sealed partial class UserRoleResolver(
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<UserRoleResolver> _logger = logger;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IPoracleHumanProxy _poracleHumanProxy = poracleHumanProxy;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
     private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
+    private readonly IHumanService _humanService = humanService;
 
     public async Task<UserRoles> ResolveAsync(string userId)
     {
@@ -113,44 +117,34 @@ public sealed partial class UserRoleResolver(
             configReadable = false;
         }
 
-        // Call getAdministrationRoles once — resolves delegation including Discord guild roles
+        // Ask PoracleNG once for the delegated webhooks, Discord guild roles included.
         var managed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var isAdmin = false;
 
         try
         {
-            var rolesJson = await this._poracleApiProxy.GetAdminRolesAsync(userId);
+            var rolesJson = await this._poracleHumanProxy.GetAdminRolesAsync(userId);
             if (!string.IsNullOrEmpty(rolesJson))
             {
                 using var doc = JsonDocument.Parse(rolesJson);
                 var root = doc.RootElement;
 
-                // Some versions return isAdmin at root; others wrap under admin.discord
-                if (root.TryGetProperty("isAdmin", out var isAdminProp) && isAdminProp.ValueKind == JsonValueKind.True)
-                {
-                    isAdmin = true;
-                }
-
-                // Parse admin.discord.webhooks — the authoritative delegate webhook list
+                // admin.discord.webhooks is the authoritative delegate webhook list.
+                //
+                // Two isAdmin branches used to sit here, one at the root and one under admin.discord.
+                // Neither has ever fired: both API versions build this body from the same
+                // adminRolesResult, whose only fields are channels, webhooks and users, and v2's schema
+                // is additionalProperties:false so an isAdmin could not appear even by accident.
+                // Admin status is resolved above, from the configured ids and Poracle's own config.
                 if (root.TryGetProperty("admin", out var adminEl) &&
-                    adminEl.TryGetProperty("discord", out var discordEl))
+                    adminEl.TryGetProperty("discord", out var discordEl) &&
+                    discordEl.TryGetProperty("webhooks", out var webhooks) &&
+                    webhooks.ValueKind == JsonValueKind.Array)
                 {
-                    if (!isAdmin &&
-                        discordEl.TryGetProperty("isAdmin", out var discordAdmin) &&
-                        discordAdmin.ValueKind == JsonValueKind.True)
+                    foreach (var wh in webhooks.EnumerateArray())
                     {
-                        isAdmin = true;
-                    }
-
-                    if (discordEl.TryGetProperty("webhooks", out var webhooks) &&
-                        webhooks.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var wh in webhooks.EnumerateArray())
+                        if (wh.GetString() is { } id)
                         {
-                            if (wh.GetString() is { } id)
-                            {
-                                managed.Add(id);
-                            }
+                            managed.Add(id);
                         }
                     }
                 }
@@ -160,11 +154,6 @@ public sealed partial class UserRoleResolver(
         {
             LogAdminRolesFetchFailed(this._logger, ex, userId);
             rolesReadable = false;
-        }
-
-        if (isAdmin)
-        {
-            return new UserRoles(true, null);
         }
 
         // Also merge our own webhook delegate service layer
@@ -185,7 +174,71 @@ public sealed partial class UserRoleResolver(
             delegatesReadable = false;
         }
 
-        return new UserRoles(false, managed.Count > 0 ? [.. managed] : null, configReadable && rolesReadable && delegatesReadable);
+        if (managed.Count == 0)
+        {
+            return new UserRoles(false, null, configReadable && rolesReadable && delegatesReadable);
+        }
+
+        var (canonical, humansReadable) = await this.CanonicaliseAsync(managed);
+
+        return new UserRoles(false, canonical.Length > 0 ? canonical : null,
+            configReadable && rolesReadable && delegatesReadable && humansReadable);
+    }
+
+    /// <summary>
+    /// Rewrites each grant to the <c>humans.id</c> it names, dropping the ones that name nothing.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG hands back whatever key the operator wrote in <c>[[discord.webhook_admins]] target</c>,
+    /// and upstream that key is the webhook's NAME -- the bot resolves it with <c>LookupWebhookByName</c>
+    /// and authorises with <c>CanAdminWebhook(cfg, userID, nameOverride)</c>. Both consumers here compare
+    /// the strings to <c>humans.id</c>, a webhook URL, so a name-keyed delegate got a nav item off a
+    /// non-empty list, an empty My Webhooks table, and a 403 from impersonate. See #797.
+    /// <para>
+    /// A grant naming no webhook at all is dropped rather than carried. It could never match a human row
+    /// downstream, and carrying it renders a nav item onto a page that has nothing to show. When the
+    /// lookup itself fails the raw set is kept and the answer is marked unresolved, so a database blip
+    /// does not strip a legitimate delegate for the cache TTL (#667).
+    /// </para>
+    /// </remarks>
+    private async Task<(string[] Canonical, bool Readable)> CanonicaliseAsync(HashSet<string> managed)
+    {
+        IEnumerable<Core.Models.Human> webhooks;
+        try
+        {
+            webhooks = await this._humanService.GetWebhooksAsync();
+        }
+        catch (Exception ex)
+        {
+            LogWebhookLookupFailed(this._logger, ex);
+            return ([.. managed], false);
+        }
+
+        var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var byId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var webhook in webhooks)
+        {
+            byId[webhook.Id] = webhook.Id;
+            if (!string.IsNullOrWhiteSpace(webhook.Name))
+            {
+                byName.TryAdd(webhook.Name, webhook.Id);
+            }
+        }
+
+        var canonical = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var grant in managed)
+        {
+            if (byId.TryGetValue(grant, out var id) || byName.TryGetValue(grant, out id))
+            {
+                canonical.Add(id);
+            }
+            else
+            {
+                LogUnresolvedWebhookGrant(this._logger, grant);
+            }
+        }
+
+        return ([.. canonical], true);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch Poracle config for admin check for {UserId}.")]
@@ -196,4 +249,11 @@ public sealed partial class UserRoleResolver(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch webhook delegates for {UserId}.")]
     private static partial void LogPwebDelegatesFetchFailed(ILogger logger, Exception ex, string userId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to look up webhooks while resolving delegated grants.")]
+    private static partial void LogWebhookLookupFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Delegated webhook grant {Grant} names neither a webhook id nor a webhook name; ignoring it.")]
+    private static partial void LogUnresolvedWebhookGrant(ILogger logger, string grant);
 }

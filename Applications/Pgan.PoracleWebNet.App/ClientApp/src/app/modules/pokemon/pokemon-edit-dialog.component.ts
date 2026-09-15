@@ -21,10 +21,12 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-flags';
+import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 
 @Component({
@@ -58,6 +60,7 @@ export class PokemonEditDialogComponent implements OnInit {
   private readonly masterData = inject(MasterDataService);
   private readonly monsterService = inject(MonsterService);
   private readonly poracleConfig = inject(PoracleConfigService);
+  private readonly settings = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Monster>(MAT_DIALOG_DATA);
   readonly availableForms = computed(() => {
@@ -69,6 +72,9 @@ export class PokemonEditDialogComponent implements OnInit {
   form = this.fb.group({
     atk: [this.data.atk],
     clean: [isAutoDelete(this.data.clean)],
+    // A rule stored before PoracleNG had costume columns reads back as undefined; widen it to "any"
+    // rather than letting it fall to 0, which would silently narrow the rule on the next save.
+    costume: [this.data.costume ?? ANY_COSTUME],
     def: [this.data.def],
     form: [this.data.form],
     gender: [this.data.gender],
@@ -113,6 +119,21 @@ export class PokemonEditDialogComponent implements OnInit {
 
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
+  /** The hint under the costume select, which changes with the selection. */
+  costumeHint(): string {
+    return costumeHintKey(this.form.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());
+  }
+
+  /** Whether the masterfile's costume names loaded; drives the hint and nothing else. */
+  costumeNamesAvailable(): boolean {
+    return this.masterData.costumesAvailable();
+  }
+
+  /** The named costumes for the select, newest first. */
+  costumeOptions(): { id: number; name: string }[] {
+    return this.masterData.getCostumes();
+  }
+
   getPokemonImage(): string {
     return this.iconService.getPokemonUrl(this.data.pokemonId, this.data.form);
   }
@@ -155,6 +176,7 @@ export class PokemonEditDialogComponent implements OnInit {
       overrideLocationLabel: scope.overrideLocationLabel,
       atk: values.atk ?? 0,
       clean: preserve(this.data.clean, AUTO_DELETE, values.clean ? 1 : 0),
+      costume: values.costume ?? ANY_COSTUME,
       def: values.def ?? 0,
       distance: scope.distance,
       form: values.form ?? 0,
@@ -197,5 +219,14 @@ export class PokemonEditDialogComponent implements OnInit {
         this.dialogRef.close(true);
       },
     });
+  }
+
+  /**
+   * Whether to offer the costume filter at all. False on a Poracle without the monsters.costume column: it
+   * takes the field, answers 200 and drops it, so the control would produce a rule that reads
+   * "Halloween 2025" and matches every spawn. Unknown counts as absent.
+   */
+  showCostume(): boolean {
+    return this.settings.supportsCostume('pokemon');
   }
 }

@@ -298,11 +298,19 @@ public class AuthControllerMeTests : ControllerTestBase
     }
 
     /// <summary>
-    /// While impersonating, this.UserId is the impersonated account, so resolving its delegations answers
-    /// a different question than "what may this session manage" — the trap #663 fixed for admin status.
+    /// This asserted the opposite until #797: the carve-out returned the JWT claim, which an impersonation
+    /// token never carries, so the answer was always "manages nothing" and the My Webhooks nav item could
+    /// not render inside an impersonation session — while GET /api/admin/my-webhooks and
+    /// POST /api/admin/impersonate, both resolving off the same this.UserId, would have let it through.
+    /// An admin could not see the page the delegate they were inspecting sees.
+    /// <para>
+    /// Not the #663 trap. That one re-elevated ADMIN rights the impersonation token deliberately drops;
+    /// isAdmin still comes from the claim. This asks what the effective account manages, which is what
+    /// every other surface already answers.
+    /// </para>
     /// </summary>
     [Fact]
-    public async Task MeDoesNotResolveDelegationsForAnImpersonatedAccount()
+    public async Task MeResolvesDelegationsForTheImpersonatedAccount()
     {
         SetupUser(this._sut, profileNo: 1);
         this._sut.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
@@ -314,12 +322,12 @@ public class AuthControllerMeTests : ControllerTestBase
                 new Claim("impersonatedBy", "admin-1"),
             ], "TestAuth"));
         this.SetupHuman(profileNo: 1);
-        this.Resolves(["http://webhook.example/not-mine"]);
+        this.Resolves(["http://webhook.example/delegated"]);
 
         var ok = Assert.IsType<OkObjectResult>(await this._sut.Me());
 
-        Assert.Null(Assert.IsType<UserInfo>(ok.Value).ManagedWebhooks);
-        this._roleResolver.Verify(r => r.ResolveAsync(It.IsAny<string>()), Times.Never);
+        Assert.Equal(["http://webhook.example/delegated"], Assert.IsType<UserInfo>(ok.Value).ManagedWebhooks);
+        this._roleResolver.Verify(r => r.ResolveAsync("123456789"), Times.Once);
     }
 
     private void Resolves(string[] webhooks) =>

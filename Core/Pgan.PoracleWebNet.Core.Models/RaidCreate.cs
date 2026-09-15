@@ -41,6 +41,10 @@ public class RaidCreate
         get; set;
     }
 
+    // 9000 = any costume, 0 = no costume, N = that costume. See MonsterCreate.Costume.
+    [Range(0, int.MaxValue)]
+    public int Costume { get; set; } = 9000;
+
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     [Range(0, 7)]
     public int Clean

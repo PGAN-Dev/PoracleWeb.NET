@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { Subject, of, throwError } from 'rxjs';
 
 import { SummaryScheduleDialogComponent, SummaryScheduleDialogData } from './summary-schedule-dialog.component';
@@ -256,6 +256,22 @@ describe('SummaryScheduleDialogComponent', () => {
       setup({ location: { latitude: 51.5, longitude: -0.12 }, schedule: QUEST_SCHEDULE });
       expect(component.userLat()).toBe(51.5);
       expect(component.userLon()).toBe(-0.12);
+    });
+  });
+
+  describe('repeating ranges (#808)', () => {
+    it('should render a range pill for a quest summary range', () => {
+      setup({
+        schedule: {
+          activeHours: [{ day: 1, endHours: 17, endMins: 0, hours: 9, mins: 0, step: 2 }],
+          alertType: 'quest',
+        },
+      });
+      const translate = TestBed.inject(TranslateService);
+      translate.use('en');
+      translate.setTranslation('en', { PROFILES: { ACTIVE_HOURS_RANGE_EVERY: '{{days}} {{start}}–{{end}}, every {{step}}h' } }, true);
+
+      expect(component.pills()).toEqual([{ label: 'Mon 9:00 AM–5:00 PM, every 2h' }]);
     });
   });
 });

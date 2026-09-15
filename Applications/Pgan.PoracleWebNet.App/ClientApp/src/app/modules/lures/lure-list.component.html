@@ -64,7 +64,7 @@
           </div>
           <div class="card-top-actions">
             @if (isAutoDelete(lure.clean)) {
-              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">clean</span>
+              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">{{ 'ALARM.CLEAN_TAG' | translate }}</span>
             }
             @if (isEdit(lure.clean)) {
               <span class="edit-tag" matTooltip="{{ 'LURES.EDIT_HINT' | translate }}">{{ 'LURES.EDIT_BADGE' | translate }}</span>
@@ -86,6 +86,7 @@
               [profileAreas]="profileAreas()"
               (click)="editScope(lure); $event.stopPropagation()" />
           </div>
+          <app-rule-summary [text]="lure.description" />
         </mat-card-content>
         <mat-card-actions align="end">
           <button

@@ -45,6 +45,10 @@ There are two, and they sit next to each other in the **user menu** (top-right t
 - **Display language** changes this site's text and nothing else. Its submenu is hidden when an admin has restricted the selector to a single language.
 - **Alert language** is what Poracle writes your DMs in: alert text, Pokemon names, move names. The authoritative copy lives on your Poracle account (`humans.language`), with a browser cache used only for the first render, so it follows you between devices and reconciles if the bot changes it.
 
+Its list is Poracle's to restrict, not this site's. Poracle 5.2.1 and newer publish the language codes they accept (`availableLanguages` on `GET /api/config/poracleWeb`), and the alert-language submenu offers only those — intersected with the eleven this UI has a flag row for. Restrict Poracle to English and German and those are the two rows you get; restrict it to languages this UI does not ship and the menu item disappears rather than offering a write Poracle answers 422 to. A Poracle that restricts nothing, or one older than 5.2.1, publishes no list and every language stays on offer.
+
+`allowed_languages` does not apply here. It is this site's restriction on the display language, and it has nothing to say about what Poracle writes DMs in — the two menus answer to different owners.
+
 Note that Pokemon names, types and forms **in this site's own screens** follow the *display* language, not the alert language — see [Game data names](#game-data-names) below. Setting the display language to German gives you Bisasam in the species picker and Käfer on the type chips; the alert language decides what your DMs say.
 
 Each submenu opens with its own hint line ("Changes this site's text only." / "Used for alert text and Pokemon names.") and lists the languages as flag and native name, with a check mark against the active one. Both draw from the same list of 11.
@@ -63,7 +67,7 @@ Admins can restrict which languages appear in the selector by setting the `allow
 | `allowed_languages` | *(empty)* | All 11 languages available |
 | `allowed_languages` | `en,de,fr` | Only English, German, and French shown |
 
-English is always available regardless of the `allowed_languages` setting. The restriction applies to the signed-out login page as well as to signed-in users.
+English is always available regardless of the `allowed_languages` setting. The restriction applies to the signed-out login page as well as to signed-in users. It governs the **display** language only — see the alert-language note above.
 
 ![The Allowed UI Languages field, with a line beneath it reading "Default language for new users: en, taken from Poracle's own configuration."](../screenshots/admin-language-default.png)
 
@@ -106,11 +110,13 @@ Each language file uses namespaced keys organized by feature area:
 | `RAIDS` | Raid & egg alarm management |
 | `QUESTS` | Quest alarm management |
 | `INVASIONS` | Invasion alarm management |
+| `POKESTOP_EVENTS` | Pokéstop Event alarm management |
 | `LURES` | Lure alarm management |
 | `NESTS` | Nest alarm management |
 | `GYMS` | Gym alarm management |
 | `FORT_CHANGES` | Fort change alarm management |
 | `MAX_BATTLES` | Max battle alarm management |
+| `QUIET` | Quiet periods: chips, duration sheet and dashboard card |
 | `AREAS` | Areas & Places page |
 | `PROFILES` | Profile management |
 | `GEOFENCES` | Custom geofences |
@@ -185,20 +191,27 @@ GET /api/masterdata/monsters?locale=de
 
 Switching the display language re-fetches them, so an open species picker updates in place. Searching works on the translated names too — typing `bi` finds Bisasam.
 
-Two things this does not cover:
+Three things this does not cover:
 
 - **Move and item names** stay English. Poracle serves no translated equivalent for them, so they come from the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) as before.
+- **Costume names** stay English too, in every interface language. They are not in the endpoint above: the poracle-shaped masterfile carries no costume map, so the [costume picker](alarms.md#costume-filter) reads the raw WatWowMap file — the same one Poracle downloads for its own costume lookups. Poracle does translate costume names internally, but exposes no endpoint serving them. A costume too new for that file shows as its number rather than a name.
 - **A Poracle that cannot answer** — an older build without the endpoint, or one that is unreachable — falls back to the same English masterfile, so the pickers keep working rather than emptying out.
+
+### Rule summaries follow the alert language
+
+The sentence at the foot of each alarm card describing what the rule does is written by Poracle, not by this site, so it arrives in your **alert** language while the pills above it follow your **display** language.
+
+When the two differ, the sentence is hidden rather than shown. A card carrying German chips over an English sentence is worse than a card carrying chips alone, and there is no way to ask Poracle for the summary in a second language. Set the two selectors to the same language to see it.
 
 Poracle ships translations for `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`, `ru`, `sv` and `zh-cn`. Four of this site's languages — `nl`, `pt`, `pt-BR` and `da` — have no counterpart there, so game data names appear in English while the interface around them is translated.
 
 ### What Is NOT Translated
 
-- **Move names and item names** — see above
+- **Move names, item names and costume names** — see above
 - **Admin-configured values** — site title, logo, custom navigation links
 - **User-generated content** — profile names, geofence names, area names
 
-The help guide is translated, body and all: the `HELP.CONTENT_*` values carry the HTML for each section and every locale has its own. The gap runs the other way now, and it is small: 30 of the 36 `HELP.SECTION_*` headings are still English in Dutch, Polish and Portuguese.
+The help guide is translated, body and all: the `HELP.CONTENT_*` values carry the HTML for each section and every locale has its own. The 38 `HELP.SECTION_*` headings are complete too. Dutch, German and Italian leave one of them reading as English ("Dashboard"), because that is the word in those languages as well.
 
 ## Architecture
 
@@ -206,7 +219,7 @@ The help guide is translated, body and all: the `HELP.CONTENT_*` values carry th
 ClientApp/
   src/
     assets/i18n/           # Translation JSON files
-      en.json              # English (baseline, ~1,700 keys)
+      en.json              # English (baseline, ~1,900 keys)
       de.json              # German
       fr.json              # French
       ...

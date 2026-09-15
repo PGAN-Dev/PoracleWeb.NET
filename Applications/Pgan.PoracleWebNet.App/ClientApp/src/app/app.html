@@ -24,7 +24,10 @@
     <span
       >{{ 'BANNER.DISABLED_SUPPORT' | translate }}
       <a href="https://discord.com/channels/237964415822069760/280486070628384778" target="_blank">#support</a> /
-      <a href="https://discord.com/channels/237964415822069760/722557616982720593" target="_blank">ticket</a>.</span
+      <a href="https://discord.com/channels/237964415822069760/722557616982720593" target="_blank">{{
+        'BANNER.DISABLED_TICKET' | translate
+      }}</a
+      >.</span
     >
   </div>
 } @else if (auth.user()?.enabled === false) {
@@ -44,7 +47,7 @@
     </button>
     @if (!hideHeaderLogo()) {
       @if (headerLogoUrl()) {
-        <img [src]="headerLogoUrl()" alt="Logo" class="toolbar-logo" />
+        <img [src]="headerLogoUrl()" [alt]="'TOOLBAR.LOGO_ALT' | translate" class="toolbar-logo" />
       } @else {
         <svg viewBox="0 0 100 100" width="24" height="24" class="toolbar-pokeball">
           <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="6" />
@@ -75,7 +78,7 @@
     </button>
     <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-menu-trigger" [attr.aria-label]="'TOOLBAR.USER_MENU' | translate">
       @if (auth.user()?.avatarUrl) {
-        <img [src]="auth.user()!.avatarUrl!" class="user-avatar" alt="avatar" />
+        <img [src]="auth.user()!.avatarUrl!" class="user-avatar" [alt]="'TOOLBAR.AVATAR_ALT' | translate" />
       } @else {
         <mat-icon class="default-avatar-icon">account_circle</mat-icon>
       }
@@ -84,7 +87,7 @@
       <div class="user-menu-header">
         <div class="user-menu-avatar">
           @if (auth.user()?.avatarUrl) {
-            <img [src]="auth.user()!.avatarUrl!" class="menu-avatar" alt="avatar" />
+            <img [src]="auth.user()!.avatarUrl!" class="menu-avatar" [alt]="'TOOLBAR.AVATAR_ALT' | translate" />
           } @else {
             <mat-icon class="menu-avatar-icon">account_circle</mat-icon>
           }
@@ -133,10 +136,12 @@
       }
       <!-- Two language controls that do different jobs. Adjacent and distinctly labelled, the
            difference is visible at a glance; apart, each one looked like "the" language setting. -->
-      <button mat-menu-item [matMenuTriggerFor]="alertLanguageMenu">
-        <mat-icon>forum</mat-icon>
-        <span>{{ 'MENU.ALERT_LANGUAGE' | translate }}</span>
-      </button>
+      @if (alertLanguage.languages().length > 0) {
+        <button mat-menu-item [matMenuTriggerFor]="alertLanguageMenu">
+          <mat-icon>forum</mat-icon>
+          <span>{{ 'MENU.ALERT_LANGUAGE' | translate }}</span>
+        </button>
+      }
       <mat-divider></mat-divider>
       <button mat-menu-item (click)="logout()">
         <mat-icon>logout</mat-icon>
@@ -190,7 +195,7 @@
 
     <mat-menu #alertLanguageMenu="matMenu" class="language-menu-panel">
       <p class="alert-language-hint">{{ 'MENU.ALERT_LANGUAGE_HINT' | translate }}</p>
-      @for (lang of alertLanguage.languages; track lang.code) {
+      @for (lang of alertLanguage.languages(); track lang.code) {
         <button mat-menu-item (click)="chooseAlertLanguage(lang.code)" class="language-menu-item">
           <img class="lang-flag" [src]="'assets/flags/' + lang.countryCode + '.svg'" [alt]="lang.name" />
           <span class="lang-name">{{ lang.name }}</span>

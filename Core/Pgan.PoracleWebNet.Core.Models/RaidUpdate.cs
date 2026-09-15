@@ -36,6 +36,13 @@ public class RaidUpdate
         get; set;
     }
 
+    // 9000 = any costume, 0 = no costume, N = that costume. Null leaves the stored value alone.
+    [Range(0, int.MaxValue)]
+    public int? Costume
+    {
+        get; set;
+    }
+
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     [Range(0, 7)]
     public int? Clean

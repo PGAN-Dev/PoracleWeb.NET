@@ -18,17 +18,22 @@ import { Gym } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    QuietChipComponent,
     MatCardModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -38,6 +43,7 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
     MatTooltipModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
+    RuleSummaryComponent,
     TranslatePipe,
     WhereChipComponent,
   ],
@@ -48,12 +54,13 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 })
 export class GymListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
-
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialog = inject(MatDialog);
+
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
   readonly gymNames = signal<Record<string, string>>({});
@@ -214,7 +221,7 @@ export class GymListComponent implements OnInit {
   }
 
   getGymIcon(team: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
+    return this.icons.getGymUrl(team);
   }
 
   getTeamColor(team: number): string {
@@ -235,15 +242,15 @@ export class GymListComponent implements OnInit {
   getTeamName(team: number): string {
     switch (team) {
       case 0:
-        return 'Neutral';
+        return this.i18n.instant('GYMS.TEAM_NEUTRAL');
       case 1:
-        return 'Mystic (Blue)';
+        return this.i18n.instant('GYMS.TEAM_MYSTIC');
       case 2:
-        return 'Valor (Red)';
+        return this.i18n.instant('GYMS.TEAM_VALOR');
       case 3:
-        return 'Instinct (Yellow)';
+        return this.i18n.instant('GYMS.TEAM_INSTINCT');
       default:
-        return `Team ${team}`;
+        return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
     }
   }
 
@@ -260,7 +267,7 @@ export class GymListComponent implements OnInit {
       .subscribe({
         error: () => this.loading.set(false),
         next: g => {
-          this.gyms.set(g);
+          this.gyms.set(orderAlarms(g, x => [x.team, x.gymId]));
           this.loading.set(false);
           this.resolveGymNames(g);
         },

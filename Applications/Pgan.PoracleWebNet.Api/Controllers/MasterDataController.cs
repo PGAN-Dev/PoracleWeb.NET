@@ -84,6 +84,36 @@ public partial class MasterDataController(
     }
 
     /// <summary>
+    /// Costume ID to name map, used to label the costume filter on pokemon and raid alarms.
+    /// </summary>
+    /// <remarks>
+    /// English regardless of display language: PoracleNG translates costume names internally but
+    /// serves them nowhere (verified on 5.2.1 - <c>/api/masterdata/costumes</c> is a 404 there), so
+    /// this reads the raw WatWowMap masterfile instead.
+    /// </remarks>
+    [AllowAnonymous]
+    [HttpGet("costumes")]
+    public async Task<IActionResult> GetCostumes()
+    {
+        var data = await this._masterDataService.GetCostumeDataAsync();
+        if (data == null)
+        {
+            await this._masterDataService.RefreshCacheAsync();
+            data = await this._masterDataService.GetCostumeDataAsync();
+        }
+
+        if (data == null)
+        {
+            return this.NotFound(new
+            {
+                message = "Costume data not available."
+            });
+        }
+
+        return this.Content(data, "application/json");
+    }
+
+    /// <summary>
     /// Canonical raid-level vocabulary (currently 19 levels from the WatWowMap masterfile).
     /// Cached server-side; the frontend uses this to render the level selector and
     /// fall back to bare integers for any level not in the list.

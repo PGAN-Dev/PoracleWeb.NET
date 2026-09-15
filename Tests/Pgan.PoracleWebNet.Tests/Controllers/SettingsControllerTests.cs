@@ -16,6 +16,7 @@ public class SettingsControllerTests : ControllerTestBase
     private readonly Mock<ISiteSettingService> _siteService = new();
     private readonly Mock<IUpstreamFeatureFlagService> _upstreamFlags = new();
     private readonly Mock<IPoracleApiProxy> _poracleApi = new();
+    private readonly Mock<ICostumeCapabilityService> _costumes = new();
     private readonly SettingsController _sut;
 
     public SettingsControllerTests()
@@ -33,6 +34,7 @@ public class SettingsControllerTests : ControllerTestBase
         Options.Create(new TelegramSettings()),
         Options.Create(new OidcSettings()),
         this._upstreamFlags.Object,
+        this._costumes.Object,
         new ConfigurationBuilder().Build(),
         this._poracleApi.Object,
         new MemoryCache(new MemoryCacheOptions()),
@@ -135,12 +137,30 @@ public class SettingsControllerTests : ControllerTestBase
     [InlineData("hide_header_logo")]
     [InlineData("signup_url")]
     [InlineData("site_name")]
+    [InlineData("basemap_provider")]
+    [InlineData("basemap_url")]
+    [InlineData("basemap_attribution")]
     public async Task GetAllStillServesTheKeysTheSpaNeedsToNonAdmins(string key)
     {
         SetupUser(this._sut, isAdmin: false);
         this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Key = key, Value = "v" }]);
 
         Assert.Contains(key, await this.GetAllKeysAsync());
+    }
+
+    /// <summary>
+    /// The basemap key is the one credential-shaped key that has to reach every signed-in user.
+    /// It travels in each tile URL the browser requests, so withholding it protects nothing and
+    /// leaves non-admins on the unkeyed provider -- which for CARTO means a watermark on every map,
+    /// over a 200, reported by nothing. That is #842 surviving its own fix for everyone but admins.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesTheBasemapKeyToNonAdminsBecauseTheirBrowserHasToSendIt()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Key = "basemap_key", Value = "abc123" }]);
+
+        Assert.Contains("basemap_key", await this.GetAllKeysAsync());
     }
 
     [Fact]
@@ -232,6 +252,119 @@ public class SettingsControllerTests : ControllerTestBase
 
         Assert.Single(settings);
         Assert.Equal("fr", settings[0].Value);
+    }
+
+    // --- poracle_alert_languages: the codes Poracle will accept for a human's alert language ---
+
+    /// <summary>
+    /// A restricted server. The list is exhaustive upstream, so it is served verbatim for the alert
+    /// language menu to filter itself against.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesPoraclesAvailableLanguagesWhenRestricted()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            ReportsAvailableLanguages = true,
+            AvailableLanguages = ["en", "de", "pt-BR"],
+        });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetAll());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == SettingsController.PoracleAlertLanguagesKey && s.Value == "en,de,pt-BR");
+    }
+
+    /// <summary>
+    /// A 5.2.1 with nothing configured. Present and null means unrestricted, so no row is served and the
+    /// SPA offers the full menu.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesNoAlertLanguagesRowWhenPoracleIsUnrestricted()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            Locale = "en",
+            ReportsAvailableLanguages = true,
+        });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        Assert.DoesNotContain(SettingsController.PoracleAlertLanguagesKey, await this.GetAllKeysAsync());
+    }
+
+    /// <summary>
+    /// The legitimate older case: 5.1.0 has no such field, accepts any code, and must keep the full menu.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesNoAlertLanguagesRowForAServerTooOldToReportThem()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { Locale = "en" });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        var keys = await this.GetAllKeysAsync();
+
+        Assert.DoesNotContain(SettingsController.PoracleAlertLanguagesKey, keys);
+        Assert.Contains(SettingsController.PoracleLocaleKey, keys);
+    }
+
+    /// <summary>Anonymous visitors get it too: the user menu renders before the settings call resolves.</summary>
+    [Fact]
+    public async Task GetPublicServesPoraclesAvailableLanguages()
+    {
+        this._sut.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            ReportsAvailableLanguages = true,
+            AvailableLanguages = ["en", "sv"],
+        });
+        this._siteService.Setup(s => s.GetPublicAsync()).ReturnsAsync([]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetPublic());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == SettingsController.PoracleAlertLanguagesKey && s.Value == "en,sv");
+    }
+
+    /// <summary>
+    /// The other half of a projection. A stored row wins over the synthesized value, so one accidental
+    /// save would pin the alert language menu to a list Poracle stopped agreeing with. See #780.
+    /// </summary>
+    [Fact]
+    public async Task UpsertRefusesToStorePoraclesAvailableLanguages()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.Upsert(
+            SettingsController.PoracleAlertLanguagesKey,
+            new SettingsController.SiteSettingRequest { Value = "en" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    /// <summary>Junk from upstream is dropped per code rather than poisoning the whole list.</summary>
+    [Fact]
+    public async Task GetAllDropsAlertLanguageCodesThatAreNotShapedLikeOne()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._poracleApi.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig
+        {
+            ReportsAvailableLanguages = true,
+            AvailableLanguages = ["en", "en; DROP TABLE humans", "de"],
+        });
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetAll());
+        var settings = Assert.IsType<IEnumerable<SiteSetting>>(ok.Value, exactMatch: false).ToList();
+
+        Assert.Contains(settings, s => s.Key == SettingsController.PoracleAlertLanguagesKey && s.Value == "en,de");
     }
 
     /// <summary>
@@ -495,5 +628,121 @@ public class SettingsControllerTests : ControllerTestBase
 
         var ok = Assert.IsType<OkObjectResult>(await this._sut.GetUpstreamDisabled());
         Assert.Empty(Assert.IsType<List<string>>(ok.Value));
+    }
+
+    // --- costume-capability ---
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    public async Task GetCostumeCapabilityReportsWhatTheServerCanStore(bool pokemon, bool raid)
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._costumes.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CostumeCapability(pokemon, raid));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetCostumeCapability());
+
+        Assert.NotNull(ok.Value);
+        Assert.Equal(pokemon, (bool?)ok.Value.GetType().GetProperty("pokemon")?.GetValue(ok.Value));
+        Assert.Equal(raid, (bool?)ok.Value.GetType().GetProperty("raid")?.GetValue(ok.Value));
+    }
+
+    /// <summary>
+    /// The dialogs read this, not the admin page, so an admin-only answer would leave every ordinary
+    /// user with a control the server may not support.
+    /// </summary>
+    [Fact]
+    public async Task GetCostumeCapabilityAnswersNonAdmins()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._costumes.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CostumeCapability.None);
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetCostumeCapability());
+
+        Assert.NotNull(ok.Value);
+        Assert.Equal(false, (bool?)ok.Value.GetType().GetProperty("pokemon")?.GetValue(ok.Value));
+    }
+
+    /// <summary>
+    /// <c>icon_repos</c> is the one setting whose value is a structure rather than a scalar. A row the
+    /// admin page cannot parse takes its pack list away, and the bases in it are written into the
+    /// <c>uicons_*</c> rows every image on the site is built from, so the shape is checked on the way
+    /// in. These are the values that must keep working.
+    /// </summary>
+    [Theory]
+    [InlineData("[]")]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("[{\"name\":\"Jms412 (Home)\",\"base\":\"https://raw.githubusercontent.com/jms412/PkmnHomeIcons/master/UICONS\"}]")]
+    [InlineData("[{\"name\":\"Our own\",\"base\":\"http://icons.lan:8080/UICONS\"}]")]
+    [InlineData("[{\"name\":\"Extra fields are tolerated\",\"base\":\"https://a.test/UICONS\",\"note\":\"kept by a later version\"}]")]
+    public void IconReposAcceptsWhatTheAdminPageWrites(string? value)
+    {
+        Assert.True(SettingsController.TryValidateIconRepos(value, out var error));
+        Assert.Equal(string.Empty, error);
+    }
+
+    /// <summary>
+    /// Plain http is deliberately allowed: an operator serving a pack off their own LAN is exactly who
+    /// the editable list is for, and refusing it would refuse something that works.
+    /// </summary>
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("{}")]
+    [InlineData("[\"https://a.test/UICONS\"]")]
+    [InlineData("[{\"base\":\"https://a.test/UICONS\"}]")]
+    [InlineData("[{\"name\":\"No base\"}]")]
+    [InlineData("[{\"name\":\"\",\"base\":\"https://a.test/UICONS\"}]")]
+    [InlineData("[{\"name\":\"Relative\",\"base\":\"/assets/UICONS\"}]")]
+    [InlineData("[{\"name\":\"Script\",\"base\":\"javascript:alert(1)\"}]")]
+    [InlineData("[{\"name\":\"Data\",\"base\":\"data:image/png;base64,AAAA\"}]")]
+    [InlineData("[{\"name\":12,\"base\":\"https://a.test/UICONS\"}]")]
+    public void IconReposRefusesWhatItCouldNotRender(string value)
+    {
+        Assert.False(SettingsController.TryValidateIconRepos(value, out var error));
+        Assert.NotEqual(string.Empty, error);
+    }
+
+    [Theory]
+    [InlineData(25, true)]
+    [InlineData(26, false)]
+    public void IconReposBoundsTheListLength(int count, bool accepted)
+    {
+        var entries = Enumerable.Range(0, count).Select(i => $"{{\"name\":\"Pack {i}\",\"base\":\"https://a.test/{i}\"}}");
+
+        Assert.Equal(accepted, SettingsController.TryValidateIconRepos($"[{string.Join(",", entries)}]", out _));
+    }
+
+    [Fact]
+    public async Task UpsertRefusesAnUnreadableIconRepoList()
+    {
+        SetupUser(this._sut, isAdmin: true);
+
+        var result = await this._sut.Upsert("icon_repos", new SettingsController.SiteSettingRequest { Value = "{ not a list }" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()), Times.Never);
+    }
+
+    /// <summary>
+    /// The legitimate case, alongside the refusal. A guard that only ever proves it says no is a guard
+    /// nobody has checked still lets the page work.
+    /// </summary>
+    [Fact]
+    public async Task UpsertStoresAValidIconRepoList()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._siteService.Setup(s => s.GetByKeyAsync(It.IsAny<string>())).ReturnsAsync((SiteSetting?)null);
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>()))
+            .ReturnsAsync((SiteSetting setting) => setting);
+
+        var value = "[{\"name\":\"Jms412 (Home)\",\"base\":\"https://raw.githubusercontent.com/jms412/PkmnHomeIcons/master/UICONS\"}]";
+        var result = await this._sut.Upsert("icon_repos", new SettingsController.SiteSettingRequest { Value = value });
+
+        Assert.IsType<OkObjectResult>(result);
+        this._siteService.Verify(s => s.CreateOrUpdateAsync(It.Is<SiteSetting>(x => x.Value == value)), Times.Once);
     }
 }

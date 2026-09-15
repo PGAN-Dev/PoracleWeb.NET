@@ -453,6 +453,12 @@
   background: var(--divider, rgba(0, 0, 0, 0.06));
 }
 
+// Right-aligned after the group label, so the row reads name-then-group-then-state.
+.area-row-quiet {
+  display: inline-flex;
+  margin-left: 4px;
+}
+
 .no-results {
   text-align: center;
   color: var(--text-hint, rgba(0, 0, 0, 0.38));

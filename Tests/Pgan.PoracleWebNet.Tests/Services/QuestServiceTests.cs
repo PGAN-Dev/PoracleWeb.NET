@@ -4,6 +4,7 @@ using Moq;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
+using Pgan.PoracleWebNet.Tests.TestDoubles;
 
 namespace Pgan.PoracleWebNet.Tests.Services;
 
@@ -22,7 +23,12 @@ public class QuestServiceTests
     public QuestServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        this._sut = new QuestService(this._proxy.Object, this._featureGate.Object, NullLogger<QuestService>.Instance, this._uidRemapper.Object);
+        this._sut = new QuestService(
+            this._proxy.Object,
+            this._featureGate.Object,
+            PokecoinCapabilityStub.Supported,
+            NullLogger<QuestService>.Instance,
+            this._uidRemapper.Object);
     }
 
     [Fact]

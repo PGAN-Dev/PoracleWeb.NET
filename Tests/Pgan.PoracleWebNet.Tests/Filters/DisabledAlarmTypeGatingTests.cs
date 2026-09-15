@@ -35,6 +35,7 @@ public class DisabledAlarmTypeGatingTests
         { typeof(NestController), "disable_nests" },
         { typeof(GymController), "disable_gyms" },
         { typeof(FortChangeController), "disable_fort_changes" },
+        { typeof(PokestopEventController), "disable_showcase" },
         { typeof(MaxBattleController), "disable_maxbattles" },
         { typeof(SummaryScheduleController), "disable_quests" },
     };

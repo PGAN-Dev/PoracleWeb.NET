@@ -13,10 +13,11 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { EVENT_TYPE_INFO, getGruntDisplayName, getGruntIconUrl, isEventType, isGenderFixed } from './invasion.constants';
+import { EVENT_TYPE_INFO, getGruntDisplayName, getGruntIconPath, isEventType, isGenderFixed } from './invasion.constants';
 import { Invasion, InvasionUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -48,6 +49,7 @@ import { AUTO_DELETE, isAutoDelete, preserve } from '../../shared/utils/clean-fl
 export class InvasionEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly invasionService = inject(InvasionService);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -83,7 +85,8 @@ export class InvasionEditDialogComponent {
   }
 
   getEventImgUrl(): string {
-    return EVENT_TYPE_INFO[this.data.gruntType ?? '']?.imgUrl ?? '';
+    const path = EVENT_TYPE_INFO[this.data.gruntType ?? '']?.imgPath;
+    return path ? this.icons.getPackUrl(path) : '';
   }
 
   getGenderLabel(): string {
@@ -98,7 +101,7 @@ export class InvasionEditDialogComponent {
   }
 
   getGruntIcon(): string {
-    return getGruntIconUrl(this.data.gruntType, this.selectedGender());
+    return this.icons.getPackUrl(getGruntIconPath(this.data.gruntType, this.selectedGender()));
   }
 
   save(): void {

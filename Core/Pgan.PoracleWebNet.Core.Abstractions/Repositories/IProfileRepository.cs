@@ -2,11 +2,12 @@ using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 
+/// <summary>
+/// The two profile writes PoracleNG's API cannot serve. Everything else about profiles — reads,
+/// create, delete, copy, switch — goes through <c>IPoracleHumanProxy</c>.
+/// </summary>
 public interface IProfileRepository
 {
-    public Task<IEnumerable<Profile>> GetByUserAsync(string userId);
-    public Task<Profile?> GetByUserAndProfileNoAsync(string userId, int profileNo);
-    public Task<Profile> CreateAsync(Profile profile);
     public Task<Profile> UpdateAsync(Profile profile);
     /// <summary>
     /// Renames a profile, touching only <c>profiles.name</c>.
@@ -20,6 +21,4 @@ public interface IProfileRepository
     /// </remarks>
     /// <returns><c>false</c> if no such profile exists.</returns>
     public Task<bool> RenameAsync(string userId, int profileNo, string name);
-
-    public Task<bool> DeleteAsync(string userId, int profileNo);
 }

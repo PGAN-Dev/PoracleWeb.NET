@@ -14,7 +14,9 @@ describe('PlacesSectionComponent', () => {
   let dialog: { open: jest.Mock };
   let places: {
     add: jest.Mock;
+    canEdit: jest.Mock;
     load: jest.Mock;
+    move: jest.Mock;
     named: jest.Mock;
     pin: jest.Mock;
     remove: jest.Mock;
@@ -32,7 +34,9 @@ describe('PlacesSectionComponent', () => {
     places = {
       named: jest.fn().mockReturnValue([{ label: 'work', latitude: 1, longitude: 2 }]),
       add: jest.fn().mockReturnValue(of({ named: [], default: null })),
+      canEdit: jest.fn().mockReturnValue(true),
       load: jest.fn().mockReturnValue(of({ named: [], default: null })),
+      move: jest.fn().mockReturnValue(of({ named: [], default: null })),
       pin: jest.fn().mockReturnValue({ label: '', latitude: 3, longitude: 4 }),
       remove: jest.fn().mockReturnValue(of(void 0)),
     };
@@ -136,5 +140,39 @@ describe('PlacesSectionComponent', () => {
     component.confirmRemove({ label: 'work', latitude: 1, longitude: 2 });
 
     expect(places.remove).not.toHaveBeenCalled();
+  });
+
+  it('opens the picker at the place it is moving, and sends the point back under the same label', () => {
+    // The label is what every alarm points at, so a move must not touch it. That is the whole reason
+    // this exists rather than delete-and-re-add, which 409s while an alarm still references it.
+    const component = create();
+    queueDialogResults({ latitude: 9.5, longitude: 8.5 });
+
+    component.movePlace({ label: 'work', latitude: 1, longitude: 2 });
+
+    expect(dialog.open).toHaveBeenCalledWith(expect.anything(), {
+      data: { latitude: 1, longitude: 2, pickOnly: true },
+    });
+    expect(places.move).toHaveBeenCalledWith('work', 9.5, 8.5);
+    expect(snackBar.open).toHaveBeenCalledWith('WHERE.PLACE_MOVED', expect.anything(), expect.anything());
+  });
+
+  it('writes nothing when the picker is dismissed', () => {
+    const component = create();
+    queueDialogResults(undefined);
+
+    component.movePlace({ label: 'work', latitude: 1, longitude: 2 });
+
+    expect(places.move).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed move rather than leaving the card looking changed', () => {
+    const component = create();
+    queueDialogResults({ latitude: 9.5, longitude: 8.5 });
+    places.move.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 501 })));
+
+    component.movePlace({ label: 'work', latitude: 1, longitude: 2 });
+
+    expect(snackBar.open).toHaveBeenCalledWith('WHERE.PLACE_MOVE_ERROR', expect.anything(), expect.anything());
   });
 });

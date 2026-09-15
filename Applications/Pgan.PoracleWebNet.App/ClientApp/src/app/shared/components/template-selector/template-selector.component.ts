@@ -236,6 +236,7 @@ export class TemplateSelectorComponent implements OnInit {
       raid: '#f44336',
       egg: '#ff9800',
       gym: '#00bcd4',
+      incident: '#03aeb6',
       invasion: '#607d8b',
       lure: '#00bcd4',
       maxbattle: '#d500f9',

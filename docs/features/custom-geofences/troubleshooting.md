@@ -25,21 +25,24 @@ Work down this list:
 
 ## Public (approved) geofences aren't showing up
 
-1. **Wait up to 5 minutes.** PoracleWeb.NET caches the Koji public list for 5 minutes. An approval clears that cache immediately, but a change made **directly in the Koji UI** won't be picked up until the cache expires.
+1. **Wait up to 5 minutes, or force a refresh.** PoracleWeb.NET caches the Koji public list for 5 minutes. An approval clears that cache immediately, but a change made **directly in the Koji UI** won't be picked up until the cache expires — or until you call [`POST /api/geofence-feed/refresh`](koji-and-regions.md#forcing-a-refresh-after-a-change-in-koji).
 2. **Check the Koji connection.** Wrong `KOJI_API_ADDRESS`, a bad `KOJI_BEARER_TOKEN`, or the wrong `KOJI_PROJECT_NAME` means PoracleWeb.NET can't read the public list. Remember the token is read **at startup** — restart after changing it.
 3. **Is it actually in the project?** A geofence must belong to your `KOJI_PROJECT_ID` to appear. Parent/region geofences are intentionally excluded (they're folders, not selectable areas).
 
 ## Koji is down — what happens?
 
-PoracleWeb.NET **degrades gracefully** rather than failing:
+The feed degrades in both directions rather than failing:
 
 ```mermaid
 flowchart TD
-    K[Koji unreachable] --> F[PoracleWeb.NET feed still serves:<br/>• all private user geofences from its own DB<br/>• last-cached public areas]
-    F --> N[Notifications keep working;<br/>new public-area changes wait until Koji is back]
+    K[Koji unreachable] --> F[Feed serves the private user geofences<br/>from PoracleWeb.NET's own DB]
+    D[PoracleWeb.NET DB unreachable] --> G[Feed serves the Koji public areas]
+    B[BOTH unreachable] --> E[Feed answers 503, not an empty list]
 ```
 
-PoracleNG also keeps its own local cache as a second safety net.
+For the first 5 minutes the cached Koji list covers the outage, so the feed is complete. After that the public areas drop out of the feed until Koji answers again; the private ones keep being served throughout.
+
+**Why an error and not an empty list when both fail:** PoracleNG treats this feed as authoritative and keeps the last list it was given. An empty `200` is not a degraded answer — it reads as an instruction to forget every area every user has. A `503` leaves the bot's cached list in place.
 
 !!! warning "You can't approve while Koji is down"
     Approving a submission writes to Koji, so approvals will error until Koji is reachable again. Everything else keeps working.
@@ -84,6 +87,8 @@ flowchart LR
 - **Public** entries come from Koji, marked visible/selectable.
 - **Private** entries come from PoracleWeb.NET's database, marked hidden/non-selectable (so the bot ignores them in pickers and DMs).
 - Region/parent geofences are filtered out (they're folders, not areas).
+- Malformed polygons are skipped rather than served, so one bad shape can't break the feed for everyone.
+- Either half can fail on its own and the other is still served; only a double failure returns an error (see [Koji is down](#koji-is-down-what-happens)).
 
 !!! warning "Keep the feed on a private network"
-    The feed endpoint is open (no login) so PoracleNG can read it on your internal network. Don't expose it to the internet.
+    Reading the feed is open (no login) so PoracleNG can read it on your internal network. Don't expose it to the internet. The companion `POST /api/geofence-feed/refresh` is **not** open — it needs your `PORACLE_API_SECRET` in an `X-Poracle-Secret` header. See [Forcing a refresh](koji-and-regions.md#forcing-a-refresh-after-a-change-in-koji).

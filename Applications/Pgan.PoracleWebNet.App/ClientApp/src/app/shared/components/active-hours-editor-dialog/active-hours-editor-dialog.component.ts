@@ -5,15 +5,15 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
   ActiveHourEntry,
   ActiveHourGroup,
-  compressDayRange,
-  DAY_LETTERS,
-  formatTime12h,
+  activeHoursFires,
+  formatRuleLabel,
   groupActiveHours,
 } from '../../../core/models/active-hours.models';
 
@@ -38,6 +38,7 @@ export interface ActiveHoursEditorData {
     MatFormFieldModule,
     MatIconModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     TranslatePipe,
   ],
@@ -48,41 +49,85 @@ export interface ActiveHoursEditorData {
 })
 export class ActiveHoursEditorDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<ActiveHoursEditorDialogComponent>);
+  private readonly translate = inject(TranslateService);
   readonly allDays = [1, 2, 3, 4, 5, 6, 7];
 
   readonly data: ActiveHoursEditorData = inject(MAT_DIALOG_DATA);
-  readonly dayLetters = DAY_LETTERS;
+  readonly dayLetters: Record<number, string> = {
+    1: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_MON'),
+    2: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_TUE'),
+    3: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_WED'),
+    4: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_THU'),
+    5: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_FRI'),
+    6: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_SAT'),
+    7: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_SUN'),
+  };
+
   readonly entries = signal<ActiveHourEntry[]>([...this.data.activeHours]);
   readonly groups = computed<ActiveHourGroup[]>(() => groupActiveHours(this.entries()));
   readonly hourOptions = Array.from({ length: 24 }, (_, i) => i);
   readonly minuteOptions = Array.from({ length: 12 }, (_, i) => i * 5);
-  /** Mini-preview: 7 rows x time markers */
+
+  /**
+   * Mini-preview: 7 rows, each carrying its rules' fire dots and, for a range, the span they sit
+   * inside. Past a dozen fires the dots smear into each other on an 8px bar, so the span shows alone.
+   */
   readonly previewData = computed(() => {
     const groups = this.groups();
     return this.allDays.map(day => ({
       day,
-      markers: groups.filter(g => g.days.includes(day)).map(g => ({ hours: g.hours, mins: g.mins })),
+      rules: groups
+        .filter(g => g.days.includes(day))
+        .map(g => {
+          const fires = activeHoursFires(g);
+          return {
+            end: (g.endHours ?? 0) * 60 + (g.endMins ?? 0),
+            isRange: g.step > 0,
+            key: this.groupKey(g),
+            markers: fires.length > 12 ? [] : fires.map(([hours, mins]) => ({ hours, mins })),
+            start: g.hours * 60 + g.mins,
+          };
+        }),
     }));
   });
 
-  readonly selectedDays = signal<Set<number>>(new Set<number>());
+  readonly repeatEnabled = signal(false);
+  readonly selectedEndHour = signal(17);
+  readonly selectedEndMinute = signal(0);
   readonly selectedHour = signal(9);
-
   readonly selectedMinute = signal(0);
+  /**
+   * The end has to be strictly after the start. That is the rule PoracleNG's own settime parser
+   * enforces, and it rejects end-before-start and cross-midnight with the same error, so one
+   * message covers both here too.
+   */
+  readonly rangeInvalid = computed(
+    () =>
+      this.repeatEnabled() && this.selectedEndHour() * 60 + this.selectedEndMinute() <= this.selectedHour() * 60 + this.selectedMinute(),
+  );
+
+  readonly selectedDays = signal<Set<number>>(new Set<number>());
+
+  readonly selectedStep = signal(1);
+
+  readonly stepOptions = Array.from({ length: 23 }, (_, i) => i + 1);
 
   addEntries(): void {
     const days = this.selectedDays();
-    if (days.size === 0) return;
+    if (days.size === 0 || this.rangeInvalid()) return;
     const h = this.selectedHour();
     const m = this.selectedMinute();
     if (h < 0 || h > 23 || m < 0 || m > 59) return;
+    const repeat = this.repeatEnabled();
     const current = this.entries();
-    const existing = new Set(current.map(e => `${e.day}:${e.hours}:${e.mins}`));
+    const existing = new Set(current.map(e => this.entryKey(e)));
     const newEntries = [...current];
     for (const day of days) {
-      const key = `${day}:${h}:${m}`;
-      if (!existing.has(key)) {
-        newEntries.push({ day, hours: h, mins: m });
+      const entry: ActiveHourEntry = repeat
+        ? { day, endHours: this.selectedEndHour(), endMins: this.selectedEndMinute(), hours: h, mins: m, step: this.selectedStep() }
+        : { day, hours: h, mins: m };
+      if (!existing.has(this.entryKey(entry))) {
+        newEntries.push(entry);
       }
     }
     this.entries.set(newEntries);
@@ -97,17 +142,30 @@ export class ActiveHoursEditorDialogComponent {
   }
 
   formatGroupLabel(group: ActiveHourGroup): string {
-    return `${compressDayRange(group.days)} ${formatTime12h(group.hours, group.mins)}`;
+    return formatRuleLabel(group, (key, params) => this.translate.instant(key, params));
   }
 
   formatHour(h: number): string {
-    const period = h >= 12 ? 'PM' : 'AM';
+    const period = this.translate.instant(h >= 12 ? 'PROFILES.ACTIVE_HOURS_PM' : 'PROFILES.ACTIVE_HOURS_AM');
     const display = h % 12 || 12;
     return `${display} ${period}`;
   }
 
   formatMinute(m: number): string {
     return `:${m.toString().padStart(2, '0')}`;
+  }
+
+  formatStep(step: number): string {
+    return this.translate.instant(step === 1 ? 'PROFILES.ACTIVE_HOURS_HOURS_ONE' : 'PROFILES.ACTIVE_HOURS_HOURS_OTHER', { step });
+  }
+
+  /** Stable identity for a rules-list row, so two rules can never collide on a translated string. */
+  groupKey(group: ActiveHourGroup): string {
+    return `${group.days.join(',')}:${group.hours}:${group.mins}:${group.endHours ?? ''}:${group.endMins ?? ''}:${group.step}`;
+  }
+
+  isRange(group: ActiveHourGroup): boolean {
+    return group.step > 0;
   }
 
   markerLeft(hours: number, mins: number): string {
@@ -129,13 +187,36 @@ export class ActiveHoursEditorDialogComponent {
     }
   }
 
+  /**
+   * Removes only the rule that was clicked. Comparing the end and step matters: without it, deleting
+   * a 9:00 single fire would also delete a 9:00-5:00 PM/2 range that happens to share its start.
+   */
   removeGroup(group: ActiveHourGroup): void {
     const daysSet = new Set(group.days);
-    this.entries.set(this.entries().filter(e => !(daysSet.has(e.day) && e.hours === group.hours && e.mins === group.mins)));
+    this.entries.set(
+      this.entries().filter(
+        e =>
+          !(
+            daysSet.has(e.day) &&
+            e.hours === group.hours &&
+            e.mins === group.mins &&
+            (e.step ?? 0) === group.step &&
+            ((e.step ?? 0) === 0 || ((e.endHours ?? 0) === (group.endHours ?? 0) && (e.endMins ?? 0) === (group.endMins ?? 0)))
+          ),
+      ),
+    );
   }
 
   save(): void {
     this.dialogRef.close(this.entries());
+  }
+
+  spanLeft(startMins: number): string {
+    return `${(startMins / 1440) * 100}%`;
+  }
+
+  spanWidth(startMins: number, endMins: number): string {
+    return `${(Math.max(endMins - startMins, 0) / 1440) * 100}%`;
   }
 
   toggleDay(day: number): void {
@@ -146,5 +227,9 @@ export class ActiveHoursEditorDialogComponent {
       current.add(day);
     }
     this.selectedDays.set(current);
+  }
+
+  private entryKey(e: ActiveHourEntry): string {
+    return `${e.day}:${e.hours}:${e.mins}:${e.endHours ?? ''}:${e.endMins ?? ''}:${e.step ?? 0}`;
   }
 }

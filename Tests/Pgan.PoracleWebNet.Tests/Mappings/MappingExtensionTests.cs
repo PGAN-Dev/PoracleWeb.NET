@@ -665,6 +665,116 @@ public class MappingExtensionTests
         Assert.Equal(50, existing.PvpRankingCap);
     }
 
+    // ── Costume (#804) ──────────────────────────────────────
+    //
+    // 9000 is "any costume", 0 is "no costume". Every one of these guards the same failure: a rule
+    // that meant "any" silently becoming "plain spawns only", which stops it firing on every
+    // costumed event without changing anything the user can see.
+
+    [Fact]
+    public void MonsterCreate_DefaultsCostumeToAnyNotZero()
+    {
+        Assert.Equal(9000, new MonsterCreate().Costume);
+        Assert.Equal(9000, new Monster().Costume);
+    }
+
+    [Fact]
+    public void RaidCreate_DefaultsCostumeToAnyNotZero()
+    {
+        Assert.Equal(9000, new RaidCreate().Costume);
+        Assert.Equal(9000, new Raid().Costume);
+    }
+
+    [Fact]
+    public void MonsterCreate_ToMonster_CarriesCostume()
+    {
+        Assert.Equal(85, new MonsterCreate { Costume = 85 }.ToMonster().Costume);
+        // "No costume" is a real filter, not an unset marker, so it has to survive the mapping too.
+        Assert.Equal(0, new MonsterCreate { Costume = 0 }.ToMonster().Costume);
+    }
+
+    [Fact]
+    public void RaidCreate_ToRaid_CarriesCostume()
+    {
+        Assert.Equal(85, new RaidCreate { Costume = 85 }.ToRaid().Costume);
+        Assert.Equal(0, new RaidCreate { Costume = 0 }.ToRaid().Costume);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_NullCostumePreservesExisting()
+    {
+        var existing = new Monster { Costume = 85 };
+
+        new MonsterUpdate().ApplyUpdate(existing);
+
+        Assert.Equal(85, existing.Costume);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_OverwritesCostumeIncludingZero()
+    {
+        var existing = new Monster { Costume = 85 };
+
+        new MonsterUpdate { Costume = 0 }.ApplyUpdate(existing);
+
+        Assert.Equal(0, existing.Costume);
+    }
+
+    [Fact]
+    public void RaidUpdate_ApplyUpdate_NullCostumePreservesExisting()
+    {
+        var existing = new Raid { Costume = 85 };
+
+        new RaidUpdate().ApplyUpdate(existing);
+
+        Assert.Equal(85, existing.Costume);
+    }
+
+    [Fact]
+    public void RaidUpdate_ApplyUpdate_OverwritesCostumeIncludingZero()
+    {
+        var existing = new Raid { Costume = 85 };
+
+        new RaidUpdate { Costume = 0 }.ApplyUpdate(existing);
+
+        Assert.Equal(0, existing.Costume);
+    }
+
+    // A row stored before PoracleNG grew the costume column, or any payload that leaves the key out,
+    // must widen to "any". Deserializing to C#'s 0 would narrow every legacy rule to plain spawns.
+    [Fact]
+    public void Monster_DeserializedWithoutCostume_IsAnyNotNone()
+    {
+        var monster = JsonSerializer.Deserialize<Monster>(
+            """{"uid":1,"pokemon_id":25,"distance":1000}""",
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
+
+        Assert.NotNull(monster);
+        Assert.Equal(9000, monster.Costume);
+    }
+
+    [Fact]
+    public void Raid_DeserializedWithoutCostume_IsAnyNotNone()
+    {
+        var raid = JsonSerializer.Deserialize<Raid>(
+            """{"uid":1,"pokemon_id":25,"level":9000}""",
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
+
+        Assert.NotNull(raid);
+        Assert.Equal(9000, raid.Costume);
+    }
+
+    [Fact]
+    public void Monster_DeserializedWithExplicitZeroCostume_StaysNone()
+    {
+        var monster = JsonSerializer.Deserialize<Monster>(
+            """{"uid":1,"pokemon_id":25,"costume":0}""",
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
+
+        Assert.NotNull(monster);
+        Assert.Equal(0, monster.Costume);
+    }
+
     // ── RaidUpdate.ApplyUpdate — null-skip behavior ─────────
 
     [Fact]

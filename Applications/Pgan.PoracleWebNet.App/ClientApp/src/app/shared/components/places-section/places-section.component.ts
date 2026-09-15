@@ -24,6 +24,11 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
  * Adding a place borrows the location dialog as a coordinate picker rather than growing a second map,
  * then asks for the name separately, because picking a point and naming it are two decisions and
  * putting them on one screen makes both feel like a form.
+ *
+ * Moving one reuses the same picker and skips the naming step, because the label is what every alarm
+ * points at and changing it is a different act. The control only appears where the Poracle server can
+ * do it (PoracleNG 5.2.0) — with no @else, and no tooltip explaining a version number to someone who
+ * cannot act on it. On an older server the delete-and-re-add flow is still right there.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,6 +73,33 @@ export class PlacesSectionComponent implements OnInit {
       .subscribe(confirmed => {
         if (confirmed) this.removePlace(place);
       });
+  }
+
+  /** Moves a place to a new point, keeping its label so every alarm pointing at it follows. */
+  movePlace(place: SavedPlace): void {
+    const picker = this.dialog.open(LocationDialogComponent, {
+      data: { latitude: place.latitude, longitude: place.longitude, pickOnly: true },
+    });
+
+    picker.afterClosed().subscribe((point?: Location) => {
+      if (!point) return;
+
+      this.busy.set(true);
+      this.places.move(place.label, point.latitude, point.longitude).subscribe({
+        error: () => {
+          this.busy.set(false);
+          this.snackBar.open(this.translate.instant('WHERE.PLACE_MOVE_ERROR'), this.translate.instant('COMMON.OK'), {
+            duration: 6000,
+          });
+        },
+        next: () => {
+          this.busy.set(false);
+          this.snackBar.open(this.translate.instant('WHERE.PLACE_MOVED', { place: place.label }), this.translate.instant('COMMON.OK'), {
+            duration: 3000,
+          });
+        },
+      });
+    });
   }
 
   ngOnInit(): void {

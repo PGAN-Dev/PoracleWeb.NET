@@ -104,7 +104,7 @@
               <span class="gmax-tag">{{ 'MAX_BATTLES.GMAX_TAG' | translate }}</span>
             }
             @if (isAutoDelete(mb.clean)) {
-              <span class="clean-tag" [matTooltip]="'ALARM.CLEAN_HINT_MAX_BATTLE' | translate">clean</span>
+              <span class="clean-tag" [matTooltip]="'ALARM.CLEAN_HINT_MAX_BATTLE' | translate">{{ 'ALARM.CLEAN_TAG' | translate }}</span>
             }
           </div>
         </div>
@@ -129,8 +129,13 @@
             [template]="mb.template"
             [editable]="true"
             (click)="editScope(mb); $event.stopPropagation()" />
+          <app-rule-summary [text]="mb.description" />
         </mat-card-content>
         <mat-card-actions align="end">
+          @if (mb.stationId; as stationId) {
+            <app-quiet-chip scope="station" [value]="stationId" />
+          }
+
           <button mat-icon-button (click)="editMaxBattle(mb)" [matTooltip]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>

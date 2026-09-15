@@ -25,7 +25,9 @@ import { TestAlertService } from '../../core/services/test-alert.service';
 import { AlarmInfoComponent } from '../../shared/components/alarm-info/alarm-info.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
+import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 
 @Component({
@@ -39,6 +41,7 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
     MatDialogModule,
     MatTooltipModule,
     MatSnackBarModule,
+    RuleSummaryComponent,
     TranslatePipe,
     AlarmInfoComponent,
   ],
@@ -269,6 +272,9 @@ export class QuestListComponent implements OnInit {
       // type it does not recognise gets.
       case 3:
         return '#FBC02D';
+      // Pokecoins get their own gold rather than the grey fallback, for the same reason stardust did.
+      case 8:
+        return '#FFB300';
       default:
         return '#9E9E9E';
     }
@@ -284,6 +290,8 @@ export class QuestListComponent implements OnInit {
         return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
       case 4:
         return this.i18n.instant('QUESTS.REWARD_CANDY');
+      case 8:
+        return this.i18n.instant('QUESTS.POKECOINS');
       default:
         return this.i18n.instant('QUESTS.REWARD_TYPE_PREFIX', { type: rewardType });
     }
@@ -309,7 +317,7 @@ export class QuestListComponent implements OnInit {
           this.loading.set(false);
         },
         next: quests => {
-          this.quests.set(quests);
+          this.quests.set(orderAlarms(quests, q => [q.rewardType, q.reward, q.amount]));
           this.loading.set(false);
         },
       });
@@ -318,6 +326,7 @@ export class QuestListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProfileAreas();
     this.summaryService.loadCapability();
+    this.questService.loadPokecoinCapability();
     this.masterData
       .loadData()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -414,6 +423,13 @@ export class QuestListComponent implements OnInit {
       return quest.reward > 0
         ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
         : this.i18n.instant('QUESTS.STARDUST');
+    }
+    // Ungated on purpose: a pokecoin rule set with the bot, or left behind by a PoracleNG downgrade,
+    // still has to be readable and deletable here. Only creating one asks whether the server can.
+    if (quest.rewardType === 8) {
+      return quest.reward > 0
+        ? this.i18n.instant('QUESTS.POKECOINS_AMOUNT', { amount: quest.reward })
+        : this.i18n.instant('QUESTS.POKECOINS');
     }
     return this.getRewardTypeLabel(quest.rewardType);
   }

@@ -23,6 +23,8 @@ public class InvasionServiceTests
     public InvasionServiceTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        // Default: a server that serves the Pokestop Events page, so event rows belong to it.
+        this._featureGate.Setup(g => g.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
         this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._uidRemapper.Object);
         // The natural-key replace strategy reads the original row and frees the key first.
         this._proxy.Setup(p => p.GetByUserAsync("invasion", It.IsAny<string>()))
@@ -364,5 +366,109 @@ public class InvasionServiceTests
         var result = await this._sut.CreateAsync("user1", new Invasion { GruntType = new string('a', 255) });
 
         Assert.Equal(12, result.Uid);
+    }
+
+    // ── the shared invasion table: incident rows are not invasion rows ───────
+
+    /// <summary>
+    /// A mixed table as PoracleNG serves it over v1: two invasions and a showcase, with the showcase
+    /// row indistinguishable except by its grunt_type.
+    /// </summary>
+    private void MixedTable() =>
+        this._proxy.Setup(p => p.GetByUserAsync("invasion", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, id = "u1", grunt_type = "water", distance = 100 },
+            new { uid = 2, id = "u1", grunt_type = "showcase", distance = 100 },
+            new { uid = 3, id = "u1", grunt_type = "everything", distance = 100 }));
+
+    [Fact]
+    public async Task PokestopEventRowsAreNotListedAsInvasions()
+    {
+        this.MixedTable();
+
+        var items = await this._sut.GetByUserAsync("u1", 1);
+
+        Assert.Equal([1, 3], items.Select(x => x.Uid));
+    }
+
+    /// <summary>
+    /// The legitimate-case-still-passes half, and the one that matters most. On a PoracleNG too old
+    /// to serve the Pokestop Events page — or with <c>disable_showcase</c> set — the page that would
+    /// hold these rows does not exist, so hiding them here would leave alarms that fire and cannot be
+    /// seen or deleted. Event rows are creatable from the invasion add dialog on 5.1.0 today.
+    /// </summary>
+    [Fact]
+    public async Task PokestopEventRowsStayInTheInvasionListWhenThereIsNowhereElseForThemToGo()
+    {
+        this._featureGate.Setup(g => g.IsEnabledAsync(DisableFeatureKeys.PokestopEvents)).ReturnsAsync(false);
+        this.MixedTable();
+
+        var items = await this._sut.GetByUserAsync("u1", 1);
+
+        Assert.Equal([1, 2, 3], items.Select(x => x.Uid));
+    }
+
+    [Fact]
+    public async Task CountByUserAsyncCountsOnlyInvasions()
+    {
+        this.MixedTable();
+
+        Assert.Equal(2, await this._sut.CountByUserAsync("u1", 1));
+    }
+
+    [Fact]
+    public async Task GetByUidAsyncDoesNotHandOutAPokestopEventRow()
+    {
+        this.MixedTable();
+
+        Assert.Null(await this._sut.GetByUidAsync("u1", 2));
+        Assert.NotNull(await this._sut.GetByUidAsync("u1", 1));
+    }
+
+    [Fact]
+    public async Task DeleteAllByUserAsyncLeavesPokestopEventRowsAlone()
+    {
+        this.MixedTable();
+        List<int>? deleted = null;
+        this._proxy.Setup(p => p.BulkDeleteByUidsAsync("invasion", "u1", It.IsAny<IEnumerable<int>>()))
+            .Callback<string, string, IEnumerable<int>>((_, _, uids) => deleted = [.. uids])
+            .Returns(Task.CompletedTask);
+
+        var count = await this._sut.DeleteAllByUserAsync("u1", 1);
+
+        Assert.Equal(2, count);
+        Assert.Equal([1, 3], deleted);
+    }
+
+    [Fact]
+    public async Task UpdateDistanceByUserAsyncDoesNotRewritePokestopEventRows()
+    {
+        this.MixedTable();
+        JsonElement? body = null;
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, b) => body = b)
+            .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
+
+        var count = await this._sut.UpdateDistanceByUserAsync("u1", 1, 500);
+
+        Assert.Equal(2, count);
+        Assert.DoesNotContain(
+            "showcase",
+            body!.Value.GetRawText(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UpdateDistanceByUidsAsyncIgnoresAPokestopEventUid()
+    {
+        this.MixedTable();
+        JsonElement? body = null;
+        this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
+            .Callback<string, string, JsonElement>((_, _, b) => body = b)
+            .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
+
+        var count = await this._sut.UpdateDistanceByUidsAsync([1, 2], "u1", 500);
+
+        Assert.Equal(1, count);
+        Assert.DoesNotContain("showcase", body!.Value.GetRawText(), StringComparison.Ordinal);
     }
 }

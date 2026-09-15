@@ -22,7 +22,13 @@ public partial class TrackedUidRemapper(
         try
         {
             // Scanned across every profile: an alarm edit does not tell us which profile the row belongs
-            // to, and a uid is unique per user anyway, so a match in any profile is the right one.
+            // to, so a match in any profile is the right one.
+            //
+            // A uid is unique per user only WITHIN a tracking type -- PoracleNG numbers each table
+            // separately, so a raid and a pokemon rule can carry the same uid. The AlarmType guard just
+            // below is what makes the scan safe; it is load-bearing, not a filter for tidiness. The
+            // profiles overview believed the looser version of this and tagged unrelated rules as
+            // duplicates of each other (#831).
             var states = await this._appliedStateRepository.GetByUserAsync(userId);
 
             foreach (var state in states)
