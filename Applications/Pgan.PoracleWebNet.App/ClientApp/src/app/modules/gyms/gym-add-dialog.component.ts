@@ -18,6 +18,7 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -56,11 +57,12 @@ interface TeamOption {
 })
 export class GymAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
-
   private readonly fb = inject(FormBuilder);
 
   private readonly gymService = inject(GymService);
+
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<GymAddDialogComponent>);
   form = this.fb.group({
@@ -98,7 +100,7 @@ export class GymAddDialogComponent {
   ];
 
   getGymIcon(team: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
+    return this.icons.getGymUrl(team);
   }
 
   save(): void {

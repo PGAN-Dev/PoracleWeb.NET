@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { IconService } from './icon.service';
+import { ICON_SOURCE_FOLDERS, ICON_SOURCE_KEYS, IconService } from './icon.service';
 import { SettingsService } from './settings.service';
 
 describe('IconService', () => {
@@ -101,6 +101,57 @@ describe('IconService', () => {
       siteSettings.set({ uicons_reward: 'https://custom.cdn/reward' });
 
       expect(service.getRewardUrl('stardust', 1)).toBe('https://custom.cdn/reward/stardust/1.png');
+    });
+
+    it('should use custom invasion base URL', () => {
+      siteSettings.set({ uicons_invasion: 'https://custom.cdn/invasion' });
+
+      expect(service.getInvasionUrl(41)).toBe('https://custom.cdn/invasion/41.png');
+    });
+  });
+
+  /**
+   * The constant tables of grunt and event artwork name a picture the way it sits inside a pack and
+   * cannot inject anything to ask where pictures live. Before #877 they carried whole URLs built from
+   * their own copy of a base, which is how they kept requesting a repository that had been deleted.
+   */
+  describe('getPackUrl', () => {
+    const DEFAULT_BASE = 'https://raw.githubusercontent.com/jms412/PkmnHomeIcons/master/UICONS';
+
+    it('resolves each folder against that category, not one shared base', () => {
+      siteSettings.set({
+        uicons_invasion: 'https://invasions.cdn/invasion',
+        uicons_pkmn: 'https://mons.cdn/pokemon',
+        uicons_type: 'https://types.cdn/type',
+      });
+
+      expect(service.getPackUrl('invasion/41.png')).toBe('https://invasions.cdn/invasion/41.png');
+      expect(service.getPackUrl('type/7.png')).toBe('https://types.cdn/type/7.png');
+      expect(service.getPackUrl('pokemon/352.png')).toBe('https://mons.cdn/pokemon/352.png');
+    });
+
+    it('keeps the part of the path below the folder', () => {
+      expect(service.getPackUrl('reward/item/501.png')).toBe(`${DEFAULT_BASE}/reward/item/501.png`);
+    });
+
+    it('tolerates a leading slash', () => {
+      expect(service.getPackUrl('/gym/1.png')).toBe(`${DEFAULT_BASE}/gym/1.png`);
+    });
+
+    it('serves a folder this build has no setting for from the same host as everything else', () => {
+      // Packs carry weather/, team/, station/ and more. None of them has a setting yet, and a caller
+      // asking for one should get a URL rather than a broken relative path.
+      expect(service.getPackUrl('weather/3.png')).toBe(`${DEFAULT_BASE}/pokemon/weather/3.png`);
+    });
+
+    it('honours every declared source key, not just the three above', () => {
+      // A key added to SOURCES without getPackUrl learning its folder would quietly resolve under the
+      // Pokemon base -- a plausible-looking URL for a picture that is not there.
+      siteSettings.set(Object.fromEntries(ICON_SOURCE_KEYS.map(key => [key, `https://${key}.test`])));
+
+      const wrong = ICON_SOURCE_KEYS.filter(key => service.getPackUrl(`${ICON_SOURCE_FOLDERS[key]}/1.png`) !== `https://${key}.test/1.png`);
+
+      expect(wrong).toEqual([]);
     });
   });
 });

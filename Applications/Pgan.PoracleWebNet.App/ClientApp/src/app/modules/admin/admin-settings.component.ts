@@ -446,6 +446,7 @@ export class AdminSettingsComponent implements OnInit {
     'uicons_raid',
     'uicons_reward',
     'uicons_type',
+    'uicons_invasion',
     // Driven by the Authentication mode switch rather than a generic group row, but still
     // a known key so it doesn't fall through to the "Other" catch-all section.
     'enable_oidc',
@@ -864,6 +865,7 @@ export class AdminSettingsComponent implements OnInit {
     const keys: Record<string, string> = {
       uicons_raid: `${repo.base}/raid`,
       uicons_gym: `${repo.base}/gym`,
+      uicons_invasion: `${repo.base}/invasion`,
       uicons_pkmn: `${repo.base}/pokemon`,
       uicons_reward: `${repo.base}/reward`,
       uicons_type: `${repo.base}/type`,

@@ -153,17 +153,18 @@ describe('Maps field visibility', () => {
  * had an opinion about it. See #877.
  */
 describe('icon source keys', () => {
-  /** Mirrors the map inside AdminSettingsComponent.selectRepo. */
-  const written = (base: string): Record<string, string> => ({
-    uicons_raid: `${base}/raid`,
-    uicons_gym: `${base}/gym`,
-    uicons_pkmn: `${base}/pokemon`,
-    uicons_reward: `${base}/reward`,
-    uicons_type: `${base}/type`,
-  });
+  const componentSource = fs.readFileSync(path.join(__dirname, 'admin-settings.component.ts'), 'utf8');
 
   it('picking a repository points every category IconService reads at it', () => {
-    expect(Object.keys(written('https://example.test/UICONS')).sort()).toEqual([...ICON_SOURCE_KEYS].sort());
+    // Read out of the real selectRepo rather than mirrored here. A mirror is a second copy of the
+    // thing that drifted in the first place, and it passes whether or not the component agrees with it.
+    const open = componentSource.indexOf('selectRepo(repo: { base: string }): void {');
+    expect(open).toBeGreaterThan(-1);
+
+    const body = componentSource.slice(open, componentSource.indexOf('};', open));
+    const written = [...body.matchAll(/(uicons_[a-z]+):/g)].map(m => m[1]);
+
+    expect(written.sort()).toEqual([...ICON_SOURCE_KEYS].sort());
   });
 
   it('no icon source key is also declared as an editable group row', () => {
@@ -172,5 +173,37 @@ describe('icon source keys', () => {
     const groupKeys = new Set(SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)));
 
     expect(ICON_SOURCE_KEYS.filter(k => groupKeys.has(k))).toEqual([]);
+  });
+});
+
+/**
+ * Thirteen files built icon URLs from their own hardcoded copy of a pack base rather than asking
+ * IconService, so they went on requesting whitewillem/PogoAssets long after it was deleted and long
+ * after the settings page had stopped. Fixing the service alone left gym, raid, lure and invasion
+ * icons dead on a site whose icon settings said otherwise.
+ *
+ * IconService is the only place allowed to know a pack's address. Everything else names a picture.
+ * See #877.
+ */
+describe('icon hosts', () => {
+  const appRoot = path.join(__dirname, '../..');
+  /** Knows the default pack because it defines it; the admin page, because it offers the list. */
+  const allowed = new Set(['core/services/icon.service.ts', 'modules/admin/admin-settings.component.ts']);
+
+  const walk = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) return walk(full);
+      const source = e.name.endsWith('.ts') || e.name.endsWith('.html');
+      return source && !e.name.endsWith('.spec.ts') ? [full] : [];
+    });
+
+  it('builds every icon URL through IconService', () => {
+    const offenders = walk(appRoot)
+      .map(f => ({ file: path.relative(appRoot, f).split(path.sep).join('/'), text: fs.readFileSync(f, 'utf8') }))
+      .filter(({ file, text }) => !allowed.has(file) && text.includes('githubusercontent.com'))
+      .map(({ file }) => file);
+
+    expect(offenders).toEqual([]);
   });
 });

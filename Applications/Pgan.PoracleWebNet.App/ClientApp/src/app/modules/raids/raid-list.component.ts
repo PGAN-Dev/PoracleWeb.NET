@@ -306,7 +306,7 @@ export class RaidListComponent implements OnInit {
 
   getGymIcon(team: number): string {
     const icon = team === 4 ? 0 : team;
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${icon}.png`;
+    return this.iconService.getGymUrl(icon);
   }
 
   getLevelColor(level: number): string {

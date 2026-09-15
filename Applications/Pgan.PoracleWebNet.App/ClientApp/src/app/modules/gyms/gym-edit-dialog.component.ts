@@ -15,6 +15,7 @@ import { Gym, GymUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -47,6 +48,7 @@ export class GymEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Gym>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<GymEditDialogComponent>);
@@ -66,7 +68,7 @@ export class GymEditDialogComponent {
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
   selectedGymId = signal<string | null>(this.data.gymId);
   getGymIcon(): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${this.data.team}.png`;
+    return this.icons.getGymUrl(this.data.team);
   }
 
   getTeamName(team: number): string {

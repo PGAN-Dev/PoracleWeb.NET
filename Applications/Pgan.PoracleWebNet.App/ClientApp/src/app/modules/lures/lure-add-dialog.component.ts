@@ -17,6 +17,7 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -54,10 +55,11 @@ interface LureOption {
 })
 export class LureAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
-
   private readonly fb = inject(FormBuilder);
 
   private readonly i18n = inject(I18nService);
+
+  private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<LureAddDialogComponent>);
@@ -97,7 +99,7 @@ export class LureAddDialogComponent {
   selectedLureIds = signal<number[]>([]);
 
   getLureIcon(lureId: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
+    return this.icons.getItemUrl(lureId);
   }
 
   save(): void {

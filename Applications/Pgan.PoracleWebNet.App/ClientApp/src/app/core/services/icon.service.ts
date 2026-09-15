@@ -26,6 +26,7 @@ const DEFAULT_UICONS = 'https://raw.githubusercontent.com/jms412/PkmnHomeIcons/m
 const SOURCES = {
   uicons_raid: 'raid',
   uicons_gym: 'gym',
+  uicons_invasion: 'invasion',
   uicons_pkmn: 'pokemon',
   uicons_reward: 'reward',
   uicons_type: 'type',
@@ -35,6 +36,12 @@ export type IconSourceKey = keyof typeof SOURCES;
 
 /** The settings an operator has to point somewhere for every icon on the site to resolve. */
 export const ICON_SOURCE_KEYS = Object.keys(SOURCES) as IconSourceKey[];
+
+/** Each setting's folder inside a UICONS pack, which is what `getPackUrl` matches a path against. */
+export const ICON_SOURCE_FOLDERS: Readonly<Record<IconSourceKey, string>> = SOURCES;
+
+/** Pack folder (`gym`, `invasion`, ...) back to the setting that says where it lives. */
+const KEY_BY_FOLDER = new Map<string, IconSourceKey>(ICON_SOURCE_KEYS.map(key => [SOURCES[key], key]));
 
 @Injectable({ providedIn: 'root' })
 export class IconService {
@@ -73,8 +80,35 @@ export class IconService {
     return `${this.gymBase()}/${team}.png`;
   }
 
+  getInvasionUrl(id: number): string {
+    return `${this.base()('uicons_invasion')}/${id}.png`;
+  }
+
   getItemUrl(id: number): string {
     return `${this.rewardBase()}/item/${id}.png`;
+  }
+
+  /**
+   * Resolve a path written the way it sits inside a UICONS pack -- `invasion/12.png`,
+   * `type/3.png`, `reward/item/501.png` -- against whichever base the operator configured for that
+   * category.
+   *
+   * It exists for the constant tables (grunt artwork, pokestop events), which name a picture but
+   * cannot inject a service to ask where pictures come from. They used to carry whole absolute URLs
+   * built from a hardcoded base, which is how a table of grunt icons kept pointing at a deleted
+   * repository long after the settings page stopped doing so. See #877.
+   *
+   * An unrecognised first segment is returned as-is under the Pokemon base rather than dropped, so a
+   * pack folder this build has no setting for still renders from the same host as everything else.
+   */
+  getPackUrl(path: string): string {
+    const trimmed = path.replace(/^\//, '');
+    const slash = trimmed.indexOf('/');
+    if (slash <= 0) return `${this.pkmnBase()}/${trimmed}`;
+
+    const key = KEY_BY_FOLDER.get(trimmed.slice(0, slash));
+    if (!key) return `${this.pkmnBase()}/${trimmed}`;
+    return `${this.base()(key)}/${trimmed.slice(slash + 1)}`;
   }
 
   getPokemonFallbackUrl(id: number): string {
@@ -99,5 +133,9 @@ export class IconService {
   getTypeUrl(typeName: string): string {
     const id = POKEMON_TYPE_IDS[typeName];
     return id ? `${this.typeBase()}/${id}.png` : '';
+  }
+
+  getTypeUrlById(id: number): string {
+    return `${this.typeBase()}/${id}.png`;
   }
 }
