@@ -313,6 +313,38 @@ public class PoracleTrackingProxyV2Tests
     }
 
     [Fact]
+    public async Task AFilterThisServerBoundsGoesToV1WhileTheSameRowGoesToV2OnAServerThatDoesNot()
+    {
+        // pvp_ranking_best 0 is what PoracleWeb.NET writes for a rule with no PVP floor, and what
+        // PoracleNG stores for one. An unreleased PoracleNG declares the field minimum 1, which would
+        // refuse roughly sixteen thousand rules on one production instance. The limits are read from the
+        // instance being written to, so the same row takes different paths on different servers, and the
+        // server everyone runs today is unaffected.
+        const string Row7 = @"{""uid"":7,""pokemon_id"":25,""pvp_ranking_best"":0}";
+
+        var bounded = new ScriptedHandler(new Reply(HttpStatusCode.OK, @"{""newUids"":[7],""alreadyPresent"":0,""updates"":1,""insert"":0}"))
+        {
+            OpenApi = @"{""components"":{""schemas"":{""V2PokemonRule"":{""properties"":{""pvp_ranking_best"":{""minimum"":1,""maximum"":4096}}}}}}",
+        };
+
+        await CreateSut(bounded, version: "5.2.1").UpdateByUidAsync("pokemon", "user1", 7, Row(Row7));
+
+        var toV1 = Assert.Single(bounded.Requests);
+        Assert.Equal($"{ApiAddress}/api/tracking/pokemon/user1?silent=true", toV1.Url);
+        Assert.Contains(@"""pvp_ranking_best"":0", toV1.Body, StringComparison.Ordinal);
+
+        // Same row, same version, a server declaring no such limit: unchanged from today.
+        var unbounded = ScriptedHandler.Ok(@"{""status"":""ok"",""uid"":7}");
+
+        await CreateSut(unbounded, version: "5.2.1").UpdateByUidAsync("pokemon", "user1", 7, Row(Row7));
+
+        var toV2 = Assert.Single(unbounded.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/pokemon/7?silent=true", toV2.Url);
+        Assert.Contains(@"""pvp_ranking_best"":0", toV2.Body, StringComparison.Ordinal);
+    }
+
+
+    [Fact]
     public async Task ASetPingSurvivesTheEditInsteadOfBeingBlanked()
     {
         // v2 stores Ping: "" unconditionally ("server-managed" in v2_pokemon.go), so translating a rule
@@ -468,6 +500,14 @@ public class PoracleTrackingProxyV2Tests
 
         public List<Sent> Requests { get; } = [];
 
+        /// <summary>
+        /// What this server declares about its own v2 rules. The proxy reads it before every translation
+        /// to learn which filter values that instance will refuse, so it is answered out of band: it is
+        /// not part of the scripted sequence and is not recorded, because no test here is about it.
+        /// A server declaring nothing is the 5.2.1 case, and the default.
+        /// </summary>
+        public string OpenApi { get; init; } = @"{""components"":{""schemas"":{}}}";
+
         public static ScriptedHandler Ok(string body) => new(new Reply(HttpStatusCode.OK, body));
 
         public static ScriptedHandler Problem(HttpStatusCode status, string body) =>
@@ -476,11 +516,19 @@ public class PoracleTrackingProxyV2Tests
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/openapi.json", StringComparison.Ordinal))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(this.OpenApi, Encoding.UTF8, "application/json"),
+                };
+            }
+
             var body = request.Content is null
                 ? null
                 : await request.Content.ReadAsStringAsync(cancellationToken);
 
-            this.Requests.Add(new Sent(request.Method, request.RequestUri!.ToString(), body));
+            this.Requests.Add(new Sent(request.Method, request.RequestUri.ToString(), body));
 
             var reply = replies[Math.Min(this._next++, replies.Length - 1)];
             return new HttpResponseMessage(reply.Status)

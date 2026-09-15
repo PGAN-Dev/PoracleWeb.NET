@@ -162,7 +162,7 @@ public class TrackingV2TypeTranslationTests
     public void AFullStoredRowTranslatesForEveryTypeThatMoved(string type)
     {
         Assert.True(
-            TrackingV2Translator.TryTranslate(type, Row(V1Row[type]), out _, out var unsupported),
+            TrackingV2Translator.TryTranslate(type, Row(V1Row[type]), ServerDoesNotBoundAnything, out _, out var unsupported),
             $"A stored {type} row must reach /api/v2, not fall back: {unsupported}");
     }
 
@@ -171,7 +171,7 @@ public class TrackingV2TypeTranslationTests
     public void NothingOutsideTheSchemaReachesTheWire(string type)
     {
         // additionalProperties: false. One leaked field is a 422, and the fallback hides it.
-        TrackingV2Translator.TryTranslate(type, Row(V1Row[type]), out var translated, out _);
+        TrackingV2Translator.TryTranslate(type, Row(V1Row[type]), ServerDoesNotBoundAnything, out var translated, out _);
 
         var leaked = translated.EnumerateObject()
             .Select(p => p.Name)
@@ -187,7 +187,7 @@ public class TrackingV2TypeTranslationTests
     {
         // The other half. A schema field missing from the type's table is a filter PoracleWeb would send
         // to v1 forever without anyone noticing, because the write still succeeds.
-        TrackingV2Translator.TryTranslate(type, Row(V1Row[type]), out var translated, out _);
+        TrackingV2Translator.TryTranslate(type, Row(V1Row[type]), ServerDoesNotBoundAnything, out var translated, out _);
 
         var written = translated.EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
         var missing = V2Schema[type].Where(name => !written.Contains(name)).ToList();
@@ -245,7 +245,7 @@ public class TrackingV2TypeTranslationTests
 
         Assert.False(
             TrackingV2Translator.TryTranslate(
-                "fort", Row("""{"fort_type":"gym","distance":0}"""), out _, out var unsupported),
+                "fort", Row("""{"fort_type":"gym","distance":0}"""), ServerDoesNotBoundAnything, out _, out var unsupported),
             "A fort row with no include_empty cannot be sent faithfully and must fall back to v1.");
         Assert.Contains("include_empty", unsupported, StringComparison.Ordinal);
     }
@@ -287,23 +287,6 @@ public class TrackingV2TypeTranslationTests
         }
     }
 
-    [Fact]
-    public void ARaidLevelOf9000GoesToV1BecauseV2BoundsItToATier()
-    {
-        // level is the one of the four that v2 bounds (1-90), and PoracleNG writes 9000 itself whenever
-        // pokemon_id names a specific boss. Omitting it is not an option: on a by-level rule the write
-        // default is 90, which matches every tier, so a rule for one boss would quietly become a rule
-        // for every raid in range. The row goes to v1, which stores what it is given.
-        Assert.False(
-            TrackingV2Translator.TryTranslate(
-                "raid",
-                Row(@"{""pokemon_id"":150,""level"":9000,""team"":4}"),
-                out _,
-                out var unsupported));
-
-        Assert.Contains("level", unsupported, StringComparison.Ordinal);
-    }
-
     // ──────────────────────────────────────────────────────────────
     // Required fields. Each refusal is paired with the legitimate case that must still reach v2.
     // ──────────────────────────────────────────────────────────────
@@ -315,11 +298,11 @@ public class TrackingV2TypeTranslationTests
         // so profile import, quick-pick apply and the cleaning fetch-mutate-POST all build eggs v2 answers
         // 422 to -- verified live. v1 has stored level 0 for years and keeps doing so.
         Assert.False(
-            TrackingV2Translator.TryTranslate("egg", Row("""{"level":0,"team":4}"""), out _, out var unsupported));
+            TrackingV2Translator.TryTranslate("egg", Row("""{"level":0,"team":4}"""), ServerDoesNotBoundAnything, out _, out var unsupported));
         Assert.Contains("level", unsupported, StringComparison.Ordinal);
 
-        Assert.True(TrackingV2Translator.TryTranslate("egg", Row("""{"level":1,"team":4}"""), out _, out _));
-        Assert.True(TrackingV2Translator.TryTranslate("egg", Row("""{"level":5,"team":4}"""), out _, out _));
+        Assert.True(TrackingV2Translator.TryTranslate("egg", Row("""{"level":1,"team":4}"""), ServerDoesNotBoundAnything, out _, out _));
+        Assert.True(TrackingV2Translator.TryTranslate("egg", Row("""{"level":5,"team":4}"""), ServerDoesNotBoundAnything, out _, out _));
     }
 
     [Theory]
@@ -330,8 +313,8 @@ public class TrackingV2TypeTranslationTests
     public void ARowMissingWhatV2RequiresGoesToV1AndAnOrdinaryOneDoesNot(
         string type, string without, string with)
     {
-        Assert.False(TrackingV2Translator.TryTranslate(type, Row(without), out _, out _));
-        Assert.True(TrackingV2Translator.TryTranslate(type, Row(with), out _, out var unsupported), unsupported);
+        Assert.False(TrackingV2Translator.TryTranslate(type, Row(without), ServerDoesNotBoundAnything, out _, out _));
+        Assert.True(TrackingV2Translator.TryTranslate(type, Row(with), ServerDoesNotBoundAnything, out _, out var unsupported), unsupported);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -349,7 +332,7 @@ public class TrackingV2TypeTranslationTests
     [InlineData("fort", """{"fort_type":"gym","include_empty":0,"clean":1}""")]
     public void ARowV2CannotCarryFaithfullyDeclines(string type, string row)
     {
-        Assert.False(TrackingV2Translator.TryTranslate(type, Row(row), out _, out var unsupported));
+        Assert.False(TrackingV2Translator.TryTranslate(type, Row(row), ServerDoesNotBoundAnything, out _, out var unsupported));
         Assert.NotNull(unsupported);
     }
 
@@ -364,8 +347,7 @@ public class TrackingV2TypeTranslationTests
         Assert.True(
             TrackingV2Translator.TryTranslate(
                 "fort",
-                Row($$"""{"fort_type":"{{fortType}}","include_empty":0}"""),
-                out _,
+                Row($$"""{"fort_type":"{{fortType}}","include_empty":0}"""), ServerDoesNotBoundAnything, out _,
                 out var unsupported),
             unsupported);
     }
@@ -374,14 +356,21 @@ public class TrackingV2TypeTranslationTests
     public void InvasionAndAnythingUnknownHasNoTableAndSaysSo()
     {
         Assert.False(TrackingV2Translator.Handles("invasion"));
-        Assert.False(TrackingV2Translator.TryTranslate("invasion", Row("""{"grunt_type":"blanche"}"""), out _, out _));
+        Assert.False(TrackingV2Translator.TryTranslate("invasion", Row("""{"grunt_type":"blanche"}"""), ServerDoesNotBoundAnything, out _, out _));
     }
+
+    /// <summary>
+    /// These tests are about shape translation, not value limits, so they run against a server that
+    /// declares none. The limits have their own file, and passing them here would couple every shape
+    /// assertion to whatever upstream currently bounds.
+    /// </summary>
+    private const IReadOnlyDictionary<string, TrackingV2Translator.Bound>? ServerDoesNotBoundAnything = null;
 
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
     private static JsonElement Translate(string type, string row)
     {
-        Assert.True(TrackingV2Translator.TryTranslate(type, Row(row), out var translated, out var unsupported), unsupported);
+        Assert.True(TrackingV2Translator.TryTranslate(type, Row(row), ServerDoesNotBoundAnything, out var translated, out var unsupported), unsupported);
         return translated;
     }
 }
