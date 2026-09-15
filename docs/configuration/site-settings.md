@@ -145,19 +145,22 @@ rather than three chances to get it wrong.
 
 A provider with no dark variant reuses its light tiles when the theme is dark.
 
-!!! warning "OpenStreetMap is selectable, but it is not the fallback"
+!!! warning "OpenStreetMap is the fallback, and it is the one provider told who you are"
     OSM's [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) refuses a request
     it cannot identify, and this site sends `Referrer-Policy: same-origin` so that a remote image host
     cannot learn where a private instance lives (#383). Refererless tile requests come back **200**
     with "Access blocked" drawn into the image — the CARTO watermark's failure mode wearing a
-    different hat. Choosing OSM therefore sets `referrerPolicy="origin"` on its tile images only,
-    which sends your site's host and no path, and leaves every other remote request the page makes
-    unidentified. Nothing else in the catalogue needs it.
+    different hat.
 
-    It is not what an unconfigured install falls back to, for the same reason plus one more: OSM's
-    servers are run by volunteers and are not somewhere to point every deployment of a self-hosted
-    project by default. Esri answers the same bytes with or without a Referer, so the fallback costs
-    the operator nothing and discloses nothing.
+    So OSM's entry sets `referrerPolicy="origin"` on its own tile images: your site's host, no path,
+    on map tiles alone. Every other remote request the page makes — uicons, Discord avatars, fonts —
+    stays as unidentified as it was, and nothing else in the catalogue needs the exception.
+
+    Since OSM is what an unconfigured install falls back to, that disclosure is the default. If you
+    would rather your instance's address never reached a tile provider, configure one that needs
+    neither a key nor a referrer: Esri Streets, Esri Gray Canvas and Esri World Imagery all return
+    the same bytes with or without one. OSM also asks that heavy users run their own tiles rather
+    than lean on its volunteers, which is worth knowing if your instance is a busy one.
 
 !!! info "These are the same tiles ReactMap draws"
     OSM, Satellite and Dark Matter use the URLs from ReactMap's `config/default.json`, and CARTO
@@ -187,7 +190,7 @@ or domain at the provider instead of trying to hide it. It is served to non-admi
 under the `basemap_` prefix in the settings allowlist. Withholding it would not protect anything and
 would leave every non-admin on a different basemap from the admins checking the site.
 
-Leave it blank and the site draws Esri Streets rather than the provider you chose, and says so in
+Leave it blank and the site draws OpenStreetMap rather than the provider you chose, and says so in
 the Maps section and in the layers menu. That fallback exists because CARTO answers **200** to a
 keyless request and returns working tiles with `API KEY REQUIRED` drawn into the image: nothing logs,
 no health check notices, and the only way anyone finds out is by looking at a map and recognising
@@ -195,7 +198,7 @@ what they are seeing ([#842](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/8
 
 The same applies to a basemap that cannot be drawn for any other reason — `custom` with a blank or
 malformed tile URL, which is what choosing it and saving before filling the field leaves behind, or a
-provider id this build does not know after a rollback. Maps fall back to Esri Streets and both the
+provider id this build does not know after a rollback. Maps fall back to OpenStreetMap and both the
 Maps section and the layers menu say the configured basemap is not set up. Neither case produces an
 error: a URL that is not a tile template is simply never requested.
 

@@ -76,12 +76,13 @@ export const DEFAULT_BASEMAP_ID = 'carto-positron';
  * itself, so serving the keyed URL anyway produces a map that looks broken and reports nothing. A
  * keyless provider is worse-looking than the intended basemap and better than a watermark. See #842.
  *
- * Esri and not OpenStreetMap, for two reasons. OSM's volunteer servers are not somewhere to send
- * every unconfigured install of a self-hosted project by default; and its usage policy refuses a
- * request it cannot identify, which this app's `Referrer-Policy` makes every request. Esri answers
- * the same bytes with or without a Referer, so the fallback needs nothing from the operator.
+ * OpenStreetMap, which needs `sendReferrer` to be usable at all -- its usage policy refuses a request
+ * it cannot identify, and this app's `Referrer-Policy` strips the identification from every other
+ * remote request the page makes. Its entry opts in, so the fallback identifies the site to OSM and
+ * nobody else. That disclosure is the price of the default; an operator who would rather not make it
+ * sets any other provider, several of which need neither a key nor a referrer.
  */
-export const FALLBACK_BASEMAP_ID = 'esri-street';
+export const FALLBACK_BASEMAP_ID = 'osm';
 
 export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
   {
