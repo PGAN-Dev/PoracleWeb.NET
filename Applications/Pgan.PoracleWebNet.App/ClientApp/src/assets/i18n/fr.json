@@ -1770,8 +1770,8 @@
     "BASEMAP_URL_DARK_DESC": "Facultatif. Remplace l’URL ci-dessus lorsque le mode sombre est actif.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribution du fond de carte",
     "BASEMAP_ATTRIBUTION_DESC": "Attribution de l’URL de tuiles personnalisée. Doit respecter les conditions de votre fournisseur. Affichée en texte brut.",
-    "BASEMAP_KEY_MISSING": "Aucune clé n’est définie : les cartes basculent sur OpenStreetMap. Le fournisseur choisi renverrait quand même des tuiles — CARTO y inscrit « API KEY REQUIRED » — et rien d’autre ne le signalerait.",
-    "BASEMAP_UNAVAILABLE": "Le fond de carte choisi n’a pas d’URL de tuiles utilisable : les cartes basculent sur OpenStreetMap. Choisissez un fournisseur, ou indiquez une URL de tuiles commençant par http:// ou https://."
+    "BASEMAP_KEY_MISSING": "Aucune clé n’est définie : les cartes basculent sur {{provider}}. Le fournisseur choisi renverrait quand même des tuiles — CARTO y inscrit « API KEY REQUIRED » — et rien d’autre ne le signalerait.",
+    "BASEMAP_UNAVAILABLE": "Le fond de carte choisi n’a pas d’URL de tuiles utilisable : les cartes basculent sur {{provider}}. Choisissez un fournisseur, ou indiquez une URL de tuiles commençant par http:// ou https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nom",

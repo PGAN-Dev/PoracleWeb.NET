@@ -1770,8 +1770,8 @@
     "BASEMAP_URL_DARK_DESC": "Optional. Ersetzt die obige Kachel-URL, solange der dunkle Modus aktiv ist.",
     "BASEMAP_ATTRIBUTION_LABEL": "Kartenhintergrund-Quellenangabe",
     "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe für die eigene Kachel-URL. Muss den Bedingungen Ihres Anbieters entsprechen. Wird als reiner Text angezeigt.",
-    "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher fallen die Karten auf OpenStreetMap zurück. Der gewählte Anbieter würde auch ohne Schlüssel Kacheln liefern — CARTO zeichnet „API KEY REQUIRED“ hinein —, sodass nichts anderes darauf hinweist.",
-    "BASEMAP_UNAVAILABLE": "Die gewählte Karte hat keine nutzbare Kachel-URL, daher fallen die Karten auf OpenStreetMap zurück. Wählen Sie einen Anbieter oder setzen Sie eine Kachel-URL, die mit http:// oder https:// beginnt."
+    "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher fallen die Karten auf {{provider}} zurück. Der gewählte Anbieter würde auch ohne Schlüssel Kacheln liefern — CARTO zeichnet „API KEY REQUIRED“ hinein —, sodass nichts anderes darauf hinweist.",
+    "BASEMAP_UNAVAILABLE": "Die gewählte Karte hat keine nutzbare Kachel-URL, daher fallen die Karten auf {{provider}} zurück. Wählen Sie einen Anbieter oder setzen Sie eine Kachel-URL, die mit http:// oder https:// beginnt."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

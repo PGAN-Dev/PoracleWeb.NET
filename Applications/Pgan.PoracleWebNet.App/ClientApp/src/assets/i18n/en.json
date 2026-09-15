@@ -1770,8 +1770,8 @@
     "BASEMAP_URL_DARK_DESC": "Optional. Replaces the tile URL above while a viewer has dark mode on.",
     "BASEMAP_ATTRIBUTION_LABEL": "Basemap Attribution",
     "BASEMAP_ATTRIBUTION_DESC": "Attribution for the custom tile URL. Must match your provider’s terms. Shown as plain text.",
-    "BASEMAP_KEY_MISSING": "No key is set, so maps fall back to OpenStreetMap. The chosen provider would still return tiles without one — CARTO draws “API KEY REQUIRED” into them — so nothing else would report this.",
-    "BASEMAP_UNAVAILABLE": "The chosen basemap has no usable tile URL, so maps fall back to OpenStreetMap. Pick a provider, or set a Basemap Tile URL starting http:// or https://."
+    "BASEMAP_KEY_MISSING": "No key is set, so maps fall back to {{provider}}. The chosen provider would still return tiles without one — CARTO draws “API KEY REQUIRED” into them — so nothing else would report this.",
+    "BASEMAP_UNAVAILABLE": "The chosen basemap has no usable tile URL, so maps fall back to {{provider}}. Pick a provider, or set a Basemap Tile URL starting http:// or https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",

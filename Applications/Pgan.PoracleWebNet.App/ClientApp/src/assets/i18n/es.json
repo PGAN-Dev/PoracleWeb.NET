@@ -1770,8 +1770,8 @@
     "BASEMAP_URL_DARK_DESC": "Opcional. Sustituye a la URL anterior mientras el modo oscuro está activo.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribución del mapa base",
     "BASEMAP_ATTRIBUTION_DESC": "Atribución de la URL de teselas personalizada. Debe cumplir los términos de su proveedor. Se muestra como texto plano.",
-    "BASEMAP_KEY_MISSING": "No hay clave configurada, así que los mapas recurren a OpenStreetMap. El proveedor elegido devolvería teselas igualmente — CARTO dibuja «API KEY REQUIRED» en ellas — y nada más lo avisaría.",
-    "BASEMAP_UNAVAILABLE": "El mapa base elegido no tiene una URL de teselas utilizable, así que los mapas recurren a OpenStreetMap. Elija un proveedor o indique una URL de teselas que empiece por http:// o https://."
+    "BASEMAP_KEY_MISSING": "No hay clave configurada, así que los mapas recurren a {{provider}}. El proveedor elegido devolvería teselas igualmente — CARTO dibuja «API KEY REQUIRED» en ellas — y nada más lo avisaría.",
+    "BASEMAP_UNAVAILABLE": "El mapa base elegido no tiene una URL de teselas utilizable, así que los mapas recurren a {{provider}}. Elija un proveedor o indique una URL de teselas que empiece por http:// o https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nombre",
