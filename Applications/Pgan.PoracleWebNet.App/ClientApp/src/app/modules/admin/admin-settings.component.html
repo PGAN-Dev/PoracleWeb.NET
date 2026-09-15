@@ -302,10 +302,12 @@
             }
           </div>
 
-          @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_MAPS' && basemap.missingKey()) {
+          @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_MAPS' && basemap.fallbackReason(); as reason) {
             <div class="config-hint warning basemap-key-warning">
               <mat-icon>info_outline</mat-icon>
-              <span>{{ 'ADMIN_SETTINGS.BASEMAP_KEY_MISSING' | translate }}</span>
+              <span>{{
+                (reason === 'missing-key' ? 'ADMIN_SETTINGS.BASEMAP_KEY_MISSING' : 'ADMIN_SETTINGS.BASEMAP_UNAVAILABLE') | translate
+              }}</span>
             </div>
           }
 

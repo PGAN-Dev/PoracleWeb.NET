@@ -1765,7 +1765,8 @@
     "BASEMAP_URL_DARK_DESC": "Facoltativo. Sostituisce l’URL sopra finché è attiva la modalità scura.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribuzione della mappa base",
     "BASEMAP_ATTRIBUTION_DESC": "Attribuzione per l’URL tile personalizzato. Deve rispettare i termini del tuo provider. Mostrata come testo semplice.",
-    "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi le mappe ripiegano su OpenStreetMap. Il provider scelto restituirebbe comunque i tile — CARTO vi disegna sopra «API KEY REQUIRED» — e nient’altro lo segnalerebbe."
+    "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi le mappe ripiegano su OpenStreetMap. Il provider scelto restituirebbe comunque i tile — CARTO vi disegna sopra «API KEY REQUIRED» — e nient’altro lo segnalerebbe.",
+    "BASEMAP_UNAVAILABLE": "La mappa di base scelta non ha un URL tile utilizzabile, quindi le mappe ripiegano su OpenStreetMap. Scegli un provider oppure imposta un URL tile che inizi con http:// o https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -1831,7 +1832,8 @@
   },
   "BASEMAP": {
     "TITLE": "Mappa di base",
-    "KEY_MISSING": "La mappa di base del sito richiede una chiave API. Viene mostrata {{fallback}}."
+    "KEY_MISSING": "La mappa di base del sito richiede una chiave API. Viene mostrata {{fallback}}.",
+    "UNAVAILABLE": "La mappa di base del sito non è configurata. Viene mostrata {{fallback}}."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Impostazioni predefinite avvisi",

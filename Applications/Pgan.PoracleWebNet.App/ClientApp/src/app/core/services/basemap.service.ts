@@ -44,8 +44,8 @@ interface Attachment {
 /** What the picker renders from. Passed as one object because it is four values and no behaviour. */
 interface PickerState {
   active: BasemapDefinition;
+  fallback: 'missing-key' | 'unavailable' | null;
   lang: string;
-  missing: boolean;
   options: BasemapDefinition[];
 }
 
@@ -54,7 +54,7 @@ interface PickerState {
  *
  * Every map on the site once carried its own copy of a CARTO URL, which is how five of them ended up
  * requesting a keyless endpoint CARTO now watermarks -- silently, over a 200, with the words drawn
- * into the image. See #842 and {@link BasemapService.missingKey}.
+ * into the image. See #842 and {@link BasemapService.fallbackReason}.
  *
  * Attached maps track three things afterwards: the admin's configured provider, the viewer's own
  * choice, and the light/dark theme. All three can change while a map is on screen, so `attach`
@@ -92,7 +92,7 @@ export class BasemapService {
 
   /**
    * The provider an admin nominated, before asking whether it can actually be drawn. Kept apart from
-   * {@link active} so {@link missingKey} reports on what was asked for rather than on what it fell
+   * {@link active} so {@link fallbackReason} reports on what was asked for rather than on what it fell
    * back to.
    */
   private readonly configuredId = computed(() => {
@@ -149,16 +149,24 @@ export class BasemapService {
   });
 
   /**
-   * True when the configured provider wants a key and none is set.
+   * Why {@link active} is not the basemap the admin configured, or null when it is.
    *
-   * Deliberately narrower than "no key is set": an operator who chose a keyless provider is not warned
-   * about a key their basemap never asked for. A 200 response means nothing here, so this is the only
-   * thing that will ever report the problem.
+   * Every fallback here is silent by nature: the map renders, it just renders the wrong thing. Naming
+   * the reason is the only thing that will ever report it, since the failure produces no error --
+   * CARTO answers 200 without a key, and a URL that is not a tile template is simply never requested.
+   *
+   * `missing-key` is deliberately narrower than "no key is set": an operator who chose a keyless
+   * provider is not warned about a key their basemap never asked for.
    */
-  readonly missingKey = computed(() => {
+  readonly fallbackReason = computed<'missing-key' | 'unavailable' | null>(() => {
     const configured = this.configuredId();
     const definition = configured === CUSTOM_BASEMAP_ID ? this.customDefinition() : findBasemap(configured);
-    return !!definition?.keyFamily && this.configuredKey() === '';
+
+    if (!!definition?.keyFamily && this.configuredKey() === '') return 'missing-key';
+    // Covers a Custom provider whose tile URL is blank or not an http(s) template -- which is what
+    // choosing Custom and saving before filling the field leaves behind -- and a provider id this
+    // build does not know, which a rollback can produce.
+    return this.available().some(b => b.id === configured) ? null : 'unavailable';
   });
 
   constructor() {
@@ -171,12 +179,12 @@ export class BasemapService {
       const definition = this.active();
       const url = this.tileUrl();
       const options = this.available();
-      const missing = this.missingKey();
+      const fallback = this.fallbackReason();
       const lang = this.i18n.currentLang();
 
       for (const attachment of this.attachments) {
         this.draw(attachment, definition, url);
-        this.renderPicker(attachment, { active: definition, lang, missing, options });
+        this.renderPicker(attachment, { active: definition, fallback, lang, options });
       }
     });
   }
@@ -243,8 +251,8 @@ export class BasemapService {
       attachment.picker = container;
       this.renderPicker(attachment, {
         active: this.active(),
+        fallback: this.fallbackReason(),
         lang: this.i18n.currentLang(),
-        missing: this.missingKey(),
         options: this.available(),
       });
       return container;
@@ -289,9 +297,10 @@ export class BasemapService {
       button.addEventListener('click', () => this.select(option.id));
     }
 
-    if (state.missing) {
+    if (state.fallback) {
       const warning = L.DomUtil.create('p', 'basemap-control__warning', menu);
-      warning.textContent = this.i18n.instant('BASEMAP.KEY_MISSING', { fallback: state.active.label });
+      const key = state.fallback === 'missing-key' ? 'BASEMAP.KEY_MISSING' : 'BASEMAP.UNAVAILABLE';
+      warning.textContent = this.i18n.instant(key, { fallback: state.active.label });
     }
   }
 
@@ -333,7 +342,7 @@ export class BasemapService {
     const container = attachment.picker;
     if (!container) return;
 
-    const signature = [state.lang, state.missing, ...state.options.map(o => o.id)].join('|');
+    const signature = [state.lang, state.fallback, ...state.options.map(o => o.id)].join('|');
     if (signature !== attachment.pickerSignature) {
       this.buildPicker(container, state);
       attachment.pickerSignature = signature;

@@ -1765,7 +1765,8 @@
     "BASEMAP_URL_DARK_DESC": "Opcional. Substitui a URL acima enquanto o modo escuro estiver ativo.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribuição do mapa base",
     "BASEMAP_ATTRIBUTION_DESC": "Atribuição da URL de blocos personalizada. Precisa atender aos termos do seu provedor. Exibida como texto simples.",
-    "BASEMAP_KEY_MISSING": "Nenhuma chave definida, então os mapas voltam para o OpenStreetMap. O provedor escolhido devolveria blocos mesmo assim — a CARTO desenha “API KEY REQUIRED” neles — e nada mais avisaria."
+    "BASEMAP_KEY_MISSING": "Nenhuma chave definida, então os mapas voltam para o OpenStreetMap. O provedor escolhido devolveria blocos mesmo assim — a CARTO desenha “API KEY REQUIRED” neles — e nada mais avisaria.",
+    "BASEMAP_UNAVAILABLE": "O mapa base escolhido não tem uma URL de blocos utilizável, então os mapas voltam para o OpenStreetMap. Escolha um provedor ou defina uma URL de blocos começando com http:// ou https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -1831,7 +1832,8 @@
   },
   "BASEMAP": {
     "TITLE": "Mapa base",
-    "KEY_MISSING": "O mapa base do site precisa de uma chave de API. Exibindo {{fallback}} no lugar."
+    "KEY_MISSING": "O mapa base do site precisa de uma chave de API. Exibindo {{fallback}} no lugar.",
+    "UNAVAILABLE": "O mapa base do site não está configurado. Exibindo {{fallback}} no lugar."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Padrões de alertas",

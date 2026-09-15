@@ -1765,7 +1765,8 @@
     "BASEMAP_URL_DARK_DESC": "Optioneel. Vervangt de bovenstaande tegel-URL zolang de donkere modus aan staat.",
     "BASEMAP_ATTRIBUTION_LABEL": "Bronvermelding achtergrondkaart",
     "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding voor de eigen tegel-URL. Moet voldoen aan de voorwaarden van je aanbieder. Wordt als platte tekst getoond.",
-    "BASEMAP_KEY_MISSING": "Er is geen sleutel ingesteld, dus kaarten vallen terug op OpenStreetMap. De gekozen aanbieder zou zonder sleutel gewoon tegels teruggeven — CARTO tekent er ‘API KEY REQUIRED’ in — en niets anders zou dit melden."
+    "BASEMAP_KEY_MISSING": "Er is geen sleutel ingesteld, dus kaarten vallen terug op OpenStreetMap. De gekozen aanbieder zou zonder sleutel gewoon tegels teruggeven — CARTO tekent er ‘API KEY REQUIRED’ in — en niets anders zou dit melden.",
+    "BASEMAP_UNAVAILABLE": "De gekozen kaart heeft geen bruikbare tegel-URL, dus kaarten vallen terug op OpenStreetMap. Kies een aanbieder of stel een tegel-URL in die begint met http:// of https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",
@@ -1831,7 +1832,8 @@
   },
   "BASEMAP": {
     "TITLE": "Basiskaart",
-    "KEY_MISSING": "De basiskaart van de site heeft een API-sleutel nodig. {{fallback}} wordt in plaats daarvan getoond."
+    "KEY_MISSING": "De basiskaart van de site heeft een API-sleutel nodig. {{fallback}} wordt in plaats daarvan getoond.",
+    "UNAVAILABLE": "De basiskaart van de site is niet ingesteld. {{fallback}} wordt in plaats daarvan getoond."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Standaardinstellingen meldingen",

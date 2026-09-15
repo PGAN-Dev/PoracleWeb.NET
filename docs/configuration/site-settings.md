@@ -147,6 +147,12 @@ keyless request and returns working tiles with `API KEY REQUIRED` drawn into the
 no health check notices, and the only way anyone finds out is by looking at a map and recognising
 what they are seeing ([#842](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/842)).
 
+The same applies to a basemap that cannot be drawn for any other reason — `custom` with a blank or
+malformed tile URL, which is what choosing it and saving before filling the field leaves behind, or a
+provider id this build does not know after a rollback. Maps fall back to OpenStreetMap and both the
+Maps section and the layers menu say the configured basemap is not set up. Neither case produces an
+error: a URL that is not a tile template is simply never requested.
+
 !!! warning "The CARTO parameter is `key`, not `api_key`"
     Both spellings return 200 and both watermark, so it is easy to "fix" this and change nothing. The
     built-in CARTO entries have it right; only a `custom` URL can get it wrong.

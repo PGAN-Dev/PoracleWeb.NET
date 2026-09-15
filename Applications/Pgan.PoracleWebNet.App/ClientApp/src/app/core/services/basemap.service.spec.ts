@@ -72,34 +72,57 @@ describe('BasemapService', () => {
     });
   });
 
-  describe('missingKey', () => {
-    it('is true when the configured provider wants a key and none is configured', () => {
-      expect(service.missingKey()).toBe(true);
+  describe('fallbackReason', () => {
+    it("names a missing key when the configured provider wants one and there isn't one", () => {
+      expect(service.fallbackReason()).toBe('missing-key');
     });
 
-    it('is false once a key is set', () => {
+    it('is null once a key is set', () => {
       siteSettings.set({ basemap_key: 'abc123' });
-      expect(service.missingKey()).toBe(false);
+      expect(service.fallbackReason()).toBeNull();
     });
 
-    it('is false for a keyless built-in, which never wanted a key', () => {
+    it('is null for a keyless built-in, which never wanted a key', () => {
       siteSettings.set({ basemap_provider: 'osm' });
-      expect(service.missingKey()).toBe(false);
+      expect(service.fallbackReason()).toBeNull();
     });
 
-    it('is false for a keyless custom URL, which never wanted a key', () => {
+    it('is null for a keyless custom URL, which never wanted a key', () => {
       siteSettings.set({ basemap_url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' });
-      expect(service.missingKey()).toBe(false);
+      expect(service.fallbackReason()).toBeNull();
     });
 
-    it('is true for a whitespace-only key, which is the same as none', () => {
+    it('names a missing key for a whitespace-only one, which is the same as none', () => {
       siteSettings.set({ basemap_key: '   ' });
-      expect(service.missingKey()).toBe(true);
+      expect(service.fallbackReason()).toBe('missing-key');
     });
 
-    it('is true for a custom URL that asks for a key it has not been given', () => {
+    it('names a missing key for a custom URL that asks for one it has not been given', () => {
       siteSettings.set({ basemap_url: 'https://tiles.example/{z}/{x}/{y}.png?token={key}' });
-      expect(service.missingKey()).toBe(true);
+      expect(service.fallbackReason()).toBe('missing-key');
+    });
+
+    // Found by choosing "Custom tile URL" in the admin dropdown and saving before filling the field.
+    // The map came up on OpenStreetMap and nothing anywhere said why.
+    it('reports a Custom provider with no tile URL at all', () => {
+      siteSettings.set({ basemap_provider: 'custom' });
+      expect(service.fallbackReason()).toBe('unavailable');
+    });
+
+    it('reports a Custom provider whose tile URL is not an absolute http(s) template', () => {
+      siteSettings.set({ basemap_provider: 'custom', basemap_url: 'tiles.example.com/{z}/{x}/{y}.png' });
+      expect(service.fallbackReason()).toBe('unavailable');
+    });
+
+    it('reports a provider id this build does not know, which a rollback can leave behind', () => {
+      siteSettings.set({ basemap_provider: 'carto-something-newer' });
+      expect(service.fallbackReason()).toBe('unavailable');
+    });
+
+    it('is null when the configured provider is the one being drawn', () => {
+      siteSettings.set({ basemap_provider: 'esri-imagery' });
+      expect(service.active().id).toBe('esri-imagery');
+      expect(service.fallbackReason()).toBeNull();
     });
   });
 
@@ -321,6 +344,15 @@ describe('BasemapService', () => {
       service.attach(map, { picker: true });
 
       expect(map.getContainer().querySelector('.basemap-control__warning')).toBeNull();
+      map.remove();
+    });
+
+    it('says so in the picker when the configured basemap cannot be drawn at all', () => {
+      siteSettings.set({ basemap_provider: 'custom' });
+      const map = makeMap();
+      service.attach(map, { picker: true });
+
+      expect(map.getContainer().querySelector('.basemap-control__warning')).not.toBeNull();
       map.remove();
     });
 
