@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.0] - 2026-09-15
+
 ### Added
 
 - **The icon pack list is yours to edit.** Admin settings offered four packs and no way to change them, so pointing the site at a pack of your own meant editing six URL rows by hand, and a pack that stopped existing could only be taken off the list by a release — which is exactly what happened. You can now add a pack by name and URL, rename one, and remove one. Adding a pack checks it first: it loads one picture from every category and refuses a URL that comes back empty, so a pack that looks right and renders nothing cannot be saved. Removing a pack takes it off the menu and changes nothing about the icons — if it was the pack in use, it stays in use and shows up as a separate card marked *In use*, which is also how an instance pointed at a pack nobody listed now appears instead of looking unconfigured. A pack on your own network is as welcome as one on GitHub ([#877](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/877)).
@@ -77,6 +79,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every version requirement in the docs said 5.2.1 and every gate in the code says 5.2.0.** 5.2.1 is the release production happens to run, not the release that added the features, so a self-hoster on exactly 5.2.0 was told four working features were unavailable to them. Corrected on the compatibility page, and the page now names the three constants it is describing so the next drift is visible.
 - **The in-app help covers the new features too, in all eleven languages.** It gained a Quiet Periods section, an Active Hours section -- which the help had never explained despite the quest summary page referring readers to it twice -- and entries for costume filters, PokéCoin rewards, Pokéstop Events and the rule description on an alarm card. The FAQ's "why am I not getting alerts" list now includes a quiet period as a cause, since that one produces silence with no banner to spot, and gained an entry for the controls that appear only on a new enough Poracle server, which is the likeliest reason something the guide describes is not on your screen.
 - **Screenshots refreshed.** The dashboard, the Pokemon list, the profiles page, the quest dialog and the server versions card all showed a site that no longer exists, and new ones were taken for the Pokéstop Events dialog, the quiet sheet, the PokéCoins tab and a repeating schedule rule.
+
+### Dependencies
+- Bump the angular group ([#812](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/812))
+- Bump the angular group ([#846](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/846))
+- Bump the angular group ([#850](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/850))
+- Bump the angular group ([#855](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/855))
+- Bump the dotnet group with 1 update ([#813](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/813))
+- Bump the dotnet group with 11 updates ([#856](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/856))
+- Bump the eslint group ([#847](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/847))
+- Bump the eslint group ([#851](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/851))
+- Bump the eslint group ([#858](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/858))
+- Bump the jest group ([#852](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/852))
+- Bump the test group with 1 update ([#857](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/857))
 
 ## [2.17.1] - 2026-08-21
 
@@ -1062,7 +1077,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.18.0...HEAD
+[2.18.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.1...v2.18.0
 [2.17.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.17.0...v2.17.1
 [2.17.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.16.0...v2.17.0
 [2.16.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.15.3...v2.16.0
