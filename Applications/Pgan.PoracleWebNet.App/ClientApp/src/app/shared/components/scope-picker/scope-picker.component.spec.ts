@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -67,5 +67,58 @@ describe('ScopePickerComponent', () => {
     expect(create({ distanceKm: 2, mode: 'profile' }).pinMissing()).toBe(true);
     expect(create({ mode: 'profile' }).pinMissing()).toBe(false);
     expect(create({ areas: ['terrigal'], mode: 'areas' }).pinMissing()).toBe(false);
+  });
+  /**
+   * The list is the areas you subscribe to, not every area on the server. The control sits under
+   * "Anywhere in my areas" and reads "Only in specific areas": it narrows within what you already get,
+   * so offering the whole instance turns it into a second, hidden way to subscribe. On a multi-community
+   * server that is hundreds of areas from cities the reader has nothing to do with. See #873.
+   */
+  describe('the areas it offers', () => {
+    function answer(scope: AlarmScope, available: string[], selected: string[]): ScopePickerComponent {
+      const picker = create(scope);
+      const http = TestBed.inject(HttpTestingController);
+
+      http.expectOne('http://test/api/areas/available').flush(available.map(name => ({ name, group: 'g', userSelectable: true })));
+      http.expectOne('http://test/api/areas').flush(selected);
+      http.match(() => true).forEach(r => r.flush([]));
+      fixture.detectChanges();
+
+      return picker;
+    }
+
+    it('offers only the areas the user subscribes to', () => {
+      const picker = answer({ areas: [], mode: 'areas' }, ['Mechanicsville', 'Aliamanu', 'Aksarben'], ['mechanicsville']);
+
+      expect(picker.availableAreas().map(a => a.name)).toEqual(['Mechanicsville']);
+    });
+
+    /**
+     * The tightening trap. A rule scoped to an area its owner has since unsubscribed from must keep
+     * that option, or the checkbox backing it vanishes and the area drops off the rule on the next
+     * save. One rule in production is in exactly this state.
+     */
+    it('keeps an area the rule already carries even when it is no longer subscribed', () => {
+      const picker = answer({ areas: ['aliamanu'], mode: 'areas' }, ['Mechanicsville', 'Aliamanu'], ['mechanicsville']);
+
+      expect(
+        picker
+          .availableAreas()
+          .map(a => a.name)
+          .sort(),
+      ).toEqual(['Aliamanu', 'Mechanicsville']);
+    });
+
+    it('matches on case, because subscriptions are stored lowercased', () => {
+      const picker = answer({ areas: [], mode: 'areas' }, ['Bon Air - Robious'], ['bon air - robious']);
+
+      expect(picker.availableAreas().map(a => a.name)).toEqual(['Bon Air - Robious']);
+    });
+
+    it('offers nothing from the instance when the user subscribes to nothing', () => {
+      const picker = answer({ areas: [], mode: 'areas' }, ['Mechanicsville', 'Aliamanu'], []);
+
+      expect(picker.availableAreas().filter(a => !a.own)).toEqual([]);
+    });
   });
 });
