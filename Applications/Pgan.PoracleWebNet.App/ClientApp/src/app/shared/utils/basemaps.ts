@@ -89,11 +89,16 @@ export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
   {
     id: 'carto-voyager',
     attribution: CARTO_ATTRIBUTION,
+    // Voyager and Dark Matter, which is the pair ReactMap's Carto and auto entries resolve to. Both
+    // URLs are the ones its config asks for, so the two sites draw the same tiles.
+    darkUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key={key}',
     keyFamily: 'carto',
     label: 'CARTO Voyager',
     maxZoom: 20,
     subdomains: 'abcd',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key={key}',
+    // labels_under, not plain voyager: place names render beneath overlays, which is what ReactMap
+    // uses and what suits a map covered in area polygons.
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png?key={key}',
   },
   {
     id: 'stadia-smooth',

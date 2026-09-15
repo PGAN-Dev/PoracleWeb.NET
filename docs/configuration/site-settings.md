@@ -139,10 +139,17 @@ rather than three chances to get it wrong.
 | `esri-canvas` | Esri Gray Canvas | no | yes | 16 |
 | `esri-imagery` | Esri World Imagery (satellite) | no | — | 19 |
 | `carto-positron` | CARTO Positron | yes | yes (Dark Matter) | 20 |
-| `carto-voyager` | CARTO Voyager | yes | — | 20 |
+| `carto-voyager` | CARTO Voyager | yes | yes (Dark Matter) | 20 |
 | `stadia-smooth` | Stadia Alidade Smooth | yes | yes | 20 |
 
 A provider with no dark variant reuses its light tiles when the theme is dark.
+
+!!! info "These are the same tiles ReactMap draws"
+    OSM, Satellite and Dark Matter use the URLs from ReactMap's `config/default.json`, and CARTO
+    Voyager uses its `voyager_labels_under` variant, so the same basemap looks the same on both
+    sites. `basemap.service.spec.ts` pins those four URLs against a catalogue edit drifting away from
+    it. The difference is the key: ReactMap's CARTO entries request the keyless endpoint, so they
+    carry the watermark this page exists to remove.
 
 Each viewer can pick a different one for themselves, from the layers button in the top-right corner
 of any interactive map. The choice is theirs alone and is kept in their browser, like the theme and

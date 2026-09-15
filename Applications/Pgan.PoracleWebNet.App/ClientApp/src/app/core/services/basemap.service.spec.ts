@@ -5,6 +5,7 @@ import * as L from 'leaflet';
 
 import { BasemapService } from './basemap.service';
 import { SettingsService } from './settings.service';
+import { BUILTIN_BASEMAPS } from '../../shared/utils/basemaps';
 
 describe('BasemapService', () => {
   let service: BasemapService;
@@ -191,6 +192,40 @@ describe('BasemapService', () => {
     });
   });
 
+  /**
+   * ReactMap runs beside this site on the same deployment, and a viewer moving between the two should
+   * not find the same basemap drawing different tiles. These are the URLs from its
+   * `config/default.json` tileServers block, pinned so a catalogue edit here cannot drift from it
+   * silently. Ours carry `?key=` where its do not -- CARTO watermarks the unkeyed ones, which is the
+   * whole of #842, and ReactMap is serving them.
+   */
+  describe('ReactMap parity', () => {
+    const withoutKey = (url: string) => url.replace('?key={key}', '');
+    const entry = (id: string) => BUILTIN_BASEMAPS.find(b => b.id === id)!;
+
+    it('draws OSM from the same tiles', () => {
+      expect(entry('osm').url).toBe('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+    });
+
+    it('draws Satellite from the same tiles', () => {
+      expect(entry('esri-imagery').url).toBe(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      );
+    });
+
+    it('draws Carto from the same tiles, labels under and all', () => {
+      expect(withoutKey(entry('carto-voyager').url)).toBe(
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
+      );
+    });
+
+    it('draws Dark Matter from the same tiles', () => {
+      const darkMatter = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      expect(withoutKey(entry('carto-voyager').darkUrl!)).toBe(darkMatter);
+      expect(withoutKey(entry('carto-positron').darkUrl!)).toBe(darkMatter);
+    });
+  });
+
   describe('a viewer choosing their own', () => {
     it('overrides the site default and survives a reload', () => {
       service.select('esri-imagery');
@@ -242,9 +277,18 @@ describe('BasemapService', () => {
     });
 
     it('reuses the light style for a provider that publishes no dark one', async () => {
-      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      siteSettings.set({ basemap_provider: 'esri-imagery' });
       await setTheme(true);
-      expect(service.tileUrl()).toContain('/rastertiles/voyager/');
+      expect(service.tileUrl()).toContain('World_Imagery');
+    });
+
+    it('serves Dark Matter under Voyager, which is the pair ReactMap resolves to', async () => {
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      expect(service.tileUrl()).toContain('/rastertiles/voyager_labels_under/');
+
+      await setTheme(true);
+
+      expect(service.tileUrl()).toContain('/dark_all/');
     });
   });
 
