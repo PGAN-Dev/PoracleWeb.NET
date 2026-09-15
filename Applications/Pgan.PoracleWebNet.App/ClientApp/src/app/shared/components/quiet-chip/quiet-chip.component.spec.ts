@@ -29,6 +29,15 @@ describe('QuietChipComponent', () => {
     return fixture.componentInstance;
   };
 
+  const buildAs = (appearance: 'chip' | 'icon' | 'trailing') => {
+    fixture = TestBed.createComponent(QuietChipComponent);
+    fixture.componentRef.setInput('scope', 'area');
+    fixture.componentRef.setInput('value', 'downtown - richmond');
+    fixture.componentRef.setInput('appearance', appearance);
+    fixture.detectChanges();
+    return fixture.componentInstance;
+  };
+
   beforeEach(() => {
     mutes = {
       capable: jest.fn(() => true),
@@ -79,6 +88,75 @@ describe('QuietChipComponent', () => {
     expect(chip.isQuiet()).toBe(true);
     expect(chip.countdown()).toBe('47m');
     expect(fixture.nativeElement.querySelector('.quiet-chip-on')).not.toBeNull();
+  });
+
+  /**
+   * The three appearances, asserted together because the trailing one was carved out of the icon one
+   * and the seven card-action usages depend on nothing about the icon branch having moved. See #865.
+   */
+  describe('appearance', () => {
+    /**
+     * A card's action row is a row of 40px icon buttons and this is one of them. Measured at the time
+     * of #865: 40x40 with an 8px pad, which is correct there and only there.
+     */
+    it('keeps the card action row on a full icon button', () => {
+      buildAs('icon');
+
+      expect(fixture.nativeElement.querySelector('button.mat-mdc-icon-button')).not.toBeNull();
+    });
+
+    it('still shows the amber pill in a card action row once the subject is quiet', () => {
+      mutes.remainingFor.mockReturnValue(2820);
+      buildAs('icon');
+
+      expect(fixture.nativeElement.querySelector('.quiet-chip-on')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.quiet-chip-label').textContent).toContain('QUIET.CHIP_QUIET');
+    });
+
+    it('carries an icon and a label on a list row in both states', () => {
+      buildAs('chip');
+      expect(fixture.nativeElement.querySelector('.quiet-chip-label').textContent).toContain('QUIET.CHIP_ACTION');
+
+      mutes.remainingFor.mockReturnValue(2820);
+      buildAs('chip');
+      expect(fixture.nativeElement.querySelector('.quiet-chip-label').textContent).toContain('QUIET.CHIP_QUIET');
+    });
+
+    /**
+     * Inside a mat-chip the icon button was 40px tall in a 32px chip, overflowing it by 4px top and
+     * bottom and leaving 16px of dead space before the remove icon. The trailing form is the compact
+     * control instead.
+     */
+    it('drops the icon button inside a chip', () => {
+      buildAs('trailing');
+
+      expect(fixture.nativeElement.querySelector('button.mat-mdc-icon-button')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.quiet-chip-trailing')).not.toBeNull();
+    });
+
+    /** "downtown - richmond . Quiet" would double the width of an already-wrapping bar. */
+    it('shows no label inside a chip until there is a countdown to show', () => {
+      buildAs('trailing');
+
+      expect(fixture.nativeElement.querySelector('.quiet-chip-label')).toBeNull();
+    });
+
+    it('shows the countdown inside a chip once the subject is quiet', () => {
+      mutes.remainingFor.mockReturnValue(2820);
+      buildAs('trailing');
+
+      expect(fixture.nativeElement.querySelector('.quiet-chip-label').textContent).toContain('QUIET.CHIP_QUIET');
+    });
+
+    /** Both states sit in the same bar, so whatever sizes them has to size both. */
+    it('keeps both states on the same trailing control', () => {
+      buildAs('trailing');
+      expect(fixture.nativeElement.querySelector('.quiet-chip-trailing')).not.toBeNull();
+
+      mutes.remainingFor.mockReturnValue(2820);
+      buildAs('trailing');
+      expect(fixture.nativeElement.querySelector('.quiet-chip-trailing.quiet-chip-on')).not.toBeNull();
+    });
   });
 
   /** Every appearance refetches: the store lives in the processor's memory and can empty between views. */
