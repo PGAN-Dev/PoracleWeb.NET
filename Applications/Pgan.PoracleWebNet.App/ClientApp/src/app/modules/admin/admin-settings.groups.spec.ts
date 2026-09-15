@@ -95,3 +95,45 @@ describe('SETTING_GROUPS translation keys', () => {
     expect(malformed).toEqual([]);
   });
 });
+
+/**
+ * Which Maps fields apply depends entirely on the provider, and until they were hidden the page
+ * showed all five at once with nothing to say that four of them were inert for the choice made. The
+ * conditions are asserted here rather than through the rendered page because that is where they live
+ * -- and because the question a reader has ("I picked CARTO, what do I fill in?") is answered by
+ * exactly this table.
+ */
+describe('Maps field visibility', () => {
+  const maps = SETTING_GROUPS.find(g => g.labelKey === 'ADMIN_SETTINGS.GROUP_MAPS')!;
+
+  /** The Maps keys on offer for a given stored configuration. */
+  const shown = (values: Record<string, string>) =>
+    maps.settings.filter(meta => !meta.showIf || meta.showIf(key => values[key] ?? '')).map(meta => meta.key);
+
+  it('asks a keyless built-in for nothing but the choice', () => {
+    expect(shown({ basemap_provider: 'osm' })).toEqual(['basemap_provider']);
+  });
+
+  it('asks a keyed built-in for the key and nothing else', () => {
+    expect(shown({ basemap_provider: 'carto-positron' })).toEqual(['basemap_provider', 'basemap_key']);
+  });
+
+  it('asks a custom basemap for its name, URLs and attribution, but not a key it does not use', () => {
+    const values = { basemap_provider: 'custom', basemap_url: 'https://tiles.example/{z}/{x}/{y}.png' };
+    expect(shown(values)).toEqual(['basemap_provider', 'basemap_name', 'basemap_url', 'basemap_url_dark', 'basemap_attribution']);
+  });
+
+  it('asks a custom basemap for a key once its URL says it wants one', () => {
+    const values = { basemap_provider: 'custom', basemap_url: 'https://tiles.example/{z}/{x}/{y}.png?k={key}' };
+    expect(shown(values)).toContain('basemap_key');
+  });
+
+  it('asks an unconfigured install for the key its default provider needs', () => {
+    // Nothing chosen resolves to CARTO, so the key is the one field that matters.
+    expect(shown({})).toEqual(['basemap_provider', 'basemap_key']);
+  });
+
+  it('treats an install that set only a tile URL as custom, which is what it meant', () => {
+    expect(shown({ basemap_url: 'https://tiles.example/{z}/{x}/{y}.png' })).toContain('basemap_url');
+  });
+});

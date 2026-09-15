@@ -105,16 +105,33 @@ detail map and the geofence thumbnails.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `basemap_provider` | Basemap Provider | string | Provider id, or empty for automatic. One of `osm`, `carto-positron`, `carto-voyager`, `stadia-smooth`, `esri-canvas`, `esri-imagery`, or `custom` to use the tile URL below. Automatic means CARTO Positron, or `custom` if a tile URL is set. |
+| `basemap_provider` | Basemap Provider | string | Provider id: one of `osm`, `carto-positron`, `carto-voyager`, `stadia-smooth`, `esri-canvas`, `esri-imagery`, or `custom` for your own tile URL. Empty means nothing has been chosen — see [the flow](#the-flow) below. |
 | `basemap_key` | Basemap API Key | string | API key for the chosen provider. Required by CARTO and Stadia, ignored by the rest. **Not a secret** — see below. |
+| `basemap_name` | Custom Basemap Name | string | What `custom` is called in the layers menu on each map. Empty renders as "Custom", which tells a viewer nothing about the map they are being offered. Capped at 40 characters and always rendered as text. |
 | `basemap_url` | Basemap Tile URL | url | Tile template for `custom`. Must be an absolute `http(s)` URL. Put `{key}` where the provider expects the key; `{s}`, `{z}`, `{x}`, `{y}` and `{r}` are Leaflet's. |
 | `basemap_url_dark` | Basemap Tile URL (Dark) | url | Optional. Used in place of `basemap_url` while a viewer has the dark theme on. |
 | `basemap_attribution` | Basemap Attribution | string | Attribution for `custom`. Rendered as plain text, so a link in it shows as text rather than a link. Built-in providers carry their own and ignore this. |
 
-### Choosing a provider
+### The flow
+
+Pick a provider first. What you fill in after that follows from the pick, and the admin page hides
+the fields that do not apply — so the section is never showing you a box that has no bearing on the
+choice you made.
+
+| Provider | What to fill in |
+|---|---|
+| OpenStreetMap, Esri Gray Canvas, Esri World Imagery | Nothing. They are keyless and carry their own URL, attribution and zoom limit. |
+| CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API Key**, and nothing else. |
+| Custom tile URL | **Name**, **Tile URL**, optionally a **dark** URL, and **Attribution**. The key field appears only if your URL contains `{key}`. |
+| *Not set* | Nothing has been chosen. Maps use your custom tile URL if one is set, and CARTO Positron otherwise. The page says which, so you can leave it or make it explicit. |
+
+*Not set* exists because installs configured before `basemap_provider` did have no row for it. An
+install that set only `basemap_url` keeps working and reads as Custom.
+
+### The built-in providers
 
 Picking a name sets the URL, the attribution and the zoom limit together, so there is one decision
-rather than three chances to get it wrong. The built-ins:
+rather than three chances to get it wrong.
 
 | Id | Provider | Key | Dark variant | Max zoom |
 |---|---|---|---|---|
@@ -129,9 +146,9 @@ A provider with no dark variant reuses its light tiles when the theme is dark.
 
 Each viewer can pick a different one for themselves, from the layers button in the top-right corner
 of any interactive map. The choice is theirs alone and is kept in their browser, like the theme and
-the accent colour. What is on offer is the keyless built-ins, plus the custom URL if one is set, plus
-the keyed ones in the same family as the provider you chose — a CARTO key unlocks both CARTO styles,
-and never Stadia, because one key cannot be both.
+the accent colour. What is on offer is the keyless built-ins, plus the custom URL if one is set —
+under the name you gave it — plus the keyed ones in the same family as the provider you chose. A
+CARTO key unlocks both CARTO styles, and never Stadia, because one key cannot be both.
 
 ### The API key is public, and a missing one is not silent
 

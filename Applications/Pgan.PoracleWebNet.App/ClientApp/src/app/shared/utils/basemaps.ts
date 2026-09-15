@@ -123,6 +123,39 @@ export const BUILTIN_BASEMAPS: readonly BasemapDefinition[] = [
   },
 ];
 
+/** Longest custom basemap name the picker will render before it stops being a menu entry. */
+export const MAX_BASEMAP_NAME_LENGTH = 40;
+
+/** What the custom entry is called when the admin has not named it. */
+export const DEFAULT_CUSTOM_BASEMAP_LABEL = 'Custom';
+
+/**
+ * True when a string could be a tile template. Only the scheme is checked: everything past it is the
+ * provider's business, and a rule tight enough to validate the rest would reject working URLs.
+ */
+export function isTileTemplate(url: string): boolean {
+  return /^https?:\/\//i.test(url.trim());
+}
+
+/**
+ * Which provider a stored configuration actually selects.
+ *
+ * An empty `basemap_provider` is a real state, not a missing one -- it is what every install
+ * configured before the setting existed has -- and it means "the custom URL if there is one".
+ * Shared with the admin page so the fields it shows and the basemap it draws cannot disagree.
+ */
+export function resolveBasemapProviderId(provider: string, customUrl: string): string {
+  const configured = provider.trim();
+  if (configured) return configured;
+  return isTileTemplate(customUrl) ? CUSTOM_BASEMAP_ID : DEFAULT_BASEMAP_ID;
+}
+
+/** True when the selected provider wants an API key, which for a custom URL means it carries {key}. */
+export function basemapNeedsKey(provider: string, customUrl: string): boolean {
+  const id = resolveBasemapProviderId(provider, customUrl);
+  return id === CUSTOM_BASEMAP_ID ? customUrl.includes('{key}') : !!findBasemap(id)?.keyFamily;
+}
+
 /**
  * Substitutes the provider key into a tile template.
  *

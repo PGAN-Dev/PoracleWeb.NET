@@ -245,9 +245,7 @@
                       <mat-form-field appearance="outline" class="setting-field">
                         <mat-select [ngModel]="getSettingValue(meta.key) ?? ''" (ngModelChange)="onTextChange(meta.key, $event)">
                           @for (option of meta.options ?? []; track option.value) {
-                            <mat-option [value]="option.value">
-                              {{ option.labelKey ? (option.labelKey | translate) : option.label }}
-                            </mat-option>
+                            <mat-option [value]="option.value">{{ optionLabel(option) }}</mat-option>
                           }
                         </mat-select>
                       </mat-form-field>
@@ -277,6 +275,12 @@
                   <div class="config-hint warning forced-by-poracle-hint">
                     <mat-icon>lock</mat-icon>
                     <span>{{ 'ADMIN_SETTINGS.FORCED_BY_PORACLE' | translate }}</span>
+                  </div>
+                }
+                @if (meta.key === 'basemap_provider' && !getSettingValue('basemap_provider') && !basemap.fallbackReason()) {
+                  <div class="config-hint basemap-provider-hint">
+                    <mat-icon>map</mat-icon>
+                    <span>{{ 'ADMIN_SETTINGS.BASEMAP_PROVIDER_UNSET_HINT' | translate: { provider: basemap.configured()?.label } }}</span>
                   </div>
                 }
                 @if (meta.key === 'allowed_languages' && poracleLocale()) {

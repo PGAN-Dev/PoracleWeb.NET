@@ -169,6 +169,22 @@ describe('BasemapService', () => {
       expect(service.available()[0].id).toBe('custom');
     });
 
+    it('calls the custom basemap what the admin named it', () => {
+      siteSettings.set({ basemap_name: 'Richmond Tileserver', basemap_url: 'https://tiles.example/{z}/{x}/{y}.png' });
+      expect(service.available()[0].label).toBe('Richmond Tileserver');
+      expect(service.active().label).toBe('Richmond Tileserver');
+    });
+
+    it('falls back to "Custom", because an unnamed entry tells a viewer nothing', () => {
+      siteSettings.set({ basemap_url: 'https://tiles.example/{z}/{x}/{y}.png' });
+      expect(service.available()[0].label).toBe('Custom');
+    });
+
+    it('caps a name at a length a menu entry can hold', () => {
+      siteSettings.set({ basemap_name: 'x'.repeat(200), basemap_url: 'https://tiles.example/{z}/{x}/{y}.png' });
+      expect(service.available()[0].label.length).toBe(40);
+    });
+
     it('ignores a custom URL that is not an absolute http(s) template', () => {
       siteSettings.set({ basemap_url: 'tiles.example/{z}/{x}/{y}.png' });
       expect(service.available().map(b => b.id)).not.toContain('custom');

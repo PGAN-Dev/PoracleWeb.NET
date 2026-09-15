@@ -32,7 +32,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ServerProfileCardComponent } from '../../shared/components/server-profile-card/server-profile-card.component';
-import { BUILTIN_BASEMAPS, CUSTOM_BASEMAP_ID } from '../../shared/utils/basemaps';
+import { BUILTIN_BASEMAPS, CUSTOM_BASEMAP_ID, basemapNeedsKey, resolveBasemapProviderId } from '../../shared/utils/basemaps';
 
 /** Union type for backward compatibility during migration */
 type AnySettingItem = PwebSetting | SiteSetting;
@@ -56,6 +56,12 @@ interface SettingMeta {
   labelKey: string;
   /** Required by, and only meaningful for, type 'select'. */
   options?: SettingOption[];
+  /**
+   * Only show this setting when the current values say it applies. Reads other settings through
+   * `get`, which answers '' for anything unset. For conditions a single boolean cannot express --
+   * the basemap fields, where which ones matter depends on which provider is selected.
+   */
+  showIf?: (get: (key: string) => string) => boolean;
   /** Only show this setting when another boolean setting is True */
   showWhen?: string;
   type: 'text' | 'url' | 'boolean' | 'select';
@@ -66,10 +72,15 @@ interface SettingMeta {
  * here, so a provider added to one is offered by the other -- a free-text box would accept a typo,
  * store it, and silently fall back to the default with nothing to show for it.
  */
+/** True when the tile URL fields are the ones that matter, rather than a built-in provider's name. */
+const isCustomBasemap = (get: (key: string) => string) =>
+  resolveBasemapProviderId(get('basemap_provider'), get('basemap_url')) === CUSTOM_BASEMAP_ID;
+
 const BASEMAP_PROVIDER_OPTIONS: SettingOption[] = [
   // An unset provider is a real state, not a missing one: it is what every install upgrading into
-  // this setting has. Naming it keeps the box from reading as empty-and-broken.
-  { labelKey: 'ADMIN_SETTINGS.BASEMAP_PROVIDER_AUTO', value: '' },
+  // this setting has. "Automatic" named it after its mechanism rather than its effect, which told
+  // nobody what their site was drawing; the hint beneath the dropdown says that instead.
+  { labelKey: 'ADMIN_SETTINGS.BASEMAP_PROVIDER_UNSET', value: '' },
   ...BUILTIN_BASEMAPS.map(basemap => ({ label: basemap.label, value: basemap.id })),
   { labelKey: 'ADMIN_SETTINGS.BASEMAP_PROVIDER_CUSTOM', value: CUSTOM_BASEMAP_ID },
 ];
@@ -332,24 +343,37 @@ export const SETTING_GROUPS: SettingGroup[] = [
         descriptionKey: 'ADMIN_SETTINGS.BASEMAP_KEY_DESC',
         key: 'basemap_key',
         labelKey: 'ADMIN_SETTINGS.BASEMAP_KEY_LABEL',
+        // Hidden for a provider that does not want one, rather than sitting there inert beside a
+        // choice it has nothing to do with.
+        showIf: get => basemapNeedsKey(get('basemap_provider'), get('basemap_url')),
+        type: 'text',
+      },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.BASEMAP_NAME_DESC',
+        key: 'basemap_name',
+        labelKey: 'ADMIN_SETTINGS.BASEMAP_NAME_LABEL',
+        showIf: isCustomBasemap,
         type: 'text',
       },
       {
         descriptionKey: 'ADMIN_SETTINGS.BASEMAP_URL_DESC',
         key: 'basemap_url',
         labelKey: 'ADMIN_SETTINGS.BASEMAP_URL_LABEL',
+        showIf: isCustomBasemap,
         type: 'text',
       },
       {
         descriptionKey: 'ADMIN_SETTINGS.BASEMAP_URL_DARK_DESC',
         key: 'basemap_url_dark',
         labelKey: 'ADMIN_SETTINGS.BASEMAP_URL_DARK_LABEL',
+        showIf: isCustomBasemap,
         type: 'text',
       },
       {
         descriptionKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_DESC',
         key: 'basemap_attribution',
         labelKey: 'ADMIN_SETTINGS.BASEMAP_ATTRIBUTION_LABEL',
+        showIf: isCustomBasemap,
         type: 'text',
       },
     ],
@@ -705,6 +729,7 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   isSettingVisible(meta: SettingMeta): boolean {
+    if (meta.showIf && !meta.showIf(key => this.getSettingValue(key) ?? '')) return false;
     if (!meta.showWhen) return true;
     return this.getBool(meta.showWhen);
   }
@@ -786,6 +811,18 @@ export class AdminSettingsComponent implements OnInit {
 
   onTextChange(key: string, value: string): void {
     this.applyChange(key, value);
+  }
+
+  /**
+   * What a dropdown entry is called. The custom basemap answers with the name the admin gave it, so
+   * the option reads as the map it selects rather than as the word "Custom".
+   */
+  optionLabel(option: SettingOption): string {
+    if (option.value === CUSTOM_BASEMAP_ID) {
+      const name = (this.getSettingValue('basemap_name') ?? '').trim();
+      if (name) return name;
+    }
+    return option.labelKey ? this.i18n.instant(option.labelKey) : (option.label ?? '');
   }
 
   saveAllModified(): void {

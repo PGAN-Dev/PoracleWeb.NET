@@ -7,10 +7,13 @@ import {
   BUILTIN_BASEMAPS,
   BasemapDefinition,
   CUSTOM_BASEMAP_ID,
-  DEFAULT_BASEMAP_ID,
+  DEFAULT_CUSTOM_BASEMAP_LABEL,
   FALLBACK_BASEMAP_ID,
+  MAX_BASEMAP_NAME_LENGTH,
   applyBasemapKey,
   findBasemap,
+  isTileTemplate,
+  resolveBasemapProviderId,
 } from '../../shared/utils/basemaps';
 
 /** Where a viewer's own basemap choice is kept, alongside the theme/accent/language preferences. */
@@ -66,45 +69,46 @@ export class BasemapService {
 
   private readonly settings = inject(SettingsService);
 
+  /**
+   * The provider an admin nominated, before asking whether it can actually be drawn. Kept apart from
+   * {@link active} so {@link fallbackReason} reports on what was asked for rather than on what it fell
+   * back to. Resolved by the same helper the admin page uses to decide which fields to show, so the
+   * form and the map cannot disagree about which provider is selected.
+   */
+  private readonly configuredId = computed(() => {
+    const settings = this.settings.siteSettings();
+    return resolveBasemapProviderId(settings['basemap_provider'] || '', settings['basemap_url'] || '');
+  });
+
+  /** Trimmed, because what an admin pastes into a settings field usually arrives with whitespace. */
+  private readonly configuredKey = computed(() => (this.settings.siteSettings()['basemap_key'] || '').trim());
+
   /** The entry assembled from `basemap_url`, or null when no usable custom URL is configured. */
   private readonly customDefinition = computed<BasemapDefinition | null>(() => {
     const settings = this.settings.siteSettings();
     const url = (settings['basemap_url'] || '').trim();
     // A template that is not an absolute http(s) URL cannot be a tile source. Refusing it here means a
     // mistyped setting falls back to a working basemap instead of drawing a grid of broken images.
-    if (!/^https?:\/\//i.test(url)) return null;
+    if (!isTileTemplate(url)) return null;
 
     const dark = (settings['basemap_url_dark'] || '').trim();
     const attribution = (settings['basemap_attribution'] || '').trim();
+    const name = (settings['basemap_name'] || '').trim().slice(0, MAX_BASEMAP_NAME_LENGTH);
 
     return {
       id: CUSTOM_BASEMAP_ID,
       // Escaped: Leaflet assigns attribution as innerHTML, and this is the one attribution string that
       // comes from a settings field rather than from the catalogue. The text renders; a link would not.
-      attribution: attribution ? escapeHtml(attribution) : 'Custom tiles',
-      darkUrl: /^https?:\/\//i.test(dark) ? dark : undefined,
+      attribution: attribution ? escapeHtml(attribution) : DEFAULT_CUSTOM_BASEMAP_LABEL,
+      darkUrl: isTileTemplate(dark) ? dark : undefined,
       keyFamily: url.includes('{key}') ? CUSTOM_BASEMAP_ID : undefined,
-      label: 'Custom',
+      // The menu says "Custom" until someone names it, which tells a viewer nothing about the map
+      // they are being offered. Set through to a display name, rendered as text and never as markup.
+      label: name || DEFAULT_CUSTOM_BASEMAP_LABEL,
       maxZoom: 19,
       url,
     };
   });
-
-  /**
-   * The provider an admin nominated, before asking whether it can actually be drawn. Kept apart from
-   * {@link active} so {@link fallbackReason} reports on what was asked for rather than on what it fell
-   * back to.
-   */
-  private readonly configuredId = computed(() => {
-    const configured = (this.settings.siteSettings()['basemap_provider'] || '').trim();
-    if (configured) return configured;
-    // An install that set basemap_url before basemap_provider existed meant "use this URL". Reading
-    // the absent provider as the CARTO default instead would throw that away on upgrade.
-    return this.customDefinition() ? CUSTOM_BASEMAP_ID : DEFAULT_BASEMAP_ID;
-  });
-
-  /** Trimmed, because what an admin pastes into a settings field usually arrives with whitespace. */
-  private readonly configuredKey = computed(() => (this.settings.siteSettings()['basemap_key'] || '').trim());
 
   private readonly darkTheme = signal(isDarkTheme());
 
@@ -146,6 +150,17 @@ export class BasemapService {
       usable.find(b => b.id === FALLBACK_BASEMAP_ID) ??
       findBasemap(FALLBACK_BASEMAP_ID)!
     );
+  });
+
+  /**
+   * The basemap the admin selected, whether or not it can be drawn.
+   *
+   * Distinct from {@link active}, which is what a viewer is actually looking at. The admin page names
+   * this one, because "no provider chosen, so maps use X" is a statement about the configuration.
+   */
+  readonly configured = computed<BasemapDefinition | null>(() => {
+    const id = this.configuredId();
+    return id === CUSTOM_BASEMAP_ID ? this.customDefinition() : findBasemap(id);
   });
 
   /**
