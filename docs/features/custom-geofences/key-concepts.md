@@ -76,3 +76,9 @@ PoracleNG matches area names **exactly, including case**. PoracleWeb.NET stores 
 
 !!! warning "If you edit the database by hand"
     You don't normally need to do anything — PoracleWeb.NET handles lowercasing. But if you ever edit area names directly in `humans.area`, `profiles.area`, or a geofence name, keep them **lowercase**.
+
+### Stored lowercase, shown as published
+
+Lowercase is a storage rule, not a display one. The Areas page shows each subscribed area under the name Poracle publishes for it — `Mechanicsville`, not `mechanicsville` — by matching the stored lowercase name back to the published one.
+
+An area you are subscribed to that no longer exists has no published name to match, so it keeps rendering under the stored name. That is deliberate: it has to stay visible for you to remove it.

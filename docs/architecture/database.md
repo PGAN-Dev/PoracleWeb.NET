@@ -9,13 +9,14 @@ PoracleWeb.NET uses two separate MySQL databases and optionally connects to a th
 The primary EF Core context connecting to the existing **Poracle database** managed by PoracleNG.
 
 - Connection string: `ConnectionStrings:PoracleDb`
-- Contains: `humans` and `profiles` (direct access), ten alarm tables, PoracleNG's `schema_migrations`, and the deprecated `pweb_settings` KV table. `PoracleContext` maps entities for eleven of those — `humans`, `profiles`, `pweb_settings` and eight alarm tables; `forts`, `maxbattle` and `schema_migrations` are reached by raw SQL, which needs no entity
+- Contains: `humans` and `profiles` (direct access), ten alarm tables, PoracleNG's `schema_migrations`, and the deprecated `pweb_settings` KV table. `PoracleContext` maps **three** entities — `humans`, `profiles` and `pweb_settings`. There are deliberately no alarm entities: the one place that still reaches an alarm table (`IUserAreaDualWriter.SetAlarmOverrideAreasAsync`) uses raw SQL over a table name from a fixed map, and `schema_migrations` is read the same way. Mapping the tables again would put a direct alarm write one `DbSet` away, which is what the 2.0 migration existed to prevent
 - **Limited direct access** — Alarm tracking is proxied through `IPoracleTrackingProxy`, and single-user human/profile operations go through `IPoracleHumanProxy`. Direct access is confined to:
 
 | Direct access | What and why |
 |---|---|
-| Admin bulk human operations | `GetAllAsync`, `DeleteUserAsync`, `UpdateAsync` — PoracleNG has no admin-list, admin-delete or generic update endpoint |
+| Human reads and deletion | `GetAllAsync`, `GetWebhooksAsync`, `GetByIdsAsync`, `ExistsAsync`, `DeleteUserAsync` — PoracleNG has no admin-list or admin-delete endpoint, and the purge's existence check reads the database on purpose so an unreachable Poracle is not reported as an absent account |
 | Profile **rename** | `ProfileRepository.RenameAsync` — PoracleNG's profile update answers `{"status":"ok"}` and silently ignores `name` |
+| Profile geography | `ProfileRepository.UpdateAsync` — `addProfile` ignores `area`, `latitude` and `longitude`, so create, duplicate and import write them afterwards |
 | User-geofence area writes | `IUserAreaDualWriter` on `humans.area` and `profiles.area` — PoracleNG's `setAreas` strips fences that are not user-selectable |
 | Alarm `override_areas` | `IUserAreaDualWriter.SetAlarmOverrideAreasAsync` writes this one column on the ten alarm tables. It is the only alarm-table write PoracleWeb makes; everything else about a row goes through the proxy |
 | `schema_migrations` read | `PoracleSchemaVersionReader` reads the applied migration number for the [server capability probe](backend.md#server-capability-probe) |
@@ -25,8 +26,17 @@ The user-geofence area writes and the `override_areas` write are tagged `HACK: t
 
 !!! note "Eleven tracking types, ten alarm tables"
     Ten is the table count and it is right. The eleventh type, Pokéstop Events (`incident`), stores its
-    rows in the existing `invasion` table — PoracleNG filters each endpoint to its own rows, so a uid
-    from one type is invisible to the other. No table arrived with it.
+    rows in the existing `invasion` table. No table arrived with it, and nothing marks the row apart
+    except `grunt_type`, which holds an event name (`gold-stop`, `kecleon`, `showcase`) rather than a
+    grunt name — the same discriminator PoracleNG's own `isEventGruntType` uses to split its two v2
+    endpoints.
+
+    **v1 applies no such filter**, so a Showcase rule created through `/api/v2/.../tracking/incident`
+    comes straight back out of `GET /api/tracking/invasion/{id}`, verified against 5.2.1.
+    `InvasionService` therefore does the partition itself — but only when the Pokéstop Events page
+    exists. Where it does not (an older PoracleNG, or `disable_showcase`), the event rows stay in the
+    invasion list, because filtering them out of the only page that can show them would leave alarms
+    that fire and cannot be deleted.
 
 !!! warning "MySQL provider"
     This project uses `MySql.EntityFrameworkCore` (Oracle's official provider), **not** Pomelo (`Pomelo.EntityFrameworkCore.MySql`), which is incompatible with EF Core 10. Connection setup uses `options.UseMySQL(connectionString)` (capital SQL).
@@ -202,7 +212,7 @@ The `site_settings` table replaces the deprecated `pweb_settings` key-value stor
 | Column | Type | Description |
 |---|---|---|
 | `id` | int (PK) | Auto-increment ID |
-| `category` | varchar(50) | Setting group: `branding`, `features`, `alarms`, `admin`, `commands`, `telegram`, `maps`, `analytics`, `debug`, `icons` |
+| `category` | varchar(50) | Setting group — `branding`, `features`, `alarms`, `icons`, `admin`, `api`, `discord`, `oidc`, `telegram`, `maps`, `commands`, `analytics`, `debug`, plus `system` for the migration sentinel. `SettingsMigrationService.CategoryMap` is the list |
 | `key` | varchar(100) | Unique setting key (e.g., `custom_title`, `disable_mons`) |
 | `value` | text | Setting value |
 | `value_type` | varchar(20) | Type hint: `string`, `boolean`, `url`, `csv` |

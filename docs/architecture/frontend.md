@@ -90,8 +90,10 @@ The `active-hours.models.ts` file (`core/models/`) defines the `ActiveHoursEntry
 
 `PlacesService` (`core/services/places.service.ts`) holds the places an alarm can be aimed at: the named ones, plus the profile pin under `pin` (null when it is the 0,0 Poracle stores for "not set"). It is a signal rather than a per-caller fetch because the Where sheet, the Places section and every card carrying a where chip read the same list, and a place added in one has to appear in the others without a reload.
 
-- `load()` / `add(place)` — both set the signal from the response
+- `load()` / `add(place)` / `move(label, lat, lon)` — each sets the signal from the response
 - `remove(label)` — answers **409** with `referencingRules` when alarms still point at the place; the caller should name them rather than reporting a bare failure
+
+A `canEdit` computed comes from the same response and gates the move control: the route behind it is v2-only, so on PoracleNG 5.1.0 there is no way to move a place and the pencil is not rendered. See [Version compatibility](poracleng-compatibility.md#what-depends-on-the-server-version).
 
 ### AlertLanguageService
 

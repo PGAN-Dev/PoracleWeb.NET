@@ -29,6 +29,18 @@ import { QuickPickService } from '../../core/services/quick-pick.service';
  */
 const TYPE_AGNOSTIC_FILTER_KEYS = new Set(['clean', 'distance', 'ping', 'template']);
 
+/** Stored quick-pick categories are English strings, so the display label comes from this value-to-key map. */
+const CATEGORY_KEYS: Record<string, string> = {
+  Raids: 'QUICK_PICKS.CATEGORY_RAIDS',
+  Common: 'QUICK_PICKS.CATEGORY_COMMON',
+  Custom: 'QUICK_PICKS.CATEGORY_CUSTOM',
+  Invasions: 'QUICK_PICKS.CATEGORY_INVASIONS',
+  'Max Battles': 'QUICK_PICKS.CATEGORY_MAX_BATTLES',
+  PvP: 'QUICK_PICKS.CATEGORY_PVP',
+  Quests: 'QUICK_PICKS.CATEGORY_QUESTS',
+  Size: 'QUICK_PICKS.CATEGORY_SIZE',
+};
+
 @Component({
   imports: [
     ReactiveFormsModule,
@@ -161,6 +173,12 @@ export class QuickPickAdminDialogComponent implements OnInit {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /** Display label for a stored category. Unmapped values render as stored. */
+  categoryLabel(category: string): string {
+    const key = CATEGORY_KEYS[category];
+    return key ? this.i18n.instant(key) : category;
+  }
+
   getFilterForm(type: string): FormGroup<any> | null {
     switch (type) {
       case 'monster':
@@ -266,7 +284,7 @@ export class QuickPickAdminDialogComponent implements OnInit {
       },
       next: () => {
         this.snackBar.open(
-          this.i18n.instant(this.isEdit ? 'QUICK_PICKS.SNACK_UPDATED' : 'QUICK_PICKS.SNACK_CREATED'),
+          this.i18n.instant(this.isEdit ? 'QUICK_PICKS.SNACK_UPDATED' : 'QUICK_PICKS.SNACK_CREATED_QP'),
           this.i18n.instant('TOAST.OK'),
           { duration: 3000 },
         );

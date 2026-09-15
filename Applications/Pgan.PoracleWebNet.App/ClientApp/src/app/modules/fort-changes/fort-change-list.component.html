@@ -69,7 +69,9 @@
           </div>
           <div class="card-top-actions">
             @if (item.includeEmpty === 1) {
-              <span class="include-empty-tag" [matTooltip]="'FORT_CHANGES.INCLUDE_EMPTY' | translate">incl. empty</span>
+              <span class="include-empty-tag" [matTooltip]="'FORT_CHANGES.INCLUDE_EMPTY' | translate">{{
+                'FORT_CHANGES.INCLUDE_EMPTY_TAG' | translate
+              }}</span>
             }
           </div>
         </div>

@@ -12,17 +12,24 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 - **Search bar** filters alarms across all profiles by name, Pokemon, or other alarm attributes
 - **Type filter chips** narrow the view to specific alarm types. Ten of them: Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes
 - **Expandable panels** for each profile display grouped alarms with game asset images for quick identification
-- **Duplicate detection** -- alarms that exist on multiple profiles are highlighted with an orange border, making it easy to spot redundant filters
+- **Duplicate detection** -- a rule that matches another rule of the same type is highlighted with an orange border, making it easy to spot redundant filters. Hovering the tag names the other profiles carrying it, or says the duplicates all sit on this one
 
 !!! tip
     Use the search bar and type filters together to quickly find a specific alarm across all your profiles. For example, search for "Gible" with the Pokemon filter chip active to see which profiles are tracking it.
+
+!!! note "A duplicate is only ever a duplicate of the same type"
+    Poracle numbers each alarm type separately, so a raid rule and a Pokemon rule can carry the same id
+    without being related. Matching is done within a type for that reason. The summary chip beside
+    **Total Alarms** and the **Duplicates** filter chip count the same thing — rules, not groups of
+    them — so the number you click is the number of cards you get. Duplicates within a single profile
+    count too: 30 copies of one Pokemon rule on one profile is 30 duplicates.
 
 !!! warning "Pokéstop Event rules are not here"
     Showcase, Kecleon and Gold Stop rules are absent from the overview, from the stats bar, from
     **Export** and from **Import**. Ten types are carried across these three surfaces; the eleventh is
     not. An exported profile does not contain them, and importing that file will not recreate them, so a
     profile you rebuild from a backup needs its Pokéstop Event rules added again by hand from the
-    [Pokéstop Events page](alarms.md#pokéstop-event-alarms). The same applies to a profile you duplicate.
+    [Pokéstop Events page](alarms.md#pokestop-event-alarms). The same applies to a profile you duplicate.
 
 ## Creating & Switching Profiles
 

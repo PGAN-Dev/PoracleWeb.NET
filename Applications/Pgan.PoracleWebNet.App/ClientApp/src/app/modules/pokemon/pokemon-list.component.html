@@ -145,7 +145,7 @@
           } @else {
             <img
               [src]="getPokemonImage(monster.pokemonId, monster.form)"
-              [alt]="'Pokemon #' + monster.pokemonId"
+              [alt]="getPokemonName(monster.pokemonId)"
               class="pokemon-img"
               (error)="onImageError($event, monster.pokemonId)" />
           }

@@ -84,6 +84,8 @@ export class AreaListComponent implements OnInit {
   // Saved state (what's in the DB)
   private savedSelection: string[] = [];
   private readonly snackBar = inject(MatSnackBar);
+  /** Label for areas Koji reports with no group. Doubles as the key the group filter matches on. */
+  private readonly ungroupedLabel = this.i18n.instant('AREAS.GROUP_UNGROUPED');
   readonly activeGroup = signal<string | null>(null);
 
   readonly areas = signal<AreaItem[]>([]);
@@ -92,7 +94,7 @@ export class AreaListComponent implements OnInit {
     const all = this.areas();
     const groupMap = new Map<string, { selected: number; total: number }>();
     for (const area of all) {
-      const key = area.group || 'Ungrouped';
+      const key = area.group || this.ungroupedLabel;
       if (!groupMap.has(key)) groupMap.set(key, { selected: 0, total: 0 });
       const g = groupMap.get(key)!;
       g.total++;
@@ -171,7 +173,7 @@ export class AreaListComponent implements OnInit {
     const group = this.activeGroup();
     return this.areas().filter(a => {
       if (search && !a.name.toLowerCase().includes(search)) return false;
-      if (group && (a.group || 'Ungrouped') !== group) return false;
+      if (group && (a.group || this.ungroupedLabel) !== group) return false;
       return true;
     });
   });

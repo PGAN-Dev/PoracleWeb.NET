@@ -158,7 +158,9 @@ export class ProfileOverviewComponent implements OnInit {
     const overviewProfiles = data?.profile ?? [];
     const profileList: ProfileOverviewProfile[] = managed.map(mp => {
       const op = overviewProfiles.find(p => p.profile_no === mp.profileNo);
-      return op ?? { id: '', name: mp.name ?? `Profile ${mp.profileNo}`, profile_no: mp.profileNo };
+      return (
+        op ?? { id: '', name: mp.name ?? this.i18n.instant('PROFILES.PROFILE_NUM', { number: mp.profileNo }), profile_no: mp.profileNo }
+      );
     });
 
     // Add any profiles from overview that aren't in managed (shouldn't happen, but be safe)
@@ -562,7 +564,7 @@ export class ProfileOverviewComponent implements OnInit {
 
     const others = alarms
       .filter(a => this.getAlarmKey(a, type) === key && a.profile_no !== alarm.profile_no)
-      .map(a => profileMap.get(a.profile_no) ?? `Profile ${a.profile_no}`);
+      .map(a => profileMap.get(a.profile_no) ?? this.i18n.instant('PROFILES.PROFILE_NUM', { number: a.profile_no }));
 
     // Deduped because a profile holding two copies of the rule would otherwise be named twice.
     return [...new Set(others)];

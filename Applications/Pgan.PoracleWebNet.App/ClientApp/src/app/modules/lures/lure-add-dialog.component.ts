@@ -72,12 +72,12 @@ export class LureAddDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   lureTypes: LureOption[] = [
-    { id: 501, name: 'Normal', color: '#FF9800' },
-    { id: 502, name: 'Glacial', color: '#03A9F4' },
-    { id: 503, name: 'Mossy', color: '#4CAF50' },
-    { id: 504, name: 'Magnetic', color: '#9E9E9E' },
-    { id: 505, name: 'Rainy', color: '#2196F3' },
-    { id: 506, name: 'Golden', color: '#FFC107' },
+    { id: 501, name: this.i18n.instant('LURES.TYPE_NORMAL'), color: '#FF9800' },
+    { id: 502, name: this.i18n.instant('LURES.TYPE_GLACIAL'), color: '#03A9F4' },
+    { id: 503, name: this.i18n.instant('LURES.TYPE_MOSSY'), color: '#4CAF50' },
+    { id: 504, name: this.i18n.instant('LURES.TYPE_MAGNETIC'), color: '#9E9E9E' },
+    { id: 505, name: this.i18n.instant('LURES.TYPE_RAINY'), color: '#2196F3' },
+    { id: 506, name: this.i18n.instant('LURES.TYPE_GOLDEN'), color: '#FFC107' },
   ];
 
   saving = signal(false);

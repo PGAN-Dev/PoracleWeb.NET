@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { UserGeofence } from '../../../core/models';
 
@@ -17,7 +18,7 @@ export interface GeoJsonExportDialogResult {
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatIconModule],
+  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatIconModule, TranslatePipe],
   selector: 'app-geojson-export-dialog',
   standalone: true,
   styles: `
@@ -76,11 +77,15 @@ export interface GeoJsonExportDialogResult {
     }
   `,
   template: `
-    <h2 mat-dialog-title>Export Geofences</h2>
+    <h2 mat-dialog-title>{{ 'GEOJSON_EXPORT.TITLE' | translate }}</h2>
     <mat-dialog-content>
       <div class="select-all-row">
-        <mat-checkbox [checked]="allSelected()" (change)="toggleAll($event.checked)">Select All</mat-checkbox>
-        <span class="selected-count">{{ selectedCount() }} of {{ selections().length }} selected</span>
+        <mat-checkbox [checked]="allSelected()" (change)="toggleAll($event.checked)">{{
+          'GEOJSON_EXPORT.SELECT_ALL' | translate
+        }}</mat-checkbox>
+        <span class="selected-count">{{
+          'GEOJSON_EXPORT.SELECTED_COUNT' | translate: { selected: selectedCount(), total: selections().length }
+        }}</span>
       </div>
       <div class="geofence-list">
         @for (item of selections(); track $index) {
@@ -88,17 +93,17 @@ export interface GeoJsonExportDialogResult {
             <mat-checkbox [checked]="item.selected" (change)="toggle($index)"></mat-checkbox>
             <div class="geofence-detail">
               <span class="geofence-name">{{ item.geofence.displayName }}</span>
-              <span class="geofence-meta">{{ item.geofence.groupName || 'No region' }}</span>
+              <span class="geofence-meta">{{ item.geofence.groupName || ('GEOJSON_EXPORT.NO_REGION' | translate) }}</span>
             </div>
           </div>
         }
       </div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button (click)="dialogRef.close(null)">Cancel</button>
+      <button mat-button (click)="dialogRef.close(null)">{{ 'COMMON.CANCEL' | translate }}</button>
       <button mat-raised-button color="primary" [disabled]="selectedCount() === 0" (click)="export()">
         <mat-icon>download</mat-icon>
-        Export {{ selectedCount() }} Geofence{{ selectedCount() !== 1 ? 's' : '' }}
+        {{ 'GEOJSON_EXPORT.EXPORT_BTN' | translate: { count: selectedCount() } }}
       </button>
     </mat-dialog-actions>
   `,

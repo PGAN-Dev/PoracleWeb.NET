@@ -64,7 +64,7 @@
           </div>
           <div class="card-top-actions">
             @if (isAutoDelete(lure.clean)) {
-              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">clean</span>
+              <span class="clean-tag" matTooltip="{{ 'ALARM.CLEAN_HINT_LURE' | translate }}">{{ 'ALARM.CLEAN_TAG' | translate }}</span>
             }
             @if (isEdit(lure.clean)) {
               <span class="edit-tag" matTooltip="{{ 'LURES.EDIT_HINT' | translate }}">{{ 'LURES.EDIT_BADGE' | translate }}</span>

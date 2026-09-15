@@ -38,7 +38,26 @@ Then point your **PoracleNG** bot at PoracleWeb.NET's combined feed (a single UR
 }
 ```
 
-That's the whole connection. If Koji is briefly down, PoracleWeb.NET keeps serving the private user geofences and the last-known public ones, so notifications don't stop dead.
+That's the whole connection. If Koji goes down, PoracleWeb.NET keeps serving the private user geofences on their own, so notifications don't stop dead — see [Troubleshooting](troubleshooting.md#koji-is-down-what-happens).
+
+## Forcing a refresh after a change in Koji
+
+PoracleWeb.NET caches Koji's public-area list for 5 minutes. A change made directly in the Koji UI won't reach the feed until that expires — which is a problem for provisioning tools that create an area in Koji and then tell PoracleNG to reload: the reload re-reads the stale list, answers `{"status":"ok"}`, and the new area still isn't selectable.
+
+`POST /api/geofence-feed/refresh` drops the cached Koji half so the next feed read re-fetches it:
+
+```bash
+curl -X POST -H "X-Poracle-Secret: $PORACLE_API_SECRET" http://poracleweb:8082/api/geofence-feed/refresh
+```
+
+It answers `{"status":"ok"}`. Things worth knowing:
+
+- It authenticates with the **same secret you already set in `PORACLE_API_SECRET`** — the one PoracleWeb.NET sends to PoracleNG — passed in an `X-Poracle-Secret` header.
+- It **fails closed**: with no secret configured there is nothing to compare against, so every request is refused rather than every request allowed.
+- It is rate-limited to **20 requests per minute per IP**. One refresh per area created is well inside that.
+- **Reading** the feed is unchanged and still needs no secret.
+
+Approving a submission in PoracleWeb.NET already clears the cache, so this endpoint is only for changes made outside PoracleWeb.NET.
 
 ## How geofences and regions relate in Koji
 

@@ -74,15 +74,15 @@ export class GymEditDialogComponent {
   getTeamName(team: number): string {
     switch (team) {
       case 0:
-        return 'Neutral';
+        return this.i18n.instant('GYMS.TEAM_NEUTRAL');
       case 1:
-        return 'Mystic (Blue)';
+        return this.i18n.instant('GYMS.TEAM_MYSTIC');
       case 2:
-        return 'Valor (Red)';
+        return this.i18n.instant('GYMS.TEAM_VALOR');
       case 3:
-        return 'Instinct (Yellow)';
+        return this.i18n.instant('GYMS.TEAM_INSTINCT');
       default:
-        return `Team ${team}`;
+        return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
     }
   }
 

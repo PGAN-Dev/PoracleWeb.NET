@@ -45,7 +45,7 @@ There are two, and they sit next to each other in the **user menu** (top-right t
 - **Display language** changes this site's text and nothing else. Its submenu is hidden when an admin has restricted the selector to a single language.
 - **Alert language** is what Poracle writes your DMs in: alert text, Pokemon names, move names. The authoritative copy lives on your Poracle account (`humans.language`), with a browser cache used only for the first render, so it follows you between devices and reconciles if the bot changes it.
 
-Its list is Poracle's to restrict, not this site's. Poracle 5.2.1 and newer publish the language codes they accept (`available_languages` in Poracle's own config), and the alert-language submenu offers only those — intersected with the eleven this UI has a flag row for. Restrict Poracle to English and German and those are the two rows you get; restrict it to languages this UI does not ship and the menu item disappears rather than offering a write Poracle answers 422 to. A Poracle that restricts nothing, or one older than 5.2.1, publishes no list and every language stays on offer.
+Its list is Poracle's to restrict, not this site's. Poracle 5.2.1 and newer publish the language codes they accept (`availableLanguages` on `GET /api/config/poracleWeb`), and the alert-language submenu offers only those — intersected with the eleven this UI has a flag row for. Restrict Poracle to English and German and those are the two rows you get; restrict it to languages this UI does not ship and the menu item disappears rather than offering a write Poracle answers 422 to. A Poracle that restricts nothing, or one older than 5.2.1, publishes no list and every language stays on offer.
 
 `allowed_languages` does not apply here. It is this site's restriction on the display language, and it has nothing to say about what Poracle writes DMs in — the two menus answer to different owners.
 
@@ -211,7 +211,7 @@ Poracle ships translations for `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`
 - **Admin-configured values** — site title, logo, custom navigation links
 - **User-generated content** — profile names, geofence names, area names
 
-The help guide is translated, body and all: the `HELP.CONTENT_*` values carry the HTML for each section and every locale has its own. The gap runs the other way now, and it is small: 30 of the 36 `HELP.SECTION_*` headings are still English in Dutch, Polish and Portuguese.
+The help guide is translated, body and all: the `HELP.CONTENT_*` values carry the HTML for each section and every locale has its own. The 38 `HELP.SECTION_*` headings are complete too. Dutch, German and Italian leave one of them reading as English ("Dashboard"), because that is the word in those languages as well.
 
 ## Architecture
 
@@ -219,7 +219,7 @@ The help guide is translated, body and all: the `HELP.CONTENT_*` values carry th
 ClientApp/
   src/
     assets/i18n/           # Translation JSON files
-      en.json              # English (baseline, ~1,700 keys)
+      en.json              # English (baseline, ~1,900 keys)
       de.json              # German
       fr.json              # French
       ...
