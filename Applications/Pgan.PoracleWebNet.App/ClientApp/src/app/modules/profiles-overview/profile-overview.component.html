@@ -258,9 +258,7 @@
                             }}</span>
                           }
                           @if (isDuplicate(alarm, type.key)) {
-                            <span
-                              class="duplicate-tag"
-                              [matTooltip]="('PROFILES.ALSO_ON' | translate) + ' ' + getDuplicateProfiles(alarm, type.key).join(', ')">
+                            <span class="duplicate-tag" [matTooltip]="duplicateTooltip(alarm, type.key)">
                               <mat-icon>content_copy</mat-icon>
                             </span>
                           }

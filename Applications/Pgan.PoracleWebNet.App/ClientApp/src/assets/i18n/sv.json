@@ -1025,7 +1025,8 @@
     "POKESTOP_CHANGES": "PokéStop-ändringar",
     "GYM_CHANGES": "Gym-ändringar",
     "ALL_FORT_CHANGES": "Alla fort-ändringar",
-    "ALARM": "Larm"
+    "ALARM": "Larm",
+    "DUPLICATED_ON_THIS_PROFILE": "Dubblerad i den här profilen"
   },
   "GEOFENCES": {
     "PAGE_TITLE": "Mina geofences",

@@ -326,6 +326,23 @@ export class ProfileOverviewComponent implements OnInit {
     });
   }
 
+  /**
+   * What the duplicate tag says when you hover it.
+   *
+   * A rule can be duplicated entirely inside one profile -- 36 identical Pokemon rules on a single
+   * profile is a real account on this instance -- and `getDuplicateProfiles` reports only OTHER
+   * profiles, so it answers empty there. Composed in the template, that rendered a bare "Also on:"
+   * with nothing after it, which reads exactly like the cross-type false positive this page used to
+   * produce. Two different faults with one appearance is how you lose an afternoon.
+   */
+  duplicateTooltip(alarm: ProfileOverviewAlarm, type: string): string {
+    const others = this.getDuplicateProfiles(alarm, type);
+
+    return others.length > 0
+      ? `${this.i18n.instant('PROFILES.ALSO_ON')} ${others.join(', ')}`
+      : this.i18n.instant('PROFILES.DUPLICATED_ON_THIS_PROFILE');
+  }
+
   editActiveHours(profile: ProfileOverviewProfile): void {
     const entries = parseActiveHours(profile.active_hours);
     const ref = this.dialog.open(ActiveHoursEditorDialogComponent, {
@@ -543,9 +560,12 @@ export class ProfileOverviewComponent implements OnInit {
     const alarms = (data[type as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
     const profileMap = new Map(data.profile.map(p => [p.profile_no, p.name]));
 
-    return alarms
+    const others = alarms
       .filter(a => this.getAlarmKey(a, type) === key && a.profile_no !== alarm.profile_no)
       .map(a => profileMap.get(a.profile_no) ?? `Profile ${a.profile_no}`);
+
+    // Deduped because a profile holding two copies of the rule would otherwise be named twice.
+    return [...new Set(others)];
   }
 
   getManagedProfile(profileNo: number): Profile | undefined {

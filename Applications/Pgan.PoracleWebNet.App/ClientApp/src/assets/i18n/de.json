@@ -1025,7 +1025,8 @@
     "POKESTOP_CHANGES": "PokéStop-Änderungen",
     "GYM_CHANGES": "Arena-Änderungen",
     "ALL_FORT_CHANGES": "Alle Fort-Änderungen",
-    "ALARM": "Alarm"
+    "ALARM": "Alarm",
+    "DUPLICATED_ON_THIS_PROFILE": "Auf diesem Profil doppelt vorhanden"
   },
   "GEOFENCES": {
     "PAGE_TITLE": "Meine Geofences",

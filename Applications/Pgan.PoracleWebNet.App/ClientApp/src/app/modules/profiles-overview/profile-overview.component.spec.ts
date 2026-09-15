@@ -20,6 +20,9 @@ import { ProfileService } from '../../core/services/profile.service';
  * monsters and quest, and 14 between monsters and raid).
  */
 describe('ProfileOverviewComponent duplicate detection', () => {
+  // These exercise the component's signals directly and never render, so ngOnInit does not run.
+  // The DOM-level half lives in profile-overview.component.template.spec.ts, which does render and
+  // therefore has to mock what ngOnInit actually calls.
   let component: ProfileOverviewComponent;
 
   /** Two profiles, and whatever alarms a test puts on them. */
@@ -60,7 +63,7 @@ describe('ProfileOverviewComponent duplicate detection', () => {
         { provide: MatSnackBar, useValue: { open: jest.fn() } },
         { provide: MasterDataService, useValue: { getMonsterName: () => 'Pikachu', loadData: () => of(null) } },
         { provide: ProfileOverviewService, useValue: { getOverview: () => of(null) } },
-        { provide: ProfileService, useValue: { getProfiles: () => of([]) } },
+        { provide: ProfileService, useValue: { getAll: () => of([]) } },
       ],
       imports: [ProfileOverviewComponent, NoopAnimationsModule],
     }).compileComponents();
@@ -129,5 +132,32 @@ describe('ProfileOverviewComponent duplicate detection', () => {
     const shown = component.filteredProfiles().reduce((total, group) => total + group.totalAlarms, 0);
 
     expect(shown).toBe(component.duplicateKeys().size);
+  });
+  /**
+   * A duplicate group can sit entirely inside one profile -- 36 identical Pokemon rules on a single
+   * profile is a real account on this instance. getDuplicateProfiles reports only OTHER profiles, so
+   * it answers empty there, and the template used to concatenate that into a bare "Also on:" with
+   * nothing after it. That reads exactly like the cross-type false positive this page used to
+   * produce, so the two faults were indistinguishable on screen.
+   */
+  it('says the rule is duplicated here when every copy is on this profile', () => {
+    component.overview.set(overview({ pokemon: [monster(1, 1), monster(2, 1)] }));
+
+    const tooltip = component.duplicateTooltip(monster(1, 1) as never, 'pokemon');
+
+    expect(tooltip).toBe('PROFILES.DUPLICATED_ON_THIS_PROFILE');
+    expect(tooltip).not.toContain('PROFILES.ALSO_ON');
+  });
+
+  it('names the other profiles when the copies are spread across them', () => {
+    component.overview.set(overview({ pokemon: [monster(1, 1), monster(2, 2)] }));
+
+    expect(component.duplicateTooltip(monster(1, 1) as never, 'pokemon')).toBe('PROFILES.ALSO_ON Work');
+  });
+
+  it('names a profile once even when it holds two copies', () => {
+    component.overview.set(overview({ pokemon: [monster(1, 1), monster(2, 2), monster(3, 2)] }));
+
+    expect(component.getDuplicateProfiles(monster(1, 1) as never, 'pokemon')).toEqual(['Work']);
   });
 });
