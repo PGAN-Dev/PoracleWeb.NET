@@ -60,11 +60,16 @@ public class GeofenceFeedControllerTests
         this._kojiService.Verify(k => k.InvalidateAdminGeofenceCache(), Times.Once);
     }
 
+    /// <remarks>
+    /// A trailing-space variant used to be asserted here and was wrong. Kestrel strips optional trailing
+    /// whitespace from a header value per RFC 9110 5.5, so "shared-secret " arrives already trimmed and
+    /// is accepted over real HTTP. The assertion described a server that does not exist, and a directly
+    /// constructed controller could never have noticed. See GeofenceFeedPipelineTests.
+    /// </remarks>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("wrong-secret")]
-    [InlineData("shared-secret ")]
     [InlineData("SHARED-SECRET")]
     public void RefreshRefusesAnythingButTheConfiguredSecret(string? supplied)
     {
@@ -401,5 +406,60 @@ public class GeofenceFeedControllerTests
         this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(FeedRows(good, good));
 
         Assert.Equal(2, await this.FeedCountAsync());
+    }
+    // ──────────────────────────────────────────────────────────────
+    // Degrading when a source is down
+    // ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task TheFeedStillServesUserFencesWhenKojiIsDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ThrowsAsync(new HttpRequestException("koji down"));
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
+    }
+
+    /// <summary>
+    /// The half that did not degrade. Koji's read has always been wrapped; the database read was not,
+    /// so a blip answered 500 and took down the only geofence source PoracleJS has.
+    /// </summary>
+    [Fact]
+    public async Task TheFeedStillServesKojiFencesWhenTheDatabaseIsDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
+        this._repository.Setup(r => r.GetAllActiveAsync()).ThrowsAsync(new InvalidOperationException("db down"));
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
+    }
+
+    /// <summary>
+    /// With both sources down the feed must NOT answer 200 and an empty list. PoracleJS treats this feed
+    /// as authoritative and caches the last good response, so an empty success is not a degraded answer,
+    /// it is an instruction to drop every geofence every user has. An error leaves the cache in place.
+    /// </summary>
+    [Fact]
+    public async Task TheFeedRefusesRatherThanServingAnEmptyListWhenBothSourcesAreDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ThrowsAsync(new HttpRequestException("koji down"));
+        this._repository.Setup(r => r.GetAllActiveAsync()).ThrowsAsync(new InvalidOperationException("db down"));
+
+        var result = Assert.IsType<ObjectResult>(await this.Build(Secret).GetPoracleFeed());
+
+        Assert.Equal(503, result.StatusCode);
+    }
+
+    /// <summary>
+    /// The legitimate-case half, and the reason the check is on failure rather than on emptiness: an
+    /// instance with no Koji project and no user-drawn fences has an empty feed, and that is a correct
+    /// answer rather than an outage.
+    /// </summary>
+    [Fact]
+    public async Task AnEmptyFeedIsStillASuccessWhenBothSourcesAnswered()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
     }
 }

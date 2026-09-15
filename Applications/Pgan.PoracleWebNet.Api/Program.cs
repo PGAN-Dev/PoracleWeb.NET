@@ -296,6 +296,21 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
                 AutoReplenishment = true,
             }));
+    options.AddPolicy("geofence-feed-refresh", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            IpPartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                // An anonymous POST whose only protection is a shared secret. FixedTimeEquals defends
+                // the comparison against timing attacks; it does nothing about volume, and an attacker
+                // guessing the secret is bounded only by how fast they can ask. The work per call is one
+                // cache eviction, so this is about guessing rather than load. Provisioning fires one
+                // refresh per area it creates, so 20 a minute is far more than the real caller needs.
+                PermitLimit = 20,
+                Window = TimeSpan.FromSeconds(60),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.ContentType = "application/json";
