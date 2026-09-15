@@ -1753,13 +1753,24 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Sök inte efter uppdateringar",
     "DISABLE_UPDATE_CHECK_DESC": "Hindrar webbplatsen från att fråga GitHub om en nyare PoracleWeb eller Poracle har släppts. Det är den enda förfrågan utanför ditt eget nätverk och inget skickas med.",
     "GROUP_MAPS": "Kartor",
+    "BASEMAP_PROVIDER_LABEL": "Bakgrundskartleverantör",
+    "BASEMAP_PROVIDER_DESC": "Vilka kartrutor webbplatsen ritar som standard. Fälten nedan anpassar sig: en inbyggd leverantör behöver högst en API-nyckel, ”Egen rut-URL” behöver URL:en. Alla kan välja en annan via lagerknappen på valfri karta.",
+    "BASEMAP_PROVIDER_UNSET": "Inte angiven",
+    "BASEMAP_PROVIDER_UNSET_HINT": "Ingen leverantör vald, så kartorna använder {{provider}}. Välj en för att ange det uttryckligen.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Du tittar personligen på {{chosen}}, så inställningen på den här sidan ändrar inte vad du ser. Webbplatsens standard är {{provider}}. Välj ”Webbplatsens standard” via lagerknappen på en karta för att gå tillbaka till den.",
+    "BASEMAP_PROVIDER_CUSTOM": "Egen rut-URL",
     "BASEMAP_KEY_LABEL": "API-nyckel för bakgrundskarta",
-    "BASEMAP_KEY_DESC": "Nyckel till kakelleverantören. Utan nyckel returnerar CARTO kakel med vattenstämpeln ”API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Nyckel för den valda leverantören. Den följer med varje rutbegäran från webbläsaren och är därför ingen hemlighet — men lämnas den tom faller hela webbplatsen tillbaka på en bakgrundskarta utan nyckel.",
     "BASEMAP_URL_LABEL": "Kakel-URL för bakgrundskarta",
-    "BASEMAP_URL_DESC": "URL-mall för kakel. Placera {key} där leverantören förväntar sig nyckeln. Lämna tomt för den ljusa CARTO-kartan.",
+    "BASEMAP_URL_DESC": "Rut-URL-mall för din egen leverantör. Sätt {key} där den förväntar sig nyckeln; {s}, {z}, {x}, {y} och {r} tillhör Leaflet.",
+    "BASEMAP_NAME_LABEL": "Namn på egen bakgrundskarta",
+    "BASEMAP_NAME_DESC": "Vad din karta heter i lagermenyn på varje karta. Lämna tomt för ”Custom”.",
+    "BASEMAP_URL_DARK_LABEL": "Rut-URL (mörk)",
+    "BASEMAP_URL_DARK_DESC": "Valfritt. Ersätter URL:en ovan medan mörkt läge är på.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribution för bakgrundskarta",
-    "BASEMAP_ATTRIBUTION_DESC": "Attribution som visas på varje karta. Måste följa kakelleverantörens villkor.",
-    "BASEMAP_KEY_MISSING": "Ingen nyckel är angiven, så alla kartor på webbplatsen visas med CARTOs vattenstämpel ”API KEY REQUIRED”. CARTO returnerar fortfarande fungerande kakel utan nyckel, så inget annat kommer att rapportera det."
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution för den egna rut-URL:en. Måste följa din leverantörs villkor. Visas som vanlig text.",
+    "BASEMAP_KEY_MISSING": "Ingen nyckel är satt, så kartorna faller tillbaka på OpenStreetMap. Den valda leverantören skulle ändå returnera rutor — CARTO ritar in ”API KEY REQUIRED” i dem — och inget annat skulle rapportera det.",
+    "BASEMAP_UNAVAILABLE": "Den valda bakgrundskartan har ingen användbar rut-URL, så kartorna faller tillbaka på OpenStreetMap. Välj en leverantör, eller ange en rut-URL som börjar med http:// eller https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Namn",
@@ -1822,6 +1833,12 @@
     "YOUR_LOCATION": "Din plats",
     "SELECTED_COUNT": "{{count}} valda:",
     "AREAS_SELECTED": "{{count}} område(n) valda"
+  },
+  "BASEMAP": {
+    "TITLE": "Bakgrundskarta",
+    "SITE_DEFAULT": "Webbplatsens standard ({{provider}})",
+    "KEY_MISSING": "Webbplatsens bakgrundskarta kräver en API-nyckel. Visar {{fallback}} i stället.",
+    "UNAVAILABLE": "Webbplatsens bakgrundskarta är inte konfigurerad. Visar {{fallback}} i stället."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Standardinställningar för aviseringar",

@@ -1753,13 +1753,24 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Non cercare aggiornamenti",
     "DISABLE_UPDATE_CHECK_DESC": "Impedisce al sito di chiedere a GitHub se è uscita una versione più recente di PoracleWeb o Poracle. È l’unica richiesta che esce dalla tua rete e non invia nulla.",
     "GROUP_MAPS": "Mappe",
+    "BASEMAP_PROVIDER_LABEL": "Provider della mappa di base",
+    "BASEMAP_PROVIDER_DESC": "Quali tile disegna il sito per impostazione predefinita. I campi qui sotto si adattano: un provider integrato richiede al massimo una chiave API, «URL tile personalizzato» richiede l’URL. Ogni utente può sceglierne un’altra dal pulsante dei livelli su qualsiasi mappa.",
+    "BASEMAP_PROVIDER_UNSET": "Non impostato",
+    "BASEMAP_PROVIDER_UNSET_HINT": "Nessun provider scelto, quindi le mappe usano {{provider}}. Scegline uno per renderlo esplicito.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Stai visualizzando personalmente {{chosen}}, quindi l’impostazione di questa pagina non cambierà ciò che vedi. La predefinita del sito è {{provider}}. Scegli «Predefinita del sito» dal pulsante dei livelli su una mappa per tornarci.",
+    "BASEMAP_PROVIDER_CUSTOM": "URL tile personalizzato",
     "BASEMAP_KEY_LABEL": "Chiave API della mappa base",
-    "BASEMAP_KEY_DESC": "Chiave del fornitore di tile. Senza chiave, CARTO restituisce tile con la filigrana “API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Chiave del provider scelto. Viaggia in ogni richiesta di tile del browser, quindi non è un segreto — ma lasciarla vuota fa ripiegare tutto il sito su una mappa senza chiave.",
     "BASEMAP_URL_LABEL": "URL delle tile della mappa base",
-    "BASEMAP_URL_DESC": "Modello di URL delle tile. Inserisci {key} dove il fornitore si aspetta la chiave. Lascia vuoto per la mappa base chiara di CARTO.",
+    "BASEMAP_URL_DESC": "Modello di URL tile del tuo provider. Inserisci {key} dove si aspetta la chiave; {s}, {z}, {x}, {y} e {r} sono di Leaflet.",
+    "BASEMAP_NAME_LABEL": "Nome della mappa personalizzata",
+    "BASEMAP_NAME_DESC": "Come si chiama la tua mappa nel menu dei livelli di ogni mappa. Lascia vuoto per «Custom».",
+    "BASEMAP_URL_DARK_LABEL": "URL tile (scuro)",
+    "BASEMAP_URL_DARK_DESC": "Facoltativo. Sostituisce l’URL sopra finché è attiva la modalità scura.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribuzione della mappa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Attribuzione mostrata su ogni mappa. Deve rispettare i termini del fornitore di tile.",
-    "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi ogni mappa del sito mostra la filigrana “API KEY REQUIRED” di CARTO. CARTO restituisce comunque tile funzionanti, quindi nient’altro lo segnalerà."
+    "BASEMAP_ATTRIBUTION_DESC": "Attribuzione per l’URL tile personalizzato. Deve rispettare i termini del tuo provider. Mostrata come testo semplice.",
+    "BASEMAP_KEY_MISSING": "Nessuna chiave impostata, quindi le mappe ripiegano su OpenStreetMap. Il provider scelto restituirebbe comunque i tile — CARTO vi disegna sopra «API KEY REQUIRED» — e nient’altro lo segnalerebbe.",
+    "BASEMAP_UNAVAILABLE": "La mappa di base scelta non ha un URL tile utilizzabile, quindi le mappe ripiegano su OpenStreetMap. Scegli un provider oppure imposta un URL tile che inizi con http:// o https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -1822,6 +1833,12 @@
     "YOUR_LOCATION": "La tua posizione",
     "SELECTED_COUNT": "{{count}} selezionati:",
     "AREAS_SELECTED": "{{count}} area/e selezionate"
+  },
+  "BASEMAP": {
+    "TITLE": "Mappa di base",
+    "SITE_DEFAULT": "Predefinita del sito ({{provider}})",
+    "KEY_MISSING": "La mappa di base del sito richiede una chiave API. Viene mostrata {{fallback}}.",
+    "UNAVAILABLE": "La mappa di base del sito non è configurata. Viene mostrata {{fallback}}."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Impostazioni predefinite avvisi",

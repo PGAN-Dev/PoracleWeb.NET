@@ -56,7 +56,7 @@ export class AreaOverviewMapComponent implements AfterViewInit, OnDestroy {
       zoomControl: false,
     });
 
-    this.basemap.createLayer({ maxZoom: 18 }).addTo(this.map);
+    this.basemap.attach(this.map, { maxZoom: 18 });
 
     this.polygonLayer = L.layerGroup().addTo(this.map);
     this.drawPolygons();

@@ -1753,13 +1753,24 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Niet op updates controleren",
     "DISABLE_UPDATE_CHECK_DESC": "Voorkomt dat de site aan GitHub vraagt of er een nieuwere PoracleWeb of Poracle is uitgebracht. Dit is het enige verzoek buiten je eigen netwerk en er wordt niets meegestuurd.",
     "GROUP_MAPS": "Kaarten",
+    "BASEMAP_PROVIDER_LABEL": "Kaartaanbieder",
+    "BASEMAP_PROVIDER_DESC": "Welke kaarttegels de site standaard tekent. De velden hieronder passen zich aan: een ingebouwde aanbieder heeft hooguit een API-sleutel nodig, ‘Eigen tegel-URL’ heeft de URL nodig. Bezoekers kunnen via de lagenknop op elke kaart een andere kiezen.",
+    "BASEMAP_PROVIDER_UNSET": "Niet ingesteld",
+    "BASEMAP_PROVIDER_UNSET_HINT": "Geen aanbieder gekozen, dus kaarten gebruiken {{provider}}. Kies er een om het vast te leggen.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Je bekijkt persoonlijk {{chosen}}, dus de instelling op deze pagina verandert niets aan wat jij ziet. De standaard van de site is {{provider}}. Kies ‘Standaard van de site’ via de lagenknop op een kaart om terug te gaan.",
+    "BASEMAP_PROVIDER_CUSTOM": "Eigen tegel-URL",
     "BASEMAP_KEY_LABEL": "API-sleutel achtergrondkaart",
-    "BASEMAP_KEY_DESC": "Sleutel voor de tegelprovider. Zonder sleutel levert CARTO tegels met het watermerk “API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Sleutel voor de gekozen aanbieder. Hij gaat mee in elk tegelverzoek van de browser en is dus geen geheim — maar laat je hem leeg, dan valt de hele site terug op een kaart zonder sleutel.",
     "BASEMAP_URL_LABEL": "Tegel-URL achtergrondkaart",
-    "BASEMAP_URL_DESC": "URL-sjabloon voor tegels. Zet {key} waar de provider de sleutel verwacht. Laat leeg voor de lichte CARTO-kaart.",
+    "BASEMAP_URL_DESC": "Tegel-URL-sjabloon van je eigen aanbieder. Zet {key} waar die de sleutel verwacht; {s}, {z}, {x}, {y} en {r} zijn van Leaflet.",
+    "BASEMAP_NAME_LABEL": "Naam van eigen kaart",
+    "BASEMAP_NAME_DESC": "Hoe je kaart heet in het lagenmenu op elke kaart. Laat leeg voor ‘Custom’.",
+    "BASEMAP_URL_DARK_LABEL": "Tegel-URL (donker)",
+    "BASEMAP_URL_DARK_DESC": "Optioneel. Vervangt de bovenstaande tegel-URL zolang de donkere modus aan staat.",
     "BASEMAP_ATTRIBUTION_LABEL": "Bronvermelding achtergrondkaart",
-    "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding op elke kaart. Moet voldoen aan de voorwaarden van je tegelprovider.",
-    "BASEMAP_KEY_MISSING": "Er is geen sleutel ingesteld, dus elke kaart op de site toont het CARTO-watermerk “API KEY REQUIRED”. CARTO levert ook zonder sleutel werkende tegels, dus niets anders meldt dit."
+    "BASEMAP_ATTRIBUTION_DESC": "Bronvermelding voor de eigen tegel-URL. Moet voldoen aan de voorwaarden van je aanbieder. Wordt als platte tekst getoond.",
+    "BASEMAP_KEY_MISSING": "Er is geen sleutel ingesteld, dus kaarten vallen terug op OpenStreetMap. De gekozen aanbieder zou zonder sleutel gewoon tegels teruggeven — CARTO tekent er ‘API KEY REQUIRED’ in — en niets anders zou dit melden.",
+    "BASEMAP_UNAVAILABLE": "De gekozen kaart heeft geen bruikbare tegel-URL, dus kaarten vallen terug op OpenStreetMap. Kies een aanbieder of stel een tegel-URL in die begint met http:// of https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Naam",
@@ -1822,6 +1833,12 @@
     "YOUR_LOCATION": "Jouw locatie",
     "SELECTED_COUNT": "{{count}} geselecteerd:",
     "AREAS_SELECTED": "{{count}} gebied(en) geselecteerd"
+  },
+  "BASEMAP": {
+    "TITLE": "Basiskaart",
+    "SITE_DEFAULT": "Standaard van de site ({{provider}})",
+    "KEY_MISSING": "De basiskaart van de site heeft een API-sleutel nodig. {{fallback}} wordt in plaats daarvan getoond.",
+    "UNAVAILABLE": "De basiskaart van de site is niet ingesteld. {{fallback}} wordt in plaats daarvan getoond."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Standaardinstellingen meldingen",

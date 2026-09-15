@@ -1753,13 +1753,24 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Ne pas rechercher de mises à jour",
     "DISABLE_UPDATE_CHECK_DESC": "Empêche le site de demander à GitHub si une version plus récente de PoracleWeb ou de Poracle est parue. C’est la seule requête sortant de votre réseau, et elle n’envoie rien.",
     "GROUP_MAPS": "Cartes",
+    "BASEMAP_PROVIDER_LABEL": "Fournisseur de fond de carte",
+    "BASEMAP_PROVIDER_DESC": "Les tuiles que le site affiche par défaut. Les champs ci-dessous s’adaptent : un fournisseur intégré demande au plus une clé API, « URL de tuiles personnalisée » demande l’URL. Chacun peut en choisir un autre via le bouton des calques sur n’importe quelle carte.",
+    "BASEMAP_PROVIDER_UNSET": "Non défini",
+    "BASEMAP_PROVIDER_UNSET_HINT": "Aucun fournisseur choisi : les cartes utilisent {{provider}}. Choisissez-en un pour le définir explicitement.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Vous affichez personnellement {{chosen}} : le réglage de cette page ne changera donc rien pour vous. La valeur par défaut du site est {{provider}}. Choisissez « Valeur par défaut du site » via le bouton des calques sur une carte pour y revenir.",
+    "BASEMAP_PROVIDER_CUSTOM": "URL de tuiles personnalisée",
     "BASEMAP_KEY_LABEL": "Clé API du fond de carte",
-    "BASEMAP_KEY_DESC": "Clé du fournisseur de tuiles. Sans clé, CARTO renvoie des tuiles filigranées « API KEY REQUIRED ».",
+    "BASEMAP_KEY_DESC": "Clé du fournisseur choisi. Elle voyage dans chaque requête de tuile du navigateur : ce n’est donc pas un secret — mais la laisser vide fait basculer tout le site sur un fond de carte sans clé.",
     "BASEMAP_URL_LABEL": "URL des tuiles du fond de carte",
-    "BASEMAP_URL_DESC": "Modèle d’URL des tuiles. Placez {key} là où le fournisseur attend la clé. Laissez vide pour le fond CARTO clair.",
+    "BASEMAP_URL_DESC": "Modèle d’URL de tuiles de votre fournisseur. Placez {key} là où il attend la clé ; {s}, {z}, {x}, {y} et {r} appartiennent à Leaflet.",
+    "BASEMAP_NAME_LABEL": "Nom du fond de carte personnalisé",
+    "BASEMAP_NAME_DESC": "Le nom de votre fond de carte dans le menu des calques de chaque carte. Laissez vide pour « Custom ».",
+    "BASEMAP_URL_DARK_LABEL": "URL de tuiles (sombre)",
+    "BASEMAP_URL_DARK_DESC": "Facultatif. Remplace l’URL ci-dessus lorsque le mode sombre est actif.",
     "BASEMAP_ATTRIBUTION_LABEL": "Attribution du fond de carte",
-    "BASEMAP_ATTRIBUTION_DESC": "Attribution affichée sur chaque carte. Doit respecter les conditions de votre fournisseur de tuiles.",
-    "BASEMAP_KEY_MISSING": "Aucune clé n’est définie, donc toutes les cartes du site affichent le filigrane « API KEY REQUIRED » de CARTO. CARTO renvoie quand même des tuiles fonctionnelles, donc rien d’autre ne le signalera."
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution de l’URL de tuiles personnalisée. Doit respecter les conditions de votre fournisseur. Affichée en texte brut.",
+    "BASEMAP_KEY_MISSING": "Aucune clé n’est définie : les cartes basculent sur OpenStreetMap. Le fournisseur choisi renverrait quand même des tuiles — CARTO y inscrit « API KEY REQUIRED » — et rien d’autre ne le signalerait.",
+    "BASEMAP_UNAVAILABLE": "Le fond de carte choisi n’a pas d’URL de tuiles utilisable : les cartes basculent sur OpenStreetMap. Choisissez un fournisseur, ou indiquez une URL de tuiles commençant par http:// ou https://."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nom",
@@ -1822,6 +1833,12 @@
     "YOUR_LOCATION": "Votre position",
     "SELECTED_COUNT": "{{count}} sélectionné(s) :",
     "AREAS_SELECTED": "{{count}} zone(s) sélectionnée(s)"
+  },
+  "BASEMAP": {
+    "TITLE": "Fond de carte",
+    "SITE_DEFAULT": "Valeur par défaut du site ({{provider}})",
+    "KEY_MISSING": "Le fond de carte du site nécessite une clé API. Affichage de {{fallback}} à la place.",
+    "UNAVAILABLE": "Le fond de carte du site n’est pas configuré. Affichage de {{fallback}} à la place."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Réglages par défaut des alertes",

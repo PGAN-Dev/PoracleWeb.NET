@@ -137,12 +137,30 @@ public class SettingsControllerTests : ControllerTestBase
     [InlineData("hide_header_logo")]
     [InlineData("signup_url")]
     [InlineData("site_name")]
+    [InlineData("basemap_provider")]
+    [InlineData("basemap_url")]
+    [InlineData("basemap_attribution")]
     public async Task GetAllStillServesTheKeysTheSpaNeedsToNonAdmins(string key)
     {
         SetupUser(this._sut, isAdmin: false);
         this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Key = key, Value = "v" }]);
 
         Assert.Contains(key, await this.GetAllKeysAsync());
+    }
+
+    /// <summary>
+    /// The basemap key is the one credential-shaped key that has to reach every signed-in user.
+    /// It travels in each tile URL the browser requests, so withholding it protects nothing and
+    /// leaves non-admins on the unkeyed provider -- which for CARTO means a watermark on every map,
+    /// over a 200, reported by nothing. That is #842 surviving its own fix for everyone but admins.
+    /// </summary>
+    [Fact]
+    public async Task GetAllServesTheBasemapKeyToNonAdminsBecauseTheirBrowserHasToSendIt()
+    {
+        SetupUser(this._sut, isAdmin: false);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Key = "basemap_key", Value = "abc123" }]);
+
+        Assert.Contains("basemap_key", await this.GetAllKeysAsync());
     }
 
     [Fact]
