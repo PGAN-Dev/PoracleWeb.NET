@@ -13,7 +13,7 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 | **Eggs** | Filter by egg level, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
 | **Quests** | Filter by reward — Pokemon encounter, item, mega energy, candy, stardust or PokéCoins — with an optional minimum amount. See [Quest alarm filters](#quest-alarm-filters). |
 | **Invasions** | Filter by grunt type and shadow Pokemon |
-| **Pokéstop Events** | Showcase, Kecleon and Gold Stop events at a pokestop. See [Pokéstop Event alarms](#pokestop-event-alarms). |
+| **Pokéstop Events** | Showcase, Kecleon and Gold Stop events at a pokestop. See [Pokéstop Event alarms](#pokéstop-event-alarms). |
 | **Lures** | Filter by lure type |
 | **Nests** | Filter by nesting Pokemon species |
 | **Gyms** | Filter by gym team changes, battle activity, specific gym |

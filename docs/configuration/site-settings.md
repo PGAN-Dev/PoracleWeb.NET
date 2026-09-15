@@ -103,67 +103,137 @@ from Poracle and cannot be set here — see [Values that are not settings](#valu
 Which tiles every map on the site draws with: the areas map, the location picker, the geofence
 detail map and the geofence thumbnails.
 
+!!! tip "If you just want working maps, do nothing"
+    A fresh install draws OpenStreetMap without any configuration. Everything below is for choosing
+    something else.
+
+### Settings
+
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `basemap_provider` | Basemap Provider | string | Provider id: one of `osm`, `carto-positron`, `carto-voyager`, `stadia-smooth`, `esri-canvas`, `esri-imagery`, or `custom` for your own tile URL. Empty means nothing has been chosen — see [the flow](#the-flow) below. |
-| `basemap_key` | Basemap API Key | string | API key for the chosen provider. Required by CARTO and Stadia, ignored by the rest. **Not a secret** — see below. |
-| `basemap_name` | Custom Basemap Name | string | What `custom` is called in the layers menu on each map. Empty renders as "Custom", which tells a viewer nothing about the map they are being offered. Capped at 40 characters and always rendered as text. |
+| `basemap_provider` | Basemap Provider | string | Provider id: `osm`, `esri-street`, `esri-canvas`, `esri-imagery`, `carto-positron`, `carto-voyager`, `stadia-smooth`, or `custom` for your own tile URL. Empty means nothing has been chosen — see [What "not set" means](#what-not-set-means). |
+| `basemap_key` | Basemap API Key | string | API key for the chosen provider. Required by CARTO and Stadia, ignored by the rest. **Not a secret** — see [The key is public](#the-key-is-public). |
+| `basemap_name` | Custom Basemap Name | string | What `custom` is called in the layers menu on each map. Empty renders as "Custom", which tells a viewer nothing about the map they are being offered. Capped at 40 characters and always rendered as text, never as markup. |
 | `basemap_url` | Basemap Tile URL | url | Tile template for `custom`. Must be an absolute `http(s)` URL. Put `{key}` where the provider expects the key; `{s}`, `{z}`, `{x}`, `{y}` and `{r}` are Leaflet's. |
 | `basemap_url_dark` | Basemap Tile URL (Dark) | url | Optional. Used in place of `basemap_url` while a viewer has the dark theme on. |
 | `basemap_attribution` | Basemap Attribution | string | Attribution for `custom`. Rendered as plain text, so a link in it shows as text rather than a link. Built-in providers carry their own and ignore this. |
 
-### The flow
+### Choosing a provider
 
-Pick a provider first. What you fill in after that follows from the pick, and the admin page hides
-the fields that do not apply — so the section is never showing you a box that has no bearing on the
-choice you made.
+Pick the provider first. What you fill in after that follows from the pick, and the admin page hides
+the fields that do not apply — so the section never shows you a box with no bearing on your choice.
 
 | Provider | What to fill in |
 |---|---|
 | OpenStreetMap, Esri Streets, Esri Gray Canvas, Esri World Imagery | Nothing. They are keyless and carry their own URL, attribution and zoom limit. |
 | CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API Key**, and nothing else. |
 | Custom tile URL | **Name**, **Tile URL**, optionally a **dark** URL, and **Attribution**. The key field appears only if your URL contains `{key}`. |
-| *Not set* | Nothing has been chosen. Maps use your custom tile URL if one is set, CARTO Positron if you have set a key and nothing else, and OpenStreetMap otherwise. The page says which, so you can leave it or make it explicit. |
-
-*Not set* exists because installs configured before `basemap_provider` did have no row for it, and it
-resolves by what else is set. An install that set only `basemap_url` keeps working and reads as
-Custom; one that set only `basemap_key` keeps drawing CARTO, which is all those older settings could
-say. A genuinely fresh install has neither, so it gets OpenStreetMap — a provider that needs no key,
-rather than one that reports a missing key nobody asked for.
-
-### The built-in providers
 
 Picking a name sets the URL, the attribution and the zoom limit together, so there is one decision
 rather than three chances to get it wrong.
 
-| Id | Provider | Key | Dark variant | Max zoom |
+| Id | Provider | Needs a key | Dark variant | Max zoom |
 |---|---|---|---|---|
 | `osm` | OpenStreetMap | no | — | 19 |
 | `esri-street` | Esri Streets | no | — | 19 |
-| `esri-canvas` | Esri Gray Canvas | no | yes | 16 |
+| `esri-canvas` | Esri Gray Canvas | no | yes | **16** |
 | `esri-imagery` | Esri World Imagery (satellite) | no | — | 19 |
 | `carto-positron` | CARTO Positron | yes | yes (Dark Matter) | 20 |
 | `carto-voyager` | CARTO Voyager | yes | yes (Dark Matter) | 20 |
 | `stadia-smooth` | Stadia Alidade Smooth | yes | yes | 20 |
 
-A provider with no dark variant reuses its light tiles when the theme is dark.
+A provider with no dark variant reuses its light tiles when the theme is dark. Esri Gray Canvas stops
+at zoom 16, which is further out than the location picker usually wants — the map simply will not
+zoom past it while that basemap is active.
 
-!!! warning "OpenStreetMap is the fallback, and it is the one provider told who you are"
-    OSM's [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) refuses a request
-    it cannot identify, and this site sends `Referrer-Policy: same-origin` so that a remote image host
-    cannot learn where a private instance lives (#383). Refererless tile requests come back **200**
-    with "Access blocked" drawn into the image — the CARTO watermark's failure mode wearing a
-    different hat.
+A key unlocks every style in the same family, so a CARTO key gives you both CARTO entries. It never
+unlocks another vendor's: one key cannot be a CARTO key and a Stadia key at once, so the styles you
+have no key for are not offered.
 
-    So OSM's entry sets `referrerPolicy="origin"` on its own tile images: your site's host, no path,
-    on map tiles alone. Every other remote request the page makes — uicons, Discord avatars, fonts —
-    stays as unidentified as it was, and nothing else in the catalogue needs the exception.
+### What "not set" means
 
-    Since OSM is what an unconfigured install falls back to, that disclosure is the default. If you
-    would rather your instance's address never reached a tile provider, configure one that needs
-    neither a key nor a referrer: Esri Streets, Esri Gray Canvas and Esri World Imagery all return
-    the same bytes with or without one. OSM also asks that heavy users run their own tiles rather
-    than lean on its volunteers, which is worth knowing if your instance is a busy one.
+Leaving the provider empty is a real state, not a missing one — it is what every install configured
+before this setting existed has. It resolves by what else is set:
+
+| Also set | Resolves to | Why |
+|---|---|---|
+| nothing | OpenStreetMap | A provider that needs no key, rather than one that reports a missing key nobody asked for. |
+| `basemap_key` only | CARTO Positron | Before the provider setting existed, a key was the only way to say "use CARTO". Upgrading does not move a working CARTO install onto something else. |
+| `basemap_url` only | Custom | Same reason: a tile URL on its own meant "use this URL". |
+
+The admin page says which of these applies, so you can leave it or make it explicit.
+
+### The key is public
+
+`basemap_key` travels in every tile URL the browser requests, so every signed-in user receives it.
+That is how a client-side basemap works and there is no way around it; restrict the key by referrer
+or domain at the provider rather than trying to hide it.
+
+It is served to non-admins deliberately, under the `basemap_` prefix in the settings allowlist.
+Withholding it would protect nothing and would leave every non-admin looking at a different basemap
+from the admin checking the site.
+
+### When the chosen basemap cannot be drawn
+
+Maps fall back to OpenStreetMap, and both the Maps section and the layers menu say so. Two things
+cause it:
+
+- **The provider needs a key and none is set.** CARTO answers **200** to a keyless request and
+  returns working tiles with `API KEY REQUIRED` drawn into the image, so nothing logs and no health
+  check notices ([#842](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/842)). Rather than serve
+  that, the site does not request it.
+- **The provider cannot be resolved at all** — `custom` with a blank or malformed tile URL, which is
+  what picking it and saving before filling the field leaves behind, or a provider id this build does
+  not know after a downgrade.
+
+Neither produces an error to notice. A URL that is not a tile template is simply never requested.
+
+!!! warning "A wrong key is not detectable"
+    Only a *missing* key can be caught. CARTO answers 200 and watermarks identically whether the key
+    is absent or invalid, so a typo gets you a watermarked map with nothing to report it. If the
+    watermark persists after setting a key, check the key itself.
+
+### Each viewer can choose their own
+
+From the layers button in the top-right corner of any interactive map. The choice is theirs alone and
+is kept in their browser, like the theme and the accent colour. On offer are the keyless built-ins,
+the custom URL if one is set — under the name you gave it — and the keyed styles in whichever family
+your key belongs to.
+
+!!! warning "A viewer's own choice outranks this setting, including yours"
+    The menu's first entry is **Site default**, which names the provider set here and clears the
+    viewer's choice. This matters most for whoever configures the setting: click the layers button
+    once while testing, and every later change to `basemap_provider` will appear to do nothing on
+    your own screen, because you are no longer on the site default. The Maps section says so when it
+    applies to you.
+
+### OpenStreetMap and the referrer
+
+OSM's [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) refuses a request it
+cannot identify, and this site sends `Referrer-Policy: same-origin` so that remote image hosts cannot
+learn where a private instance lives. Refererless tile requests come back **200** with "Access
+blocked" drawn into the image — the CARTO watermark's failure mode wearing a different hat.
+
+So the OpenStreetMap entry sets `referrerPolicy="origin"` on its own tile images: your site's host, no
+path, on map tiles alone. Every other remote request the page makes — uicons, Discord avatars, fonts
+— stays as unidentified as before, and nothing else in the catalogue needs the exception.
+
+Since OpenStreetMap is what an unconfigured install draws, that disclosure is the default. If you
+would rather your instance's address never reached a tile provider, pick one that needs neither a key
+nor a referrer: Esri Streets, Esri Gray Canvas and Esri World Imagery all return the same bytes with
+or without one. OSM also asks that heavy users run their own tiles rather than lean on its
+volunteers, which is worth knowing if your instance is a busy one.
+
+### Custom tile URLs
+
+!!! warning "The CARTO parameter is `key`, not `api_key`"
+    Both spellings return 200 and both watermark, so it is easy to "fix" this and change nothing. The
+    built-in CARTO entries have it right; only a `custom` URL can get it wrong.
+
+!!! note "Custom tile URLs must be HTTPS"
+    The site's Content-Security-Policy allows images from any `https:` origin and nothing over plain
+    `http:`. A custom tile server on `http://` is blocked by the browser with no error on the page —
+    the map simply stays blank.
 
 !!! info "These are the same tiles ReactMap draws"
     OSM, Satellite and Dark Matter use the URLs from ReactMap's `config/default.json`, and CARTO
@@ -171,48 +241,6 @@ A provider with no dark variant reuses its light tiles when the theme is dark.
     sites. `basemap.service.spec.ts` pins those four URLs against a catalogue edit drifting away from
     it. The one difference is the key: the CARTO entries here carry one, which is what keeps the
     watermark off them.
-
-Each viewer can pick a different one for themselves, from the layers button in the top-right corner
-of any interactive map. The choice is theirs alone and is kept in their browser, like the theme and
-the accent colour. What is on offer is the keyless built-ins, plus the custom URL if one is set —
-under the name you gave it — plus the keyed ones in the same family as the provider you chose. A
-CARTO key unlocks both CARTO styles, and never Stadia, because one key cannot be both.
-
-!!! warning "A viewer's own choice outranks this setting, including yours"
-    The menu's first entry is **Site default**, which names the provider set here and clears the
-    viewer's choice. It matters most for whoever configures this: click the layers button once while
-    testing, and every later change to `basemap_provider` will appear to do nothing on your own
-    screen, because you are no longer on the site default. The Maps section says so when it applies
-    to you.
-
-### The API key is public, and a missing one is not silent
-
-`basemap_key` travels in every tile URL the browser requests, so every signed-in user receives it.
-That is how a client-side basemap works and there is no way around it; restrict the key by referrer
-or domain at the provider instead of trying to hide it. It is served to non-admins deliberately,
-under the `basemap_` prefix in the settings allowlist. Withholding it would not protect anything and
-would leave every non-admin on a different basemap from the admins checking the site.
-
-Leave it blank and the site draws OpenStreetMap rather than the provider you chose, and says so in
-the Maps section and in the layers menu. That fallback exists because CARTO answers **200** to a
-keyless request and returns working tiles with `API KEY REQUIRED` drawn into the image: nothing logs,
-no health check notices, and the only way anyone finds out is by looking at a map and recognising
-what they are seeing ([#842](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/842)).
-
-The same applies to a basemap that cannot be drawn for any other reason — `custom` with a blank or
-malformed tile URL, which is what choosing it and saving before filling the field leaves behind, or a
-provider id this build does not know after a rollback. Maps fall back to OpenStreetMap and both the
-Maps section and the layers menu say the configured basemap is not set up. Neither case produces an
-error: a URL that is not a tile template is simply never requested.
-
-!!! warning "The CARTO parameter is `key`, not `api_key`"
-    Both spellings return 200 and both watermark, so it is easy to "fix" this and change nothing. The
-    built-in CARTO entries have it right; only a `custom` URL can get it wrong.
-
-!!! note "Custom tile URLs must be HTTPS"
-    The site's own Content-Security-Policy allows images from any `https:` origin and nothing over
-    plain `http:`. A custom tile server on `http://` is blocked by the browser with no error on the
-    page — the map simply stays blank.
 
 ---
 
