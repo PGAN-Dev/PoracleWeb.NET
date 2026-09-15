@@ -23,7 +23,9 @@ describe('IconService', () => {
   });
 
   describe('with default settings', () => {
-    const DEFAULT_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
+    // Repointed with #877: whitewillem/PogoAssets no longer exists -- the repository 404s, not just the
+    // path -- so this constant was pinning the service to a dead host and the suite was defending it.
+    const DEFAULT_BASE = 'https://raw.githubusercontent.com/jms412/PkmnHomeIcons/master/UICONS';
 
     it('should return default pokemon URL', () => {
       expect(service.getPokemonUrl(25)).toBe(`${DEFAULT_BASE}/pokemon/25.png`);

@@ -445,6 +445,7 @@ export class AdminSettingsComponent implements OnInit {
     'uicons_gym',
     'uicons_raid',
     'uicons_reward',
+    'uicons_type',
     // Driven by the Authentication mode switch rather than a generic group row, but still
     // a known key so it doesn't fall through to the "Other" catch-all section.
     'enable_oidc',
@@ -526,17 +527,6 @@ export class AdminSettingsComponent implements OnInit {
   readonly discordConfig = signal<DiscordServerConfig | null>(null);
 
   readonly iconRepos = [
-    {
-      name: 'Whitewillem (Ingame)',
-      base: 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
     {
       name: 'Nileplumb (Home)',
       base: 'https://raw.githubusercontent.com/nileplumb/PkmnHomeIcons/master/UICONS',
@@ -861,12 +851,22 @@ export class AdminSettingsComponent implements OnInit {
     }
   }
 
+  /**
+   * Point every icon category at one pack.
+   *
+   * Every key IconService reads must be here. It used to write four of five, leaving `uicons_type`
+   * wherever it already was -- which for most instances was the hardcoded default, and that default
+   * pointed at a repository which has since been deleted. The result was a site whose icon settings
+   * looked configured while the Pokemon filter chips rendered nothing. See #877, and
+   * `IconSourceKeys` for the check that keeps the two in step.
+   */
   selectRepo(repo: { base: string }): void {
     const keys: Record<string, string> = {
       uicons_raid: `${repo.base}/raid`,
       uicons_gym: `${repo.base}/gym`,
       uicons_pkmn: `${repo.base}/pokemon`,
       uicons_reward: `${repo.base}/reward`,
+      uicons_type: `${repo.base}/type`,
     };
     for (const [key, value] of Object.entries(keys)) {
       this.applyChange(key, value);

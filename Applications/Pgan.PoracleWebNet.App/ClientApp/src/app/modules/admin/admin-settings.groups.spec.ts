@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { PROJECTED_KEYS, SETTING_GROUPS } from './admin-settings.component';
+import { ICON_SOURCE_KEYS } from '../../core/services/icon.service';
 
 /**
  * The admin settings page renders one expansion panel per group. A group that declares no settings
@@ -141,5 +142,35 @@ describe('Maps field visibility', () => {
 
   it('treats an install that set only a tile URL as custom, which is what it meant', () => {
     expect(shown({ basemap_url: 'https://tiles.example/{z}/{x}/{y}.png' })).toContain('basemap_url');
+  });
+});
+
+/**
+ * The icon repository picker writes a set of settings; IconService reads a set of settings. Nothing
+ * connected the two, and they drifted: the picker wrote four keys and left `uicons_type` alone, so an
+ * instance could look configured while its type icons still pointed at the hardcoded default -- which
+ * by then was a repository that had been deleted. The Pokemon filter chips rendered nothing and no test
+ * had an opinion about it. See #877.
+ */
+describe('icon source keys', () => {
+  /** Mirrors the map inside AdminSettingsComponent.selectRepo. */
+  const written = (base: string): Record<string, string> => ({
+    uicons_raid: `${base}/raid`,
+    uicons_gym: `${base}/gym`,
+    uicons_pkmn: `${base}/pokemon`,
+    uicons_reward: `${base}/reward`,
+    uicons_type: `${base}/type`,
+  });
+
+  it('picking a repository points every category IconService reads at it', () => {
+    expect(Object.keys(written('https://example.test/UICONS')).sort()).toEqual([...ICON_SOURCE_KEYS].sort());
+  });
+
+  it('no icon source key is also declared as an editable group row', () => {
+    // They are driven by the repository picker, not by a text box. One appearing in both places would
+    // let an operator set a base by hand and have the picker silently overwrite it.
+    const groupKeys = new Set(SETTING_GROUPS.flatMap(g => g.settings.map(s => s.key)));
+
+    expect(ICON_SOURCE_KEYS.filter(k => groupKeys.has(k))).toEqual([]);
   });
 });
