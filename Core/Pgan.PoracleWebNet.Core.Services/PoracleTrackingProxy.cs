@@ -30,6 +30,10 @@ public partial class PoracleTrackingProxy(
 
     private static readonly TimeSpan V2AbsentFor = TimeSpan.FromMinutes(5);
 
+    private const string V2BoundsCacheKey = "poracle:v2-schema-bounds";
+
+    private static readonly TimeSpan V2BoundsFor = TimeSpan.FromMinutes(10);
+
     /// <summary>
     /// PoracleNG answers 404 for a user that no longer exists; that is a dead session, not a server fault.
     /// </summary>
@@ -137,7 +141,9 @@ public partial class PoracleTrackingProxy(
             return null;
         }
 
-        if (!TrackingV2Translator.TryTranslate(type, body, out var v2Body, out var unsupported))
+        var bounds = await this.ServerBoundsAsync(type);
+
+        if (!TrackingV2Translator.TryTranslate(type, body, bounds, out var v2Body, out var unsupported))
         {
             // Not a fault. The row carries something v2 has no faithful place for, so it goes to v1,
             // which stores whatever it is given. See TrackingV2Translator.
@@ -227,6 +233,49 @@ public partial class PoracleTrackingProxy(
         var response = await this._httpClient.SendAsync(request);
         EnsureAccountStillExists(response);
         response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    /// The numeric limits THIS server declares for its own v2 rules, read from the <c>/openapi.json</c> it
+    /// publishes and cached for ten minutes.
+    /// </summary>
+    /// <remarks>
+    /// Read from the server rather than shipped as a table because the two disagree. PoracleNG bounds all
+    /// 55 numeric filter fields on an unreleased branch, and this site stores values outside ten of them --
+    /// values PoracleNG itself wrote. Applying those limits to a server that does not enforce them was
+    /// measured at 68% of one instance's Pokemon rules dropping off the v2 write path, for no benefit,
+    /// because that server accepts every one of the values. A 5.2.1 publishes exactly one bound.
+    /// <para>
+    /// Unreachable or unparseable yields no bounds rather than all bounds, so a failed fetch leaves the
+    /// write exactly as it is today and lets v2 answer for itself.
+    /// </para>
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<string, TrackingV2Translator.Bound>?> ServerBoundsAsync(string type)
+    {
+        if (!this._cache.TryGetValue<IReadOnlyDictionary<string, IReadOnlyDictionary<string, TrackingV2Translator.Bound>>>(
+                V2BoundsCacheKey, out var byType)
+            || byType is null)
+        {
+            string? document = null;
+
+            try
+            {
+                document = await this._httpClient.GetStringAsync($"{this._apiAddress}/openapi.json");
+            }
+            catch (HttpRequestException exception)
+            {
+                LogV2BoundsUnavailable(this._logger, exception.Message);
+            }
+            catch (TaskCanceledException exception)
+            {
+                LogV2BoundsUnavailable(this._logger, exception.Message);
+            }
+
+            byType = V2SchemaBounds.Parse(document);
+            this._cache.Set(V2BoundsCacheKey, byType, V2BoundsFor);
+        }
+
+        return byType.TryGetValue(type, out var bounds) ? bounds : null;
     }
 
     /// <summary>Whether this type and this deployment are in scope for the v2 write path at all.</summary>
@@ -400,6 +449,11 @@ public partial class PoracleTrackingProxy(
         Level = LogLevel.Debug,
         Message = "Sending {Type} uid={Uid} to the v1 surface: v2 cannot carry it faithfully ({Reason}).")]
     private static partial void LogV2Untranslatable(ILogger logger, string type, int uid, string reason);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Could not read PoracleNG's /openapi.json ({Reason}); treating its v2 rules as unbounded, which is how they are sent today.")]
+    private static partial void LogV2BoundsUnavailable(ILogger logger, string reason);
 
     [LoggerMessage(
         Level = LogLevel.Warning,
