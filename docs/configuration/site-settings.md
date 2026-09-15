@@ -169,8 +169,8 @@ A provider with no dark variant reuses its light tiles when the theme is dark.
     OSM, Satellite and Dark Matter use the URLs from ReactMap's `config/default.json`, and CARTO
     Voyager uses its `voyager_labels_under` variant, so the same basemap looks the same on both
     sites. `basemap.service.spec.ts` pins those four URLs against a catalogue edit drifting away from
-    it. The difference is the key: ReactMap's CARTO entries request the keyless endpoint, so they
-    carry the watermark this page exists to remove.
+    it. The one difference is the key: the CARTO entries here carry one, which is what keeps the
+    watermark off them.
 
 Each viewer can pick a different one for themselves, from the layers button in the top-right corner
 of any interactive map. The choice is theirs alone and is kept in their browser, like the theme and
