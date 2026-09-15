@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Impostazioni",
     "USER_GEOFENCES": "Geofence Utenti",
-    "MY_WEBHOOKS": "I Miei Webhooks"
+    "MY_WEBHOOKS": "I Miei Webhooks",
+    "ADMIN_AREAS": "Aree"
   },
   "TOOLBAR": {
     "SUBTITLE": "Configurazione Avvisi DM",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "Silenzia {{subject}} per un po'",
     "TOOLTIP_QUIET": "{{subject}} è in silenzio per {{countdown}}",
     "VOLATILITY_NOTE": "Gli avvisi possono tornare prima della scadenza. Se succede, riavvia il periodo di silenzio."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Aree",
+    "SUBTITLE": "Togli un’area dal menu senza eliminarla. Le aree nascoste non compaiono più in Aree e luoghi, nel selettore di portata del singolo allarme né nell’elenco aree del bot.",
+    "NOT_RETROACTIVE": "Nascondere un’area non annulla l’iscrizione di nessuno. Chi l’aveva già selezionata continua a ricevere i suoi avvisi finché non la rimuove.",
+    "SEARCH": "Cerca aree",
+    "HIDDEN_COUNT": "{{count}} di {{total}} nascoste",
+    "HIDE": "Nascosta",
+    "HIDE_ARIA": "Nascondi {{name}} agli utenti",
+    "KOJI_PRIVATE": "Privata in Koji",
+    "KOJI_PRIVATE_HINT": "Koji serve già quest’area come non selezionabile, quindi è fuori dal menu per un motivo che questa pagina non può cambiare.",
+    "ORPHANED": "Nascoste ma al momento non servite da Koji: {{names}}. Conservate nel caso Koji sia temporaneamente non disponibile.",
+    "NO_MATCHES": "Nessuna area corrisponde alla ricerca.",
+    "UNSAVED": "Modifiche non salvate",
+    "SAVED": "Aree aggiornate.",
+    "SAVED_NOT_RELOADED": "Salvato, ma Poracle non ha ricaricato. La modifica avrà effetto al prossimo aggiornamento.",
+    "SAVE_FAILED": "Salvataggio non riuscito. Non è stato modificato nulla.",
+    "LOAD_FAILED": "Impossibile leggere le aree da Koji. Controlla la connessione a Koji e ricarica."
   }
 }

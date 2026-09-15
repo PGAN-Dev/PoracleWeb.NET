@@ -309,6 +309,18 @@ public partial class SettingsController(
             });
         }
 
+        // Same reasoning as icon_repos: a structured value whose shape decides whether a page renders.
+        // An unreadable hidden_areas row takes the admin area list with it, and the value is consumed
+        // by the geofence feed that Poracle loads.
+        if (string.Equals(key, HiddenAreas.SettingKey, StringComparison.OrdinalIgnoreCase)
+            && !HiddenAreas.TryValidate(request.Value, out var hiddenAreasError))
+        {
+            return this.BadRequest(new
+            {
+                error = hiddenAreasError
+            });
+        }
+
         // Prevent lockout: at least one login method must remain enabled.
         // Uses GetValueAsync so absent/null = enabled (safe default). Only blocks when
         // both are explicitly "False".

@@ -1,0 +1,148 @@
+.page {
+  padding: 24px;
+  padding-bottom: 96px;
+  max-width: 900px;
+}
+
+.page-header h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.page-subtitle {
+  margin: 0 0 20px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 13px;
+}
+
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  background: var(--skeleton-bg, rgba(25, 118, 210, 0.08));
+  font-size: 13px;
+  line-height: 1.5;
+
+  mat-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    opacity: 0.8;
+  }
+}
+
+.notice-warn {
+  background: rgba(255, 152, 0, 0.12);
+}
+
+.notice-error {
+  background: rgba(244, 67, 54, 0.12);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.search {
+  flex: 1;
+  min-width: 220px;
+}
+
+.count {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.rows {
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--divider, rgba(0, 0, 0, 0.08));
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+/* A hidden area stays legible rather than greyed into unreadability: an operator
+   scanning for what they hid needs to read it. */
+.row-hidden {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.row-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.row-group {
+  font-size: 11px;
+  color: var(--text-hint, rgba(0, 0, 0, 0.45));
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.row-tag {
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--skeleton-bg, rgba(0, 0, 0, 0.07));
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.empty {
+  padding: 24px 16px;
+  margin: 0;
+  color: var(--text-hint, rgba(0, 0, 0, 0.5));
+  font-size: 13px;
+  text-align: center;
+}
+
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  font-size: 13px;
+}

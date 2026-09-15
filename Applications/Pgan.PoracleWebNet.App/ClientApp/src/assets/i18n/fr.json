@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Paramètres",
     "USER_GEOFENCES": "Geofences utilisateurs",
-    "MY_WEBHOOKS": "Mes Webhooks"
+    "MY_WEBHOOKS": "Mes Webhooks",
+    "ADMIN_AREAS": "Zones"
   },
   "TOOLBAR": {
     "SUBTITLE": "Configuration des alertes DM",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "Mettre {{subject}} en silence un moment",
     "TOOLTIP_QUIET": "{{subject}} est en silence pour {{countdown}}",
     "VOLATILITY_NOTE": "Les alertes peuvent revenir avant la fin du délai. Si cela arrive, relancez la période de silence."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Zones",
+    "SUBTITLE": "Retirez une zone du menu sans la supprimer. Les zones masquées n’apparaissent plus dans Zones et lieux, dans le sélecteur de portée de chaque alarme, ni dans la liste de zones du bot.",
+    "NOT_RETROACTIVE": "Masquer une zone ne désabonne personne. Ceux qui l’avaient déjà sélectionnée continuent d’en recevoir les alertes jusqu’à ce qu’ils la retirent eux-mêmes.",
+    "SEARCH": "Rechercher des zones",
+    "HIDDEN_COUNT": "{{count}} sur {{total}} masquées",
+    "HIDE": "Masquée",
+    "HIDE_ARIA": "Masquer {{name}} aux utilisateurs",
+    "KOJI_PRIVATE": "Privée dans Koji",
+    "KOJI_PRIVATE_HINT": "Koji sert déjà cette zone comme non sélectionnable : elle est hors du menu pour une raison que cette page ne peut pas changer.",
+    "ORPHANED": "Masquées mais absentes de Koji pour le moment : {{names}}. Conservées au cas où Koji serait temporairement indisponible.",
+    "NO_MATCHES": "Aucune zone ne correspond à cette recherche.",
+    "UNSAVED": "Modifications non enregistrées",
+    "SAVED": "Zones mises à jour.",
+    "SAVED_NOT_RELOADED": "Enregistré, mais Poracle n’a pas rechargé. Le changement prendra effet à son prochain rafraîchissement.",
+    "SAVE_FAILED": "Enregistrement impossible. Rien n’a été modifié.",
+    "LOAD_FAILED": "Impossible de lire les zones depuis Koji. Vérifiez la connexion à Koji et rechargez."
   }
 }

@@ -337,6 +337,24 @@ URL is actually read from — the site setting was a duplicate that fed nothing.
 
 ---
 
+## Hidden Areas
+
+| Key | Type | Description |
+|---|---|---|
+| `hidden_areas` | json | Area names taken off the menu, as a JSON array of lowercase strings. |
+
+Managed from **Admin → Areas** rather than edited by hand. A name listed here is served with
+`userSelectable: false` in the geofence feed, which removes it from Areas & Places, from the per-alarm
+scope picker and from the bot's area list at once.
+
+It does not unsubscribe anyone already using the area. See
+[Hiding an area from your users](../features/custom-geofences/koji-and-regions.md#hiding-an-area-from-your-users).
+
+A value this site cannot parse hides nothing, rather than hiding everything: the setting is read inside
+the geofence feed, and failing the other way would take alerting down quietly.
+
+---
+
 ## Icon Repository
 
 Icon URLs are configured through the visual **Icon Repository** picker in the admin settings UI. Picking

@@ -1,0 +1,82 @@
+<div class="page">
+  <div class="page-header">
+    <h1>{{ 'ADMIN_AREAS.TITLE' | translate }}</h1>
+    <p class="page-subtitle">{{ 'ADMIN_AREAS.SUBTITLE' | translate }}</p>
+  </div>
+
+  <div class="notice">
+    <mat-icon>info</mat-icon>
+    <div>{{ 'ADMIN_AREAS.NOT_RETROACTIVE' | translate }}</div>
+  </div>
+
+  @if (loading()) {
+    <div class="centered"><mat-spinner diameter="36" /></div>
+  } @else if (loadFailed()) {
+    <div class="notice notice-error">
+      <mat-icon>error_outline</mat-icon>
+      <div>{{ 'ADMIN_AREAS.LOAD_FAILED' | translate }}</div>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <mat-form-field appearance="outline" class="search">
+        <mat-label>{{ 'ADMIN_AREAS.SEARCH' | translate }}</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
+      </mat-form-field>
+      <span class="count">{{ 'ADMIN_AREAS.HIDDEN_COUNT' | translate: { count: hiddenCount(), total: areas().length } }}</span>
+    </div>
+
+    @if (orphaned().length > 0) {
+      <div class="notice notice-warn">
+        <mat-icon>help_outline</mat-icon>
+        <div>
+          {{ 'ADMIN_AREAS.ORPHANED' | translate: { names: orphaned().join(', ') } }}
+        </div>
+      </div>
+    }
+
+    <div class="rows">
+      @for (area of visible(); track area.name) {
+        <div class="row" [class.row-hidden]="isHidden(area)">
+          <div class="row-main">
+            <span class="row-name">{{ area.name }}</span>
+            @if (area.group) {
+              <span class="row-group">{{ area.group }}</span>
+            }
+            @if (area.hiddenInKoji) {
+              <span class="row-tag" [matTooltip]="'ADMIN_AREAS.KOJI_PRIVATE_HINT' | translate">
+                {{ 'ADMIN_AREAS.KOJI_PRIVATE' | translate }}
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [disabled]="area.hiddenInKoji"
+            [checked]="isHidden(area)"
+            (change)="toggle(area, $event.checked)"
+            [attr.aria-label]="'ADMIN_AREAS.HIDE_ARIA' | translate: { name: area.name }">
+            {{ 'ADMIN_AREAS.HIDE' | translate }}
+          </mat-slide-toggle>
+        </div>
+      } @empty {
+        <p class="empty">{{ 'ADMIN_AREAS.NO_MATCHES' | translate }}</p>
+      }
+    </div>
+  }
+
+  @if (dirty()) {
+    <div class="save-bar">
+      <span>{{ 'ADMIN_AREAS.UNSAVED' | translate }}</span>
+      <button mat-button type="button" [disabled]="saving()" (click)="discard()">
+        {{ 'COMMON.CANCEL' | translate }}
+      </button>
+      <button mat-flat-button color="primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <mat-spinner diameter="18" />
+        } @else {
+          <mat-icon>save</mat-icon>
+        }
+        {{ 'COMMON.SAVE' | translate }}
+      </button>
+    </div>
+  }
+</div>

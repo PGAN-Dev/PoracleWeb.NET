@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Einstellungen",
     "USER_GEOFENCES": "Benutzer-Geofences",
-    "MY_WEBHOOKS": "Meine Webhooks"
+    "MY_WEBHOOKS": "Meine Webhooks",
+    "ADMIN_AREAS": "Gebiete"
   },
   "TOOLBAR": {
     "SUBTITLE": "DM-Benachrichtigungen konfigurieren",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "{{subject}} eine Weile stummschalten",
     "TOOLTIP_QUIET": "{{subject}} ist noch {{countdown}} stumm",
     "VOLATILITY_NOTE": "Benachrichtigungen können vor Ablauf der Zeit zurückkommen. Falls das passiert, starte die Stummschaltung einfach erneut."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Gebiete",
+    "SUBTITLE": "Nehmen Sie ein Gebiet von der Liste, ohne es zu löschen. Ausgeblendete Gebiete erscheinen nicht mehr unter Gebiete und Orte, in der Reichweitenauswahl je Alarm oder in der Gebietsliste des Bots.",
+    "NOT_RETROACTIVE": "Das Ausblenden meldet niemanden ab. Wer das Gebiet bereits ausgewählt hat, erhält weiterhin dessen Benachrichtigungen, bis er es selbst entfernt.",
+    "SEARCH": "Gebiete durchsuchen",
+    "HIDDEN_COUNT": "{{count}} von {{total}} ausgeblendet",
+    "HIDE": "Ausgeblendet",
+    "HIDE_ARIA": "{{name}} vor Benutzern ausblenden",
+    "KOJI_PRIVATE": "In Koji privat",
+    "KOJI_PRIVATE_HINT": "Koji liefert dieses Gebiet bereits als nicht auswählbar, es ist also aus einem Grund von der Liste, den diese Seite nicht ändern kann.",
+    "ORPHANED": "Ausgeblendet, wird aber derzeit nicht von Koji geliefert: {{names}}. Beibehalten, falls Koji vorübergehend nicht erreichbar ist.",
+    "NO_MATCHES": "Keine Gebiete passen zu dieser Suche.",
+    "UNSAVED": "Nicht gespeicherte Änderungen",
+    "SAVED": "Gebiete aktualisiert.",
+    "SAVED_NOT_RELOADED": "Gespeichert, aber Poracle hat nicht neu geladen. Die Änderung greift beim nächsten Aktualisieren.",
+    "SAVE_FAILED": "Speichern fehlgeschlagen. Es wurde nichts geändert.",
+    "LOAD_FAILED": "Gebiete konnten nicht aus Koji gelesen werden. Prüfen Sie die Koji-Verbindung und laden Sie neu."
   }
 }

@@ -164,6 +164,38 @@ For a **private** user geofence, PoracleWeb.NET never writes any of this to Koji
 | `/api/v1/geofence/area/{name}?rt=feature` | `properties.name`, the polygon geometry | The region's **display name** and its outline (used for region auto-detection). |
 | `/api/v1/geofence/poracle/{project}` | name, polygon path, group | The public-area list merged into the combined feed. |
 
+## Hiding an area from your users
+
+Staging fences, test polygons, a region you cover but do not advertise: **Admin → Areas** lists every
+area Koji serves and lets you take one off the menu without deleting it.
+
+A hidden area stops appearing in three places at once, because all three read the same flag:
+
+* **Areas & Places**, where users pick their subscriptions
+* the **delivery scope picker** on an individual alarm
+* the bot's own **`!area`** list
+
+You do not need Koji access for this. PoracleWeb.NET is the geofence source Poracle loads, so hiding
+serves that fence with `userSelectable: false` in the feed. Setting `isPublic` to false in Koji itself
+has the same effect and continues to work; the admin page reports those areas as *Private in Koji* and
+leaves them alone, since clearing a flag this site did not set would not make them selectable.
+
+!!! warning "Hiding is not retroactive"
+    It takes the area off the pickers. It does **not** unsubscribe anyone who already selected it.
+
+    Matching never consults `userSelectable` — `resolveOverride` hands a rule's areas to `areaOverlap`,
+    which compares names against the fences a spawn fell in — so a profile still carrying a hidden name
+    keeps receiving its alerts. For a test fence that is usually the opposite of what you wanted, and
+    nothing will warn the user. Ask them to untick it, or wait for the follow-up that offers to do it
+    for you (#885).
+
+The list is kept in the `hidden_areas` site setting. A name you hide that Koji later stops serving is
+kept rather than dropped, so a Koji outage does not silently un-hide anything; the page flags those
+separately.
+
+`displayInMatches` is deliberately untouched. Someone still subscribed keeps matching the fence, and
+blanking its name out of their alert would make that harder to diagnose rather than easier.
+
 ## What auto-detection does
 
 When a user draws a shape, PoracleWeb.NET tries to **guess the region** by checking which region's outline the drawn shape falls inside (using the center point of the drawing). If it finds a match, it pre-fills the region for the user. This is purely a convenience — the user can change or clear it, and it only works if your regions have outlines (which they do, since they're real Koji geofences).

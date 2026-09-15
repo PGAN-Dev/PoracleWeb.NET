@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Settings",
     "USER_GEOFENCES": "User Geofences",
-    "MY_WEBHOOKS": "My Webhooks"
+    "MY_WEBHOOKS": "My Webhooks",
+    "ADMIN_AREAS": "Areas"
   },
   "TOOLBAR": {
     "SUBTITLE": "DM Alerts Configuration",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "Quiet {{subject}} for a while",
     "TOOLTIP_QUIET": "{{subject}} is quiet for {{countdown}}",
     "VOLATILITY_NOTE": "Alerts may come back before the time is up. If that happens, start the quiet period again."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Areas",
+    "SUBTITLE": "Take an area off the menu without deleting it. Hidden areas stop appearing on Areas & Places, in the per-alarm scope picker and in the bot’s area list.",
+    "NOT_RETROACTIVE": "Hiding an area does not unsubscribe anyone. People who already selected it keep receiving its alerts until they remove it themselves.",
+    "SEARCH": "Search areas",
+    "HIDDEN_COUNT": "{{count}} of {{total}} hidden",
+    "HIDE": "Hidden",
+    "HIDE_ARIA": "Hide {{name}} from users",
+    "KOJI_PRIVATE": "Private in Koji",
+    "KOJI_PRIVATE_HINT": "Koji already serves this area as non-selectable, so it is off the menu for a reason this page cannot change.",
+    "ORPHANED": "Hidden but not currently served by Koji: {{names}}. Kept in case Koji is temporarily unavailable.",
+    "NO_MATCHES": "No areas match that search.",
+    "UNSAVED": "Unsaved changes",
+    "SAVED": "Areas updated.",
+    "SAVED_NOT_RELOADED": "Saved, but Poracle did not reload. The change takes effect on its next refresh.",
+    "SAVE_FAILED": "Could not save. Nothing was changed.",
+    "LOAD_FAILED": "Could not read areas from Koji. Check the Koji connection and reload."
   }
 }
