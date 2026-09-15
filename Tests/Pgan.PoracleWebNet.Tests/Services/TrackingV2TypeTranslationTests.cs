@@ -83,6 +83,14 @@ public class TrackingV2TypeTranslationTests
     /// returns. Sentinels are present on purpose: they are sent verbatim and 5.2.1 stores them exactly as
     /// v1 does.
     /// </summary>
+    /// <remarks>
+    /// These rows exist to prove every schema field is written, so each one has to be a row v2 will
+    /// actually accept. Three values moved when the bound tables landed: pokemon <c>rarity</c> and
+    /// <c>size</c> were 0, and raid/maxbattle were by-boss rows holding <c>level</c> 9000. All three are
+    /// real stored values and all three are outside v2's declared range, so they now go to v1 and cannot
+    /// carry a field-coverage assertion. They are asserted in <see cref="TrackingV2BoundsTests"/>
+    /// instead, against the production counts that found them.
+    /// </remarks>
     private static readonly Dictionary<string, string> V1Row = new(StringComparer.Ordinal)
     {
         ["pokemon"] = """
@@ -90,13 +98,13 @@ public class TrackingV2TypeTranslationTests
              "distance":1000,"template":"1","pokemon_id":25,"form":0,"costume":9000,"min_iv":90,
              "max_iv":100,"min_cp":0,"max_cp":9000,"min_level":0,"max_level":55,"atk":0,"def":0,"sta":0,
              "max_atk":15,"max_def":15,"max_sta":15,"gender":2,"min_weight":0,"max_weight":9000000,
-             "min_time":0,"rarity":0,"max_rarity":6,"size":0,"max_size":5,"pvp_ranking_league":1500,
+             "min_time":0,"rarity":2,"max_rarity":6,"size":3,"max_size":5,"pvp_ranking_league":1500,
              "pvp_ranking_best":1,"pvp_ranking_worst":100,"pvp_ranking_min_cp":0,"pvp_ranking_cap":50,
              "pvp_ranking_evolution":0,"override_location_label":"","override_areas":null}
             """,
         ["raid"] = """
             {"uid":414,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
-             "team":4,"pokemon_id":150,"form":0,"costume":9000,"level":9000,"exclusive":0,"move":9000,
+             "team":4,"pokemon_id":9000,"form":0,"costume":9000,"level":5,"exclusive":0,"move":9000,
              "evolution":9000,"gym_id":null,"rsvp_changes":0,"override_location_label":"",
              "override_areas":null,"description":"**Mewtwo**"}
             """,
@@ -117,7 +125,7 @@ public class TrackingV2TypeTranslationTests
             """,
         ["maxbattle"] = """
             {"uid":91,"id":"user1","profile_no":1,"ping":"","clean":0,"distance":0,"template":"1",
-             "pokemon_id":150,"form":0,"level":9000,"move":9000,"gmax":0,"evolution":9000,
+             "pokemon_id":9000,"form":0,"level":5,"move":9000,"gmax":0,"evolution":9000,
              "station_id":null,"override_location_label":"","override_areas":null,
              "description":"**Mewtwo**"}
             """,
@@ -265,18 +273,35 @@ public class TrackingV2TypeTranslationTests
     }
 
     [Fact]
-    public void SentinelsAreSentVerbatimRatherThanOmitted()
+    public void The9000SentinelIsSentVerbatimWhereverV2StillAcceptsIt()
     {
-        // The migration guide says to omit them. Verified on 5.2.1 instead: a raid PUT carrying level,
-        // costume, move and evolution at 9000 stored exactly what the v1 create stores, and the v1 read
-        // came back byte-identical but for the rotated uid. Omitting them would leave
-        // TrackingUpdateReconciler comparing a stored 9000 against an absent field.
-        var body = Translate("raid", """{"pokemon_id":150,"level":9000,"costume":9000,"move":9000,"evolution":9000}""");
+        // The migration guide says to omit them. Verified on 5.2.1 instead: a raid PUT carrying costume,
+        // move and evolution at 9000 stored exactly what the v1 create stores, and the v1 read came back
+        // byte-identical but for the rotated uid. All three are declared minimum 0 with no maximum, so
+        // 9000 stays inside the schema and is still sent as-is.
+        var body = Translate("raid", @"{""pokemon_id"":9000,""level"":5,""costume"":9000,""move"":9000,""evolution"":9000}");
 
-        foreach (var name in new[] { "level", "costume", "move", "evolution" })
+        foreach (var name in new[] { "costume", "move", "evolution" })
         {
             Assert.Equal(9000, body.GetProperty(name).GetInt32());
         }
+    }
+
+    [Fact]
+    public void ARaidLevelOf9000GoesToV1BecauseV2BoundsItToATier()
+    {
+        // level is the one of the four that v2 bounds (1-90), and PoracleNG writes 9000 itself whenever
+        // pokemon_id names a specific boss. Omitting it is not an option: on a by-level rule the write
+        // default is 90, which matches every tier, so a rule for one boss would quietly become a rule
+        // for every raid in range. The row goes to v1, which stores what it is given.
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                "raid",
+                Row(@"{""pokemon_id"":150,""level"":9000,""team"":4}"),
+                out _,
+                out var unsupported));
+
+        Assert.Contains("level", unsupported, StringComparison.Ordinal);
     }
 
     // ──────────────────────────────────────────────────────────────

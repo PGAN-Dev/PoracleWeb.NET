@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -86,6 +87,37 @@ internal static class TrackingV2Translator
     {
         ["pokemon"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["atk"] = new(0, 15),
+                ["costume"] = new(0, null),
+                ["def"] = new(0, 15),
+                ["distance"] = new(0, 40000000),
+                ["form"] = new(0, null),
+                ["max_atk"] = new(0, 15),
+                ["max_cp"] = new(0, 9000),
+                ["max_def"] = new(0, 15),
+                ["max_iv"] = new(0, 100),
+                ["max_level"] = new(0, 55),
+                ["max_rarity"] = new(1, 6),
+                ["max_size"] = new(1, 5),
+                ["max_sta"] = new(0, 15),
+                ["max_weight"] = new(0, null),
+                ["min_cp"] = new(0, 9000),
+                ["min_iv"] = new(0, 100),
+                ["min_level"] = new(0, 55),
+                ["min_time"] = new(0, null),
+                ["min_weight"] = new(0, null),
+                ["pokemon_id"] = new(1, null),
+                ["pvp_ranking_best"] = new(1, 4096),
+                ["pvp_ranking_cap"] = new(0, 100),
+                ["pvp_ranking_evolution"] = new(0, 3),
+                ["pvp_ranking_min_cp"] = new(0, null),
+                ["pvp_ranking_worst"] = new(1, 4096),
+                ["rarity"] = new(1, 6),
+                ["size"] = new(1, 5),
+                ["sta"] = new(0, 15),
+            },
             Integers =
             [
                 "atk", "costume", "def", "distance", "form", "max_atk", "max_cp", "max_def", "max_iv",
@@ -100,10 +132,32 @@ internal static class TrackingV2Translator
             },
 
             // v2 makes pokemon_id the one required field. A row without it could only ever 422.
+            // Verified against a live 5.2.1: creating a rule that omits each of these stores exactly
+            // the value listed, and PoracleNG's own differ answers "unchanged" when the two forms are
+            // re-posted against each other. size 0, pvp_ranking_best 0 and pvp_ranking_worst 0 are
+            // deliberately absent -- those are stored verbatim and come back as distinct rules, so
+            // omitting them would rewrite the filter rather than preserve it.
+            OmitWhenEquals = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["size"] = -1,
+                ["rarity"] = -1,
+                ["min_iv"] = -1,
+            },
+
             Required = ["pokemon_id"],
         },
         ["raid"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["costume"] = new(0, null),
+                ["distance"] = new(0, 40000000),
+                ["evolution"] = new(0, null),
+                ["form"] = new(0, null),
+                ["level"] = new(1, 90),
+                ["move"] = new(0, null),
+                ["pokemon_id"] = new(1, null),
+            },
             Integers = ["costume", "distance", "evolution", "form", "level", "move", "pokemon_id"],
             Strings = ["gym_id"],
             Booleans = ["exclusive"],
@@ -115,6 +169,11 @@ internal static class TrackingV2Translator
         },
         ["egg"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["distance"] = new(0, 40000000),
+                ["level"] = new(1, 90),
+            },
             Integers = ["distance", "level"],
             Strings = ["gym_id"],
             Booleans = ["exclusive"],
@@ -133,12 +192,20 @@ internal static class TrackingV2Translator
         },
         ["quest"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["distance"] = new(0, 40000000),
+            },
             Integers = ["amount", "distance", "form", "reward", "reward_type"],
             Booleans = ["shiny"],
             Required = ["reward_type"],
         },
         ["gym"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["distance"] = new(0, 40000000),
+            },
             Integers = ["distance"],
             Strings = ["gym_id"],
             Booleans = ["battle_changes", "slot_changes"],
@@ -147,21 +214,47 @@ internal static class TrackingV2Translator
         },
         ["maxbattle"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["distance"] = new(0, 40000000),
+                ["form"] = new(0, null),
+                ["level"] = new(1, 90),
+                ["move"] = new(0, null),
+                ["pokemon_id"] = new(1, null),
+            },
             Integers = ["distance", "evolution", "form", "level", "move", "pokemon_id"],
             Strings = ["station_id"],
             Booleans = ["gmax"],
         },
         ["nest"] = new TypeSpec
         {
+            // Verified live: omitting pokemon_id stores 0, and the server calls the two forms unchanged.
+            OmitWhenEquals = new Dictionary<string, int>(StringComparer.Ordinal) { ["pokemon_id"] = 0 },
+
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["distance"] = new(0, 40000000),
+                ["form"] = new(0, null),
+                ["min_spawn_avg"] = new(0, null),
+                ["pokemon_id"] = new(1, null),
+            },
             Integers = ["distance", "form", "min_spawn_avg", "pokemon_id"],
         },
         ["lure"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["distance"] = new(0, 40000000),
+            },
             Integers = ["distance", "lure_id"],
             Required = ["lure_id"],
         },
         ["fort"] = new TypeSpec
         {
+            Bounds = new Dictionary<string, Bound>(StringComparer.Ordinal)
+            {
+                ["distance"] = new(0, 40000000),
+            },
             Integers = ["distance"],
             Booleans = ["include_empty"],
             StringArrays = ["change_types"],
@@ -183,6 +276,17 @@ internal static class TrackingV2Translator
 
     /// <summary>The tracking types this build has a v2 field table for.</summary>
     public static bool Handles(string type) => Specs.ContainsKey(type);
+
+    /// <summary>
+    /// The bound tables, for the test that compares them against PoracleNG's published schema. Exposed
+    /// because a guard that cannot see upstream drift is not a guard: the whole point is to fail the
+    /// build when PoracleNG changes a bound, rather than when a user's edit dialog does.
+    /// </summary>
+    internal static IReadOnlyDictionary<string, IReadOnlyDictionary<string, Bound>> BoundsByType =>
+        Specs.ToDictionary(
+            entry => entry.Key,
+            entry => (IReadOnlyDictionary<string, Bound>)entry.Value.Bounds,
+            StringComparer.Ordinal);
 
     /// <summary>
     /// Translates one v1-shaped row. Returns false — leaving <paramref name="translated"/> untouched —
@@ -326,6 +430,23 @@ internal static class TrackingV2Translator
         if (property.Value.ValueKind is not (JsonValueKind.Number or JsonValueKind.Null))
         {
             unsupported = $"{property.Name} is not a number";
+            return false;
+        }
+
+        if (property.Value.ValueKind == JsonValueKind.Number
+            && property.Value.TryGetInt32(out var stored)
+            && spec.Bounds.TryGetValue(property.Name, out var bound)
+            && !bound.Contains(stored))
+        {
+            // Omitting is safe only where v2's write default is this exact value, so the row is stored
+            // unchanged. Anywhere else, echoing it is a 422 and omitting it silently edits the user's
+            // filter, so the whole row goes to v1 -- which stores what it is given, as it always has.
+            if (spec.OmitWhenEquals.TryGetValue(property.Name, out var omittable) && omittable == stored)
+            {
+                return true;
+            }
+
+            unsupported = $"{property.Name} is {stored}, outside v2's {bound}";
             return false;
         }
 
@@ -585,6 +706,21 @@ internal static class TrackingV2Translator
     }
 
     /// <summary>How one type's v1 columns map onto its <c>V2*Rule</c>.</summary>
+    /// <summary>One field's v2 schema range. A null end is unbounded in that direction.</summary>
+    internal readonly record struct Bound(int? Min, int? Max)
+    {
+        public bool Contains(int value) => (this.Min is null || value >= this.Min) && (this.Max is null || value <= this.Max);
+
+        public override string ToString() =>
+            (this.Min, this.Max) switch
+            {
+                (null, null) => "unbounded",
+                (not null, null) => $"minimum {this.Min}",
+                (null, not null) => $"maximum {this.Max}",
+                _ => $"{this.Min}-{this.Max}",
+            };
+    }
+
     private sealed record TypeSpec
     {
         /// <summary>Names v2 declares as integers, written through unchanged.</summary>
@@ -619,5 +755,18 @@ internal static class TrackingV2Translator
 
         /// <summary>Required fields v2 also constrains to 1 or more.</summary>
         public HashSet<string> PositiveIntegers { get; init; } = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The minimum/maximum v2's schema declares for each integer field, generated from PoracleNG's
+        /// <c>openapi.golden.json</c> rather than transcribed by hand.
+        /// </summary>
+        public Dictionary<string, Bound> Bounds { get; init; } = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Out-of-bounds values that may be omitted instead of refused, because v2's own write default
+        /// for that field is the identical value. Every entry is verified by calling the server; none
+        /// is inferred from reading PoracleNG's source.
+        /// </summary>
+        public Dictionary<string, int> OmitWhenEquals { get; init; } = new(StringComparer.Ordinal);
     }
 }
