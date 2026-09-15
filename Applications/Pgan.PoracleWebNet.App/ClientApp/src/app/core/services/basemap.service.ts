@@ -80,7 +80,7 @@ export class BasemapService {
    */
   private readonly configuredId = computed(() => {
     const settings = this.settings.siteSettings();
-    return resolveBasemapProviderId(settings['basemap_provider'] || '', settings['basemap_url'] || '');
+    return resolveBasemapProviderId(settings['basemap_provider'] || '', settings['basemap_url'] || '', settings['basemap_key'] || '');
   });
 
   /** Trimmed, because what an admin pastes into a settings field usually arrives with whitespace. */

@@ -123,10 +123,13 @@ choice you made.
 | OpenStreetMap, Esri Streets, Esri Gray Canvas, Esri World Imagery | Nothing. They are keyless and carry their own URL, attribution and zoom limit. |
 | CARTO Positron, CARTO Voyager, Stadia Alidade Smooth | **Basemap API Key**, and nothing else. |
 | Custom tile URL | **Name**, **Tile URL**, optionally a **dark** URL, and **Attribution**. The key field appears only if your URL contains `{key}`. |
-| *Not set* | Nothing has been chosen. Maps use your custom tile URL if one is set, and CARTO Positron otherwise. The page says which, so you can leave it or make it explicit. |
+| *Not set* | Nothing has been chosen. Maps use your custom tile URL if one is set, CARTO Positron if you have set a key and nothing else, and OpenStreetMap otherwise. The page says which, so you can leave it or make it explicit. |
 
-*Not set* exists because installs configured before `basemap_provider` did have no row for it. An
-install that set only `basemap_url` keeps working and reads as Custom.
+*Not set* exists because installs configured before `basemap_provider` did have no row for it, and it
+resolves by what else is set. An install that set only `basemap_url` keeps working and reads as
+Custom; one that set only `basemap_key` keeps drawing CARTO, which is all those older settings could
+say. A genuinely fresh install has neither, so it gets OpenStreetMap — a provider that needs no key,
+rather than one that reports a missing key nobody asked for.
 
 ### The built-in providers
 
