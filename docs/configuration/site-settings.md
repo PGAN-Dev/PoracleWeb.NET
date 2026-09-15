@@ -22,7 +22,7 @@ Customize the appearance and navigation of your PoracleWeb.NET instance.
 
 | Key | Label | Type | Description |
 |---|---|---|---|
-| `custom_title` | Site Title | string | Name shown in the browser tab and page header. One of the five keys served without authentication, alongside `enable_discord`, `enable_telegram`, `favicon_url` and `signup_url`. |
+| `custom_title` | Site Title | string | Name shown in the browser tab and page header. One of the six keys served without authentication, alongside `allowed_languages`, `enable_discord`, `enable_telegram`, `favicon_url` and `signup_url`. |
 | `header_logo_url` | Header Logo URL | url | URL for a custom logo image in the header (replaces the default Pokeball). Leave empty for the default logo. |
 | `hide_header_logo` | Hide Header Logo | boolean | Hide the logo from the header entirely. |
 | `favicon_url` | Favicon URL | url | URL for the browser-tab icon. Square image recommended (32×32 minimum). Supports `.ico`, `.png`, and `.svg`. Leave empty to use the bundled default. Also loads on the public login page. See [Favicon caveats](#favicon-caveats) below. |
@@ -425,12 +425,14 @@ another system's configuration, present so the SPA can read them like any other 
 | Key | Source | What it is |
 |---|---|---|
 | `poracle_locale` | Poracle's `general.locale` | The language a first-time visitor lands on, when neither a stored choice nor their browser can answer. See [Internationalization](../features/internationalization.md). |
+| `poracle_alert_languages` | `availableLanguages` on Poracle's `/api/config/poracleWeb` | The language codes Poracle will accept for a user's *alert* language, comma-separated. Absent when Poracle restricts nothing, which is also what a server too old to report the field sends — the SPA reads absent as "offer everything". Nothing to do with `allowed_languages`, which restricts the *display* language. |
 
-A projection is read fresh from Poracle, cached briefly, and **cannot be written**. `PUT /api/settings/poracle_locale`
-answers 400, and the admin page renders the value as a read-only line under Allowed UI Languages
-rather than as an editable box. The refusal matters more than it looks: a stored row would take
-precedence over the projected value, so a single accidental save would pin the language default
-permanently and stop the site tracking Poracle's configuration at all.
+Both are read fresh from Poracle on one config call, cached five minutes, and **cannot be written**.
+`PUT /api/settings/poracle_locale` and `PUT /api/settings/poracle_alert_languages` answer 400, and the
+admin page renders the locale as a read-only line under Allowed UI Languages rather than as an editable
+box. The refusal matters more than it looks: a stored row would take precedence over the projected
+value, so a single accidental save would pin the language default permanently and stop the site
+tracking Poracle's configuration at all.
 
 There is also `GET /api/settings/upstream-disabled`, which lists the `disable_*` keys Poracle's own
 config is forcing off. Any signed-in user can read it — the nav and the route guards need it — and it

@@ -67,10 +67,17 @@ Then recreate the container: `docker compose up -d --force-recreate`. For revers
 
 **Solution**: Check PoracleNG logs for state reload errors. PoracleNG reloads its in-memory state after every tracking mutation. If the reload fails (e.g., due to a NULL column in the database), PoracleNG continues running with stale data.
 
-Common causes:
+The historical cause is a NULL `template` left behind by a pre-v2.0.0 direct write. PoracleNG's loader
+scans that column into a non-nullable Go field, so a single NULL row aborts the whole reload. Commit
+`e81b629` added `COALESCE(template, '')` to the loaders, and every build from 5.1.0 onward carries it,
+so this only bites an older PoracleNG. On one of those, clear the data:
 
-- NULL values in `template` or `ping` columns from historical direct-write bugs. Fix with: `UPDATE monsters SET template = '1' WHERE template IS NULL`
-- PoracleNG's `monsters.go` query lacks `COALESCE` for `template` and `ping` (known bug). The fix is to add `COALESCE(template, '1') AS template` to the query.
+```sql
+UPDATE monsters SET template = '1' WHERE template IS NULL;
+```
+
+Repeat for the other tracking tables if their reloads fail too. Nothing PoracleWeb.NET writes today can
+produce this — every alarm write goes through the PoracleNG API, which fills the column itself.
 
 ---
 
@@ -184,86 +191,26 @@ Also note: Use API **v9** (not v10) — v10 is not supported on the `discordapp.
 
 ---
 
-## gym_id NULL vs empty-string mismatch
+## Gym, raid or egg alarms never fire
 
-**Problem**: Gym alarms don't match any gyms even though no specific gym is selected. The `gym_id` column contains `''` (empty string) instead of `NULL`.
+**Problem**: Gym alarms match nothing, even though no specific gym was selected.
 
-**Solution**: This was caused by direct database writes. New alarms created through the PoracleNG API proxy have correct `gym_id` NULL handling. The SQL fix below is only needed for alarms created before the migration. Poracle treats `gym_id = ''` as "track a specific gym with an empty ID," which matches nothing.
+**Solution**: `gym_id` is nullable, and PoracleNG reads any non-NULL value — including `''` — as "only
+this gym", which an empty string matches nowhere. Alarms created through the PoracleNG API proxy get
+this right; the rows that need fixing were written directly to the database by PoracleWeb.NET before
+v2.0.0.
 
-To fix existing data:
+Old gym rows can also carry `team = 0`, which means Neutral only rather than any team.
 
 ```sql
+-- Diagnose
+SELECT uid, id, gym_id, team FROM gym WHERE gym_id = '' OR team = 0;
+
+-- Fix
 UPDATE gym SET gym_id = NULL WHERE gym_id = '';
 UPDATE egg SET gym_id = NULL WHERE gym_id = '';
 UPDATE raid SET gym_id = NULL WHERE gym_id = '';
-```
-
----
-
-## GymCreate.Team defaults to 0 (Neutral only) — legacy
-
-!!! note "Legacy issue"
-    This was caused by direct database writes. New alarms created through the PoracleNG API proxy have correct defaults applied by `cleanRow()`. The SQL fixes below are only needed for alarms created before the migration.
-
-**Problem**: New gym alarms created via the web UI only match Neutral (team 0) gyms instead of all teams.
-
-**Solution**: C# `int` defaults to `0`, which in Poracle means "Neutral only." `GymCreate.Team` must default to `4` (any team), matching `RaidCreate` and `EggCreate`. This was fixed in v1.1.2. If users created gym alarms before the fix, update them:
-
-```sql
--- Fix gym alarms that are stuck on Neutral-only due to missing default
 UPDATE gym SET team = 4 WHERE team = 0;
-```
-
----
-
-## Gym alerts not working
-
-**Problem**: Users report that gym alarms are not triggering any notifications.
-
-**Solution**: This is typically caused by the `gym_id` column containing an empty string instead of `NULL`. When `gym_id = ''`, Poracle interprets it as tracking a specific gym with an empty ID, which matches nothing. Additionally, check that `team` is not `0` (Neutral only) when the user intended to track all teams.
-
-Diagnostic queries:
-
-```sql
--- Check for empty-string gym_id (should be NULL for "any gym")
-SELECT uid, id, gym_id, team FROM gym WHERE gym_id = '';
-
--- Check for team=0 (Neutral only) when it should be 4 (any team)
-SELECT uid, id, gym_id, team FROM gym WHERE team = 0;
-```
-
-Fix:
-
-```sql
-UPDATE gym SET gym_id = NULL WHERE gym_id = '';
-UPDATE gym SET team = 4 WHERE team = 0;
-```
-
----
-
-## Monster filter defaults (size, max_level, etc.) — legacy
-
-!!! note "Legacy issue (PoracleJS only)"
-    This was caused by direct database writes with incorrect C# model defaults in early versions of PoracleWeb.NET. New alarms created through the PoracleNG API proxy have correct defaults applied by PoracleNG itself. The SQL queries below help diagnose alarms created before the migration, on PoracleJS installations.
-
-**Problem**: On PoracleJS, monster alarms created by old versions of PoracleWeb.NET may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly as "-XXL". This does not apply to PoracleNG, which applies its own defaults on every write.
-
-**Solution**: All Create model defaults are aligned with the values Poracle itself expects. Key values:
-
-- `size=-1` means "no size filter" (not `0`)
-- `max_size=5` means "up to XXL"
-- `max_level=55` (not 40 or 50)
-- Raid/Egg `team=4` means "all teams"
-- Raid `move=9000` and `evolution=9000` mean "no filter"
-
-If users report missing alerts, check the `monsters` table for rows where max fields are `0` when they should have defaults:
-
-```sql
--- Find alarms with broken size filter (rejects all pokemon with size data)
-SELECT * FROM monsters WHERE max_size = 0;
-
--- Find alarms with incorrect "no size filter" value (shows as "-XXL")
-SELECT * FROM monsters WHERE size = 0;
 ```
 
 ---
@@ -585,13 +532,31 @@ Configure the end-session URL, leave `enable_oidc_slo` unset (or `true`), and re
 
 **Cause**: Poracle has that type disabled in its own config. Its processor drops the webhook and its bot refuses the command, so alarms of that type could never fire — this site honours that rather than offering a feature the server will not deliver. Rules users already had are not deleted; they lie dormant and come back if the type is switched on again.
 
-**Fix**: change it in Poracle's `config.toml`, not here. The flags are `disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle` and `disable_fort_update`. Restart Poracle afterwards; this site re-reads them within five minutes, or immediately on restart.
+**Fix**: change it in Poracle's `config.toml`, not here. The flags are `disable_pokemon`, `disable_raid`, `disable_quest`, `disable_invasion`, `disable_lure`, `disable_nest`, `disable_gym`, `disable_max_battle`, `disable_fort_update` and `disable_showcase`. Restart Poracle afterwards; this site re-reads them within five minutes, or immediately on restart.
+
+!!! warning "Pokéstop Events is the one that fails closed"
+    You do not need to write `disable_showcase` into your `config.toml` to switch it on.
+    `GET /api/config/values` reflects over the config Poracle actually loaded and reports the effective
+    value, and the option is declared with a default of `false`, so a 5.2.1 server answers `false`
+    whether or not the line is present. Set it only when you want the feature **off**.
+
+    What does close the gate is a Poracle that has never heard of the option — it is absent from the
+    config schema before 5.2.0, so the read comes back as "cannot tell" — or one whose config this site
+    cannot read at all. Both resolve to off, deliberately: every such server also 404s the route the page
+    is built on. If Pokéstop Events is missing on an older Poracle, the fix is an upgrade, not a setting.
+
+    Unlike the others it does not travel in `disabledHooks`; it is read separately from
+    `GET /api/config/values`, so the `jq .disabledHooks` check below will not show it.
 
 **Diagnostic**:
 
 ```bash
 # What Poracle reports as disabled
 curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/poracleWeb | jq .disabledHooks
+
+# Pokestop Events travels separately. `false` means available, `null` means
+# the server is too old to have the option.
+curl -s -H "X-Poracle-Secret: $SECRET"   http://poracle-host:3030/api/config/values | jq .values.general.disable_showcase
 
 # What this site resolved that into (any signed-in user)
 curl -s -H "Authorization: Bearer $JWT"   https://your-site/api/settings/upstream-disabled
@@ -616,16 +581,23 @@ fires.
 
 | Feature | Needs |
 |---|---|
-| Pokéstop Events, quiet periods, Pokécoin quest rewards | PoracleNG 5.2.0 |
+| Quiet periods, Pokécoin quest rewards | PoracleNG 5.2.0 |
+| Moving a saved place without deleting it | PoracleNG 5.2.0 |
 | Costume filter on pokemon alarms | PoracleNG database migration 6 |
 | Costume filter on raid alarms | PoracleNG database migration 7 |
+
+Pokéstop Events looks like it belongs here but does not: it is switched off by Poracle's own
+`general.disable_showcase` config flag, so it behaves like a disabled alarm type — see the section
+above.
 
 **Fix**: upgrade PoracleNG, or accept the gap. **Admin > Settings** shows the version and migration
 number the deployment is talking to — start there before assuming a bug.
 
-Hiding the control is the whole mechanism today. `PoracleUnsupportedException` exists as the backstop
-for a request that gets past it — a stale tab, a saved bookmark, a direct API call — and answers **409
-Conflict** naming what is missing, but nothing throws it yet:
+Hiding the control is the whole mechanism today, with one exception: `PUT /api/location/places/{label}`
+answers **501 Not Implemented** with "This Poracle server cannot move a saved place. Delete it and add it
+again." `PoracleUnsupportedException` is the general backstop for a request that gets past the hidden
+control — a stale tab, a saved bookmark, a direct API call — and answers **409 Conflict** naming what is
+missing, but nothing throws it yet:
 
 ```json
 {

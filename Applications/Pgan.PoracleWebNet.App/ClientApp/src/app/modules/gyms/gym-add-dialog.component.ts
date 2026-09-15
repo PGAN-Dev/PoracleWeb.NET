@@ -93,10 +93,10 @@ export class GymAddDialogComponent {
   selectedGymId = signal<string | null>(null);
   selectedTeamIds = signal<number[]>([]);
   teams: TeamOption[] = [
-    { id: 0, name: 'Neutral', color: '#9E9E9E' },
-    { id: 1, name: 'Mystic (Blue)', color: '#2196F3' },
-    { id: 2, name: 'Valor (Red)', color: '#F44336' },
-    { id: 3, name: 'Instinct (Yellow)', color: '#FFC107' },
+    { id: 0, name: this.i18n.instant('GYMS.TEAM_NEUTRAL'), color: '#9E9E9E' },
+    { id: 1, name: this.i18n.instant('GYMS.TEAM_MYSTIC'), color: '#2196F3' },
+    { id: 2, name: this.i18n.instant('GYMS.TEAM_VALOR'), color: '#F44336' },
+    { id: 3, name: this.i18n.instant('GYMS.TEAM_INSTINCT'), color: '#FFC107' },
   ];
 
   getGymIcon(team: number): string {

@@ -13,7 +13,6 @@ import {
   ActiveHourEntry,
   ActiveHourGroup,
   activeHoursFires,
-  DAY_LETTERS,
   formatRuleLabel,
   groupActiveHours,
 } from '../../../core/models/active-hours.models';
@@ -54,7 +53,16 @@ export class ActiveHoursEditorDialogComponent {
   readonly allDays = [1, 2, 3, 4, 5, 6, 7];
 
   readonly data: ActiveHoursEditorData = inject(MAT_DIALOG_DATA);
-  readonly dayLetters = DAY_LETTERS;
+  readonly dayLetters: Record<number, string> = {
+    1: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_MON'),
+    2: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_TUE'),
+    3: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_WED'),
+    4: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_THU'),
+    5: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_FRI'),
+    6: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_SAT'),
+    7: this.translate.instant('PROFILES.ACTIVE_HOURS_DAY_LETTER_SUN'),
+  };
+
   readonly entries = signal<ActiveHourEntry[]>([...this.data.activeHours]);
   readonly groups = computed<ActiveHourGroup[]>(() => groupActiveHours(this.entries()));
   readonly hourOptions = Array.from({ length: 24 }, (_, i) => i);
@@ -138,7 +146,7 @@ export class ActiveHoursEditorDialogComponent {
   }
 
   formatHour(h: number): string {
-    const period = h >= 12 ? 'PM' : 'AM';
+    const period = this.translate.instant(h >= 12 ? 'PROFILES.ACTIVE_HOURS_PM' : 'PROFILES.ACTIVE_HOURS_AM');
     const display = h % 12 || 12;
     return `${display} ${period}`;
   }

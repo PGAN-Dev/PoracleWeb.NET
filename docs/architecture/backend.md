@@ -26,13 +26,13 @@ PoracleNG's tracking POST endpoint handles both creates and updates. When the re
 
 An edit therefore sends the whole row, and the body is built by serializing the typed model — so every column PoracleWeb has no property for arrives absent and PoracleNG stores the default over what the user had. `TrackingFieldPreserver.PreserveStoredFieldsAsync` runs first on every update: it re-reads the stored row and copies across any property the submitted body lacks. Before it existed, editing an alarm on the web reset `override_location_label`, `override_areas` and `pvp_ranking_evolution` set from the bot (#730). A read failure returns the body untouched rather than failing the edit.
 
-On PoracleNG 5.2.0 and later a pokemon edit takes a different route: `PUT /api/v2/humans/{id}/tracking/pokemon/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so the pokemon uid rotates on edit and `ITrackedUidRemapper` moves quick-pick applied state to the new one. See [The v2 pilot](poracleng-proxy.md#the-v2-pilot).
+On PoracleNG 5.2.0 and later an edit to any of nine types takes a different route: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`, which is a **full replace**. A field left out of the body is reset to its default rather than left alone, so the same merge that fixed #730 is what stops a v2 edit wiping a stored `min_iv`. The PUT is also delete-then-insert, so the uid rotates on edit and `ITrackedUidRemapper` moves quick-pick applied state to the new one. Invasion stays on v1 deliberately, and a row carrying something v2 cannot express — a role mention in `ping`, an egg with no level — falls back to v1 rather than failing. See [The v2 write path](poracleng-proxy.md#the-v2-write-path).
 
 The merge runs *before* the collision guards, because `TrackingUpdateReconciler.CountUpdatableDifferences` only compares properties present in the submission — an unmodelled property could not tell two alarms apart, so the guard refused edits PoracleNG would have accepted. See [PoracleNG API Proxy](poracleng-proxy.md#insert-update-or-duplicate) for what the guards are mirroring.
 
 ## Repository layer (non-alarm entities)
 
-`HumanRepository` is used only for **admin bulk operations** (`GetAllAsync`, `DeleteUserAsync`, `UpdateAsync`) that lack PoracleNG API equivalents. Single-user human reads and writes go through `IPoracleHumanProxy`. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
+`HumanRepository` covers what PoracleNG's API has no endpoint for: the admin user list (`GetAllAsync`), the webhook list (`GetWebhooksAsync`), the batch read that resolves geofence owners' names (`GetByIdsAsync`), account deletion (`DeleteUserAsync`), and the existence check `UserPurgeService` runs first — that last one reads the database on purpose, since the proxy cannot tell an absent account from an unreachable Poracle. Everything else about a single human goes through `IPoracleHumanProxy`. `ProfileRepository` holds the two profile writes the API cannot serve: `RenameAsync`, and `UpdateAsync` for the area and coordinates `addProfile` ignores. `poracle_web`-owned entities (`SiteSettingRepository`, `WebhookDelegateRepository`, `QuickPickDefinitionRepository`, `QuickPickAppliedStateRepository`) use their own dedicated repository classes.
 
 !!! note "`BaseRepository` removed"
     The generic `BaseRepository<TEntity, TModel>` and all alarm repository classes have been removed. `EnsureNotNullDefaults()` is no longer needed -- PoracleNG handles NULL defaults for alarm writes, and the remaining repositories handle null normalization as needed.
@@ -109,7 +109,7 @@ All three endpoints go through the PoracleNG API proxy. Bulk distance updates fe
 
 ### IPoracleTrackingProxy (alarm tracking)
 
-Proxies all alarm CRUD operations to PoracleNG's `/api/tracking/*` endpoints. Authenticated via `X-Poracle-Secret` header. See [PoracleNG API Proxy](poracleng-proxy.md) for full details.
+Proxies alarm CRUD to PoracleNG's `/api/tracking/*` endpoints, and single-rule edits for nine of the ten v1 types to `PUT /api/v2/humans/{id}/tracking/{type}/{uid}` where the server carries it. Authenticated via the `X-Poracle-Secret` header. See [PoracleNG API Proxy](poracleng-proxy.md) for full details.
 
 - Registered as the concrete `PoracleTrackingProxy`, then decorated — what the container resolves for `IPoracleTrackingProxy` is `UserOwnedOverrideAreaProxy` wrapping it
 - Used by: all alarm services, `DashboardService`, `CleaningService`, each of which therefore gets the decorated instance
@@ -190,20 +190,24 @@ GitHub update check first.
 
 ### Per-feature capability services
 
-Four services sit over the profile and answer one question each:
-`SummaryCapabilityService`, `MuteCapabilityService`, `QuestPokecoinCapabilityService` and
-`CostumeCapabilityService`. All the same shape — one method, fail closed, no cache of their own, since
-`IPoracleServerProfileService` already caches for five minutes and exposes `Invalidate()`. Each picks
-the narrowest signal that predicts its feature: `CostumeCapabilityService` reads the migration number
-(`monsters.costume` at 6, `raid.costume` at 7), the mute and Pokécoin services read the version, and
-both version gates compare against **5.2.0** — the release that added the features, not the 5.2.1
-production happens to run.
+Four services sit over the profile and answer one question each: `MuteCapabilityService`,
+`QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService`. All the
+same shape — one method, fail closed, no cache of their own, since `IPoracleServerProfileService`
+already caches for five minutes and exposes `Invalidate()`. Each picks the narrowest signal that
+predicts its feature: `CostumeCapabilityService` reads the migration number (`monsters.costume` at 6,
+`raid.costume` at 7), while the other three read the version and all three compare against **5.2.0** —
+the release that added the features, not the 5.2.1 production happens to run.
+
+`SummaryCapabilityService` answers the same shape of question from a different place. Quest summary
+delivery is a deployment setting rather than a server capability, so it reads
+`tracking.quest_summary_enabled` from `GET /api/config/values` and caches that itself for five minutes.
 
 There is deliberately no central registry. A user-facing control cannot ask the admin-only
-`GET /api/admin/server-profile`, so four ordinary authenticated endpoints answer instead:
-`GET /api/settings/costume-capability`, `GET /api/quests/capability`,
-`GET /api/summary-schedules/capability`, and `GET /api/mutes`, which folds its capability into the list
-response because the quiet chip needs both on every alarm page.
+`GET /api/admin/server-profile`, so ordinary authenticated endpoints answer instead:
+`GET /api/settings/costume-capability`, `GET /api/quests/capability` and
+`GET /api/summary-schedules/capability` answer on their own, while `GET /api/mutes` and
+`GET /api/location/places` fold the capability into the list response, because their callers need the
+list anyway.
 
 See [Version compatibility](poracleng-compatibility.md) for how to choose a signal and what each
 feature needs.
@@ -406,11 +410,13 @@ Sensitive endpoints use **partitioned** rate limiting, never one global bucket:
 | `mutes` | 60 requests | 60 seconds | Quiet-period reads and writes |
 | `geojson-import` | 5 requests | 60 seconds | Admin GeoJSON import |
 | `scanner-search` | 60 requests | 60 seconds | Scanner gym search / lookup |
+| `geofence-feed-refresh` | 20 requests | 60 seconds | The anonymous feed-refresh POST |
 
-Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter`. `auth` keys on
-`RemoteIpAddress`; the other five key on the authenticated user, falling back to the IP. The `mutes` limit
-is set for reads — the quiet chip is read on every alarm page, and the store is written a few times a
-day at most.
+Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter`. `auth` and
+`geofence-feed-refresh` key on `RemoteIpAddress` because neither caller is signed in; the other five key
+on the authenticated user, falling back to the IP. The `mutes` limit is set for reads — the quiet chip is
+read on every alarm page, and the store is written a few times a day at most. `geofence-feed-refresh`
+bounds guessing at the shared secret rather than load: the work per call is one cache eviction.
 
 !!! danger "Never use global rate limiting for auth"
     Global (non-partitioned) `AddFixedWindowLimiter` for auth causes cascading login failures — multiple users share one bucket.

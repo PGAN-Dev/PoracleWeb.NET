@@ -31,10 +31,13 @@ PoracleWeb.NET uses Discord OAuth2 for user authentication. This page walks thro
 
 ## Optional: Create a bot
 
-Creating a bot under the same application enables:
+A bot under the same application does two things. It opens the Discord forum threads for geofence
+submissions, and it reads guild membership so role gating can restrict sign-in to holders of a role.
+Role gating needs three pieces: the `enable_roles` site setting switched on, the role IDs in
+`allowed_role_ids`, and the bot in the guild you name in `DISCORD_GUILD_ID`. With `enable_roles` off
+the role IDs are never read, so sign-in stays open to everyone.
 
-- **Avatar display** — User avatars shown in the UI
-- **Geofence forum posts** — Automatic Discord forum threads for geofence submissions
+Avatars do not need it. They arrive with the OAuth login and are cached from there.
 
 ### Bot permissions for geofence forum
 
@@ -43,7 +46,9 @@ If using the geofence submission feature with Discord forum integration, the bot
 | Permission | Purpose |
 |---|---|
 | View Channel | Access the forum channel |
+| Create Posts | Open the submission thread |
 | Send Messages in Threads | Post status updates in threads |
+| Attach Files | Upload the geofence map image into the post |
 | Manage Threads | Lock and archive threads on approval/rejection |
 | Manage Channels | Auto-create forum tags (Pending/Approved/Rejected) |
 
@@ -54,7 +59,8 @@ If using the geofence submission feature with Discord forum integration, the bot
 
 === ".env file"
 
-    These values are set during `./scripts/setup.sh`, or you can edit `.env` directly:
+    `./scripts/setup.sh` prompts for the first three. The guild and forum channel IDs are not part of
+    the wizard — add them to `.env` by hand if you need them.
 
     ```env
     DISCORD_CLIENT_ID=your_discord_client_id

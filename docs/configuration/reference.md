@@ -28,7 +28,7 @@ All configuration can be provided via environment variables or `appsettings.json
 
 | Setting | `.env` name | `.NET` env variable | Default | Description |
 |---|---|---|---|---|
-| Tracking API version | `PORACLE_TRACKING_API_VERSION` | `Poracle__TrackingApiVersion` | `auto` | Which PoracleNG tracking surface pokemon edits are written through: `auto`, `v1` or `v2`. `auto` uses the strict `/api/v2` surface on PoracleNG 5.2.0 and later and v1 below that. Set `v1` to stay on the old surface, or `v2` for a fork that carries the routes without reporting a version that says so. Nothing else moves: every read, every create and the other tracking types stay on v1 whatever this is set to. See [The v2 pilot](../architecture/poracleng-proxy.md#the-v2-pilot). |
+| Tracking API version | `PORACLE_TRACKING_API_VERSION` | `Poracle__TrackingApiVersion` | `auto` | Which PoracleNG tracking surface single-rule edits are written through: `auto`, `v1` or `v2`. `auto` uses the strict `/api/v2` surface on PoracleNG 5.2.0 and later and v1 below that. Set `v1` to stay on the old surface, or `v2` for a fork that carries the routes without reporting a version that says so. It covers nine types -- Pokemon, raids, eggs, quests, gyms, max battles, nests, lures and fort changes. Invasion edits, every read, every create and both distance endpoints stay on v1 whatever this is set to, and Pokéstop Events are v2-only and unaffected. See [The v2 write path](../architecture/poracleng-proxy.md#the-v2-write-path). |
 
 ## Optional settings
 

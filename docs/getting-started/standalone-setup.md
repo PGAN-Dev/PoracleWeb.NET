@@ -58,7 +58,8 @@ You'll configure everything in a single `.env` file at the project root and run 
     ```bash
     dotnet publish Applications/Pgan.PoracleWebNet.Api -c Release -o ./publish
     npm install --prefix Applications/Pgan.PoracleWebNet.App/ClientApp
-    npx --prefix Applications/Pgan.PoracleWebNet.App/ClientApp ng build --configuration production
+    npm run build --prefix Applications/Pgan.PoracleWebNet.App/ClientApp
+    mkdir -p ./publish/wwwroot
     cp -r Applications/Pgan.PoracleWebNet.App/ClientApp/dist/ClientApp/browser/* ./publish/wwwroot/
 
     cd publish
@@ -75,6 +76,9 @@ Create a `.env` file in the directory where you'll run the app. This is the **sa
 # Or copy manually and edit
 cp .env.example .env
 ```
+
+`./scripts/setup.sh` writes `.env` at the repo root. The app only reads `.env` from its working
+directory, so if you run it out of `publish/`, copy the file in there too.
 
 Or create `.env` from scratch:
 
@@ -109,8 +113,8 @@ PORACLE_API_ADDRESS=http://localhost:3030
 PORACLE_API_SECRET=your_poracle_api_secret
 PORACLE_ADMIN_IDS=your_discord_user_id
 
-# CORS origin — required when ASPNETCORE_ENVIRONMENT=Production (e.g., the systemd unit below).
-# Omit or comment out when running in Development mode.
+# CORS origin — required unless ASPNETCORE_ENVIRONMENT=Development. Production is the default
+# when that variable is unset, so a plain `dotnet …` needs this or the app exits at startup.
 CORS_ORIGIN=http://localhost:8082
 ```
 
@@ -153,11 +157,17 @@ Or pass it as an env var:
 PORT=9090 dotnet Pgan.PoracleWebNet.Api.dll
 ```
 
-Or use the .NET-style config:
+A variable already set in the environment wins over the one in `.env`, so this overrides the file
+without editing it.
+
+Or use the .NET-style config key, which the app also accepts on the command line:
 
 ```bash
 dotnet Pgan.PoracleWebNet.Api.dll --Server:Port=9090
 ```
+
+`ASPNETCORE_URLS` and `PORT` are both read ahead of `Server:Port`, and `.env` loads `PORT` into the
+environment, so remove it from the file for the argument to have any effect.
 
 ## 4. Run as a service
 
@@ -217,8 +227,8 @@ Place your `.env` file in `C:\poracleweb\` (the `AppDirectory`) and the app will
 ## 5. Verify
 
 ```bash
-# Health check
-curl http://localhost:8082/
+# The SPA is served from the app's own wwwroot — this is what the Docker healthcheck probes too
+curl -I http://localhost:8082/
 
 # Which build is running (anonymous)
 curl http://localhost:8082/api/version

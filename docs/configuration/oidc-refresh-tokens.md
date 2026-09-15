@@ -77,7 +77,7 @@ user.
 
 ### Relationship to the `enable_oidc` site settings
 
-Three runtime [site settings](site-settings.md) gate OIDC behavior independently of the env vars:
+Two runtime [site settings](site-settings.md) gate OIDC behavior independently of the env vars:
 
 | Site setting | Effect |
 |---|---|
@@ -393,7 +393,7 @@ relies solely on `/token` (`grant_type=refresh_token`), `/userinfo`, and `expire
 
 | Risk | Mitigation |
 |---|---|
-| **Provider refresh-token theft** | The provider refresh token is **encrypted at rest** via ASP.NET Core DataProtection (purpose `oidc-refresh-tokens`) and is **never** sent to the browser. The browser only ever holds an opaque PoracleWeb token that is useless without the server-side session row. |
+| **Provider refresh-token theft** | The provider refresh token is **encrypted at rest** via ASP.NET Core DataProtection (purpose `Pgan.PoracleWebNet.OidcRefresh.v1`) and is **never** sent to the browser. The browser only ever holds an opaque PoracleWeb token that is useless without the server-side session row. |
 | **Opaque-token XSS (localStorage)** | Exposure is bounded by the short (~30 min) JWT, rotate-on-use of the opaque token, and family-revoke on replay. **Recommended:** set a Content-Security-Policy (`default-src 'self'`) on your reverse proxy to reduce XSS surface, since the opaque token lives in `localStorage`. |
 | **Replay / reuse** | The opaque token rotates on every refresh (rotate-on-use). Presenting an already-revoked token triggers a **family revoke in the same transaction as the 401**, killing the whole rotation chain. The rotation guard uses an atomic conditional `ExecuteUpdateAsync` (affected-rows classify), no row locks. |
 | **Revocation propagation** | Userinfo is re-fetched and the `human` record re-checked (exists + enabled + roles) on **every** refresh. A provider refresh failure (revoked/disabled) revokes the family and logs the user out. An admin-disable hook (`RevokeAllForUserAsync`) revokes all of a user's sessions immediately, before the ~30 min window. |

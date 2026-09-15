@@ -70,19 +70,19 @@ export class LureEditDialogComponent {
   getLureName(id: number): string {
     switch (id) {
       case 501:
-        return 'Normal';
+        return this.i18n.instant('LURES.TYPE_NORMAL');
       case 502:
-        return 'Glacial';
+        return this.i18n.instant('LURES.TYPE_GLACIAL');
       case 503:
-        return 'Mossy';
+        return this.i18n.instant('LURES.TYPE_MOSSY');
       case 504:
-        return 'Magnetic';
+        return this.i18n.instant('LURES.TYPE_MAGNETIC');
       case 505:
-        return 'Rainy';
+        return this.i18n.instant('LURES.TYPE_RAINY');
       case 506:
-        return 'Golden';
+        return this.i18n.instant('LURES.TYPE_GOLDEN');
       default:
-        return `Lure #${id}`;
+        return this.i18n.instant('LURES.TYPE_UNKNOWN', { id });
     }
   }
 

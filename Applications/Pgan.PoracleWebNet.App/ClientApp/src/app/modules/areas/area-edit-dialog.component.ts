@@ -10,6 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AreaDefinition } from '../../core/models';
+import { I18nService } from '../../core/services/i18n.service';
 
 export interface AreaEditDialogData {
   available: AreaDefinition[];
@@ -48,6 +49,10 @@ interface AreaGroup {
   templateUrl: './area-edit-dialog.component.html',
 })
 export class AreaEditDialogComponent implements OnInit {
+  private readonly i18n = inject(I18nService);
+  /** Label for areas Koji reports with no group. Doubles as the group key the select/deselect buttons round-trip. */
+  private readonly ungroupedLabel = this.i18n.instant('AREAS.GROUP_UNGROUPED');
+
   areas: AreaItem[] = [];
   readonly data = inject<AreaEditDialogData>(MAT_DIALOG_DATA);
 
@@ -63,7 +68,7 @@ export class AreaEditDialogComponent implements OnInit {
   }
 
   deselectGroup(groupName: string): void {
-    const key = groupName === 'Ungrouped' ? '' : groupName;
+    const key = groupName === this.ungroupedLabel ? '' : groupName;
     for (const a of this.areas) {
       if (a.group === key) a.selected = false;
     }
@@ -92,7 +97,7 @@ export class AreaEditDialogComponent implements OnInit {
       const areas = groupMap.get(key)!;
       const allInGroup = this.areas.filter(a => a.group === key);
       groups.push({
-        name: key || 'Ungrouped',
+        name: key || this.ungroupedLabel,
         areas,
         selectedCount: allInGroup.filter(a => a.selected).length,
         totalCount: allInGroup.length,
@@ -130,7 +135,7 @@ export class AreaEditDialogComponent implements OnInit {
   }
 
   selectGroup(groupName: string): void {
-    const key = groupName === 'Ungrouped' ? '' : groupName;
+    const key = groupName === this.ungroupedLabel ? '' : groupName;
     for (const a of this.areas) {
       if (a.group === key) a.selected = true;
     }

@@ -304,13 +304,13 @@
                               <span class="filter-pill exclusive-pill">EX</span>
                             }
                             @if ((alarm.team ?? 0) > 0) {
-                              <span class="filter-pill team-pill">Team {{ alarm.team }}</span>
+                              <span class="filter-pill team-pill">{{ 'PROFILES.TEAM_NUM' | translate: { team: alarm.team } }}</span>
                             }
                           }
                           <!-- Quest pills -->
                           @if (type.key === 'quest') {
                             @if (alarm.shiny === 1) {
-                              <span class="filter-pill shiny-pill">Shiny</span>
+                              <span class="filter-pill shiny-pill">{{ 'PROFILES.PILL_SHINY' | translate }}</span>
                             }
                           }
                           <!-- Gender pill (pokemon, invasion) -->

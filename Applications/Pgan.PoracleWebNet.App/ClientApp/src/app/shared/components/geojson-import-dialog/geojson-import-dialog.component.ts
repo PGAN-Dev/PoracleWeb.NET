@@ -252,7 +252,10 @@ export class GeoJsonImportDialogComponent {
       if (geomType !== 'Polygon' && geomType !== 'MultiPolygon') continue;
 
       const props = (feature['properties'] as Record<string, unknown>) ?? {};
-      const name = (props['name'] as string) ?? (props['__name'] as string) ?? `Imported ${autoNameIndex++}`;
+      const name =
+        (props['name'] as string) ??
+        (props['__name'] as string) ??
+        this.i18n.instant('GEOJSON_IMPORT.AUTO_NAME', { number: autoNameIndex++ });
 
       let pointCount = 0;
       let polygon: [number, number][] = [];
