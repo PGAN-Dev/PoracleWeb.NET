@@ -131,15 +131,15 @@ describe('BasemapService', () => {
     // CARTO answers 200 without a key and draws "API KEY REQUIRED" into the tile, so serving the
     // keyed URL anyway is the one outcome that reports nothing at all. See #842.
     it('draws a keyless basemap rather than a watermarked one', () => {
-      expect(service.active().id).toBe('esri-street');
-      expect(service.tileUrl()).toContain('World_Street_Map');
+      expect(service.active().id).toBe('osm');
+      expect(service.tileUrl()).toBe('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
     });
 
-    it('does not fall back onto OpenStreetMap, whose servers are not ours to default onto', () => {
-      // Two reasons, both learned the hard way. OSM refuses a request it cannot identify and this app
-      // sends no Referer, so the fallback drew "Access blocked" tiles on the dev instance; and its
-      // volunteer servers are not where an unconfigured install of a self-hosted project should land.
-      expect(service.active().id).not.toBe('osm');
+    it('identifies the site to the fallback, without which it draws "Access blocked"', () => {
+      // OSM refuses a request it cannot identify, and this app strips the identification from every
+      // remote request the page makes (#383). A fallback onto OSM is only usable because its entry
+      // opts back in for its own tiles. Drop that and the dev instance draws refusal tiles again.
+      expect(service.createLayer().options.referrerPolicy).toBe('origin');
     });
 
     it('uses the configured provider as soon as it has a key', () => {
@@ -153,7 +153,7 @@ describe('BasemapService', () => {
 
     it('falls back for a custom URL whose key is missing too', () => {
       siteSettings.set({ basemap_url: 'https://tiles.example/{z}/{x}/{y}.png?token={key}' });
-      expect(service.active().id).toBe('esri-street');
+      expect(service.active().id).toBe('osm');
     });
   });
 
@@ -243,7 +243,7 @@ describe('BasemapService', () => {
     it('ignores a choice that is not on offer, rather than showing an empty map', () => {
       // A CARTO key configured yesterday and removed today leaves exactly this stored choice behind.
       service.select('carto-positron');
-      expect(service.active().id).toBe('esri-street');
+      expect(service.active().id).toBe('osm');
     });
 
     it('goes back to whatever the admin configures once the choice is cleared', () => {
@@ -347,7 +347,7 @@ describe('BasemapService', () => {
       const map = makeMap();
       service.attach(map);
 
-      expect(tileUrls(map).some(u => u.includes('World_Street_Map'))).toBe(true);
+      expect(tileUrls(map).some(u => u.includes('tile.openstreetmap.org'))).toBe(true);
       map.remove();
     });
 
