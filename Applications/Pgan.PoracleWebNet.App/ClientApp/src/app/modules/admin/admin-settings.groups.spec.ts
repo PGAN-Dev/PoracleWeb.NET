@@ -187,8 +187,16 @@ describe('icon source keys', () => {
  */
 describe('icon hosts', () => {
   const appRoot = path.join(__dirname, '../..');
-  /** Knows the default pack because it defines it; the admin page, because it offers the list. */
-  const allowed = new Set(['core/services/icon.service.ts', 'modules/admin/admin-settings.component.ts']);
+  /**
+   * Three files are allowed to name a pack address, and no component is among them: IconService,
+   * which defines the fallback; the built-in pack list, which is the menu an operator edits; and the
+   * add dialog, whose URL is placeholder text in an empty box rather than anything that gets loaded.
+   */
+  const allowed = new Set([
+    'core/services/icon.service.ts',
+    'modules/admin/icon-repo-dialog/icon-repo-dialog.component.html',
+    'shared/utils/icon-repos.ts',
+  ]);
 
   const walk = (dir: string): string[] =>
     fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {

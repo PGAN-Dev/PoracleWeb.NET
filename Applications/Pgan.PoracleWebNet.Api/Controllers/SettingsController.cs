@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -85,6 +86,21 @@ public partial class SettingsController(
     /// language; the two govern different menus and neither substitutes for the other.
     /// </remarks>
     internal const string PoracleAlertLanguagesKey = "poracle_alert_languages";
+
+    /// <summary>
+    /// The admin page's list of icon packs, stored as a JSON array of <c>{ name, base }</c>.
+    /// </summary>
+    /// <remarks>
+    /// Admin-only, deliberately: the SPA renders icons from the six <c>uicons_*</c> bases, so a
+    /// non-admin never needs this and it stays off the user-visible allowlist. It is validated on the
+    /// way in because it is the one setting whose value is a structure rather than a scalar -- a row
+    /// this page cannot parse would take the picker's list away, and the value is written back into
+    /// the <c>uicons_*</c> rows that every image on the site is built from.
+    /// </remarks>
+    internal const string IconReposKey = "icon_repos";
+
+    /// <summary>Generous. The list is a menu, not a catalogue.</summary>
+    private const int MaxIconRepos = 25;
 
     private const string PoracleProjectionsCacheKey = "settings:poracle_projections";
 
@@ -284,6 +300,15 @@ public partial class SettingsController(
             });
         }
 
+        if (string.Equals(key, IconReposKey, StringComparison.OrdinalIgnoreCase)
+            && !TryValidateIconRepos(request.Value, out var iconReposError))
+        {
+            return this.BadRequest(new
+            {
+                error = iconReposError
+            });
+        }
+
         // Prevent lockout: at least one login method must remain enabled.
         // Uses GetValueAsync so absent/null = enabled (safe default). Only blocks when
         // both are explicitly "False".
@@ -422,6 +447,83 @@ public partial class SettingsController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to read Poracle's configuration for the settings projections")]
     private static partial void LogFetchLocaleFailed(ILogger logger, Exception ex);
+
+    /// <summary>
+    /// Refuses an <c>icon_repos</c> value the admin page could not render, and a <c>base</c> that is
+    /// not an absolute <c>http(s)</c> URL.
+    /// </summary>
+    /// <remarks>
+    /// This bounds the shape rather than listing acceptable hosts. An allowlist of icon hosts would
+    /// refuse the self-hosted pack this feature exists to allow, and the thing actually worth refusing
+    /// is a scheme that is not a URL at all -- the value ends up in <c>uicons_*</c>, which every
+    /// <c>&lt;img src&gt;</c> on the site is built from. Angular's sanitizer would drop a
+    /// <c>javascript:</c> base rather than run it, so this is the second lock, not the only one.
+    /// </remarks>
+    internal static bool TryValidateIconRepos(string? value, out string error)
+    {
+        error = string.Empty;
+
+        // Absent or empty means "no stored list", which the SPA reads as the built-in one. Refusing it
+        // would make the list unresettable.
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        JsonElement root;
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            root = document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            error = $"{IconReposKey} must be a JSON array of {{ name, base }} entries.";
+            return false;
+        }
+
+        if (root.ValueKind != JsonValueKind.Array)
+        {
+            error = $"{IconReposKey} must be a JSON array of {{ name, base }} entries.";
+            return false;
+        }
+
+        if (root.GetArrayLength() > MaxIconRepos)
+        {
+            error = $"{IconReposKey} may hold at most {MaxIconRepos} entries.";
+            return false;
+        }
+
+        foreach (var entry in root.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Object
+                || !entry.TryGetProperty("name", out var name)
+                || !entry.TryGetProperty("base", out var packBase)
+                || name.ValueKind != JsonValueKind.String
+                || packBase.ValueKind != JsonValueKind.String)
+            {
+                error = $"Every {IconReposKey} entry needs a name and a base, both strings.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(name.GetString()) || name.GetString()!.Length > 100)
+            {
+                error = $"Every {IconReposKey} entry needs a name of 1 to 100 characters.";
+                return false;
+            }
+
+            var url = packBase.GetString();
+            if (string.IsNullOrWhiteSpace(url) || url.Length > 500
+                || !Uri.TryCreate(url, UriKind.Absolute, out var parsed)
+                || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
+            {
+                error = $"Every {IconReposKey} base must be an absolute http or https URL of at most 500 characters.";
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public class SiteSettingRequest
     {
