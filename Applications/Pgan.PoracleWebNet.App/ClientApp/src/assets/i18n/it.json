@@ -1025,7 +1025,8 @@
     "POKESTOP_CHANGES": "Modifiche PokéStop",
     "GYM_CHANGES": "Modifiche palestre",
     "ALL_FORT_CHANGES": "Tutte le modifiche forte",
-    "ALARM": "Allarme"
+    "ALARM": "Allarme",
+    "DUPLICATED_ON_THIS_PROFILE": "Duplicato in questo profilo"
   },
   "GEOFENCES": {
     "PAGE_TITLE": "Le Mie Geofence",

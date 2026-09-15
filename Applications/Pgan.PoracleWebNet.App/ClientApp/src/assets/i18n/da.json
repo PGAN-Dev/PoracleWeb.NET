@@ -1025,7 +1025,8 @@
     "POKESTOP_CHANGES": "PokéStop-ændringer",
     "GYM_CHANGES": "Gym-ændringer",
     "ALL_FORT_CHANGES": "Alle fort-ændringer",
-    "ALARM": "Alarm"
+    "ALARM": "Alarm",
+    "DUPLICATED_ON_THIS_PROFILE": "Findes to gange i denne profil"
   },
   "GEOFENCES": {
     "PAGE_TITLE": "Mine geofences",
