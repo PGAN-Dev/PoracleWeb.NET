@@ -11,6 +11,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap, tap } from 'rxjs/operators';
 
+import { IconService } from '../../../core/services/icon.service';
 import { GymSearchResult, ScannerService } from '../../../core/services/scanner.service';
 
 @Component({
@@ -31,6 +32,7 @@ import { GymSearchResult, ScannerService } from '../../../core/services/scanner.
 })
 export class GymPickerComponent {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly icons = inject(IconService);
   private initialized = false;
   private readonly scanner = inject(ScannerService);
   private readonly searchSubject = new Subject<string>();
@@ -78,7 +80,7 @@ export class GymPickerComponent {
   }
 
   getTeamIcon(teamId: number | null): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${teamId ?? 0}.png`;
+    return this.icons.getGymUrl(teamId ?? 0);
   }
 
   onInput(value: string): void {

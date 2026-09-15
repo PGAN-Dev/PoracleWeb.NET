@@ -513,7 +513,7 @@ export class ProfileOverviewComponent implements OnInit {
         return '';
       }
       case 'lure':
-        return alarm.lure_id ? `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${alarm.lure_id}.png` : '';
+        return alarm.lure_id ? this.iconService.getItemUrl(alarm.lure_id) : '';
       case 'gym':
         return this.iconService.getGymUrl(alarm.team ?? 0);
       case 'maxbattle':

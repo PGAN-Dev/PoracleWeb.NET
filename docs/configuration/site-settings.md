@@ -339,26 +339,43 @@ URL is actually read from — the site setting was a duplicate that fed nothing.
 
 ## Icon Repository
 
-Icon URLs are configured via the visual **Icon Repository** picker in the admin settings UI. The picker sets all icon URLs at once from a preset repository. You can also set them individually.
+Icon URLs are configured through the visual **Icon Repository** picker in the admin settings UI. Picking
+a pack writes all six keys at once; you can also set them individually.
 
 | Key | Type | Description |
 |---|---|---|
 | `uicons_pkmn` | url | Base URL for Pokémon icon images. |
 | `uicons_gym` | url | Base URL for gym icon images. |
-| `uicons_raid` | url | Base URL for raid icon images. |
-| `uicons_reward` | url | Base URL for reward/quest icon images. |
-| `uicons_item` | url | Base URL for item icon images. |
-| `uicons_type` | url | Base URL for type icon images. |
+| `uicons_raid` | url | Base URL for raid icon images. Egg icons are read from `raid/egg/`. |
+| `uicons_reward` | url | Base URL for quest reward images. Items are read from `reward/item/`. |
+| `uicons_type` | url | Base URL for Pokémon type icons, used by the filter chips. |
+| `uicons_invasion` | url | Base URL for Team Rocket grunt artwork. |
 
-Built-in icon repositories include:
+All six must point somewhere. They are independent rows, so setting five of them leaves the sixth on
+the built-in default — which is how type icons on a fully configured instance ended up resolving to a
+repository that had been deleted. The picker writes every key precisely so this cannot happen; a
+hand-edited row can still get it wrong.
 
-- **Whitewillem (Ingame)** — In-game style assets
+`uicons_invasion` is new. Grunt icons were built from a base hardcoded in the invasion pages rather
+than read from a setting, so they ignored whichever pack the operator had chosen and went on
+requesting the deleted one. They now come from this key like everything else.
+
+There is no `uicons_item`. Items live under `reward/item/` in every UICONS pack, so the item URL is
+built from `uicons_reward`. A row of that name was read for a while and never used; if your database
+still has one, nothing reads it.
+
+Built-in icon repositories:
+
 - **Nileplumb (Home)** — Pokémon HOME style
 - **Nileplumb (Shuffle)** — Pokémon Shuffle style
-- **Jms412 (Home)** — Alternative HOME style
+- **Jms412 (Home)** — Alternative HOME style, and what an unconfigured install uses
 - **Jms412 (Pokedex)** — Pokédex style
 
-All repositories use the [UICONS](https://github.com/UIcons/UIcons) standard format.
+All four use the [UICONS](https://github.com/UIcons/UIcons) standard format.
+
+**Whitewillem (Ingame) was removed**: the `whitewillem/PogoAssets` repository no longer exists on
+GitHub. It was both the first entry in this list and the source of every built-in default, so an
+instance that had never touched these settings was pointing at a dead host. See #877.
 
 ---
 

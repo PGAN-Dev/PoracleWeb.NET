@@ -14,10 +14,11 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { catchError, forkJoin, of } from 'rxjs';
 
-import { getGruntDisplayName, isGenderFixed, UICONS_BASE } from './invasion.constants';
+import { getGruntDisplayName, isGenderFixed } from './invasion.constants';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -67,8 +68,8 @@ interface GruntOption {
   templateUrl: './invasion-add-dialog.component.html',
 })
 export class InvasionAddDialogComponent implements OnInit {
-  private static readonly EVENT_TYPES: { color: string; icon: string; imgUrl?: string; key: string }[] = [
-    { color: '#B3CA78', icon: 'visibility_off', imgUrl: `${UICONS_BASE}/pokemon/352.png`, key: 'kecleon' },
+  private static readonly EVENT_TYPES: { color: string; icon: string; imgPath?: string; key: string }[] = [
+    { color: '#B3CA78', icon: 'visibility_off', imgPath: 'pokemon/352.png', key: 'kecleon' },
     { color: '#F9E418', icon: 'paid', key: 'gold-stop' },
     { color: '#03AEB6', icon: 'emoji_events', key: 'showcase' },
   ];
@@ -113,6 +114,8 @@ export class InvasionAddDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
 
   private readonly i18n = inject(I18nService);
+
+  private readonly icons = inject(IconService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
   private readonly settings = inject(SettingsService);
@@ -165,9 +168,9 @@ export class InvasionAddDialogComponent implements OnInit {
 
   getGruntIcon(grunt: GruntOption): string {
     if (grunt.typeId > 0) {
-      return `${UICONS_BASE}/type/${grunt.typeId}.png`;
+      return this.icons.getTypeUrlById(grunt.typeId);
     }
-    return `${UICONS_BASE}/invasion/${grunt.invasionId}.png`;
+    return this.icons.getInvasionUrl(grunt.invasionId);
   }
 
   getGruntLabel(grunt: GruntOption): string {

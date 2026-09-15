@@ -1,4 +1,9 @@
-export const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
+/**
+ * Artwork here is named the way it sits inside a UICONS pack -- `invasion/4.png`, `type/7.png` --
+ * and resolved through `IconService.getPackUrl`, which knows where the operator has pointed each
+ * category. It used to be whole URLs built from a hardcoded base, which is how these icons went on
+ * requesting a repository that had been deleted. See #877.
+ */
 
 export const GRUNT_TYPE_ID: Record<string, number> = {
   bug: 7,
@@ -70,13 +75,13 @@ export const GENDERED_INVASION_ID: Record<string, { male: number; female: number
 // `(Male)/(Female)` suffix to disambiguate them in lists.
 export const GENDER_FIXED_GRUNT_TYPES: ReadonlySet<string> = new Set(['mixed', 'decoy']);
 
-export const EVENT_TYPE_INFO: Record<string, { color: string; displayKey: string; icon: string; imgUrl?: string }> = {
+export const EVENT_TYPE_INFO: Record<string, { color: string; displayKey: string; icon: string; imgPath?: string }> = {
   'gold-stop': { color: '#F9E418', displayKey: 'INVASIONS.EVENT_TYPES.GOLD_STOP', icon: 'paid' },
   kecleon: {
     color: '#B3CA78',
     displayKey: 'INVASIONS.EVENT_TYPES.KECLEON',
     icon: 'visibility_off',
-    imgUrl: `${UICONS_BASE}/pokemon/352.png`,
+    imgPath: 'pokemon/352.png',
   },
   showcase: { color: '#03AEB6', displayKey: 'INVASIONS.EVENT_TYPES.SHOWCASE', icon: 'emoji_events' },
 };
@@ -158,26 +163,27 @@ export function isGenderFixed(gruntType: string | null): boolean {
 // Niantic's CHARACTER_UNSET — a generic grunt silhouette. Used when an unknown
 // grunt_type arrives (e.g. a new Niantic addition this UI hasn't mapped yet) so
 // cards render a valid icon instead of a broken image.
-export const UNKNOWN_GRUNT_ICON_URL = `${UICONS_BASE}/invasion/0.png`;
+export const UNKNOWN_GRUNT_ICON_PATH = 'invasion/0.png';
 
 export const GENDER_ANY = 0;
 export const GENDER_MALE = 1;
 export const GENDER_FEMALE = 2;
 
-export function getGruntIconUrl(gruntType: string | null, gender?: number | null): string {
+/** The grunt's artwork, as a pack-relative path for `IconService.getPackUrl`. */
+export function getGruntIconPath(gruntType: string | null, gender?: number | null): string {
   const type = gruntType ?? '';
   const gendered = GENDERED_INVASION_ID[type];
   if (gendered && (gender === GENDER_MALE || gender === GENDER_FEMALE)) {
-    return `${UICONS_BASE}/invasion/${gender === GENDER_MALE ? gendered.male : gendered.female}.png`;
+    return `invasion/${gender === GENDER_MALE ? gendered.male : gendered.female}.png`;
   }
   const typeId = GRUNT_TYPE_ID[type];
-  if (typeId) return `${UICONS_BASE}/type/${typeId}.png`;
+  if (typeId) return `type/${typeId}.png`;
   if (gendered) {
     // Gender-fixed grunt (mixed/decoy) with gender=Any — default to the female variant
     // for decoy (male never spawns) and male for mixed (starter line is the canonical display).
-    return `${UICONS_BASE}/invasion/${type === 'decoy' ? gendered.female : gendered.male}.png`;
+    return `invasion/${type === 'decoy' ? gendered.female : gendered.male}.png`;
   }
   const invasionId = GRUNT_INVASION_ID[type];
-  if (invasionId) return `${UICONS_BASE}/invasion/${invasionId}.png`;
-  return UNKNOWN_GRUNT_ICON_URL;
+  if (invasionId) return `invasion/${invasionId}.png`;
+  return UNKNOWN_GRUNT_ICON_PATH;
 }

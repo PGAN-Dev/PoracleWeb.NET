@@ -20,6 +20,7 @@ import { AlertDefaultsService } from '../../core/services/alert-defaults.service
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { RaidService } from '../../core/services/raid.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -62,11 +63,12 @@ import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 })
 export class RaidAddDialogComponent {
   private readonly alertDefaults = inject(AlertDefaultsService);
-
   private readonly eggService = inject(EggService);
-
   private readonly fb = inject(FormBuilder);
+
   private readonly i18n = inject(I18nService);
+
+  private readonly icons = inject(IconService);
   private readonly masterData = inject(MasterDataService);
   private readonly raidService = inject(RaidService);
   private readonly settings = inject(SettingsService);
@@ -87,6 +89,7 @@ export class RaidAddDialogComponent {
   readonly isWebhook = inject(AuthService).isImpersonating();
 
   saving = signal(false);
+
   /**
    * Seeded from the saved defaults so the Alert Defaults preference still reaches new alarms; the
    * picker owns it from there.
@@ -102,11 +105,11 @@ export class RaidAddDialogComponent {
   );
 
   selectedEggLevels = signal<number[]>([]);
+
   selectedGymId = signal<string | null>(null);
-
   selectedPokemonIds = signal<number[]>([]);
-  selectedRaidLevels = signal<number[]>([]);
 
+  selectedRaidLevels = signal<number[]>([]);
   tabIndex = 0;
 
   canSave(): boolean {
@@ -129,6 +132,11 @@ export class RaidAddDialogComponent {
   /** The named costumes for the select, newest first. */
   costumeOptions(): { id: number; name: string }[] {
     return this.masterData.getCostumes();
+  }
+
+  /** A team badge for the dropdown. Takes the pack's gym number, not the form's team value: "any" is team 4 and gym 0. */
+  getGymIcon(gymIcon: number): string {
+    return this.icons.getGymUrl(gymIcon);
   }
 
   onPokemonSelected(ids: number[]): void {

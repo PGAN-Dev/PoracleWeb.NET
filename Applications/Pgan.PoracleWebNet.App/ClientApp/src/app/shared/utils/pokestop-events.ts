@@ -10,8 +10,6 @@
  * them translated.
  */
 
-const UICONS_BASE = 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons';
-
 export interface PokestopEventInfo {
   /** Card and icon colour, from upstream's own palette. */
   color: string;
@@ -21,8 +19,8 @@ export interface PokestopEventInfo {
   displayType: number;
   /** Material icon, used when there is no artwork. */
   icon: string;
-  /** Artwork, where upstream has some. */
-  imgUrl?: string;
+  /** Artwork, where upstream has some, as a pack-relative path for `IconService.getPackUrl`. */
+  imgPath?: string;
   /** The lowercased name PoracleNG stores in `grunt_type`. */
   name: string;
 }
@@ -41,7 +39,7 @@ export const POKESTOP_EVENTS: readonly PokestopEventInfo[] = [
     displayKey: 'INVASIONS.EVENT_TYPES.KECLEON',
     displayType: 8,
     icon: 'visibility_off',
-    imgUrl: `${UICONS_BASE}/pokemon/352.png`,
+    imgPath: 'pokemon/352.png',
   },
   {
     name: 'gold-stop',
