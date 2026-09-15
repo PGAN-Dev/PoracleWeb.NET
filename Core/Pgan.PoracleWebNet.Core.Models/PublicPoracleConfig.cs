@@ -35,6 +35,9 @@ public class PublicPoracleConfig
     public string EverythingFlagPermissions { get; set; } = string.Empty;
     public int MaxDistance { get; set; }
 
+    /// <summary>The bot command prefix. Not sensitive: it is in every command a user already types.</summary>
+    public string Prefix { get; set; } = string.Empty;
+
     public static PublicPoracleConfig From(PoracleConfig source) => new()
     {
         Locale = source.Locale,
@@ -48,6 +51,7 @@ public class PublicPoracleConfig
         DefaultPvpCap = source.DefaultPvpCap,
         DefaultTemplateName = source.DefaultTemplateName,
         EverythingFlagPermissions = source.EverythingFlagPermissions,
-        MaxDistance = source.MaxDistance
+        MaxDistance = source.MaxDistance,
+        Prefix = source.Prefix,
     };
 }

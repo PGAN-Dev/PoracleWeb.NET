@@ -88,7 +88,7 @@
           <div
             #sectionContent
             class="section-content"
-            [innerHTML]="section.contentKey | translate"
+            [innerHTML]="section.contentKey | translate: { prefix: botPrefix() }"
             (click)="onContentClick($event)"
             (keydown)="onContentKeydown($event)"></div>
         </mat-expansion-panel>
