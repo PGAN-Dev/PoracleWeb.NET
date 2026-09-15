@@ -1753,13 +1753,19 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Nie sprawdzaj aktualizacji",
     "DISABLE_UPDATE_CHECK_DESC": "Wyłącza pytanie GitHuba o nowsze wydanie PoracleWeb lub Poracle. To jedyne żądanie wychodzące poza twoją sieć i nie wysyła żadnych danych.",
     "GROUP_MAPS": "Mapy",
+    "BASEMAP_PROVIDER_LABEL": "Dostawca mapy podkładowej",
+    "BASEMAP_PROVIDER_DESC": "Jakie kafelki mapy strona rysuje domyślnie. CARTO i Stadia wymagają klucza API poniżej. Każdy może wybrać inną mapę przyciskiem warstw na dowolnej mapie.",
+    "BASEMAP_PROVIDER_AUTO": "Automatycznie",
+    "BASEMAP_PROVIDER_CUSTOM": "Własny adres kafelków",
     "BASEMAP_KEY_LABEL": "Klucz API mapy podkładowej",
-    "BASEMAP_KEY_DESC": "Klucz dostawcy kafelków. Bez niego CARTO zwraca kafelki ze znakiem wodnym „API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Klucz wybranego dostawcy. Jest wysyłany w każdym żądaniu kafelka z przeglądarki, więc nie jest tajemnicą — ale pozostawiony pusty przełącza całą stronę na mapę bez klucza.",
     "BASEMAP_URL_LABEL": "Adres URL kafelków mapy podkładowej",
-    "BASEMAP_URL_DESC": "Szablon adresu URL kafelków. Wstaw {key} tam, gdzie dostawca oczekuje klucza. Pozostaw puste dla jasnej mapy CARTO.",
+    "BASEMAP_URL_DESC": "Używany, gdy dostawcą jest „Własny adres kafelków”. Wstaw {key} tam, gdzie dostawca oczekuje klucza.",
+    "BASEMAP_URL_DARK_LABEL": "Adres kafelków (ciemny)",
+    "BASEMAP_URL_DARK_DESC": "Opcjonalny. Zastępuje powyższy adres, gdy włączony jest tryb ciemny.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atrybucja mapy podkładowej",
-    "BASEMAP_ATTRIBUTION_DESC": "Atrybucja widoczna na każdej mapie. Musi być zgodna z warunkami dostawcy kafelków.",
-    "BASEMAP_KEY_MISSING": "Nie ustawiono klucza, więc każda mapa w serwisie wyświetla znak wodny CARTO „API KEY REQUIRED”. CARTO nadal zwraca działające kafelki bez klucza, więc nic innego tego nie zgłosi."
+    "BASEMAP_ATTRIBUTION_DESC": "Atrybucja dla własnego adresu kafelków. Musi być zgodna z warunkami dostawcy. Wyświetlana jako zwykły tekst.",
+    "BASEMAP_KEY_MISSING": "Nie ustawiono klucza, więc mapy wracają do OpenStreetMap. Wybrany dostawca i tak zwróciłby kafelki — CARTO rysuje na nich „API KEY REQUIRED” — i nic innego by tego nie zgłosiło."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nazwa",
@@ -1822,6 +1828,10 @@
     "YOUR_LOCATION": "Twoja lokalizacja",
     "SELECTED_COUNT": "Zaznaczono {{count}}:",
     "AREAS_SELECTED": "Wybrano {{count}} obszar(ów)"
+  },
+  "BASEMAP": {
+    "TITLE": "Mapa podkładowa",
+    "KEY_MISSING": "Mapa podkładowa strony wymaga klucza API. Zamiast niej pokazano {{fallback}}."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Domyślne ustawienia alertów",

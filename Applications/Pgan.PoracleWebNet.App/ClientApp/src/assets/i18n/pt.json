@@ -1753,13 +1753,19 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Não procurar atualizações",
     "DISABLE_UPDATE_CHECK_DESC": "Impede o site de perguntar ao GitHub se saiu uma versão mais recente do PoracleWeb ou do Poracle. É o único pedido que sai da tua rede e não envia nada.",
     "GROUP_MAPS": "Mapas",
+    "BASEMAP_PROVIDER_LABEL": "Fornecedor do mapa base",
+    "BASEMAP_PROVIDER_DESC": "Que mosaicos o site desenha por omissão. A CARTO e a Stadia exigem uma chave API abaixo. Cada utilizador pode escolher outro no botão de camadas de qualquer mapa.",
+    "BASEMAP_PROVIDER_AUTO": "Automático",
+    "BASEMAP_PROVIDER_CUSTOM": "URL de mosaicos personalizado",
     "BASEMAP_KEY_LABEL": "Chave de API do mapa base",
-    "BASEMAP_KEY_DESC": "Chave do fornecedor de mosaicos. Sem ela, o CARTO devolve mosaicos com a marca de água “API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Chave do fornecedor escolhido. Viaja em cada pedido de mosaico do navegador, por isso não é um segredo — mas deixá-la vazia faz todo o site recorrer a um mapa base sem chave.",
     "BASEMAP_URL_LABEL": "URL de mosaicos do mapa base",
-    "BASEMAP_URL_DESC": "Modelo de URL dos mosaicos. Coloque {key} onde o fornecedor espera a chave. Deixe vazio para o mapa base claro do CARTO.",
+    "BASEMAP_URL_DESC": "Usado quando o fornecedor é «URL de mosaicos personalizado». Coloque {key} onde o fornecedor espera a chave.",
+    "BASEMAP_URL_DARK_LABEL": "URL de mosaicos (escuro)",
+    "BASEMAP_URL_DARK_DESC": "Opcional. Substitui o URL acima enquanto o modo escuro estiver ativo.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribuição do mapa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Atribuição apresentada em todos os mapas. Deve cumprir os termos do seu fornecedor de mosaicos.",
-    "BASEMAP_KEY_MISSING": "Não está definida nenhuma chave, por isso todos os mapas do site apresentam a marca de água “API KEY REQUIRED” do CARTO. O CARTO continua a devolver mosaicos funcionais sem ela, pelo que mais nada o irá assinalar."
+    "BASEMAP_ATTRIBUTION_DESC": "Atribuição do URL de mosaicos personalizado. Deve respeitar os termos do seu fornecedor. Mostrada como texto simples.",
+    "BASEMAP_KEY_MISSING": "Não há chave definida, por isso os mapas recorrem ao OpenStreetMap. O fornecedor escolhido devolveria mosaicos na mesma — a CARTO desenha «API KEY REQUIRED» neles — e mais nada o comunicaria."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -1822,6 +1828,10 @@
     "YOUR_LOCATION": "A tua localização",
     "SELECTED_COUNT": "{{count}} selecionados:",
     "AREAS_SELECTED": "{{count}} área(s) selecionada(s)"
+  },
+  "BASEMAP": {
+    "TITLE": "Mapa base",
+    "KEY_MISSING": "O mapa base do site precisa de uma chave API. A mostrar {{fallback}} em vez disso."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Padrões de alertas",

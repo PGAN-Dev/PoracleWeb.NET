@@ -1753,13 +1753,19 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Não procurar atualizações",
     "DISABLE_UPDATE_CHECK_DESC": "Impede o site de perguntar ao GitHub se saiu uma versão mais recente do PoracleWeb ou do Poracle. É a única requisição que sai da sua rede e não envia nada.",
     "GROUP_MAPS": "Mapas",
+    "BASEMAP_PROVIDER_LABEL": "Provedor do mapa base",
+    "BASEMAP_PROVIDER_DESC": "Quais blocos o site desenha por padrão. A CARTO e a Stadia exigem uma chave de API abaixo. Cada usuário pode escolher outro no botão de camadas em qualquer mapa.",
+    "BASEMAP_PROVIDER_AUTO": "Automático",
+    "BASEMAP_PROVIDER_CUSTOM": "URL de blocos personalizada",
     "BASEMAP_KEY_LABEL": "Chave de API do mapa base",
-    "BASEMAP_KEY_DESC": "Chave do provedor de blocos. Sem ela, o CARTO retorna blocos com a marca-d’água “API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Chave do provedor escolhido. Ela viaja em cada requisição de bloco do navegador, então não é um segredo — mas deixá-la vazia faz o site inteiro cair em um mapa base sem chave.",
     "BASEMAP_URL_LABEL": "URL de blocos do mapa base",
-    "BASEMAP_URL_DESC": "Modelo de URL dos blocos. Coloque {key} onde o provedor espera a chave. Deixe em branco para o mapa base claro do CARTO.",
+    "BASEMAP_URL_DESC": "Usada quando o provedor é “URL de blocos personalizada”. Coloque {key} onde o provedor espera a chave.",
+    "BASEMAP_URL_DARK_LABEL": "URL de blocos (escuro)",
+    "BASEMAP_URL_DARK_DESC": "Opcional. Substitui a URL acima enquanto o modo escuro estiver ativo.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribuição do mapa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Atribuição exibida em todos os mapas. Deve seguir os termos do seu provedor de blocos.",
-    "BASEMAP_KEY_MISSING": "Nenhuma chave definida, então todos os mapas do site aparecem com a marca-d’água “API KEY REQUIRED” do CARTO. O CARTO continua retornando blocos funcionais sem ela, então nada mais vai avisar sobre isso."
+    "BASEMAP_ATTRIBUTION_DESC": "Atribuição da URL de blocos personalizada. Precisa atender aos termos do seu provedor. Exibida como texto simples.",
+    "BASEMAP_KEY_MISSING": "Nenhuma chave definida, então os mapas voltam para o OpenStreetMap. O provedor escolhido devolveria blocos mesmo assim — a CARTO desenha “API KEY REQUIRED” neles — e nada mais avisaria."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nome",
@@ -1822,6 +1828,10 @@
     "YOUR_LOCATION": "Sua localização",
     "SELECTED_COUNT": "{{count}} selecionados:",
     "AREAS_SELECTED": "{{count}} área(s) selecionada(s)"
+  },
+  "BASEMAP": {
+    "TITLE": "Mapa base",
+    "KEY_MISSING": "O mapa base do site precisa de uma chave de API. Exibindo {{fallback}} no lugar."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Padrões de alertas",

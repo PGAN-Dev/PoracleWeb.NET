@@ -1753,13 +1753,19 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Do not check for updates",
     "DISABLE_UPDATE_CHECK_DESC": "Stops the site asking GitHub whether a newer PoracleWeb or Poracle has been released. This is the only request it makes outside your own network; nothing is sent with it.",
     "GROUP_MAPS": "Maps",
+    "BASEMAP_PROVIDER_LABEL": "Basemap Provider",
+    "BASEMAP_PROVIDER_DESC": "Which map tiles the site draws by default. CARTO and Stadia need an API key below. Viewers can pick a different one from the layers button on any map.",
+    "BASEMAP_PROVIDER_AUTO": "Automatic",
+    "BASEMAP_PROVIDER_CUSTOM": "Custom tile URL",
     "BASEMAP_KEY_LABEL": "Basemap API Key",
-    "BASEMAP_KEY_DESC": "Key for the map tile provider. Without one, CARTO returns tiles watermarked “API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Key for the chosen provider. It travels in every tile request the browser makes, so it is not a secret — but leaving it blank drops the whole site to a keyless basemap.",
     "BASEMAP_URL_LABEL": "Basemap Tile URL",
-    "BASEMAP_URL_DESC": "Tile URL template. Put {key} where the provider expects the key. Leave blank for the CARTO light basemap.",
+    "BASEMAP_URL_DESC": "Used when the provider is Custom tile URL. Put {key} where the provider expects the key.",
+    "BASEMAP_URL_DARK_LABEL": "Basemap Tile URL (Dark)",
+    "BASEMAP_URL_DARK_DESC": "Optional. Replaces the tile URL above while a viewer has dark mode on.",
     "BASEMAP_ATTRIBUTION_LABEL": "Basemap Attribution",
-    "BASEMAP_ATTRIBUTION_DESC": "Attribution shown on every map. Must match your tile provider's terms.",
-    "BASEMAP_KEY_MISSING": "No key is set, so every map on the site renders with CARTO’s “API KEY REQUIRED” watermark. CARTO still returns working tiles without one, so nothing else will report this."
+    "BASEMAP_ATTRIBUTION_DESC": "Attribution for the custom tile URL. Must match your provider’s terms. Shown as plain text.",
+    "BASEMAP_KEY_MISSING": "No key is set, so maps fall back to OpenStreetMap. The chosen provider would still return tiles without one — CARTO draws “API KEY REQUIRED” into them — so nothing else would report this."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",
@@ -1822,6 +1828,10 @@
     "YOUR_LOCATION": "Your Location",
     "SELECTED_COUNT": "{{count}} selected:",
     "AREAS_SELECTED": "{{count}} area(s) selected"
+  },
+  "BASEMAP": {
+    "TITLE": "Basemap",
+    "KEY_MISSING": "The site’s basemap needs an API key. Showing {{fallback}} instead."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Alert Defaults",

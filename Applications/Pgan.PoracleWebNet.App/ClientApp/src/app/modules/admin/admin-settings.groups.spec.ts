@@ -75,4 +75,23 @@ describe('SETTING_GROUPS translation keys', () => {
     const keys = SETTING_GROUPS.flatMap(g => g.settings.flatMap(s => [s.labelKey, s.descriptionKey]));
     expect(keys.filter(k => !resolves(k))).toEqual([]);
   });
+
+  it('resolves every translated dropdown option', () => {
+    // Options are a mix: provider names are brand names and ship as literal labels, while words like
+    // "Automatic" carry a key. An unresolved key here puts the raw string inside the dropdown.
+    const keys = SETTING_GROUPS.flatMap(g => g.settings.flatMap(s => (s.options ?? []).map(o => o.labelKey))).filter(
+      (k): k is string => !!k,
+    );
+
+    expect(keys).not.toEqual([]);
+    expect(keys.filter(k => !resolves(k))).toEqual([]);
+  });
+
+  it('gives every dropdown option exactly one of a label and a label key', () => {
+    const malformed = SETTING_GROUPS.flatMap(g =>
+      g.settings.flatMap(s => (s.options ?? []).filter(o => !!o.label === !!o.labelKey).map(o => `${s.key}:${o.value}`)),
+    );
+
+    expect(malformed).toEqual([]);
+  });
 });

@@ -241,6 +241,16 @@
                         [matTooltip]="forcedByPoracle(meta) ? ('ADMIN_SETTINGS.FORCED_BY_PORACLE_TOOLTIP' | translate) : ''"
                         (change)="onFeatureToggle(meta, $event.checked)"
                         color="primary"></mat-slide-toggle>
+                    } @else if (meta.type === 'select') {
+                      <mat-form-field appearance="outline" class="setting-field">
+                        <mat-select [ngModel]="getSettingValue(meta.key) ?? ''" (ngModelChange)="onTextChange(meta.key, $event)">
+                          @for (option of meta.options ?? []; track option.value) {
+                            <mat-option [value]="option.value">
+                              {{ option.labelKey ? (option.labelKey | translate) : option.label }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
                     } @else {
                       <mat-form-field appearance="outline" class="setting-field">
                         <input

@@ -1753,13 +1753,19 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Søg ikke efter opdateringer",
     "DISABLE_UPDATE_CHECK_DESC": "Stopper siden i at spørge GitHub, om der er udgivet en nyere PoracleWeb eller Poracle. Det er den eneste forespørgsel uden for dit eget netværk, og der sendes ingen data med.",
     "GROUP_MAPS": "Kort",
+    "BASEMAP_PROVIDER_LABEL": "Baggrundskortudbyder",
+    "BASEMAP_PROVIDER_DESC": "Hvilke kortfliser siden tegner som standard. CARTO og Stadia kræver en API-nøgle nedenfor. Alle kan vælge et andet via lagknappen på ethvert kort.",
+    "BASEMAP_PROVIDER_AUTO": "Automatisk",
+    "BASEMAP_PROVIDER_CUSTOM": "Egen flise-URL",
     "BASEMAP_KEY_LABEL": "API-nøgle til baggrundskort",
-    "BASEMAP_KEY_DESC": "Nøgle til flisleverandøren. Uden en nøgle returnerer CARTO fliser med vandmærket ”API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Nøgle til den valgte udbyder. Den sendes med hver fliseforespørgsel fra browseren og er derfor ingen hemmelighed — men lades den tom, falder hele siden tilbage til et baggrundskort uden nøgle.",
     "BASEMAP_URL_LABEL": "Flise-URL til baggrundskort",
-    "BASEMAP_URL_DESC": "URL-skabelon til fliser. Indsæt {key} der, hvor leverandøren forventer nøglen. Lad stå tom for det lyse CARTO-kort.",
+    "BASEMAP_URL_DESC": "Bruges, når udbyderen er ”Egen flise-URL”. Sæt {key} der, hvor udbyderen forventer nøglen.",
+    "BASEMAP_URL_DARK_LABEL": "Flise-URL (mørk)",
+    "BASEMAP_URL_DARK_DESC": "Valgfri. Erstatter URL’en ovenfor, mens mørk tilstand er slået til.",
     "BASEMAP_ATTRIBUTION_LABEL": "Kildeangivelse for baggrundskort",
-    "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse vist på alle kort. Skal overholde flisleverandørens betingelser.",
-    "BASEMAP_KEY_MISSING": "Der er ikke angivet nogen nøgle, så alle kort på sitet vises med CARTOs vandmærke ”API KEY REQUIRED”. CARTO returnerer stadig fungerende fliser uden en nøgle, så intet andet vil melde om det."
+    "BASEMAP_ATTRIBUTION_DESC": "Kildeangivelse for den egne flise-URL. Skal overholde din udbyders vilkår. Vises som almindelig tekst.",
+    "BASEMAP_KEY_MISSING": "Der er ingen nøgle sat, så kortene falder tilbage til OpenStreetMap. Den valgte udbyder ville stadig returnere fliser — CARTO tegner ”API KEY REQUIRED” ind i dem — og intet andet ville melde det."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Navn",
@@ -1822,6 +1828,10 @@
     "YOUR_LOCATION": "Din placering",
     "SELECTED_COUNT": "{{count}} valgt:",
     "AREAS_SELECTED": "{{count}} område(r) valgt"
+  },
+  "BASEMAP": {
+    "TITLE": "Baggrundskort",
+    "KEY_MISSING": "Sidens baggrundskort kræver en API-nøgle. Viser {{fallback}} i stedet."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Standardindstillinger for advarsler",

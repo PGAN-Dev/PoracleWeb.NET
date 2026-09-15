@@ -272,9 +272,11 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     const lng = this.longitude || 0;
     const zoom = lat === 0 && lng === 0 ? 2 : 14;
 
-    this.map = L.map(el, { attributionControl: false, zoomControl: true }).setView([lat, lng], zoom);
+    // attributionControl was off here, so centralising the layer's attribution in #843 still left
+    // this map crediting nobody. It is a full-size interactive map, not a thumbnail.
+    this.map = L.map(el, { attributionControl: true, zoomControl: true }).setView([lat, lng], zoom);
 
-    this.basemap.createLayer().addTo(this.map);
+    this.basemap.attach(this.map, { picker: true });
 
     if (lat !== 0 || lng !== 0) {
       this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);

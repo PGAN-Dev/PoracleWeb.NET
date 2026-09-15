@@ -47,10 +47,17 @@ public partial class SettingsController(
 
     /// <summary>
     /// Key families the SPA reads dynamically rather than by literal name: feature gates via
-    /// <c>isDisabled(key)</c> / <c>disabledFeatureGuard</c>, and the uicons URL set. All are
-    /// booleans or public asset URLs.
+    /// <c>isDisabled(key)</c> / <c>disabledFeatureGuard</c>, the uicons URL set, and the basemap
+    /// configuration. All are booleans or public asset URLs.
     /// </summary>
-    private static readonly string[] UserVisibleKeyPrefixes = ["disable_", "enable_", "uicons_"];
+    /// <remarks>
+    /// <c>basemap_key</c> reads like a credential and is the one exception the allowlist has to make:
+    /// it travels in every tile URL the browser requests, so a basemap this server hides from a user
+    /// is a basemap that user cannot load. Withholding it does not protect the key, it just leaves
+    /// every non-admin on the unkeyed provider -- which is how #842's watermark survived its own fix,
+    /// visible to everyone except the admins looking for it.
+    /// </remarks>
+    private static readonly string[] UserVisibleKeyPrefixes = ["basemap_", "disable_", "enable_", "uicons_"];
 
     private static readonly HashSet<string> InternalKeys = new(StringComparer.OrdinalIgnoreCase)
     {

@@ -98,6 +98,66 @@ from Poracle and cannot be set here — see [Values that are not settings](#valu
 
 ---
 
+## Maps
+
+Which tiles every map on the site draws with: the areas map, the location picker, the geofence
+detail map and the geofence thumbnails.
+
+| Key | Label | Type | Description |
+|---|---|---|---|
+| `basemap_provider` | Basemap Provider | string | Provider id, or empty for automatic. One of `osm`, `carto-positron`, `carto-voyager`, `stadia-smooth`, `esri-canvas`, `esri-imagery`, or `custom` to use the tile URL below. Automatic means CARTO Positron, or `custom` if a tile URL is set. |
+| `basemap_key` | Basemap API Key | string | API key for the chosen provider. Required by CARTO and Stadia, ignored by the rest. **Not a secret** — see below. |
+| `basemap_url` | Basemap Tile URL | url | Tile template for `custom`. Must be an absolute `http(s)` URL. Put `{key}` where the provider expects the key; `{s}`, `{z}`, `{x}`, `{y}` and `{r}` are Leaflet's. |
+| `basemap_url_dark` | Basemap Tile URL (Dark) | url | Optional. Used in place of `basemap_url` while a viewer has the dark theme on. |
+| `basemap_attribution` | Basemap Attribution | string | Attribution for `custom`. Rendered as plain text, so a link in it shows as text rather than a link. Built-in providers carry their own and ignore this. |
+
+### Choosing a provider
+
+Picking a name sets the URL, the attribution and the zoom limit together, so there is one decision
+rather than three chances to get it wrong. The built-ins:
+
+| Id | Provider | Key | Dark variant | Max zoom |
+|---|---|---|---|---|
+| `osm` | OpenStreetMap | no | — | 19 |
+| `esri-canvas` | Esri Gray Canvas | no | yes | 16 |
+| `esri-imagery` | Esri World Imagery (satellite) | no | — | 19 |
+| `carto-positron` | CARTO Positron | yes | yes (Dark Matter) | 20 |
+| `carto-voyager` | CARTO Voyager | yes | — | 20 |
+| `stadia-smooth` | Stadia Alidade Smooth | yes | yes | 20 |
+
+A provider with no dark variant reuses its light tiles when the theme is dark.
+
+Each viewer can pick a different one for themselves, from the layers button in the top-right corner
+of any interactive map. The choice is theirs alone and is kept in their browser, like the theme and
+the accent colour. What is on offer is the keyless built-ins, plus the custom URL if one is set, plus
+the keyed ones in the same family as the provider you chose — a CARTO key unlocks both CARTO styles,
+and never Stadia, because one key cannot be both.
+
+### The API key is public, and a missing one is not silent
+
+`basemap_key` travels in every tile URL the browser requests, so every signed-in user receives it.
+That is how a client-side basemap works and there is no way around it; restrict the key by referrer
+or domain at the provider instead of trying to hide it. It is served to non-admins deliberately,
+under the `basemap_` prefix in the settings allowlist. Withholding it would not protect anything and
+would leave every non-admin on a different basemap from the admins checking the site.
+
+Leave it blank and the site draws OpenStreetMap rather than the provider you chose, and says so in
+the Maps section and in the layers menu. That fallback exists because CARTO answers **200** to a
+keyless request and returns working tiles with `API KEY REQUIRED` drawn into the image: nothing logs,
+no health check notices, and the only way anyone finds out is by looking at a map and recognising
+what they are seeing ([#842](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/842)).
+
+!!! warning "The CARTO parameter is `key`, not `api_key`"
+    Both spellings return 200 and both watermark, so it is easy to "fix" this and change nothing. The
+    built-in CARTO entries have it right; only a `custom` URL can get it wrong.
+
+!!! note "Custom tile URLs must be HTTPS"
+    The site's own Content-Security-Policy allows images from any `https:` origin and nothing over
+    plain `http:`. A custom tile server on `http://` is blocked by the browser with no error on the
+    page — the map simply stays blank.
+
+---
+
 ## Administration
 
 Access control.
@@ -268,7 +328,8 @@ UI groups but **are** readable by admins through the API. Prefer configuring the
 Neither the scanner keys nor the Cloudflare pair appear in `SettingsMigrationService.CategoryMap`, so rows migrated from `pweb_settings` land in the catch-all `other` category.
 
 `GET /api/settings` decides what a non-admin sees with an **allowlist**, not a denylist: the exact keys
-in `SettingsController.UserVisibleKeys` plus anything beginning `disable_`, `enable_` or `uicons_`.
+in `SettingsController.UserVisibleKeys` plus anything beginning `basemap_`, `disable_`, `enable_` or
+`uicons_`.
 Everything else is admin-only. That direction matters — the previous denylist named a key `scan_db`
 that matches no real row and never mentioned `cf_id` / `cf_secret`, so a scanner password and a
 Cloudflare token were served to every signed-in session. With an allowlist, a new credential key is

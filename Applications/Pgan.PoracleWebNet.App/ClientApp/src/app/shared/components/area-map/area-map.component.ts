@@ -513,7 +513,7 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       zoomControl: true,
     }).setView([37.5, -77.4], 10);
 
-    this.basemap.createLayer().addTo(this.map);
+    this.basemap.attach(this.map, { picker: true });
 
     // Once the user has touched the map, stop repositioning it. Raw DOM input events are used
     // rather than Leaflet's movestart/zoomstart because those fire for our own fitBounds calls too,

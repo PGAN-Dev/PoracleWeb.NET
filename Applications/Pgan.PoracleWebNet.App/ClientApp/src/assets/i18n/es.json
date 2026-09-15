@@ -1753,13 +1753,19 @@
     "DISABLE_UPDATE_CHECK_LABEL": "No buscar actualizaciones",
     "DISABLE_UPDATE_CHECK_DESC": "Impide que el sitio pregunte a GitHub si hay una versión más reciente de PoracleWeb o Poracle. Es la única petición que sale de tu red y no envía ningún dato.",
     "GROUP_MAPS": "Mapas",
+    "BASEMAP_PROVIDER_LABEL": "Proveedor del mapa base",
+    "BASEMAP_PROVIDER_DESC": "Qué teselas dibuja el sitio por defecto. CARTO y Stadia necesitan una clave API más abajo. Cada usuario puede elegir otro desde el botón de capas en cualquier mapa.",
+    "BASEMAP_PROVIDER_AUTO": "Automático",
+    "BASEMAP_PROVIDER_CUSTOM": "URL de teselas personalizada",
     "BASEMAP_KEY_LABEL": "Clave API del mapa base",
-    "BASEMAP_KEY_DESC": "Clave del proveedor de teselas. Sin ella, CARTO devuelve teselas con la marca de agua “API KEY REQUIRED”.",
+    "BASEMAP_KEY_DESC": "Clave del proveedor elegido. Viaja en cada petición de tesela del navegador, así que no es un secreto — pero dejarla vacía hace que todo el sitio use un mapa base sin clave.",
     "BASEMAP_URL_LABEL": "URL de teselas del mapa base",
-    "BASEMAP_URL_DESC": "Plantilla de URL de teselas. Coloca {key} donde el proveedor espera la clave. Déjalo vacío para el mapa base claro de CARTO.",
+    "BASEMAP_URL_DESC": "Se usa cuando el proveedor es «URL de teselas personalizada». Ponga {key} donde el proveedor espere la clave.",
+    "BASEMAP_URL_DARK_LABEL": "URL de teselas (oscuro)",
+    "BASEMAP_URL_DARK_DESC": "Opcional. Sustituye a la URL anterior mientras el modo oscuro está activo.",
     "BASEMAP_ATTRIBUTION_LABEL": "Atribución del mapa base",
-    "BASEMAP_ATTRIBUTION_DESC": "Atribución mostrada en cada mapa. Debe cumplir los términos de tu proveedor de teselas.",
-    "BASEMAP_KEY_MISSING": "No hay ninguna clave configurada, así que todos los mapas del sitio muestran la marca de agua “API KEY REQUIRED” de CARTO. CARTO sigue devolviendo teselas funcionales sin ella, por lo que nada más lo advertirá."
+    "BASEMAP_ATTRIBUTION_DESC": "Atribución de la URL de teselas personalizada. Debe cumplir los términos de su proveedor. Se muestra como texto plano.",
+    "BASEMAP_KEY_MISSING": "No hay clave configurada, así que los mapas recurren a OpenStreetMap. El proveedor elegido devolvería teselas igualmente — CARTO dibuja «API KEY REQUIRED» en ellas — y nada más lo avisaría."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Nombre",
@@ -1822,6 +1828,10 @@
     "YOUR_LOCATION": "Tu ubicación",
     "SELECTED_COUNT": "{{count}} seleccionado(s):",
     "AREAS_SELECTED": "{{count}} área(s) seleccionada(s)"
+  },
+  "BASEMAP": {
+    "TITLE": "Mapa base",
+    "KEY_MISSING": "El mapa base del sitio necesita una clave API. Se muestra {{fallback}} en su lugar."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Valores predeterminados de alertas",

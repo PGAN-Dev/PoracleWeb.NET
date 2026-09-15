@@ -1753,13 +1753,19 @@
     "DISABLE_UPDATE_CHECK_LABEL": "Nicht nach Updates suchen",
     "DISABLE_UPDATE_CHECK_DESC": "Verhindert, dass die Seite bei GitHub nachfragt, ob ein neueres PoracleWeb oder Poracle erschienen ist. Das ist die einzige Anfrage außerhalb deines Netzwerks; es werden keine Daten übermittelt.",
     "GROUP_MAPS": "Karten",
+    "BASEMAP_PROVIDER_LABEL": "Kartenanbieter",
+    "BASEMAP_PROVIDER_DESC": "Welche Kartenkacheln die Seite standardmäßig zeichnet. CARTO und Stadia benötigen unten einen API-Schlüssel. Nutzer können über die Ebenen-Schaltfläche auf jeder Karte eine andere wählen.",
+    "BASEMAP_PROVIDER_AUTO": "Automatisch",
+    "BASEMAP_PROVIDER_CUSTOM": "Eigene Kachel-URL",
     "BASEMAP_KEY_LABEL": "Kartenhintergrund-API-Schlüssel",
-    "BASEMAP_KEY_DESC": "Schlüssel für den Kartenkachel-Anbieter. Ohne Schlüssel liefert CARTO Kacheln mit dem Wasserzeichen „API KEY REQUIRED“.",
+    "BASEMAP_KEY_DESC": "Schlüssel für den gewählten Anbieter. Er wird bei jeder Kachelanfrage vom Browser mitgesendet und ist damit kein Geheimnis — bleibt er leer, fällt die gesamte Seite auf eine schlüssellose Karte zurück.",
     "BASEMAP_URL_LABEL": "Kachel-URL des Kartenhintergrunds",
-    "BASEMAP_URL_DESC": "URL-Vorlage für Kacheln. {key} dort einsetzen, wo der Anbieter den Schlüssel erwartet. Leer lassen für die helle CARTO-Karte.",
+    "BASEMAP_URL_DESC": "Wird verwendet, wenn der Anbieter „Eigene Kachel-URL“ ist. Setzen Sie {key} dorthin, wo der Anbieter den Schlüssel erwartet.",
+    "BASEMAP_URL_DARK_LABEL": "Kachel-URL (Dunkel)",
+    "BASEMAP_URL_DARK_DESC": "Optional. Ersetzt die obige Kachel-URL, solange der dunkle Modus aktiv ist.",
     "BASEMAP_ATTRIBUTION_LABEL": "Kartenhintergrund-Quellenangabe",
-    "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe auf jeder Karte. Muss den Bedingungen des Kachel-Anbieters entsprechen.",
-    "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher zeigt jede Karte der Website das CARTO-Wasserzeichen „API KEY REQUIRED“. CARTO liefert auch ohne Schlüssel funktionierende Kacheln, deshalb meldet dies sonst nichts."
+    "BASEMAP_ATTRIBUTION_DESC": "Quellenangabe für die eigene Kachel-URL. Muss den Bedingungen Ihres Anbieters entsprechen. Wird als reiner Text angezeigt.",
+    "BASEMAP_KEY_MISSING": "Es ist kein Schlüssel gesetzt, daher fallen die Karten auf OpenStreetMap zurück. Der gewählte Anbieter würde auch ohne Schlüssel Kacheln liefern — CARTO zeichnet „API KEY REQUIRED“ hinein —, sodass nichts anderes darauf hinweist."
   },
   "GEOFENCE_DETAIL": {
     "NAME": "Name",
@@ -1822,6 +1828,10 @@
     "YOUR_LOCATION": "Ihr Standort",
     "SELECTED_COUNT": "{{count}} ausgewählt:",
     "AREAS_SELECTED": "{{count}} Gebiet(e) ausgewählt"
+  },
+  "BASEMAP": {
+    "TITLE": "Basiskarte",
+    "KEY_MISSING": "Die Basiskarte der Seite benötigt einen API-Schlüssel. Stattdessen wird {{fallback}} angezeigt."
   },
   "ALERT_DEFAULTS": {
     "TITLE": "Benachrichtigungs-Standards",
