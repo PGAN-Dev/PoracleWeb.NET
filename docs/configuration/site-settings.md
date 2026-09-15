@@ -364,18 +364,42 @@ There is no `uicons_item`. Items live under `reward/item/` in every UICONS pack,
 built from `uicons_reward`. A row of that name was read for a while and never used; if your database
 still has one, nothing reads it.
 
-Built-in icon repositories:
+### The pack list
+
+The picker starts with four packs, all in the [UICONS](https://github.com/UIcons/UIcons) format:
 
 - **Nileplumb (Home)** — Pokémon HOME style
 - **Nileplumb (Shuffle)** — Pokémon Shuffle style
 - **Jms412 (Home)** — Alternative HOME style, and what an unconfigured install uses
 - **Jms412 (Pokedex)** — Pokédex style
 
-All four use the [UICONS](https://github.com/UIcons/UIcons) standard format.
+**The list is editable.** *Add pack* takes a name and the URL of a pack's UICONS folder — the one with
+`pokemon/`, `gym/` and `type/` inside it — and each entry has a pencil and a bin. Your own pack on your
+own network is as valid an entry as a GitHub one; plain `http://` is accepted for exactly that reason.
+
+Adding a pack requires **Check pack** to pass first. It loads one file per category from the URL you
+gave and refuses the pack if any category comes back with nothing, which is the failure this is here
+to prevent: a URL that looks right, saves cleanly, and renders empty squares. It uses image loads
+rather than reading the pack's `index.json`, because that would be a cross-origin request and a pack
+served off your own web server very likely sends no CORS headers — refusing it would be refusing
+something that works.
+
+**Removing a pack does not change your icon settings.** If you remove the pack the site is currently
+using, the icons carry on exactly as they were; the pack simply stops being offered, and reappears as
+a card marked *In use* that you can add back. The same card shows up when an instance is pointed at a
+pack that was never in the list, so a hand-configured instance does not look unconfigured.
+
+*Restore built-in list* puts the four back. An empty list stays empty — it is a choice, not a missing
+value — so the four do not creep back on the next page load.
+
+The list is stored in the `icon_repos` setting as a JSON array of `{ name, base }`. It is admin-only,
+and the API refuses a value it could not render: a base must be an absolute `http` or `https` URL, and
+the list holds at most 25 entries.
 
 **Whitewillem (Ingame) was removed**: the `whitewillem/PogoAssets` repository no longer exists on
 GitHub. It was both the first entry in this list and the source of every built-in default, so an
-instance that had never touched these settings was pointing at a dead host. See #877.
+instance that had never touched these settings was pointing at a dead host. That removing it took a
+release is why the list is editable now. See #877.
 
 ---
 

@@ -478,36 +478,84 @@
           <mat-icon class="section-icon" style="color: #2e7d32">image</mat-icon>
           <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_ICON_REPO' | translate }}</span>
         </div>
+        <p class="section-hint">{{ 'ADMIN_SETTINGS.ICON_REPO_HINT' | translate }}</p>
+
         <div class="repo-selector">
-          @for (repo of iconRepos; track repo.name) {
-            <div class="repo-card" [class.repo-active]="isRepoActive(repo)" (click)="selectRepo(repo)">
+          @for (repo of displayedRepos(); track repo.base) {
+            <div class="repo-card" [class.repo-active]="isRepoActive(repo)" [class.repo-unlisted]="!repo.listed">
               <div class="repo-header">
-                <div class="repo-radio">
+                <div class="repo-radio" (click)="selectRepo(repo)">
                   @if (isRepoActive(repo)) {
                     <mat-icon class="repo-check">check_circle</mat-icon>
                   } @else {
                     <mat-icon class="repo-uncheck">radio_button_unchecked</mat-icon>
                   }
                 </div>
-                <div class="repo-info">
-                  <span class="repo-name">{{ repo.name }}</span>
+                <div class="repo-info" (click)="selectRepo(repo)">
+                  <span class="repo-name">
+                    {{ repo.name }}
+                    @if (!repo.listed) {
+                      <span class="repo-unlisted-tag">{{ 'ADMIN_SETTINGS.ICON_REPO_UNLISTED' | translate }}</span>
+                    }
+                  </span>
                   <span class="repo-url">{{ repo.base }}</span>
                 </div>
+                <div class="repo-actions">
+                  @if (repo.listed) {
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [attr.aria-label]="'COMMON.EDIT' | translate"
+                      [matTooltip]="'COMMON.EDIT' | translate"
+                      (click)="addRepo(repo)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [attr.aria-label]="'ADMIN_SETTINGS.ICON_REPO_REMOVE_TITLE' | translate"
+                      [matTooltip]="'ADMIN_SETTINGS.ICON_REPO_REMOVE_TITLE' | translate"
+                      (click)="removeRepo(repo)">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  } @else {
+                    <button mat-stroked-button type="button" (click)="addRepo(repo)">
+                      <mat-icon>add</mat-icon>
+                      {{ 'ADMIN_SETTINGS.ICON_REPO_ADD_THIS' | translate }}
+                    </button>
+                  }
+                </div>
               </div>
-              <div class="repo-preview-row">
-                @for (img of repo.previewImages; track img.path) {
+              <div class="repo-preview-row" (click)="selectRepo(repo)">
+                @for (img of repoPreviews; track img.path) {
                   <div class="icon-preview-item">
                     <img
                       [src]="repo.base + '/' + img.path"
                       class="icon-preview-img"
                       (error)="onPreviewError($event)"
                       (load)="onPreviewLoad($event)"
-                      loading="lazy" />
+                      loading="lazy"
+                      alt="" />
                     <span class="icon-preview-name">{{ img.name }}</span>
                   </div>
                 }
               </div>
             </div>
+          } @empty {
+            <p class="repo-empty">{{ 'ADMIN_SETTINGS.ICON_REPO_EMPTY' | translate }}</p>
+          }
+        </div>
+
+        <div class="repo-list-actions">
+          <button mat-stroked-button type="button" [disabled]="repoListFull()" (click)="addRepo()">
+            <mat-icon>add</mat-icon>
+            {{ 'ADMIN_SETTINGS.ICON_REPO_ADD' | translate }}
+          </button>
+          <button mat-button type="button" (click)="restoreDefaultRepos()">
+            {{ 'ADMIN_SETTINGS.ICON_REPO_RESTORE_DEFAULTS' | translate }}
+          </button>
+          @if (repoListFull()) {
+            <span class="repo-full-hint">{{ 'ADMIN_SETTINGS.ICON_REPO_FULL' | translate }}</span>
           }
         </div>
       </section>
