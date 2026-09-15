@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -14,12 +16,89 @@ public class GeofenceFeedControllerTests
     private readonly Mock<IUserGeofenceRepository> _repository = new();
     private readonly Mock<IKojiService> _kojiService = new();
     private readonly Mock<ILogger<GeofenceFeedController>> _logger = new();
+    private const string Secret = "shared-secret";
+
     private readonly GeofenceFeedController _sut;
 
     public GeofenceFeedControllerTests()
     {
         this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
-        this._sut = new GeofenceFeedController(this._repository.Object, this._kojiService.Object, this._logger.Object);
+        this._sut = Build(Secret);
+    }
+
+    /// <summary>A controller wired to one configured secret, with a request whose header can be set.</summary>
+    private GeofenceFeedController Build(string? configuredSecret, string? suppliedHeader = null)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Poracle:ApiSecret"] = configuredSecret })
+            .Build();
+
+        var controller = new GeofenceFeedController(
+            this._repository.Object, this._kojiService.Object, configuration, this._logger.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+
+        if (suppliedHeader is not null)
+        {
+            controller.Request.Headers["X-Poracle-Secret"] = suppliedHeader;
+        }
+
+        return controller;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Dropping the Koji cache (#844)
+    // ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void RefreshDropsTheKojiCacheWhenTheSecretMatches()
+    {
+        var sut = this.Build(Secret, Secret);
+
+        Assert.IsType<OkObjectResult>(sut.RefreshKojiCache());
+        this._kojiService.Verify(k => k.InvalidateAdminGeofenceCache(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("wrong-secret")]
+    [InlineData("shared-secret ")]
+    [InlineData("SHARED-SECRET")]
+    public void RefreshRefusesAnythingButTheConfiguredSecret(string? supplied)
+    {
+        var sut = this.Build(Secret, supplied);
+
+        Assert.IsType<UnauthorizedResult>(sut.RefreshKojiCache());
+        this._kojiService.Verify(k => k.InvalidateAdminGeofenceCache(), Times.Never);
+    }
+
+    /// <summary>
+    /// With no secret configured there is nothing to check against, so the endpoint has to refuse rather
+    /// than wave everyone through. An empty configured secret matching an empty header would otherwise
+    /// make this the one anonymous write on the site.
+    /// </summary>
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("", "anything")]
+    public void RefreshFailsClosedWhenNoSecretIsConfigured(string? configured, string? supplied)
+    {
+        var sut = this.Build(configured, supplied);
+
+        Assert.IsType<UnauthorizedResult>(sut.RefreshKojiCache());
+        this._kojiService.Verify(k => k.InvalidateAdminGeofenceCache(), Times.Never);
+    }
+
+    /// <summary>The feed itself stays open; only the refresh is gated.</summary>
+    [Fact]
+    public async Task TheFeedIsStillReadableWithoutASecret()
+    {
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
     }
 
     [Fact]
