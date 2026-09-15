@@ -118,12 +118,16 @@
         <mat-chip-set class="selected-chips">
           @for (area of selectedAreas(); track area) {
             <mat-chip highlighted color="primary" (removed)="removeAreaDirect(area)">
-              {{ area }}
+              {{ areaDisplayName(area) }}
               <!--
                 A second trailing affordance beside remove. Anyone who works from the chips rather than
                 the checklist would otherwise have no sight of what is quiet.
+
+                value is the STORED name, which is what Poracle keys a quiet period on; subject is the
+                published name, which is what the reader is shown. They differ in case and must not be
+                collapsed into one.
               -->
-              <app-quiet-chip appearance="trailing" scope="area" [value]="area" [subject]="area" />
+              <app-quiet-chip appearance="trailing" scope="area" [value]="area" [subject]="areaDisplayName(area)" />
               <button matChipRemove><mat-icon>cancel</mat-icon></button>
             </mat-chip>
           }
