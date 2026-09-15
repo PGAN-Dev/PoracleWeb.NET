@@ -150,6 +150,13 @@ the accent colour. What is on offer is the keyless built-ins, plus the custom UR
 under the name you gave it — plus the keyed ones in the same family as the provider you chose. A
 CARTO key unlocks both CARTO styles, and never Stadia, because one key cannot be both.
 
+!!! warning "A viewer's own choice outranks this setting, including yours"
+    The menu's first entry is **Site default**, which names the provider set here and clears the
+    viewer's choice. It matters most for whoever configures this: click the layers button once while
+    testing, and every later change to `basemap_provider` will appear to do nothing on your own
+    screen, because you are no longer on the site default. The Maps section says so when it applies
+    to you.
+
 ### The API key is public, and a missing one is not silent
 
 `basemap_key` travels in every tile URL the browser requests, so every signed-in user receives it.

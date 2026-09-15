@@ -203,6 +203,28 @@ describe('BasemapService', () => {
       service.select('carto-positron');
       expect(service.active().id).toBe('osm');
     });
+
+    it('goes back to whatever the admin configures once the choice is cleared', () => {
+      // The reported bug: an admin sets a provider, saves, and their own map does not change --
+      // because they clicked the layers button once while looking at it, and the stored choice
+      // outranked the setting with no way to get out of it.
+      service.select('esri-imagery');
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      expect(service.active().id).toBe('esri-imagery');
+
+      service.select('');
+
+      expect(service.active().id).toBe('carto-voyager');
+      expect(localStorage.getItem('poracle-basemap')).toBe('');
+    });
+
+    it('leaves a viewer who never chose on the admin default, whatever it becomes', () => {
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      expect(service.active().id).toBe('carto-voyager');
+
+      siteSettings.set({ basemap_provider: 'esri-canvas' });
+      expect(service.active().id).toBe('esri-canvas');
+    });
   });
 
   describe('dark theme', () => {
@@ -307,13 +329,57 @@ describe('BasemapService', () => {
       second.remove();
     });
 
-    it('renders a picker listing what is on offer, marking the active one', () => {
+    /** The provider entries, without the site-default one that heads the list. */
+    const providerLabels = (map: L.Map) =>
+      Array.from(map.getContainer().querySelectorAll('.basemap-control__option'))
+        .filter(b => (b as HTMLElement).dataset['basemap'])
+        .map(b => b.textContent);
+
+    it('renders a picker listing what is on offer, headed by the site default', () => {
       const map = makeMap();
       service.attach(map, { picker: true });
 
-      const labels = Array.from(map.getContainer().querySelectorAll('.basemap-control__option')).map(b => b.textContent);
-      expect(labels).toEqual(service.available().map(b => b.label));
-      expect(map.getContainer().querySelector('.basemap-control__option.is-active')?.textContent).toBe(service.active().label);
+      expect(providerLabels(map)).toEqual(service.available().map(b => b.label));
+      expect(map.getContainer().querySelector('.basemap-control__option')?.getAttribute('data-basemap')).toBe('');
+      map.remove();
+    });
+
+    it('marks the site default while the viewer has not overridden it', () => {
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      const map = makeMap();
+      service.attach(map, { picker: true });
+
+      const first = map.getContainer().querySelector('.basemap-control__option');
+      expect(first?.getAttribute('data-basemap')).toBe('');
+      expect(first?.classList.contains('is-active')).toBe(true);
+      expect(first?.getAttribute('aria-pressed')).toBe('true');
+      map.remove();
+    });
+
+    it("marks the viewer's own choice instead once they make one, so an override looks like one", () => {
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      const map = makeMap();
+      service.attach(map, { picker: true });
+
+      service.select('esri-imagery');
+      TestBed.flushEffects();
+
+      const active = map.getContainer().querySelector('.basemap-control__option.is-active');
+      expect(active?.textContent).toBe('Esri World Imagery');
+      map.remove();
+    });
+
+    it('clears the override from the picker, which is the only way back', () => {
+      siteSettings.set({ basemap_provider: 'carto-voyager', basemap_key: 'abc123' });
+      service.select('esri-imagery');
+      const map = makeMap();
+      service.attach(map, { picker: true });
+
+      map.getContainer().querySelector<HTMLButtonElement>('.basemap-control__option[data-basemap=""]')!.click();
+      TestBed.flushEffects();
+
+      expect(service.active().id).toBe('carto-voyager');
+      expect(tileUrls(map).some(u => u.includes('cartocdn.com'))).toBe(true);
       map.remove();
     });
 

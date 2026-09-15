@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Quali tile disegna il sito per impostazione predefinita. I campi qui sotto si adattano: un provider integrato richiede al massimo una chiave API, «URL tile personalizzato» richiede l’URL. Ogni utente può sceglierne un’altra dal pulsante dei livelli su qualsiasi mappa.",
     "BASEMAP_PROVIDER_UNSET": "Non impostato",
     "BASEMAP_PROVIDER_UNSET_HINT": "Nessun provider scelto, quindi le mappe usano {{provider}}. Scegline uno per renderlo esplicito.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Stai visualizzando personalmente {{chosen}}, quindi l’impostazione di questa pagina non cambierà ciò che vedi. La predefinita del sito è {{provider}}. Scegli «Predefinita del sito» dal pulsante dei livelli su una mappa per tornarci.",
     "BASEMAP_PROVIDER_CUSTOM": "URL tile personalizzato",
     "BASEMAP_KEY_LABEL": "Chiave API della mappa base",
     "BASEMAP_KEY_DESC": "Chiave del provider scelto. Viaggia in ogni richiesta di tile del browser, quindi non è un segreto — ma lasciarla vuota fa ripiegare tutto il sito su una mappa senza chiave.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Mappa di base",
+    "SITE_DEFAULT": "Predefinita del sito ({{provider}})",
     "KEY_MISSING": "La mappa di base del sito richiede una chiave API. Viene mostrata {{fallback}}.",
     "UNAVAILABLE": "La mappa di base del sito non è configurata. Viene mostrata {{fallback}}."
   },

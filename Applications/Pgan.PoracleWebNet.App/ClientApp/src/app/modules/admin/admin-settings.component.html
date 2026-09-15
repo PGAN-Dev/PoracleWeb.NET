@@ -277,6 +277,15 @@
                     <span>{{ 'ADMIN_SETTINGS.FORCED_BY_PORACLE' | translate }}</span>
                   </div>
                 }
+                @if (meta.key === 'basemap_provider' && basemap.selectedId()) {
+                  <div class="config-hint basemap-provider-hint">
+                    <mat-icon>person</mat-icon>
+                    <span>{{
+                      'ADMIN_SETTINGS.BASEMAP_PERSONAL_OVERRIDE'
+                        | translate: { chosen: basemap.active().label, provider: basemap.siteDefault().label }
+                    }}</span>
+                  </div>
+                }
                 @if (meta.key === 'basemap_provider' && !getSettingValue('basemap_provider') && !basemap.fallbackReason()) {
                   <div class="config-hint basemap-provider-hint">
                     <mat-icon>map</mat-icon>

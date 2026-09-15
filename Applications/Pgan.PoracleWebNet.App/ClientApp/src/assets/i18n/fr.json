@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Les tuiles que le site affiche par défaut. Les champs ci-dessous s’adaptent : un fournisseur intégré demande au plus une clé API, « URL de tuiles personnalisée » demande l’URL. Chacun peut en choisir un autre via le bouton des calques sur n’importe quelle carte.",
     "BASEMAP_PROVIDER_UNSET": "Non défini",
     "BASEMAP_PROVIDER_UNSET_HINT": "Aucun fournisseur choisi : les cartes utilisent {{provider}}. Choisissez-en un pour le définir explicitement.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Vous affichez personnellement {{chosen}} : le réglage de cette page ne changera donc rien pour vous. La valeur par défaut du site est {{provider}}. Choisissez « Valeur par défaut du site » via le bouton des calques sur une carte pour y revenir.",
     "BASEMAP_PROVIDER_CUSTOM": "URL de tuiles personnalisée",
     "BASEMAP_KEY_LABEL": "Clé API du fond de carte",
     "BASEMAP_KEY_DESC": "Clé du fournisseur choisi. Elle voyage dans chaque requête de tuile du navigateur : ce n’est donc pas un secret — mais la laisser vide fait basculer tout le site sur un fond de carte sans clé.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Fond de carte",
+    "SITE_DEFAULT": "Valeur par défaut du site ({{provider}})",
     "KEY_MISSING": "Le fond de carte du site nécessite une clé API. Affichage de {{fallback}} à la place.",
     "UNAVAILABLE": "Le fond de carte du site n’est pas configuré. Affichage de {{fallback}} à la place."
   },

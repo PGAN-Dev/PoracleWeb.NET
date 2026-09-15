@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Jakie kafelki mapy strona rysuje domyślnie. Pola poniżej dostosowują się: wbudowany dostawca wymaga co najwyżej klucza API, „Własny adres kafelków” wymaga adresu. Każdy może wybrać inną mapę przyciskiem warstw na dowolnej mapie.",
     "BASEMAP_PROVIDER_UNSET": "Nie ustawiono",
     "BASEMAP_PROVIDER_UNSET_HINT": "Nie wybrano dostawcy, więc mapy używają {{provider}}. Wybierz jednego, aby ustawić to wprost.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Osobiście oglądasz {{chosen}}, więc ustawienie na tej stronie nie zmieni tego, co widzisz. Domyślną dla witryny jest {{provider}}. Wybierz „Domyślna dla witryny” przyciskiem warstw na dowolnej mapie, aby do niej wrócić.",
     "BASEMAP_PROVIDER_CUSTOM": "Własny adres kafelków",
     "BASEMAP_KEY_LABEL": "Klucz API mapy podkładowej",
     "BASEMAP_KEY_DESC": "Klucz wybranego dostawcy. Jest wysyłany w każdym żądaniu kafelka z przeglądarki, więc nie jest tajemnicą — ale pozostawiony pusty przełącza całą stronę na mapę bez klucza.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Mapa podkładowa",
+    "SITE_DEFAULT": "Domyślna dla witryny ({{provider}})",
     "KEY_MISSING": "Mapa podkładowa strony wymaga klucza API. Zamiast niej pokazano {{fallback}}.",
     "UNAVAILABLE": "Mapa podkładowa strony nie jest skonfigurowana. Zamiast niej pokazano {{fallback}}."
   },

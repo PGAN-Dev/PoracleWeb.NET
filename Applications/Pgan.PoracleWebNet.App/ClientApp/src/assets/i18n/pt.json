@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Que mosaicos o site desenha por omissão. Os campos abaixo adaptam-se: um fornecedor integrado precisa no máximo de uma chave API, «URL de mosaicos personalizado» precisa do URL. Cada utilizador pode escolher outro no botão de camadas de qualquer mapa.",
     "BASEMAP_PROVIDER_UNSET": "Não definido",
     "BASEMAP_PROVIDER_UNSET_HINT": "Nenhum fornecedor escolhido, por isso os mapas usam {{provider}}. Escolha um para o tornar explícito.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Está a ver {{chosen}} pessoalmente, por isso a definição desta página não muda o que vê. O predefinido do site é {{provider}}. Escolha «Predefinido do site» no botão de camadas de qualquer mapa para voltar a ele.",
     "BASEMAP_PROVIDER_CUSTOM": "URL de mosaicos personalizado",
     "BASEMAP_KEY_LABEL": "Chave de API do mapa base",
     "BASEMAP_KEY_DESC": "Chave do fornecedor escolhido. Viaja em cada pedido de mosaico do navegador, por isso não é um segredo — mas deixá-la vazia faz todo o site recorrer a um mapa base sem chave.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Mapa base",
+    "SITE_DEFAULT": "Predefinido do site ({{provider}})",
     "KEY_MISSING": "O mapa base do site precisa de uma chave API. A mostrar {{fallback}} em vez disso.",
     "UNAVAILABLE": "O mapa base do site não está configurado. A mostrar {{fallback}} em vez disso."
   },

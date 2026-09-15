@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Welche Kartenkacheln die Seite standardmäßig zeichnet. Die Felder darunter passen sich an: ein eingebauter Anbieter braucht höchstens einen API-Schlüssel, „Eigene Kachel-URL“ braucht die URL. Nutzer können über die Ebenen-Schaltfläche auf jeder Karte eine andere wählen.",
     "BASEMAP_PROVIDER_UNSET": "Nicht gesetzt",
     "BASEMAP_PROVIDER_UNSET_HINT": "Kein Anbieter gewählt, daher verwenden die Karten {{provider}}. Wählen Sie einen aus, um es festzulegen.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Sie sehen persönlich {{chosen}}, daher ändert die Einstellung auf dieser Seite nichts an Ihrer Ansicht. Der Standard der Seite ist {{provider}}. Wählen Sie „Standard der Seite“ über die Ebenen-Schaltfläche auf einer Karte, um dorthin zurückzukehren.",
     "BASEMAP_PROVIDER_CUSTOM": "Eigene Kachel-URL",
     "BASEMAP_KEY_LABEL": "Kartenhintergrund-API-Schlüssel",
     "BASEMAP_KEY_DESC": "Schlüssel für den gewählten Anbieter. Er wird bei jeder Kachelanfrage vom Browser mitgesendet und ist damit kein Geheimnis — bleibt er leer, fällt die gesamte Seite auf eine schlüssellose Karte zurück.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Basiskarte",
+    "SITE_DEFAULT": "Standard der Seite ({{provider}})",
     "KEY_MISSING": "Die Basiskarte der Seite benötigt einen API-Schlüssel. Stattdessen wird {{fallback}} angezeigt.",
     "UNAVAILABLE": "Die Basiskarte der Seite ist nicht eingerichtet. Stattdessen wird {{fallback}} angezeigt."
   },

@@ -44,12 +44,15 @@ interface Attachment {
   pickerSignature: string;
 }
 
-/** What the picker renders from. Passed as one object because it is four values and no behaviour. */
+/** What the picker renders from. Passed as one object because it is all values and no behaviour. */
 interface PickerState {
   active: BasemapDefinition;
   fallback: 'missing-key' | 'unavailable' | null;
   lang: string;
   options: BasemapDefinition[];
+  /** The viewer's own choice, empty when they are on the site default. Marks the active entry. */
+  selected: string;
+  siteDefault: BasemapDefinition;
 }
 
 /**
@@ -136,20 +139,22 @@ export class BasemapService {
   readonly selectedId = signal(localStorage.getItem(STORAGE_KEY) ?? '');
 
   /**
-   * The definition every attached map is currently drawing, resolved in order of who gets the say:
-   * the viewer, then the admin, then a keyless basemap.
+   * What a viewer who has made no choice of their own sees: the admin's provider if it can be drawn,
+   * and a keyless basemap if it cannot.
    *
-   * That last step is the point. A keyed provider with no key still returns tiles, so drawing it
+   * That second step is the point. A keyed provider with no key still returns tiles, so drawing it
    * anyway produces a watermark nobody is told about. See {@link FALLBACK_BASEMAP_ID}.
    */
-  readonly active = computed<BasemapDefinition>(() => {
+  readonly siteDefault = computed<BasemapDefinition>(() => {
     const usable = this.available();
     return (
-      usable.find(b => b.id === this.selectedId()) ??
-      usable.find(b => b.id === this.configuredId()) ??
-      usable.find(b => b.id === FALLBACK_BASEMAP_ID) ??
-      findBasemap(FALLBACK_BASEMAP_ID)!
+      usable.find(b => b.id === this.configuredId()) ?? usable.find(b => b.id === FALLBACK_BASEMAP_ID) ?? findBasemap(FALLBACK_BASEMAP_ID)!
     );
+  });
+
+  /** The definition every attached map is currently drawing: the viewer's choice, or the site's. */
+  readonly active = computed<BasemapDefinition>(() => {
+    return this.available().find(b => b.id === this.selectedId()) ?? this.siteDefault();
   });
 
   /**
@@ -193,13 +198,18 @@ export class BasemapService {
       // Read up front so the effect depends on all of them even when nothing is attached yet.
       const definition = this.active();
       const url = this.tileUrl();
-      const options = this.available();
-      const fallback = this.fallbackReason();
-      const lang = this.i18n.currentLang();
+      const state: PickerState = {
+        active: definition,
+        fallback: this.fallbackReason(),
+        lang: this.i18n.currentLang(),
+        options: this.available(),
+        selected: this.selectedId(),
+        siteDefault: this.siteDefault(),
+      };
 
       for (const attachment of this.attachments) {
         this.draw(attachment, definition, url);
-        this.renderPicker(attachment, { active: definition, fallback, lang, options });
+        this.renderPicker(attachment, state);
       }
     });
   }
@@ -269,6 +279,8 @@ export class BasemapService {
         fallback: this.fallbackReason(),
         lang: this.i18n.currentLang(),
         options: this.available(),
+        selected: this.selectedId(),
+        siteDefault: this.siteDefault(),
       });
       return container;
     };
@@ -304,12 +316,20 @@ export class BasemapService {
     const heading = L.DomUtil.create('p', 'basemap-control__title', menu);
     heading.textContent = title;
 
-    for (const option of state.options) {
+    // Without an entry for it, a viewer who once touched this menu could never get back to whatever
+    // the admin configures afterwards -- the admin included, which is how an admin concludes that
+    // saving the setting does nothing.
+    const entries: { id: string; label: string }[] = [
+      { id: '', label: this.i18n.instant('BASEMAP.SITE_DEFAULT', { provider: state.siteDefault.label }) },
+      ...state.options.map(option => ({ id: option.id, label: option.label })),
+    ];
+
+    for (const entry of entries) {
       const button = L.DomUtil.create('button', 'basemap-control__option', menu);
       button.type = 'button';
-      button.dataset['basemap'] = option.id;
-      button.textContent = option.label;
-      button.addEventListener('click', () => this.select(option.id));
+      button.dataset['basemap'] = entry.id;
+      button.textContent = entry.label;
+      button.addEventListener('click', () => this.select(entry.id));
     }
 
     if (state.fallback) {
@@ -357,14 +377,17 @@ export class BasemapService {
     const container = attachment.picker;
     if (!container) return;
 
-    const signature = [state.lang, state.fallback, ...state.options.map(o => o.id)].join('|');
+    const signature = [state.lang, state.fallback, state.siteDefault.label, ...state.options.map(o => o.id)].join('|');
     if (signature !== attachment.pickerSignature) {
       this.buildPicker(container, state);
       attachment.pickerSignature = signature;
     }
 
     for (const button of container.querySelectorAll<HTMLButtonElement>('.basemap-control__option')) {
-      const isActive = button.dataset['basemap'] === state.active.id;
+      // Matched against the viewer's own choice, not against what is drawn, so the site-default entry
+      // reads as active exactly when they have not overridden it -- and their override is visible as
+      // an override rather than looking like the site's own setting.
+      const isActive = (button.dataset['basemap'] ?? '') === state.selected;
       button.setAttribute('aria-pressed', String(isActive));
       button.classList.toggle('is-active', isActive);
     }

@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Welke kaarttegels de site standaard tekent. De velden hieronder passen zich aan: een ingebouwde aanbieder heeft hooguit een API-sleutel nodig, ‘Eigen tegel-URL’ heeft de URL nodig. Bezoekers kunnen via de lagenknop op elke kaart een andere kiezen.",
     "BASEMAP_PROVIDER_UNSET": "Niet ingesteld",
     "BASEMAP_PROVIDER_UNSET_HINT": "Geen aanbieder gekozen, dus kaarten gebruiken {{provider}}. Kies er een om het vast te leggen.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Je bekijkt persoonlijk {{chosen}}, dus de instelling op deze pagina verandert niets aan wat jij ziet. De standaard van de site is {{provider}}. Kies ‘Standaard van de site’ via de lagenknop op een kaart om terug te gaan.",
     "BASEMAP_PROVIDER_CUSTOM": "Eigen tegel-URL",
     "BASEMAP_KEY_LABEL": "API-sleutel achtergrondkaart",
     "BASEMAP_KEY_DESC": "Sleutel voor de gekozen aanbieder. Hij gaat mee in elk tegelverzoek van de browser en is dus geen geheim — maar laat je hem leeg, dan valt de hele site terug op een kaart zonder sleutel.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Basiskaart",
+    "SITE_DEFAULT": "Standaard van de site ({{provider}})",
     "KEY_MISSING": "De basiskaart van de site heeft een API-sleutel nodig. {{fallback}} wordt in plaats daarvan getoond.",
     "UNAVAILABLE": "De basiskaart van de site is niet ingesteld. {{fallback}} wordt in plaats daarvan getoond."
   },

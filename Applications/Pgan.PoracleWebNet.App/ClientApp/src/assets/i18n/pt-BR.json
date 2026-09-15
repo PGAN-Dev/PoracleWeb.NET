@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Quais blocos o site desenha por padrão. Os campos abaixo se adaptam: um provedor integrado precisa no máximo de uma chave de API, “URL de blocos personalizada” precisa da URL. Cada usuário pode escolher outro no botão de camadas em qualquer mapa.",
     "BASEMAP_PROVIDER_UNSET": "Não definido",
     "BASEMAP_PROVIDER_UNSET_HINT": "Nenhum provedor escolhido, então os mapas usam {{provider}}. Escolha um para deixar isso explícito.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Você está vendo {{chosen}} pessoalmente, então a configuração desta página não muda o que você vê. O padrão do site é {{provider}}. Escolha “Padrão do site” no botão de camadas em qualquer mapa para voltar a ele.",
     "BASEMAP_PROVIDER_CUSTOM": "URL de blocos personalizada",
     "BASEMAP_KEY_LABEL": "Chave de API do mapa base",
     "BASEMAP_KEY_DESC": "Chave do provedor escolhido. Ela viaja em cada requisição de bloco do navegador, então não é um segredo — mas deixá-la vazia faz o site inteiro cair em um mapa base sem chave.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Mapa base",
+    "SITE_DEFAULT": "Padrão do site ({{provider}})",
     "KEY_MISSING": "O mapa base do site precisa de uma chave de API. Exibindo {{fallback}} no lugar.",
     "UNAVAILABLE": "O mapa base do site não está configurado. Exibindo {{fallback}} no lugar."
   },

@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Hvilke kortfliser siden tegner som standard. Felterne nedenfor tilpasser sig: en indbygget udbyder kræver højst en API-nøgle, ”Egen flise-URL” kræver URL’en. Alle kan vælge et andet via lagknappen på ethvert kort.",
     "BASEMAP_PROVIDER_UNSET": "Ikke angivet",
     "BASEMAP_PROVIDER_UNSET_HINT": "Ingen udbyder valgt, så kortene bruger {{provider}}. Vælg en for at gøre det udtrykkeligt.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Du ser personligt {{chosen}}, så indstillingen på denne side ændrer ikke, hvad du ser. Sidens standard er {{provider}}. Vælg ”Sidens standard” via lagknappen på et kort for at vende tilbage til den.",
     "BASEMAP_PROVIDER_CUSTOM": "Egen flise-URL",
     "BASEMAP_KEY_LABEL": "API-nøgle til baggrundskort",
     "BASEMAP_KEY_DESC": "Nøgle til den valgte udbyder. Den sendes med hver fliseforespørgsel fra browseren og er derfor ingen hemmelighed — men lades den tom, falder hele siden tilbage til et baggrundskort uden nøgle.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Baggrundskort",
+    "SITE_DEFAULT": "Sidens standard ({{provider}})",
     "KEY_MISSING": "Sidens baggrundskort kræver en API-nøgle. Viser {{fallback}} i stedet.",
     "UNAVAILABLE": "Sidens baggrundskort er ikke sat op. Viser {{fallback}} i stedet."
   },

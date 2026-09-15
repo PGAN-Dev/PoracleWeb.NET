@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Vilka kartrutor webbplatsen ritar som standard. Fälten nedan anpassar sig: en inbyggd leverantör behöver högst en API-nyckel, ”Egen rut-URL” behöver URL:en. Alla kan välja en annan via lagerknappen på valfri karta.",
     "BASEMAP_PROVIDER_UNSET": "Inte angiven",
     "BASEMAP_PROVIDER_UNSET_HINT": "Ingen leverantör vald, så kartorna använder {{provider}}. Välj en för att ange det uttryckligen.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Du tittar personligen på {{chosen}}, så inställningen på den här sidan ändrar inte vad du ser. Webbplatsens standard är {{provider}}. Välj ”Webbplatsens standard” via lagerknappen på en karta för att gå tillbaka till den.",
     "BASEMAP_PROVIDER_CUSTOM": "Egen rut-URL",
     "BASEMAP_KEY_LABEL": "API-nyckel för bakgrundskarta",
     "BASEMAP_KEY_DESC": "Nyckel för den valda leverantören. Den följer med varje rutbegäran från webbläsaren och är därför ingen hemlighet — men lämnas den tom faller hela webbplatsen tillbaka på en bakgrundskarta utan nyckel.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Bakgrundskarta",
+    "SITE_DEFAULT": "Webbplatsens standard ({{provider}})",
     "KEY_MISSING": "Webbplatsens bakgrundskarta kräver en API-nyckel. Visar {{fallback}} i stället.",
     "UNAVAILABLE": "Webbplatsens bakgrundskarta är inte konfigurerad. Visar {{fallback}} i stället."
   },

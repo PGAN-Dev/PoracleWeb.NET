@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Which map tiles the site draws by default. The fields below change to match: a built-in provider needs at most an API key, Custom tile URL needs the URL. Viewers can pick a different one from the layers button on any map.",
     "BASEMAP_PROVIDER_UNSET": "Not set",
     "BASEMAP_PROVIDER_UNSET_HINT": "No provider chosen, so maps use {{provider}}. Pick one to make it explicit.",
+    "BASEMAP_PERSONAL_OVERRIDE": "You are personally viewing {{chosen}}, so this page's setting will not change what you see. The site default is {{provider}}. Pick “Site default” from the layers button on any map to go back to it.",
     "BASEMAP_PROVIDER_CUSTOM": "Custom tile URL",
     "BASEMAP_KEY_LABEL": "Basemap API Key",
     "BASEMAP_KEY_DESC": "Key for the chosen provider. It travels in every tile request the browser makes, so it is not a secret — but leaving it blank drops the whole site to a keyless basemap.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Basemap",
+    "SITE_DEFAULT": "Site default ({{provider}})",
     "KEY_MISSING": "The site’s basemap needs an API key. Showing {{fallback}} instead.",
     "UNAVAILABLE": "The site’s basemap is not set up. Showing {{fallback}} instead."
   },

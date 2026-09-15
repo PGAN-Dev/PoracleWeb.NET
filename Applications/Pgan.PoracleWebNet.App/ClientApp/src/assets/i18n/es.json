@@ -1757,6 +1757,7 @@
     "BASEMAP_PROVIDER_DESC": "Qué teselas dibuja el sitio por defecto. Los campos de abajo se adaptan: un proveedor integrado necesita como mucho una clave API, «URL de teselas personalizada» necesita la URL. Cada usuario puede elegir otro desde el botón de capas en cualquier mapa.",
     "BASEMAP_PROVIDER_UNSET": "Sin definir",
     "BASEMAP_PROVIDER_UNSET_HINT": "No hay proveedor elegido, así que los mapas usan {{provider}}. Elija uno para dejarlo explícito.",
+    "BASEMAP_PERSONAL_OVERRIDE": "Usted está viendo {{chosen}} personalmente, así que el ajuste de esta página no cambiará lo que ve. El predeterminado del sitio es {{provider}}. Elija «Predeterminado del sitio» en el botón de capas de cualquier mapa para volver a él.",
     "BASEMAP_PROVIDER_CUSTOM": "URL de teselas personalizada",
     "BASEMAP_KEY_LABEL": "Clave API del mapa base",
     "BASEMAP_KEY_DESC": "Clave del proveedor elegido. Viaja en cada petición de tesela del navegador, así que no es un secreto — pero dejarla vacía hace que todo el sitio use un mapa base sin clave.",
@@ -1835,6 +1836,7 @@
   },
   "BASEMAP": {
     "TITLE": "Mapa base",
+    "SITE_DEFAULT": "Predeterminado del sitio ({{provider}})",
     "KEY_MISSING": "El mapa base del sitio necesita una clave API. Se muestra {{fallback}} en su lugar.",
     "UNAVAILABLE": "El mapa base del sitio no está configurado. Se muestra {{fallback}} en su lugar."
   },
