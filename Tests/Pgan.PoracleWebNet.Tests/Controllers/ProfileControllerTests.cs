@@ -25,6 +25,13 @@ public class ProfileControllerTests : ControllerTestBase
     {
         this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
+        // These two report what the server actually did as of #836 and #837. Every pre-existing test here
+        // was written against a PoracleNG that reports neither, so that is what they keep answering --
+        // preserving the path each was written to exercise rather than silently moving them onto the new
+        // one. Tests about the new behaviour set their own return.
+        this._humanProxy.SetReturnsDefault<Task<int?>>(Task.FromResult<int?>(null));
+        this._humanProxy.SetReturnsDefault<Task<bool>>(Task.FromResult(false));
+
         this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._profileRepository.Object, this._jwtService.Object, this._roleResolver.Object, this._userGeofenceRepository.Object);
         SetupUser(this._sut);
     }
@@ -171,6 +178,93 @@ public class ProfileControllerTests : ControllerTestBase
         Assert.IsType<NotFoundResult>(await this._sut.Delete(99));
     }
 
+    // ---- profiles on v2 (#836, #837) ------------------------------------------------------------
+
+    [Fact]
+    public async Task UpdateStillWritesTheNameItselfWhenPoracleDidNot()
+    {
+        // Every released PoracleNG. Its update handler answers ok and keeps the old name, so the direct
+        // write to profiles.name is the only thing that renames anything. See #406.
+        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .ReturnsAsync(false);
+        this._profileRepository.Setup(r => r.RenameAsync("123456789", 1, "Renamed")).ReturnsAsync(true);
+
+        await this._sut.Update(1, new Profile { Name = "Renamed" });
+
+        this._profileRepository.Verify(r => r.RenameAsync("123456789", 1, "Renamed"), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateDoesNotTouchTheDatabaseWhenPoracleAppliedTheName()
+    {
+        // The point of #837: on a server whose PATCH takes a name, the rename has already happened and
+        // the direct write is the thing being retired.
+        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Old" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .ReturnsAsync(true);
+
+        await this._sut.Update(1, new Profile { Name = "Renamed" });
+
+        this._profileRepository.Verify(
+            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateLeavesAnUnchangedNameAloneOnEitherKindOfServer()
+    {
+        // Renaming to the name it already has is not a rename, and was not one before this change.
+        var existing = new Profile { Id = "123456789", ProfileNo = 1, Name = "Same" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(existing);
+        this._humanProxy.Setup(p => p.UpdateProfileAsync(It.IsAny<string>(), It.IsAny<JsonElement>()))
+            .ReturnsAsync(false);
+
+        await this._sut.Update(1, new Profile { Name = "Same" });
+
+        this._profileRepository.Verify(
+            r => r.RenameAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateUsesTheNumberPoracleAssignedRatherThanDiffingTheList()
+    {
+        // PoracleNG assigns the lowest free number. Here the list diff would answer 2 and the server says
+        // 7; the server is right by construction, and the whole point of #836 is to stop inferring it.
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new Profile { ProfileNo = 1 }])
+            .ReturnsAsync([new Profile { ProfileNo = 1 }, new Profile { ProfileNo = 2 }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
+            .ReturnsAsync(7);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 7))
+            .ReturnsAsync(new Profile { ProfileNo = 7, Name = "New" });
+
+        await this._sut.Create(new Profile { Name = "New" });
+
+        this._profileService.Verify(s => s.GetByUserAndProfileNoAsync("123456789", 7), Times.Once);
+        this._profileService.Verify(s => s.GetByUserAndProfileNoAsync("123456789", 2), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateFallsBackToDiffingTheListWhenPoracleSaysNothing()
+    {
+        // The released-server path, and the reason ProfileNumbering stays rather than being deleted.
+        this._profileService.SetupSequence(s => s.GetByUserAsync("123456789"))
+            .ReturnsAsync([new Profile { ProfileNo = 0 }, new Profile { ProfileNo = 1 }, new Profile { ProfileNo = 3 }])
+            .ReturnsAsync([new Profile { ProfileNo = 0 }, new Profile { ProfileNo = 1 },
+                           new Profile { ProfileNo = 2 }, new Profile { ProfileNo = 3 }]);
+        this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
+            .ReturnsAsync((int?)null);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2))
+            .ReturnsAsync(new Profile { ProfileNo = 2, Name = "New" });
+
+        await this._sut.Create(new Profile { Name = "New" });
+
+        // 2, not 4: the lowest free number, which is the #407 case arithmetic gets wrong.
+        this._profileService.Verify(s => s.GetByUserAndProfileNoAsync("123456789", 2), Times.Once);
+    }
+
     [Fact]
     public async Task UpdateIncludesActiveHoursInProxyPayload()
     {
@@ -281,7 +375,7 @@ public class ProfileControllerTests : ControllerTestBase
         JsonElement? sent = null;
         this._humanProxy.Setup(h => h.AddProfileAsync("123456789", It.IsAny<JsonElement>()))
             .Callback<string, JsonElement>((_, b) => sent = b.Clone())
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((int?)null);
 
         await this._sut.Create(new Profile { Name = "New" });
 

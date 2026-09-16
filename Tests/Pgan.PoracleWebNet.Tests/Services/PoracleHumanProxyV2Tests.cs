@@ -421,7 +421,113 @@ public class PoracleHumanProxyV2Tests
         Assert.Equal($"{ApiAddress}/api/humans/one/user1", Assert.Single(handler.Requests).Url);
     }
 
-    private static PoracleHumanProxy CreateSut(ScriptedHandler handler, string? version, IMemoryCache? cache = null)
+    // ---- profiles on v2 (#836, #837) ------------------------------------------------------------
+    //
+    // Both gate on what the server's own /openapi.json declares rather than on the route answering,
+    // because on 5.2.1 both routes exist and neither does what is wanted: the create answers
+    // {"status":"ok"} with no number, and the PATCH declares active_hours alone under
+    // additionalProperties:false, so sending a name to it is a 422.
+
+    private static PoracleV2Capabilities Carrying(bool create = false, bool rename = false) =>
+        new() { Read = true, ProfileCreateReturnsNumber = create, ProfileRename = rename };
+
+    [Fact]
+    public async Task CreatingAProfileTakesTheNumberTheServerAssigned()
+    {
+        var handler = ScriptedHandler.Ok("""
+            {"profile_no":2,"profile":{"uid":347,"id":"user1","profile_no":2,"name":"probe-two"}}
+            """);
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
+
+        var assigned = await sut.AddProfileAsync("user1", Body("""{"name":"probe-two"}"""));
+
+        Assert.Equal(2, assigned);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles", request.Url);
+    }
+
+    [Fact]
+    public async Task CreatingAProfileStaysOnV1WhenTheServerWouldNotReportTheNumber()
+    {
+        // The no-change case, and the reason this gates on the schema rather than on the route. 5.2.1
+        // serves POST /v2/humans/{id}/profiles perfectly well — it just answers {"status":"ok"}, so
+        // going there would cost a round trip and still leave the caller diffing the profile list.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: Carrying(create: false));
+
+        var assigned = await sut.AddProfileAsync("user1", Body("""{"name":"probe-two"}"""));
+
+        Assert.Null(assigned);
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/add", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task ACreateThatAnswersWithoutTheNumberIsNotAFailure()
+    {
+        // A server that declares the capability and then does not carry it. Null sends the caller back
+        // to diffing the list, which is what it does on every released version anyway.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(create: true));
+
+        Assert.Null(await sut.AddProfileAsync("user1", Body("""{"name":"probe-two"}""")));
+    }
+
+    [Fact]
+    public async Task RenamingAProfilePatchesV2AndSaysTheNameWasApplied()
+    {
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+
+        var applied = await sut.UpdateProfileAsync(
+            "user1", Body("""{"profile_no":2,"name":"renamed","active_hours":null}"""));
+
+        Assert.True(applied);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/profiles/2", request.Url);
+
+        // profile_no addresses the row in the path; v2 sets additionalProperties:false, so leaving it in
+        // the body is a 422 rather than a harmless extra.
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.False(body.RootElement.TryGetProperty("profile_no", out _));
+        Assert.Equal("renamed", body.RootElement.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task RenamingStaysOnV1WhenTheServerWouldRefuseAName()
+    {
+        // The load-bearing half. PATCH exists on 5.2.1 and would answer 422 for the name, so this is not
+        // an optimisation — without the gate, every profile edit on the version everyone runs would fail.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: Carrying(rename: false));
+
+        var applied = await sut.UpdateProfileAsync(
+            "user1", Body("""{"profile_no":2,"name":"renamed"}"""));
+
+        Assert.False(applied);
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
+    }
+
+    [Fact]
+    public async Task AnUpdateWithNoProfileNumberStaysOnV1()
+    {
+        // v2 addresses the profile in the path, so a body that does not say which profile cannot go
+        // there. v1 reads it out of the body and is the only surface that can serve this.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+
+        Assert.False(await sut.UpdateProfileAsync("user1", Body("""{"name":"renamed"}""")));
+        Assert.Equal($"{ApiAddress}/api/profiles/user1/update", Assert.Single(handler.Requests).Url);
+    }
+
+    private static JsonElement Body(string json) => JsonDocument.Parse(json).RootElement.Clone();
+
+    private static PoracleHumanProxy CreateSut(
+        ScriptedHandler handler,
+        string? version,
+        IMemoryCache? cache = null,
+        PoracleV2Capabilities? capabilities = null)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -435,6 +541,7 @@ public class PoracleHumanProxyV2Tests
             new HttpClient(handler),
             config,
             PoracleHumanProxyTests.ServerProfile(version),
+            PoracleHumanProxyTests.V2Schema(capabilities),
             cache ?? new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
     }

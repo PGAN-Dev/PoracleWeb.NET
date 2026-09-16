@@ -149,6 +149,13 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(5);
         });
 
+        services.AddHttpClient<IPoracleV2SchemaService, PoracleV2SchemaService>(client =>
+        {
+            // Same reasoning as the profile probe above, with more headroom: /openapi.json is most of a
+            // megabyte on 5.2.1 where /health is a line.
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
         // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)
         // Registered as the concrete type, then decorated: UserOwnedOverrideAreaProxy is what the rest
         // of the app resolves as IPoracleTrackingProxy. It lets an alarm confine itself to a geofence the
