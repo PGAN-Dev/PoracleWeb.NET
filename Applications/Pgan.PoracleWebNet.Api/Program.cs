@@ -483,12 +483,43 @@ app.UseRateLimiter();
 
 app.MapControllers();
 
-// Serve Angular SPA
+// Serve Angular SPA.
+//
+// Two files the SPA needs are fetched by a name that never changes while their contents change on
+// every deploy: index.html, and the locale bundle ngx-translate builds a URL for at runtime
+// (`./assets/i18n/{lang}.json`). Everything else Angular emits is content-hashed, so a stale copy is
+// unreachable by construction. These two carry no Cache-Control at all, which leaves the browser on
+// heuristic freshness -- a fraction of the file's age, so the stale window grows the longer an
+// instance runs -- and a returning visitor keeps whatever they already had. For a locale bundle that
+// is visible and looks like a defect: a key the old file has never heard of renders as the key
+// itself, so a new feature reads as ADMIN_AREAS.TITLE rather than as untranslated English, and only
+// for people who had used the site before. See #888.
+//
+// "no-cache" is revalidate-before-use, not do-not-store. The ETag is served either way, so an
+// unchanged file costs a conditional request and no body. Deliberately not applied to the rest of
+// wwwroot: assets/help/*.png are large, a stale screenshot is cosmetic, and the JS bundles are
+// already hashed -- widening this would make every visitor revalidate the lot to fix a problem
+// neither of them has.
+var staticFileOptions = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (MustRevalidate(ctx.Context.Request.Path))
+        {
+            ctx.Context.Response.Headers.CacheControl = "no-cache";
+        }
+    },
+};
+
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(staticFileOptions);
 if (!app.Environment.IsDevelopment())
 {
-    app.MapFallbackToFile("index.html");
+    // The same options, and not optional: this branch serves index.html for `/` as well as for a deep
+    // link. Routing matches the fallback endpoint first, and StaticFileMiddleware skips any request
+    // that already has one, so UseDefaultFiles above never sees either. Leaving this on the defaults
+    // means the shell is revalidated only when somebody types /index.html by hand.
+    app.MapFallbackToFile("index.html", staticFileOptions);
 }
 
 app.Run();
@@ -514,6 +545,21 @@ static string[] SplitConfigList(string? value) =>
     string.IsNullOrWhiteSpace(value)
         ? []
         : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+/// <summary>
+/// Whether a static file must be revalidated before use rather than cached on a heuristic.
+/// </summary>
+/// <remarks>
+/// The path is the rewritten one by the time this runs -- whichever of <c>MapFallbackToFile</c> or
+/// <c>UseDefaultFiles</c> handled the request has already turned it into <c>/index.html</c> -- so
+/// every route to the SPA shell is covered by the one check. Matched on the path rather than the
+/// extension, because <c>assets/i18n</c> is the directory that matters and not the fact that its
+/// contents are JSON. Kept as a named method so the rule is testable and so widening it has to be a
+/// deliberate edit.
+/// </remarks>
+static bool MustRevalidate(PathString path) =>
+    path.StartsWithSegments("/assets/i18n", StringComparison.OrdinalIgnoreCase)
+    || path.Equals("/index.html", StringComparison.OrdinalIgnoreCase);
 
 static void MapEnvVar(string shortName, string configName, string? defaultValue = null)
 {

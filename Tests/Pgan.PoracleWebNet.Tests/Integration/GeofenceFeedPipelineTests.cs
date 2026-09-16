@@ -355,6 +355,92 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
         Assert.Equal("DENY", response.Headers.GetValues("X-Frame-Options").Single());
     }
 
+    // --------------------------------------------------------------
+    // 6. Locale bundles must never be served stale (#888)
+    // --------------------------------------------------------------
+
+    /// <summary>
+    /// ngx-translate fetches <c>./assets/i18n/{lang}.json</c>, a URL built at runtime and carrying no
+    /// content hash, unlike every JS bundle beside it. Without a directive the browser keeps whatever
+    /// copy it already has across a deploy, and a key added in that deploy renders as the key itself --
+    /// so the page reads as broken, and only for the people who were already using it.
+    /// </summary>
+    [Fact]
+    public async Task TranslationBundlesAreServedNoCache()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.GetAsync("/assets/i18n/en.json");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoCache, "locale bundles must revalidate before use");
+    }
+
+    /// <summary>
+    /// The cost half. "no-cache" is revalidate-before-use, not do-not-store, so an unchanged bundle
+    /// still answers 304 with no body -- one conditional request per load, not 150 KB of JSON. This is
+    /// the assertion that fails if somebody "hardens" the directive into no-store later.
+    /// </summary>
+    [Fact]
+    public async Task AnUnchangedTranslationBundleRevalidatesTo304()
+    {
+        using var client = this._factory.CreateClient();
+
+        using var first = await client.GetAsync("/assets/i18n/en.json");
+        var etag = first.Headers.ETag;
+        Assert.NotNull(etag);
+        Assert.False(first.Headers.CacheControl?.NoStore ?? false);
+
+        using var conditional = new HttpRequestMessage(HttpMethod.Get, "/assets/i18n/en.json");
+        conditional.Headers.IfNoneMatch.Add(etag);
+        using var second = await client.SendAsync(conditional);
+
+        Assert.Equal(HttpStatusCode.NotModified, second.StatusCode);
+    }
+
+    /// <summary>
+    /// The sibling, and the reason the options object is shared. index.html is the other file fetched
+    /// by a name that never changes, and it names the hashed bundles -- so a stale one pins a returning
+    /// visitor to an entire old build. All three paths are asserted because they do not go through the
+    /// same middleware: the fallback endpoint matches <c>/</c> and <c>/dashboard</c>, and
+    /// StaticFileMiddleware skips a request that already has an endpoint, so those two never reach
+    /// <c>UseDefaultFiles</c> at all. Only <c>/index.html</c> -- which the <c>nonfile</c> constraint
+    /// keeps off the fallback -- is served by <c>UseStaticFiles</c>. Configure one and not the other
+    /// and the assertion that passes is the one nobody's browser ever requests.
+    /// </summary>
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/index.html")]
+    [InlineData("/dashboard")]
+    public async Task TheSpaShellIsRevalidatedHoweverItIsReached(string path)
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(SpaMarker, await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.True(response.Headers.CacheControl?.NoCache, "the SPA shell must revalidate before use");
+    }
+
+    /// <summary>
+    /// The half that keeps this scoped to i18n. Help screenshots are large and a stale one is cosmetic,
+    /// and the JS bundles are already fingerprinted; widening the rule to all of wwwroot would make
+    /// every visitor revalidate the lot on every load to fix a problem neither of them has.
+    /// </summary>
+    [Theory]
+    [InlineData("/assets/help/sidenav.png")]
+    [InlineData("/main-ABCD1234.js")]
+    public async Task OtherStaticFilesAreLeftAlone(string path)
+    {
+        using var client = this._factory.CreateClient();
+
+        using var response = await client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(response.Headers.CacheControl?.NoCache ?? false);
+    }
+
     /// <summary>
     /// Boots the real Program pipeline as Production, so MapFallbackToFile is registered, over a
     /// throwaway content root holding a marked index.html.
@@ -375,6 +461,15 @@ public sealed class GeofenceFeedPipelineTests : IDisposable
             File.WriteAllText(
                 Path.Combine(root, "wwwroot", "index.html"),
                 $"<!doctype html><html><body>{SpaMarker}</body></html>");
+
+            // A locale bundle, plus two files that must be left alone, so the caching assertions have
+            // both halves to work with. See #888.
+            Directory.CreateDirectory(Path.Combine(root, "wwwroot", "assets", "i18n"));
+            File.WriteAllText(Path.Combine(root, "wwwroot", "assets", "i18n", "en.json"), """{"NAV":{"DASHBOARD":"Dashboard"}}""");
+            Directory.CreateDirectory(Path.Combine(root, "wwwroot", "assets", "help"));
+            File.WriteAllText(Path.Combine(root, "wwwroot", "assets", "help", "sidenav.png"), "not really a png");
+            File.WriteAllText(Path.Combine(root, "wwwroot", "main-ABCD1234.js"), "console.log(0);");
+
             return root;
         }
 

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A new translation showed up as `ADMIN_AREAS.TITLE` instead of “Areas” until your browser gave up its cached copy.** Everything else the site ships is content-hashed, so an upgrade cannot hand you last week's copy of it. The language files were the exception: they are fetched by a name built from your language code, that name never changes, and nothing told the browser to check for a newer one. Anyone who had used the site before an upgrade therefore kept the old language file, and because a phrase the old file has never heard of renders as its own internal name, a new feature arrived looking broken — for returning users only, which is why it never showed up in testing. Language files are now revalidated on every load. They are still cached: an unchanged one costs one small request and no download ([#888](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/888)).
+
 - **An area you had made private in Koji was still offered to everyone.** This site read Koji's geofence export but set `userSelectable` and `displayInMatches` to true regardless of what Koji said, so marking an area private there had no effect here: it kept appearing on Areas & Places, in the delivery scope picker and in the bot's area list. Both flags are now read from Koji. If you have areas set private in Koji, they will disappear from those lists after this upgrade, which is what you asked Koji for ([#885](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/885)).
 
 ## [2.18.0] - 2026-09-15
