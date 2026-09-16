@@ -94,6 +94,18 @@ These are built in to keep things sane — you don't configure them, but it help
 
 Duplicate names are handled automatically — if a user picks a name that's taken, PoracleWeb.NET appends a number (`downtown 2`, `downtown 3`, …).
 
+## Taking an area off the menu
+
+Separate from anything users draw: **Admin → Areas** lists every area Koji serves and lets you hide
+one without deleting it — staging fences, test polygons, a region you cover but do not advertise.
+
+A hidden area leaves **Areas & Places**, the per-alarm delivery scope picker and the bot's own area
+list together, because all three read the same flag. It does **not** unsubscribe anyone who already
+selected it; see
+[Hiding an area from your users](koji-and-regions.md#hiding-an-area-from-your-users) for exactly when
+it does go away, and [Troubleshooting](../../troubleshooting.md) for the two symptoms that bring people
+to ask.
+
 ## Turning the whole feature off
 
 If you don't want user-drawn geofences at all, there's an admin site setting (`disable_user_geofences`) that hides the whole feature — the user *My Geofences* page and the admin review queue both stop being reachable, and the create, rename, submit, import and per-profile toggle endpoints answer 403.
