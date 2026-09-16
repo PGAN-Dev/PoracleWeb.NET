@@ -62,6 +62,17 @@ internal static class TrackingV2Translator
     /// <summary>v2's gender enum: index is the v1 integer.</summary>
     private static readonly string[] Genders = ["any", "male", "female", "genderless"];
 
+    /// <summary>
+    /// v2's invasion gender enum. Three values, not the shared four: <c>V2InvasionRule.gender</c> is
+    /// <c>any|male|female</c> with no <c>genderless</c>, so a stored 3 has no v2 representation and the
+    /// row goes to v1 rather than being mapped to something that means a different thing.
+    /// </summary>
+    /// <remarks>
+    /// Latent rather than live: production holds 0, 1 and 2 only across 201 invasion rules. But
+    /// <c>InvasionCreate.Gender</c> is <c>[Range(0, 3)]</c>, so 3 is expressible here and would be sent.
+    /// </remarks>
+    private static readonly string[] InvasionGenders = ["any", "male", "female"];
+
     /// <summary>v2's team enum: index is the v1 integer, and 4 ("any") is PoracleWeb's default.</summary>
     private static readonly string[] Teams = ["harmony", "mystic", "valor", "instinct", "any"];
 
@@ -176,6 +187,27 @@ internal static class TrackingV2Translator
             Integers = ["distance", "lure_id"],
             Required = ["lure_id"],
         },
+        ["invasion"] = new TypeSpec
+        {
+            Integers = ["distance"],
+
+            // grunt_type is the targeting field and the one every v2 read emits. type_id and grunt_id are
+            // input conveniences that resolve to it; this application only ever holds the name, so it
+            // sends the name and never the other two. Which names are acceptable is the server's own
+            // question -- see InvasionGruntNameService, and the gate in PoracleTrackingProxy that asks it.
+            Strings = ["grunt_type"],
+            IntEnums = new Dictionary<string, string[]>(StringComparer.Ordinal)
+            {
+                ["gender"] = InvasionGenders,
+            },
+
+            // Verified live, because the schema contradicts itself here: V2InvasionRule.gender says gender
+            // is "ONLY valid together with type_id", while grunt_type says it "may be combined with
+            // gender". Posting {"grunt_type":"water","gender":"male"} to a running build stores gender 1,
+            // so grunt_type's description is the correct one.
+            Required = ["grunt_type"],
+        },
+
         ["fort"] = new TypeSpec
         {
             Integers = ["distance"],

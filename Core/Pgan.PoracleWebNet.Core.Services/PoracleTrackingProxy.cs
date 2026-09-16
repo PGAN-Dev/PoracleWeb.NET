@@ -13,6 +13,8 @@ public partial class PoracleTrackingProxy(
     HttpClient httpClient,
     IConfiguration configuration,
     IPoracleServerProfileService serverProfile,
+    IPoracleV2SchemaService v2Schema,
+    IInvasionGruntNameService gruntNames,
     IMemoryCache cache,
     ILogger<PoracleTrackingProxy> logger) : IPoracleTrackingProxy
 {
@@ -64,6 +66,8 @@ public partial class PoracleTrackingProxy(
         (configuration["Poracle:TrackingApiVersion"] ?? "auto").Trim().ToLowerInvariant();
 
     private readonly IPoracleServerProfileService _serverProfile = serverProfile;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
+    private readonly IInvasionGruntNameService _gruntNames = gruntNames;
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PoracleTrackingProxy> _logger = logger;
 
@@ -138,6 +142,14 @@ public partial class PoracleTrackingProxy(
     {
         if (uid <= 0 || !this.ShouldTryV2(type) || !await this.ServerCarriesV2Async(type))
         {
+            return null;
+        }
+
+        if (await this.InvasionUnsendableReasonAsync(type, body) is { } invasionReason)
+        {
+            // Not a fault, same as an untranslatable field: the row goes to v1, which stores whatever it
+            // is given, and the user's edit succeeds.
+            LogV2Untranslatable(this._logger, type, uid, invasionReason);
             return null;
         }
 
@@ -276,6 +288,50 @@ public partial class PoracleTrackingProxy(
         }
 
         return byType.TryGetValue(type, out var bounds) ? bounds : null;
+    }
+
+    /// <summary>
+    /// Why this invasion row must not go to v2, or null when it may.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two questions, both answered by the server rather than assumed. Whether it carries
+    /// <c>grunt_type</c> at all -- 5.2.1 does not, and its only targeting fields cannot express a grunt
+    /// name -- and whether it knows the particular name this row holds, because v2 validates
+    /// <c>grunt_type</c> against its grunt masterdata and answers 422 for anything else.
+    /// </para>
+    /// <para>
+    /// That second check is not belt-and-braces. 32 of 201 invasion rules in production carry a name v2
+    /// refuses, all of them visible and editable in the invasion list because v1's read returns them
+    /// where v2's does not. A 422 here would be an edit failing on a rule the user did not break, which
+    /// is the shape of #835.
+    /// </para>
+    /// </remarks>
+    private async Task<string?> InvasionUnsendableReasonAsync(string type, JsonElement row)
+    {
+        if (!string.Equals(type, "invasion", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (!(await this._v2Schema.GetAsync()).InvasionGruntType)
+        {
+            return "this server's v2 invasion rule has no grunt_type";
+        }
+
+        if (row.ValueKind != JsonValueKind.Object
+            || !row.TryGetProperty("grunt_type", out var stored)
+            || stored.ValueKind != JsonValueKind.String
+            || stored.GetString() is not { Length: > 0 } gruntType)
+        {
+            return "the row names no grunt_type";
+        }
+
+        var accepted = await this._gruntNames.GetAsync();
+
+        return accepted.Contains(InvasionGruntNameService.Normalise(gruntType))
+            ? null
+            : $"this server's grunt masterdata does not list '{gruntType}'";
     }
 
     /// <summary>Whether this type and this deployment are in scope for the v2 write path at all.</summary>
