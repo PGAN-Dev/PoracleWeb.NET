@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Obszary",
     "SUBTITLE": "Zdejmij obszar z listy, nie usuwając go. Ukryte obszary przestają pojawiać się w Obszarach i miejscach, w wyborze zasięgu przy alarmie oraz na liście obszarów bota.",
-    "NOT_RETROACTIVE": "Ukrycie obszaru nikogo nie wypisuje. Kto już go wybrał, nadal otrzymuje z niego powiadomienia, dopóki sam go nie usunie.",
+    "NOT_RETROACTIVE": "Ukrycie obszaru nie wypisuje nikogo od razu: kto już go wybrał, nadal otrzymuje powiadomienia. Potem obszar znika z jego profilu, bez żadnej informacji, przy następnym zapisie obszarów.",
     "SEARCH": "Szukaj obszarów",
     "HIDDEN_COUNT": "Ukryto {{count}} z {{total}}",
     "HIDE": "Ukryty",

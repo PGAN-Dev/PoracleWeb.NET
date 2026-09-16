@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Gebiete",
     "SUBTITLE": "Nehmen Sie ein Gebiet von der Liste, ohne es zu löschen. Ausgeblendete Gebiete erscheinen nicht mehr unter Gebiete und Orte, in der Reichweitenauswahl je Alarm oder in der Gebietsliste des Bots.",
-    "NOT_RETROACTIVE": "Das Ausblenden meldet niemanden ab. Wer das Gebiet bereits ausgewählt hat, erhält weiterhin dessen Benachrichtigungen, bis er es selbst entfernt.",
+    "NOT_RETROACTIVE": "Das Ausblenden meldet niemanden sofort ab: Wer das Gebiet bereits ausgewählt hat, erhält weiterhin Benachrichtigungen. Beim nächsten Speichern seiner Gebiete verschwindet es dann ohne Hinweis aus seinem Profil.",
     "SEARCH": "Gebiete durchsuchen",
     "HIDDEN_COUNT": "{{count}} von {{total}} ausgeblendet",
     "HIDE": "Ausgeblendet",

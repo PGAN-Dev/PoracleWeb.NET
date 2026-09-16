@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Zones",
     "SUBTITLE": "Retirez une zone du menu sans la supprimer. Les zones masquées n’apparaissent plus dans Zones et lieux, dans le sélecteur de portée de chaque alarme, ni dans la liste de zones du bot.",
-    "NOT_RETROACTIVE": "Masquer une zone ne désabonne personne. Ceux qui l’avaient déjà sélectionnée continuent d’en recevoir les alertes jusqu’à ce qu’ils la retirent eux-mêmes.",
+    "NOT_RETROACTIVE": "Masquer une zone ne désabonne personne immédiatement : ceux qui l’avaient déjà sélectionnée continuent de recevoir les alertes. Elle disparaît ensuite de leur profil, sans les prévenir, au prochain enregistrement de leurs zones.",
     "SEARCH": "Rechercher des zones",
     "HIDDEN_COUNT": "{{count}} sur {{total}} masquées",
     "HIDE": "Masquée",

@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Områder",
     "SUBTITLE": "Tag et område af listen uden at slette det. Skjulte områder vises ikke længere på Områder og steder, i rækkeviddevælgeren pr. alarm eller i bottens områdeliste.",
-    "NOT_RETROACTIVE": "At skjule et område afmelder ingen. De, der allerede har valgt det, modtager fortsat dets underretninger, indtil de selv fjerner det.",
+    "NOT_RETROACTIVE": "At skjule et område afmelder ikke nogen med det samme: de, der allerede har valgt det, modtager fortsat underretninger. Det forsvinder derefter fra deres profil, uden besked, næste gang de gemmer deres områder.",
     "SEARCH": "Søg i områder",
     "HIDDEN_COUNT": "{{count}} af {{total}} skjult",
     "HIDE": "Skjult",

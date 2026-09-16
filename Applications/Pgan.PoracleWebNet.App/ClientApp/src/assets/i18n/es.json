@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Áreas",
     "SUBTITLE": "Quita un área del menú sin borrarla. Las áreas ocultas dejan de aparecer en Áreas y lugares, en el selector de alcance de cada alarma y en la lista de áreas del bot.",
-    "NOT_RETROACTIVE": "Ocultar un área no da de baja a nadie. Quien ya la hubiera seleccionado sigue recibiendo sus avisos hasta que la quite por su cuenta.",
+    "NOT_RETROACTIVE": "Ocultar un área no da de baja a nadie de inmediato: quien ya la hubiera seleccionado sigue recibiendo avisos. Después desaparece de su perfil, sin avisarle, la próxima vez que guarde sus áreas.",
     "SEARCH": "Buscar áreas",
     "HIDDEN_COUNT": "{{count}} de {{total}} ocultas",
     "HIDE": "Oculta",

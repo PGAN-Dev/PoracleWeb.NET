@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Gebieden",
     "SUBTITLE": "Haal een gebied van de lijst zonder het te verwijderen. Verborgen gebieden verschijnen niet meer bij Gebieden en plaatsen, in de bereikkiezer per alarm of in de gebiedenlijst van de bot.",
-    "NOT_RETROACTIVE": "Een gebied verbergen zegt niemand af. Wie het al had gekozen, blijft de meldingen ervan ontvangen totdat hij het zelf weghaalt.",
+    "NOT_RETROACTIVE": "Een gebied verbergen zegt niemand meteen af: wie het al had gekozen, blijft meldingen ontvangen. Daarna verdwijnt het ongemerkt uit hun profiel zodra ze hun gebieden opnieuw opslaan.",
     "SEARCH": "Gebieden zoeken",
     "HIDDEN_COUNT": "{{count}} van {{total}} verborgen",
     "HIDE": "Verborgen",

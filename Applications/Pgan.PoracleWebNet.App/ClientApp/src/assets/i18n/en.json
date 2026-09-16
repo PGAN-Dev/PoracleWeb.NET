@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Areas",
     "SUBTITLE": "Take an area off the menu without deleting it. Hidden areas stop appearing on Areas & Places, in the per-alarm scope picker and in the bot’s area list.",
-    "NOT_RETROACTIVE": "Hiding an area does not unsubscribe anyone. People who already selected it keep receiving its alerts until they remove it themselves.",
+    "NOT_RETROACTIVE": "Hiding an area does not unsubscribe anyone straight away: alerts keep arriving for people who already selected it. It then drops off their profile, without telling them, the next time they save their areas.",
     "SEARCH": "Search areas",
     "HIDDEN_COUNT": "{{count}} of {{total}} hidden",
     "HIDE": "Hidden",

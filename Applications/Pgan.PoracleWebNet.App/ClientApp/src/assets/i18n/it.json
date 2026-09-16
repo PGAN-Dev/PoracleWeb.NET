@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Aree",
     "SUBTITLE": "Togli un’area dal menu senza eliminarla. Le aree nascoste non compaiono più in Aree e luoghi, nel selettore di portata del singolo allarme né nell’elenco aree del bot.",
-    "NOT_RETROACTIVE": "Nascondere un’area non annulla l’iscrizione di nessuno. Chi l’aveva già selezionata continua a ricevere i suoi avvisi finché non la rimuove.",
+    "NOT_RETROACTIVE": "Nascondere un’area non annulla subito l’iscrizione di nessuno: chi l’aveva già selezionata continua a ricevere gli avvisi. Poi sparisce dal suo profilo, senza avvisarlo, al successivo salvataggio delle aree.",
     "SEARCH": "Cerca aree",
     "HIDDEN_COUNT": "{{count}} di {{total}} nascoste",
     "HIDE": "Nascosta",

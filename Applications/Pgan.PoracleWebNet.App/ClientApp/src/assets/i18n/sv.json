@@ -2026,7 +2026,7 @@
   "ADMIN_AREAS": {
     "TITLE": "Områden",
     "SUBTITLE": "Ta bort ett område från listan utan att radera det. Dölda områden visas inte längre under Områden och platser, i räckviddsväljaren per larm eller i bottens områdeslista.",
-    "NOT_RETROACTIVE": "Att dölja ett område avregistrerar ingen. Den som redan valt det får fortsätta ta emot dess aviseringar tills hen tar bort det själv.",
+    "NOT_RETROACTIVE": "Att dölja ett område avregistrerar ingen direkt: den som redan valt det får fortsätta ta emot aviseringar. Sedan försvinner det ur profilen, utan besked, nästa gång hen sparar sina områden.",
     "SEARCH": "Sök områden",
     "HIDDEN_COUNT": "{{count}} av {{total}} dölda",
     "HIDE": "Döld",

@@ -184,14 +184,23 @@ already made private in Koji was handed to every user as selectable anyway. Both
 Areas private in Koji are listed as *Private in Koji* and their switch is disabled, because clearing a
 flag this site did not set would not make them selectable.
 
-!!! warning "Hiding is not retroactive"
-    It takes the area off the pickers. It does **not** unsubscribe anyone who already selected it.
+!!! warning "Hiding takes effect on a delay you do not control"
+    Hiding is immediate for **new** selections and invisible to matching, so nobody loses an alert the
+    moment you flip the switch. Matching never consults `userSelectable` — `resolveOverride` hands a
+    rule's areas to `areaOverlap`, which compares names against the fences a spawn fell in — so a
+    profile still carrying a hidden name keeps receiving its alerts.
 
-    Matching never consults `userSelectable` — `resolveOverride` hands a rule's areas to `areaOverlap`,
-    which compares names against the fences a spawn fell in — so a profile still carrying a hidden name
-    keeps receiving its alerts. For a test fence that is usually the opposite of what you wanted, and
-    nothing will warn the user. Ask them to untick it, or wait for the follow-up that offers to do it
-    for you (#885).
+    It then goes away by itself, quietly, on the user's next write. Two paths:
+
+    * **Saving on Areas & Places.** PoracleNG's `setAreas` intersects the submitted list against
+      `userSelectable=true` fences for non-admins and drops the rest with no error, returning 200.
+      A user who ticks any unrelated area loses the hidden one in the same save.
+    * **Editing an alarm scoped to it.** The scope picker lists only areas still on offer, so the
+      hidden one is absent from the dialog and the rule is saved without it.
+
+    Neither path tells the user. If you are hiding a test fence that is usually what you wanted; if you
+    are hiding something people legitimately use, tell them first. Alarm matching itself is never
+    interrupted — only the moment they next save.
 
 The list is kept in the `hidden_areas` site setting. A name you hide that Koji later stops serving is
 kept rather than dropped, so a Koji outage does not silently un-hide anything; the page flags those
