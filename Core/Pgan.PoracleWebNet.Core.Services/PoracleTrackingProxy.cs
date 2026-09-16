@@ -35,6 +35,17 @@ public partial class PoracleTrackingProxy(
     private static readonly TimeSpan V2BoundsFor = TimeSpan.FromMinutes(10);
 
     /// <summary>
+    /// How long the rendered <c>?uid=1,2,3</c> list may get before a bulk delete goes to v1 instead.
+    /// </summary>
+    /// <remarks>
+    /// v2 takes the uid list in the query string where v1 takes it as a JSON body, so past some length it
+    /// stops being a request every proxy and server in the path will carry. Deleting every alarm on a
+    /// heavy account reaches several hundred uids. 2000 sits under the most conservative limit in common
+    /// use and costs nothing to respect, because v1's body has no equivalent ceiling.
+    /// </remarks>
+    private const int V2BulkDeleteMaxUidQueryLength = 2000;
+
+    /// <summary>
     /// PoracleNG answers 404 for a user that no longer exists; that is a dead session, not a server fault.
     /// </summary>
     /// <remarks>
@@ -171,6 +182,11 @@ public partial class PoracleTrackingProxy(
 
     public async Task DeleteByUidAsync(string type, string userId, int uid)
     {
+        if (await this.TryDeleteByUidV2Async(type, userId, uid))
+        {
+            return;
+        }
+
         var request = this.CreateRequest(HttpMethod.Delete, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/byUid/{uid}?silent=true");
         var response = await this._httpClient.SendAsync(request);
 
@@ -188,6 +204,11 @@ public partial class PoracleTrackingProxy(
     {
         var uidList = uids.ToList();
         if (uidList.Count == 0)
+        {
+            return;
+        }
+
+        if (await this.TryBulkDeleteByUidsV2Async(type, userId, uidList))
         {
             return;
         }
@@ -288,6 +309,14 @@ public partial class PoracleTrackingProxy(
     private bool ShouldTryV2(string type) =>
         TrackingV2Translator.Handles(type) && this._trackingApiVersion != "v1";
 
+    /// <summary>Whether a delete may go to v2 at all.</summary>
+    /// <remarks>
+    /// Deliberately does not consult <see cref="TrackingV2Translator"/> the way <see cref="ShouldTryV2"/>
+    /// does. A delete carries no rule body, so there is nothing to translate and nothing v2 could fail to
+    /// express -- which puts invasion, the one type held off the v2 writes, in scope here.
+    /// </remarks>
+    private bool ShouldTryV2Delete() => this._trackingApiVersion != "v1";
+
     /// <summary>
     /// Whether the server is believed to carry v2. Pinned to <c>v2</c> this skips the probe but not the
     /// runtime fallback, so pinning a server that turns out not to have the route degrades to v1 rather
@@ -363,6 +392,132 @@ public partial class PoracleTrackingProxy(
             default:
                 response.EnsureSuccessStatusCode();
                 return null;
+        }
+    }
+
+    /// <summary>
+    /// Deletes one rule through <c>/api/v2</c>. Returns false when the caller should use v1 instead --
+    /// either because the route is not there, or because v2 refused a rule v1 would have deleted.
+    /// </summary>
+    private async Task<bool> TryDeleteByUidV2Async(string type, string userId, int uid)
+    {
+        if (uid <= 0 || !this.ShouldTryV2Delete() || !await this.ServerCarriesV2Async(type))
+        {
+            return false;
+        }
+
+        var request = this.CreateRequest(
+            HttpMethod.Delete,
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}/{uid}?silent=true");
+
+        var response = await this._httpClient.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        var payload = await response.Content.ReadAsStringAsync();
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
+                // gin's plaintext "404 page not found": the route is absent on this build whatever
+                // /health claimed. Same probe the write path uses.
+                this._cache.Set(V2AbsentCacheKey(type), true, V2AbsentFor);
+                LogV2RouteAbsent(this._logger, type);
+                return false;
+
+            case HttpStatusCode.NotFound when payload.Contains("human not found", StringComparison.Ordinal):
+                throw new AccountGoneException();
+
+            case HttpStatusCode.NotFound:
+                // The rule exists but not on the active profile. v1 deletes by (human, uid) whatever
+                // profile the row sits on, and a uid on screen can outlive a profile switch made by
+                // PoracleNG's active-hours scheduler -- so this goes to v1 rather than being reported
+                // as already gone, which would blank the card and leave the row. See #860.
+                LogV2DeleteNotOnActiveProfile(this._logger, type, uid);
+                return false;
+
+            default:
+                response.EnsureSuccessStatusCode();
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes several rules through <c>/api/v2</c>. Returns false when the caller should use v1 instead,
+    /// which includes v2 having taken only some of them.
+    /// </summary>
+    /// <remarks>
+    /// v2 skips a uid outside the active profile silently and answers 200, so the count in
+    /// <c>{deleted}</c> is the only signal that it did less than was asked. Anything short sends the whole
+    /// set to v1: deleting an already-deleted uid there is a no-op, so repeating the ones v2 did take
+    /// costs a round trip and changes nothing.
+    /// </remarks>
+    private async Task<bool> TryBulkDeleteByUidsV2Async(string type, string userId, List<int> uids)
+    {
+        if (!this.ShouldTryV2Delete() || uids.Exists(u => u <= 0) || !await this.ServerCarriesV2Async(type))
+        {
+            return false;
+        }
+
+        var uidList = string.Join(',', uids);
+        if (uidList.Length > V2BulkDeleteMaxUidQueryLength)
+        {
+            return false;
+        }
+
+        var request = this.CreateRequest(
+            HttpMethod.Delete,
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}?uid={uidList}&silent=true");
+
+        var response = await this._httpClient.SendAsync(request);
+        var payload = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            return CountV2Deleted(payload) >= uids.Count;
+        }
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
+                this._cache.Set(V2AbsentCacheKey(type), true, V2AbsentFor);
+                LogV2RouteAbsent(this._logger, type);
+                return false;
+
+            case HttpStatusCode.NotFound when payload.Contains("human not found", StringComparison.Ordinal):
+                throw new AccountGoneException();
+
+            case HttpStatusCode.NotFound:
+                return false;
+
+            default:
+                response.EnsureSuccessStatusCode();
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// How many rules v2 reports it removed. -1 when the answer cannot be read, which the caller treats
+    /// the same as "fewer than asked" -- an unreadable 200 is not evidence that the delete happened.
+    /// </summary>
+    private static int CountV2Deleted(string payload)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("deleted", out var deleted)
+                && deleted.ValueKind == JsonValueKind.Array
+                    ? deleted.GetArrayLength()
+                    : -1;
+        }
+        catch (JsonException)
+        {
+            return -1;
         }
     }
 
@@ -462,6 +617,11 @@ public partial class PoracleTrackingProxy(
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Delete {Type} uid={Uid} returned 404 (already deleted)")]
     private static partial void LogDeleteNotFound(ILogger logger, string type, int uid);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "v2 will not delete {Type} uid={Uid}: not on the active profile. Using v1, which deletes it regardless.")]
+    private static partial void LogV2DeleteNotOnActiveProfile(ILogger logger, string type, int uid);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Create {Type} for {UserId} request: {Body}")]
     private static partial void LogCreateRequest(ILogger logger, string type, string userId, string body);
