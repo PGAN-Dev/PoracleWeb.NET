@@ -14,6 +14,7 @@ public partial class PoracleHumanProxy(
     HttpClient httpClient,
     IConfiguration configuration,
     IPoracleServerProfileService serverProfile,
+    IPoracleV2SchemaService v2Schema,
     IMemoryCache cache,
     ILogger<PoracleHumanProxy> logger) : IPoracleHumanProxy
 {
@@ -33,6 +34,7 @@ public partial class PoracleHumanProxy(
     private readonly string _apiAddress = configuration["Poracle:ApiAddress"] ?? string.Empty;
     private readonly string _apiSecret = configuration["Poracle:ApiSecret"] ?? string.Empty;
     private readonly IPoracleServerProfileService _serverProfile = serverProfile;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PoracleHumanProxy> _logger = logger;
 
@@ -354,16 +356,115 @@ public partial class PoracleHumanProxy(
         return doc.RootElement.Clone();
     }
 
-    public async Task AddProfileAsync(string userId, JsonElement body)
+    /// <inheritdoc />
+    public async Task<int?> AddProfileAsync(string userId, JsonElement body)
     {
+        // The v2 route exists on 5.2.1 too, and there it answers {"status":"ok"} with no number. So the
+        // route being present is not the question -- whether its 200 carries profile_no is, and only the
+        // schema says that. Without the check this would read a number out of a body that has none and
+        // quietly answer null, which is the same as today but a round trip slower. See #836.
+        if ((await this._v2Schema.GetAsync()).ProfileCreateReturnsNumber
+            && await this.TryV2Async(
+                HttpMethod.Post, "profiles-add", $"/api/v2/humans/{Encode(userId)}/profiles", body.GetRawText())
+                is { } reply)
+        {
+            await EnsureAcceptedAsync(reply.Response);
+
+            return ProfileNoFrom(reply.Payload);
+        }
+
         var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/add", body.GetRawText());
         await EnsureAcceptedAsync(response);
+
+        return null;
     }
 
-    public async Task UpdateProfileAsync(string userId, JsonElement body)
+    /// <inheritdoc />
+    public async Task<bool> UpdateProfileAsync(string userId, JsonElement body)
     {
+        // Gated, and the gate is load-bearing rather than an optimisation. PATCH exists on 5.2.1, where
+        // V2UpdateProfileBody declares active_hours alone under additionalProperties:false -- so sending
+        // a name to it there is a 422, not an ignored field. See #837.
+        if ((await this._v2Schema.GetAsync()).ProfileRename
+            && body.TryGetProperty("profile_no", out var profileNo)
+            && profileNo.ValueKind == JsonValueKind.Number
+            && await this.TryV2Async(
+                HttpMethod.Patch,
+                "profiles-update",
+                $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo.GetInt32()}",
+                V2ProfilePatchBody(body))
+                is { } reply)
+        {
+            await EnsureAcceptedAsync(reply.Response);
+
+            return true;
+        }
+
         var response = await this.SendAsync(HttpMethod.Post, $"/api/profiles/{Encode(userId)}/update", body.GetRawText());
         await EnsureAcceptedAsync(response);
+
+        return false;
+    }
+
+    /// <summary>
+    /// The body for a v2 profile PATCH: no <c>profile_no</c>, and nothing set to null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>profile_no</c> addresses the row in the path, and <c>V2UpdateProfileBody</c> sets
+    /// <c>additionalProperties: false</c>, so leaving it in the body is a refusal rather than a harmless
+    /// extra.
+    /// </para>
+    /// <para>
+    /// Nulls go because the two surfaces mean different things by them. v1 reads a null as "leave this
+    /// alone"; v2 says the same thing by omission, and declares <c>active_hours</c> as an array rather
+    /// than a nullable one. A live build of the branch does accept the null -- verified -- but that is
+    /// tolerance the schema does not promise, and <see cref="TryV2Async"/> falls back on a missing route,
+    /// not on a 422. Sending what the schema describes costs nothing. An empty array is not a null and
+    /// still clears the schedule.
+    /// </para>
+    /// </remarks>
+    private static string V2ProfilePatchBody(JsonElement body)
+    {
+        var fields = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
+        foreach (var property in body.EnumerateObject())
+        {
+            if (property.NameEquals("profile_no") || property.Value.ValueKind == JsonValueKind.Null)
+            {
+                continue;
+            }
+
+            fields[property.Name] = property.Value;
+        }
+
+        return JsonSerializer.Serialize(fields);
+    }
+
+    /// <summary>
+    /// The profile number out of a v2 create response, or null when it does not carry one.
+    /// </summary>
+    /// <remarks>
+    /// Null is not a failure. It means this server answered the older shape, and the caller falls back to
+    /// diffing the profile list — which is what every released PoracleNG needs anyway.
+    /// </remarks>
+    private static int? ProfileNoFrom(string payload)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("profile_no", out var value)
+                && value.ValueKind == JsonValueKind.Number
+                && value.TryGetInt32(out var number)
+                    ? number
+                    : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public async Task DeleteProfileAsync(string userId, int profileNo)

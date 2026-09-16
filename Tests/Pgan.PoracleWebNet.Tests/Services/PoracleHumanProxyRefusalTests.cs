@@ -39,6 +39,7 @@ public class PoracleHumanProxyRefusalTests
             // No version, so no /api/v2: every refusal here is v1's, which is what a 5.1.0 self-hoster
             // still gets.
             PoracleHumanProxyTests.ServerProfile(null),
+            PoracleHumanProxyTests.V2Schema(),
             new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleHumanProxy>>());
 
