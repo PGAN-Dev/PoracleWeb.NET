@@ -492,6 +492,25 @@ public class PoracleHumanProxyV2Tests
         using var body = JsonDocument.Parse(request.Body!);
         Assert.False(body.RootElement.TryGetProperty("profile_no", out _));
         Assert.Equal("renamed", body.RootElement.GetProperty("name").GetString());
+
+        // v1 says "leave this alone" with a null; v2 says it by omission and declares active_hours as an
+        // array rather than a nullable one. A live build accepts the null anyway, but that is tolerance
+        // the schema does not promise and TryV2Async falls back on a missing route, not on a 422.
+        Assert.False(body.RootElement.TryGetProperty("active_hours", out _));
+    }
+
+    [Fact]
+    public async Task ClearingTheScheduleIsAnEmptyArrayAndSurvivesTheNullStrip()
+    {
+        // The legitimate-case half: [] is how v2 documents "clear it", and it is not a null.
+        var handler = ScriptedHandler.Ok("""{"status":"ok"}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: Carrying(rename: true));
+
+        await sut.UpdateProfileAsync("user1", Body("""{"profile_no":2,"active_hours":[]}"""));
+
+        using var body = JsonDocument.Parse(Assert.Single(handler.Requests).Body!);
+        Assert.Equal(JsonValueKind.Array, body.RootElement.GetProperty("active_hours").ValueKind);
+        Assert.Equal(0, body.RootElement.GetProperty("active_hours").GetArrayLength());
     }
 
     [Fact]

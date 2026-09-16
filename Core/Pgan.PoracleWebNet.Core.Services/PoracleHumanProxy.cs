@@ -392,7 +392,7 @@ public partial class PoracleHumanProxy(
                 HttpMethod.Patch,
                 "profiles-update",
                 $"/api/v2/humans/{Encode(userId)}/profiles/{profileNo.GetInt32()}",
-                PoracleJsonHelper.StripProperty(body, "profile_no").GetRawText())
+                V2ProfilePatchBody(body))
                 is { } reply)
         {
             await EnsureAcceptedAsync(reply.Response);
@@ -404,6 +404,41 @@ public partial class PoracleHumanProxy(
         await EnsureAcceptedAsync(response);
 
         return false;
+    }
+
+    /// <summary>
+    /// The body for a v2 profile PATCH: no <c>profile_no</c>, and nothing set to null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>profile_no</c> addresses the row in the path, and <c>V2UpdateProfileBody</c> sets
+    /// <c>additionalProperties: false</c>, so leaving it in the body is a refusal rather than a harmless
+    /// extra.
+    /// </para>
+    /// <para>
+    /// Nulls go because the two surfaces mean different things by them. v1 reads a null as "leave this
+    /// alone"; v2 says the same thing by omission, and declares <c>active_hours</c> as an array rather
+    /// than a nullable one. A live build of the branch does accept the null -- verified -- but that is
+    /// tolerance the schema does not promise, and <see cref="TryV2Async"/> falls back on a missing route,
+    /// not on a 422. Sending what the schema describes costs nothing. An empty array is not a null and
+    /// still clears the schedule.
+    /// </para>
+    /// </remarks>
+    private static string V2ProfilePatchBody(JsonElement body)
+    {
+        var fields = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+
+        foreach (var property in body.EnumerateObject())
+        {
+            if (property.NameEquals("profile_no") || property.Value.ValueKind == JsonValueKind.Null)
+            {
+                continue;
+            }
+
+            fields[property.Name] = property.Value;
+        }
+
+        return JsonSerializer.Serialize(fields);
     }
 
     /// <summary>
