@@ -176,9 +176,13 @@ A hidden area stops appearing in three places at once, because all three read th
 * the bot's own **`!area`** list
 
 You do not need Koji access for this. PoracleWeb.NET is the geofence source Poracle loads, so hiding
-serves that fence with `userSelectable: false` in the feed. Setting `isPublic` to false in Koji itself
-has the same effect and continues to work; the admin page reports those areas as *Private in Koji* and
-leaves them alone, since clearing a flag this site did not set would not make them selectable.
+serves that fence with `userSelectable: false` in the feed.
+
+Setting the area private in Koji works too, and now genuinely does: until #885 this site read Koji's
+export but **hardcoded `userSelectable` and `displayInMatches` to true**, so a fence an operator had
+already made private in Koji was handed to every user as selectable anyway. Both flags are read now.
+Areas private in Koji are listed as *Private in Koji* and their switch is disabled, because clearing a
+flag this site did not set would not make them selectable.
 
 !!! warning "Hiding is not retroactive"
     It takes the area off the pickers. It does **not** unsubscribe anyone who already selected it.
