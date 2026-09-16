@@ -1,0 +1,72 @@
+<h2 mat-dialog-title>
+  {{ (editing ? 'ADMIN_SETTINGS.ICON_REPO_EDIT_TITLE' : 'ADMIN_SETTINGS.ICON_REPO_ADD_TITLE') | translate }}
+</h2>
+
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'ADMIN_SETTINGS.ICON_REPO_NAME_LABEL' | translate }}</mat-label>
+    <input matInput [ngModel]="name()" (ngModelChange)="name.set($event)" maxlength="60" />
+    <mat-hint>{{ 'ADMIN_SETTINGS.ICON_REPO_NAME_HINT' | translate }}</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'ADMIN_SETTINGS.ICON_REPO_URL_LABEL' | translate }}</mat-label>
+    <input
+      matInput
+      type="url"
+      [ngModel]="base()"
+      (ngModelChange)="onBaseChanged($event)"
+      placeholder="https://raw.githubusercontent.com/user/repo/master/UICONS" />
+    <mat-hint>{{ 'ADMIN_SETTINGS.ICON_REPO_URL_HINT' | translate }}</mat-hint>
+  </mat-form-field>
+
+  @if (duplicate()) {
+    <p class="repo-warning">
+      <mat-icon>error_outline</mat-icon>
+      {{ 'ADMIN_SETTINGS.ICON_REPO_DUPLICATE' | translate }}
+    </p>
+  }
+
+  <div class="repo-check-row">
+    <button mat-stroked-button type="button" [disabled]="!normalizedBase() || probeState().kind === 'checking'" (click)="check()">
+      @if (probeState().kind === 'checking') {
+        <mat-spinner diameter="18" />
+      } @else {
+        <mat-icon>troubleshoot</mat-icon>
+      }
+      {{ 'ADMIN_SETTINGS.ICON_REPO_CHECK' | translate }}
+    </button>
+
+    @if (probeState().kind === 'checked') {
+      @if (probeOk()) {
+        <span class="repo-verdict repo-verdict-ok">
+          <mat-icon>check_circle</mat-icon>
+          {{ 'ADMIN_SETTINGS.ICON_REPO_CHECK_OK' | translate }}
+        </span>
+      } @else {
+        <span class="repo-verdict repo-verdict-bad">
+          <mat-icon>cancel</mat-icon>
+          {{ 'ADMIN_SETTINGS.ICON_REPO_CHECK_MISSING' | translate: { categories: missingKeys().join(', ') } }}
+        </span>
+      }
+    }
+  </div>
+
+  @if (probeOk() && normalizedBase()) {
+    <div class="repo-preview-row">
+      @for (img of previews; track img.path) {
+        <div class="icon-preview-item">
+          <img [src]="previewUrl(img.path)" class="icon-preview-img" loading="lazy" alt="" />
+          <span class="icon-preview-name">{{ img.name }}</span>
+        </div>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'COMMON.CANCEL' | translate }}</button>
+  <button mat-flat-button color="primary" [disabled]="!canSave()" (click)="save()">
+    {{ (editing ? 'COMMON.SAVE' : 'ADMIN_SETTINGS.ICON_REPO_ADD') | translate }}
+  </button>
+</mat-dialog-actions>

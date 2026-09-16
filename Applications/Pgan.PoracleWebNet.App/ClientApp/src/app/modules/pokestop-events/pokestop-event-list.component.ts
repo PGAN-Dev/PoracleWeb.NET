@@ -17,6 +17,7 @@ import { PokestopEventEditDialogComponent } from './pokestop-event-edit-dialog.c
 import { PokestopEvent } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
@@ -52,6 +53,7 @@ export class PokestopEventListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly pokestopEventService = inject(PokestopEventService);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -217,7 +219,8 @@ export class PokestopEventListComponent implements OnInit {
   }
 
   eventImage(item: PokestopEvent): string {
-    return pokestopEventInfo(item.displayType)?.imgUrl ?? '';
+    const path = pokestopEventInfo(item.displayType)?.imgPath;
+    return path ? this.icons.getPackUrl(path) : '';
   }
 
   /**

@@ -52,6 +52,25 @@ describe('locale parity', () => {
     expect(untranslated).toEqual([]);
   });
 
+  /**
+   * A key can be present, translated, and still broken: drop `{{provider}}` from a sentence and it
+   * renders with a hole in it, or — worse — reads as a confident statement of whatever the English
+   * used to hard-code. That is not hypothetical. The basemap warnings were rewritten from naming
+   * OpenStreetMap to taking `{{provider}}`, by regex, across all eleven files at once; a locale whose
+   * phrasing did not match would have been left asserting a provider the code no longer chooses.
+   */
+  it.each(locales)('%s preserves every interpolation placeholder English uses', locale => {
+    const placeholders = (value: string) => [...value.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map(m => m[1]).sort();
+    const keys = load(locale);
+
+    const mismatched = Object.keys(english)
+      .filter(k => k in keys)
+      .map(k => ({ key: k, mine: placeholders(keys[k]), theirs: placeholders(english[k]) }))
+      .filter(({ mine, theirs }) => mine.join() !== theirs.join());
+
+    expect(mismatched).toEqual([]);
+  });
+
   it.each(locales)('%s translates the paginator', locale => {
     const keys = load(locale);
     // RANGE strings are mostly interpolation tokens, so only the prose label is checked.

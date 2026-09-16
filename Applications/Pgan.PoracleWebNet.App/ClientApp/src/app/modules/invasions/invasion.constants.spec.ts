@@ -4,7 +4,7 @@ import {
   NO_GENDER_GRUNT_TYPES,
   getGruntDisplayKey,
   getGruntDisplayName,
-  getGruntIconUrl,
+  getGruntIconPath,
   hasNoGenderVariants,
   isEventType,
   isGenderFixed,
@@ -70,34 +70,34 @@ describe('invasion.constants', () => {
     });
   });
 
-  describe('getGruntIconUrl gender-aware variants', () => {
+  describe('getGruntIconPath gender-aware variants', () => {
     it('picks invasion/4 for male mixed and invasion/5 for female mixed', () => {
-      expect(getGruntIconUrl('mixed', 1)).toContain('/invasion/4.png');
-      expect(getGruntIconUrl('mixed', 2)).toContain('/invasion/5.png');
+      expect(getGruntIconPath('mixed', 1)).toBe('invasion/4.png');
+      expect(getGruntIconPath('mixed', 2)).toBe('invasion/5.png');
     });
 
     it('picks invasion/45 for male decoy and invasion/46 for female decoy', () => {
-      expect(getGruntIconUrl('decoy', 1)).toContain('/invasion/45.png');
-      expect(getGruntIconUrl('decoy', 2)).toContain('/invasion/46.png');
+      expect(getGruntIconPath('decoy', 1)).toBe('invasion/45.png');
+      expect(getGruntIconPath('decoy', 2)).toBe('invasion/46.png');
     });
 
     it('falls back to the generic id when gender is omitted (decoy defaults to female — male does not spawn in-game)', () => {
-      expect(getGruntIconUrl('mixed')).toContain('/invasion/4.png');
-      expect(getGruntIconUrl('decoy')).toContain('/invasion/46.png');
+      expect(getGruntIconPath('mixed')).toBe('invasion/4.png');
+      expect(getGruntIconPath('decoy')).toBe('invasion/46.png');
     });
 
     it('ignores gender for grunts without gender-specific icons', () => {
-      expect(getGruntIconUrl('cliff', 1)).toContain('/invasion/41.png');
-      expect(getGruntIconUrl('cliff', 2)).toContain('/invasion/41.png');
+      expect(getGruntIconPath('cliff', 1)).toBe('invasion/41.png');
+      expect(getGruntIconPath('cliff', 2)).toBe('invasion/41.png');
     });
 
     it('resolves typed grunts to /type/ icons', () => {
-      expect(getGruntIconUrl('bug')).toContain('/type/7.png');
+      expect(getGruntIconPath('bug')).toBe('type/7.png');
     });
 
     it('falls back to /invasion/0.png for null/unmapped', () => {
-      expect(getGruntIconUrl(null)).toContain('/invasion/0.png');
-      expect(getGruntIconUrl('notarealtype')).toContain('/invasion/0.png');
+      expect(getGruntIconPath(null)).toBe('invasion/0.png');
+      expect(getGruntIconPath('notarealtype')).toBe('invasion/0.png');
     });
   });
 
@@ -188,22 +188,22 @@ describe('invasion.constants', () => {
     });
   });
 
-  describe('getGruntIconUrl typed grunt gender variants (#224)', () => {
+  describe('getGruntIconPath typed grunt gender variants (#224)', () => {
     it('picks the male InvasionCharacter id when gender is Male for typed grunts', () => {
-      expect(getGruntIconUrl('water', 1)).toContain('/invasion/39.png');
-      expect(getGruntIconUrl('bug', 1)).toContain('/invasion/7.png');
-      expect(getGruntIconUrl('fire', 1)).toContain('/invasion/19.png');
+      expect(getGruntIconPath('water', 1)).toBe('invasion/39.png');
+      expect(getGruntIconPath('bug', 1)).toBe('invasion/7.png');
+      expect(getGruntIconPath('fire', 1)).toBe('invasion/19.png');
     });
 
     it('picks the female InvasionCharacter id when gender is Female for typed grunts', () => {
-      expect(getGruntIconUrl('water', 2)).toContain('/invasion/38.png');
-      expect(getGruntIconUrl('bug', 2)).toContain('/invasion/6.png');
-      expect(getGruntIconUrl('fire', 2)).toContain('/invasion/18.png');
+      expect(getGruntIconPath('water', 2)).toBe('invasion/38.png');
+      expect(getGruntIconPath('bug', 2)).toBe('invasion/6.png');
+      expect(getGruntIconPath('fire', 2)).toBe('invasion/18.png');
     });
 
     it('falls back to the Pokémon type badge when gender is Any for typed grunts', () => {
-      expect(getGruntIconUrl('water', 0)).toContain('/type/11.png');
-      expect(getGruntIconUrl('bug')).toContain('/type/7.png');
+      expect(getGruntIconPath('water', 0)).toBe('type/11.png');
+      expect(getGruntIconPath('bug')).toBe('type/7.png');
     });
   });
 });

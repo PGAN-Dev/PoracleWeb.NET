@@ -20,8 +20,15 @@
       Descriptions are now on for nine tracking types across eight alarm list pages, which is what
       `RuleSummaryComponent` renders.
 
+    Appendix A's asks were later filed as jfberry/PoracleNG#208 through #216 and fixed in
+    [PR #217](https://github.com/jfberry/PoracleNG/pull/217), merged 2026-08-31 -- onto `develop`, so no
+    released build carries any of it. That includes the keystone, an opt-in `trusted` flag on `setAreas`,
+    which is why `IUserAreaDualWriter` and the admin `HumanRepository` methods are all still here. Where
+    each ask now stands is tracked in
+    [the enhancement requests](poracleng-enhancement-requests.md).
+
     What actually shipped is documented in
-    [The v2 pilot](architecture/poracleng-proxy.md#the-v2-pilot) and
+    [The v2 write path](architecture/poracleng-proxy.md#the-v2-write-path) and
     [Version compatibility](architecture/poracleng-compatibility.md). Kept as written, apart from this
     banner and the corrections marked below, because the reasoning behind each ask is still the
     reasoning.
@@ -34,7 +41,7 @@ PoracleNG v2 is a strong, well-shaped API surface that PoracleWeb.NET should ado
 
 But the headline goal of this review — **eliminate all direct access to the Poracle DB** — is **NOT achievable on v2 as currently designed.** The researcher verified against PR #139 source that the three load-bearing direct-DB touchpoints are each blocked by a missing endpoint or an unbypassable filter:
 
-1. **Trusted setAreas (the `IUserAreaDualWriter` HACK) — NOT closed.** `v2_humans.go registerV2HumanSetAreas` mirrors v1 `HandleSetAreas`: for non-admins it skips every fence where `!f.UserSelectable`. Our user-drawn geofences are served `userSelectable=false`, so their names are still silently dropped. The new per-rule `override_areas` field does **not** rescue this — `validateOverrideFields` (tracking.go) checks each override against `GetAvailableAreas`, which for non-admins also excludes `userSelectable=false` fences (`bot/area_logic.go`), returning a 400. **This is the single most important blocker and it requires a new PoracleNG capability.**
+1. **Trusted setAreas (the `IUserAreaDualWriter` HACK) — NOT closed.** `v2_humans.go registerV2HumanSetAreas` mirrors v1 `HandleSetAreas`: for non-admins it skips every fence where `!f.UserSelectable`. Our user-drawn geofences are served `userSelectable=false`, so their names are still silently dropped. The new per-rule `override_areas` field does **not** rescue this — `validateOverrideFields` (tracking.go) checks each override against `GetAvailableAreas`, which for non-admins also excludes `userSelectable=false` fences (`bot/area_logic.go`), returning a 400. **This is the single most important blocker and it requires a new PoracleNG capability.** *(Half wrong, both ways: the `override_areas` refusal never happened, because that check was dead code — see [the re-test](#override_areas-re-test-2026-08-24). The `setAreas` filter is real, was re-confirmed on 5.2.1, and the capability now exists on `develop` as an opt-in `trusted` flag.)*
 
 2. **Admin list-all-humans, batch name/avatar resolve, full-purge delete — NONE exist in v2.** All v2 human endpoints are single-`{id}`-scoped. These three keep `HumanRepository` (and therefore `PoracleContext` and the entire Poracle-DB `Data` dependency) alive.
 
@@ -105,7 +112,7 @@ Net consequence: **without three explicit asks to jfberry, the keystone deletion
 
 ## Risks & Gotchas
 
-1. **`override_areas` is a trap.** Per-*rule*, not the human/profile area subscription list, and source-verified to be gated by the same `userSelectable` filter. Adopting it expecting a filter-bypass would silently reintroduce the geofence-persistence regression. **Do not delete `UserAreaDualWriter` until a confirmed trusted human-level areas op exists.**
+1. **`override_areas` is a trap.** Per-*rule*, not the human/profile area subscription list, and source-verified to be gated by the same `userSelectable` filter. Adopting it expecting a filter-bypass would silently reintroduce the geofence-persistence regression. **Do not delete `UserAreaDualWriter` until a confirmed trusted human-level areas op exists.** *(The gate was dead code and accepted everything; PR #217 makes it live. The conclusion is unchanged — see [the re-test](#override_areas-re-test-2026-08-24).)*
 2. **PUT full-replace footgun.** v2 PUT resets omitted fields to defaults — incompatible with our `ApplyUpdate` null-skip merge. A naive partial PUT silently zeroes IV/CP/PvP/template — echoing the NULL-template incident. Route single-field edits through POST-array-diff or send the complete object. *(Confirmed live on 5.2.1: omitting `min_iv` wiped a stored 90. The complete object is what ships — `TrackingFieldPreserver` re-reads the row and fills in anything the model does not declare before the PUT.)*
 3. **`active_hours` day off-by-one.** 1-7 Mon-Sun → 0-6 Sun=0 is a silent, high-blast-radius corruption. v2 also bans cross-midnight ranges. *(Correction: the 0-6 numbering is the OpenAPI schema's, and the schema is wrong. The scheduler uses ISO weekdays, Monday 1 through Sunday 7 (`isoDow` in `processor/cmd/processor/profiles.go`), so the schema rejects Sunday and accepts a meaningless 0. No shim was needed or written; 1-7 is correct and stayed. The cross-midnight ban is real, and `ActiveHoursValidator` enforces it on repeating entries.)* Needs a translation shim **and dedicated round-trip tests** (the existing suite tests string coercion `'09'`/`'00'` and 1-7 numbering — these *invert* under v2 and must be rewritten, not find-replaced).
 4. **Strict 422 rejection.** Unknown fields and wrong types hard-fail. Our snake_case proxy currently sends ints for enums and string-coerced hours in places — a full payload audit is mandatory before flipping writes.
@@ -113,13 +120,22 @@ Net consequence: **without three explicit asks to jfberry, the keystone deletion
 6. **RFC 9457 reflected input.** `errors[].value`/`detail` echo submitted input — sanitize at the proxy boundary before surfacing to the SPA.
 7. **Trust model unchanged.** `X-Poracle-Secret` = full impersonation of any human id. If admin list/delete/resolve are added but reachable without the secret (e.g. via public `/docs`), they become mass-enumeration/deletion vulns. **Verify secret-gating before adopting.**
 8. **PR #139 is OPEN.** Wire shapes may shift; pin a vendored `openapi.json` as a golden contract fixture and treat shapes as not-yet-frozen. *(Closed: PR #139 merged and shipped as 5.2.0. `TrackingV2Translator` is built from 5.2.1's `openapi.golden.json`.)*
-9. **`monsters.go` COALESCE — `template` fixed on the v2 branch, `ping` still raw.** Verified on `huma-api-migration`: `COALESCE(template, '') AS template, clean, ping,` — the template DoS vector (one NULL row crashing state reload for everyone) is closed there. `ping` remains raw; if nullable it's the same crash class. Confirm the template fix is in the release line we actually deploy (our older gap-tracker still lists it as live), and COALESCE `ping` for parity.
+9. **`monsters.go` COALESCE — closed.** `COALESCE(template, '') AS template, clean, ping,` is on `main`, not only on the v2 branch, so the template DoS vector (one NULL row crashing state reload for everyone) is closed in the release line. `ping` is still selected raw but is declared `NOT NULL` on every tracking table PoracleNG creates, so there is no second crash to guard against.
 
 ---
 
 ## Appendix A — Prioritized API Change Requests to PoracleNG (feedback for issue #138)
 
-The three **High** asks (trusted setAreas, admin list, batch resolve) are the gating set for full DB elimination. The `monsters.go` item is now **Medium** — `template` is already COALESCE'd on the v2 branch (verified), leaving only a `ping` parity nit.
+The three **High** asks (trusted setAreas, admin list, batch resolve) are the gating set for full DB elimination.
+
+**Since filing:** asks 1, 2, 3 and 5 went upstream as [#215](https://github.com/jfberry/PoracleNG/issues/215)
+and [#214](https://github.com/jfberry/PoracleNG/issues/214) and are fixed on `develop` in PR #217, which no
+release carries. Ask 4 is closed — `monsters.go` on `main` selects `COALESCE(template, '') AS template`, and
+`ping` is declared `NOT NULL` on every tracking table in PoracleNG's initial schema, so the parity nit has
+nothing to fix. The `active_hours` half of ask 8 is settled by [#208](https://github.com/jfberry/PoracleNG/issues/208):
+the convention is ISO 1-7, not 0-6. Ask 12's cascade question is answered — `SQLHumanStore.DeleteProfile`
+deletes the profile's tracking rows and moves `current_profile_no` to the lowest remaining profile. The rest
+stand.
 
 | # | Priority | Ask | Proposed shape |
 |---|---|---|---|
@@ -211,12 +227,16 @@ stored verbatim in `override_areas` by every write path tested:
 All probe rows, the probe humans and the probe geofence were deleted afterwards and both instances
 reloaded; the feed is back to its 793 admin fences.
 
-**What this does and does not settle.** It settles that `UserOwnedOverrideAreaProxy`'s stated premise is
-wrong for the exact request shape PoracleWeb sends, on both versions. It does not settle *why* — the
-filter may be conditional on configuration this deployment does not set, or the validation may have been
-removed. So the class stays: it is currently sending PoracleNG a filtered list and then writing the full
-list to the row itself, which produces the correct stored value whether or not validation exists. The
-finding is recorded so that whoever removes it does so on evidence rather than on the doc comment.
+**Why, established later.** Filed as [#211](https://github.com/jfberry/PoracleNG/issues/211), where the
+answer turned out to be that the check never ran at all: `validateOverrideFields` gates on
+`oc.permitted != nil`, `permitted` is built from `deps.AreaLogic`, and `processor/cmd/processor/main.go`
+never sets `AreaLogic`. Dead code on every tracking write, v1 and v2, all eleven types — still so on `main`
+today.
+
+So the class stays, and for a firmer reason than "unexplained negative". PR #217 wires the validation up, at
+which point a v1 tracking write carrying an unpermitted `override_areas` starts answering 400 where it used
+to answer 200. `UserOwnedOverrideAreaProxy` sends PoracleNG the filtered list and writes the full list to the
+row itself, which stores the right value either way.
 
 It also does **not** weaken blocker 1. The `setAreas` control above re-confirms it on 5.2.1 v2:
 `IUserAreaDualWriter` and its `HACK: trusted-set-areas` sites stay on direct DB.

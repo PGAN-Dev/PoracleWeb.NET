@@ -78,7 +78,7 @@
           </button>
         }
       }
-      @if (duplicateUids().size > 0) {
+      @if (duplicateKeys().size > 0) {
         <button
           class="type-chip"
           [class.type-active]="showDuplicatesOnly()"
@@ -86,7 +86,7 @@
           (click)="toggleDuplicatesFilter()">
           <mat-icon>content_copy</mat-icon>
           {{ 'PROFILES.DUPLICATES' | translate }}
-          <span class="type-count">{{ duplicateUids().size }}</span>
+          <span class="type-count">{{ duplicateKeys().size }}</span>
         </button>
       }
     </div>
@@ -229,7 +229,10 @@
                 </div>
                 <div class="alarm-grid">
                   @for (alarm of group.alarmsByType.get(type.key)!; track alarm.uid) {
-                    <mat-card class="alarm-card" [class.duplicate-card]="isDuplicate(alarm)" [style.border-left-color]="type.color">
+                    <mat-card
+                      class="alarm-card"
+                      [class.duplicate-card]="isDuplicate(alarm, type.key)"
+                      [style.border-left-color]="type.color">
                       <div class="card-top" [style.border-top-color]="type.color">
                         <div class="type-icon-wrap" [style.background]="type.color + '18'" [style.color]="type.color">
                           @if (getAlarmImage(alarm, type.key); as imgUrl) {
@@ -254,10 +257,8 @@
                               'POKEMON.CLEAN_TAG' | translate
                             }}</span>
                           }
-                          @if (isDuplicate(alarm)) {
-                            <span
-                              class="duplicate-tag"
-                              [matTooltip]="('PROFILES.ALSO_ON' | translate) + ' ' + getDuplicateProfiles(alarm, type.key).join(', ')">
+                          @if (isDuplicate(alarm, type.key)) {
+                            <span class="duplicate-tag" [matTooltip]="duplicateTooltip(alarm, type.key)">
                               <mat-icon>content_copy</mat-icon>
                             </span>
                           }
@@ -303,13 +304,13 @@
                               <span class="filter-pill exclusive-pill">EX</span>
                             }
                             @if ((alarm.team ?? 0) > 0) {
-                              <span class="filter-pill team-pill">Team {{ alarm.team }}</span>
+                              <span class="filter-pill team-pill">{{ 'PROFILES.TEAM_NUM' | translate: { team: alarm.team } }}</span>
                             }
                           }
                           <!-- Quest pills -->
                           @if (type.key === 'quest') {
                             @if (alarm.shiny === 1) {
-                              <span class="filter-pill shiny-pill">Shiny</span>
+                              <span class="filter-pill shiny-pill">{{ 'PROFILES.PILL_SHINY' | translate }}</span>
                             }
                           }
                           <!-- Gender pill (pokemon, invasion) -->

@@ -149,11 +149,12 @@ Pgan.PoracleWebNet.slnx
 - **Creation**: `CreateAsync` stores the geofence in `user_geofences` and adds its `kojiName` to the **current** profile's area list via `IUserAreaDualWriter.AddAreaToActiveProfileAsync` — one atomic `SaveChangesAsync` commits both `humans.area` and the current `profiles.area` row. The geofence appears as active on the creating profile and inactive on all others.
 - **Deletion**: `DeleteAsync` removes the geofence's `kojiName` from **all** profiles via `IUserAreaDualWriter.RemoveAreaFromAllProfilesAsync` (one atomic `SaveChangesAsync` spanning `humans.area` and every `profiles.area` row), then deletes the `user_geofences` row and reloads Poracle geofences. `AdminDeleteAsync` does the same. Going through the proxy is not viable because PoracleNG's `setAreas` intersects with `userSelectable=true` fences only and would drop the write.
 - **PoracleWeb is the single geofence source for PoracleJS.** The `GET /api/geofence-feed` endpoint (`[AllowAnonymous]`, intended for internal network access) serves a unified feed that merges admin geofences from Koji with user-drawn geofences from the PoracleWeb database. No custom code is needed in PoracleJS or Koji -- standard upstream versions work.
+- **`POST /api/geofence-feed/refresh` drops the cached Koji half** (rate limited to 20/min per IP; `GET` on that path is not a route and falls through to the SPA, so pasting it in a browser shows the Angular app rather than an error), so the next feed read re-fetches. The Koji collection is cached 5 minutes; a provisioning run that writes a fence into Koji and then asks PoracleNG to reload cannot wait an unknown fraction of that, because a reload against the cached list re-reads the old one and still answers `{"status":"ok"}` -- success reported, area unsubscribable. Authenticated with `X-Poracle-Secret` against `Poracle:ApiSecret`, the only secret an internal caller already holds, and it **fails closed**: with no secret configured every request is refused, since an empty configured secret matching an empty header would make this the one anonymous write on the site. See #844.
 - PoracleJS `geofence.path` config is a single URL pointing to PoracleWeb (not an array, not dual Koji+PoracleWeb sources). PoracleJS does not connect to Koji directly for geofences.
 - Admin geofences are fetched from Koji via the `/geofence/poracle/{projectName}` endpoint, with group names resolved from the Koji parent chain. They are served with `displayInMatches: true` and `group` populated. Results are cached for 5 minutes (`IMemoryCache` with `TimeSpan.FromMinutes(5)` TTL). The cache is invalidated when a geofence is approved/promoted to Koji.
 - User geofences are served with `displayInMatches: false` and `userSelectable: false` -- names are hidden from all DMs and are not selectable on the Poracle bot's area list.
 - Parent/region geofences from Koji are excluded from the feed (they are structural, not alerting areas).
-- **Graceful degradation**: If Koji is unreachable, the feed endpoint logs the error and still serves user geofences from the local DB. PoracleJS's built-in `.cache/` directory provides additional failover -- if PoracleWeb itself is down, PoracleJS falls back to its last cached geofence data.
+- **Graceful degradation, both halves**: Koji unreachable serves user geofences; the `poracle_web` database unreachable serves Koji's. Only the Koji half was wrapped originally, so a database blip answered 500 and took down the one geofence source PoracleJS has. **With both down the feed answers 503, deliberately, rather than 200 and an empty list** -- PoracleJS caches the last good response, so an empty success is not a degraded answer, it is an instruction to drop every geofence every user has. The check is on whether a read *failed*, not on whether the result is empty: an instance with no Koji project and no user fences has a legitimately empty feed. PoracleJS's `.cache/` is the outer failover for PoracleWeb being down entirely.
 - `group_map.json` is not needed in PoracleJS -- group names are resolved automatically from the Koji parent chain by PoracleWeb.
 - On admin approval, the geofence polygon is pushed to Koji with `isPublic: true` (`userSelectable: true`), making it a proper public area.
 - Koji is used only for admin/approved public geofences; user-drawn private geofences remain in the PoracleWeb database.
@@ -407,6 +408,49 @@ display language, and nothing to do with `allowed_languages`, which is this site
 the display menu. No row is served when Poracle restricts nothing, and absent, `null` and an empty list
 all mean exactly that: a 5.2.1 with nothing configured and a 5.1.0 that cannot say both accept any code,
 so both get the full menu.
+
+### Basemaps: A Tile Provider Refusing You Still Answers 200
+
+`BasemapService` builds every tile layer on the site; the five components call `attach(map, …)` and
+nothing else. The catalogue is `shared/utils/basemaps.ts`, the settings are `basemap_*`, and the
+user-facing reference is `docs/configuration/site-settings.md#maps`.
+
+**The failure mode that keeps recurring: the refusal is drawn into the tile.** CARTO answers 200
+without a key and returns a working image with `API KEY REQUIRED` across it. OpenStreetMap answers
+200 without a `Referer` and returns `403 Access blocked` as a picture. Nothing logs, no health check
+notices, and the browser's network tab shows success. #842 was this, and the fix for it walked into
+it a second time with OSM. **Never conclude tiles work because the status code is 200 — look at the
+bytes** (a refusal tile is ~7 KB, a real one much larger) **or at the image.**
+
+A *missing* key is detectable and falls back to `FALLBACK_BASEMAP_ID`. A *wrong* key is not: the
+response is byte-identical to the no-key one. Do not add code that claims otherwise.
+
+**`Referrer-Policy: same-origin` (#383) is why OSM needs `sendReferrer`.** The header strips the
+identification OSM's usage policy requires. The fix is Leaflet's per-layer `referrerPolicy`, which
+overrides the document policy for those images alone — *not* relaxing the header, which exists so a
+remote image host cannot learn where a private instance lives. `sendReferrer` is per provider because
+OSM is the only entry needing it; Esri and CARTO return the same bytes either way, which was checked
+by fetching them rather than assumed.
+
+**Three constants decide what "default" means and they must agree** — `DEFAULT_BASEMAP_ID` (nothing
+configured), `KEYED_DEFAULT_BASEMAP_ID` (a key and nothing else, which is all the pre-#863 settings
+could say), `FALLBACK_BASEMAP_ID` (the chosen provider cannot be drawn). #871 happened because
+#868 changed the fallback and left the default stale: the map drew OSM while the admin page reported
+a missing CARTO key on an install that had never mentioned CARTO. Change one, check the other two.
+
+**A viewer's own choice outranks the admin setting**, stored per browser. That is the feature, but it
+needs the escape: the picker's first entry is *Site default*, and the active mark follows the
+viewer's choice rather than what is drawn, so an override reads as one. Without it an admin who
+clicked the layers button once concludes the setting does nothing — which is exactly how it was
+reported.
+
+**`ng serve` sends none of `SecurityHeaders`.** CSP and `Referrer-Policy` come from the .NET
+middleware, which only runs when the API serves the SPA. Anything depending on them cannot be
+reproduced *or ruled out* against the dev server; the OSM breakage looked perfect in every local
+browser check and appeared the moment it deployed. Build the image and hit the API's own port.
+
+Four tile URLs are pinned in `basemap.service.spec.ts` against ReactMap's `config/default.json`, so
+the same basemap looks the same on both sites and a catalogue edit cannot drift silently.
 
 ### Service Lifetimes
 - Most services are **scoped** (per-request). `MasterDataService` is a **singleton** (cached game data).
@@ -928,6 +972,8 @@ dotnet ef migrations script \
 | UpstreamFeatureFlagService | `Core/Pgan.PoracleWebNet.Core.Services/UpstreamFeatureFlagService.cs` |
 | PoracleDisabledHookMap | `Core/Pgan.PoracleWebNet.Core.Models/PoracleDisabledHookMap.cs` |
 | Pokemon type id-to-name table | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/pokemon-types.ts` |
+| Basemap catalogue | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/basemaps.ts` |
+| BasemapService | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/basemap.service.ts` |
 | IPoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleTrackingProxy.cs` |
 | IPoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleHumanProxy.cs` |
 | PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |

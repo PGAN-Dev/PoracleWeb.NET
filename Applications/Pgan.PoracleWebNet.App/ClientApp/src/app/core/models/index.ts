@@ -55,10 +55,10 @@ export type MonsterUpdate = Partial<MonsterCreate>;
 
 export interface Raid {
   clean: number;
-  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
-  description?: null | string;
   /** Costume filter on the boss: 9000 any, 0 none, N that costume. See shared/utils/costumes.ts. */
   costume: number;
+  /** The sentence PoracleNG renders for this rule, in the alert language. Read-only. */
+  description?: null | string;
   distance: number;
   evolution: number;
   exclusive: number;
@@ -396,6 +396,8 @@ export interface PoracleServerConfig {
   locale: string;
   maxDistance: number;
   poracleVersion: string;
+  /** The Poracle bot's command prefix, e.g. "$!" — needed to tell a user the right command to type. */
+  prefix: string;
   pvpCaps: number[];
   pvpFilterGreatMinCp: number;
   pvpFilterLittleMinCp: number;

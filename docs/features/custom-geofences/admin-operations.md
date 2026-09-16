@@ -44,7 +44,7 @@ If your project has **no regions**, the picker simply doesn't appear, and the ar
 Admins can delete any geofence from the admin screen:
 
 - If it's a **private** geofence, it's removed from PoracleWeb.NET and from every profile that had it switched on.
-- If it's an **approved (public)** geofence, PoracleWeb.NET also removes it from the Koji project so it stops being a selectable public area.
+- If it was **ever promoted to Koji**, PoracleWeb.NET also removes it from the Koji project so it stops being a selectable public area. The test is "was this published?", not the current status — a geofence approved and later rejected still has to be pulled out of the shared project.
 
 !!! warning "Project removal vs. full deletion"
     Removing a public geofence from the *project* stops it being selectable, but the geofence row may still exist in Koji's own database. To scrub it completely, delete it in the **Koji UI**. See [Troubleshooting](troubleshooting.md#removing-a-geofence-from-koji-completely).
@@ -94,6 +94,20 @@ These are built in to keep things sane — you don't configure them, but it help
 
 Duplicate names are handled automatically — if a user picks a name that's taken, PoracleWeb.NET appends a number (`downtown 2`, `downtown 3`, …).
 
+## Taking an area off the menu
+
+Separate from anything users draw: **Admin → Areas** lists every area Koji serves and lets you hide
+one without deleting it — staging fences, test polygons, a region you cover but do not advertise.
+
+A hidden area leaves **Areas & Places**, the per-alarm delivery scope picker and the bot's own area
+list together, because all three read the same flag. It does **not** unsubscribe anyone who already
+selected it; see
+[Hiding an area from your users](koji-and-regions.md#hiding-an-area-from-your-users) for exactly when
+it does go away, and [Troubleshooting](../../troubleshooting.md) for the two symptoms that bring people
+to ask.
+
 ## Turning the whole feature off
 
-If you don't want user-drawn geofences at all, there's an admin site setting (`disable_user_geofences`) that hides the whole feature — the user *My Geofences* page, the admin review queue, and the create/submit/import endpoints. **Existing** geofences keep working; this just freezes new ones. Toggle it from the admin **Settings** page.
+If you don't want user-drawn geofences at all, there's an admin site setting (`disable_user_geofences`) that hides the whole feature — the user *My Geofences* page and the admin review queue both stop being reachable, and the create, rename, submit, import and per-profile toggle endpoints answer 403.
+
+Existing geofences are **not** deleted and keep alerting: they stay in the geofence feed, and deleting and exporting them still works. What's frozen is making new ones and changing the ones that exist. Toggle it from the admin **Settings** page.

@@ -38,7 +38,26 @@ Then point your **PoracleNG** bot at PoracleWeb.NET's combined feed (a single UR
 }
 ```
 
-That's the whole connection. If Koji is briefly down, PoracleWeb.NET keeps serving the private user geofences and the last-known public ones, so notifications don't stop dead.
+That's the whole connection. If Koji goes down, PoracleWeb.NET keeps serving the private user geofences on their own, so notifications don't stop dead — see [Troubleshooting](troubleshooting.md#koji-is-down-what-happens).
+
+## Forcing a refresh after a change in Koji
+
+PoracleWeb.NET caches Koji's public-area list for 5 minutes. A change made directly in the Koji UI won't reach the feed until that expires — which is a problem for provisioning tools that create an area in Koji and then tell PoracleNG to reload: the reload re-reads the stale list, answers `{"status":"ok"}`, and the new area still isn't selectable.
+
+`POST /api/geofence-feed/refresh` drops the cached Koji half so the next feed read re-fetches it:
+
+```bash
+curl -X POST -H "X-Poracle-Secret: $PORACLE_API_SECRET" http://poracleweb:8082/api/geofence-feed/refresh
+```
+
+It answers `{"status":"ok"}`. Things worth knowing:
+
+- It authenticates with the **same secret you already set in `PORACLE_API_SECRET`** — the one PoracleWeb.NET sends to PoracleNG — passed in an `X-Poracle-Secret` header.
+- It **fails closed**: with no secret configured there is nothing to compare against, so every request is refused rather than every request allowed.
+- It is rate-limited to **20 requests per minute per IP**. One refresh per area created is well inside that.
+- **Reading** the feed is unchanged and still needs no secret.
+
+Approving a submission in PoracleWeb.NET already clears the cache, so this endpoint is only for changes made outside PoracleWeb.NET.
 
 ## How geofences and regions relate in Koji
 
@@ -144,6 +163,51 @@ For a **private** user geofence, PoracleWeb.NET never writes any of this to Koji
 | `/api/v1/geofence/reference` | `id`, `name` (internal), `parent` (numeric id) | Listing every geofence and deriving which ones are **regions** (a geofence referenced as another's parent). |
 | `/api/v1/geofence/area/{name}?rt=feature` | `properties.name`, the polygon geometry | The region's **display name** and its outline (used for region auto-detection). |
 | `/api/v1/geofence/poracle/{project}` | name, polygon path, group | The public-area list merged into the combined feed. |
+
+## Hiding an area from your users
+
+Staging fences, test polygons, a region you cover but do not advertise: **Admin → Areas** lists every
+area Koji serves and lets you take one off the menu without deleting it.
+
+A hidden area stops appearing in three places at once, because all three read the same flag:
+
+* **Areas & Places**, where users pick their subscriptions
+* the **delivery scope picker** on an individual alarm
+* the bot's own **`!area`** list
+
+You do not need Koji access for this. PoracleWeb.NET is the geofence source Poracle loads, so hiding
+serves that fence with `userSelectable: false` in the feed.
+
+Setting the area private in Koji works too, and now genuinely does: until #885 this site read Koji's
+export but **hardcoded `userSelectable` and `displayInMatches` to true**, so a fence an operator had
+already made private in Koji was handed to every user as selectable anyway. Both flags are read now.
+Areas private in Koji are listed as *Private in Koji* and their switch is disabled, because clearing a
+flag this site did not set would not make them selectable.
+
+!!! warning "Hiding takes effect on a delay you do not control"
+    Hiding is immediate for **new** selections and invisible to matching, so nobody loses an alert the
+    moment you flip the switch. Matching never consults `userSelectable` — `resolveOverride` hands a
+    rule's areas to `areaOverlap`, which compares names against the fences a spawn fell in — so a
+    profile still carrying a hidden name keeps receiving its alerts.
+
+    It then goes away by itself, quietly, on the user's next write. Two paths:
+
+    * **Saving on Areas & Places.** PoracleNG's `setAreas` intersects the submitted list against
+      `userSelectable=true` fences for non-admins and drops the rest with no error, returning 200.
+      A user who ticks any unrelated area loses the hidden one in the same save.
+    * **Editing an alarm scoped to it.** The scope picker lists only areas still on offer, so the
+      hidden one is absent from the dialog and the rule is saved without it.
+
+    Neither path tells the user. If you are hiding a test fence that is usually what you wanted; if you
+    are hiding something people legitimately use, tell them first. Alarm matching itself is never
+    interrupted — only the moment they next save.
+
+The list is kept in the `hidden_areas` site setting. A name you hide that Koji later stops serving is
+kept rather than dropped, so a Koji outage does not silently un-hide anything; the page flags those
+separately.
+
+`displayInMatches` is deliberately untouched. Someone still subscribed keeps matching the fence, and
+blanking its name out of their alert would make that harder to diagnose rather than easier.
 
 ## What auto-detection does
 

@@ -17,6 +17,7 @@ import { LureEditDialogComponent } from './lure-edit-dialog.component';
 import { Lure } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -50,11 +51,12 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 })
 export class LureListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
-
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialog = inject(MatDialog);
+
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly loading = signal(true);
@@ -233,25 +235,25 @@ export class LureListComponent implements OnInit {
   }
 
   getLureIcon(lureId: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${lureId}.png`;
+    return this.icons.getItemUrl(lureId);
   }
 
   getLureName(id: number): string {
     switch (id) {
       case 501:
-        return 'Normal';
+        return this.i18n.instant('LURES.TYPE_NORMAL');
       case 502:
-        return 'Glacial';
+        return this.i18n.instant('LURES.TYPE_GLACIAL');
       case 503:
-        return 'Mossy';
+        return this.i18n.instant('LURES.TYPE_MOSSY');
       case 504:
-        return 'Magnetic';
+        return this.i18n.instant('LURES.TYPE_MAGNETIC');
       case 505:
-        return 'Rainy';
+        return this.i18n.instant('LURES.TYPE_RAINY');
       case 506:
-        return 'Golden';
+        return this.i18n.instant('LURES.TYPE_GOLDEN');
       default:
-        return `Lure #${id}`;
+        return this.i18n.instant('LURES.TYPE_UNKNOWN', { id });
     }
   }
 

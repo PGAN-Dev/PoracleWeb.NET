@@ -6,6 +6,13 @@ public class PoracleConfig
 {
     public string Locale { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The prefix the Poracle bot's commands take, e.g. <c>$!</c> or <c>!</c>. Needed because the only
+    /// way a user can clear the bot's DMs is to send it <c>{prefix}poracle-clean</c>, and telling them
+    /// the wrong prefix is worse than telling them nothing.
+    /// </summary>
+    public string Prefix { get; set; } = string.Empty;
+
     [JsonPropertyName("providerURL")]
     public string ProviderUrl { get; set; } = string.Empty;
 

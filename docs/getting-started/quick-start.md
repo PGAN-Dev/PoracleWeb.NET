@@ -65,7 +65,9 @@ JWT_SECRET=generate-a-long-random-secret-key-at-least-32-chars
 # Set the OAuth2 redirect URI to: http://your-server:8082/api/auth/discord/callback
 DISCORD_CLIENT_ID=your_discord_client_id
 DISCORD_CLIENT_SECRET=your_discord_client_secret
-# Optional: only needed for avatar caching and the geofence review forum posts.
+# Optional: needed for the geofence review forum posts, and for restricting login to
+# holders of a Discord role — that also needs DISCORD_GUILD_ID plus the enable_roles and
+# allowed_role_ids site settings. Without enable_roles switched on, role IDs are ignored.
 DISCORD_BOT_TOKEN=your_discord_bot_token
 
 # Poracle API — your running PoracleNG instance
@@ -162,6 +164,14 @@ CREATE DATABASE poracle_web CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 === "Build from source"
 
+    `docker-compose.yml` pulls `ghcr.io/pgan-dev/poracleweb.net:latest` unless you say otherwise, so
+    point its `image:` line at the tag you are about to build, or it will start the published image
+    and ignore yours:
+
+    ```yaml
+    image: poracleweb.net:latest
+    ```
+
     ```bash
     ./scripts/docker.sh build
     ./scripts/docker.sh start
@@ -231,6 +241,9 @@ The app will now be available at `http://your-server:9090`. Remember to update y
 
 **Container crashes: "Configuration 'Cors:AllowedOrigins' is required"**
 : Set `CORS_ORIGIN` in your `.env` to the URL you access PoracleWeb.NET from (e.g., `CORS_ORIGIN=http://192.168.1.50:8082`). This is required in production mode.
+
+**Maps show "API KEY REQUIRED" or "Access blocked"**
+: A tile provider is refusing the request and drawing the refusal into the image — it still returns success, so nothing appears in the logs. A fresh install needs no map configuration at all; if you have set one, see [Maps](../configuration/site-settings.md#maps) and [Troubleshooting](../troubleshooting.md#maps-are-watermarked-blocked-blank-or-ignoring-the-setting).
 
 **Can't connect to database**
 : If your database is on the host machine (not in Docker), set `DB_HOST=host.docker.internal` in `.env`. The default in `.env.example` is `localhost` (for standalone use); Docker users connecting to the host must change this.

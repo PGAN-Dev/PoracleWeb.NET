@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { forkJoin } from 'rxjs';
 
 import { AreaService } from '../../../core/services/area.service';
 import { PlacesService } from '../../../core/services/places.service';
@@ -117,9 +118,26 @@ export class ScopePickerComponent implements OnInit {
 
     this.places.load().subscribe({ error: () => undefined });
 
-    this.areaService.getAvailable().subscribe({
+    // The instance's full area list, narrowed to the ones this user actually subscribes to. This
+    // control sits under "Anywhere in my areas" and reads "Only in specific areas" -- it narrows where
+    // a rule reaches within the areas you already get alerts for, so offering the whole server turns it
+    // into a second, hidden way to subscribe. On a multi-community instance that is hundreds of areas
+    // from cities the reader has nothing to do with. See #873.
+    //
+    // Anything the rule ALREADY carries stays on offer even when it is no longer subscribed, or the
+    // option backing it disappears and the area drops off the rule silently on the next save. One rule
+    // in production is in exactly that state.
+    forkJoin({
+      available: this.areaService.getAvailable(),
+      selected: this.areaService.getSelected(),
+    }).subscribe({
       error: () => undefined,
-      next: areas => this.availableAreas.update(current => [...areas.map(a => ({ name: a.name, own: false })), ...current]),
+      next: ({ available, selected }) => {
+        const keep = new Set([...selected, ...(this.scope().areas ?? [])].map(name => name.toLowerCase()));
+        const mine = available.filter(area => keep.has(area.name.toLowerCase()));
+
+        this.availableAreas.update(current => [...mine.map(a => ({ name: a.name, own: false })), ...current]);
+      },
     });
 
     this.geofenceService.getCustomGeofences().subscribe({

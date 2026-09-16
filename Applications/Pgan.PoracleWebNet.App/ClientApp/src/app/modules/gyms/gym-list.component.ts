@@ -18,6 +18,7 @@ import { Gym } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { GymService } from '../../core/services/gym.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -53,12 +54,13 @@ import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-sco
 })
 export class GymListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
-
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialog = inject(MatDialog);
+
   private readonly gymService = inject(GymService);
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly scannerService = inject(ScannerService);
   private readonly snackBar = inject(MatSnackBar);
   readonly gymNames = signal<Record<string, string>>({});
@@ -219,7 +221,7 @@ export class GymListComponent implements OnInit {
   }
 
   getGymIcon(team: number): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
+    return this.icons.getGymUrl(team);
   }
 
   getTeamColor(team: number): string {
@@ -240,15 +242,15 @@ export class GymListComponent implements OnInit {
   getTeamName(team: number): string {
     switch (team) {
       case 0:
-        return 'Neutral';
+        return this.i18n.instant('GYMS.TEAM_NEUTRAL');
       case 1:
-        return 'Mystic (Blue)';
+        return this.i18n.instant('GYMS.TEAM_MYSTIC');
       case 2:
-        return 'Valor (Red)';
+        return this.i18n.instant('GYMS.TEAM_VALOR');
       case 3:
-        return 'Instinct (Yellow)';
+        return this.i18n.instant('GYMS.TEAM_INSTINCT');
       default:
-        return `Team ${team}`;
+        return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
     }
   }
 

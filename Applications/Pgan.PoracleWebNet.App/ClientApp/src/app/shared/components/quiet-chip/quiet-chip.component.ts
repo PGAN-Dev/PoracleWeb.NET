@@ -11,9 +11,10 @@ import { QuietSheetComponent, QuietSheetData, QuietSheetResult } from '../quiet-
 /**
  * Quieting one subject for a while, from wherever that subject is already named.
  *
- * Two forms of the same control. On a card it is an icon button that sits in the existing actions row;
- * on a list row it is a chip. Either way, when the subject is quiet it carries a live countdown, and
- * pressing it opens the same sheet.
+ * Three forms of the same control. On a card it is an icon button that sits in the existing actions
+ * row; on a list row it is a chip; in a mat-chip's trailing slot it is a 24px control sized to the
+ * chip around it. Whichever form, when the subject is quiet it carries a live countdown, and pressing
+ * it opens the same sheet.
  *
  * Renders nothing at all on a PoracleNG older than 5.2.0. There is nothing useful to say about a
  * server feature the operator has not got yet, and a control that 404s on every press is worse than
@@ -30,8 +31,8 @@ import { QuietSheetComponent, QuietSheetData, QuietSheetResult } from '../quiet-
 export class QuietChipComponent {
   private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
-  /** 'chip' on a list row, 'icon' in a card's action row. */
-  readonly appearance = input<'chip' | 'icon'>('icon');
+  /** 'chip' on a list row, 'icon' in a card's action row, 'trailing' inside a mat-chip. */
+  readonly appearance = input<'chip' | 'icon' | 'trailing'>('icon');
 
   protected readonly mutes = inject(MuteService);
 

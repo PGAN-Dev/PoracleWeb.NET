@@ -45,42 +45,42 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
 
     Create `Applications/Pgan.PoracleWebNet.Api/appsettings.Development.json` (gitignored):
 
-```json
-{
-  "ConnectionStrings": {
-    "PoracleDb": "Server=localhost;Port=3306;Database=poracle;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
-    "PoracleWebDb": "Server=localhost;Port=3306;Database=poracle_web;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
-    "ScannerDb": ""
-  },
-  "Jwt": {
-    "Secret": "your-development-secret-key-at-least-32-characters-long"
-  },
-  "Discord": {
-    "ClientId": "your_discord_client_id",
-    "ClientSecret": "your_discord_client_secret",
-    "FrontendUrl": "http://localhost:4200",
-    "BotToken": "your_discord_bot_token",
-    "GuildId": "your_discord_guild_id",
-    "GeofenceForumChannelId": ""
-  },
-  "Telegram": {
-    "Enabled": false,
-    "BotToken": "",
-    "BotUsername": ""
-  },
-  "Poracle": {
-    "ApiAddress": "http://localhost:3030",
-    "ApiSecret": "your_poracle_secret",
-    "AdminIds": "your_discord_user_id"
-  },
-  "Koji": {
-    "ApiAddress": "http://localhost:8080",
-    "BearerToken": "your_koji_bearer_token",
-    "ProjectId": 1,
-    "ProjectName": "your_koji_project_name"
-  }
-}
-```
+    ```json
+    {
+      "ConnectionStrings": {
+        "PoracleDb": "Server=localhost;Port=3306;Database=poracle;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
+        "PoracleWebDb": "Server=localhost;Port=3306;Database=poracle_web;User=root;Password=your_password;AllowZeroDateTime=true;ConvertZeroDateTime=true",
+        "ScannerDb": ""
+      },
+      "Jwt": {
+        "Secret": "your-development-secret-key-at-least-32-characters-long"
+      },
+      "Discord": {
+        "ClientId": "your_discord_client_id",
+        "ClientSecret": "your_discord_client_secret",
+        "FrontendUrl": "http://localhost:4200",
+        "BotToken": "your_discord_bot_token",
+        "GuildId": "your_discord_guild_id",
+        "GeofenceForumChannelId": ""
+      },
+      "Telegram": {
+        "Enabled": false,
+        "BotToken": "",
+        "BotUsername": ""
+      },
+      "Poracle": {
+        "ApiAddress": "http://localhost:3030",
+        "ApiSecret": "your_poracle_secret",
+        "AdminIds": "your_discord_user_id"
+      },
+      "Koji": {
+        "ApiAddress": "http://localhost:8080",
+        "BearerToken": "your_koji_bearer_token",
+        "ProjectId": 1,
+        "ProjectName": "your_koji_project_name"
+      }
+    }
+    ```
 
 !!! warning "PoracleNG must be running"
     `Poracle:ApiAddress` must point to a running PoracleNG instance. All alarm tracking writes are proxied through this API. `Poracle:ApiSecret` must match PoracleNG's `server.apiSecret` config value.
@@ -104,7 +104,7 @@ Or manually: `cd Applications/Pgan.PoracleWebNet.App/ClientApp && npm install`
     # or: cd Applications/Pgan.PoracleWebNet.Api && dotnet run
     ```
 
-    Starts on **http://localhost:5048**. Swagger/OpenAPI is available in development mode.
+    Starts on **http://localhost:5048**. In development it also serves its OpenAPI document at `/openapi/v1.json`; there is no Swagger UI.
 
     **Frontend:**
 

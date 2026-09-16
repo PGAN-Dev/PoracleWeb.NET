@@ -383,7 +383,7 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
         zoomControl: false,
       });
 
-      this.basemap.createLayer().addTo(map);
+      this.basemap.attach(map);
 
       const color = GEOFENCE_STATUS_COLORS[geofence.status] || '#9e9e9e';
       const polygon = L.polygon(

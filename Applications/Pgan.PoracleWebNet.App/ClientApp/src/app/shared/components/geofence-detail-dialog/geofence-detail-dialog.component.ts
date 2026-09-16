@@ -113,7 +113,7 @@ export class GeofenceDetailDialogComponent implements OnDestroy {
       zoomControl: true,
     }).setView([0, 0], 2);
 
-    this.basemap.createLayer().addTo(this.map);
+    this.basemap.attach(this.map, { picker: true });
 
     // Draw region/area geofences from Poracle using the same color palette as area-map
     const refs = this.data.referenceGeofences ?? [];

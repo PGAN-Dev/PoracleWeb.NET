@@ -23,7 +23,7 @@
         <mat-label>{{ 'QUICK_PICKS.FIELD_CATEGORY' | translate }}</mat-label>
         <mat-select formControlName="category">
           @for (cat of categories; track cat) {
-            <mat-option [value]="cat">{{ cat }}</mat-option>
+            <mat-option [value]="cat">{{ categoryLabel(cat) }}</mat-option>
           }
         </mat-select>
       </mat-form-field>

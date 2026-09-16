@@ -14,6 +14,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { Lure, LureUpdate } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -44,6 +45,7 @@ import { AUTO_DELETE, compose, EDIT, isAutoDelete, isEdit, preserve } from '../.
 export class LureEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly lureService = inject(LureService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<Lure>(MAT_DIALOG_DATA);
@@ -62,25 +64,25 @@ export class LureEditDialogComponent {
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.overrideLocationLabel, this.data.overrideAreas, this.data.distance));
   getLureIcon(): string {
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/reward/item/${this.data.lureId}.png`;
+    return this.icons.getItemUrl(this.data.lureId);
   }
 
   getLureName(id: number): string {
     switch (id) {
       case 501:
-        return 'Normal';
+        return this.i18n.instant('LURES.TYPE_NORMAL');
       case 502:
-        return 'Glacial';
+        return this.i18n.instant('LURES.TYPE_GLACIAL');
       case 503:
-        return 'Mossy';
+        return this.i18n.instant('LURES.TYPE_MOSSY');
       case 504:
-        return 'Magnetic';
+        return this.i18n.instant('LURES.TYPE_MAGNETIC');
       case 505:
-        return 'Rainy';
+        return this.i18n.instant('LURES.TYPE_RAINY');
       case 506:
-        return 'Golden';
+        return this.i18n.instant('LURES.TYPE_GOLDEN');
       default:
-        return `Lure #${id}`;
+        return this.i18n.instant('LURES.TYPE_UNKNOWN', { id });
     }
   }
 

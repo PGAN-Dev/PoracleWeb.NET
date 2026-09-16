@@ -17,13 +17,14 @@ import { InvasionEditDialogComponent } from './invasion-edit-dialog.component';
 import {
   EVENT_TYPE_INFO,
   getGruntDisplayName,
-  getGruntIconUrl,
+  getGruntIconPath,
   isEventType as checkEventType,
   isGenderFixed as checkGenderFixed,
 } from './invasion.constants';
 import { Invasion } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
@@ -58,11 +59,12 @@ import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flag
 })
 export class InvasionListComponent implements OnInit {
   private readonly areaService = inject(AreaService);
-
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly dialog = inject(MatDialog);
+
   private readonly i18n = inject(I18nService);
+  private readonly icons = inject(IconService);
   private readonly invasionService = inject(InvasionService);
   private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
@@ -242,11 +244,12 @@ export class InvasionListComponent implements OnInit {
   }
 
   getEventImgUrl(gruntType: string | null): string {
-    return EVENT_TYPE_INFO[gruntType ?? '']?.imgUrl ?? '';
+    const path = EVENT_TYPE_INFO[gruntType ?? '']?.imgPath;
+    return path ? this.icons.getPackUrl(path) : '';
   }
 
   getGruntIcon(gruntType: string | null, gender?: number): string {
-    return getGruntIconUrl(gruntType, gender);
+    return this.icons.getPackUrl(getGruntIconPath(gruntType, gender));
   }
 
   hideGenderLabel(gruntType: string | null): boolean {

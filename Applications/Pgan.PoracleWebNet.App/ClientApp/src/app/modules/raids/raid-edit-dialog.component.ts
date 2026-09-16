@@ -72,7 +72,6 @@ export class RaidEditDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
-
   form = this.fb.group({
     clean: [isAutoDelete(this.data.item.clean)],
     // Eggs have no costume column, and a rule stored before PoracleNG had one reads back undefined.
@@ -89,8 +88,8 @@ export class RaidEditDialogComponent {
 
   /** The alarm's current scope, read back into the shared picker. */
   readonly scope = signal<AlarmScope>(scopeOf(this.data.item.overrideLocationLabel, this.data.item.overrideAreas, this.data.item.distance));
-  selectedGymId = signal<string | null>(this.data.item.gymId);
 
+  selectedGymId = signal<string | null>(this.data.item.gymId);
   /** The hint under the costume select, which changes with the selection. */
   costumeHint(): string {
     return costumeHintKey(this.form.controls.costume.value ?? ANY_COSTUME, this.costumeNamesAvailable());
@@ -104,6 +103,11 @@ export class RaidEditDialogComponent {
   /** The named costumes for the select, newest first. */
   costumeOptions(): { id: number; name: string }[] {
     return this.masterData.getCostumes();
+  }
+
+  /** A team badge for the dropdown. Takes the pack's gym number, not the form's team value: "any" is team 4 and gym 0. */
+  getGymIcon(gymIcon: number): string {
+    return this.iconService.getGymUrl(gymIcon);
   }
 
   getImage(): string {

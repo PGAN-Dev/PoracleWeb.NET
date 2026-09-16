@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
@@ -14,12 +16,96 @@ public class GeofenceFeedControllerTests
     private readonly Mock<IUserGeofenceRepository> _repository = new();
     private readonly Mock<IKojiService> _kojiService = new();
     private readonly Mock<ILogger<GeofenceFeedController>> _logger = new();
+    private readonly Mock<ISiteSettingService> _siteSettings = new();
+    private const string Secret = "shared-secret";
+
     private readonly GeofenceFeedController _sut;
 
     public GeofenceFeedControllerTests()
     {
         this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
-        this._sut = new GeofenceFeedController(this._repository.Object, this._kojiService.Object, this._logger.Object);
+        this._siteSettings.Setup(x => x.GetByKeyAsync(HiddenAreas.SettingKey)).ReturnsAsync((SiteSetting?)null);
+        this._sut = Build(Secret);
+    }
+
+    /// <summary>A controller wired to one configured secret, with a request whose header can be set.</summary>
+    private GeofenceFeedController Build(string? configuredSecret, string? suppliedHeader = null)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Poracle:ApiSecret"] = configuredSecret })
+            .Build();
+
+        var controller = new GeofenceFeedController(
+            this._repository.Object, this._kojiService.Object, this._siteSettings.Object, configuration, this._logger.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
+
+        if (suppliedHeader is not null)
+        {
+            controller.Request.Headers["X-Poracle-Secret"] = suppliedHeader;
+        }
+
+        return controller;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Dropping the Koji cache (#844)
+    // ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void RefreshDropsTheKojiCacheWhenTheSecretMatches()
+    {
+        var sut = this.Build(Secret, Secret);
+
+        Assert.IsType<OkObjectResult>(sut.RefreshKojiCache());
+        this._kojiService.Verify(k => k.InvalidateAdminGeofenceCache(), Times.Once);
+    }
+
+    /// <remarks>
+    /// A trailing-space variant used to be asserted here and was wrong. Kestrel strips optional trailing
+    /// whitespace from a header value per RFC 9110 5.5, so "shared-secret " arrives already trimmed and
+    /// is accepted over real HTTP. The assertion described a server that does not exist, and a directly
+    /// constructed controller could never have noticed. See GeofenceFeedPipelineTests.
+    /// </remarks>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("wrong-secret")]
+    [InlineData("SHARED-SECRET")]
+    public void RefreshRefusesAnythingButTheConfiguredSecret(string? supplied)
+    {
+        var sut = this.Build(Secret, supplied);
+
+        Assert.IsType<UnauthorizedResult>(sut.RefreshKojiCache());
+        this._kojiService.Verify(k => k.InvalidateAdminGeofenceCache(), Times.Never);
+    }
+
+    /// <summary>
+    /// With no secret configured there is nothing to check against, so the endpoint has to refuse rather
+    /// than wave everyone through. An empty configured secret matching an empty header would otherwise
+    /// make this the one anonymous write on the site.
+    /// </summary>
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(null, "")]
+    [InlineData("", "")]
+    [InlineData("", "anything")]
+    public void RefreshFailsClosedWhenNoSecretIsConfigured(string? configured, string? supplied)
+    {
+        var sut = this.Build(configured, supplied);
+
+        Assert.IsType<UnauthorizedResult>(sut.RefreshKojiCache());
+        this._kojiService.Verify(k => k.InvalidateAdminGeofenceCache(), Times.Never);
+    }
+
+    /// <summary>The feed itself stays open; only the refresh is gated.</summary>
+    [Fact]
+    public async Task TheFeedIsStillReadableWithoutASecret()
+    {
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
     }
 
     [Fact]
@@ -322,5 +408,207 @@ public class GeofenceFeedControllerTests
         this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync(FeedRows(good, good));
 
         Assert.Equal(2, await this.FeedCountAsync());
+    }
+    // ──────────────────────────────────────────────────────────────
+    // Degrading when a source is down
+    // ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task TheFeedStillServesUserFencesWhenKojiIsDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ThrowsAsync(new HttpRequestException("koji down"));
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
+    }
+
+    /// <summary>
+    /// The half that did not degrade. Koji's read has always been wrapped; the database read was not,
+    /// so a blip answered 500 and took down the only geofence source PoracleJS has.
+    /// </summary>
+    [Fact]
+    public async Task TheFeedStillServesKojiFencesWhenTheDatabaseIsDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
+        this._repository.Setup(r => r.GetAllActiveAsync()).ThrowsAsync(new InvalidOperationException("db down"));
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
+    }
+
+    /// <summary>
+    /// With both sources down the feed must NOT answer 200 and an empty list. PoracleJS treats this feed
+    /// as authoritative and caches the last good response, so an empty success is not a degraded answer,
+    /// it is an instruction to drop every geofence every user has. An error leaves the cache in place.
+    /// </summary>
+    [Fact]
+    public async Task TheFeedRefusesRatherThanServingAnEmptyListWhenBothSourcesAreDown()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ThrowsAsync(new HttpRequestException("koji down"));
+        this._repository.Setup(r => r.GetAllActiveAsync()).ThrowsAsync(new InvalidOperationException("db down"));
+
+        var result = Assert.IsType<ObjectResult>(await this.Build(Secret).GetPoracleFeed());
+
+        Assert.Equal(503, result.StatusCode);
+    }
+
+    /// <summary>
+    /// The legitimate-case half, and the reason the check is on failure rather than on emptiness: an
+    /// instance with no Koji project and no user-drawn fences has an empty feed, and that is a correct
+    /// answer rather than an outage.
+    /// </summary>
+    [Fact]
+    public async Task AnEmptyFeedIsStillASuccessWhenBothSourcesAnswered()
+    {
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync([]);
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+
+        Assert.IsType<OkObjectResult>(await this.Build(Secret).GetPoracleFeed());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Hiding an area from the pickers (#885)
+    // ──────────────────────────────────────────────────────────────
+
+    /// <summary>Two admin fences, one of which an operator may want off the menu.</summary>
+    private void GivenKojiServes(params string[] names)
+    {
+        // The feed merges user geofences in too; these tests are about the admin half.
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
+            names.Select((n, i) => new AdminGeofence
+            {
+                Id = i + 1,
+                Name = n,
+                Group = "test",
+                Path = [[0, 0], [0, 1], [1, 1], [0, 0]],
+                UserSelectable = true,
+                DisplayInMatches = true,
+            }).ToList());
+    }
+
+    private void GivenHidden(string? rawSettingValue) =>
+        this._siteSettings.Setup(x => x.GetByKeyAsync(HiddenAreas.SettingKey))
+            .ReturnsAsync(rawSettingValue is null ? null : new SiteSetting { Key = HiddenAreas.SettingKey, Value = rawSettingValue });
+
+    /// <summary>The feed as JSON, whichever result type the action used to return it.</summary>
+    private static JsonElement[] FeedOf(IActionResult result)
+    {
+        var body = Assert.IsType<OkObjectResult>(result).Value!;
+        var envelope = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(body));
+        return envelope.GetProperty("data").Deserialize<JsonElement[]>()!;
+    }
+
+    private static bool SelectableOf(JsonElement[] feed, string name) =>
+        feed.Single(f => f.GetProperty("name").GetString() == name).GetProperty("userSelectable").GetBoolean();
+
+    [Fact]
+    public async Task AHiddenAreaIsServedAsNotSelectable()
+    {
+        this.GivenKojiServes("staging", "downtown");
+        this.GivenHidden("[\"staging\"]");
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.False(SelectableOf(feed, "staging"));
+        Assert.True(SelectableOf(feed, "downtown"));
+    }
+
+    /// <summary>
+    /// The fence stays in the feed. Dropping it would stop it matching for anyone already subscribed
+    /// and would break the per-alarm scopes that reference it by name.
+    /// </summary>
+    [Fact]
+    public async Task AHiddenAreaIsStillServed()
+    {
+        this.GivenKojiServes("staging", "downtown");
+        this.GivenHidden("[\"staging\"]");
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.Equal(2, feed.Length);
+        Assert.Contains(feed, f => f.GetProperty("name").GetString() == "staging");
+    }
+
+    /// <summary>
+    /// displayInMatches is deliberately untouched. Someone already subscribed keeps matching a hidden
+    /// fence, and blanking its name out of their alert would make that harder to diagnose, not easier.
+    /// </summary>
+    [Fact]
+    public async Task HidingAnAreaDoesNotChangeWhetherItsNameShowsInAlerts()
+    {
+        this.GivenKojiServes("staging");
+        this.GivenHidden("[\"staging\"]");
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.True(feed.Single().GetProperty("displayInMatches").GetBoolean());
+    }
+
+    [Fact]
+    public async Task HidingMatchesRegardlessOfCase()
+    {
+        this.GivenKojiServes("Downtown - Richmond");
+        this.GivenHidden("[\"downtown - richmond\"]");
+
+        Assert.False(SelectableOf(FeedOf(await this._sut.GetPoracleFeed()), "Downtown - Richmond"));
+    }
+
+    [Fact]
+    public async Task NothingIsHiddenWhenNothingIsStored()
+    {
+        this.GivenKojiServes("staging", "downtown");
+        this.GivenHidden(null);
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.True(SelectableOf(feed, "staging"));
+        Assert.True(SelectableOf(feed, "downtown"));
+    }
+
+    /// <summary>
+    /// The direction that matters. This runs inside the single geofence source for Poracle, so an
+    /// unreadable row must leave every area selectable rather than hide the lot — the second failure
+    /// is silent and takes alerting with it.
+    /// </summary>
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("{\"not\":\"an array\"}")]
+    public async Task AnUnreadableSettingHidesNothing(string raw)
+    {
+        this.GivenKojiServes("staging", "downtown");
+        this.GivenHidden(raw);
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.True(SelectableOf(feed, "staging"));
+        Assert.True(SelectableOf(feed, "downtown"));
+    }
+
+    [Fact]
+    public async Task ASettingsFailureHidesNothingRatherThanFailingTheFeed()
+    {
+        this.GivenKojiServes("staging");
+        this._siteSettings.Setup(x => x.GetByKeyAsync(HiddenAreas.SettingKey)).ThrowsAsync(new InvalidOperationException("db down"));
+
+        var feed = FeedOf(await this._sut.GetPoracleFeed());
+
+        Assert.True(SelectableOf(feed, "staging"));
+    }
+
+    /// <summary>
+    /// A fence Koji already marks non-selectable stays non-selectable. Our list only ever removes
+    /// selectability; it never grants it.
+    /// </summary>
+    [Fact]
+    public async Task OurListNeverMakesAKojiPrivateFenceSelectable()
+    {
+        this._repository.Setup(r => r.GetAllActiveAsync()).ReturnsAsync([]);
+        this._kojiService.Setup(k => k.GetAdminGeofencesAsync()).ReturnsAsync(
+        [
+            new AdminGeofence { Id = 1, Name = "private", Group = "test", Path = [[0, 0], [0, 1], [1, 1], [0, 0]], UserSelectable = false, DisplayInMatches = true },
+        ]);
+        this.GivenHidden("[]");
+
+        Assert.False(SelectableOf(FeedOf(await this._sut.GetPoracleFeed()), "private"));
     }
 }

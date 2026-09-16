@@ -26,6 +26,11 @@ public partial class UserPurgeService(
 
     public async Task<bool> PurgeAsync(string userId)
     {
+        // Deliberately the DATABASE, not IHumanService.ExistsAsync, which is otherwise identical and
+        // already injected here. That one reads through the proxy, and the proxy answers null for any
+        // non-success -- so a Poracle that is merely unreachable is indistinguishable from an account
+        // that does not exist, and this method would answer false. The caller turns false into 404, so
+        // an outage would tell an admin the account they are deleting is already gone.
         if (!await this._humanRepository.ExistsAsync(userId))
         {
             return false;

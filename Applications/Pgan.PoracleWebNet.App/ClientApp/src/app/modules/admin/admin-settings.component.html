@@ -241,6 +241,14 @@
                         [matTooltip]="forcedByPoracle(meta) ? ('ADMIN_SETTINGS.FORCED_BY_PORACLE_TOOLTIP' | translate) : ''"
                         (change)="onFeatureToggle(meta, $event.checked)"
                         color="primary"></mat-slide-toggle>
+                    } @else if (meta.type === 'select') {
+                      <mat-form-field appearance="outline" class="setting-field">
+                        <mat-select [ngModel]="getSettingValue(meta.key) ?? ''" (ngModelChange)="onTextChange(meta.key, $event)">
+                          @for (option of meta.options ?? []; track option.value) {
+                            <mat-option [value]="option.value">{{ optionLabel(option) }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
                     } @else {
                       <mat-form-field appearance="outline" class="setting-field">
                         <input
@@ -253,7 +261,7 @@
                         <div class="favicon-preview" [matTooltip]="'ADMIN_SETTINGS.FAVICON_URL_PREVIEW' | translate">
                           <img
                             [src]="getSettingValue('favicon_url') || 'favicon.ico'"
-                            alt="favicon preview"
+                            [alt]="'ADMIN_SETTINGS.FAVICON_PREVIEW_ALT' | translate"
                             width="32"
                             height="32"
                             (error)="onPreviewError($event)"
@@ -267,6 +275,21 @@
                   <div class="config-hint warning forced-by-poracle-hint">
                     <mat-icon>lock</mat-icon>
                     <span>{{ 'ADMIN_SETTINGS.FORCED_BY_PORACLE' | translate }}</span>
+                  </div>
+                }
+                @if (meta.key === 'basemap_provider' && basemap.selectedId()) {
+                  <div class="config-hint basemap-provider-hint">
+                    <mat-icon>person</mat-icon>
+                    <span>{{
+                      'ADMIN_SETTINGS.BASEMAP_PERSONAL_OVERRIDE'
+                        | translate: { chosen: basemap.active().label, provider: basemap.siteDefault().label }
+                    }}</span>
+                  </div>
+                }
+                @if (meta.key === 'basemap_provider' && !getSettingValue('basemap_provider') && !basemap.fallbackReason()) {
+                  <div class="config-hint basemap-provider-hint">
+                    <mat-icon>map</mat-icon>
+                    <span>{{ 'ADMIN_SETTINGS.BASEMAP_PROVIDER_UNSET_HINT' | translate: { provider: basemap.configured()?.label } }}</span>
                   </div>
                 }
                 @if (meta.key === 'allowed_languages' && poracleLocale()) {
@@ -292,10 +315,13 @@
             }
           </div>
 
-          @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_MAPS' && basemap.missingKey()) {
+          @if (group.labelKey === 'ADMIN_SETTINGS.GROUP_MAPS' && basemap.fallbackReason(); as reason) {
             <div class="config-hint warning basemap-key-warning">
               <mat-icon>info_outline</mat-icon>
-              <span>{{ 'ADMIN_SETTINGS.BASEMAP_KEY_MISSING' | translate }}</span>
+              <span>{{
+                (reason === 'missing-key' ? 'ADMIN_SETTINGS.BASEMAP_KEY_MISSING' : 'ADMIN_SETTINGS.BASEMAP_UNAVAILABLE')
+                  | translate: { provider: basemap.siteDefault().label }
+              }}</span>
             </div>
           }
 
@@ -452,36 +478,84 @@
           <mat-icon class="section-icon" style="color: #2e7d32">image</mat-icon>
           <span class="section-label">{{ 'ADMIN_SETTINGS.GROUP_ICON_REPO' | translate }}</span>
         </div>
+        <p class="section-hint">{{ 'ADMIN_SETTINGS.ICON_REPO_HINT' | translate }}</p>
+
         <div class="repo-selector">
-          @for (repo of iconRepos; track repo.name) {
-            <div class="repo-card" [class.repo-active]="isRepoActive(repo)" (click)="selectRepo(repo)">
+          @for (repo of displayedRepos(); track repo.base) {
+            <div class="repo-card" [class.repo-active]="isRepoActive(repo)" [class.repo-unlisted]="!repo.listed">
               <div class="repo-header">
-                <div class="repo-radio">
+                <div class="repo-radio" (click)="selectRepo(repo)">
                   @if (isRepoActive(repo)) {
                     <mat-icon class="repo-check">check_circle</mat-icon>
                   } @else {
                     <mat-icon class="repo-uncheck">radio_button_unchecked</mat-icon>
                   }
                 </div>
-                <div class="repo-info">
-                  <span class="repo-name">{{ repo.name }}</span>
+                <div class="repo-info" (click)="selectRepo(repo)">
+                  <span class="repo-name">
+                    {{ repo.name }}
+                    @if (!repo.listed) {
+                      <span class="repo-unlisted-tag">{{ 'ADMIN_SETTINGS.ICON_REPO_UNLISTED' | translate }}</span>
+                    }
+                  </span>
                   <span class="repo-url">{{ repo.base }}</span>
                 </div>
+                <div class="repo-actions">
+                  @if (repo.listed) {
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [attr.aria-label]="'COMMON.EDIT' | translate"
+                      [matTooltip]="'COMMON.EDIT' | translate"
+                      (click)="addRepo(repo)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      [attr.aria-label]="'ADMIN_SETTINGS.ICON_REPO_REMOVE_TITLE' | translate"
+                      [matTooltip]="'ADMIN_SETTINGS.ICON_REPO_REMOVE_TITLE' | translate"
+                      (click)="removeRepo(repo)">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  } @else {
+                    <button mat-stroked-button type="button" (click)="addRepo(repo)">
+                      <mat-icon>add</mat-icon>
+                      {{ 'ADMIN_SETTINGS.ICON_REPO_ADD_THIS' | translate }}
+                    </button>
+                  }
+                </div>
               </div>
-              <div class="repo-preview-row">
-                @for (img of repo.previewImages; track img.path) {
+              <div class="repo-preview-row" (click)="selectRepo(repo)">
+                @for (img of repoPreviews; track img.path) {
                   <div class="icon-preview-item">
                     <img
                       [src]="repo.base + '/' + img.path"
                       class="icon-preview-img"
                       (error)="onPreviewError($event)"
                       (load)="onPreviewLoad($event)"
-                      loading="lazy" />
+                      loading="lazy"
+                      alt="" />
                     <span class="icon-preview-name">{{ img.name }}</span>
                   </div>
                 }
               </div>
             </div>
+          } @empty {
+            <p class="repo-empty">{{ 'ADMIN_SETTINGS.ICON_REPO_EMPTY' | translate }}</p>
+          }
+        </div>
+
+        <div class="repo-list-actions">
+          <button mat-stroked-button type="button" [disabled]="repoListFull()" (click)="addRepo()">
+            <mat-icon>add</mat-icon>
+            {{ 'ADMIN_SETTINGS.ICON_REPO_ADD' | translate }}
+          </button>
+          <button mat-button type="button" (click)="restoreDefaultRepos()">
+            {{ 'ADMIN_SETTINGS.ICON_REPO_RESTORE_DEFAULTS' | translate }}
+          </button>
+          @if (repoListFull()) {
+            <span class="repo-full-hint">{{ 'ADMIN_SETTINGS.ICON_REPO_FULL' | translate }}</span>
           }
         </div>
       </section>

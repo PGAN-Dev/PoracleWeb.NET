@@ -45,9 +45,9 @@ and the fallback stops being free. And an operation that genuinely has no v1 equ
 `PUT /v2/humans/{id}/locations/{label}` is the only one — gets a capability gate and degrades to the
 old flow, the pattern `MuteCapabilityService` already sets, rather than forcing a floor for one feature.
 
-Two v2 surfaces cannot serve PoracleWeb at all yet: invasion, whose reads omit the targeting field for a
-named grunt, and bulk distance, which has no batch write. So v1 has to stay in the codebase regardless.
-Revisit the floor when upstream closes both — see
+Two v2 surfaces cannot serve PoracleWeb.NET at all yet: invasion, whose reads omit the targeting field
+for a named grunt, and bulk distance, which has no batch write. So v1 has to stay in the codebase
+regardless. Revisit the floor when upstream closes both — see
 [the v2 findings](../poracleng-enhancement-requests.md#v2-findings-for-an-upstream-report).
 
 ## How support is decided
@@ -83,10 +83,10 @@ capability key appeared. The version is the only thing that changed, so the vers
 |---|---|---|
 | Costume filter on pokemon alarms | Migration | PoracleNG database migration 6 |
 | Costume filter on raid alarms | Migration | PoracleNG database migration 7 |
-| Pokéstop-event tracking (`incident`) | v2 API surface | PoracleNG 5.2.0 |
-| Mutes | v2 API surface | PoracleNG 5.2.0 |
+| Pokéstop-event tracking (`incident`) | Poracle's own `general.disable_showcase` | A server that publishes that config key, and so carries the v2 `incident` route. 5.1.0 has neither |
+| Mutes | Version | PoracleNG 5.2.0 |
 | Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.0 |
-| Pokemon edits through `/api/v2` | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2` |
+| Alarm edits through `/api/v2` (nine types) | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2` |
 | Moving a saved place | Version | PoracleNG 5.2.0 |
 | Rule descriptions on alarm cards | Response field | v1 `allProfiles`, or any v2 read |
 
@@ -95,14 +95,17 @@ update route for a saved location at all, and its delete answers 409 while an al
 the label. So it is gated rather than degraded: on 5.1.0 the pencil is absent and the delete-and-re-add
 flow is what it has always been.
 
-Each of these carries its own small capability service — `SummaryCapabilityService`,
-`MuteCapabilityService`, `QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and
-`CostumeCapabilityService` — all the same
-shape over `IPoracleServerProfileService`: one method, one question, no cache of its own, since the
-profile service already caches for five minutes and exposes `Invalidate()`. There is deliberately no
-central registry: a registry
-was written and abandoned, because the per-feature shape already existed and two mechanisms answering
-one question is how one of them ends up being the one nobody updates.
+Most of these carry their own small capability service — `MuteCapabilityService`,
+`QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService` — all
+the same shape over `IPoracleServerProfileService`: one method, one question, no cache of its own, since
+the profile service already caches for five minutes and exposes `Invalidate()`. `SummaryCapabilityService`
+is the same shape over a different source, since quest summary delivery is a deployment setting rather
+than a server capability, and Pokéstop Events are decided by `UpstreamFeatureFlagService` because
+`disable_showcase` is a Poracle config flag an operator can also switch off on a server that supports it.
+
+There is deliberately no central registry: a registry was written and abandoned, because the per-feature
+shape already existed and two mechanisms answering one question is how one of them ends up being the one
+nobody updates.
 
 Costume names are the awkward one. PoracleNG loads them into its game data under `costume_{id}` keys
 but publishes them nowhere -- `/api/masterdata/` offers only `monsters` and `grunts` -- so the costume
@@ -145,6 +148,12 @@ same toast, and the version shortfall has the one detail worth reading in it. 40
 branch, so it falls through to the caller, which shows the message beside the control that caused it —
 the same route `TrackingConflictExceptionFilter` already takes.
 
+**Nothing throws it yet.** Every gate so far hides its control before a request can be made, which is
+the preferred outcome. The two paths that still have to refuse something do it their own way: a costume
+write to a server without the column throws `AlarmValidationException` and answers 400 beside the field,
+and moving a saved place on a server without the v2 route answers 501 with a sentence naming the
+workaround. Use the 409 for a service-layer guard that has no field to point at.
+
 Throw it from the service layer, not from a controller. Quick-pick apply, profile duplicate and profile
 import all reach the alarm services without passing an action that could have checked first.
 
@@ -160,11 +169,12 @@ import all reach the alarm services without passing an action that could have ch
 3. **Guard the service write path**, on create, update and bulk alike, and throw
    `PoracleUnsupportedException(feature, requires)` with words the user can act on.
 4. **Give the SPA a way to ask.** `GET /api/admin/server-profile` is admin-only, so it cannot be the
-   answer for a user-facing control. Four ordinary authenticated endpoints answer instead, and one of
-   them is the pattern to copy: `GET /api/summary-schedules/capability`,
-   `GET /api/settings/costume-capability`, `GET /api/quests/capability`, and `GET /api/mutes`, which
-   folds the capability into the list response rather than answering separately — the quiet chip needs
-   both on every alarm page, so two calls would have been two calls every time.
+   answer for a user-facing control. Ordinary authenticated endpoints answer instead:
+   `GET /api/summary-schedules/capability`, `GET /api/settings/costume-capability` and
+   `GET /api/quests/capability` each answer on their own. `GET /api/mutes` and
+   `GET /api/location/places` are the pattern to copy — both fold the capability into the list response
+   rather than answering separately, because the caller needs the list anyway and two calls would have
+   been two calls every time.
 5. **Prefer hiding the control to disabling it with an explanation.** There is nothing the user can do
    about their operator's PoracleNG version.
 6. **Add a row to the table above.**
@@ -180,10 +190,10 @@ exist answers `{"message":"User not found","status":"error"}`, byte-identical to
 malformed v2 path parameter answers 422 with `Content-Type: application/problem+json` and an `errors`
 array. Assuming the new shapes applied everywhere cost a wrongly framed issue and pull request.
 
-Because v1 did not move, almost all of PoracleWeb.NET stays on it: every read, every create, both
-distance endpoints and nine of the ten tracking types. Three things speak v2 — pokemon updates, mutes
-and Pokéstop events — and each reads errors through `PoracleProblemDetails`, which handles both
-dialects. See [PoracleNG API Proxy](poracleng-proxy.md#the-v2-pilot).
+Because v1 did not move, every read, every create and both distance endpoints stay on it. What speaks v2
+is single-rule edits for nine of the ten v1 tracking types (invasion stays behind), mutes, and Pokéstop
+events — and each reads errors through `PoracleProblemDetails`, which handles both dialects. See
+[PoracleNG API Proxy](poracleng-proxy.md#the-v2-write-path).
 
 **Do not take `active_hours` day numbering from PoracleNG's OpenAPI schema.** `V2ActiveHourEntry.day` is
 declared `minimum: 0, maximum: 6` and described as "0=Sunday … 6=Saturday". The scheduler uses ISO

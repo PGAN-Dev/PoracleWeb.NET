@@ -35,12 +35,17 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 
 Open an alarm's edit dialog from its card. Changing anything and saving replaces the rule upstream.
 
+On PoracleNG 5.2.0 and newer, ten of the eleven types take a uid-addressed replace: the rule is
+swapped in one call rather than deleted and re-created, so there is no window in which the alarm does
+not exist. Lure and max battle edits used to have exactly that window and no longer do. Invasion stays
+on the older path deliberately — the newer one cannot report which grunt a rule targets, so an edit
+could not be written back faithfully.
+
 !!! note "An edit gives the alarm a new internal id"
-    PoracleNG implements an alarm edit as a delete followed by an insert, so the row comes back under a
-    new `uid`. Pokemon used to be the one type this did not apply to; on PoracleNG 5.2.0 and newer it
-    now behaves like the other ten. This is invisible in normal use — the card, its filters and its
-    scope are all unchanged — and [Quick Pick](#quick-picks) applied state is remapped to follow the new
-    id, so a pick's remove button keeps working on a rule you have since edited.
+    The replace re-keys the row, so it comes back under a new `uid`. This is invisible in normal use —
+    the card, its filters and its scope are all unchanged — and [Quick Pick](#quick-picks) applied
+    state is remapped to follow the new id, so a pick's remove button keeps working on a rule you have
+    since edited. The card also stays where it was in the grid; see [Card order](#card-order).
 
 ## Where an alert reaches you
 
@@ -53,6 +58,14 @@ Every alarm answers the same question, and the **Delivery** tab of every add and
 | **Anywhere in my areas** | The alarm inherits whatever areas the active profile subscribes to. This is the default and the behaviour every alarm had before per-alarm scope existed. |
 | **Near a point** | A radius around one fixed point. **Measured from** picks the point: your pin, or any [saved place](#saved-places). **Add a place** in the same select opens the map picker without losing the alarm you are editing. |
 | **Only in specific areas** | A list of areas for this alarm alone. It *replaces* the profile's area list rather than narrowing it, and geofences you drew yourself are offered alongside the admin areas. |
+
+The list under **Only in specific areas** holds the areas the active profile subscribes to, not every
+area on the instance, plus your own drawn geofences. On a server shared between communities the whole
+list is hundreds of areas from places you have nothing to do with, and this option narrows an alarm
+within what you already get rather than subscribing you to something new. An area the alarm already
+carries stays on the list even if you have since unsubscribed from it, so editing that alarm does not
+quietly drop it. Matching is case-insensitive, because subscriptions are stored lowercased while the
+area list carries the published name.
 
 The three are exclusive rather than combinable, because PoracleNG refuses every mixture of them: a place with areas, areas with a radius, and a place without a radius are all rejected upstream. Modelling the choice as a radio group means those states can't be typed in the first place.
 
@@ -74,14 +87,27 @@ A place is a named point ("home", "work", "the gym") that an alarm can measure f
 
 Add one with **Add a place**: drop the marker, then name it. Names are yours to choose and are what an alarm's `override_location_label` refers to. Places are user-scoped, not profile-scoped.
 
+A name you already have is refused, and so is one longer than 64 characters — the column will not hold
+it. Both come back with the reason against the field rather than as a server error.
+
+**Moving one.** Every place card carries a pencil beside the bin. It reopens the same map picker
+adding one does, and the label is untouched, so every alarm aimed at that place follows it. There is
+no naming step, because the label is what the alarms point at and changing it is a different act.
+
+!!! note "Moving needs PoracleNG 5.2.0"
+    That is where the endpoint arrives. On an older server the pencil is absent and the only route is
+    delete-and-re-add — which is refused while any alarm still points at the place, so those alarms
+    have to be repointed first.
+
 Deleting a place that alarms still point at is refused. `DELETE /api/location/places/{label}` answers 409 with a `referencingRules` list, and the UI names the alarms so you know what to repoint first.
 
-The API is three endpoints on `LocationController`, all gated by `disable_location`:
+The API is four endpoints on `LocationController`, all gated by `disable_location`:
 
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/location/places` | Every place plus the profile pin, as `{ default, named }`. `default` is null when the user has never set a pin. |
 | `POST /api/location/places` | Saves a place. A label PoracleNG refuses comes back as a 400 the dialog shows against the field. |
+| `PUT /api/location/places/{label}` | Moves a place, keeping its label. 501 on a server without the route. |
 | `DELETE /api/location/places/{label}` | Deletes a place, or 409s with the alarms still using it. |
 
 ### Changing scope from a card
@@ -163,6 +189,20 @@ The sentence follows your **Alert language**, not your display language, because
 When the two differ the line is hidden entirely rather than putting one language's prose under another
 language's chips. It is also absent on a Poracle too old to send the field, in which case the card is
 exactly what it was before. Nothing extra is fetched for it — the field was already on the response.
+
+### Card order
+
+Raids, eggs, quests, lures, nests, gyms, max battles, fort changes and Pokéstop Events each sort their
+grid on what the card is titled by: Pokemon and level for raids and max battles, level for eggs, reward
+for quests, lure type, species for nests, team for gyms, change type for fort changes, event type for
+Pokéstop Events. An edited card therefore stays where it was instead of jumping to the end of the grid,
+which is what it did when the grid rendered PoracleNG's insertion order and an
+[edit re-keyed the rule](#editing-alarms).
+
+The keys are the raw fields — dex number rather than species name, reward type rather than reward name
+— so the grid does not re-order itself once the master data arrives, and the order does not change with
+the display language. The Pokemon list already sorted itself on its own controls and is unchanged.
+Invasions are not sorted this way: that type stays on the older write path, so its ids do not rotate.
 
 ## Bulk operations
 
@@ -323,11 +363,11 @@ Egg alarms support:
 
 ## Quest alarm filters
 
-![Add Quest dialog with the reward tabs](../screenshots/quests-add-dialog.png)
+A quest alarm matches one reward. The **Reward type** dropdown on the Rewards tab decides the
+`reward_type` PoracleNG stores, and where the number you type ends up. Choosing one swaps the controls
+beneath it:
 
-A quest alarm matches one reward. Which of the six reward tabs you use decides the `reward_type` PoracleNG stores, and where the number you type ends up:
-
-| Tab | `reward_type` | What you pick | Minimum field |
+| Reward type | `reward_type` | What you pick | Minimum field |
 |---|---|---|---|
 | Pokemon | `7` | Species the quest rewards (`reward` = pokemon id) | — |
 | Items | `2` | The item (`reward` = item id) | `amount` |
@@ -338,17 +378,16 @@ A quest alarm matches one reward. Which of the six reward tabs you use decides t
 
 **Minimum Amount** is the fewest of the reward the quest has to give; `0` means any. It only applies where a reward comes in a quantity: items, candy and mega energy. A Pokemon encounter has nothing to count.
 
-![PokéCoins tab in the Add Quest dialog with the Minimum PokéCoins field](../screenshots/quests-pokecoins-tab.png)
-
-Stardust and PokéCoins work differently from the rest, and identically to each other. There is nothing to pick — Poracle matches on the amount alone — so each tab is a single number field, and PoracleNG reads the floor from `reward` rather than `amount`. On both, `amount` stays `0`.
+Stardust and PokéCoins work differently from the rest, and identically to each other. There is nothing to pick — Poracle matches on the amount alone — so each offers a single number field, and PoracleNG reads the floor from `reward` rather than `amount`. On both, `amount` stays `0`.
 
 Quest cards render the amount ahead of the reward name — "3× Rare Candy" — but only when it is above one; an amount of 1 shows the reward name on its own. Stardust cards read "25000 Stardust", from `reward`, and PokéCoin cards read the same way.
 
 !!! warning "PokéCoins needs PoracleNG 5.2.0"
-    The PokéCoins tab is rendered last and is **hidden entirely below 5.2.0**, so if you cannot find it,
-    that is the reason. 5.2.0 widened PoracleNG's list of accepted reward types; it added no column and
-    no capability flag, so this is one of the few gates decided by the reported version rather than by a
-    database migration. A 5.1.0 server answers `400 "Unrecognised reward_type value"`.
+    PokéCoins is the last entry in the dropdown and is **hidden entirely below 5.2.0**, so if you
+    cannot find it, that is the reason. 5.2.0 widened PoracleNG's list of accepted reward types; it
+    added no column and no capability flag, so this is one of the few gates decided by the reported
+    version rather than by a database migration. A 5.1.0 server answers
+    `400 "Unrecognised reward_type value"`.
 
     Reads and deletes are not gated, so a PokéCoin rule set from the Discord bot stays visible and
     removable on an older server.
@@ -410,7 +449,12 @@ Max Battle levels follow the PoracleNG `util.json` definitions:
 
 ### Insert-only API behavior
 
-Unlike other alarm types, the PoracleNG maxbattle API handler has **no diff/dedup logic** — every POST creates new rows. Updates use a delete-then-create pattern: delete the old alarm by UID, then insert the replacement. This is handled transparently by `MaxBattleService.UpdateAsync()`.
+PoracleNG's older maxbattle handler has **no diff/dedup logic** — every POST creates a new row — so an
+edit had to delete the old alarm by uid and insert the replacement, with a window in between where the
+alarm did not exist. On PoracleNG 5.2.0 and newer the uid-addressed replace closes that window;
+`MaxBattleService.UpdateAsync()` takes it when it is available and falls back to delete-then-create
+when it is not. Either way an edit that would land on another max battle's settings is refused before
+anything is deleted.
 
 ### Scanner-based Pokemon filter
 
@@ -485,8 +529,10 @@ The split is conditional. Where the feature is unavailable — an older Poracle,
 set — event rows stay listed and deletable under **Invasions**, and the invasion add dialog keeps
 offering the three events. The dashboard counts agree with whichever page the rows are on.
 
-The **Cleaning** page's invasion toggle sweeps event rows along with invasion rules, since it works on
-the table.
+The **Cleaning** page's invasion toggle leaves event rows alone — it would otherwise set the
+auto-delete bit on rules belonging to a page it never mentions. Where the Pokéstop Events page is
+unavailable (`disable_showcase`, or a Poracle older than 5.2.0) it sweeps them along with the invasion
+rules, because then that switch is the only control you have over them.
 
 ### What this type does not do
 
@@ -620,6 +666,13 @@ Test alerts are available for eight of the eleven alarm types:
 
 **Not** Fort Change, Max Battle or Pokéstop Event — `TestAlertController` rejects all three, and none of
 those modules renders a test button. They have no mock payload builder, so there is nothing to send.
+
+### Clearing a test notification
+
+A test alert is a real DM sent by the bot. This site never sees it and cannot take it back. The bot
+can: send it `poracle-clean` as a direct message, prefixed with your server's command prefix, and it
+deletes its own recent messages from that conversation. That includes real alerts, not only the tests.
+The FAQ on the **Help** page carries the same answer with your own instance's prefix filled in.
 
 ### Rate limiting
 

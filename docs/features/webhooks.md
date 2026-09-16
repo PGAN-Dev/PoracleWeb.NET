@@ -15,7 +15,7 @@ the account, the half-written record is removed, so a failure means nothing was 
 is safe.
 
 The same page can pause, resume, block, delete the account's alarms, delete the account outright, and
-open its alarms directly (see [Managing alarms](#managing-a-webhooks-alarms)).
+open its alarms directly (see [what a delegate can do](#what-a-delegate-can-do)).
 
 Deleting a webhook takes everything it owned with it, delegate grants included. Recreating the same
 URL later starts clean rather than adopting the old grants.
