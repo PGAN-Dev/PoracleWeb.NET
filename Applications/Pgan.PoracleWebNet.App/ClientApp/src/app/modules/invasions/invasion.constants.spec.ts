@@ -163,6 +163,34 @@ describe('invasion.constants', () => {
       expect(getGruntDisplayName('bug', undefined, identityTranslate)).toBe('INVASIONS.GRUNT_TYPES.BUG');
     });
 
+    it("prefers the server's own name when it has one", () => {
+      // Translated for every grunt rather than the twenty-six the local table covers. See #840.
+      expect(getGruntDisplayName('dark', 1, identityTranslate, 'Unlicht ♂')).toBe('Unlicht ♂');
+      expect(getGruntDisplayName('npc_3', 0, identityTranslate, 'DieCurryWurst')).toBe('DieCurryWurst');
+    });
+
+    it('does not append its own gender suffix on top of the server name', () => {
+      // short_name already carries ♂/♀, so appending would read "Rüpel ♂ (Male)".
+      expect(getGruntDisplayName('mixed', 1, identityTranslate, 'Rüpel ♂')).toBe('Rüpel ♂');
+      expect(getGruntDisplayName('decoy', 2, identityTranslate, 'Täusch-Rüpel ♀')).toBe('Täusch-Rüpel ♀');
+    });
+
+    it('keeps the local label when the server names nothing', () => {
+      // Every released PoracleNG, an unreachable one, and the "any gender" case the server declines to
+      // name. This is the half that must not regress.
+      expect(getGruntDisplayName('bug', undefined, identityTranslate, null)).toBe('INVASIONS.GRUNT_TYPES.BUG');
+      expect(getGruntDisplayName('mixed', 1, identityTranslate, undefined)).toBe(
+        'INVASIONS.GRUNT_TYPES.MIXED INVASIONS.GENDER_SUFFIX_MALE',
+      );
+      expect(getGruntDisplayName('nonsense', 0, identityTranslate, null)).toBe('INVASIONS.UNKNOWN_GRUNT');
+    });
+
+    it('keeps the local label for everything and boss, which are not grunts', () => {
+      // Filter vocabulary rather than NPCs, so there is no grunt_<id> upstream and never will be.
+      expect(getGruntDisplayName('everything', 0, identityTranslate, null)).toBe('INVASIONS.GRUNT_TYPES.EVERYTHING');
+      expect(getGruntDisplayName(null, 0, identityTranslate, null)).toBe('INVASIONS.GRUNT_TYPES.EVERYTHING');
+    });
+
     it('appends gender suffix for gendered grunts (mixed/decoy)', () => {
       expect(getGruntDisplayName('mixed', 1, identityTranslate)).toBe('INVASIONS.GRUNT_TYPES.MIXED INVASIONS.GENDER_SUFFIX_MALE');
       expect(getGruntDisplayName('mixed', 2, identityTranslate)).toBe('INVASIONS.GRUNT_TYPES.MIXED INVASIONS.GENDER_SUFFIX_FEMALE');

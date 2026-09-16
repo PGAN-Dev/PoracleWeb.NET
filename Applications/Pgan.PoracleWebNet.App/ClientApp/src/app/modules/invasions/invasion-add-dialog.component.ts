@@ -174,7 +174,12 @@ export class InvasionAddDialogComponent implements OnInit {
   }
 
   getGruntLabel(grunt: GruntOption): string {
-    return getGruntDisplayName(grunt.gruntType, grunt.gender, key => this.i18n.instant(key));
+    return getGruntDisplayName(
+      grunt.gruntType,
+      grunt.gender,
+      key => this.i18n.instant(key),
+      this.masterData.getGruntName(grunt.gruntType, grunt.gender),
+    );
   }
 
   ngOnInit(): void {

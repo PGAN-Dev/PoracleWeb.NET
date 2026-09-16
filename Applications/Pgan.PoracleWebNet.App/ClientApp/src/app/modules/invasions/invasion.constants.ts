@@ -127,7 +127,18 @@ export function getGruntDisplayKey(gruntType: string | null): string {
 // a translate lambda (usually `key => this.i18n.instant(key)`) so this helper stays
 // free of Angular DI. Gender is NOT appended for typed grunts (bug/fire/…) — those
 // keep the separate gender dropdown.
-export function getGruntDisplayName(gruntType: string | null, gender: number | undefined, translate: (key: string) => string): string {
+export function getGruntDisplayName(
+  gruntType: string | null,
+  gender: number | undefined,
+  translate: (key: string) => string,
+  upstreamName?: null | string,
+): string {
+  // The server's own name wins where it has one. It is translated for every grunt rather than the
+  // twenty-six this table covers, and it already carries the ♂/♀ marker, so the suffix below must not
+  // also be appended. Null means this Poracle does not name the grunt unambiguously -- an older build,
+  // an unreachable one, or a pair like `dark` at "any gender" that matches no single entry. See #840.
+  if (upstreamName) return upstreamName;
+
   const base = translate(getGruntDisplayKey(gruntType));
   if (gruntType && GENDER_FIXED_GRUNT_TYPES.has(gruntType)) {
     if (gender === 1) return `${base} ${translate('INVASIONS.GENDER_SUFFIX_MALE')}`;

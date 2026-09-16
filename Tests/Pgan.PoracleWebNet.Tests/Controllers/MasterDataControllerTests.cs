@@ -99,16 +99,40 @@ public class MasterDataControllerTests : ControllerTestBase
     [Fact]
     public async Task GetGruntsReturnsContentWhenAvailable()
     {
-        this._poracleApiProxy.Setup(p => p.GetGruntsAsync()).ReturnsAsync(/*lang=json,strict*/ "{\"grunts\":[]}");
-        var result = await this._sut.GetGrunts();
+        this._poracleApiProxy.Setup(p => p.GetGruntsAsync(It.IsAny<string?>())).ReturnsAsync(/*lang=json,strict*/ "{\"grunts\":[]}");
+        var result = await this._sut.GetGrunts(null);
         Assert.IsType<ContentResult>(result);
+    }
+
+    [Fact]
+    public async Task GruntsPassesTheDisplayLanguageThroughSoTheNamesComeBackTranslated()
+    {
+        // The names are translated upstream, the same way monster names are. Without this the SPA gets
+        // English grunt names whatever language it asked for. See #840.
+        this._poracleApiProxy.Setup(p => p.GetGruntsAsync("de")).ReturnsAsync(/*lang=json,strict*/ "{}");
+
+        await this._sut.GetGrunts("de");
+
+        this._poracleApiProxy.Verify(p => p.GetGruntsAsync("de"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GruntsConstrainsTheLocaleBeforeItReachesTheQueryString()
+    {
+        // Same normalisation the monsters route uses, so nothing shaped unlike a locale is interpolated
+        // into an upstream URL.
+        this._poracleApiProxy.Setup(p => p.GetGruntsAsync(It.IsAny<string?>())).ReturnsAsync(/*lang=json,strict*/ "{}");
+
+        await this._sut.GetGrunts("../../etc/passwd");
+
+        this._poracleApiProxy.Verify(p => p.GetGruntsAsync("en"), Times.Once);
     }
 
     [Fact]
     public async Task GetGruntsReturnsNotFoundWhenNull()
     {
-        this._poracleApiProxy.Setup(p => p.GetGruntsAsync()).ReturnsAsync((string?)null);
-        Assert.IsType<NotFoundObjectResult>(await this._sut.GetGrunts());
+        this._poracleApiProxy.Setup(p => p.GetGruntsAsync(It.IsAny<string?>())).ReturnsAsync((string?)null);
+        Assert.IsType<NotFoundObjectResult>(await this._sut.GetGrunts(null));
     }
 
     // --- GetMonsters ---
