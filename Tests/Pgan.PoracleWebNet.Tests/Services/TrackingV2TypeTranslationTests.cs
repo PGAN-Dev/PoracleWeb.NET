@@ -353,10 +353,68 @@ public class TrackingV2TypeTranslationTests
     }
 
     [Fact]
-    public void InvasionAndAnythingUnknownHasNoTableAndSaysSo()
+    public void AnythingWithNoV2TableSaysSo()
     {
-        Assert.False(TrackingV2Translator.Handles("invasion"));
-        Assert.False(TrackingV2Translator.TryTranslate("invasion", Row("""{"grunt_type":"blanche"}"""), ServerDoesNotBoundAnything, out _, out _));
+        Assert.False(TrackingV2Translator.Handles("nonsense"));
+        Assert.False(TrackingV2Translator.TryTranslate("nonsense", Row("""{"uid":1}"""), ServerDoesNotBoundAnything, out _, out _));
+    }
+
+    [Theory]
+    [InlineData("blanche")]
+    [InlineData("giovanni")]
+    [InlineData("water")]
+    [InlineData("everything")]
+    public void AnInvasionRuleTranslatesByItsGruntName(string gruntType)
+    {
+        // grunt_type is the targeting field and the only one this application ever holds. Whether a
+        // particular name is one the server knows is asked of the server, in PoracleTrackingProxy --
+        // the translator's job is the shape. See #841.
+        var translated = Translate("invasion", $$"""{"grunt_type":"{{gruntType}}","distance":500}""");
+
+        Assert.Equal(gruntType, translated.GetProperty("grunt_type").GetString());
+        Assert.Equal(500, translated.GetProperty("distance").GetInt32());
+        Assert.False(translated.TryGetProperty("type_id", out _));
+        Assert.False(translated.TryGetProperty("grunt_id", out _));
+    }
+
+    [Theory]
+    [InlineData(0, "any")]
+    [InlineData(1, "male")]
+    [InlineData(2, "female")]
+    public void AnInvasionGenderTranslatesAlongsideTheGruntName(int stored, string expected)
+    {
+        // The schema contradicts itself here -- V2InvasionRule.gender says gender is "ONLY valid together
+        // with type_id" while grunt_type says it "may be combined with gender". A live build stores
+        // gender 1 for {"grunt_type":"water","gender":"male"}, so grunt_type's description is the right
+        // one and these three must translate.
+        var translated = Translate("invasion", $$"""{"grunt_type":"water","gender":{{stored}}}""");
+
+        Assert.Equal(expected, translated.GetProperty("gender").GetString());
+    }
+
+    [Fact]
+    public void AGenderlessInvasionGoesToV1BecauseV2HasNoWordForIt()
+    {
+        // V2InvasionRule.gender is any|male|female. InvasionCreate.Gender is [Range(0, 3)], so 3 is
+        // expressible here; mapping it to any of the three would mean something the user did not ask for.
+        // Latent rather than live -- production holds 0, 1 and 2 only across 201 rules.
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                "invasion",
+                Row("""{"grunt_type":"water","gender":3}"""), ServerDoesNotBoundAnything, out _,
+                out var unsupported));
+
+        Assert.Contains("gender", unsupported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnInvasionRuleWithNoGruntNameCannotBeTranslated()
+    {
+        // grunt_type is the one targeting field; without it v2 would store "everything", which is a
+        // different rule from the one being edited.
+        Assert.False(
+            TrackingV2Translator.TryTranslate(
+                "invasion", Row("""{"distance":500}"""), ServerDoesNotBoundAnything, out _, out _));
     }
 
     /// <summary>
