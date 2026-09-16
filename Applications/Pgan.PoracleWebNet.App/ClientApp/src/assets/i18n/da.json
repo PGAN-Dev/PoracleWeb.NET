@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Indstillinger",
     "USER_GEOFENCES": "Bruger-geofences",
-    "MY_WEBHOOKS": "Mine webhooks"
+    "MY_WEBHOOKS": "Mine webhooks",
+    "ADMIN_AREAS": "Områder"
   },
   "TOOLBAR": {
     "SUBTITLE": "Konfiguration af DM-alarmer",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "Gør {{subject}} stille et stykke tid",
     "TOOLTIP_QUIET": "{{subject}} er stille i {{countdown}}",
     "VOLATILITY_NOTE": "Beskederne kan komme tilbage, før tiden er gået. Sker det, så start den stille periode igen."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Områder",
+    "SUBTITLE": "Tag et område af listen uden at slette det. Skjulte områder vises ikke længere på Områder og steder, i rækkeviddevælgeren pr. alarm eller i bottens områdeliste.",
+    "NOT_RETROACTIVE": "At skjule et område afmelder ikke nogen med det samme: de, der allerede har valgt det, modtager fortsat underretninger. Det forsvinder derefter fra deres profil, uden besked, næste gang de gemmer deres områder.",
+    "SEARCH": "Søg i områder",
+    "HIDDEN_COUNT": "{{count}} af {{total}} skjult",
+    "HIDE": "Skjult",
+    "HIDE_ARIA": "Skjul {{name}} for brugerne",
+    "KOJI_PRIVATE": "Privat i Koji",
+    "KOJI_PRIVATE_HINT": "Koji leverer allerede området som ikke-vælgbart, så det er taget af listen af en grund, denne side ikke kan ændre.",
+    "ORPHANED": "Skjult, men leveres ikke af Koji lige nu: {{names}}. Beholdt i tilfælde af at Koji er midlertidigt utilgængelig.",
+    "NO_MATCHES": "Ingen områder matcher søgningen.",
+    "UNSAVED": "Ikke-gemte ændringer",
+    "SAVED": "Områder opdateret.",
+    "SAVED_NOT_RELOADED": "Gemt, men Poracle genindlæste ikke. Ændringen træder i kraft ved næste opdatering.",
+    "SAVE_FAILED": "Kunne ikke gemme. Intet blev ændret.",
+    "LOAD_FAILED": "Kunne ikke læse områder fra Koji. Tjek Koji-forbindelsen og genindlæs."
   }
 }

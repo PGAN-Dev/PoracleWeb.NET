@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Inställningar",
     "USER_GEOFENCES": "Användar-geofences",
-    "MY_WEBHOOKS": "Mina webhooks"
+    "MY_WEBHOOKS": "Mina webhooks",
+    "ADMIN_AREAS": "Områden"
   },
   "TOOLBAR": {
     "SUBTITLE": "Konfiguration av DM-larm",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "Tysta {{subject}} en stund",
     "TOOLTIP_QUIET": "{{subject}} är tyst i {{countdown}}",
     "VOLATILITY_NOTE": "Aviseringarna kan komma tillbaka innan tiden är ute. Om det händer, starta den tysta perioden igen."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Områden",
+    "SUBTITLE": "Ta bort ett område från listan utan att radera det. Dölda områden visas inte längre under Områden och platser, i räckviddsväljaren per larm eller i bottens områdeslista.",
+    "NOT_RETROACTIVE": "Att dölja ett område avregistrerar ingen direkt: den som redan valt det får fortsätta ta emot aviseringar. Sedan försvinner det ur profilen, utan besked, nästa gång hen sparar sina områden.",
+    "SEARCH": "Sök områden",
+    "HIDDEN_COUNT": "{{count}} av {{total}} dölda",
+    "HIDE": "Döld",
+    "HIDE_ARIA": "Dölj {{name}} för användare",
+    "KOJI_PRIVATE": "Privat i Koji",
+    "KOJI_PRIVATE_HINT": "Koji levererar redan området som icke valbart, så det är borta från listan av ett skäl den här sidan inte kan ändra.",
+    "ORPHANED": "Dölda men levereras inte av Koji just nu: {{names}}. Behållna ifall Koji tillfälligt inte går att nå.",
+    "NO_MATCHES": "Inga områden matchar sökningen.",
+    "UNSAVED": "Osparade ändringar",
+    "SAVED": "Områden uppdaterade.",
+    "SAVED_NOT_RELOADED": "Sparat, men Poracle laddade inte om. Ändringen träder i kraft vid nästa uppdatering.",
+    "SAVE_FAILED": "Kunde inte spara. Inget ändrades.",
+    "LOAD_FAILED": "Kunde inte läsa områden från Koji. Kontrollera Koji-anslutningen och ladda om."
   }
 }

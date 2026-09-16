@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Ajustes",
     "USER_GEOFENCES": "Geofences de usuarios",
-    "MY_WEBHOOKS": "Mis Webhooks"
+    "MY_WEBHOOKS": "Mis Webhooks",
+    "ADMIN_AREAS": "Áreas"
   },
   "TOOLBAR": {
     "SUBTITLE": "Configuración de alertas DM",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "Silenciar {{subject}} un rato",
     "TOOLTIP_QUIET": "{{subject}} está en silencio {{countdown}}",
     "VOLATILITY_NOTE": "Las alertas pueden volver antes de que acabe el tiempo. Si ocurre, vuelve a iniciar el silencio."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Áreas",
+    "SUBTITLE": "Quita un área del menú sin borrarla. Las áreas ocultas dejan de aparecer en Áreas y lugares, en el selector de alcance de cada alarma y en la lista de áreas del bot.",
+    "NOT_RETROACTIVE": "Ocultar un área no da de baja a nadie de inmediato: quien ya la hubiera seleccionado sigue recibiendo avisos. Después desaparece de su perfil, sin avisarle, la próxima vez que guarde sus áreas.",
+    "SEARCH": "Buscar áreas",
+    "HIDDEN_COUNT": "{{count}} de {{total}} ocultas",
+    "HIDE": "Oculta",
+    "HIDE_ARIA": "Ocultar {{name}} a los usuarios",
+    "KOJI_PRIVATE": "Privada en Koji",
+    "KOJI_PRIVATE_HINT": "Koji ya sirve esta área como no seleccionable, así que está fuera del menú por un motivo que esta página no puede cambiar.",
+    "ORPHANED": "Ocultas pero que Koji no sirve ahora mismo: {{names}}. Se conservan por si Koji no está disponible temporalmente.",
+    "NO_MATCHES": "Ninguna área coincide con esa búsqueda.",
+    "UNSAVED": "Cambios sin guardar",
+    "SAVED": "Áreas actualizadas.",
+    "SAVED_NOT_RELOADED": "Guardado, pero Poracle no recargó. El cambio se aplicará en su próxima actualización.",
+    "SAVE_FAILED": "No se pudo guardar. No se cambió nada.",
+    "LOAD_FAILED": "No se pudieron leer las áreas de Koji. Comprueba la conexión con Koji y recarga."
   }
 }

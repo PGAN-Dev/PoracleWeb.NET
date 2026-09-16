@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hide an area from your users without deleting it.** Staging fences, test polygons and regions you cover but do not advertise all showed up on Areas & Places for everyone. **Admin → Areas** now lists every area your Koji serves with a switch beside each one, and hiding takes it off Areas & Places, off the delivery scope picker on an individual alarm, and out of the bot's own area list at once. No Koji access needed — this site is the geofence source — and setting an area private in Koji still works, with those areas shown as such and left alone. One thing it deliberately does not do is unsubscribe anyone: people who already picked the area keep receiving its alerts until they remove it themselves, and the page says so rather than letting you assume otherwise ([#885](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/885)).
+
+### Fixed
+
+- **An area you had made private in Koji was still offered to everyone.** This site read Koji's geofence export but set `userSelectable` and `displayInMatches` to true regardless of what Koji said, so marking an area private there had no effect here: it kept appearing on Areas & Places, in the delivery scope picker and in the bot's area list. Both flags are now read from Koji. If you have areas set private in Koji, they will disappear from those lists after this upgrade, which is what you asked Koji for ([#885](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/885)).
+
 ## [2.18.0] - 2026-09-15
 
 ### Added

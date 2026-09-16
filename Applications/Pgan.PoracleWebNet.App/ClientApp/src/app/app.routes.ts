@@ -131,6 +131,11 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./modules/admin/admin-areas.component').then(m => m.AdminAreasComponent),
+    path: 'admin/areas',
+  },
+  {
+    canActivate: [authGuard, adminGuard],
     loadComponent: () => import('./modules/admin/admin-settings.component').then(m => m.AdminSettingsComponent),
     path: 'admin/settings',
   },

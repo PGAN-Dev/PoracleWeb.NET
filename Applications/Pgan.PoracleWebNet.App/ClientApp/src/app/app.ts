@@ -211,6 +211,7 @@ export class App implements OnInit {
     { group: 'support', icon: 'help', iconColor: '#673ab7', label: 'NAV.HELP', route: '/help' },
     { adminOnly: true, group: 'admin', icon: 'people', iconColor: '#455a64', label: 'NAV.USERS', route: '/admin/users' },
     { adminOnly: true, group: 'admin', icon: 'webhook', iconColor: '#00897b', label: 'NAV.WEBHOOKS', route: '/admin/webhooks' },
+    { adminOnly: true, group: 'admin', icon: 'layers', iconColor: '#ef6c00', label: 'NAV.ADMIN_AREAS', route: '/admin/areas' },
     { adminOnly: true, group: 'admin', icon: 'settings', iconColor: '#546e7a', label: 'NAV.SETTINGS', route: '/admin/settings' },
     {
       adminOnly: true,

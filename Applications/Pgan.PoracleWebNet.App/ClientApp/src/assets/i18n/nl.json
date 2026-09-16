@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooks",
     "SETTINGS": "Instellingen",
     "USER_GEOFENCES": "Gebruiker Geofences",
-    "MY_WEBHOOKS": "Mijn Webhooks"
+    "MY_WEBHOOKS": "Mijn Webhooks",
+    "ADMIN_AREAS": "Gebieden"
   },
   "TOOLBAR": {
     "SUBTITLE": "DM Meldingen Configuratie",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "{{subject}} even stilzetten",
     "TOOLTIP_QUIET": "{{subject}} is nog {{countdown}} stil",
     "VOLATILITY_NOTE": "Meldingen kunnen terugkomen voordat de tijd om is. Gebeurt dat, start de stille periode dan opnieuw."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Gebieden",
+    "SUBTITLE": "Haal een gebied van de lijst zonder het te verwijderen. Verborgen gebieden verschijnen niet meer bij Gebieden en plaatsen, in de bereikkiezer per alarm of in de gebiedenlijst van de bot.",
+    "NOT_RETROACTIVE": "Een gebied verbergen zegt niemand meteen af: wie het al had gekozen, blijft meldingen ontvangen. Daarna verdwijnt het ongemerkt uit hun profiel zodra ze hun gebieden opnieuw opslaan.",
+    "SEARCH": "Gebieden zoeken",
+    "HIDDEN_COUNT": "{{count}} van {{total}} verborgen",
+    "HIDE": "Verborgen",
+    "HIDE_ARIA": "{{name}} verbergen voor gebruikers",
+    "KOJI_PRIVATE": "Privé in Koji",
+    "KOJI_PRIVATE_HINT": "Koji levert dit gebied al als niet-selecteerbaar, dus het staat niet op de lijst om een reden die deze pagina niet kan wijzigen.",
+    "ORPHANED": "Verborgen maar op dit moment niet door Koji geleverd: {{names}}. Bewaard voor het geval Koji tijdelijk onbereikbaar is.",
+    "NO_MATCHES": "Geen gebieden komen overeen met die zoekopdracht.",
+    "UNSAVED": "Niet-opgeslagen wijzigingen",
+    "SAVED": "Gebieden bijgewerkt.",
+    "SAVED_NOT_RELOADED": "Opgeslagen, maar Poracle heeft niet herladen. De wijziging gaat in bij de volgende verversing.",
+    "SAVE_FAILED": "Opslaan mislukt. Er is niets gewijzigd.",
+    "LOAD_FAILED": "Kon gebieden niet uit Koji lezen. Controleer de Koji-verbinding en herlaad."
   }
 }

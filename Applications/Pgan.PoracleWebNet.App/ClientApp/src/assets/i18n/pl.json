@@ -25,7 +25,8 @@
     "WEBHOOKS": "Webhooki",
     "SETTINGS": "Ustawienia",
     "USER_GEOFENCES": "Geofence użytkowników",
-    "MY_WEBHOOKS": "Moje webhooki"
+    "MY_WEBHOOKS": "Moje webhooki",
+    "ADMIN_AREAS": "Obszary"
   },
   "TOOLBAR": {
     "SUBTITLE": "Konfiguracja alertów DM",
@@ -2021,5 +2022,23 @@
     "TOOLTIP_ACTION": "Wycisz {{subject}} na chwilę",
     "TOOLTIP_QUIET": "{{subject}} jest wyciszone jeszcze {{countdown}}",
     "VOLATILITY_NOTE": "Powiadomienia mogą wrócić przed upływem czasu. Jeśli tak się stanie, po prostu włącz wyciszenie ponownie."
+  },
+  "ADMIN_AREAS": {
+    "TITLE": "Obszary",
+    "SUBTITLE": "Zdejmij obszar z listy, nie usuwając go. Ukryte obszary przestają pojawiać się w Obszarach i miejscach, w wyborze zasięgu przy alarmie oraz na liście obszarów bota.",
+    "NOT_RETROACTIVE": "Ukrycie obszaru nie wypisuje nikogo od razu: kto już go wybrał, nadal otrzymuje powiadomienia. Potem obszar znika z jego profilu, bez żadnej informacji, przy następnym zapisie obszarów.",
+    "SEARCH": "Szukaj obszarów",
+    "HIDDEN_COUNT": "Ukryto {{count}} z {{total}}",
+    "HIDE": "Ukryty",
+    "HIDE_ARIA": "Ukryj {{name}} przed użytkownikami",
+    "KOJI_PRIVATE": "Prywatny w Koji",
+    "KOJI_PRIVATE_HINT": "Koji już udostępnia ten obszar jako niemożliwy do wyboru, więc jest poza listą z powodu, którego ta strona nie zmieni.",
+    "ORPHANED": "Ukryte, ale obecnie nieudostępniane przez Koji: {{names}}. Zachowane na wypadek chwilowej niedostępności Koji.",
+    "NO_MATCHES": "Żaden obszar nie pasuje do wyszukiwania.",
+    "UNSAVED": "Niezapisane zmiany",
+    "SAVED": "Zaktualizowano obszary.",
+    "SAVED_NOT_RELOADED": "Zapisano, ale Poracle nie przeładował. Zmiana zadziała przy następnym odświeżeniu.",
+    "SAVE_FAILED": "Nie udało się zapisać. Nic nie zmieniono.",
+    "LOAD_FAILED": "Nie udało się odczytać obszarów z Koji. Sprawdź połączenie z Koji i odśwież."
   }
 }
