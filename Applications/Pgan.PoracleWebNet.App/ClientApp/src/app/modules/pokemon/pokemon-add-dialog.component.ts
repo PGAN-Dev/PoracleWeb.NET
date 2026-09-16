@@ -236,7 +236,7 @@ export class PokemonAddDialogComponent implements OnInit {
           minTime: filters.minTime ?? 0,
           minWeight: filters.minWeight ?? 0,
           pokemonId,
-          pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 0,
+          pvpRankingBest: pvp.pvpRankingLeague ? (pvp.pvpRankingBest ?? 1) : 1,
           pvpRankingCap: pvp.pvpRankingLeague ? (pvp.pvpRankingCap ?? 0) : 0,
           pvpRankingEvolution: pvp.pvpRankingLeague ? (pvp.pvpRankingEvolution ?? 0) : 0,
           pvpRankingLeague: pvp.pvpRankingLeague ?? 0,

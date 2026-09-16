@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **New Pokemon alarms stop recording an impossible PVP rank.** An alarm with no PVP league selected was saved with a best-rank of 0, and there is no rank 0 — ranks start at 1. It had no effect on which alarms fired, because the rank is only consulted when a league is chosen, which is why it went unnoticed: the other end of the same setting was already being saved correctly as 4096. It matters now because Poracle's newer API refuses the value, so those alarms could not be saved through it. New and edited alarms record 1, and editing an affected alarm repairs it. Nothing needs doing to existing ones and none of them change what they alert on ([jfberry/PoracleNG#227](https://github.com/jfberry/PoracleNG/issues/227)).
 - **An area you had made private in Koji was still offered to everyone.** This site read Koji's geofence export but set `userSelectable` and `displayInMatches` to true regardless of what Koji said, so marking an area private there had no effect here: it kept appearing on Areas & Places, in the delivery scope picker and in the bot's area list. Both flags are now read from Koji. If you have areas set private in Koji, they will disappear from those lists after this upgrade, which is what you asked Koji for ([#885](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/885)).
 
 ## [2.18.0] - 2026-09-15
