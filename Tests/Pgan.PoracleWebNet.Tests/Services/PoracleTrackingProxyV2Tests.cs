@@ -657,13 +657,125 @@ public class PoracleTrackingProxyV2Tests
         Assert.Empty(handler.Requests);
     }
 
+    // ---- invasion (#841) ------------------------------------------------------------------------
+    //
+    // Two questions the server answers rather than this code assuming: whether its v2 invasion rule
+    // carries grunt_type at all, and whether it knows the particular name a row holds. The second is not
+    // belt-and-braces — 32 of 201 invasion rules in production carry a name v2 refuses, and all 32 are
+    // visible and editable in the invasion list because v1's read returns them where v2's does not.
+
+    private const string InvasionRow = """
+        {"uid":412,"id":"user1","profile_no":1,"grunt_type":"water","gender":1,"distance":500,
+         "clean":0,"template":"","ping":"","description":"**Water**"}
+        """;
+
+    private static PoracleV2Capabilities WithGruntType() =>
+        new() { Read = true, InvasionGruntType = true };
+
+    [Fact]
+    public async Task AnInvasionEditUsesV2WhenTheServerCarriesGruntTypeAndKnowsTheName()
+    {
+        var handler = ScriptedHandler.Ok("""{"created":null,"updated":[{"grunt_type":"water","uid":413}],"unchanged":null}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: ["water"]);
+
+        var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(InvasionRow));
+
+        Assert.True(result.UsedV2);
+        Assert.Equal(413, result.Uid);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal($"{ApiAddress}/api/v2/humans/user1/tracking/invasion/412?silent=true", request.Url);
+
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal("water", body.RootElement.GetProperty("grunt_type").GetString());
+        Assert.Equal("male", body.RootElement.GetProperty("gender").GetString());
+    }
+
+    [Fact]
+    public async Task AnInvasionEditStaysOnV1WhenTheServerHasNoGruntType()
+    {
+        // 5.2.1. Its v2 invasion rule offers type_id, grunt_id, boss and everything — none of which can
+        // express a grunt name — so there is nothing faithful to send.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}"""));
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: PoracleV2Capabilities.None, gruntNames: ["water"]);
+
+        var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(InvasionRow));
+
+        Assert.False(result.UsedV2);
+        Assert.Equal($"{ApiAddress}/api/tracking/invasion/user1?silent=true", Assert.Single(handler.Requests).Url);
+    }
+
+    [Theory]
+    [InlineData("kecleon")]
+    [InlineData("gold-stop")]
+    [InlineData("showcase")]
+    [InlineData("metal")]
+    public async Task AnInvasionEditStaysOnV1ForANameTheServerDoesNotKnow(string gruntType)
+    {
+        // The four values production actually holds that v2 refuses. kecleon, gold-stop and showcase are
+        // pokestop events and belong to /incident; metal is one this application wrote itself, from a
+        // list that says metal where the game data says steel. A 422 here would fail an edit on a rule
+        // the user did not break.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}"""));
+        var sut = CreateSut(
+            handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: ["water", "steel", "giovanni"]);
+
+        var row = InvasionRow.Replace("\"water\"", $"\"{gruntType}\"", StringComparison.Ordinal);
+        var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(row));
+
+        Assert.False(result.UsedV2);
+        Assert.Equal(HttpMethod.Post, Assert.Single(handler.Requests).Method);
+    }
+
+    [Theory]
+    [InlineData("player team leader", "player_team_leader")]
+    [InlineData("npc 0", "npc_0")]
+    public async Task ASpacedGruntNameIsMatchedInTheFormTheServerStoresIt(string stored, string known)
+    {
+        // Ten production rows hold the spaced form. v2 normalises them on write — verified against a live
+        // build — so they are sendable, and matching has to normalise the same way or they would be sent
+        // to v1 for no reason at all.
+        var handler = ScriptedHandler.Ok("""{"updated":[{"uid":413}]}""");
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: [known]);
+
+        var row = InvasionRow.Replace("\"water\"", $"\"{stored}\"", StringComparison.Ordinal);
+        var result = await sut.UpdateByUidAsync("invasion", "user1", 412, Row(row));
+
+        Assert.True(result.UsedV2);
+    }
+
+    [Fact]
+    public async Task AnInvasionEditStaysOnV1WhenTheGruntListCouldNotBeRead()
+    {
+        // Fails closed: an empty list is how an unreachable masterdata read answers, and every invasion
+        // write goes to v1 today anyway, so it is a no-change rather than a failure.
+        var handler = new ScriptedHandler(
+            new Reply(HttpStatusCode.OK, """{"newUids":[412],"alreadyPresent":0,"updates":1,"insert":0}"""));
+        var sut = CreateSut(handler, version: "5.3.0", capabilities: WithGruntType(), gruntNames: []);
+
+        Assert.False((await sut.UpdateByUidAsync("invasion", "user1", 412, Row(InvasionRow))).UsedV2);
+    }
+
+    [Fact]
+    public async Task TheGruntNameGateDoesNotTouchTheOtherNineTypes()
+    {
+        // The check is keyed on the type. A pokemon edit must not start consulting a grunt list.
+        var handler = ScriptedHandler.Ok(RotatedOk);
+        var sut = CreateSut(handler, version: "5.2.1", capabilities: PoracleV2Capabilities.None, gruntNames: []);
+
+        Assert.True((await sut.UpdateByUidAsync("pokemon", "user1", 36486, Row(StoredRow))).UsedV2);
+    }
+
     private static JsonElement Row(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
     private static PoracleTrackingProxy CreateSut(
         ScriptedHandler handler,
         string? version,
         string trackingApiVersion = "auto",
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        PoracleV2Capabilities? capabilities = null,
+        string[]? gruntNames = null)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -685,6 +797,8 @@ public class PoracleTrackingProxyV2Tests
             new HttpClient(handler),
             config,
             profile.Object,
+            PoracleTrackingProxyTests.V2Schema(capabilities),
+            PoracleTrackingProxyTests.GruntNames(gruntNames ?? []),
             cache ?? new MemoryCache(new MemoryCacheOptions()),
             Mock.Of<ILogger<PoracleTrackingProxy>>());
     }
