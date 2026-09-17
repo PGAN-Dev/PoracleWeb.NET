@@ -132,11 +132,16 @@ PoracleNG 5.2.0 added a second tracking surface at `/api/v2` and left v1 frozen.
 tracking types send an edit through it**: `PUT /api/v2/humans/{id}/tracking/{type}/{uid}`. Reads,
 creates and both distance endpoints stay on v1 for every type.
 
-Invasion is the type with a v2 surface PoracleWeb.NET deliberately stays off. A v2 read of a rule
-targeting a named grunt carries no targeting field at all, and PoracleWeb.NET holds only the grunt
-name — which live data fills with values that cannot be reversed into an id (`blanche`, `npc 0`,
-`player team leader`). Pokéstop Events are the exception in the other direction: v2 is their only
-surface, so they have their own proxy rather than a fallback.
+Invasion writes through v2 as well, since #841, but behind a second gate the other types do not have.
+`grunt_type` — its one targeting field, and the only one PoracleWeb.NET ever holds — exists solely on a
+server carrying PoracleNG PR #217, and even there a rule goes to v1 unless that server's own grunt
+masterdata lists the name. That second condition is not a formality: 32 of 201 invasion rules in
+production carry a name v2 refuses (`kecleon`, `gold-stop` and `showcase`, which are Pokéstop events, and
+`metal`, which the game data calls `steel`), and all 32 are editable today because v1's read returns them
+where v2's does not.
+
+Pokéstop Events are the exception in the other direction: v2 is their only surface, so they have their
+own proxy rather than a fallback.
 
 **Reads stay on v1 on purpose.** v2 answers `null` for every field at its wildcard where v1 answers the
 sentinel, so rebuilding a model from a v2 read would need a per-field default table matching
