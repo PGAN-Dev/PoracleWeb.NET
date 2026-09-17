@@ -87,6 +87,11 @@ capability key appeared. The version is the only thing that changed, so the vers
 | Mutes | Version | PoracleNG 5.2.0 |
 | Pokecoin quest rewards (`reward_type: 8`) | Version | PoracleNG 5.2.0 |
 | Alarm edits through `/api/v2` (nine types) | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2` |
+| Alarm deletes through `/api/v2` (all ten) | Version | PoracleNG 5.2.0, or `Poracle:TrackingApiVersion=v2`. Falls back to v1 for a rule outside the active profile, which v2 refuses and v1 deletes |
+| Invasion edits through `/api/v2` | Published schema, then game data | A `V2InvasionRule` declaring `grunt_type`, **and** that server's grunt masterdata listing the rule's own name |
+| Profile create reporting its number | Published schema | A create response whose body declares `profile_no` |
+| Profile rename through `PATCH` | Published schema | A `V2UpdateProfileBody` declaring `name` |
+| Translated grunt display names | Response field | A `/api/masterdata/grunts` entry carrying `grunt_type` and `short_name` |
 | Moving a saved place | Version | PoracleNG 5.2.0 |
 | Rule descriptions on alarm cards | Response field | v1 `allProfiles`, or any v2 read |
 
@@ -95,7 +100,18 @@ update route for a saved location at all, and its delete answers 409 while an al
 the label. So it is gated rather than degraded: on 5.1.0 the pencil is absent and the delete-and-re-add
 flow is what it has always been.
 
-Most of these carry their own small capability service — `MuteCapabilityService`,
+The last four gate on **what the server publishes about itself** rather than on a release number, which
+`IPoracleV2SchemaService` answers by reading the target instance's own `/openapi.json`. It is the
+schema-document sibling of `PoracleServerProfile`: one cached probe, several typed questions, everything
+false when the document cannot be read. Version could not serve these — the branch carrying them reports
+`5.3.0`, no release carries it, which release it lands in is not knowable from here, and a fork that
+cherry-picks one fix reports whatever it likes.
+
+Invasion needs a second question after the first, because a server carrying the field still refuses a
+`grunt_type` its grunt masterdata does not list. `InvasionGruntNameService` asks it, and fails closed to an
+empty set — which routes every invasion write to v1, where they all went before.
+
+Most of the rest carry their own small capability service — `MuteCapabilityService`,
 `QuestPokecoinCapabilityService`, `PlaceUpdateCapabilityService` and `CostumeCapabilityService` — all
 the same shape over `IPoracleServerProfileService`: one method, one question, no cache of its own, since
 the profile service already caches for five minutes and exposes `Invalidate()`. `SummaryCapabilityService`
