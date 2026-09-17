@@ -462,7 +462,12 @@ export class ProfileOverviewComponent implements OnInit {
         return this.i18n.instant('PROFILES.QUEST_REWARD');
       }
       case 'invasion':
-        return getGruntDisplayName(alarm.grunt_type ?? null, alarm.gender, key => this.i18n.instant(key));
+        return getGruntDisplayName(
+          alarm.grunt_type ?? null,
+          alarm.gender,
+          key => this.i18n.instant(key),
+          this.masterData.getGruntName(alarm.grunt_type ?? null, alarm.gender),
+        );
       case 'lure':
         return this.getLureName(alarm.lure_id ?? 0);
       case 'nest': {

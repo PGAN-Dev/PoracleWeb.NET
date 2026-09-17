@@ -88,11 +88,27 @@ public class MonsterCreate
     [Range(0, 4096)]
     public int PvpRankingWorst { get; set; } = 4096;
 
+    /// <summary>
+    /// The best (lowest, 1-based) PVP rank to alert on. 1 means no floor, which is the column's own
+    /// default and what a rule with no PVP filter stores.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Defaulted, like <see cref="PvpRankingWorst"/> beside it, because 0 is not a rank. Leaving it at
+    /// the language default wrote 0 into every rule created without a PVP league: 15,383 rows against
+    /// 7,770 correct ones on one instance. PoracleNG never writes a 0 here -- the column defaults to 1,
+    /// the bot sets 1 explicitly, and both API surfaces default to 1 when the field is absent -- so
+    /// every one of them came from here, through v1's flexInt passing the value straight through.
+    /// See jfberry/PoracleNG#227.
+    /// </para>
+    /// <para>
+    /// The range deliberately still admits 0. Those 15,383 rules exist and have to stay editable;
+    /// refusing the value here would fail an edit on a rule the user did not break, which is the #835
+    /// shape. Editing one now writes 1 back and repairs it.
+    /// </para>
+    /// </remarks>
     [Range(0, 4096)]
-    public int PvpRankingBest
-    {
-        get; set;
-    }
+    public int PvpRankingBest { get; set; } = 1;
 
     [Range(0, 10000)]
     public int PvpRankingMinCp

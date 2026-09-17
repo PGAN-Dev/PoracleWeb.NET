@@ -37,6 +37,7 @@ describe('MasterDataService — data arriving after first render', () => {
     httpMock.expectOne(`${API}/api/masterdata/items`).flush({ '1': 'Poke Ball' });
     httpMock.expectOne(`${API}/api/masterdata/moves`).flush({ '13': 'Wrap' });
     httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({ '85': 'Halloween 2025' });
+    httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
     httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
   }
 
@@ -77,6 +78,7 @@ describe('MasterDataService — data arriving after first render', () => {
     httpMock.match(`${API}/api/masterdata/items`);
     httpMock.match(`${API}/api/masterdata/moves`);
     httpMock.match(`${API}/api/masterdata/costumes`);
+    httpMock.match(req => req.url === `${API}/api/masterdata/grunts`);
     httpMock.match(req => req.url === `${API}/api/masterdata/monsters`);
     fixture.detectChanges();
 

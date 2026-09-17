@@ -194,7 +194,7 @@ export class PokemonEditDialogComponent implements OnInit {
       minLevel: values.minLevel ?? 0,
       minTime: values.minTime ?? 0,
       minWeight: values.minWeight ?? 0,
-      pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 0,
+      pvpRankingBest: values.pvpRankingLeague ? (values.pvpRankingBest ?? 1) : 1,
       pvpRankingCap: values.pvpRankingLeague ? (values.pvpRankingCap ?? 0) : 0,
       pvpRankingEvolution: values.pvpRankingLeague ? (values.pvpRankingEvolution ?? 0) : 0,
       pvpRankingLeague: values.pvpRankingLeague ?? 0,

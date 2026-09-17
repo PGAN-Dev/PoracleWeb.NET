@@ -19,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { InvasionService } from '../../core/services/invasion.service';
+import { MasterDataService } from '../../core/services/masterdata.service';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
@@ -51,6 +52,7 @@ export class InvasionEditDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly icons = inject(IconService);
   private readonly invasionService = inject(InvasionService);
+  private readonly masterData = inject(MasterDataService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly data = inject<Invasion>(MAT_DIALOG_DATA);
@@ -73,7 +75,12 @@ export class InvasionEditDialogComponent {
   readonly selectedGender = toSignal(this.form.controls.gender.valueChanges, { initialValue: this.data.gender });
 
   getDisplayName(): string {
-    return getGruntDisplayName(this.data.gruntType, this.data.gender, key => this.i18n.instant(key));
+    return getGruntDisplayName(
+      this.data.gruntType,
+      this.data.gender,
+      key => this.i18n.instant(key),
+      this.masterData.getGruntName(this.data.gruntType, this.data.gender),
+    );
   }
 
   getEventColor(): string {
