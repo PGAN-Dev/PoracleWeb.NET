@@ -357,10 +357,10 @@ public partial class PoracleTrackingProxy(
 
     /// <summary>Whether this type and this deployment are in scope for the v2 write path at all.</summary>
     /// <remarks>
-    /// Invasion is the one type with a v2 surface that PoracleWeb deliberately stays off. A v2 read of a
-    /// named-grunt rule carries no targeting field at all, and PoracleWeb holds only the grunt name, which
-    /// live data fills with values it cannot reverse into an id (<c>blanche</c>, <c>npc 0</c>, <c>player
-    /// team leader</c>). Filed upstream.
+    /// Every type with a v2 table is in scope here, invasion included since #841. Invasion carries a
+    /// second gate the others do not -- see <see cref="InvasionUnsendableReasonAsync"/> -- because its
+    /// targeting field only exists on a server carrying PoracleNG PR #217, and even there only for grunt
+    /// names that server's masterdata lists.
     /// </remarks>
     private bool ShouldTryV2(string type) =>
         TrackingV2Translator.Handles(type) && this._trackingApiVersion != "v1";

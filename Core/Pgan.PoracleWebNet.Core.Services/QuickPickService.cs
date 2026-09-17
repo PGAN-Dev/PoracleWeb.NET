@@ -759,18 +759,30 @@ public partial class QuickPickService(
 
     private static Monster BuildMonster(Dictionary<string, object?> filters, int pokemonId, int profileNo, QuickPickApplyRequest request)
     {
-        // Start with sensible defaults (matching the add dialog defaults)
+        // The no-filter value for each bound, matching MonsterCreate. Two of these had drifted from it
+        // while the comment still claimed they matched, and both reached real alarms because no quick
+        // pick overrides them:
+        //
+        //   MaxLevel was 40, the game's cap until 2020, against MonsterCreate's 55. None of the 30
+        //   definitions sets maxLevel, so every quick pick capped its alarms at level 40 -- 4,088 rules
+        //   in production. "Level 30+ Pokemon, track all high-level wild spawns" asked for 30 to 40.
+        //
+        //   PvpRankingWorst was 100 against MonsterCreate's 4096. Inert where it landed, because these
+        //   default to no league and the rank window is only read when one is set -- but it is not the
+        //   column's no-bound value, and an alarm later edited to add a league inherited a top-100
+        //   filter nobody chose. 2,811 rules carry it with no league. The five definitions that do set
+        //   a league set pvpRankingWorst beside it, so none of them is touched by the correction.
         var monster = new Monster
         {
             MaxIv = 100,
             MaxCp = 9000,
-            MaxLevel = 40,
+            MaxLevel = 55,
             MaxWeight = 9000000,
             MaxAtk = 15,
             MaxDef = 15,
             MaxSta = 15,
             PvpRankingBest = 1,
-            PvpRankingWorst = 100,
+            PvpRankingWorst = 4096,
         };
 
         // Overlay the quick pick filters on top of the defaults.
