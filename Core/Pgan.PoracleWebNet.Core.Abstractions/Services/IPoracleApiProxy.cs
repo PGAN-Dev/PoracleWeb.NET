@@ -27,7 +27,7 @@ public interface IPoracleApiProxy
     /// </remarks>
     Task<bool?> GetShowcaseDisabledAsync();
     Task<string?> GetTemplatesAsync();
-    Task<string?> GetGruntsAsync();
+    Task<string?> GetGruntsAsync(string? locale = null);
 
     /// <summary>
     /// Localized monster master data: names, types and form names in <paramref name="locale"/>.

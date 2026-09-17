@@ -166,7 +166,12 @@ export class InvasionListComponent implements OnInit {
         data: {
           confirmText: this.i18n.instant('COMMON.DELETE'),
           message: this.i18n.instant('INVASIONS.CONFIRM_DELETE_MSG', {
-            name: getGruntDisplayName(invasion.gruntType, invasion.gender, key => this.i18n.instant(key)),
+            name: getGruntDisplayName(
+              invasion.gruntType,
+              invasion.gender,
+              key => this.i18n.instant(key),
+              this.masterData.getGruntName(invasion.gruntType, invasion.gender),
+            ),
           }),
           title: this.i18n.instant('INVASIONS.CONFIRM_DELETE_TITLE'),
           warn: true,
@@ -232,7 +237,7 @@ export class InvasionListComponent implements OnInit {
   }
 
   getDisplayName(gruntType: string | null, gender?: number): string {
-    return getGruntDisplayName(gruntType, gender, key => this.i18n.instant(key));
+    return getGruntDisplayName(gruntType, gender, key => this.i18n.instant(key), this.masterData.getGruntName(gruntType, gender));
   }
 
   getEventColor(gruntType: string | null): string {

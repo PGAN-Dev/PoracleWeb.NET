@@ -1,0 +1,433 @@
+{
+ "info": {
+  "title": "PoracleNG API",
+  "version": "5.3.0"
+ },
+ "paths": {
+  "/v2/humans": {
+   "get": {
+    "description": "Lists humans on this instance, ascending by id. `?type=` narrows to one registration type; `?id=a,b,c` fetches a specific set in one request (unknown ids are omitted, not an error). Combining them intersects. Returns a summary per human \u2014 use GET /v2/humans/{id} for the full resource.",
+    "operationId": "v2-list-humans",
+    "parameters": [
+     {
+      "description": "Filter to one registration type, e.g. webhook or discord:user. Omit for every type.",
+      "explode": false,
+      "in": "query",
+      "name": "type",
+      "schema": {
+       "description": "Filter to one registration type, e.g. webhook or discord:user. Omit for every type.",
+       "type": "string"
+      }
+     },
+     {
+      "description": "Comma-separated ids to fetch, e.g. id=123,456 \u2014 the same form as the bulk tracking delete's uid=. Unknown ids are omitted rather than erroring. Omit to list everything.",
+      "explode": false,
+      "in": "query",
+      "name": "id",
+      "schema": {
+       "description": "Comma-separated ids to fetch, e.g. id=123,456 \u2014 the same form as the bulk tracking delete's uid=. Unknown ids are omitted rather than erroring. Omit to list everything.",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2HumansListOutputBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    },
+    "security": [
+     {
+      "poracleSecret": []
+     }
+    ],
+    "summary": "List registered humans",
+    "tags": [
+     "v2-humans"
+    ]
+   },
+   "post": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2HumanResourceBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    }
+   }
+  },
+  "/v2/humans/{id}": {
+   "delete": {
+    "description": "Removes the human along with every tracking rule, profile and summary schedule they own. Irreversible. 404 if the human does not exist. Triggers a state reload.",
+    "operationId": "v2-delete-human",
+    "parameters": [
+     {
+      "description": "Human id (the owning user)",
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "description": "Human id (the owning user)",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StatusOKOutputBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    },
+    "security": [
+     {
+      "poracleSecret": []
+     }
+    ],
+    "summary": "Delete a human and all their data",
+    "tags": [
+     "v2-humans"
+    ]
+   },
+   "get": {
+    "description": "Returns the full human resource. blocked_alerts is a read-only derived field. 404 if the human does not exist.",
+    "operationId": "v2-get-human",
+    "parameters": [
+     {
+      "description": "Human id (the owning user)",
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "description": "Human id (the owning user)",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2HumanResourceBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    },
+    "security": [
+     {
+      "poracleSecret": []
+     }
+    ],
+    "summary": "Fetch one human",
+    "tags": [
+     "v2-humans"
+    ]
+   }
+  },
+  "/v2/humans/{id}/profiles": {
+   "get": {
+    "description": "Returns every profile for the human (profile_no, name, area, location, active_hours). active_hours is a typed JSON array of schedule entries ([] when no schedule is set). 404 if the human does not exist.",
+    "operationId": "v2-list-human-profiles",
+    "parameters": [
+     {
+      "description": "Human id (the owning user)",
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "description": "Human id (the owning user)",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2ProfilesOutputBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    },
+    "security": [
+     {
+      "poracleSecret": []
+     }
+    ],
+    "summary": "List a human's profiles",
+    "tags": [
+     "v2-profiles"
+    ]
+   },
+   "post": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/V2AddProfileOutputBody"
+        }
+       }
+      },
+      "description": "OK"
+     },
+     "default": {
+      "content": {
+       "application/problem+json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorModel"
+        }
+       }
+      },
+      "description": "Error"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "V2SetAreasBody": {
+    "additionalProperties": false,
+    "properties": {
+     "areas": {
+      "description": "Requested area names. Matched case-insensitively against the fences this human may select; duplicates are collapsed and anything unmatched comes back in the rejected list rather than being dropped silently.",
+      "items": {
+       "type": "string"
+      },
+      "type": [
+       "array",
+       "null"
+      ]
+     },
+     "trusted": {
+      "description": "Set true to select fences that are not userSelectable \u2014 for a server-side client that has already authorised the change (e.g. the user drew the fence). Honoured because the caller holds the API secret. Unknown fence names are still rejected.",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "areas"
+    ],
+    "type": "object"
+   },
+   "V2UpdateProfileBody": {
+    "additionalProperties": false,
+    "properties": {
+     "active_hours": {
+      "description": "New active-hours schedule ([] clears it, omitted leaves it unchanged). Validated against the strict schema.",
+      "items": {
+       "$ref": "#/components/schemas/V2ActiveHourEntry"
+      },
+      "type": "array"
+     },
+     "name": {
+      "description": "New profile name. Omit to leave it unchanged.",
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "V2InvasionRule": {
+    "additionalProperties": false,
+    "properties": {
+     "boss": {
+      "description": "Catch-all for boss encounters: set true to match only boss invasions (stored grunt_type \"boss\"). One-of mode field. Mutually exclusive with the others; gender not allowed.",
+      "type": "boolean"
+     },
+     "clean": {
+      "description": "Auto-delete the alert on expiry (clean bitmask bit 1). Omit to disable (default false). Returned as null when false.",
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "distance": {
+      "description": "Radius in metres around the anchor location. Omit (or 0) to match by the profile's geofence areas instead of a radius \u2014 0 means area-based, NOT zero metres (stored as 0). Returned as null when at its wildcard.",
+      "format": "int64",
+      "maximum": 40000000,
+      "minimum": 0,
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "edit": {
+      "description": "Keep the message updated in place (clean bitmask bit 2). Omit to disable (default false). Returned as null when false.",
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "everything": {
+      "description": "Catch-all wildcard: set true to match EVERY invasion (stored grunt_type \"everything\"). Equivalent to omitting every mode field, which is the wildcard; set it explicitly when you want the intent on the wire. Mutually exclusive with the others; gender not allowed.",
+      "type": "boolean"
+     },
+     "gender": {
+      "description": "Grunt gender filter: any|male|female. Omit to match any gender (defaults to 'any', stored as 0). ONLY valid together with type_id. Returned as null when 'any' (or when not in type_id mode).",
+      "enum": [
+       "any",
+       "male",
+       "female"
+      ],
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "grunt_id": {
+      "description": "Game-master grunt id; resolves to that grunt's name and implies its own gender. One-of mode field. Mutually exclusive with the others; gender not allowed. Read-back reports the rule as grunt_type, because that is what is stored \u2014 see grunt_type.",
+      "format": "int64",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "grunt_type": {
+      "description": "The stored targeting value, and the ONE targeting field every read emits. Accepts any grunt name the bot accepts: a pokemon type (\"water\"), a named grunt (\"giovanni\", \"blanche\", \"mixed\", \"npc_0\"), or a catch-all (\"everything\", \"boss\"). type_id and grunt_id are input conveniences that resolve to one of these. Pokestop-event names are not valid here \u2014 use /incident. Enumerate valid names from GET /api/masterdata/grunts. One-of mode field; may be combined with gender.",
+      "type": "string"
+     },
+     "override_areas": {
+      "description": "Restrict this rule to these geofence areas (mutually exclusive with distance > 0 and override_location_label). Omit for none. Returned as null when unset.",
+      "items": {
+       "type": "string"
+      },
+      "type": [
+       "array",
+       "null"
+      ]
+     },
+     "override_location_label": {
+      "description": "Saved-location label to use instead of the profile location (requires distance > 0; mutually exclusive with override_areas). Omit for none. Returned as null when unset.",
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "summary": {
+      "description": "Route into the summary digest (clean bitmask bit 4). Omit to disable (default false). Returned as null when false.",
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "template": {
+      "description": "DTS template name. Omit (or empty) to use the server's configured default template (stored as \"\"). Returned as null when at its wildcard.",
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "type_id": {
+      "description": "Pokemon type id (1-18); grunt_type resolves to that type's lowercased name. At most one mode field may be set \u2014 this OR grunt_id OR grunt_type OR everything OR boss. Omitting all of them matches EVERY invasion (stored \"everything\") \u2014 blank is the wildcard, as elsewhere in v2. In responses, the active mode field is always present; the other mode fields are omitted/null.",
+      "format": "int64",
+      "maximum": 18,
+      "minimum": 1,
+      "type": "integer"
+     }
+    },
+    "type": "object"
+   },
+   "StatusOKOutputBody": {
+    "additionalProperties": false,
+    "properties": {
+     "status": {
+      "description": "Always \"ok\" on success",
+      "type": "string"
+     }
+    },
+    "required": [
+     "status"
+    ],
+    "type": "object"
+   },
+   "V2AddProfileOutputBody": {
+    "additionalProperties": false,
+    "properties": {
+     "profile": {
+      "$ref": "#/components/schemas/V2ProfileResponse",
+      "description": "The created profile. Omitted only when the post-insert read-back failed; profile_no is still authoritative."
+     },
+     "profile_no": {
+      "description": "The profile_no assigned to the new profile \u2014 the LOWEST FREE number, which the caller cannot predict",
+      "format": "int64",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "profile_no"
+    ],
+    "type": "object"
+   }
+  }
+ }
+}

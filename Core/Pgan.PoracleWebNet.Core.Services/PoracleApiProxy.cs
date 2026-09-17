@@ -285,9 +285,13 @@ public class PoracleApiProxy(HttpClient httpClient, IConfiguration configuration
     /// exists in neither supported backend, so this call could only ever 404 and throw.
     /// </summary>
     /// <returns>The raw JSON, or <c>null</c> when upstream is unreachable or does not serve it.</returns>
-    public async Task<string?> GetGruntsAsync()
+    public async Task<string?> GetGruntsAsync(string? locale = null)
     {
-        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/masterdata/grunts");
+        // A PoracleNG too old for translated grunt names ignores the parameter and answers its English
+        // shape, which is the same answer it gives with no parameter at all -- so this is safe to send
+        // unconditionally and needs no capability check of its own. See #840.
+        var query = string.IsNullOrEmpty(locale) ? string.Empty : $"?locale={Uri.EscapeDataString(locale)}";
+        var request = this.CreateRequest(HttpMethod.Get, $"{this._apiAddress}/api/masterdata/grunts{query}");
         var response = await this._httpClient.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)

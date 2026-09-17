@@ -12,6 +12,17 @@ export interface PokemonEntry {
   types?: string[];
 }
 
+/**
+ * One entry of the grunt map, keyed by grunt id. Several ids share one `grunt_type` -- a grunt has a
+ * male and a female entry, and Giovanni and the leaders have a ticketed and an unticketed one -- so
+ * `grunt_type` is the join column, not the key.
+ */
+interface GruntEntry {
+  gender?: number;
+  grunt_type?: string;
+  short_name?: string;
+}
+
 /** One entry of the monster map, keyed `"{pokemonId}_{formId}"`. */
 interface MonsterEntry {
   evolutions?: { evoId: number }[];
@@ -41,6 +52,11 @@ export class MasterDataService {
   private readonly evoBaseMap = new Map<number, number>();
 
   private readonly formsMap = signal(new Map<number, { id: number; name: string }[]>());
+  /**
+   * Grunt display names, keyed `"{grunt_type}:{gender}"`. Only entries that identify exactly one
+   * grunt are here -- see `applyGrunts`.
+   */
+  private readonly gruntMap = signal(new Map<string, string>());
   private readonly http = inject(HttpClient);
   private readonly i18n = inject(I18nService);
   private readonly itemMap = signal(new Map<number, string>());
@@ -143,6 +159,15 @@ export class MasterDataService {
     return this.formsMap().get(pokemonId) ?? [];
   }
 
+  /**
+   * The upstream display name for one grunt, or null when this Poracle does not name it unambiguously
+   * and the caller should use its own label.
+   */
+  getGruntName(gruntType: null | string, gender: number | undefined): null | string {
+    if (!gruntType) return null;
+    return this.gruntMap().get(`${gruntType}:${gender ?? 0}`) ?? null;
+  }
+
   getItemName(id: number): string {
     return this.itemMap().get(id) ?? `Item #${id}`;
   }
@@ -185,6 +210,44 @@ export class MasterDataService {
    * A null payload (upstream unreachable) leaves the English names from /api/masterdata/pokemon in
    * place rather than blanking the selector.
    */
+  /**
+   * Indexes the grunt masterdata by `grunt_type` and gender, keeping only the entries that identify
+   * exactly one grunt.
+   *
+   * A pair that matches two entries is dropped on purpose rather than resolved by picking the first.
+   * `giovanni` and `arlo` each have a ticketed and an unticketed entry at gender 0, and a typed grunt
+   * like `dark` has no gender-0 entry at all while a rule may well be set to "any gender" -- naming
+   * either of those after one of its halves would tell the user their rule is narrower than it is.
+   * Those cases fall through to the hand-maintained label, which is what they already show.
+   *
+   * `short_name` rather than `name`: it is the form built for a label ("Unlicht ♀" against
+   * "Unlicht - Rüpel (Weiblich)"), and unlike `type` it is translated for every grunt rather than
+   * only the eighteen elemental ones.
+   */
+  private applyGrunts(grunts: null | Record<string, GruntEntry>): void {
+    const names = new Map<string, string>();
+
+    if (grunts) {
+      const seen = new Map<string, number>();
+
+      Object.values(grunts).forEach(entry => {
+        const gruntType = entry?.grunt_type;
+        const shortName = entry?.short_name;
+        if (!gruntType || !shortName) return;
+
+        const key = `${gruntType}:${entry.gender ?? 0}`;
+        seen.set(key, (seen.get(key) ?? 0) + 1);
+        names.set(key, shortName);
+      });
+
+      seen.forEach((count, key) => {
+        if (count > 1) names.delete(key);
+      });
+    }
+
+    this.gruntMap.set(names);
+  }
+
   private applyMonsters(monsters: null | Record<string, MonsterEntry>, names: Map<number, string>): void {
     if (!monsters) return;
 
@@ -301,6 +364,12 @@ export class MasterDataService {
       costumes: this.http
         .get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/costumes`)
         .pipe(catchError(() => of({} as Record<string, string>))),
+      // Translated, so refetched on a language change like monsters. A PoracleNG too old to carry the
+      // names answers its older shape and this produces nothing, which leaves every label exactly where
+      // it is today -- the hand-maintained strings. See #840.
+      grunts: this.http
+        .get<Record<string, GruntEntry>>(`${this.config.apiHost}/api/masterdata/grunts`, { params: { locale } })
+        .pipe(catchError(() => of(null))),
       items: this.http.get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/items`),
       monsters: this.http
         .get<Record<string, MonsterEntry>>(`${this.config.apiHost}/api/masterdata/monsters`, { params: { locale } })
@@ -314,7 +383,7 @@ export class MasterDataService {
         this.loadRequested = false;
         this.ready$.next(true);
       },
-      next: ({ costumes, items, monsters, moves, pokemon }) => {
+      next: ({ costumes, grunts, items, monsters, moves, pokemon }) => {
         // Each map is rebuilt whole and published once. Mutating the live map in place would not
         // notify anything reading it, and would briefly show a half-filled list to anything that
         // did.
@@ -348,6 +417,7 @@ export class MasterDataService {
 
         // Translated species names overwrite the English ones, so this runs before publishing.
         this.applyMonsters(monsters, pokemonNames);
+        this.applyGrunts(grunts);
 
         this.itemMap.set(itemNames);
         this.costumeMap.set(costumeNames);

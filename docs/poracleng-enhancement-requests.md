@@ -136,12 +136,36 @@ while it is the only profile is the single exception: the row goes, the tracking
 
 **Current behavior:** PoracleNG's `POST /api/humans/{id}/setAreas` handler (`processor/internal/api/humans.go:HandleSetAreas`) intersects the submitted area list against fences where `UserSelectable == true` for non-admin users. Any area whose fence has `userSelectable=false` is silently dropped -- no error, no warning. PoracleWeb.NET's `GeofenceFeedController.cs` serves user-drawn custom geofences with `userSelectable: false` (to hide them from the Poracle bot's `!area` picker and from other users' views), so every `SetAreasAsync` call that contains a user-drawn geofence name loses that name. This is the root cause of [#163](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/163) -- "custom geofence toggle doesn't persist."
 
-**Status: answered upstream, not yet released.** Filed as
-[jfberry/PoracleNG#215](https://github.com/jfberry/PoracleNG/issues/215) and fixed in
-[PR #217](https://github.com/jfberry/PoracleNG/pull/217): `setAreas` takes an opt-in `trusted` flag that
-lifts the `userSelectable` filter and nothing else -- an unknown fence name is still refused, so a typo
-cannot become a stored area that matches nothing -- and the response reports what it stored against what it
-rejected. PR #217 is on `develop`, so no build carries it and the workaround below stays until one does.
+**Status: answered upstream, answered incompletely, still blocked.** Filed as
+[jfberry/PoracleNG#215](https://github.com/jfberry/PoracleNG/issues/215) and given a `trusted` flag in
+[PR #217](https://github.com/jfberry/PoracleNG/pull/217). Building against that branch showed the flag does
+not close this gap, on three counts:
+
+1. **It lifts more than the `userSelectable` filter.** `settableAreaNames` folds the community area
+   restriction behind the same `unrestricted := admin || trusted`, while the comment beside the flag says it
+   lifts `userSelectable` only. Reproduced on a build of `develop` with `[area_security] enabled = true` and
+   a human restricted to a five-area community: an untrusted request stored `["erina"]` and rejected
+   `Aberdeen`; the same request with `trusted: true` stored both. Since `setAreas` is a whole-list replace,
+   the one call that needs the flag is also the one carrying the user's requested admin areas -- so using it
+   would hand any user every area on the instance. Filed as
+   [#228](https://github.com/jfberry/PoracleNG/issues/228).
+2. **There is no profile target.** `POST /v2/humans/{id}/areas` takes `id` and nothing else and writes
+   `CurrentProfileNo`, so `RemoveAreaFromAllProfilesAsync` and `RenameAreaInAllProfilesAsync` -- which must
+   span every profile when a drawn fence is deleted or renamed -- have no API form at all.
+3. **Per-rule `override_areas` is still refused.** `POST /v2/humans/{id}/tracking/{type}` with an
+   `override_areas` naming a `userSelectable=false` fence answers `422 "area not permitted"`, and the
+   tracking write has no `trusted` of its own. `SetAlarmOverrideAreasAsync` and `UserOwnedOverrideAreaProxy`
+   stay regardless.
+
+[PR #230](https://github.com/jfberry/PoracleNG/pull/230) addresses all three. Its first two halves check out;
+its `trusted` fix over-corrects, so under `area_security` the flag now rejects the very fences it exists to
+admit -- a drawn fence is in no community's `allowed_areas`, and the community filter strips it immediately
+after the lift adds it. Reported on that PR. **Re-test the mixed case before adopting.**
+
+Three of the six `IUserAreaDualWriter` methods would be mechanically replaceable once the above lands, and
+should not be: each is a single `SaveChangesAsync` spanning `humans.area` and the active `profiles.area`,
+and `setAreas` replaces the whole list, so going through it turns each into read-modify-write. That is a
+correctness regression bought for no deletion while the other three methods keep the writer alive anyway.
 
 **Workaround (HACK):** `UserGeofenceService` delegates user-geofence area mutations to `IUserAreaDualWriter`, a tiny atomic-write abstraction that holds the Poracle `DbContext` and commits both `humans.area` and the active `profiles.area` in a single `SaveChangesAsync` call. The single-SaveChanges guarantees EF Core wraps both writes in one implicit transaction — `humans.area` and `profiles.area` cannot drift, even if the process crashes between reads. `AreaController.UpdateAreas` additionally calls `IUserGeofenceService.PreserveOwnedAreasInHumanAsync` after the proxy `SetAreasAsync` call to re-add any user-owned geofences that PoracleNG stripped; this hands off to the writer's bulk `AddAreasToActiveProfileAsync` so the merge costs one DB round-trip regardless of how many geofences the user owns. These are the only direct-DB writes left on the area path, and are tagged `HACK: trusted-set-areas`; `grep -rn "HACK: trusted-set-areas" --include="*.cs"` lists every one. `IProfileRepository.RenameAsync` and `HumanRepository.DeleteUserAsync` are direct writes for their own reasons, covered under the v2 findings below.
 
@@ -248,9 +272,19 @@ named grunt (`blanche`, `player team leader`, `npc 0`) came back carrying no tar
 handing a v2 read back to a v2 write answered 422. The fix admits `grunt_type` itself to the one-of set, and
 a read emits exactly the field the rule is stored as.
 
-**Here:** invasion is the one alarm type with no entry in `TrackingV2Translator`'s table, so its edits stay
-on v1. Worth knowing before adopting the fix: it also stops `type_id`, `everything` and `boss` being emitted
-on a read.
+**Here: adopted**, in PoracleWeb.NET #894. Invasion has a `TrackingV2Translator` entry and its edits go to
+v2 -- behind a second gate the other types do not have, because `grunt_type` exists only on a server carrying
+the fix and even there only for names that server's grunt masterdata lists. That second condition is not a
+formality: 32 of 201 invasion rules in production carry a name v2 refuses (`kecleon`, `gold-stop` and
+`showcase`, which are Pokestop events, and `metal`, which the game data calls `steel`), and all 32 are
+editable today because v1's read returns them where v2's does not. `InvasionGruntNameService` reads the
+accepted names from the server rather than shipping a table.
+
+Two things the schema does not say, both established by calling a running build: it contradicts itself on
+gender -- `V2InvasionRule.gender` says "ONLY valid together with `type_id`" while `grunt_type` says it "may
+be combined with gender", and the latter is correct -- and it normalises a spaced name on write, so
+`player team leader` is stored as `player_team_leader`. Worth knowing before adopting the fix: it also stops
+`type_id`, `everything` and `boss` being emitted on a read.
 
 ### `override_areas` is not validated, on either version or either surface
 
@@ -301,9 +335,20 @@ instead, with a `costume` capability flag on `/health`, `GET /api/v2/activity` a
 Every human route was single-`{id}`: `GET /api/humans`, `GET /api/v2/humans` and `DELETE /api/v2/humans/{id}`
 all answered 404.
 
-**Here:** the admin user list, the batch owner/reviewer name resolve behind the geofence submissions UI, and
-account deletion keep `HumanRepository.GetAllAsync`, `GetByIdsAsync` and `DeleteUserAsync` -- and therefore
-`PoracleContext` -- alive.
+**Here:** all three still keep `HumanRepository.GetAllAsync`, `GetByIdsAsync` and `DeleteUserAsync` -- and
+therefore `PoracleContext` -- alive, and the list alone does not release them. Its item carries seven fields
+(`admin_disable`, `current_profile_no`, `enabled`, `id`, `language`, `name`, `type`) and the admin grid also
+renders `disabled_date` and `notes`. Both come back from `GET /v2/humans/{id}` for a single human and neither
+from the list, and per-id is not an option against 2,333 humans. Filed as
+[#229](https://github.com/jfberry/PoracleNG/issues/229) and added in
+[PR #230](https://github.com/jfberry/PoracleNG/pull/230), which also confirms `type=webhook` is the exact
+stored value `GetWebhooksAsync` would filter on.
+
+`GetByIdsAsync` and `DeleteUserAsync` would work against the list as it already stands, and are deliberately
+not moved ahead of `GetAllAsync`: neither deletes anything while the repository survives for the third
+method, so moving them early buys a capability-gated second path and no removal. `ExistsAsync` is a separate
+case and stays regardless -- `UserPurgeService` reads the database on purpose, because the proxy cannot tell
+an account that is gone from a Poracle that is unreachable, and the caller turns that into a 404.
 
 ### Profile create returns no `profile_no`, and nothing can rename a profile
 
@@ -314,21 +359,33 @@ profile, and `PATCH` is a real PATCH that can rename.
 rather than max + 1, so the caller could not predict it. `PATCH .../profiles/{n}` required `active_hours` and
 refused every other property, `name` included.
 
-**Here:** `ProfileNumbering.ResolveCreated` still snapshots the list, creates, re-reads and diffs -- on names
-that are not unique -- and `IProfileRepository.RenameAsync` is still a direct database write.
+**Here: adopted**, in PoracleWeb.NET #891, behind `IPoracleV2SchemaService` -- which reads the target
+instance's own `/openapi.json` and answers whether it carries each capability. Version would not do: the
+branch reports `5.3.0`, no release carries it, and a fork that cherry-picks one fix reports whatever it likes.
+
+Both fallbacks stay for released servers, and the rename gate is load-bearing rather than an optimisation:
+`PATCH .../profiles/{n}` exists on 5.2.1, where `V2UpdateProfileBody` declares `active_hours` alone under
+`additionalProperties: false`, so sending a name there is a 422 rather than an ignored field.
+`ProfileNumbering.ResolveCreated` cannot be replaced by arithmetic either way, because PoracleNG assigns the
+lowest free number.
 
 ### v2 `setAreas` keeps the v1 `userSelectable` filter
 
-[#215](https://github.com/jfberry/PoracleNG/issues/215) -- fixed on `develop`: `setAreas` reports what it
-stored against what it rejected, and takes an opt-in `trusted` flag that lifts the `userSelectable` filter
-only. Unknown fence names are still refused, so a typo cannot become a stored area matching nothing.
+[#215](https://github.com/jfberry/PoracleNG/issues/215) -- answered on `develop`, incompletely. `setAreas`
+reports what it stored against what it rejected, and takes an opt-in `trusted` flag. The flag does **not**
+lift the `userSelectable` filter only, whatever the comment beside it says: it also bypasses the community
+area restriction, which makes it unusable for the one call that needs it. See
+[#228](https://github.com/jfberry/PoracleNG/issues/228) and the
+[trusted setAreas](#trusted-setareas-bypass-userselectable-filter) gap above for the reproduction and for the
+two further blockers the flag does not address.
 
 Re-confirmed on 5.2.1 rather than taken from source: `POST /api/v2/humans/{id}/areas` with
 `["<a user-drawn fence>", "aberdeen"]` stored `["aberdeen"]` -- silently, 200, exactly as v1 does.
 
 **Here:** this is the [trusted setAreas](#trusted-setareas-bypass-userselectable-filter) ask above, the
-keystone for deleting `IUserAreaDualWriter`. Until a release carries the flag, every
-`HACK: trusted-set-areas` site stays.
+keystone for deleting `IUserAreaDualWriter`. Every `HACK: trusted-set-areas` site stays -- not merely until a
+release carries the flag, but until the flag's scope, a profile target and a trusted per-rule override write
+all land together.
 
 ---
 
@@ -376,10 +433,11 @@ type whose uid survived an edit.
 |-----|----------|-------------------|--------|
 | Bulk distance update | High | Fetch all, modify, POST back | Open |
 | Bulk clean toggle | High | Fetch all, modify, POST back | Open |
-| Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`) | Fixed on `develop` ([#215](https://github.com/jfberry/PoracleNG/issues/215)), unreleased |
+| Trusted setAreas | High | Direct-DB dual write (`IUserAreaDualWriter`) | **Still blocked.** Flag on `develop` ([#215](https://github.com/jfberry/PoracleNG/issues/215)) bypasses the community filter too ([#228](https://github.com/jfberry/PoracleNG/issues/228)); no profile target; per-rule override still refused |
 | Dashboard counts | Medium | Single `GET /api/tracking/all` call | Open, returns full payloads |
 | Admin delete all alarms | Medium | Fetch UIDs per type, bulk delete each | Open |
-| Admin list / delete human | Medium | `HumanRepository` direct DB | Fixed on `develop` ([#214](https://github.com/jfberry/PoracleNG/issues/214)), unreleased |
+| Admin list / delete human | Medium | `HumanRepository` direct DB | Routes on `develop` ([#214](https://github.com/jfberry/PoracleNG/issues/214)); list projection too thin to back the admin grid until [#229](https://github.com/jfberry/PoracleNG/issues/229) lands |
+| v2 pokemon catch-all unwritable | Medium | `pokemon_id = 0` rules take the v1 write path | [#227](https://github.com/jfberry/PoracleNG/issues/227): `minimum: 1` refuses a rule PoracleNG itself stores. Our half of it -- writing `pvp_ranking_best = 0` -- fixed in PoracleWeb.NET #895 |
 | Profile delete cascade | -- | None needed | PoracleNG cascades; verified upstream |
 | Atomic profile switch | Low | Already in PoracleNG | **Adopted** |
 | Atomic area update | Low | Already in PoracleNG | **Adopted** (admin areas only) |
