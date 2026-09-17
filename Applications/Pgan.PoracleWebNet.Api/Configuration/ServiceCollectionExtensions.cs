@@ -92,6 +92,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuestPokecoinCapabilityService, QuestPokecoinCapabilityService>();
         services.AddScoped<IMuteCapabilityService, MuteCapabilityService>();
         services.AddScoped<IPlaceUpdateCapabilityService, PlaceUpdateCapabilityService>();
+        services.AddScoped<IInvasionGruntNameService, InvasionGruntNameService>();
         services.AddScoped<ICostumeCapabilityService, CostumeCapabilityService>();
         services.AddScoped<IUpstreamFeatureFlagService, UpstreamFeatureFlagService>();
         services.AddScoped<IFeatureGate, FeatureGate>();
@@ -147,6 +148,13 @@ public static class ServiceCollectionExtensions
             // A diagnostic must not hold a request open: an unreachable server should answer
             // "unknown" quickly rather than stall the admin page behind a default 100s timeout.
             client.Timeout = TimeSpan.FromSeconds(5);
+        });
+
+        services.AddHttpClient<IPoracleV2SchemaService, PoracleV2SchemaService>(client =>
+        {
+            // Same reasoning as the profile probe above, with more headroom: /openapi.json is most of a
+            // megabyte on 5.2.1 where /health is a line.
+            client.Timeout = TimeSpan.FromSeconds(15);
         });
 
         // Register HttpClient for PoracleNG tracking proxy (alarm CRUD — replaces direct DB writes)

@@ -107,16 +107,26 @@ public interface IPoracleHumanProxy
     public Task<JsonElement> GetProfilesAsync(string userId);
 
     /// <summary>
-    /// Creates a new profile.
-    /// Maps to POST /api/profiles/{userId}/add
+    /// Creates a new profile, and reports the number it was given when the server says so.
+    /// Maps to POST /api/v2/humans/{userId}/profiles, or POST /api/profiles/{userId}/add.
     /// </summary>
-    public Task AddProfileAsync(string userId, JsonElement body);
+    /// <returns>
+    /// The assigned profile number, or <c>null</c> when this server does not report it — which is every
+    /// released PoracleNG, so callers still need <c>ProfileNumbering.ResolveCreated</c> as a fallback.
+    /// PoracleNG picks the lowest free number, so <c>null</c> cannot be replaced by arithmetic.
+    /// </returns>
+    public Task<int?> AddProfileAsync(string userId, JsonElement body);
 
     /// <summary>
-    /// Updates a profile (name, etc.).
-    /// Maps to POST /api/profiles/{userId}/update
+    /// Updates a profile's name and active hours.
+    /// Maps to PATCH /api/v2/humans/{userId}/profiles/{profileNo}, or POST /api/profiles/{userId}/update.
     /// </summary>
-    public Task UpdateProfileAsync(string userId, JsonElement body);
+    /// <returns>
+    /// <c>true</c> when the server applied the name as well. Released PoracleNG accepts the request and
+    /// silently keeps the old name, so a <c>false</c> here means the caller must still write
+    /// <c>profiles.name</c> itself.
+    /// </returns>
+    public Task<bool> UpdateProfileAsync(string userId, JsonElement body);
 
     /// <summary>
     /// Deletes a profile. PoracleNG may cascade-delete alarms.

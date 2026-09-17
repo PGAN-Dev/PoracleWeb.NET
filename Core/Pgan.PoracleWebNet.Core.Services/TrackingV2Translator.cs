@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -61,6 +62,17 @@ internal static class TrackingV2Translator
     /// <summary>v2's gender enum: index is the v1 integer.</summary>
     private static readonly string[] Genders = ["any", "male", "female", "genderless"];
 
+    /// <summary>
+    /// v2's invasion gender enum. Three values, not the shared four: <c>V2InvasionRule.gender</c> is
+    /// <c>any|male|female</c> with no <c>genderless</c>, so a stored 3 has no v2 representation and the
+    /// row goes to v1 rather than being mapped to something that means a different thing.
+    /// </summary>
+    /// <remarks>
+    /// Latent rather than live: production holds 0, 1 and 2 only across 201 invasion rules. But
+    /// <c>InvasionCreate.Gender</c> is <c>[Range(0, 3)]</c>, so 3 is expressible here and would be sent.
+    /// </remarks>
+    private static readonly string[] InvasionGenders = ["any", "male", "female"];
+
     /// <summary>v2's team enum: index is the v1 integer, and 4 ("any") is PoracleWeb's default.</summary>
     private static readonly string[] Teams = ["harmony", "mystic", "valor", "instinct", "any"];
 
@@ -100,6 +112,18 @@ internal static class TrackingV2Translator
             },
 
             // v2 makes pokemon_id the one required field. A row without it could only ever 422.
+            // Verified against a live 5.2.1: creating a rule that omits each of these stores exactly
+            // the value listed, and PoracleNG's own differ answers "unchanged" when the two forms are
+            // re-posted against each other. size 0, pvp_ranking_best 0 and pvp_ranking_worst 0 are
+            // deliberately absent -- those are stored verbatim and come back as distinct rules, so
+            // omitting them would rewrite the filter rather than preserve it.
+            OmitWhenEquals = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["size"] = -1,
+                ["rarity"] = -1,
+                ["min_iv"] = -1,
+            },
+
             Required = ["pokemon_id"],
         },
         ["raid"] = new TypeSpec
@@ -153,6 +177,9 @@ internal static class TrackingV2Translator
         },
         ["nest"] = new TypeSpec
         {
+            // Verified live: omitting pokemon_id stores 0, and the server calls the two forms unchanged.
+            OmitWhenEquals = new Dictionary<string, int>(StringComparer.Ordinal) { ["pokemon_id"] = 0 },
+
             Integers = ["distance", "form", "min_spawn_avg", "pokemon_id"],
         },
         ["lure"] = new TypeSpec
@@ -160,6 +187,27 @@ internal static class TrackingV2Translator
             Integers = ["distance", "lure_id"],
             Required = ["lure_id"],
         },
+        ["invasion"] = new TypeSpec
+        {
+            Integers = ["distance"],
+
+            // grunt_type is the targeting field and the one every v2 read emits. type_id and grunt_id are
+            // input conveniences that resolve to it; this application only ever holds the name, so it
+            // sends the name and never the other two. Which names are acceptable is the server's own
+            // question -- see InvasionGruntNameService, and the gate in PoracleTrackingProxy that asks it.
+            Strings = ["grunt_type"],
+            IntEnums = new Dictionary<string, string[]>(StringComparer.Ordinal)
+            {
+                ["gender"] = InvasionGenders,
+            },
+
+            // Verified live, because the schema contradicts itself here: V2InvasionRule.gender says gender
+            // is "ONLY valid together with type_id", while grunt_type says it "may be combined with
+            // gender". Posting {"grunt_type":"water","gender":"male"} to a running build stores gender 1,
+            // so grunt_type's description is the correct one.
+            Required = ["grunt_type"],
+        },
+
         ["fort"] = new TypeSpec
         {
             Integers = ["distance"],
@@ -184,6 +232,7 @@ internal static class TrackingV2Translator
     /// <summary>The tracking types this build has a v2 field table for.</summary>
     public static bool Handles(string type) => Specs.ContainsKey(type);
 
+
     /// <summary>
     /// Translates one v1-shaped row. Returns false — leaving <paramref name="translated"/> untouched —
     /// when the row carries something v2 cannot be told faithfully, or the type has no v2 table.
@@ -192,7 +241,12 @@ internal static class TrackingV2Translator
     /// <param name="row">A single v1-shaped alarm object, as every alarm service already builds.</param>
     /// <param name="translated">The v2 body on success.</param>
     /// <param name="unsupported">What stopped the translation, for the log. Null on success.</param>
-    public static bool TryTranslate(string type, JsonElement row, out JsonElement translated, out string? unsupported)
+    public static bool TryTranslate(
+        string type,
+        JsonElement row,
+        IReadOnlyDictionary<string, Bound>? serverBounds,
+        out JsonElement translated,
+        out string? unsupported)
     {
         translated = default;
         unsupported = null;
@@ -226,7 +280,7 @@ internal static class TrackingV2Translator
                     continue;
                 }
 
-                if (!TryWriteProperty(writer, spec, property, out unsupported))
+                if (!TryWriteProperty(writer, spec, serverBounds, property, out unsupported))
                 {
                     return false;
                 }
@@ -263,7 +317,11 @@ internal static class TrackingV2Translator
     }
 
     private static bool TryWriteProperty(
-        Utf8JsonWriter writer, TypeSpec spec, JsonProperty property, out string? unsupported)
+        Utf8JsonWriter writer,
+        TypeSpec spec,
+        IReadOnlyDictionary<string, Bound>? serverBounds,
+        JsonProperty property,
+        out string? unsupported)
     {
         unsupported = null;
 
@@ -326,6 +384,24 @@ internal static class TrackingV2Translator
         if (property.Value.ValueKind is not (JsonValueKind.Number or JsonValueKind.Null))
         {
             unsupported = $"{property.Name} is not a number";
+            return false;
+        }
+
+        if (property.Value.ValueKind == JsonValueKind.Number
+            && property.Value.TryGetInt32(out var stored)
+            && serverBounds is not null
+            && serverBounds.TryGetValue(property.Name, out var bound)
+            && !bound.Contains(stored))
+        {
+            // Omitting is safe only where v2's write default is this exact value, so the row is stored
+            // unchanged. Anywhere else, echoing it is a 422 and omitting it silently edits the user's
+            // filter, so the whole row goes to v1 -- which stores what it is given, as it always has.
+            if (spec.OmitWhenEquals.TryGetValue(property.Name, out var omittable) && omittable == stored)
+            {
+                return true;
+            }
+
+            unsupported = $"{property.Name} is {stored}, outside v2's {bound}";
             return false;
         }
 
@@ -585,6 +661,21 @@ internal static class TrackingV2Translator
     }
 
     /// <summary>How one type's v1 columns map onto its <c>V2*Rule</c>.</summary>
+    /// <summary>One field's v2 schema range. A null end is unbounded in that direction.</summary>
+    internal readonly record struct Bound(int? Min, int? Max)
+    {
+        public bool Contains(int value) => (this.Min is null || value >= this.Min) && (this.Max is null || value <= this.Max);
+
+        public override string ToString() =>
+            (this.Min, this.Max) switch
+            {
+                (null, null) => "unbounded",
+                (not null, null) => $"minimum {this.Min}",
+                (null, not null) => $"maximum {this.Max}",
+                _ => $"{this.Min}-{this.Max}",
+            };
+    }
+
     private sealed record TypeSpec
     {
         /// <summary>Names v2 declares as integers, written through unchanged.</summary>
@@ -619,5 +710,12 @@ internal static class TrackingV2Translator
 
         /// <summary>Required fields v2 also constrains to 1 or more.</summary>
         public HashSet<string> PositiveIntegers { get; init; } = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Out-of-bounds values that may be omitted instead of refused, because v2's own write default
+        /// for that field is the identical value. Every entry is verified by calling the server; none
+        /// is inferred from reading PoracleNG's source.
+        /// </summary>
+        public Dictionary<string, int> OmitWhenEquals { get; init; } = new(StringComparer.Ordinal);
     }
 }

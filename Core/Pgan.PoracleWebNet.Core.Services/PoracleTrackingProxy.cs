@@ -13,6 +13,8 @@ public partial class PoracleTrackingProxy(
     HttpClient httpClient,
     IConfiguration configuration,
     IPoracleServerProfileService serverProfile,
+    IPoracleV2SchemaService v2Schema,
+    IInvasionGruntNameService gruntNames,
     IMemoryCache cache,
     ILogger<PoracleTrackingProxy> logger) : IPoracleTrackingProxy
 {
@@ -29,6 +31,21 @@ public partial class PoracleTrackingProxy(
     private static string V2AbsentCacheKey(string type) => $"poracle:v2-tracking-absent:{type}";
 
     private static readonly TimeSpan V2AbsentFor = TimeSpan.FromMinutes(5);
+
+    private const string V2BoundsCacheKey = "poracle:v2-schema-bounds";
+
+    private static readonly TimeSpan V2BoundsFor = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// How long the rendered <c>?uid=1,2,3</c> list may get before a bulk delete goes to v1 instead.
+    /// </summary>
+    /// <remarks>
+    /// v2 takes the uid list in the query string where v1 takes it as a JSON body, so past some length it
+    /// stops being a request every proxy and server in the path will carry. Deleting every alarm on a
+    /// heavy account reaches several hundred uids. 2000 sits under the most conservative limit in common
+    /// use and costs nothing to respect, because v1's body has no equivalent ceiling.
+    /// </remarks>
+    private const int V2BulkDeleteMaxUidQueryLength = 2000;
 
     /// <summary>
     /// PoracleNG answers 404 for a user that no longer exists; that is a dead session, not a server fault.
@@ -60,6 +77,8 @@ public partial class PoracleTrackingProxy(
         (configuration["Poracle:TrackingApiVersion"] ?? "auto").Trim().ToLowerInvariant();
 
     private readonly IPoracleServerProfileService _serverProfile = serverProfile;
+    private readonly IPoracleV2SchemaService _v2Schema = v2Schema;
+    private readonly IInvasionGruntNameService _gruntNames = gruntNames;
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PoracleTrackingProxy> _logger = logger;
 
@@ -137,7 +156,17 @@ public partial class PoracleTrackingProxy(
             return null;
         }
 
-        if (!TrackingV2Translator.TryTranslate(type, body, out var v2Body, out var unsupported))
+        if (await this.InvasionUnsendableReasonAsync(type, body) is { } invasionReason)
+        {
+            // Not a fault, same as an untranslatable field: the row goes to v1, which stores whatever it
+            // is given, and the user's edit succeeds.
+            LogV2Untranslatable(this._logger, type, uid, invasionReason);
+            return null;
+        }
+
+        var bounds = await this.ServerBoundsAsync(type);
+
+        if (!TrackingV2Translator.TryTranslate(type, body, bounds, out var v2Body, out var unsupported))
         {
             // Not a fault. The row carries something v2 has no faithful place for, so it goes to v1,
             // which stores whatever it is given. See TrackingV2Translator.
@@ -165,6 +194,11 @@ public partial class PoracleTrackingProxy(
 
     public async Task DeleteByUidAsync(string type, string userId, int uid)
     {
+        if (await this.TryDeleteByUidV2Async(type, userId, uid))
+        {
+            return;
+        }
+
         var request = this.CreateRequest(HttpMethod.Delete, $"{this._apiAddress}/api/tracking/{type}/{Encode(userId)}/byUid/{uid}?silent=true");
         var response = await this._httpClient.SendAsync(request);
 
@@ -182,6 +216,11 @@ public partial class PoracleTrackingProxy(
     {
         var uidList = uids.ToList();
         if (uidList.Count == 0)
+        {
+            return;
+        }
+
+        if (await this.TryBulkDeleteByUidsV2Async(type, userId, uidList))
         {
             return;
         }
@@ -229,15 +268,110 @@ public partial class PoracleTrackingProxy(
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>
+    /// The numeric limits THIS server declares for its own v2 rules, read from the <c>/openapi.json</c> it
+    /// publishes and cached for ten minutes.
+    /// </summary>
+    /// <remarks>
+    /// Read from the server rather than shipped as a table because the two disagree. PoracleNG bounds all
+    /// 55 numeric filter fields on an unreleased branch, and this site stores values outside ten of them --
+    /// values PoracleNG itself wrote. Applying those limits to a server that does not enforce them was
+    /// measured at 68% of one instance's Pokemon rules dropping off the v2 write path, for no benefit,
+    /// because that server accepts every one of the values. A 5.2.1 publishes exactly one bound.
+    /// <para>
+    /// Unreachable or unparseable yields no bounds rather than all bounds, so a failed fetch leaves the
+    /// write exactly as it is today and lets v2 answer for itself.
+    /// </para>
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<string, TrackingV2Translator.Bound>?> ServerBoundsAsync(string type)
+    {
+        if (!this._cache.TryGetValue<IReadOnlyDictionary<string, IReadOnlyDictionary<string, TrackingV2Translator.Bound>>>(
+                V2BoundsCacheKey, out var byType)
+            || byType is null)
+        {
+            string? document = null;
+
+            try
+            {
+                document = await this._httpClient.GetStringAsync($"{this._apiAddress}/openapi.json");
+            }
+            catch (HttpRequestException exception)
+            {
+                LogV2BoundsUnavailable(this._logger, exception.Message);
+            }
+            catch (TaskCanceledException exception)
+            {
+                LogV2BoundsUnavailable(this._logger, exception.Message);
+            }
+
+            byType = V2SchemaBounds.Parse(document);
+            this._cache.Set(V2BoundsCacheKey, byType, V2BoundsFor);
+        }
+
+        return byType.TryGetValue(type, out var bounds) ? bounds : null;
+    }
+
+    /// <summary>
+    /// Why this invasion row must not go to v2, or null when it may.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two questions, both answered by the server rather than assumed. Whether it carries
+    /// <c>grunt_type</c> at all -- 5.2.1 does not, and its only targeting fields cannot express a grunt
+    /// name -- and whether it knows the particular name this row holds, because v2 validates
+    /// <c>grunt_type</c> against its grunt masterdata and answers 422 for anything else.
+    /// </para>
+    /// <para>
+    /// That second check is not belt-and-braces. 32 of 201 invasion rules in production carry a name v2
+    /// refuses, all of them visible and editable in the invasion list because v1's read returns them
+    /// where v2's does not. A 422 here would be an edit failing on a rule the user did not break, which
+    /// is the shape of #835.
+    /// </para>
+    /// </remarks>
+    private async Task<string?> InvasionUnsendableReasonAsync(string type, JsonElement row)
+    {
+        if (!string.Equals(type, "invasion", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (!(await this._v2Schema.GetAsync()).InvasionGruntType)
+        {
+            return "this server's v2 invasion rule has no grunt_type";
+        }
+
+        if (row.ValueKind != JsonValueKind.Object
+            || !row.TryGetProperty("grunt_type", out var stored)
+            || stored.ValueKind != JsonValueKind.String
+            || stored.GetString() is not { Length: > 0 } gruntType)
+        {
+            return "the row names no grunt_type";
+        }
+
+        var accepted = await this._gruntNames.GetAsync();
+
+        return accepted.Contains(InvasionGruntNameService.Normalise(gruntType))
+            ? null
+            : $"this server's grunt masterdata does not list '{gruntType}'";
+    }
+
     /// <summary>Whether this type and this deployment are in scope for the v2 write path at all.</summary>
     /// <remarks>
-    /// Invasion is the one type with a v2 surface that PoracleWeb deliberately stays off. A v2 read of a
-    /// named-grunt rule carries no targeting field at all, and PoracleWeb holds only the grunt name, which
-    /// live data fills with values it cannot reverse into an id (<c>blanche</c>, <c>npc 0</c>, <c>player
-    /// team leader</c>). Filed upstream.
+    /// Every type with a v2 table is in scope here, invasion included since #841. Invasion carries a
+    /// second gate the others do not -- see <see cref="InvasionUnsendableReasonAsync"/> -- because its
+    /// targeting field only exists on a server carrying PoracleNG PR #217, and even there only for grunt
+    /// names that server's masterdata lists.
     /// </remarks>
     private bool ShouldTryV2(string type) =>
         TrackingV2Translator.Handles(type) && this._trackingApiVersion != "v1";
+
+    /// <summary>Whether a delete may go to v2 at all.</summary>
+    /// <remarks>
+    /// Deliberately does not consult <see cref="TrackingV2Translator"/> the way <see cref="ShouldTryV2"/>
+    /// does. A delete carries no rule body, so there is nothing to translate and nothing v2 could fail to
+    /// express -- which puts invasion, the one type held off the v2 writes, in scope here.
+    /// </remarks>
+    private bool ShouldTryV2Delete() => this._trackingApiVersion != "v1";
 
     /// <summary>
     /// Whether the server is believed to carry v2. Pinned to <c>v2</c> this skips the probe but not the
@@ -314,6 +448,132 @@ public partial class PoracleTrackingProxy(
             default:
                 response.EnsureSuccessStatusCode();
                 return null;
+        }
+    }
+
+    /// <summary>
+    /// Deletes one rule through <c>/api/v2</c>. Returns false when the caller should use v1 instead --
+    /// either because the route is not there, or because v2 refused a rule v1 would have deleted.
+    /// </summary>
+    private async Task<bool> TryDeleteByUidV2Async(string type, string userId, int uid)
+    {
+        if (uid <= 0 || !this.ShouldTryV2Delete() || !await this.ServerCarriesV2Async(type))
+        {
+            return false;
+        }
+
+        var request = this.CreateRequest(
+            HttpMethod.Delete,
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}/{uid}?silent=true");
+
+        var response = await this._httpClient.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        var payload = await response.Content.ReadAsStringAsync();
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
+                // gin's plaintext "404 page not found": the route is absent on this build whatever
+                // /health claimed. Same probe the write path uses.
+                this._cache.Set(V2AbsentCacheKey(type), true, V2AbsentFor);
+                LogV2RouteAbsent(this._logger, type);
+                return false;
+
+            case HttpStatusCode.NotFound when payload.Contains("human not found", StringComparison.Ordinal):
+                throw new AccountGoneException();
+
+            case HttpStatusCode.NotFound:
+                // The rule exists but not on the active profile. v1 deletes by (human, uid) whatever
+                // profile the row sits on, and a uid on screen can outlive a profile switch made by
+                // PoracleNG's active-hours scheduler -- so this goes to v1 rather than being reported
+                // as already gone, which would blank the card and leave the row. See #860.
+                LogV2DeleteNotOnActiveProfile(this._logger, type, uid);
+                return false;
+
+            default:
+                response.EnsureSuccessStatusCode();
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes several rules through <c>/api/v2</c>. Returns false when the caller should use v1 instead,
+    /// which includes v2 having taken only some of them.
+    /// </summary>
+    /// <remarks>
+    /// v2 skips a uid outside the active profile silently and answers 200, so the count in
+    /// <c>{deleted}</c> is the only signal that it did less than was asked. Anything short sends the whole
+    /// set to v1: deleting an already-deleted uid there is a no-op, so repeating the ones v2 did take
+    /// costs a round trip and changes nothing.
+    /// </remarks>
+    private async Task<bool> TryBulkDeleteByUidsV2Async(string type, string userId, List<int> uids)
+    {
+        if (!this.ShouldTryV2Delete() || uids.Exists(u => u <= 0) || !await this.ServerCarriesV2Async(type))
+        {
+            return false;
+        }
+
+        var uidList = string.Join(',', uids);
+        if (uidList.Length > V2BulkDeleteMaxUidQueryLength)
+        {
+            return false;
+        }
+
+        var request = this.CreateRequest(
+            HttpMethod.Delete,
+            $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}?uid={uidList}&silent=true");
+
+        var response = await this._httpClient.SendAsync(request);
+        var payload = await response.Content.ReadAsStringAsync();
+
+        if (response.IsSuccessStatusCode)
+        {
+            return CountV2Deleted(payload) >= uids.Count;
+        }
+
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.NotFound when !PoracleProblemDetails.IsProblemJson(payload):
+                this._cache.Set(V2AbsentCacheKey(type), true, V2AbsentFor);
+                LogV2RouteAbsent(this._logger, type);
+                return false;
+
+            case HttpStatusCode.NotFound when payload.Contains("human not found", StringComparison.Ordinal):
+                throw new AccountGoneException();
+
+            case HttpStatusCode.NotFound:
+                return false;
+
+            default:
+                response.EnsureSuccessStatusCode();
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// How many rules v2 reports it removed. -1 when the answer cannot be read, which the caller treats
+    /// the same as "fewer than asked" -- an unreadable 200 is not evidence that the delete happened.
+    /// </summary>
+    private static int CountV2Deleted(string payload)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("deleted", out var deleted)
+                && deleted.ValueKind == JsonValueKind.Array
+                    ? deleted.GetArrayLength()
+                    : -1;
+        }
+        catch (JsonException)
+        {
+            return -1;
         }
     }
 
@@ -402,12 +662,22 @@ public partial class PoracleTrackingProxy(
     private static partial void LogV2Untranslatable(ILogger logger, string type, int uid, string reason);
 
     [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Could not read PoracleNG's /openapi.json ({Reason}); treating its v2 rules as unbounded, which is how they are sent today.")]
+    private static partial void LogV2BoundsUnavailable(ILogger logger, string reason);
+
+    [LoggerMessage(
         Level = LogLevel.Warning,
         Message = "PoracleNG has no /api/v2 {Type} route despite reporting a version that should carry it. Using v1.")]
     private static partial void LogV2RouteAbsent(ILogger logger, string type);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Delete {Type} uid={Uid} returned 404 (already deleted)")]
     private static partial void LogDeleteNotFound(ILogger logger, string type, int uid);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "v2 will not delete {Type} uid={Uid}: not on the active profile. Using v1, which deletes it regardless.")]
+    private static partial void LogV2DeleteNotOnActiveProfile(ILogger logger, string type, int uid);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Create {Type} for {UserId} request: {Body}")]
     private static partial void LogCreateRequest(ILogger logger, string type, string userId, string body);

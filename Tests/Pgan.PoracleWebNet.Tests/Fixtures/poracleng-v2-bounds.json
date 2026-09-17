@@ -1,0 +1,220 @@
+{
+  "egg": {
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    },
+    "level": {
+      "max": 90,
+      "min": 1
+    }
+  },
+  "fort": {
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    }
+  },
+  "gym": {
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    }
+  },
+  "lure": {
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    }
+  },
+  "maxbattle": {
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    },
+    "form": {
+      "max": null,
+      "min": 0
+    },
+    "level": {
+      "max": 90,
+      "min": 1
+    },
+    "move": {
+      "max": null,
+      "min": 0
+    },
+    "pokemon_id": {
+      "max": null,
+      "min": 1
+    }
+  },
+  "nest": {
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    },
+    "form": {
+      "max": null,
+      "min": 0
+    },
+    "min_spawn_avg": {
+      "max": null,
+      "min": 0
+    },
+    "pokemon_id": {
+      "max": null,
+      "min": 1
+    }
+  },
+  "pokemon": {
+    "atk": {
+      "max": 15,
+      "min": 0
+    },
+    "costume": {
+      "max": null,
+      "min": 0
+    },
+    "def": {
+      "max": 15,
+      "min": 0
+    },
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    },
+    "form": {
+      "max": null,
+      "min": 0
+    },
+    "max_atk": {
+      "max": 15,
+      "min": 0
+    },
+    "max_cp": {
+      "max": 9000,
+      "min": 0
+    },
+    "max_def": {
+      "max": 15,
+      "min": 0
+    },
+    "max_iv": {
+      "max": 100,
+      "min": 0
+    },
+    "max_level": {
+      "max": 55,
+      "min": 0
+    },
+    "max_rarity": {
+      "max": 6,
+      "min": 1
+    },
+    "max_size": {
+      "max": 5,
+      "min": 1
+    },
+    "max_sta": {
+      "max": 15,
+      "min": 0
+    },
+    "max_weight": {
+      "max": null,
+      "min": 0
+    },
+    "min_cp": {
+      "max": 9000,
+      "min": 0
+    },
+    "min_iv": {
+      "max": 100,
+      "min": 0
+    },
+    "min_level": {
+      "max": 55,
+      "min": 0
+    },
+    "min_time": {
+      "max": null,
+      "min": 0
+    },
+    "min_weight": {
+      "max": null,
+      "min": 0
+    },
+    "pokemon_id": {
+      "max": null,
+      "min": 1
+    },
+    "pvp_ranking_best": {
+      "max": 4096,
+      "min": 1
+    },
+    "pvp_ranking_cap": {
+      "max": 100,
+      "min": 0
+    },
+    "pvp_ranking_evolution": {
+      "max": 3,
+      "min": 0
+    },
+    "pvp_ranking_min_cp": {
+      "max": null,
+      "min": 0
+    },
+    "pvp_ranking_worst": {
+      "max": 4096,
+      "min": 1
+    },
+    "rarity": {
+      "max": 6,
+      "min": 1
+    },
+    "size": {
+      "max": 5,
+      "min": 1
+    },
+    "sta": {
+      "max": 15,
+      "min": 0
+    }
+  },
+  "quest": {
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    }
+  },
+  "raid": {
+    "costume": {
+      "max": null,
+      "min": 0
+    },
+    "distance": {
+      "max": 40000000,
+      "min": 0
+    },
+    "evolution": {
+      "max": null,
+      "min": 0
+    },
+    "form": {
+      "max": null,
+      "min": 0
+    },
+    "level": {
+      "max": 90,
+      "min": 1
+    },
+    "move": {
+      "max": null,
+      "min": 0
+    },
+    "pokemon_id": {
+      "max": null,
+      "min": 1
+    }
+  }
+}
