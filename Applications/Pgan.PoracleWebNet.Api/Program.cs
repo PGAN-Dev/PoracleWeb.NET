@@ -96,6 +96,8 @@ MapEnvVar("KOJI_API_ADDRESS", "Koji__ApiAddress");
 MapEnvVar("KOJI_BEARER_TOKEN", "Koji__BearerToken");
 MapEnvVar("KOJI_PROJECT_ID", "Koji__ProjectId");
 MapEnvVar("KOJI_PROJECT_NAME", "Koji__ProjectName");
+MapEnvVar("GEOCODING_PROVIDER", "Geocoding__Provider");
+MapEnvVar("GEOCODING_URL", "Geocoding__ProviderUrl");
 MapEnvVar("GOLBAT_API_ADDRESS", "Golbat__ApiAddress");
 MapEnvVar("GOLBAT_API_SECRET", "Golbat__ApiSecret");
 MapEnvVar("CORS_ORIGIN", "Cors__AllowedOrigins__0");

@@ -1,9 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Pgan.PoracleWebNet.Api.Configuration;
 using Pgan.PoracleWebNet.Api.Filters;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 
 using Pgan.PoracleWebNet.Core.Models;
+using Pgan.PoracleWebNet.Core.Services;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
@@ -16,7 +19,8 @@ public class LocationController(
     IPoracleApiProxy poracleApiProxy,
     IHttpClientFactory httpClientFactory,
     IPlaceUpdateCapabilityService placeUpdateCapability,
-    IScannerService? scannerService = null) : BaseApiController
+    IScannerService? scannerService = null,
+    IOptions<GeocodingSettings>? geocodingSettings = null) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
@@ -25,6 +29,7 @@ public class LocationController(
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly IPlaceUpdateCapabilityService _placeUpdateCapability = placeUpdateCapability;
     private readonly IScannerService? _scannerService = scannerService;
+    private readonly GeocodingSettings _geocodingSettings = geocodingSettings?.Value ?? new GeocodingSettings();
 
     [HttpGet]
     public async Task<IActionResult> GetLocation()
@@ -88,15 +93,21 @@ public class LocationController(
 
         try
         {
-            var config = await this._poracleApiProxy.GetConfigAsync();
-            if (config == null || string.IsNullOrEmpty(config.ProviderUrl))
+            var (providerUrl, isPhoton) = await this.ResolveGeocoderAsync();
+            if (providerUrl == null)
             {
                 return this.BadRequest("Geocoding not available - no provider configured");
             }
 
             var client = this._httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            var url = $"{config.ProviderUrl.TrimEnd('/')}/search?addressdetails=1&q={Uri.EscapeDataString(q)}&format=json&limit=5";
+            if (isPhoton)
+            {
+                var photon = await client.GetStringAsync(PhotonGeocoding.BuildSearchUrl(providerUrl, q, 5));
+                return this.Content(PhotonGeocoding.ToNominatimSearch(photon), "application/json");
+            }
+
+            var url = $"{providerUrl.TrimEnd('/')}/search?addressdetails=1&q={Uri.EscapeDataString(q)}&format=json&limit=5";
             var response = await client.GetStringAsync(url);
             return this.Content(response, "application/json");
         }
@@ -112,15 +123,21 @@ public class LocationController(
     {
         try
         {
-            var config = await this._poracleApiProxy.GetConfigAsync();
-            if (config == null || string.IsNullOrEmpty(config.ProviderUrl))
+            var (providerUrl, isPhoton) = await this.ResolveGeocoderAsync();
+            if (providerUrl == null)
             {
                 return this.BadRequest("Geocoding not available - no provider configured");
             }
 
             var client = this._httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            var url = $"{config.ProviderUrl.TrimEnd('/')}/reverse?lat={lat}&lon={lon}&format=json&addressdetails=1";
+            if (isPhoton)
+            {
+                var photon = await client.GetStringAsync(PhotonGeocoding.BuildReverseUrl(providerUrl, lat, lon));
+                return this.Content(PhotonGeocoding.ToNominatimReverse(photon), "application/json");
+            }
+
+            var url = $"{providerUrl.TrimEnd('/')}/reverse?lat={lat}&lon={lon}&format=json&addressdetails=1";
             var response = await client.GetStringAsync(url);
             return this.Content(response, "application/json");
         }
@@ -128,6 +145,22 @@ public class LocationController(
         {
             return this.StatusCode(503, "Geocoding service unavailable");
         }
+    }
+
+    /// <summary>
+    /// The geocoder to call and whether it speaks Photon. <c>Geocoding:ProviderUrl</c> (<c>GEOCODING_URL</c>)
+    /// wins over PoracleNG's <c>providerURL</c>, which is only asked for when no override is set.
+    /// </summary>
+    private async Task<(string? ProviderUrl, bool IsPhoton)> ResolveGeocoderAsync()
+    {
+        var isPhoton = string.Equals(this._geocodingSettings.Provider.Trim(), "photon", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(this._geocodingSettings.ProviderUrl))
+        {
+            return (this._geocodingSettings.ProviderUrl.Trim(), isPhoton);
+        }
+
+        var config = await this._poracleApiProxy.GetConfigAsync();
+        return (string.IsNullOrEmpty(config?.ProviderUrl) ? null : config.ProviderUrl, isPhoton);
     }
 
     [HttpGet("staticmap")]
@@ -217,7 +250,7 @@ public class LocationController(
         // Compute S2 cell IDs for each location, deduplicating cells
         var locationCells = request.Locations
             .Where(l => l.Lat != 0 || l.Lon != 0)
-            .Select(l => new { l.Name, CellId = Core.Services.S2CellHelper.LatLonToWeatherCellId(l.Lat, l.Lon) })
+            .Select(l => new { l.Name, CellId = S2CellHelper.LatLonToWeatherCellId(l.Lat, l.Lon) })
             .ToList();
 
         var uniqueCellIds = locationCells.Select(l => l.CellId).Distinct();
