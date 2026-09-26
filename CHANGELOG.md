@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Hide an area from your users without deleting it.** Staging fences, test polygons and regions you cover but do not advertise all showed up on Areas & Places for everyone. **Admin → Areas** now lists every area your Koji serves with a switch beside each one, and hiding takes it off Areas & Places, off the delivery scope picker on an individual alarm, and out of the bot's own area list at once. No Koji access needed — this site is the geofence source — and setting an area private in Koji still works, with those areas shown as such and left alone. One thing it deliberately does not do is unsubscribe anyone: people who already picked the area keep receiving its alerts until they remove it themselves, and the page says so rather than letting you assume otherwise ([#885](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/885)).
+- **Address search and reverse lookup work with Photon.** They only spoke Nominatim, and Photon rejects Nominatim's `format` and `addressdetails` parameters, so an instance whose PoracleNG geocodes through Photon got an error on every address lookup. `GEOCODING_PROVIDER=photon` now talks to Photon and hands the site the same Nominatim-shaped answer it always read. `GEOCODING_URL` overrides the geocoder address PoracleNG hands over, which is written for the bot: a `localhost` URL there points at the PoracleWeb container itself. With neither set, nothing changes.
 
 ### Changed
 
