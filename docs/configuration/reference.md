@@ -111,6 +111,15 @@ Required for the custom geofences feature.
 | Koji Project ID | `KOJI_PROJECT_ID` | `Koji__ProjectId` | Koji project ID for admin-promoted geofences (default: `0`) |
 | Koji Project Name | `KOJI_PROJECT_NAME` | `Koji__ProjectName` | Koji project name for `/geofence/poracle/{name}` endpoint |
 
+### Geocoding
+
+The address search and reverse lookup on the location dialog and dashboard. With neither setting, the geocoder URL is PoracleNG's `[geocoding] provider_url` (read from `/api/config/poracleWeb`) and it is spoken to as Nominatim.
+
+| Setting | `.env` name | `.NET` env variable | Default | Description |
+|---|---|---|---|---|
+| Provider | `GEOCODING_PROVIDER` | `Geocoding__Provider` | `nominatim` | `nominatim` or `photon`. Photon's answers are converted to the Nominatim shape the site reads, so nothing else changes. |
+| Geocoder URL | `GEOCODING_URL` | `Geocoding__ProviderUrl` | — | Overrides PoracleNG's `provider_url`. Set it when that URL is a `localhost` address the bot can reach but this container cannot, e.g. `http://host.docker.internal:2322`. |
+
 ### CORS
 
 | Setting | `.env` name | `.NET` env variable | Description |

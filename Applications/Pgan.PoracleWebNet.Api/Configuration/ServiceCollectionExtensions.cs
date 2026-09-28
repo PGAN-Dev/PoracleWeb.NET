@@ -234,6 +234,7 @@ public static class ServiceCollectionExtensions
         services.Configure<OidcSettings>(configuration.GetSection("Oidc"));
         services.Configure<PoracleSettings>(configuration.GetSection("Poracle"));
         services.Configure<KojiSettings>(configuration.GetSection("Koji"));
+        services.Configure<GeocodingSettings>(configuration.GetSection("Geocoding"));
 
         return services;
     }
