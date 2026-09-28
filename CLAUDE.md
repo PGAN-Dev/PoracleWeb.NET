@@ -202,9 +202,9 @@ Pgan.PoracleWebNet.slnx
 
 Two upstream behaviours that PoracleWeb has to work around. Both verified directly against PoracleNG.
 
-**PoracleNG assigns the lowest free profile number, not `max + 1`.** With profiles 0, 1, 3 a new profile is created at **2**. Its `/add` endpoint returns only `{"status":"ok"}` -- no number -- so the assigned number cannot be predicted and must be discovered. `ProfileController.Create`/`Duplicate` and `ProfileOverviewController.DuplicateProfile`/`ImportProfile` snapshot the profile list, create, re-read, and diff (`ProfileNumbering.ResolveCreated`). Diffing rather than matching on name, because profile names are not unique. Predicting `max + 1` produced empty create responses and copied duplicate alarms to a `profile_no` with no profile row -- orphans that later attached themselves to whatever profile was eventually created at that number. See #407.
+**PoracleNG assigns the lowest free profile number, not `max + 1`.** With profiles 0, 1, 3 a new profile is created at **2**. On every released version its `/add` endpoint returns only `{"status":"ok"}` -- no number -- so the assigned number cannot be predicted and must be discovered. (A server carrying PoracleNG PR #217 returns it, and `AddProfileAsync` reports it when the server's own `/openapi.json` declares `profile_no` on the create response. The dance below is the fallback, gated on the response shape rather than the route, because the route exists on 5.2.1 too and answers `{"status":"ok"}`. See #836.) `ProfileController.Create`/`Duplicate` and `ProfileOverviewController.DuplicateProfile`/`ImportProfile` snapshot the profile list, create, re-read, and diff (`ProfileNumbering.ResolveCreated`). Diffing rather than matching on name, because profile names are not unique. Predicting `max + 1` produced empty create responses and copied duplicate alarms to a `profile_no` with no profile row -- orphans that later attached themselves to whatever profile was eventually created at that number. See #407.
 
-**PoracleNG's profile update silently ignores `name`.** `POST /api/profiles/{id}/update` answers `{"status":"ok"}` and writes nothing for a rename, while honouring `active_hours` on the same request. Rename therefore goes through `IProfileRepository.RenameAsync`, a direct DB write scoped to `profiles.name` only. Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. This is the same class of workaround as `HACK: trusted-set-areas`. See #406.
+**PoracleNG's profile update silently ignores `name`.** `POST /api/profiles/{id}/update` answers `{"status":"ok"}` and writes nothing for a rename, while honouring `active_hours` on the same request. Rename therefore goes through `IProfileRepository.RenameAsync`, a direct DB write scoped to `profiles.name` only -- unless the server declares `name` on `V2UpdateProfileBody`, in which case `UpdateProfileAsync` PATCHes `/api/v2/humans/{id}/profiles/{n}` and reports that it applied, and the direct write is skipped (#837). **That gate is load-bearing, not an optimisation**: the PATCH exists on 5.2.1, where the body declares `active_hours` alone under `additionalProperties: false`, so sending a name there is a 422 rather than an ignored field. Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. This is the same class of workaround as `HACK: trusted-set-areas`. See #406.
 
 **Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
 
@@ -651,7 +651,7 @@ When comparing, **a field PoracleWeb does not supply cannot be compared** — Po
 
 See #462, #463, #531, #553, #561.
 
-### `/api/v2` Writes: Nine Types, Edits Only, And Every Type Rotates Its uid
+### `/api/v2` Writes: All Ten Types, Edits And Deletes, And Every Type Rotates Its uid
 
 PoracleNG 5.2.0 added a second tracking surface. `PUT /api/v2/humans/{id}/tracking/{type}/{uid}` is
 addressed by uid: it 404s when the uid is not that human's and 409s when the replacement would exactly
@@ -659,19 +659,50 @@ duplicate another rule, so the server enforces what `EnsureNoMergeIntoAnotherAla
 reconstruct from a 200. **v2 POST still diffs and merges** — the #561 takeover reproduces on it — so
 creates stay on v1 and the reconciler stays.
 
-**Only `UpdateAsync` uses it, on nine of the ten types.** Everything else — every read, `CreateAsync`,
-`BulkCreateAsync`, both distance endpoints and cleaning — is unchanged on v1, which 5.2.1 left frozen.
-Reads deliberately stay on v1: v2 answers `null` for every field at its wildcard where v1 answers the
-sentinel, and the C# and TypeScript models are both built on the sentinels. Rebuilding them from nulls
-means a per-field default table that must match PoracleNG exactly, and one wrong entry silently rewrites
-a filter on the user's next save. Bulk distance and cleaning stay on v1 because v2 has no bulk write:
-305 uid-addressed PUTs at 7.8ms would replace one 20ms POST.
+**`UpdateAsync` and both deletes use it, on all ten types.** Everything else — every read,
+`CreateAsync`, `BulkCreateAsync`, both distance endpoints and cleaning — is unchanged on v1, which 5.2.1
+left frozen. Bulk distance and cleaning stay on v1 because v2 has no bulk write: 305 uid-addressed PUTs at
+7.8ms would replace one 20ms POST.
 
-**Invasion is the tenth and stays on v1 in both directions.** A v2 read of a named-grunt rule comes back
-with no targeting field at all, so a GET-then-PUT round-trip 422s, and PoracleWeb holds only `GruntType`
-as a string — live data fills it with values it cannot reverse into a `type_id` or `grunt_id`: `blanche`,
-`candela`, `spark`, `npc 0`…`npc 10`, `player team leader`. Filed upstream. `TrackingV2Translator.Handles`
-is the single place that decides, and having no field table for a type is what keeps it on v1.
+**Reads stay on v1, and that is now a decision rather than a deferral (#860).** v2 answers `null` for every
+field at its wildcard where v1 answers the sentinel, and both the C# and TypeScript models are built on the
+sentinels. Rebuilding them needs the stored wildcard for **137 nullable fields across the eleven rule
+schemas**, and the server publishes none of them: measured against a live 5.2.1, *no* property carries a
+machine-readable `default`, and scraping the English descriptions finds a number for 59 of the 137. Since
+`TrackingFieldPreserver` re-reads a row before every PUT, a wrong wildcard is not a display bug — it is
+written back. Migrate a **type** (read, write and delete together, service moved to the v2 shape) rather
+than a **verb**, so two shapes never coexist.
+
+**Deletes fall back to v1 where the two surfaces disagree, which is on profile scoping (#889).** v1's
+handler is keyed on `(human, uid)` and ignores the profile; v2's `v2FindOwnedRow` reads
+`SelectByIDProfile` and 404s for a uid that is not on the active profile, while its bulk form skips such a
+uid silently and still answers 200. Every caller derives its uid list from a profile-scoped read, so
+nothing depends on the loose behaviour by design — but the ten alarm services pass a uid straight through
+with no re-read, and PoracleNG's active-hours scheduler can move a user between the list rendering and the
+click. So a rule-not-found 404 goes to v1 rather than being swallowed as "already deleted", and a bulk
+delete v2 only partly took sends the whole set to v1, which is idempotent. v2 also takes the bulk uid list
+in the query string, so a list past 2000 rendered characters stays on v1.
+
+**Invasion writes through v2 as well (#841), behind a second gate the other nine do not have.**
+`grunt_type` — its one targeting field, and the only one PoracleWeb.NET ever holds — exists solely on a
+server carrying PoracleNG PR #217, and even there a rule goes to v1 unless that server's own grunt
+masterdata lists the name. That second condition is not a formality: **32 of 201 invasion rules in
+production carry a name v2 refuses** — `kecleon`, `gold-stop` and `showcase`, which are Pokéstop events
+belonging to `/incident`, and `metal`, which the game data calls `steel` and which this application wrote
+itself from `InvasionGruntTypes`. All 32 are editable today because v1's read returns them where v2's does
+not, so without the check an edit would 422 on a rule the user did not break — the #835 shape.
+`InvasionGruntNameService` reads the accepted names from the server rather than shipping a table.
+
+So `TrackingV2Translator.Handles` is **no longer the single place that decides**: it answers whether a
+type has a field table, and `PoracleTrackingProxy.InvasionUnsendableReasonAsync` answers the two
+invasion-only questions after it.
+
+Two things the schema does not say, both established by POSTing to a running build. It **contradicts
+itself on gender** — `V2InvasionRule.gender` says "ONLY valid together with `type_id`" while `grunt_type`
+says it "may be combined with gender", and the latter is correct. And it **normalises a spaced name on
+write**: `player team leader` is stored as `player_team_leader`, so the ten space-separated production
+rows are repaired by a v2 write rather than refused by it. `genderless` has no v2 representation (the
+enum is `any|male|female`) so a stored gender 3 goes to v1.
 
 **The v2 PUT is delete-then-insert, so every type rotates its uid on edit.** Pokemon was the one exception
 and no longer is. Quick-pick applied state is the thing that actually breaks without the remap (#403), so
@@ -746,8 +777,15 @@ whose `location` is `body.x` on a PUT and `body[0].x` on a POST, and a semantic 
 `PoracleErrorMessage.cs` doing the same job for the create path; whichever lands second should collapse
 them.
 
-Gating: `PoracleServerProfile.SupportsV2Tracking` is version >= 5.2.0. Not the `/health` capability map —
-5.2.1 advertises nothing about v2. Unreachable answers false, which is the safe direction here even
+Gating, two kinds. **Version** — `PoracleServerProfile.SupportsV2Tracking` is >= 5.2.0 — decides whether
+the v2 surface exists at all. **What the server publishes about itself** decides the rest, and
+`IPoracleV2SchemaService` answers it by reading the target instance's own `/openapi.json`: invasion's
+`grunt_type`, profile create returning its number, profile rename through `PATCH`, the `trusted` flag on
+`setAreas`, the admin human routes. Version cannot serve those — the branch carrying them reports `5.3.0`,
+no release carries it, which release it lands in is not knowable from here, and a fork that cherry-picks
+one fix reports whatever it likes. It is the schema-document sibling of `PoracleServerProfile`: one cached
+probe, several typed questions, everything false when the document cannot be read. Neither is the
+`/health` capability map — 5.2.1 advertises nothing about v2. Unreachable answers false, which is the safe direction here even
 though `UpstreamFeatureFlagService` deliberately fails the other way. `Poracle:TrackingApiVersion`
 (`auto` | `v1` | `v2`, env `PORACLE_TRACKING_API_VERSION`) pins it for a fork whose version says the wrong
 thing, and the proxy falls back to v1 for five minutes when the route answers gin's plaintext
@@ -770,8 +808,29 @@ PoracleNG has no version endpoint (`/health` only). To establish what prod runs:
 `Monster`, `Raid`, `Gym` and friends carry **no** `[Range]` or `[StringLength]` attributes; `MonsterCreate` and its siblings do. Anything that validates an alarm outside the normal model-binding path must bind or deserialize into the `*Create` DTO, or it will validate nothing and pass silently.
 
 This has cost three separate fixes: profile import (#548), quick-pick apply (#565), and the quick-pick id length check that bounded the name but not the id generated from it (#555). All three passed their unit tests while doing nothing, because the tests asserted the code ran rather than that it rejected anything.
-### Monster Filter Defaults
-PoracleNG applies `cleanRow` defaults (template, PVP ranking, size, max values, etc.) on every create/update, so PoracleWeb no longer needs to maintain its own set of `*Create` model defaults for alarm filter fields. The `*Create` models still exist for DTO mapping (via `AlarmMappingExtensions.To*()` methods) but their field defaults are no longer critical -- PoracleNG is the authoritative source for filter defaults.
+### Monster Filter Defaults Are Ours, Not PoracleNG's
+
+This section used to say the `*Create` defaults "are no longer critical -- PoracleNG is the authoritative
+source", and that belief wrote **15,383 rows with `pvp_ranking_best = 0`** into production. 0 is not a
+rank; ranks are 1-based.
+
+`cleanRow` fills a field that is **absent**. A non-nullable `int` on a `*Create` model is never absent --
+it serialises as whatever it defaults to, and v1's `flexInt` passes an explicitly sent value straight
+through. So every `*Create` default is sent on every write, and every one of them is authoritative.
+`PvpRankingBest` had no initializer where `PvpRankingWorst = 4096` sat beside it; that asymmetry is the
+whole bug (#895, jfberry/PoracleNG#227).
+
+Three rules follow:
+
+- **A bound's no-filter value is the column's default, not zero.** 0 is right for `min_iv`, `min_cp` and
+  the other floors. It is wrong for `pvp_ranking_best` (1), `size` and `rarity` (-1), `costume` (9000),
+  `max_rarity` (6), `max_size` (5). When adding a field, ask what the column stores for "no filter".
+- **Check the sibling.** These come in pairs and the bug was one half of a pair being defaulted. The same
+  drift hit `QuickPickService.BuildMonster`, which capped every applied pick at `MaxLevel = 40` -- the
+  game's 2020 ceiling -- under a comment claiming it matched the add dialog's 55. 4,088 production rows.
+- **Do not tighten the `[Range]` to match the default.** `PvpRankingBest` still admits 0 because 15,383
+  rules hold one and have to stay editable; refusing the value would fail an edit on a rule the user did
+  not break. Editing one now writes the correct value back.
 
 ### PoracleNG API Availability
 The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. Only admin bulk operations (`GetAllAsync`, `DeleteUserAsync`) and non-active profile cleanup in `UserGeofenceService` use direct DB. Monitor PoracleNG uptime as a hard dependency.
@@ -979,6 +1038,11 @@ dotnet ef migrations script \
 | PoracleTrackingProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleTrackingProxy.cs` |
 | PoracleHumanProxy | `Core/Pgan.PoracleWebNet.Core.Services/PoracleHumanProxy.cs` |
 | PoracleJsonHelper | `Core/Pgan.PoracleWebNet.Core.Services/PoracleJsonHelper.cs` |
+| IPoracleV2SchemaService (what the server's own /openapi.json declares) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPoracleV2SchemaService.cs` |
+| PoracleV2SchemaService | `Core/Pgan.PoracleWebNet.Core.Services/PoracleV2SchemaService.cs` |
+| PoracleV2Capabilities | `Core/Pgan.PoracleWebNet.Core.Models/PoracleV2Capabilities.cs` |
+| IInvasionGruntNameService (grunt names v2 will accept) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IInvasionGruntNameService.cs` |
+| InvasionGruntNameService | `Core/Pgan.PoracleWebNet.Core.Services/InvasionGruntNameService.cs` |
 | TrackingV2Translator (v1 row -> /api/v2 body) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Translator.cs` |
 | TrackingV2Replacement (the v2 branch each UpdateAsync takes) | `Core/Pgan.PoracleWebNet.Core.Services/TrackingV2Replacement.cs` |
 | PoracleProblemDetails (RFC 9457 + v1 errors) | `Core/Pgan.PoracleWebNet.Core.Services/PoracleProblemDetails.cs` |
