@@ -43,7 +43,7 @@
     "@angular/build": "^21.2.24",
     "@angular/cli": "^21.2.24",
     "@angular/compiler-cli": "^21.2.23",
-    "@jest/globals": "^30.4.1",
+    "@jest/globals": "^30.5.2",
     "@types/jest": "^30.0.0",
     "@typescript-eslint/eslint-plugin": "^8.70.0",
     "@typescript-eslint/parser": "^8.56.0",
