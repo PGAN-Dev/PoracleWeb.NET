@@ -14,4 +14,10 @@ public interface IInvasionService
     public Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance);
     public Task<int> CountByUserAsync(string userId, int profileNo);
     public Task<IEnumerable<Invasion>> BulkCreateAsync(string userId, IEnumerable<Invasion> models);
+
+    /// <summary>
+    /// True when <paramref name="gruntType"/> names a Pokestop event (kecleon, gold-stop, showcase) and this
+    /// server has a Pokestop Events page for it, so a rule written here would never show on the invasion list.
+    /// </summary>
+    public Task<bool> BelongsToPokestopEventsAsync(string? gruntType);
 }

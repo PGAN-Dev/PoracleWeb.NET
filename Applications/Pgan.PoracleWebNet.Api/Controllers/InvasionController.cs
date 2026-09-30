@@ -35,6 +35,10 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
     public async Task<IActionResult> Create([FromBody] InvasionCreate model)
     {
         var invasion = model.ToInvasion();
+        if (await this.EventElsewhereAsync(invasion.GruntType) is { } refused)
+        {
+            return refused;
+        }
         // Deliberately not stamped from the JWT claim: writes no longer carry profile_no, so
         // PoracleNG files the alarm under the live current_profile_no. Echoing a possibly-stale
         // claim back would assert a profile the row was never written to. See #411.
@@ -70,6 +74,11 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
         }))
         {
             return this.Ok(existing);
+        }
+
+        if (await this.EventElsewhereAsync(existing.GruntType) is { } refused)
+        {
+            return refused;
         }
 
         var result = await this._invasionService.UpdateAsync(this.UserId, existing);
@@ -118,4 +127,23 @@ public class InvasionController(IInvasionService invasionService) : BaseApiContr
         var result = await this._invasionService.UpdateDistanceByUserAsync(this.UserId, this.ProfileNo, distance);
         return this.DistanceUpdated(result);
     }
+
+    /// <summary>
+    /// Refuses a Pokestop event (kecleon, gold-stop, showcase) where the Pokestop Events page owns them.
+    /// </summary>
+    /// <remarks>
+    /// PoracleNG stores events in the invasion table, and this list hides them on a server that has the
+    /// events page, so a rule written here answered 201 with a Location that 404s and never appeared on the
+    /// page it was added from; beside an existing event rule it answered 200 with uid 0, the guard having
+    /// read the filtered list. The SPA offers these names only where there is no events page, so this is
+    /// reached by direct calls. Quick picks, import and duplicate write through the service and are
+    /// unaffected: their rules are real and are listed on the events page.
+    /// </remarks>
+    private async Task<IActionResult?> EventElsewhereAsync(string? gruntType) =>
+        await this._invasionService.BelongsToPokestopEventsAsync(gruntType)
+            ? this.BadRequest(new
+            {
+                error = $"'{gruntType}' is a Pokestop event, not an invasion. Add it on the Pokestop Events page."
+            })
+            : null;
 }

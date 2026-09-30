@@ -63,6 +63,10 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             : items;
     }
 
+    /// <inheritdoc />
+    public async Task<bool> BelongsToPokestopEventsAsync(string? gruntType) =>
+        PokestopEventTypes.IsEventName(gruntType) && await this.EventsLiveElsewhereAsync();
+
     public async Task<IEnumerable<Invasion>> GetByUserAsync(string userId, int profileNo) =>
         await this.ReadOwnRowsAsync(userId);
 
