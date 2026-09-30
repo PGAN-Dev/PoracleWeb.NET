@@ -264,6 +264,12 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     );
   }
 
+  /** Leaflet makes a marker a focusable role="button"; `title` gives it a name (axe: aria-command-name). */
+  private createMarker(lat: number, lng: number): L.Marker {
+    const label = this.i18n.instant('AREA_MAP.YOUR_LOCATION');
+    return L.marker([lat, lng], { alt: label, icon: this.locationIcon, title: label }).addTo(this.map!);
+  }
+
   private initMap(): void {
     const el = this.mapContainerRef()?.nativeElement;
     if (!el) return;
@@ -279,7 +285,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     this.basemap.attach(this.map, { picker: true });
 
     if (lat !== 0 || lng !== 0) {
-      this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
+      this.marker = this.createMarker(lat, lng);
     }
 
     this.map.on('click', (e: L.LeafletMouseEvent) => {
@@ -324,7 +330,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     if (this.marker) {
       this.marker.setLatLng([lat, lng]);
     } else {
-      this.marker = L.marker([lat, lng], { icon: this.locationIcon }).addTo(this.map);
+      this.marker = this.createMarker(lat, lng);
     }
   }
 }

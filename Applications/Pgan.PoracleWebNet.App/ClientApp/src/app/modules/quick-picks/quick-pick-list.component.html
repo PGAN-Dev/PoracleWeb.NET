@@ -5,13 +5,22 @@
   </div>
   <div class="header-actions">
     @if (isAdmin()) {
-      <button mat-icon-button [matMenuTriggerFor]="adminMenu" [matTooltip]="'QUICK_PICKS.ADMIN_ACTIONS' | translate">
+      <button
+        mat-icon-button
+        [matMenuTriggerFor]="adminMenu"
+        [matTooltip]="'QUICK_PICKS.ADMIN_ACTIONS' | translate"
+        [attr.aria-label]="'QUICK_PICKS.ADMIN_ACTIONS' | translate">
         <mat-icon>more_vert</mat-icon>
       </button>
       <mat-menu #adminMenu="matMenu">
         <button mat-menu-item (click)="onReseed()"><mat-icon>restart_alt</mat-icon> {{ 'QUICK_PICKS.RESET_DEFAULTS' | translate }}</button>
       </mat-menu>
-      <button mat-fab (click)="onAddNew()" [style.background-color]="'#ff6f00'" [style.color]="'white'">
+      <button
+        mat-fab
+        (click)="onAddNew()"
+        [attr.aria-label]="'QUICK_PICKS.CREATE' | translate"
+        [style.background-color]="'#ff6f00'"
+        [style.color]="'white'">
         <mat-icon>add</mat-icon>
       </button>
     }
@@ -70,7 +79,8 @@
                 <span class="pick-description">{{ pick.definition.description }}</span>
               </div>
               <div class="card-top-actions">
-                <span class="alarm-type-chip" [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'">
+                @let typeChip = alarmTypeChip(pick.definition.alarmType);
+                <span class="alarm-type-chip" [style.background-color]="typeChip.background" [style.color]="typeChip.color">
                   {{ pick.definition.alarmType }}
                 </span>
               </div>
@@ -113,14 +123,14 @@
                 <button
                   mat-flat-button
                   (click)="onApply(pick)"
-                  [style.background-color]="alarmTypeColors[pick.definition.alarmType] || '#666'"
-                  style="color: white">
+                  [style.background-color]="alarmTypeChip(pick.definition.alarmType).background"
+                  [style.color]="alarmTypeChip(pick.definition.alarmType).color">
                   <mat-icon>add</mat-icon>
                   {{ 'QUICK_PICKS.APPLY' | translate }}
                 </button>
               }
               @if (isAdmin() || pick.definition.scope === 'user') {
-                <button mat-icon-button [matMenuTriggerFor]="pickMenu">
+                <button mat-icon-button [matMenuTriggerFor]="pickMenu" [attr.aria-label]="'COMMON.MORE_ACTIONS' | translate">
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #pickMenu="matMenu">

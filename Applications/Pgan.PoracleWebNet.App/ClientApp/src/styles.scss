@@ -63,7 +63,7 @@ body.dark-theme {
   --card-bg: var(--mat-sys-surface-container, #1e1e1e);
   --card-border: var(--mat-sys-outline-variant, rgba(255, 255, 255, 0.12));
   --text-secondary: var(--mat-sys-on-surface-variant, rgba(255, 255, 255, 0.7));
-  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.65);
   --text-hint: rgba(255, 255, 255, 0.38);
   --divider: rgba(255, 255, 255, 0.08);
   --skeleton-bg: rgba(255, 255, 255, 0.08);
@@ -75,7 +75,7 @@ body:not(.dark-theme) {
   --card-bg: var(--mat-sys-surface-container, #fff);
   --card-border: var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
   --text-secondary: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.54));
-  --text-muted: rgba(0, 0, 0, 0.5);
+  --text-muted: rgba(0, 0, 0, 0.62);
   --text-hint: rgba(0, 0, 0, 0.38);
   --divider: rgba(0, 0, 0, 0.08);
   --skeleton-bg: rgba(0, 0, 0, 0.08);
@@ -363,6 +363,15 @@ router-outlet + * {
 
   .alarm-tabs .mat-mdc-tab-body-wrapper {
     padding: 0 16px !important;
+  }
+
+  // The tab strip bleeds to the dialog's edges, as it does on desktop. Each dialog pulls it out by
+  // its desktop 24px padding, which the cap above then clipped, leaving the header 48px short of
+  // the screen on a phone.
+  .alarm-tabs.mat-mdc-tab-group {
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+    max-width: calc(100% + 32px) !important;
   }
 
   // Title: pinned top with safe area padding

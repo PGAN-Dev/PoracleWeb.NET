@@ -1575,7 +1575,9 @@
     "DISTANCE_M": "{{value}} m",
     "FORM_UNKNOWN": "Vorm {{id}}",
     "ITEM_UNKNOWN": "Item #{{id}}",
-    "MOVE_UNKNOWN": "Aanval #{{id}}"
+    "MOVE_UNKNOWN": "Aanval #{{id}}",
+    "CLEAR_SEARCH": "Zoekopdracht wissen",
+    "MORE_ACTIONS": "Meer acties"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",

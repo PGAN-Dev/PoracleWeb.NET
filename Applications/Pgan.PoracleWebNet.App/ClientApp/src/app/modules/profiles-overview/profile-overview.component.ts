@@ -467,6 +467,7 @@ export class ProfileOverviewComponent implements OnInit {
           alarm.gender,
           key => this.i18n.instant(key),
           this.masterData.getGruntName(alarm.grunt_type ?? null, alarm.gender),
+          this.masterData.isGruntNameUntranslated(alarm.grunt_type ?? null, alarm.gender),
         );
       case 'lure':
         return this.getLureName(alarm.lure_id ?? 0);

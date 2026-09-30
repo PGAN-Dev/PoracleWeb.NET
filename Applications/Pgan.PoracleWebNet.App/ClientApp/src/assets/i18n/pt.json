@@ -1575,7 +1575,9 @@
     "DISTANCE_M": "{{value}} m",
     "FORM_UNKNOWN": "Forma {{id}}",
     "ITEM_UNKNOWN": "Item #{{id}}",
-    "MOVE_UNKNOWN": "Movimento #{{id}}"
+    "MOVE_UNKNOWN": "Movimento #{{id}}",
+    "CLEAR_SEARCH": "Limpar pesquisa",
+    "MORE_ACTIONS": "Mais ações"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",

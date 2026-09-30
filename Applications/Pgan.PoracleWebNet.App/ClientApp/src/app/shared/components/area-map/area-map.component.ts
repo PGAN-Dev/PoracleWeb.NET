@@ -619,15 +619,20 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
 
     if (this.userLocation) {
+      // Leaflet makes a marker a focusable role="button"; `title` gives that button a name, which it
+      // otherwise lacks (axe: aria-command-name).
+      const label = this.i18n.instant('AREA_MAP.YOUR_LOCATION');
       this.userMarker = L.marker([this.userLocation.lat, this.userLocation.lng], {
+        alt: label,
         icon: L.divIcon({
           className: 'user-location-marker',
           html: '<div style="width:14px;height:14px;background:#1976D2;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
           iconAnchor: [10, 10],
           iconSize: [20, 20],
         }),
+        title: label,
       })
-        .bindTooltip(this.i18n.instant('AREA_MAP.YOUR_LOCATION'), { direction: 'top' })
+        .bindTooltip(label, { direction: 'top' })
         .addTo(this.map);
 
       this.userCircle = L.circle([this.userLocation.lat, this.userLocation.lng], {

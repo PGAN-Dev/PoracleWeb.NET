@@ -19,7 +19,7 @@
         (ngModelChange)="onSearchChange($event)"
         [placeholder]="'ADMIN.FILTER_WEBHOOK_PLACEHOLDER' | translate" />
       @if (searchTerm()) {
-        <button matSuffix mat-icon-button (click)="onSearchChange('')">
+        <button matSuffix mat-icon-button (click)="onSearchChange('')" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
           <mat-icon>clear</mat-icon>
         </button>
       }
@@ -111,33 +111,70 @@
           <td mat-cell *matCellDef="let wh">
             <div class="action-buttons">
               @if (wh.adminDisable !== 1) {
-                <button mat-icon-button color="warn" (click)="toggleBlock(wh, false)" [matTooltip]="'ADMIN.BLOCK_WEBHOOK' | translate">
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="toggleBlock(wh, false)"
+                  [matTooltip]="'ADMIN.BLOCK_WEBHOOK' | translate"
+                  [attr.aria-label]="'ADMIN.BLOCK_WEBHOOK' | translate">
                   <mat-icon>block</mat-icon>
                 </button>
               } @else {
-                <button mat-icon-button color="primary" (click)="toggleBlock(wh, true)" [matTooltip]="'ADMIN.UNBLOCK_WEBHOOK' | translate">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="toggleBlock(wh, true)"
+                  [matTooltip]="'ADMIN.UNBLOCK_WEBHOOK' | translate"
+                  [attr.aria-label]="'ADMIN.UNBLOCK_WEBHOOK' | translate">
                   <mat-icon>check_circle</mat-icon>
                 </button>
               }
               @if (wh.enabled === 0) {
-                <button mat-icon-button color="primary" (click)="resumeWebhook(wh)" [matTooltip]="'ADMIN.START_ALERTS' | translate">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="resumeWebhook(wh)"
+                  [matTooltip]="'ADMIN.START_ALERTS' | translate"
+                  [attr.aria-label]="'ADMIN.START_ALERTS' | translate">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
               } @else {
-                <button mat-icon-button (click)="pauseWebhook(wh)" [matTooltip]="'ADMIN.STOP_ALERTS' | translate">
+                <button
+                  mat-icon-button
+                  (click)="pauseWebhook(wh)"
+                  [matTooltip]="'ADMIN.STOP_ALERTS' | translate"
+                  [attr.aria-label]="'ADMIN.STOP_ALERTS' | translate">
                   <mat-icon>pause</mat-icon>
                 </button>
               }
-              <button mat-icon-button (click)="manageAlarms(wh)" [matTooltip]="'ADMIN.MANAGE_ALARMS' | translate">
+              <button
+                mat-icon-button
+                (click)="manageAlarms(wh)"
+                [matTooltip]="'ADMIN.MANAGE_ALARMS' | translate"
+                [attr.aria-label]="'ADMIN.MANAGE_ALARMS' | translate">
                 <mat-icon>tune</mat-icon>
               </button>
-              <button mat-icon-button (click)="openDelegatesDialog(wh)" [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate">
+              <button
+                mat-icon-button
+                (click)="openDelegatesDialog(wh)"
+                [matTooltip]="'ADMIN.MANAGE_DELEGATES' | translate"
+                [attr.aria-label]="'ADMIN.MANAGE_DELEGATES' | translate">
                 <mat-icon>group_add</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteAlarms(wh)" [matTooltip]="'ADMIN.DELETE_ALL_ALARMS' | translate">
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="deleteAlarms(wh)"
+                [matTooltip]="'ADMIN.DELETE_ALL_ALARMS' | translate"
+                [attr.aria-label]="'ADMIN.DELETE_ALL_ALARMS' | translate">
                 <mat-icon>delete_sweep</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteWebhook(wh)" [matTooltip]="'ADMIN.DELETE_WEBHOOK' | translate">
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="deleteWebhook(wh)"
+                [matTooltip]="'ADMIN.DELETE_WEBHOOK' | translate"
+                [attr.aria-label]="'ADMIN.DELETE_WEBHOOK' | translate">
                 <mat-icon>person_remove</mat-icon>
               </button>
             </div>

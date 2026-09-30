@@ -15,6 +15,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ChipColors, readableChip } from '../../shared/utils/contrast';
 
 /** Site setting marking that the built-in presets have been seeded once. See #634, #662. */
 const SEEDED_KEY = 'quick_picks_seeded';
@@ -101,6 +102,11 @@ export class QuickPickListComponent implements OnInit {
   readonly loading = signal(true);
 
   readonly removing = signal<string | null>(null);
+
+  /** An alarm type's colour as a filled chip or button whose label stays readable. See readableChip. */
+  alarmTypeChip(alarmType: string): ChipColors {
+    return readableChip(this.alarmTypeColors[alarmType] || '#666');
+  }
 
   /** Display label for a stored category. Unmapped values render as stored. */
   categoryLabel(category: string): string {

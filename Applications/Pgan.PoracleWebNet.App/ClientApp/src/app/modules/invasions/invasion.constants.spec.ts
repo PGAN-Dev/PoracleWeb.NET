@@ -175,6 +175,26 @@ describe('invasion.constants', () => {
       expect(getGruntDisplayName('decoy', 2, identityTranslate, 'Täusch-Rüpel ♀')).toBe('Täusch-Rüpel ♀');
     });
 
+    it('prefers the curated local label when the server only had English for this locale', () => {
+      // PoracleNG 5.3.0 answers sv, da, nl, pl, pt and pt-BR with the English short name. The
+      // masterdata spec covers how that is detected.
+      const sv = (key: string): string => ({ 'INVASIONS.GRUNT_TYPES.BUG': 'Insekt' })[key] ?? key;
+      expect(getGruntDisplayName('bug', 1, sv, 'Bug ♂', true)).toBe('Insekt');
+      expect(getGruntDisplayName('mixed', 1, identityTranslate, 'Grunt ♂', true)).toBe(
+        'INVASIONS.GRUNT_TYPES.MIXED INVASIONS.GENDER_SUFFIX_MALE',
+      );
+    });
+
+    it('still uses the English server name for a grunt the local bundle has no label for', () => {
+      // "DieCurryWurst" in English beats "Unknown grunt" in Swedish.
+      expect(getGruntDisplayName('npc_3', 0, identityTranslate, 'DieCurryWurst', true)).toBe('DieCurryWurst');
+    });
+
+    it('keeps a translated server name over the local label', () => {
+      // de, fr, es and it are translated upstream and cover more grunts than the local table does.
+      expect(getGruntDisplayName('bug', 1, identityTranslate, 'Käfer ♂', false)).toBe('Käfer ♂');
+    });
+
     it('keeps the local label when the server names nothing', () => {
       // Every released PoracleNG, an unreachable one, and the "any gender" case the server declines to
       // name. This is the half that must not regress.

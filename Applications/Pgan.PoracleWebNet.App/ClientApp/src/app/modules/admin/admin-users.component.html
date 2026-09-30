@@ -18,7 +18,7 @@
         (ngModelChange)="onSearchChange($event)"
         [placeholder]="'ADMIN.FILTER_PLACEHOLDER' | translate" />
       @if (searchTerm()) {
-        <button matSuffix mat-icon-button (click)="onSearchChange('')">
+        <button matSuffix mat-icon-button (click)="onSearchChange('')" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
           <mat-icon>clear</mat-icon>
         </button>
       }
@@ -56,7 +56,8 @@
               <app-discord-avatar
                 [userId]="user.id"
                 [defaultUrl]="user.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png'"
-                [userType]="user.type || ''">
+                [userType]="user.type || ''"
+                [alt]="user.name || ('ADMIN.UNNAMED' | translate)">
               </app-discord-avatar>
               <div class="user-name-text">
                 <span>{{ user.name || ('ADMIN.UNNAMED' | translate) }}</span>
@@ -107,30 +108,63 @@
           <td mat-cell *matCellDef="let user">
             <div class="action-buttons">
               @if (user.adminDisable !== 1) {
-                <button mat-icon-button color="warn" (click)="toggleUser(user, false)" [matTooltip]="'ADMIN.BLOCK_USER' | translate">
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="toggleUser(user, false)"
+                  [matTooltip]="'ADMIN.BLOCK_USER' | translate"
+                  [attr.aria-label]="'ADMIN.BLOCK_USER' | translate">
                   <mat-icon>block</mat-icon>
                 </button>
               } @else {
-                <button mat-icon-button color="primary" (click)="toggleUser(user, true)" [matTooltip]="'ADMIN.UNBLOCK_USER' | translate">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="toggleUser(user, true)"
+                  [matTooltip]="'ADMIN.UNBLOCK_USER' | translate"
+                  [attr.aria-label]="'ADMIN.UNBLOCK_USER' | translate">
                   <mat-icon>check_circle</mat-icon>
                 </button>
               }
               @if (user.enabled === 0) {
-                <button mat-icon-button color="primary" (click)="resumeUser(user)" [matTooltip]="'ADMIN.START_ALERTS' | translate">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="resumeUser(user)"
+                  [matTooltip]="'ADMIN.START_ALERTS' | translate"
+                  [attr.aria-label]="'ADMIN.START_ALERTS' | translate">
                   <mat-icon>play_arrow</mat-icon>
                 </button>
               } @else {
-                <button mat-icon-button (click)="pauseUser(user)" [matTooltip]="'ADMIN.STOP_ALERTS' | translate">
+                <button
+                  mat-icon-button
+                  (click)="pauseUser(user)"
+                  [matTooltip]="'ADMIN.STOP_ALERTS' | translate"
+                  [attr.aria-label]="'ADMIN.STOP_ALERTS' | translate">
                   <mat-icon>pause</mat-icon>
                 </button>
               }
-              <button mat-icon-button (click)="impersonate(user)" [matTooltip]="'ADMIN.VIEW_AS_USER' | translate">
+              <button
+                mat-icon-button
+                (click)="impersonate(user)"
+                [matTooltip]="'ADMIN.VIEW_AS_USER' | translate"
+                [attr.aria-label]="'ADMIN.VIEW_AS_USER' | translate">
                 <mat-icon>visibility</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteAlarms(user)" [matTooltip]="'ADMIN.DELETE_ALL_ALARMS' | translate">
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="deleteAlarms(user)"
+                [matTooltip]="'ADMIN.DELETE_ALL_ALARMS' | translate"
+                [attr.aria-label]="'ADMIN.DELETE_ALL_ALARMS' | translate">
                 <mat-icon>delete_sweep</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteUser(user)" [matTooltip]="'ADMIN.DELETE_USER' | translate">
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="deleteUser(user)"
+                [matTooltip]="'ADMIN.DELETE_USER' | translate"
+                [attr.aria-label]="'ADMIN.DELETE_USER' | translate">
                 <mat-icon>person_remove</mat-icon>
               </button>
             </div>

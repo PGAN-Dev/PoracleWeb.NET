@@ -28,12 +28,13 @@ import { MonsterService } from '../../core/services/monster.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { readableChip } from '../../shared/utils/contrast';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { minTimePillLabel } from '../../shared/utils/min-time';
 
@@ -155,7 +156,7 @@ export class PokemonListComponent implements OnInit {
     { color: '#00BCD4', label: '7', max: 809, min: 722 },
     { color: '#795548', label: '8', max: 905, min: 810 },
     { color: '#607D8B', label: '9', max: 1025, min: 906 },
-  ];
+  ].map(gen => ({ ...gen, chip: readableChip(gen.color) }));
 
   readonly loading = signal(true);
 

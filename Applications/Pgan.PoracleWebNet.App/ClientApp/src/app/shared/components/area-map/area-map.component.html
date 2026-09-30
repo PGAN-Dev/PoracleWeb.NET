@@ -6,12 +6,17 @@
       [placeholder]="'AREA_MAP.SEARCH_PLACEHOLDER' | translate"
       (regionSelected)="onRegionSelected($event)"></app-region-selector>
   </div>
-  <button mat-icon-button [matTooltip]="'AREA_MAP.RESET_ZOOM' | translate" (click)="fitAll()">
+  <button
+    mat-icon-button
+    [matTooltip]="'AREA_MAP.RESET_ZOOM' | translate"
+    [attr.aria-label]="'AREA_MAP.RESET_ZOOM' | translate"
+    (click)="fitAll()">
     <mat-icon>fit_screen</mat-icon>
   </button>
   <button
     mat-icon-button
     [matTooltip]="isFullscreen() ? ('AREA_MAP.EXIT_FULLSCREEN' | translate) : ('AREA_MAP.FULLSCREEN' | translate)"
+    [attr.aria-label]="isFullscreen() ? ('AREA_MAP.EXIT_FULLSCREEN' | translate) : ('AREA_MAP.FULLSCREEN' | translate)"
     (click)="toggleFullscreen()">
     <mat-icon>{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
   </button>

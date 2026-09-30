@@ -44,9 +44,19 @@
   margin-bottom: 16px;
 }
 
+// A button-toggle group is an inline-flex row whose buttons never wrap their labels, so five
+// "Pending (12)" tabs are ~500px wide whatever box they sit in. Scroll the row inside its box rather
+// than let it push the page sideways on a phone.
 .filter-tabs {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+
+  mat-button-toggle {
+    flex-shrink: 0;
+  }
 }
 
 .view-toggle {
@@ -387,7 +397,7 @@
 
 .status-pending {
   background: #fff3e0;
-  color: #e65100;
+  color: #bf360c;
 }
 .status-active {
   background: #e3f2fd;

@@ -315,7 +315,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #4caf50;
+  // #4caf50 was 2.7:1 on the light card. Green 800 in light mode, green 300 in dark.
+  color: #2e7d32;
   font-size: 12px;
   font-weight: 500;
   margin-left: 8px;
@@ -325,6 +326,9 @@
     width: 16px;
     height: 16px;
   }
+}
+:host-context(.dark-theme) .active-badge {
+  color: #81c784;
 }
 .alarm-count-badge {
   font-size: 13px;

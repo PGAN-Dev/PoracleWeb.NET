@@ -4,7 +4,13 @@
     <p class="page-description">{{ 'POKESTOP_EVENTS.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" style="background: #03aeb6; color: #fff"><mat-icon>add</mat-icon></button>
+    <button
+      mat-fab
+      (click)="openAddDialog()"
+      [attr.aria-label]="'POKESTOP_EVENTS.ADD_EVENT' | translate"
+      style="background: #03aeb6; color: #fff">
+      <mat-icon>add</mat-icon>
+    </button>
   </div>
 </div>
 @if (!loading() && events().length > 0) {
@@ -15,7 +21,8 @@
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
+      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -86,9 +93,20 @@
           </div>
         </mat-card-content>
         <mat-card-actions align="end">
-          <button mat-icon-button (click)="editItem(item)" [matTooltip]="'COMMON.EDIT' | translate"><mat-icon>edit</mat-icon></button>
+          <button
+            mat-icon-button
+            (click)="editItem(item)"
+            [matTooltip]="'COMMON.EDIT' | translate"
+            [attr.aria-label]="'COMMON.EDIT' | translate">
+            <mat-icon>edit</mat-icon>
+          </button>
 
-          <button mat-icon-button (click)="deleteItem(item)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+          <button
+            mat-icon-button
+            (click)="deleteItem(item)"
+            [matTooltip]="'COMMON.DELETE' | translate"
+            [attr.aria-label]="'COMMON.DELETE' | translate"
+            color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>
@@ -98,7 +116,7 @@
         <mat-icon class="empty-icon-large">celebration</mat-icon>
         <h2 class="empty-title">{{ 'POKESTOP_EVENTS.EMPTY_TITLE' | translate }}</h2>
         <p class="empty-subtitle">{{ 'POKESTOP_EVENTS.EMPTY_SUBTITLE' | translate }}</p>
-        <button mat-flat-button (click)="openAddDialog()" style="background: #03aeb6; color: #fff">
+        <button mat-flat-button (click)="openAddDialog()" style="background: #028187; color: #fff">
           <mat-icon>add</mat-icon> {{ 'POKESTOP_EVENTS.ADD_EVENT' | translate }}
         </button>
       </div>

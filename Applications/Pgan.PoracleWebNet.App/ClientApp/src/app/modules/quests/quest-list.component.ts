@@ -29,6 +29,7 @@ import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { ChipColors, readableChip } from '../../shared/utils/contrast';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -256,6 +257,11 @@ export class QuestListComponent implements OnInit {
     // The minimum only applies to the rewards that come in quantities, and saying "1x" for a rule that
     // asks for one of something is noise.
     return quest.amount > 1 ? this.i18n.instant('QUESTS.AMOUNT_PREFIX', { count: quest.amount, reward }) : reward;
+  }
+
+  /** The reward colour as a filled badge whose label stays readable. See readableChip. */
+  getRewardChip(rewardType: number): ChipColors {
+    return readableChip(this.getRewardColor(rewardType));
   }
 
   getRewardColor(rewardType: number): string {

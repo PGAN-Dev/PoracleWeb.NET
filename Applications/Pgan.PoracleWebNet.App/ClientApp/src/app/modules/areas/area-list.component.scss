@@ -260,9 +260,10 @@
   }
 }
 
+// Orange keeps its hue and takes dark text: white on #ff9800 was 2.2:1.
 .mode-active {
   background: #ff9800;
-  color: #fff;
+  color: #212121;
 
   &:hover {
     background: #f57c00;

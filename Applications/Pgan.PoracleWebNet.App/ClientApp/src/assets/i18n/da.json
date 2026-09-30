@@ -1575,7 +1575,9 @@
     "DISTANCE_M": "{{value}} m",
     "FORM_UNKNOWN": "Form {{id}}",
     "ITEM_UNKNOWN": "Genstand #{{id}}",
-    "MOVE_UNKNOWN": "Angreb #{{id}}"
+    "MOVE_UNKNOWN": "Angreb #{{id}}",
+    "CLEAR_SEARCH": "Ryd søgning",
+    "MORE_ACTIONS": "Flere handlinger"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Gen",

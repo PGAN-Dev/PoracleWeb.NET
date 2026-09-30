@@ -445,3 +445,69 @@ describe('MasterDataService', () => {
     });
   });
 });
+
+/**
+ * PoracleNG answers nl, da, sv, pt and pt-BR with English type names, having no translation of its own.
+ * The locale bundles do have them, so a label that is only the English name gives way to the bundle's.
+ */
+describe('MasterDataService — type labels the server did not translate', () => {
+  const API = 'http://test-api';
+  const BUNDLE: Record<string, Record<string, string>> = {
+    de: { 'INVASIONS.GRUNT_TYPES.ELECTRIC': 'Elektro' },
+    en: { 'INVASIONS.GRUNT_TYPES.ELECTRIC': 'Electric' },
+    sv: { 'INVASIONS.GRUNT_TYPES.ELECTRIC': 'Elektrisk', 'INVASIONS.GRUNT_TYPES.METAL': 'Stål' },
+  };
+
+  function loadIn(locale: string, typeName: string, typeId = 13): MasterDataService {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ConfigService, useValue: { apiHost: API } },
+        {
+          provide: I18nService,
+          useValue: { currentLang: () => locale, instant: (key: string) => BUNDLE[locale]?.[key] ?? key },
+        },
+      ],
+    });
+    const service = TestBed.inject(MasterDataService);
+    const http = TestBed.inject(HttpTestingController);
+    service.loadData().subscribe();
+    http.expectOne(`${API}/api/masterdata/pokemon`).flush({});
+    http.expectOne(`${API}/api/masterdata/items`).flush({});
+    http.expectOne(`${API}/api/masterdata/moves`).flush({});
+    http.expectOne(`${API}/api/masterdata/costumes`).flush({});
+    http.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
+    http
+      .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
+      .flush({ '25_0': { id: 25, name: 'Pikachu', form: { id: 0, name: '' }, types: [{ id: typeId, name: typeName }] } });
+    http.verify();
+    return service;
+  }
+
+  it('uses the Swedish bundle when the server answered in English', () => {
+    expect(loadIn('sv', 'Electric').getTypeLabel('Electric')).toBe('Elektrisk');
+    // Steel is the one type whose bundle key is not its English name.
+    expect(loadIn('sv', 'Steel', 9).getTypeLabel('Steel')).toBe('Stål');
+  });
+
+  it('keeps the English name as identity, so icons and filters still match', () => {
+    const service = loadIn('sv', 'Electric');
+
+    expect(service.getPokemonTypes(25)).toEqual(['Electric']);
+    expect(service.getAllTypes()).toEqual(['Electric']);
+  });
+
+  it("keeps the server's own translation where it has one", () => {
+    expect(loadIn('de', 'Elektro').getTypeLabel('Electric')).toBe('Elektro');
+  });
+
+  it('shows English in English', () => {
+    expect(loadIn('en', 'Electric').getTypeLabel('Electric')).toBe('Electric');
+  });
+
+  it('falls back to the English name when the bundle has nothing either', () => {
+    expect(loadIn('sv', 'Fire', 10).getTypeLabel('Fire')).toBe('Fire');
+  });
+});
