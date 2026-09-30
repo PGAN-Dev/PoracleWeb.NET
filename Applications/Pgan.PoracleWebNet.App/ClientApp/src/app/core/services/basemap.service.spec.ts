@@ -109,7 +109,7 @@ describe('BasemapService', () => {
     });
 
     it('names a missing key for a whitespace-only one, which is the same as none', () => {
-      siteSettings.set({ basemap_key: '   ', basemap_provider: 'carto-positron' });
+      siteSettings.set({ basemap_provider: 'carto-positron', basemap_key: '   ' });
       expect(service.fallbackReason()).toBe('missing-key');
     });
 

@@ -1932,6 +1932,8 @@
     "LAST_PAGE": "Última página"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "{{count}} limitados a áreas foram ignorados: um raio não se aplica a eles.",
+    "DISTANCE_SKIPPED_PLACE": "{{count}} medidos a partir de um local salvo foram ignorados: precisam de um raio.",
     "SET_PIN": "Definir sua localização",
     "PIN_MISSING_WARNING": "Você ainda não definiu sua localização, então este alerta não teria de onde medir.",
     "PLACES_EMPTY_TITLE": "Nenhum local ainda",

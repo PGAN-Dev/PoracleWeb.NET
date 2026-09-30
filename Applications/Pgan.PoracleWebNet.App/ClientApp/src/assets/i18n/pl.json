@@ -1932,6 +1932,8 @@
     "LAST_PAGE": "Ostatnia strona"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "Pominięto {{count}} ograniczone do obszarów: promień ich nie dotyczy.",
+    "DISTANCE_SKIPPED_PLACE": "Pominięto {{count}} mierzone od zapisanego miejsca: potrzebują promienia.",
     "SET_PIN": "Ustaw lokalizację",
     "PIN_MISSING_WARNING": "Nie ustawiono jeszcze lokalizacji, więc ten alert nie miałby punktu odniesienia.",
     "PLACES_EMPTY_TITLE": "Brak miejsc",

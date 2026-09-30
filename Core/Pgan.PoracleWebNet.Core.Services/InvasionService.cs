@@ -125,13 +125,27 @@ public partial class InvasionService(IPoracleTrackingProxy proxy, IFeatureGate f
             }
         }
 
-        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
-
         var body = SerializeToElement(model);
 
         // Carry forward anything the stored row holds that the model does not declare. See #730.
         body = await TrackingFieldPreserver.PreserveStoredFieldsAsync(
             this._proxy, TrackingType, userId, oldUid, body);
+
+        // /api/v2's PUT is addressed by uid and replaces the row rather than inserting beside it, so the
+        // natural key is never in contention and the delete-create-restore below is not needed -- the
+        // same reason lure moved. #841 taught the proxy to send invasion there, behind two gates this
+        // type alone has (the server declares grunt_type, and its own grunt masterdata lists the name),
+        // but this call was never made, so every invasion edit still took the v1 path. When either gate
+        // says no -- metal, kecleon, gold-stop, showcase, a stored gender 3, a 5.2.1 or 5.1.0 server --
+        // the proxy answers null and the natural-key replace below runs exactly as before.
+        if (await TrackingV2Replacement.TryApplyAsync(
+                this._proxy, TrackingType, userId, oldUid, body, this._uidRemapper) is { } v2Uid)
+        {
+            model.Uid = v2Uid;
+            return model;
+        }
+
+        var original = oldUid > 0 ? await this.GetByUidAsync(userId, oldUid) : null;
 
         model.Uid = await NaturalKeyTrackingUpdate.ReplaceAsync(
             this._proxy,

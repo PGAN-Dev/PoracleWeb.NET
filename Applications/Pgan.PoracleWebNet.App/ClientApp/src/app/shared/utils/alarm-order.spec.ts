@@ -5,14 +5,14 @@ describe('orderAlarms', () => {
     // The regression this exists for. PoracleNG 5.2.0 replaces a rule rather than updating it, so the
     // edited row comes back with the highest id in the list and the card jumped to the end of the grid.
     const before = [
-      { level: 5, pokemonId: 25, uid: 10 },
-      { level: 5, pokemonId: 150, uid: 11 },
-      { level: 5, pokemonId: 380, uid: 12 },
+      { uid: 10, level: 5, pokemonId: 25 },
+      { uid: 11, level: 5, pokemonId: 150 },
+      { uid: 12, level: 5, pokemonId: 380 },
     ];
     const afterEditingMewtwo = [
-      { level: 5, pokemonId: 25, uid: 10 },
-      { level: 5, pokemonId: 380, uid: 12 },
-      { level: 5, pokemonId: 150, uid: 99 },
+      { uid: 10, level: 5, pokemonId: 25 },
+      { uid: 12, level: 5, pokemonId: 380 },
+      { uid: 99, level: 5, pokemonId: 150 },
     ];
 
     const key = (r: { level: number; pokemonId: number }) => [r.pokemonId, r.level];
@@ -48,8 +48,8 @@ describe('orderAlarms', () => {
   it('treats a null or absent key as the empty string rather than throwing', () => {
     // gymId, stationId and fortType are all nullable, and "any gym" is the common case.
     const items = [
-      { gymId: 'abc', uid: 1 },
-      { gymId: null, uid: 2 },
+      { uid: 1, gymId: 'abc' },
+      { uid: 2, gymId: null },
     ];
 
     expect(orderAlarms(items, i => [i.gymId]).map(i => i.uid)).toEqual([2, 1]);
