@@ -268,7 +268,7 @@ public class MaxBattleServiceTests
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 0, 2));
 
-        Assert.Equal(2, await this._sut.UpdateDistanceByUserAsync("u", 1, 100));
+        Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
 
     [Fact]
@@ -302,7 +302,7 @@ public class MaxBattleServiceTests
         this._proxy.Setup(p => p.CreateAsync("maxbattle", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 0, 2));
 
-        Assert.Equal(2, await this._sut.UpdateDistanceByUidsAsync([1, 3], "u", 100));
+        Assert.Equal(2, (await this._sut.UpdateDistanceByUidsAsync([1, 3], "u", 100)).Updated);
     }
 
     [Fact]

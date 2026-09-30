@@ -4,6 +4,9 @@ namespace Pgan.PoracleWebNet.Core.Models;
 
 public class MonsterCreate
 {
+    // Deliberately uncapped above. Production holds a rule at pokemon_id 5000, new species keep arriving,
+    // and a number too large to be a Pokemon today cannot be told apart from one that will be tomorrow.
+    // The radius has a physical ceiling (AlarmDistance.MaxMetres); this has none worth guessing at.
     [Range(0, int.MaxValue)]
     public int PokemonId
     {
@@ -16,7 +19,7 @@ public class MonsterCreate
         get; set;
     }
 
-    [Range(0, int.MaxValue)]
+    [Range(0, AlarmDistance.MaxMetres)]
     public int Distance
     {
         get; set;

@@ -105,12 +105,9 @@ public class PokestopEventController(IPokestopEventService pokestopEventService)
     [HttpPut("distance/bulk")]
     public async Task<IActionResult> UpdateBulkDistance([FromBody] BulkDistanceRequest request)
     {
-        var count = await this._pokestopEventService.UpdateDistanceByUidsAsync(
+        var result = await this._pokestopEventService.UpdateDistanceByUidsAsync(
             request.Uids, this.UserId, request.Distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        return this.DistanceUpdated(result);
     }
 
     [HttpPut("distance")]
@@ -122,11 +119,8 @@ public class PokestopEventController(IPokestopEventService pokestopEventService)
             return invalid;
         }
 
-        var count = await this._pokestopEventService.UpdateDistanceByUserAsync(
+        var result = await this._pokestopEventService.UpdateDistanceByUserAsync(
             this.UserId, this.ProfileNo, distance);
-        return this.Ok(new
-        {
-            updated = count
-        });
+        return this.DistanceUpdated(result);
     }
 }

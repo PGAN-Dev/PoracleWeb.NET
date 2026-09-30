@@ -183,7 +183,7 @@ public class PokestopEventServiceTests
             .Callback<string, IEnumerable<PokestopEvent>>((_, rules) => sent = [.. rules])
             .ReturnsAsync(new PokestopEventWriteResult([], [], []));
 
-        var count = await this._sut.UpdateDistanceByUidsAsync([2], "u1", 750);
+        var count = (await this._sut.UpdateDistanceByUidsAsync([2], "u1", 750)).Updated;
 
         Assert.Equal(1, count);
         Assert.Equal(PokestopEventTypes.Kecleon, Assert.Single(sent!).DisplayType);

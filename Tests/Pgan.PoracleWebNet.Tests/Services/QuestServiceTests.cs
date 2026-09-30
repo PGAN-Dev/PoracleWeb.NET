@@ -124,7 +124,7 @@ public class QuestServiceTests
         this._proxy.Setup(p => p.CreateAsync("quest", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
-        Assert.Equal(1, await this._sut.UpdateDistanceByUserAsync("u", 1, 100));
+        Assert.Equal(1, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
 
     [Fact]

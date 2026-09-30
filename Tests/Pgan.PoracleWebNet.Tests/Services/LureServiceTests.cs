@@ -126,7 +126,7 @@ public class LureServiceTests
         this._proxy.Setup(p => p.CreateAsync("lure", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
-        Assert.Equal(2, await this._sut.UpdateDistanceByUserAsync("u", 1, 300));
+        Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 300)).Updated);
     }
 
     [Fact]

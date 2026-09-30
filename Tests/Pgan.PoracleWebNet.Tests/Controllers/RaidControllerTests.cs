@@ -89,7 +89,7 @@ public class RaidControllerTests : ControllerTestBase
     [Fact]
     public async Task UpdateAllDistanceReturnsOk()
     {
-        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 100)).ReturnsAsync(2);
+        this._service.Setup(s => s.UpdateDistanceByUserAsync("123456789", 1, 100)).ReturnsAsync(DistanceUpdateResult.None with { Updated = 2 });
         Assert.IsType<OkObjectResult>(await this._sut.UpdateAllDistance(100));
     }
 }
