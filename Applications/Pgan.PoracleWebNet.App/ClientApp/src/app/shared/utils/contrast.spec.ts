@@ -1,4 +1,4 @@
-import { CHIP_DARK_TEXT, contrastRatio, readableChip } from './contrast';
+import { CHIP_DARK_TEXT, LIGHT_CARD_SURFACE, contrastRatio, readableChip, readableTextOn } from './contrast';
 
 /** Every fill the app puts a label on today: generation chips, quick-pick alarm types, quest rewards. */
 const FILLS = [
@@ -55,5 +55,16 @@ describe('readableChip', () => {
 
   it('passes anything that is not a hex colour straight through', () => {
     expect(readableChip('var(--x)')).toEqual({ background: 'var(--x)', color: '#fff' });
+  });
+});
+
+describe('readableTextOn', () => {
+  /** The six lure colours, which the lure card prints the lure's name in. */
+  it.each(['#FF9800', '#03A9F4', '#4CAF50', '#9E9E9E', '#2196F3', '#FFC107'])('makes %s readable on the light card', colour => {
+    expect(contrastRatio(readableTextOn(colour), LIGHT_CARD_SURFACE)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('leaves a colour that already reads alone', () => {
+    expect(readableTextOn('#1565c0')).toBe('#1565c0');
   });
 });

@@ -27,6 +27,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { readableTextOn } from '../../shared/utils/contrast';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -236,6 +237,11 @@ export class LureListComponent implements OnInit {
 
   getLureIcon(lureId: number): string {
     return this.icons.getItemUrl(lureId);
+  }
+
+  /** The lure colour as text on the light card; see readableTextOn. The dark theme uses the colour itself. */
+  getLureInk(id: number): string {
+    return readableTextOn(this.getLureColor(id));
   }
 
   getLureName(id: number): string {

@@ -42,6 +42,24 @@ export function readableChip(background: string): ChipColors {
   return { background: '#000000', color: '#fff' };
 }
 
+/** The light card surface coloured text sits on (M3 surface-container in the light theme). */
+export const LIGHT_CARD_SURFACE = '#f4f3f6';
+
+/**
+ * A data colour used as text on the light card surface, darkened only as far as it takes to read at
+ * 4.5:1. Orange (#ff9800) text managed 1.9:1. The dark theme can keep the original, bright colour.
+ */
+export function readableTextOn(foreground: string, background = LIGHT_CARD_SURFACE): string {
+  const fg = parseHex(foreground);
+  const bg = parseHex(background);
+  if (!fg || !bg || ratio(fg, bg) >= TARGET) return foreground;
+  for (let t = 0.02; t <= 1; t += 0.02) {
+    const darker = fg.map(v => Math.round(v * (1 - t))) as Rgb;
+    if (ratio(darker, bg) >= TARGET) return toHex(darker);
+  }
+  return '#000000';
+}
+
 function luminance([r, g, b]: Rgb): number {
   const channel = (v: number): number => {
     const s = v / 255;

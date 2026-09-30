@@ -78,7 +78,12 @@
           <div class="stat-grid">
             <div class="stat">
               <span class="stat-label">{{ 'LURES.LURE_TYPES' | translate }}</span
-              ><span class="stat-value" [style.color]="getLureColor(lure.lureId)">{{ getLureName(lure.lureId) }}</span>
+              ><span
+                class="stat-value lure-name"
+                [style.--lure-color]="getLureColor(lure.lureId)"
+                [style.--lure-ink]="getLureInk(lure.lureId)"
+                >{{ getLureName(lure.lureId) }}</span
+              >
             </div>
           </div>
           <div class="distance-chip-row">
