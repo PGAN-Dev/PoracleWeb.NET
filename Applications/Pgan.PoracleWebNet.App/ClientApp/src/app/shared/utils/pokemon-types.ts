@@ -27,6 +27,33 @@ export const POKEMON_TYPE_NAMES_BY_ID: Record<number, string> = {
   18: 'Fairy',
 };
 
+/**
+ * English type name to the locale-bundle key holding its translated label, the fallback when PoracleNG
+ * answers a language it has no type names for in English. The grunt-type labels are the type words
+ * themselves in every bundle, so they are reused rather than duplicated; Steel is `METAL` because that
+ * is the grunt_type Poracle uses for it.
+ */
+export const POKEMON_TYPE_LABEL_KEYS: Record<string, string> = {
+  Bug: 'INVASIONS.GRUNT_TYPES.BUG',
+  Dark: 'INVASIONS.GRUNT_TYPES.DARK',
+  Dragon: 'INVASIONS.GRUNT_TYPES.DRAGON',
+  Electric: 'INVASIONS.GRUNT_TYPES.ELECTRIC',
+  Fairy: 'INVASIONS.GRUNT_TYPES.FAIRY',
+  Fighting: 'INVASIONS.GRUNT_TYPES.FIGHTING',
+  Fire: 'INVASIONS.GRUNT_TYPES.FIRE',
+  Flying: 'INVASIONS.GRUNT_TYPES.FLYING',
+  Ghost: 'INVASIONS.GRUNT_TYPES.GHOST',
+  Grass: 'INVASIONS.GRUNT_TYPES.GRASS',
+  Ground: 'INVASIONS.GRUNT_TYPES.GROUND',
+  Ice: 'INVASIONS.GRUNT_TYPES.ICE',
+  Normal: 'INVASIONS.GRUNT_TYPES.NORMAL',
+  Poison: 'INVASIONS.GRUNT_TYPES.POISON',
+  Psychic: 'INVASIONS.GRUNT_TYPES.PSYCHIC',
+  Rock: 'INVASIONS.GRUNT_TYPES.ROCK',
+  Steel: 'INVASIONS.GRUNT_TYPES.METAL',
+  Water: 'INVASIONS.GRUNT_TYPES.WATER',
+};
+
 /** The inverse of {@link POKEMON_TYPE_NAMES_BY_ID}: English type name to type id. */
 export const POKEMON_TYPE_IDS: Record<string, number> = Object.fromEntries(
   Object.entries(POKEMON_TYPE_NAMES_BY_ID).map(([id, name]) => [name, Number(id)]),

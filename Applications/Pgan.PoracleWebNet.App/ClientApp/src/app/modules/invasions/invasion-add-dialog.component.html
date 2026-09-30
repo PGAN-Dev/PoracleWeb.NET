@@ -18,7 +18,7 @@
           <div class="grunt-grid">
             @for (grunt of rocketGrunts(); track grunt.key) {
               <mat-checkbox [checked]="grunt.selected" (change)="toggleGrunt(grunt.key)">
-                <img [src]="getGruntIcon(grunt)" class="grunt-type-icon" />
+                <img [src]="getGruntIcon(grunt)" class="grunt-type-icon" alt="" (error)="$any($event.target).style.display = 'none'" />
                 {{ getGruntLabel(grunt) }}
               </mat-checkbox>
             }
@@ -31,7 +31,7 @@
               @for (evt of eventGrunts(); track evt.key) {
                 <mat-checkbox [checked]="evt.selected" (change)="toggleGrunt(evt.key)">
                   @if (evt.imgUrl) {
-                    <img [src]="evt.imgUrl" class="grunt-type-icon" />
+                    <img [src]="evt.imgUrl" class="grunt-type-icon" alt="" (error)="$any($event.target).style.display = 'none'" />
                   } @else {
                     <mat-icon class="event-type-icon" [style.color]="evt.color">{{ evt.icon }}</mat-icon>
                   }

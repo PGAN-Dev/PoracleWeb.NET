@@ -402,10 +402,20 @@
     object-fit: contain;
     image-rendering: crisp-edges;
 
+    // A failed favicon drew the browser's broken-image glyph with the alt text beside it. Hide it and
+    // show a neutral placeholder instead, until a URL that loads replaces it.
     &.preview-error {
-      opacity: 0.25;
-      filter: grayscale(1);
+      display: none;
     }
+  }
+
+  .favicon-fallback {
+    display: none;
+    color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+  }
+
+  img.preview-error + .favicon-fallback {
+    display: inline-block;
   }
 }
 
@@ -430,8 +440,10 @@
   padding: 4px 8px 4px 14px;
   margin-bottom: 16px;
   border-radius: 24px;
-  background: var(--mat-app-surface, var(--surface-variant, rgba(255, 255, 255, 0.96)));
-  border: 1px solid var(--divider, rgba(0, 0, 0, 0.12));
+  // Theme tokens, not a literal: the old fallback chain ended in near-white, which is what dark mode
+  // got, with a placeholder at 38% white on top of it.
+  background: var(--card-bg, var(--mat-sys-surface-container, #fff));
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.12));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .search-leading {
@@ -448,11 +460,12 @@
   outline: none;
   background: transparent;
   font-size: 14px;
-  color: var(--text-primary, rgba(0, 0, 0, 0.87));
+  color: var(--mat-sys-on-surface, rgba(0, 0, 0, 0.87));
   padding: 8px 0;
 
   &::placeholder {
-    color: var(--text-hint, rgba(0, 0, 0, 0.4));
+    color: var(--text-secondary, rgba(0, 0, 0, 0.6));
+    opacity: 1;
   }
 }
 .search-clear {
@@ -566,6 +579,26 @@
   gap: 24px;
   padding: 16px 20px;
   flex-wrap: wrap;
+}
+// `.setting-info` may shrink to nothing (min-width: 0), and the toggle group never shrinks, so on a
+// phone the label and description ended up one word per line in a 60px column beside it. A basis
+// makes the row wrap instead, and below 600px the two stack outright.
+.auth-mode-row .setting-info {
+  flex: 1 1 260px;
+}
+@media (max-width: 599px) {
+  .auth-mode-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .auth-mode-row .setting-info {
+    flex-basis: auto;
+  }
+  .auth-mode-toggle {
+    align-self: flex-start;
+    max-width: 100%;
+  }
 }
 .auth-mode-toggle {
   flex-shrink: 0;

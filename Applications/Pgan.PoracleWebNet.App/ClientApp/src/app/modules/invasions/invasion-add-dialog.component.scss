@@ -92,6 +92,13 @@ mat-slide-toggle {
   mat-dialog-content {
     min-width: 0;
   }
+  // On a phone the dialog is full screen and its content already scrolls. A second, 300px scroll box
+  // inside it ended mid-row halfway down the screen with empty space below; let the list take the
+  // height it needs and scroll with the rest of the dialog.
+  .grunt-grid {
+    max-height: none;
+    overflow-y: visible;
+  }
 }
 
 .scope-near-row {

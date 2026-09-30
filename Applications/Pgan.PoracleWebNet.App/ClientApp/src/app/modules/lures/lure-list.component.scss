@@ -36,7 +36,7 @@
   gap: 16px;
 }
 .loading-text {
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
   font-size: 14px;
 }
 .alarm-grid {
@@ -131,7 +131,7 @@
   font-size: 18px;
 }
 .lure-id {
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
   font-size: 13px;
 }
 .stat-grid {
@@ -146,13 +146,21 @@
 }
 .stat-label {
   font-size: 11px;
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--text-secondary, rgba(0, 0, 0, 0.6));
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .stat-value {
   font-size: 14px;
   font-weight: 500;
+}
+// The lure's colour, deepened on the light card so its name reads (orange was 1.9:1); the dark card
+// carries the bright original.
+.lure-name {
+  color: var(--lure-ink, inherit);
+}
+:host-context(.dark-theme) .lure-name {
+  color: var(--lure-color, inherit);
 }
 .distance-chip-row {
   margin-top: 12px;

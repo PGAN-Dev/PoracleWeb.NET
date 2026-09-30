@@ -10,7 +10,12 @@
       <mat-icon>upload</mat-icon> {{ 'PROFILES.IMPORT' | translate }}
     </button>
     <input #fileInput type="file" accept=".json" hidden (change)="importProfile($event)" />
-    <button mat-fab color="primary" (click)="openAddProfileDialog()" [matTooltip]="'PROFILES.ADD_TOOLTIP' | translate">
+    <button
+      mat-fab
+      color="primary"
+      (click)="openAddProfileDialog()"
+      [matTooltip]="'PROFILES.ADD_TOOLTIP' | translate"
+      [attr.aria-label]="'PROFILES.ADD_TOOLTIP' | translate">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -55,7 +60,7 @@
       <mat-icon matPrefix>search</mat-icon>
       <input matInput [placeholder]="'PROFILES.SEARCH_PLACEHOLDER' | translate" [formControl]="searchControl" />
       @if (searchControl.value) {
-        <button matSuffix mat-icon-button (click)="searchControl.reset()">
+        <button matSuffix mat-icon-button (click)="searchControl.reset()" [attr.aria-label]="'COMMON.CLEAR_SEARCH' | translate">
           <mat-icon>close</mat-icon>
         </button>
       }
@@ -191,21 +196,34 @@
                 <mat-icon>swap_horiz</mat-icon> {{ 'PROFILES.SWITCH' | translate }}
               </button>
             }
-            <button mat-icon-button (click)="editActiveHours(group.profile)" [matTooltip]="'PROFILES.SCHEDULE_TOOLTIP' | translate">
+            <button
+              mat-icon-button
+              (click)="editActiveHours(group.profile)"
+              [matTooltip]="'PROFILES.SCHEDULE_TOOLTIP' | translate"
+              [attr.aria-label]="'PROFILES.SCHEDULE_TOOLTIP' | translate">
               <mat-icon>schedule</mat-icon>
             </button>
-            <button mat-icon-button (click)="exportProfile(group.profile)" [matTooltip]="'PROFILES.EXPORT_TOOLTIP' | translate">
+            <button
+              mat-icon-button
+              (click)="exportProfile(group.profile)"
+              [matTooltip]="'PROFILES.EXPORT_TOOLTIP' | translate"
+              [attr.aria-label]="'PROFILES.EXPORT_TOOLTIP' | translate">
               <mat-icon>download</mat-icon>
             </button>
             <button
               mat-icon-button
               (click)="duplicateProfile(group.profile)"
               [disabled]="switching()"
-              [matTooltip]="'PROFILES.DUPLICATE_TOOLTIP' | translate">
+              [matTooltip]="'PROFILES.DUPLICATE_TOOLTIP' | translate"
+              [attr.aria-label]="'PROFILES.DUPLICATE_TOOLTIP' | translate">
               <mat-icon>content_copy</mat-icon>
             </button>
             @if (getManagedProfile(group.profile.profile_no); as mp) {
-              <button mat-icon-button (click)="editProfile(mp)" [matTooltip]="'PROFILES.EDIT_TOOLTIP' | translate">
+              <button
+                mat-icon-button
+                (click)="editProfile(mp)"
+                [matTooltip]="'PROFILES.EDIT_TOOLTIP' | translate"
+                [attr.aria-label]="'PROFILES.EDIT_TOOLTIP' | translate">
                 <mat-icon>edit</mat-icon>
               </button>
               <button
@@ -213,7 +231,8 @@
                 color="warn"
                 (click)="deleteProfile(mp)"
                 [disabled]="mp.active"
-                [matTooltip]="mp.active ? ('PROFILES.DELETE_ACTIVE_TOOLTIP' | translate) : ('PROFILES.DELETE_TOOLTIP' | translate)">
+                [matTooltip]="mp.active ? ('PROFILES.DELETE_ACTIVE_TOOLTIP' | translate) : ('PROFILES.DELETE_TOOLTIP' | translate)"
+                [attr.aria-label]="mp.active ? ('PROFILES.DELETE_ACTIVE_TOOLTIP' | translate) : ('PROFILES.DELETE_TOOLTIP' | translate)">
                 <mat-icon>delete</mat-icon>
               </button>
             }

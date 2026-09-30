@@ -90,6 +90,22 @@
   }
 }
 
+// A light accent gradient (Instinct) takes dark text; see ACCENT_COLORS.darkInk in app.ts.
+.app-toolbar.toolbar-dark-ink {
+  color: #212121 !important;
+
+  .mat-mdc-icon-button,
+  .mat-mdc-icon-button .mat-icon,
+  mat-icon,
+  a {
+    color: #212121 !important;
+  }
+
+  .app-subtitle {
+    opacity: 0.8;
+  }
+}
+
 .app-title-block {
   margin-left: 8px;
   display: flex;

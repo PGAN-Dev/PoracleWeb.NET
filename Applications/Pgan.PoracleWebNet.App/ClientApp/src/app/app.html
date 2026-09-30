@@ -41,7 +41,7 @@
   </div>
 }
 @if (auth.isLoggedIn()) {
-  <mat-toolbar class="app-toolbar" [style.background]="toolbarGradient()">
+  <mat-toolbar class="app-toolbar" [class.toolbar-dark-ink]="toolbarDarkInk()" [style.background]="toolbarGradient()">
     <button mat-icon-button (click)="toggleSidenav()" [attr.aria-label]="'TOOLBAR.TOGGLE_NAV' | translate">
       <mat-icon>menu</mat-icon>
     </button>
@@ -346,7 +346,8 @@
             <button
               mat-icon-button
               (click)="toggleSidenavCollapse()"
-              [matTooltip]="sidenavCollapsed() ? ('TOOLBAR.EXPAND_SIDEBAR' | translate) : ('TOOLBAR.COLLAPSE_SIDEBAR' | translate)">
+              [matTooltip]="sidenavCollapsed() ? ('TOOLBAR.EXPAND_SIDEBAR' | translate) : ('TOOLBAR.COLLAPSE_SIDEBAR' | translate)"
+              [attr.aria-label]="sidenavCollapsed() ? ('TOOLBAR.EXPAND_SIDEBAR' | translate) : ('TOOLBAR.COLLAPSE_SIDEBAR' | translate)">
               <mat-icon>{{ sidenavCollapsed() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
             </button>
           </div>

@@ -135,12 +135,20 @@
               >
               <div class="geofence-card-actions">
                 @if (geofence.status === 'active') {
-                  <button mat-icon-button [matTooltip]="'GEOFENCES.SUBMIT_TOOLTIP' | translate" (click)="submitGeofence(geofence)">
+                  <button
+                    mat-icon-button
+                    [matTooltip]="'GEOFENCES.SUBMIT_TOOLTIP' | translate"
+                    [attr.aria-label]="'GEOFENCES.SUBMIT_TOOLTIP' | translate"
+                    (click)="submitGeofence(geofence)">
                     <mat-icon>send</mat-icon>
                   </button>
                 }
                 @if (geofence.status === 'active' || geofence.status === 'rejected') {
-                  <button mat-icon-button [matTooltip]="'GEOFENCES.RENAME_TOOLTIP' | translate" (click)="editGeofence(geofence)">
+                  <button
+                    mat-icon-button
+                    [matTooltip]="'GEOFENCES.RENAME_TOOLTIP' | translate"
+                    [attr.aria-label]="'GEOFENCES.RENAME_TOOLTIP' | translate"
+                    (click)="editGeofence(geofence)">
                     <mat-icon>edit</mat-icon>
                   </button>
                 }
@@ -148,6 +156,7 @@
                   <button
                     mat-icon-button
                     [matTooltip]="'GEOFENCES.DELETE_TOOLTIP' | translate"
+                    [attr.aria-label]="'GEOFENCES.DELETE_TOOLTIP' | translate"
                     color="warn"
                     (click)="deleteGeofence(geofence)">
                     <mat-icon>delete</mat-icon>

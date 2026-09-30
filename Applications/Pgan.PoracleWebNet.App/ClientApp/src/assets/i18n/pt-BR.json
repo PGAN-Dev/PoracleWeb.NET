@@ -1575,7 +1575,9 @@
     "DISTANCE_M": "{{value}} m",
     "FORM_UNKNOWN": "Forma {{id}}",
     "ITEM_UNKNOWN": "Item #{{id}}",
-    "MOVE_UNKNOWN": "Golpe #{{id}}"
+    "MOVE_UNKNOWN": "Golpe #{{id}}",
+    "CLEAR_SEARCH": "Limpar busca",
+    "MORE_ACTIONS": "Mais ações"
   },
   "POKEMON_SELECTOR": {
     "GEN": "Ger",

@@ -59,10 +59,11 @@
   border-color: #ff6f00;
 }
 
+// #ff6f00 carried white at 2.8:1; this is the same orange taken just far enough to reach 4.5:1.
 .category-chip.category-active {
-  background: #ff6f00;
+  background: #c25400;
   color: #fff;
-  border-color: #ff6f00;
+  border-color: #c25400;
 }
 
 .loading-container {

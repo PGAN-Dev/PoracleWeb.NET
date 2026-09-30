@@ -34,6 +34,7 @@ import { WhereChipComponent } from '../../shared/components/where-chip/where-chi
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
+import { readableChip } from '../../shared/utils/contrast';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { minTimePillLabel } from '../../shared/utils/min-time';
@@ -157,7 +158,7 @@ export class PokemonListComponent implements OnInit {
     { color: '#00BCD4', label: '7', max: 809, min: 722 },
     { color: '#795548', label: '8', max: 905, min: 810 },
     { color: '#607D8B', label: '9', max: 1025, min: 906 },
-  ];
+  ].map(gen => ({ ...gen, chip: readableChip(gen.color) }));
 
   readonly loading = signal(true);
 

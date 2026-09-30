@@ -181,6 +181,7 @@ export class InvasionListComponent implements OnInit {
               invasion.gender,
               key => this.i18n.instant(key),
               this.masterData.getGruntName(invasion.gruntType, invasion.gender),
+              this.masterData.isGruntNameUntranslated(invasion.gruntType, invasion.gender),
             ),
           }),
           title: this.i18n.instant('INVASIONS.CONFIRM_DELETE_TITLE'),
@@ -247,7 +248,13 @@ export class InvasionListComponent implements OnInit {
   }
 
   getDisplayName(gruntType: string | null, gender?: number): string {
-    return getGruntDisplayName(gruntType, gender, key => this.i18n.instant(key), this.masterData.getGruntName(gruntType, gender));
+    return getGruntDisplayName(
+      gruntType,
+      gender,
+      key => this.i18n.instant(key),
+      this.masterData.getGruntName(gruntType, gender),
+      this.masterData.isGruntNameUntranslated(gruntType, gender),
+    );
   }
 
   getEventColor(gruntType: string | null): string {

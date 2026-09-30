@@ -4,7 +4,12 @@
     <p class="page-description">{{ 'MAX_BATTLES.PAGE_DESC' | translate }}</p>
   </div>
   <div class="header-actions">
-    <button mat-fab (click)="openAddDialog()" [style.background-color]="'#d500f9'" [style.color]="'white'">
+    <button
+      mat-fab
+      (click)="openAddDialog()"
+      [attr.aria-label]="'MAX_BATTLES.ADD_MAX_BATTLE' | translate"
+      [style.background-color]="'#d500f9'"
+      [style.color]="'white'">
       <mat-icon>add</mat-icon>
     </button>
   </div>
@@ -18,7 +23,8 @@
       mat-icon-button
       (click)="toggleSelectMode()"
       [class.select-mode-active]="selectMode()"
-      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
+      [matTooltip]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate"
+      [attr.aria-label]="(selectMode() ? 'ALARM.EXIT_SELECT_MODE' : 'ALARM.SELECT_MULTIPLE') | translate">
       <mat-icon>{{ selectMode() ? 'close' : 'checklist' }}</mat-icon>
     </button>
   </div>
@@ -136,11 +142,20 @@
             <app-quiet-chip scope="station" [value]="stationId" />
           }
 
-          <button mat-icon-button (click)="editMaxBattle(mb)" [matTooltip]="'COMMON.EDIT' | translate">
+          <button
+            mat-icon-button
+            (click)="editMaxBattle(mb)"
+            [matTooltip]="'COMMON.EDIT' | translate"
+            [attr.aria-label]="'COMMON.EDIT' | translate">
             <mat-icon>edit</mat-icon>
           </button>
 
-          <button mat-icon-button (click)="deleteMaxBattle(mb)" [matTooltip]="'COMMON.DELETE' | translate" color="warn">
+          <button
+            mat-icon-button
+            (click)="deleteMaxBattle(mb)"
+            [matTooltip]="'COMMON.DELETE' | translate"
+            [attr.aria-label]="'COMMON.DELETE' | translate"
+            color="warn">
             <mat-icon>delete</mat-icon>
           </button>
         </mat-card-actions>

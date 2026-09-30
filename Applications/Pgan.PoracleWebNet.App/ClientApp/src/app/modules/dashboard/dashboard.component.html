@@ -227,7 +227,7 @@
               <a class="tip-action" (click)="handleTipAction(tip); $event.stopPropagation()">{{ tip.action }}</a>
             }
           </div>
-          <button mat-icon-button (click)="dismissTip(tip)">
+          <button mat-icon-button (click)="dismissTip(tip)" [attr.aria-label]="'COMMON.CLOSE' | translate">
             <mat-icon>close</mat-icon>
           </button>
         </div>
