@@ -316,6 +316,7 @@ Runtime toggles for the generic external SSO / OIDC sign-in flow. See [External 
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `signup_url` | Signup URL | url | External registration page. When set, someone who reaches the login page without a Poracle account gets a sign-up button pointing here. Served on the public login page before anyone signs in, so treat it as public. Leave empty to hide the button. |
+| `support_url` | Support URL | url | Where your members go for help: a support channel, a ticket channel or a help page. Linked from the disabled-account banner ("Still disabled? Contact support") and the Help page footer. Leave empty and neither shows a link; the footer then tells members to contact the team that runs the site. Served to every signed-in user. |
 
 ---
 
