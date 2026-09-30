@@ -47,6 +47,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const translate = inject(TranslateService);
 
+  // The two session messages explain a navigation, and on a reload they land before the translations do:
+  // instant() then answers the key itself, so the whole toast read "HTTP_ERROR.UNAUTHORIZED". get() waits
+  // for the language to load.
+  const sayTranslated = (key: string) => {
+    const now = translate.instant(key);
+    if (now !== key || typeof translate.get !== 'function') {
+      toast.error(now);
+      return;
+    }
+    translate.get(key).subscribe(message => toast.error(message));
+  };
+
   return next(req).pipe(
     catchError(error => {
       const silent = shouldSilence(req.url);
@@ -73,7 +85,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // Toasted even for the silenced endpoints: unlike a background poll, this one explains a
         // navigation the admin can see happen.
         if (tokenStore.tryRestoreAdminSession()) {
-          toast.error(translate.instant('HTTP_ERROR.INSPECTION_ENDED'));
+          sayTranslated('HTTP_ERROR.INSPECTION_ENDED');
           router.navigate(['/admin']);
           return throwError(() => error);
         }
@@ -90,7 +102,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // landing first used to leave the user on the login page with no word of why.
         const params = new URLSearchParams(window.location.search);
         tokenStore.endSession(() => router.navigate(['/login'], { queryParams: Object.fromEntries(params) }));
-        toast.error(translate.instant('HTTP_ERROR.UNAUTHORIZED'));
+        sayTranslated('HTTP_ERROR.UNAUTHORIZED');
         return throwError(() => error);
       }
 

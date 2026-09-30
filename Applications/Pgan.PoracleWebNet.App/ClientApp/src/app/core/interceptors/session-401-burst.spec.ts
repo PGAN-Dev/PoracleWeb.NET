@@ -3,6 +3,7 @@ import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@a
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import { of } from 'rxjs';
 
 import { authInterceptor } from './auth.interceptor';
 import { errorInterceptor } from './error.interceptor';
@@ -150,6 +151,20 @@ describe('a burst of 401s', () => {
 
     expect(toast.error).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('words the toast once the language has loaded when a session ends on page load', () => {
+    // A 401 on a reload lands before the translations do, and instant() then answers the key itself:
+    // "HTTP_ERROR.UNAUTHORIZED" was the whole message.
+    const translate = TestBed.inject(TranslateService) as unknown as { get: jest.Mock; instant: jest.Mock };
+    translate.instant.mockImplementation((key: string) => key);
+    translate.get = jest.fn(() => of('Your session has expired.'));
+    localStorage.setItem('poracle_token', 'expired-token');
+
+    sendPageLoad(['/api/auth/me']).forEach(unauthorized);
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Your session has expired.');
   });
 
   it('ends a refresh-backed session whose retry with the fresh token is refused too', () => {

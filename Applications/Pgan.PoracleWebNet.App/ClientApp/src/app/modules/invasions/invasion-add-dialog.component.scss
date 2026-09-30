@@ -39,7 +39,12 @@ mat-dialog-content {
   height: 20px;
   vertical-align: middle;
   margin-right: 4px;
-  color: #f44336;
+  // #f44336 is 3.7:1 on the light dialog surface, short of the 4.5:1 an 18px glyph needs.
+  color: #c62828;
+}
+
+:host-context(.dark-theme) .grunt-leader-icon {
+  color: #ef9a9a;
 }
 .grunt-grid {
   display: grid;
