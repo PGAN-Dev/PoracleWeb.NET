@@ -95,6 +95,58 @@ public class JwtServiceReissueTests
         Assert.InRange((token.ValidTo - DateTime.UtcNow).TotalMinutes, 1400, 1441);
     }
 
+    /// <summary>
+    /// The remaining lifetime used to be rounded UP to whole minutes and then counted from now, so every
+    /// re-issue moved the expiry later by up to a minute. A caller re-issuing once a minute -- a profile
+    /// switch, which an impersonation session can do -- held the token at the same distance from expiry
+    /// forever. The re-issued token must expire exactly when the original did.
+    /// </summary>
+    [Theory]
+    [InlineData(10 * 60 + 5)]
+    [InlineData(59)]
+    [InlineData(1)]
+    public void ReissueNeverMovesTheExpiryLater(int secondsLeft)
+    {
+        var sut = new JwtService(Options.Create(Settings));
+        var principal = PrincipalExpiringIn(TimeSpan.FromSeconds(secondsLeft));
+        var originalExpiry = long.Parse(principal.FindFirst("exp")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        var token = Read(sut.GenerateTokenWithReplacedProfile(principal, 2));
+
+        Assert.Equal(originalExpiry, new DateTimeOffset(token.ValidTo, TimeSpan.Zero).ToUnixTimeSeconds());
+    }
+
+    /// <summary>
+    /// JwtBearer accepts a token up to five minutes past its expiry (the default clock skew), and the old
+    /// one-minute floor then minted a token valid for another minute from now. Re-issuing inside the skew
+    /// window every minute kept a dead session alive indefinitely.
+    /// </summary>
+    [Fact]
+    public void ReissueOfATokenInsideTheClockSkewWindowDoesNotRevive()
+    {
+        var sut = new JwtService(Options.Create(Settings));
+        var principal = PrincipalExpiringIn(TimeSpan.FromMinutes(-3));
+        var originalExpiry = long.Parse(principal.FindFirst("exp")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        var token = Read(sut.GenerateTokenWithReplacedProfile(principal, 2));
+
+        Assert.Equal(originalExpiry, new DateTimeOffset(token.ValidTo, TimeSpan.Zero).ToUnixTimeSeconds());
+    }
+
+    [Fact]
+    public void ReissueOfAnImpersonationTokenKeepsTheImpersonatorAndTheExpiry()
+    {
+        var sut = new JwtService(Options.Create(Settings));
+        var principal = PrincipalExpiringIn(TimeSpan.FromMinutes(90), isAdmin: false);
+        ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim("impersonatedBy", "delegate-1"));
+        var originalExpiry = long.Parse(principal.FindFirst("exp")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+
+        var token = Read(sut.GenerateTokenWithReplacedProfile(principal, 3));
+
+        Assert.Equal("delegate-1", token.Claims.Single(c => c.Type == "impersonatedBy").Value);
+        Assert.Equal(originalExpiry, new DateTimeOffset(token.ValidTo, TimeSpan.Zero).ToUnixTimeSeconds());
+    }
+
     [Fact]
     public void ReissueStillReplacesTheProfileNumber()
     {

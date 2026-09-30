@@ -364,7 +364,7 @@ public partial class PoracleHumanProxy(
         // schema says that. Without the check this would read a number out of a body that has none and
         // quietly answer null, which is the same as today but a round trip slower. See #836.
         if ((await this._v2Schema.GetAsync()).ProfileCreateReturnsNumber
-            && V2ProfileBody(body) is { } v2Body
+            && V2ProfileBody(body, isUpdate: false) is { } v2Body
             && await this.TryV2Async(
                 HttpMethod.Post, "profiles-add", $"/api/v2/humans/{Encode(userId)}/profiles", v2Body)
                 is { } reply)
@@ -389,7 +389,7 @@ public partial class PoracleHumanProxy(
         if ((await this._v2Schema.GetAsync()).ProfileRename
             && body.TryGetProperty("profile_no", out var profileNo)
             && profileNo.ValueKind == JsonValueKind.Number
-            && V2ProfileBody(body) is { } v2Body
+            && V2ProfileBody(body, isUpdate: true) is { } v2Body
             && await this.TryV2Async(
                 HttpMethod.Patch,
                 "profiles-update",
@@ -423,11 +423,19 @@ public partial class PoracleHumanProxy(
     /// </para>
     /// <para>
     /// <c>active_hours</c> is stored as a JSON string and v2 wants the array itself; see
-    /// <see cref="TryV2ActiveHours"/>. A null, like "no schedule", is said by omission. An empty array is
-    /// not a null and still clears the schedule.
+    /// <see cref="TryV2ActiveHours"/>. A JSON null means "not part of this request" and is said by
+    /// omission on both surfaces.
+    /// </para>
+    /// <para>
+    /// An explicit "no schedule" -- an empty string, or the <c>{}</c> PoracleNG writes for a profile that
+    /// never had one -- is where create and update part. On a create, omission and <c>[]</c> both leave the
+    /// new profile unscheduled, and omission is sent. On an update, v2 reads omission as "leave it
+    /// unchanged", so a caller sending <c>""</c> to clear a schedule kept the old one; there it is sent as
+    /// <c>[]</c>. That also clears an already-empty schedule whenever a rename resends the stored
+    /// <c>{}</c>, which changes nothing.
     /// </para>
     /// </remarks>
-    private static string? V2ProfileBody(JsonElement body)
+    private static string? V2ProfileBody(JsonElement body, bool isUpdate)
     {
         var fields = new Dictionary<string, object>(StringComparer.Ordinal);
 
@@ -447,6 +455,10 @@ public partial class PoracleHumanProxy(
                 if (entries is not null)
                 {
                     fields["active_hours"] = entries;
+                }
+                else if (isUpdate && property.Value.ValueKind != JsonValueKind.Null)
+                {
+                    fields["active_hours"] = new List<Dictionary<string, int>>();
                 }
             }
         }
