@@ -62,6 +62,20 @@ public class UnmodelledFieldPreservationTests
         + "\"costume\": 85"
         + "}]";
 
+    /// <summary>
+    /// The same row measured from a saved place and not limited to areas, which is what a radius can be
+    /// applied to. <see cref="StoredRow"/> holds both overrides at once, which PoracleNG refuses; the bulk
+    /// distance paths now skip a row they could not write (see BulkDistanceScopeTests), so they are
+    /// asserted against a row that could exist.
+    /// </summary>
+    private static readonly string PlaceScopedRow =
+        StoredRow.Replace("\"override_areas\": [\"terrigal\"],", "\"override_areas\": null,", StringComparison.Ordinal);
+
+    /// <summary>The same row limited to an area, at radius zero: what a zero radius can be applied to.</summary>
+    private static readonly string AreaScopedRow = StoredRow
+        .Replace("\"override_location_label\": \"work\",", "\"override_location_label\": \"\",", StringComparison.Ordinal)
+        .Replace("\"distance\": 500,", "\"distance\": 0,", StringComparison.Ordinal);
+
     public UnmodelledFieldPreservationTests()
     {
         this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
@@ -98,30 +112,33 @@ public class UnmodelledFieldPreservationTests
     [MemberData(nameof(AllTrackingTypes))]
     public async Task BulkDistanceForEveryAlarmKeepsUnmodelledFields(string trackingType)
     {
+        this.Store(PlaceScopedRow);
         var changed = await UpdateAllDistance(this.ServiceFor(trackingType), 1500);
 
         Assert.Equal(1, changed);
         var row = this.OnlyRowSent();
         Assert.Equal(1500, row.GetProperty("distance").GetInt32());
-        AssertCarriedForward(row);
+        AssertCarriedForward(row, areas: null);
     }
 
     [Theory]
     [MemberData(nameof(AllTrackingTypes))]
     public async Task BulkDistanceForSelectedAlarmsKeepsUnmodelledFields(string trackingType)
     {
+        this.Store(PlaceScopedRow);
         var changed = await UpdateSelectedDistance(this.ServiceFor(trackingType), 1500);
 
         Assert.Equal(1, changed);
         var row = this.OnlyRowSent();
         Assert.Equal(1500, row.GetProperty("distance").GetInt32());
-        AssertCarriedForward(row);
+        AssertCarriedForward(row, areas: null);
     }
 
     [Theory]
     [MemberData(nameof(AllTrackingTypes))]
     public async Task BulkDistanceRewritesOnlyTheSelectedRow(string trackingType)
     {
+        this.Store(PlaceScopedRow);
         // The legitimate-case half: selection still has to work now that the rewrite runs off the stored
         // rows rather than a filtered typed list.
         await UpdateSelectedDistance(this.ServiceFor(trackingType), 1500);
@@ -133,11 +150,27 @@ public class UnmodelledFieldPreservationTests
     [MemberData(nameof(AllTrackingTypes))]
     public async Task BulkDistanceStillStripsProfileNo(string trackingType)
     {
+        this.Store(PlaceScopedRow);
         // The stored row carries profile_no and the rewrite passes properties through verbatim, so the
         // strip has to survive the new path or #411 comes straight back.
         await UpdateAllDistance(this.ServiceFor(trackingType), 1500);
 
         Assert.False(this.OnlyRowSent().TryGetProperty("profile_no", out _));
+    }
+
+    [Theory]
+    [MemberData(nameof(AllTrackingTypes))]
+    public async Task BulkDistanceToZeroKeepsTheAreasOfAnAreaScopedAlarm(string trackingType)
+    {
+        this.Store(AreaScopedRow);
+
+        Assert.Equal(1, await UpdateAllDistance(this.ServiceFor(trackingType), 0));
+
+        var row = this.OnlyRowSent();
+        Assert.Equal(0, row.GetProperty("distance").GetInt32());
+        Assert.Equal("terrigal", row.GetProperty("override_areas").EnumerateArray().Single().GetString());
+        Assert.Equal(3, row.GetProperty("rarity").GetInt32());
+        Assert.Equal(85, row.GetProperty("costume").GetInt32());
     }
 
     [Fact]
@@ -248,15 +281,28 @@ public class UnmodelledFieldPreservationTests
             this.OnlyRowSent().GetProperty("override_location_label").ValueKind);
     }
 
-    private static void AssertCarriedForward(JsonElement row)
+    private void Store(string rows) =>
+        this._proxy
+            .Setup(p => p.GetByUserAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(() => JsonDocument.Parse(rows).RootElement.Clone());
+
+    private static void AssertCarriedForward(JsonElement row, string? areas = "terrigal")
     {
         Assert.Equal("work", row.GetProperty("override_location_label").GetString());
-        Assert.Equal("terrigal", row.GetProperty("override_areas").EnumerateArray().Single().GetString());
+        if (areas is null)
+        {
+            Assert.Equal(JsonValueKind.Null, row.GetProperty("override_areas").ValueKind);
+        }
+        else
+        {
+            Assert.Equal(areas, row.GetProperty("override_areas").EnumerateArray().Single().GetString());
+        }
+
         Assert.Equal(3, row.GetProperty("rarity").GetInt32());
         Assert.Equal(85, row.GetProperty("costume").GetInt32());
     }
 
-    private static Task<int> UpdateAllDistance(object service, int distance) => service switch
+    private static async Task<int> UpdateAllDistance(object service, int distance) => (await (service switch
     {
         IMonsterService s => s.UpdateDistanceByUserAsync("u1", 0, distance),
         IRaidService s => s.UpdateDistanceByUserAsync("u1", 0, distance),
@@ -269,9 +315,9 @@ public class UnmodelledFieldPreservationTests
         IFortChangeService s => s.UpdateDistanceByUserAsync("u1", 0, distance),
         IMaxBattleService s => s.UpdateDistanceByUserAsync("u1", 0, distance),
         _ => throw new ArgumentOutOfRangeException(nameof(service)),
-    };
+    })).Updated;
 
-    private static Task<int> UpdateSelectedDistance(object service, int distance) => service switch
+    private static async Task<int> UpdateSelectedDistance(object service, int distance) => (await (service switch
     {
         IMonsterService s => s.UpdateDistanceByUidsAsync([7], "u1", distance),
         IRaidService s => s.UpdateDistanceByUidsAsync([7], "u1", distance),
@@ -284,7 +330,7 @@ public class UnmodelledFieldPreservationTests
         IFortChangeService s => s.UpdateDistanceByUidsAsync([7], "u1", distance),
         IMaxBattleService s => s.UpdateDistanceByUidsAsync([7], "u1", distance),
         _ => throw new ArgumentOutOfRangeException(nameof(service)),
-    };
+    })).Updated;
 
     private JsonElement OnlyRowSent()
     {

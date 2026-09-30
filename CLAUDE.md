@@ -112,6 +112,14 @@ Pgan.PoracleWebNet.slnx
   - `PUT /{uid}` -- Update a single alarm (uses `*Update.ApplyUpdate(existing)` extension method for null-skip merge, then sends to PoracleNG as a create-with-uid which performs an upsert)
   - `PUT /distance` -- Update ALL alarms' distance for the current user/profile (fetch-mutate-POST pattern)
   - `PUT /distance/bulk` -- Update distance for specific UIDs (fetch-mutate-POST pattern)
+- Both distance endpoints **skip the alarms a radius cannot apply to** and answer
+  `{ updated, skippedAreaScoped: [uid], skippedPlaceScoped: [uid] }`: an alarm limited to areas cannot take
+  a radius above zero, and one measured from a saved place cannot take zero. PoracleNG refuses both, so
+  writing them failed the whole selection (and on max battles, which delete before re-creating, after the
+  delete). `DistanceRewrite.Build` does the split; the SPA's `distanceUpdateMessage` reports it.
+- Every radius is bounded at `AlarmDistance.MaxMetres` (20,037,509 m, half the Earth's circumference) on
+  every `*Create`/`*Update` DTO, `BulkDistanceRequest` and `RejectInvalidDistance`. That is the physically
+  impossible, not a product limit: production holds a rule at 10,000,000 m. `pokemon_id` stays uncapped.
 - **CleaningService** uses a fetch-mutate-POST workaround: fetches all alarms of a type, sets the `clean` flag on each, and POSTs them back. PoracleNG has no dedicated bulk-clean endpoint yet.
 
 ### Settings Architecture
@@ -651,7 +659,21 @@ The consequence that keeps biting: **an Add or an Edit that differs from a *diff
 
 When comparing, **a field PoracleWeb does not supply cannot be compared** — PoracleNG fills it with its own default (`template` becomes the configured name, `"1"` when unset), so a null here says nothing about what will be stored. Counting it as a difference is what made the create-path check miss every collision (#561). Some values are also rewritten on the way in: raids and max battles force `level` to 9000 unless `pokemon_id` is 9000, so compare the value that will be **stored**, not the one sent (#521, #531).
 
-See #462, #463, #531, #553, #561.
+**"No override" has four spellings and they are one value.** Every dialog sends the unused half of a
+scope as an explicit empty (`overrideAreas: []`, `overrideLocationLabel: ""`), because null means "keep
+what is stored" on the write path; PoracleNG stores NULL and reads it back as `override_areas: null`,
+`override_location_label: ""`. Its diff treats them as equal (an Add of `[]` at a new radius over a stored
+`null` answers `{"updates":1}` on 5.1.0 and 5.2.1), so the guard must too. Comparing `[]` against `null` as
+an identity difference is how every Add from the UI slipped past it and overwrote an existing alarm with
+a 201. Area names are compared lowercased (PoracleNG lowercases them on the way in) but in order (two
+orders are stored as two rules). Unit tests for this guard must post the body the SPA builds, bound
+through the `*Create` DTO, against rows in the shape PoracleNG returns — `OverrideScopeMergeGuardTests`.
+
+Fort changes used to carry a second, hand-written dedup check on `(fort_type, include_empty,
+change_types)`. It refused three Adds PoracleNG stores as separate rules (beside an area-scoped twin, two
+updatable differences, change types in another order) and is gone; the shared guard is the only one.
+
+See #462, #463, #502, #531, #553, #561.
 
 ### `/api/v2` Writes: All Ten Types, Edits And Deletes, And Every Type Rotates Its uid
 
@@ -700,6 +722,14 @@ So `TrackingV2Translator.Handles` is **no longer the single place that decides**
 type has a field table, and `PoracleTrackingProxy.InvasionUnsendableReasonAsync` answers the two
 invasion-only questions after it.
 
+**#841 built the proxy half and never wired the service.** `InvasionService.UpdateAsync` went straight to
+`NaturalKeyTrackingUpdate.ReplaceAsync`, so the gate above was unit-tested and unreachable, and every
+invasion edit on every server took the v1 delete-and-re-create. It now calls
+`TrackingV2Replacement.TryApplyAsync` like the other nine, after its own grunt-type-and-gender sibling
+check and before the natural-key path, which stays as the fallback for everything the gate refuses. The
+lesson generalises: a capability added to the proxy is not in use until a service calls it, and
+`AlarmServiceV2UpdatePathTests.MovedTypes` is the list that says which ones do.
+
 Two things the schema does not say, both established by POSTing to a running build. It **contradicts
 itself on gender** — `V2InvasionRule.gender` says "ONLY valid together with `type_id`" while `grunt_type`
 says it "may be combined with gender", and the latter is correct. And it **normalises a spaced name on
@@ -720,12 +750,12 @@ where the wins are:
 
 | Type | What the v1 path does that v2 makes unnecessary |
 |---|---|
-| lure | `NaturalKeyTrackingUpdate` deletes the row to free `lure_tracking(id, profile_no, lure_id)`, re-creates it, and restores the original if that fails — PoracleNG's v1 create has no upsert path for it |
+| lure, invasion | `NaturalKeyTrackingUpdate` deletes the row to free the natural key (`lure_id`; `grunt_type` and `gender`), re-creates it, and restores the original if that fails — PoracleNG's v1 create has no upsert path for either |
 | maxbattle | delete-then-create, with a window where the alarm exists nowhere |
 | the other seven | `TrackingUpdateReconciler.ReconcileAsync` cleans up the duplicate a v1 create leaves behind |
 
-The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check and max
-battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
+The pre-write guards stay. `EnsureNoMergeIntoAnotherAlarmAsync`, lure's sibling `lure_id` check,
+invasion's grunt-type-and-gender check and max battle's identical-alarm check all run before the v2 attempt: v2's POST still merges, and the 409 covers
 only an exact duplicate.
 
 **One field table per type in `TrackingV2Translator`, never a shared one.** `V2PokemonRule` declares 28

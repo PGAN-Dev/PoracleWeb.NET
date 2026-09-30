@@ -1932,6 +1932,8 @@
     "LAST_PAGE": "Sidste side"
   },
   "WHERE": {
+    "DISTANCE_SKIPPED_AREAS": "Sprang {{count}} over, der er begrænset til områder: en radius gælder ikke for dem.",
+    "DISTANCE_SKIPPED_PLACE": "Sprang {{count}} over, der måles fra et gemt sted: de skal have en radius.",
     "SET_PIN": "Angiv din position",
     "PIN_MISSING_WARNING": "Du har ikke angivet en position endnu, så beskeden har intet at måle fra.",
     "PLACES_EMPTY_TITLE": "Ingen steder endnu",

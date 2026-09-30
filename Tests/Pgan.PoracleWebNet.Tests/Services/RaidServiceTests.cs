@@ -210,7 +210,7 @@ public class RaidServiceTests
         this._proxy.Setup(p => p.CreateAsync("raid", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
-        Assert.Equal(2, await this._sut.UpdateDistanceByUserAsync("u", 1, 100));
+        Assert.Equal(2, (await this._sut.UpdateDistanceByUserAsync("u", 1, 100)).Updated);
     }
 
     [Fact]

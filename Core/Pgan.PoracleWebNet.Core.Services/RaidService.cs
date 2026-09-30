@@ -118,17 +118,17 @@ public class RaidService(
         return uids.Count;
     }
 
-    public async Task<int> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
+    public async Task<DistanceUpdateResult> UpdateDistanceByUserAsync(string userId, int profileNo, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         // The stored rows are rewritten in place rather than round-tripped through the typed model,
         // so fields PoracleWeb does not model survive the write-back. See #730.
-        var body = PoracleJsonHelper.RewriteRows(json, _ => true, ("distance", distance));
+        var (body, skipped) = DistanceRewrite.Build(json, _ => true, distance);
         var count = body.GetArrayLength();
 
         if (count == 0)
         {
-            return 0;
+            return skipped;
         }
         // Two selected rows that differed only by radius become the same alarm once both are set to
         // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
@@ -148,24 +148,24 @@ public class RaidService(
         await BulkUidRemap.ApplyAsync(
             this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
 
-        return count;
+        return skipped with { Updated = count };
     }
 
-    public async Task<int> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
+    public async Task<DistanceUpdateResult> UpdateDistanceByUidsAsync(List<int> uids, string userId, int distance)
     {
         var json = await this._proxy.GetByUserAsync(TrackingType, userId);
         // The stored rows are rewritten in place rather than round-tripped through the typed model,
         // so fields PoracleWeb does not model survive the write-back. See #730.
         var selected = new HashSet<int>(uids);
-        var body = PoracleJsonHelper.RewriteRows(
+        var (body, skipped) = DistanceRewrite.Build(
             json,
             row => PoracleJsonHelper.UidOf(row) is int rowUid && selected.Contains(rowUid),
-            ("distance", distance));
+            distance);
         var count = body.GetArrayLength();
 
         if (count == 0)
         {
-            return 0;
+            return skipped;
         }
         // Two selected rows that differed only by radius become the same alarm once both are set to
         // the same one, and PoracleNG resolves that inside the batch -- fewer alarms than selected,
@@ -185,7 +185,7 @@ public class RaidService(
         await BulkUidRemap.ApplyAsync(
             this._proxy, TrackingType, userId, body, this._uidRemapper, this._logger);
 
-        return count;
+        return skipped with { Updated = count };
     }
 
     public async Task<int> CountByUserAsync(string userId, int profileNo)

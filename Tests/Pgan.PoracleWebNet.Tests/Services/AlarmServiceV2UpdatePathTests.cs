@@ -42,7 +42,7 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     public static TheoryData<string> MovedTypes() =>
-        ["raid", "egg", "quest", "nest", "gym", "maxbattle", "fort", "lure"];
+        ["raid", "egg", "quest", "nest", "gym", "maxbattle", "fort", "lure", "invasion"];
 
     [Theory]
     [MemberData(nameof(MovedTypes))]
@@ -108,6 +108,43 @@ public class AlarmServiceV2UpdatePathTests
     }
 
     [Fact]
+    public async Task InvasionNoLongerDeletesItsRowToFreeTheNaturalKey()
+    {
+        // #841 moved invasion to v2 in the proxy, and the service never called it: UpdateAsync went
+        // straight to NaturalKeyTrackingUpdate, which deletes the row and re-creates it through v1.
+        this.AcceptV2("invasion", newUid: 312);
+
+        var updated = await new InvasionService(
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
+            .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "water", Gender = 1, Distance = 800 });
+
+        Assert.Equal(312, updated.Uid);
+        this._proxy.Verify(p => p.DeleteByUidAsync("invasion", "u1", 311), Times.Never);
+        this._remapper.Verify(r => r.RemapAsync("u1", "invasion", 311, 312), Times.Once);
+    }
+
+    [Fact]
+    public async Task InvasionKeepsItsOwnCollisionGuardAheadOfV2()
+    {
+        // The natural-key check stays in front: v2's 409 covers only an exact duplicate, and editing one
+        // alarm onto another's grunt type and gender is not one.
+        this.AcceptV2("invasion", newUid: 312);
+        this._proxy
+            .Setup(p => p.GetByUserAsync("invasion", "u1"))
+            .ReturnsAsync(JsonDocument.Parse(
+                """[{"uid":311,"id":"u1","grunt_type":"water","gender":0},{"uid":320,"id":"u1","grunt_type":"Fire","gender":0}]""")
+                .RootElement.Clone());
+
+        await Assert.ThrowsAsync<TrackingConflictException>(() => new InvasionService(
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
+            .UpdateAsync("u1", new Invasion { Uid = 311, GruntType = "fire", Gender = 0 }));
+
+        this._proxy.Verify(
+            p => p.TryReplaceV2Async(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<JsonElement>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task MaxBattleStopsBeingInsertOnly()
     {
         // Its v1 path deletes the row and creates a replacement, so a failed create leaves the user with
@@ -155,6 +192,9 @@ public class AlarmServiceV2UpdatePathTests
         "lure" => (await new LureService(
                 this._proxy.Object, this._featureGate.Object, NullLogger<LureService>.Instance, this._remapper.Object)
             .UpdateAsync("u1", new Lure { Uid = uid, LureId = 501 })).Uid,
+        "invasion" => (await new InvasionService(
+                this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance, this._remapper.Object)
+            .UpdateAsync("u1", new Invasion { Uid = uid, GruntType = "water", Gender = 0 })).Uid,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "No fixture for this tracking type."),
     };
 }

@@ -428,7 +428,8 @@ internal static partial class TrackingUpdateReconciler
             // Compare what PoracleNG will STORE, not what was sent: it rewrites some values on the way
             // in, and it diffs the rewritten row. Comparing the raw submission made every collision
             // look like a difference, which is exactly how the destructive merge got through.
-            var same = SameValue(NormalizeForStorage(field, submittedValue, submitted, trackingType), storedValue);
+            var same = SameFieldValue(
+                field.Name, NormalizeForStorage(field, submittedValue, submitted, trackingType), storedValue);
 
             if (IsUpdatable(field.Name, trackingType))
             {
@@ -541,7 +542,7 @@ internal static partial class TrackingUpdateReconciler
                 continue;
             }
 
-            if (!SameValue(field.Value, storedValue))
+            if (!SameFieldValue(field.Name, field.Value, storedValue))
             {
                 return false;
             }
@@ -596,6 +597,56 @@ internal static partial class TrackingUpdateReconciler
 
     private static readonly JsonElement AnyLevelElement =
         JsonDocument.Parse("9000").RootElement.Clone();
+
+    /// <summary>
+    /// <see cref="SameValue"/>, plus the one field whose "nothing" has more than one spelling.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every dialog sends "no override" as <c>override_areas: []</c> (null means "keep what is stored" on
+    /// the write path), and PoracleNG stores it as NULL and reads it back as <c>null</c>. PoracleNG's own
+    /// diff treats the two as the same value: an Add of <c>[]</c> at a new radius answers
+    /// <c>{"updates":1}</c> over a stored <c>null</c> -- verified on 5.1.0 and 5.2.1. Comparing them as
+    /// different made every Add from the UI look like a separate insert, so the merge guard never fired
+    /// and PoracleWeb.NET answered 201 with the uid of the alarm it had just overwritten.
+    /// </para>
+    /// <para>
+    /// Names are compared lowercased because PoracleNG lowercases them on the way in (<c>"Academia"</c>
+    /// is stored as <c>"academia"</c>, and <c>["Aberdeen"]</c> over a stored <c>["aberdeen"]</c> answers
+    /// alreadyPresent), but in order, because <c>["a","b"]</c> and <c>["b","a"]</c> are stored as two
+    /// rules. <c>override_location_label</c> needs nothing extra: PoracleNG reads a NULL label back as
+    /// <c>""</c>, and <see cref="IsBlank"/> already equates those.
+    /// </para>
+    /// </remarks>
+    private static bool SameFieldValue(string fieldName, JsonElement submitted, JsonElement stored) =>
+        string.Equals(fieldName, "override_areas", StringComparison.Ordinal)
+            ? AreaListOf(submitted).SequenceEqual(AreaListOf(stored), StringComparer.Ordinal)
+            : SameValue(submitted, stored);
+
+    /// <summary>
+    /// An <c>override_areas</c> value as the list PoracleNG would store: null, <c>""</c>, <c>[]</c> and the
+    /// JSON text <c>"[]"</c> are all the empty list.
+    /// </summary>
+    private static List<string> AreaListOf(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            if (!TryParse(value.GetString(), out value))
+            {
+                return [];
+            }
+        }
+
+        if (value.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return value.EnumerateArray()
+            .Where(a => a.ValueKind == JsonValueKind.String)
+            .Select(a => a.GetString()!.ToLowerInvariant())
+            .ToList();
+    }
 
     private static bool SameValue(JsonElement submitted, JsonElement stored)
     {

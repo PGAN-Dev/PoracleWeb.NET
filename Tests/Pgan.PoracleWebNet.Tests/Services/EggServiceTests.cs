@@ -147,7 +147,7 @@ public class EggServiceTests
         this._proxy.Setup(p => p.CreateAsync("egg", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 3, 0));
 
-        Assert.Equal(3, await this._sut.UpdateDistanceByUserAsync("u", 1, 200));
+        Assert.Equal(3, (await this._sut.UpdateDistanceByUserAsync("u", 1, 200)).Updated);
     }
 
     [Fact]

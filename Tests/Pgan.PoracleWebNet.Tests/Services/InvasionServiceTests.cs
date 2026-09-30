@@ -172,7 +172,7 @@ public class InvasionServiceTests
         this._proxy.Setup(p => p.CreateAsync("invasion", "u", It.IsAny<JsonElement>()))
             .ReturnsAsync(new TrackingCreateResult([], 0, 4, 0));
 
-        Assert.Equal(4, await this._sut.UpdateDistanceByUserAsync("u", 1, 50));
+        Assert.Equal(4, (await this._sut.UpdateDistanceByUserAsync("u", 1, 50)).Updated);
     }
 
     [Fact]
@@ -448,7 +448,7 @@ public class InvasionServiceTests
             .Callback<string, string, JsonElement>((_, _, b) => body = b)
             .ReturnsAsync(new TrackingCreateResult([], 0, 2, 0));
 
-        var count = await this._sut.UpdateDistanceByUserAsync("u1", 1, 500);
+        var count = (await this._sut.UpdateDistanceByUserAsync("u1", 1, 500)).Updated;
 
         Assert.Equal(2, count);
         Assert.DoesNotContain(
@@ -466,7 +466,7 @@ public class InvasionServiceTests
             .Callback<string, string, JsonElement>((_, _, b) => body = b)
             .ReturnsAsync(new TrackingCreateResult([], 0, 1, 0));
 
-        var count = await this._sut.UpdateDistanceByUidsAsync([1, 2], "u1", 500);
+        var count = (await this._sut.UpdateDistanceByUidsAsync([1, 2], "u1", 500)).Updated;
 
         Assert.Equal(1, count);
         Assert.DoesNotContain("showcase", body!.Value.GetRawText(), StringComparison.Ordinal);
