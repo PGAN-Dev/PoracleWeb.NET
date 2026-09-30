@@ -331,7 +331,7 @@ describe('PokestopEventListComponent', () => {
       await component.bulkUpdateDistance();
 
       expect(snackBar.open).toHaveBeenCalledWith(
-        'POKESTOP_EVENTS.SNACK_BULK_DISTANCE WHERE.DISTANCE_SKIPPED_AREAS',
+        'POKESTOP_EVENTS.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
         'COMMON.OK',
         expect.objectContaining({ duration: 6000 }),
       );
@@ -345,7 +345,7 @@ describe('PokestopEventListComponent', () => {
       component.updateAllDistance();
 
       expect(snackBar.open).toHaveBeenCalledWith(
-        'POKESTOP_EVENTS.SNACK_ALL_DISTANCE WHERE.DISTANCE_SKIPPED_PLACE',
+        'POKESTOP_EVENTS.SNACK_ALL_DISTANCE. WHERE.DISTANCE_SKIPPED_PLACE',
         'COMMON.OK',
         expect.objectContaining({ duration: 6000 }),
       );

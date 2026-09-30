@@ -12,13 +12,19 @@ describe('distance-update', () => {
 
     it('names the area-scoped alarms a radius could not apply to', () => {
       expect(distanceUpdateMessage({ skippedAreaScoped: [4, 5], skippedPlaceScoped: [], updated: 1 }, 'Done', translate)).toBe(
-        'Done WHERE.DISTANCE_SKIPPED_AREAS({"count":2})',
+        'Done. WHERE.DISTANCE_SKIPPED_AREAS({"count":2})',
       );
     });
 
     it('names the place-scoped alarms a zero radius could not apply to', () => {
       expect(distanceUpdateMessage({ skippedAreaScoped: [], skippedPlaceScoped: [9], updated: 0 }, 'Done', translate)).toBe(
-        'Done WHERE.DISTANCE_SKIPPED_PLACE({"count":1})',
+        'Done. WHERE.DISTANCE_SKIPPED_PLACE({"count":1})',
+      );
+    });
+
+    it('does not double a full stop the success line already has', () => {
+      expect(distanceUpdateMessage({ skippedAreaScoped: [1], updated: 1 }, 'Done!', translate)).toBe(
+        'Done! WHERE.DISTANCE_SKIPPED_AREAS({"count":1})',
       );
     });
 

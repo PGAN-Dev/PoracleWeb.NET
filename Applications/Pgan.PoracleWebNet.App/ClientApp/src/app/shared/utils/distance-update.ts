@@ -34,14 +34,18 @@ export function combineDistanceResults(...results: (DistanceUpdateResult | null 
  * alarm that kept its scope. Without the clause the page reports every selected alarm as changed.
  */
 export function distanceUpdateMessage(result: DistanceUpdateResult | null | undefined, success: string, translate: Translator): string {
-  const parts = [success];
+  const clauses: string[] = [];
   const areas = result?.skippedAreaScoped?.length ?? 0;
   const place = result?.skippedPlaceScoped?.length ?? 0;
 
-  if (areas > 0) parts.push(translate.instant('WHERE.DISTANCE_SKIPPED_AREAS', { count: areas }));
-  if (place > 0) parts.push(translate.instant('WHERE.DISTANCE_SKIPPED_PLACE', { count: place }));
+  if (areas > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_AREAS', { count: areas }));
+  if (place > 0) clauses.push(translate.instant('WHERE.DISTANCE_SKIPPED_PLACE', { count: place }));
+  if (clauses.length === 0) return success;
 
-  return parts.join(' ');
+  // The success lines are written to stand alone and carry no full stop; two sentences run together
+  // without one.
+  const lead = /[.!?]$/.test(success) ? success : `${success}.`;
+  return [lead, ...clauses].join(' ');
 }
 
 /** True when the server left some of the selection alone, so the snack stays up long enough to read. */
