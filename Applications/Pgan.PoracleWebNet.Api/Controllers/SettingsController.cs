@@ -41,6 +41,9 @@ public partial class SettingsController(
         // only -- the one group that least needs it -- so an admin configuring it saw it work and had no
         // way to tell it was invisible to everyone else. See #513.
         "custom_page_name", "custom_page_url", "custom_page_icon",
+        // Where a member is sent for help: the disabled-account banner and the Help page footer link it.
+        // It is public by nature -- it only works if the people who need help can see it.
+        "support_url",
         // Poracle's own locale and its alert-language allow-list, synthesized rather than stored --
         // see GetPoracleProjectionsAsync.
         PoracleLocaleKey, PoracleAlertLanguagesKey,

@@ -322,4 +322,26 @@ describe('SettingsService', () => {
       expect(service.supportsCostume('raid')).toBe(false);
     });
   });
+
+  /**
+   * The support link replaced two Discord channel URLs hardcoded into the disabled-account banner, which
+   * sent every self-hosted instance's members to one particular community's server.
+   */
+  describe('supportUrl', () => {
+    it('is null when the operator has set no support link', () => {
+      expect(service.supportUrl()).toBeNull();
+    });
+
+    it('is null for a blank value, so no empty link is drawn', () => {
+      service.siteSettings.set({ support_url: '   ' });
+
+      expect(service.supportUrl()).toBeNull();
+    });
+
+    it("carries the operator's link, trimmed", () => {
+      service.siteSettings.set({ support_url: ' https://discord.com/channels/1/2 ' });
+
+      expect(service.supportUrl()).toBe('https://discord.com/channels/1/2');
+    });
+  });
 });

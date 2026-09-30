@@ -420,6 +420,12 @@ export const SETTING_GROUPS: SettingGroup[] = [
         labelKey: 'ADMIN_SETTINGS.SIGNUP_URL_LABEL',
         type: 'url',
       },
+      {
+        descriptionKey: 'ADMIN_SETTINGS.SUPPORT_URL_DESC',
+        key: 'support_url',
+        labelKey: 'ADMIN_SETTINGS.SUPPORT_URL_LABEL',
+        type: 'url',
+      },
     ],
   },
 ];
