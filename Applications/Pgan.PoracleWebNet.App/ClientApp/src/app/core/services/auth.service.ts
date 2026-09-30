@@ -180,14 +180,20 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
-    this.currentUser.set(null);
 
     if (options?.sso) {
+      this.currentUser.set(null);
       window.location.href = `${this.config.apiHost}/api/auth/oidc/logout`;
       return;
     }
 
-    this.router.navigate(['/login'], { queryParams: { loggedout: 1 } });
+    // The user goes after the page does, not before. The shell has a router outlet in its signed-in
+    // layout and another in its signed-out one, so clearing the user first swapped layouts while the
+    // router was still on the page being left -- and the new outlet built that page again. From the
+    // dashboard that meant every load it makes, plus the quiet-period list, sent without a token: a
+    // burst of 401s and a "session expired" toast for each. The tokens are already gone above, so
+    // nothing in between can make an authenticated request.
+    void Promise.resolve(this.router.navigate(['/login'], { queryParams: { loggedout: 1 } })).finally(() => this.currentUser.set(null));
   }
 
   /** Store a new JWT token (e.g. after profile switch). */

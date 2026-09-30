@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Przedmiot",
     "REWARD_MEGA_ENERGY": "Mega energia",
     "REWARD_CANDY": "Cukierki",
-    "REWARD_TYPE_PREFIX": "Typ zadania:",
+    "REWARD_TYPE_PREFIX": "Typ zadania: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Spotkanie Pokemon",
     "CONFIRM_DELETE_TITLE": "Usuń alarm zadania",
     "CONFIRM_DELETE_MSG": "Czy na pewno chcesz usunąć ten alarm zadania?",

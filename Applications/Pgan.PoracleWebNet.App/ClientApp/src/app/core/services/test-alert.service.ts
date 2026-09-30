@@ -56,6 +56,10 @@ export class TestAlertService {
           // (currently: nest). The backend ships a human-readable reason on the response
           // body — surface it so the user knows why the test didn't go out, rather than
           // seeing a generic retry message and burning rate-limit quota.
+          //
+          // The error interceptor stays silent for this route, so this is the only message the user
+          // gets and it has to cover every status -- including the feature-disabled 403 that used to
+          // arrive as the interceptor's toast.
           const serverMessage = err?.error?.error;
           const message =
             err.status === 429
@@ -64,7 +68,9 @@ export class TestAlertService {
                 ? this.translate.instant('TEST_ALERT.NOT_FOUND')
                 : err.status === 501
                   ? (serverMessage ?? this.translate.instant('TEST_ALERT.UNSUPPORTED'))
-                  : this.translate.instant('TEST_ALERT.FAILED');
+                  : err.status === 403 && err?.error?.disableKey
+                    ? this.translate.instant('ERROR.FEATURE_DISABLED')
+                    : this.translate.instant('TEST_ALERT.FAILED');
           this.snackBar.open(message, 'OK', { duration: 4000 });
           // Start the cooldown on unsupported-type errors so the user can't spam-click
           // the button and waste rate-limit quota on a known no-op.

@@ -139,11 +139,12 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should clear tokens, reset user, and navigate to the signed-out login page', () => {
+    it('should clear tokens, reset user, and navigate to the signed-out login page', async () => {
       localStorage.setItem('poracle_token', 'some-token');
       localStorage.setItem('poracle_admin_token', 'admin-token');
 
       service.logout();
+      await Promise.resolve();
 
       expect(localStorage.getItem('poracle_token')).toBeNull();
       expect(localStorage.getItem('poracle_admin_token')).toBeNull();
@@ -151,6 +152,41 @@ describe('AuthService', () => {
       expect(service.isImpersonating()).toBe(false);
       // ?loggedout=1 shows the signed-out panel and suppresses the OIDC auto-redirect.
       expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { loggedout: 1 } });
+    });
+
+    /**
+     * The app shell has one router outlet in its signed-in layout and another in its signed-out one.
+     * Clearing the user swapped layouts while the router was still on the page being left, so the new
+     * outlet built that page again -- the dashboard reloaded all its data and quiet periods with no token,
+     * and four 401s each put up "Your session has expired". The user now goes once the page has.
+     */
+    it('keeps the signed-in shell until the navigation away has finished, but drops the tokens at once', async () => {
+      localStorage.setItem('poracle_token', 'some-token');
+      service['currentUser'].set(mockUser);
+      let finish!: (value: boolean) => void;
+      (router.navigate as jest.Mock).mockReturnValue(new Promise<boolean>(resolve => (finish = resolve)));
+
+      service.logout();
+
+      expect(localStorage.getItem('poracle_token')).toBeNull();
+      expect(service.isLoggedIn()).toBe(true);
+
+      finish(true);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(service.isLoggedIn()).toBe(false);
+    });
+
+    it('still signs out when the navigation is refused', async () => {
+      service['currentUser'].set(mockUser);
+      (router.navigate as jest.Mock).mockReturnValue(Promise.resolve(false));
+
+      service.logout();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(service.isLoggedIn()).toBe(false);
     });
 
     it('should perform single logout (no in-app navigation) when sso=true', () => {

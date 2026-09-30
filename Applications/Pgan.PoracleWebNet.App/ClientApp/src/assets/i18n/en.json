@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Item",
     "REWARD_MEGA_ENERGY": "Mega Energy",
     "REWARD_CANDY": "Candy",
-    "REWARD_TYPE_PREFIX": "Quest Type:",
+    "REWARD_TYPE_PREFIX": "Quest Type: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Pokemon Encounter",
     "CONFIRM_DELETE_TITLE": "Delete Quest Alarm",
     "CONFIRM_DELETE_MSG": "Are you sure you want to delete this quest alarm?",

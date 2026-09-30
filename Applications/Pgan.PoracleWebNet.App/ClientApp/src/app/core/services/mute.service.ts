@@ -5,6 +5,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
+import { TokenStoreService } from './token-store.service';
 
 /** The seven scopes PoracleNG can hold. Only four of them are ones this app creates. */
 export type MuteScope = 'area' | 'everything' | 'gym' | 'pokemon' | 'pokestop' | 'station' | 'tracking';
@@ -54,6 +55,7 @@ export class MuteService {
   private readonly snackBar = inject(MatSnackBar);
   private ticker: ReturnType<typeof setInterval> | undefined;
 
+  private readonly tokenStore = inject(TokenStoreService);
   private readonly translate = inject(TranslateService);
   readonly capable = this.capableSignal.asReadonly();
 
@@ -76,7 +78,16 @@ export class MuteService {
   constructor() {
     // The store is upstream's memory: a deploy between two page views empties it silently, and coming
     // back to a tab is exactly when a stale countdown would be noticed. Refetch on focus.
-    const onFocus = (): void => this.refresh(true);
+    // This service is a root singleton and outlives the session, so the listener outlived Logout too:
+    // every focus after signing out asked for a list that could only answer 401. A signed-out focus
+    // instead drops the last user's list, so nobody signing in next sees it.
+    const onFocus = (): void => {
+      if (this.tokenStore.getAccessToken()) {
+        this.refresh(true);
+      } else {
+        this.forget();
+      }
+    };
     if (typeof window !== 'undefined') window.addEventListener('focus', onFocus);
 
     inject(DestroyRef).onDestroy(() => {
@@ -248,6 +259,14 @@ export class MuteService {
     if (err.status === 422) return err.error?.error ?? this.translate.instant('QUIET.TOAST_FAILED');
     if (err.status === 429) return this.translate.instant('QUIET.TOAST_RATE_LIMITED');
     return this.translate.instant('QUIET.TOAST_FAILED');
+  }
+
+  /** Drops everything held for the signed-in user. */
+  private forget(): void {
+    this.mutesSignal.set([]);
+    this.loadedSignal.set(false);
+    this.lastLoadedAt = 0;
+    this.stopTicking();
   }
 
   private remove(scope: MuteScope, value: null | string): void {

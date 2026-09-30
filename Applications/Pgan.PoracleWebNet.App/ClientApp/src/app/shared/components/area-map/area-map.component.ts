@@ -66,6 +66,17 @@ interface RegionEntry {
   shortLabel: string;
 }
 
+/**
+ * The polygon handler inside a Leaflet.draw toolbar. Reached through the control's internals because
+ * `L.Draw` is not visible through a namespace import of leaflet (leaflet-draw extends the global after
+ * the import is taken), and because the toolbar's own handler is the one its action buttons act on.
+ * Undefined if a leaflet-draw upgrade moves it, which degrades to the old toolbar-only behaviour.
+ */
+function polygonHandlerOf(control: L.Control.Draw): { enable(): void } | undefined {
+  const internals = control as unknown as { _toolbars?: { draw?: { _modes?: { polygon?: { handler?: { enable(): void } } } } } };
+  return internals._toolbars?.draw?._modes?.polygon?.handler;
+}
+
 @Component({
   imports: [MatButtonModule, MatIconModule, MatTooltipModule, TranslatePipe, RegionSelectorComponent],
   selector: 'app-area-map',
@@ -184,6 +195,9 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   ngAfterViewInit(): void {
     this.initMap();
     this.initialized = true;
+    // The drawMode effect bails out while there is no map, so a page that opens in draw mode would
+    // otherwise never get its toolbar.
+    if (this.drawMode()) this.addDrawControl();
     this.drawPolygons();
     // The customGeofences effect runs before the map exists and bails out, so the first value has
     // to be drawn here or My Geofences opens with no shapes and no bounds to anchor on.
@@ -299,6 +313,12 @@ export class AreaMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.map.addControl(this.drawControl);
 
     this.map.on('draw:created', this.onDrawCreated);
+
+    // Adding the toolbar alone left the map inert: the banner says "click on the map to place polygon
+    // points", and clicks did nothing until the user found the polygon button in the corner. Start the
+    // toolbar's own polygon handler rather than a second one, so its Finish / Delete last point / Cancel
+    // actions drive the same shape, and a cancelled shape can be restarted from the button.
+    polygonHandlerOf(this.drawControl)?.enable();
   }
 
   /**

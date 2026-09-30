@@ -296,6 +296,8 @@ export class QuestListComponent implements OnInit {
         return this.i18n.instant('QUESTS.REWARD_POKEMON');
       case 2:
         return this.i18n.instant('QUESTS.REWARD_ITEM');
+      case 3:
+        return this.i18n.instant('QUESTS.STARDUST');
       case 12:
         return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
       case 4:

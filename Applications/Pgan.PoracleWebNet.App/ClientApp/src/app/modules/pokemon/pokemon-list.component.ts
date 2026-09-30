@@ -37,6 +37,7 @@ import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flag
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
 import { minTimePillLabel } from '../../shared/utils/min-time';
+import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -415,6 +416,11 @@ export class PokemonListComponent implements OnInit {
   }
 
   /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  /** Whether the card shows a level pill: only when the range is narrower than the no-filter one. */
+  hasLevelFilter(monster: Pick<Monster, 'maxLevel' | 'minLevel'>): boolean {
+    return hasLevelFilter(monster.minLevel, monster.maxLevel);
+  }
+
   isAutoDelete(clean: number): boolean {
     return cleanIsAutoDelete(clean);
   }

@@ -12,7 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe } from '@ngx-translate/core';
 import * as L from 'leaflet';
 import { Subject } from 'rxjs';
-import { debounceTime, switchMap, takeUntil, filter, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, switchMap, takeUntil, filter } from 'rxjs/operators';
 
 import { Location, GeocodingResult } from '../../../core/models';
 import { BasemapService } from '../../../core/services/basemap.service';
@@ -102,6 +102,15 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * What the search input shows for its model. Picking an option writes the option's value -- the
+   * GeocodingResult object -- into the model, which rendered "[object Object]" without this.
+   */
+  displayResult(value: GeocodingResult | string | null): string {
+    if (typeof value === 'string') return value;
+    return value?.display_name ?? '';
+  }
+
   getAddressPrimary(result: GeocodingResult): string {
     const addr = result.address;
     if (!addr) return result.display_name?.split(',')[0] || 'Unknown';
@@ -175,9 +184,11 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.search$
       .pipe(
+        // No distinctUntilChanged: after a pick, typing the same text again is a new search, and the
+        // debounce already collapses keystrokes.
         debounceTime(500),
-        distinctUntilChanged(),
-        filter(q => q.trim().length >= 3),
+        // Belt and braces with onSearchChange: a non-string here threw on trim() and killed the stream.
+        filter(q => typeof q === 'string' && q.trim().length >= 3),
         switchMap(q => {
           this.searching.set(true);
           return this.locationService.geocode(q);
@@ -197,8 +208,13 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSearchChange(value: string): void {
-    this.search$.next(value);
+  /**
+   * Picking an option emits the chosen GeocodingResult through `ngModelChange`, not text the user typed.
+   * It reached `trim()` and errored the search stream, so no search after the first pick returned
+   * anything. Only typed text is a query.
+   */
+  onSearchChange(value: GeocodingResult | string | null): void {
+    if (typeof value === 'string') this.search$.next(value);
   }
 
   save(): void {

@@ -18,6 +18,10 @@ const SILENT_URL_PATTERNS = [
   // MuteService owns its own messaging, including the benign 404 from resuming a quiet period that
   // had already lapsed -- the store expires entries itself, so that is the ordinary case.
   '/api/mutes',
+  // TestAlertService words every outcome itself (429, 404, 501's server reason, feature disabled). With
+  // the interceptor also toasting, the two snackbars raced and a failed test read "An unexpected server
+  // error occurred" instead of saying the test alert failed.
+  '/api/test-alert',
 ];
 
 function shouldSilence(url: string): boolean {
