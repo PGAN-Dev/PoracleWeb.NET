@@ -351,6 +351,47 @@ public class AdminControllerTests : ControllerTestBase
         this._userPurgeService.Verify(s => s.PurgeAsync("u1"), Times.Once);
     }
 
+    /// <summary>
+    /// The purge removes grants in both directions, and a delegate named in PoracleJS by the webhook's
+    /// NAME appears in no table this site can enumerate -- so every cached role answer is dropped, not a
+    /// list of the ones we happen to know about.
+    /// </summary>
+    [Fact]
+    public async Task DeleteUserDropsEveryCachedRoleAnswer()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._userPurgeService.Setup(s => s.PurgeAsync("u1")).ReturnsAsync(true);
+
+        await this._sut.DeleteUser("u1");
+
+        this._roleResolver.Verify(r => r.InvalidateAll(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddWebhookDelegateTakesEffectWithoutWaitingOutTheRoleCache()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this.GivenWebhookAndUserExist();
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2")).ReturnsAsync(["u2"]);
+
+        await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
+
+        this._roleResolver.Verify(
+            r => r.Invalidate(It.Is<string[]>(ids => ids.Contains("u2") && ids.Contains("wh1"))), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveWebhookDelegateTakesEffectWithoutWaitingOutTheRoleCache()
+    {
+        SetupUser(this._sut, isAdmin: true);
+        this._webhookDelegateService.Setup(s => s.RemoveDelegateAsync("wh1", "u2")).ReturnsAsync([]);
+
+        await this._sut.RemoveWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
+
+        this._roleResolver.Verify(
+            r => r.Invalidate(It.Is<string[]>(ids => ids.Contains("u2") && ids.Contains("wh1"))), Times.Once);
+    }
+
     // --- ImpersonateUser ---
 
     [Fact]

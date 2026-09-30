@@ -227,6 +227,10 @@ public static class ServiceCollectionExtensions
         // at login. See #624 and #626.
         services.AddScoped<Services.IUserRoleResolver, Services.UserRoleResolver>();
 
+        // Re-asks, on every request an impersonation token makes, whether whoever started it still may.
+        // Wired into JwtBearer's OnTokenValidated in Program.cs.
+        services.AddScoped<Services.IImpersonationAuthority, Services.ImpersonationAuthority>();
+
         // Register settings
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));
