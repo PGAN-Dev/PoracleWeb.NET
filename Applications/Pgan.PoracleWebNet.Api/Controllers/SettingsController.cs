@@ -382,7 +382,7 @@ public partial class SettingsController(
     /// TEXT holds 65,535 <em>bytes</em>, and the table is utf8mb4, so the value is measured in UTF-8
     /// rather than in characters: 22,000 CJK characters is 66,000 bytes.
     /// </summary>
-    internal const int MaxValueBytes = 65_535;
+    internal const int MaxValueBytes = HiddenAreas.MaxValueBytes;
 
     /// <summary>The message for the first field that would not fit its column, or null when all fit.</summary>
     private static string? ColumnOverflow(string key, SiteSettingRequest request)
