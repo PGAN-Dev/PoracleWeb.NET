@@ -115,7 +115,7 @@
                 }
               </div>
             </div>
-            @if (geofence.status !== 'approved') {
+            @if (geofence.status !== 'approved' && areasEnabled()) {
               <div class="geofence-card-toggle">
                 <mat-slide-toggle
                   [checked]="activeAreaSet().has(geofence.kojiName)"

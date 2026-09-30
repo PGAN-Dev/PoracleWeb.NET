@@ -64,7 +64,9 @@ body.dark-theme {
   --card-border: var(--mat-sys-outline-variant, rgba(255, 255, 255, 0.12));
   --text-secondary: var(--mat-sys-on-surface-variant, rgba(255, 255, 255, 0.7));
   --text-muted: rgba(255, 255, 255, 0.65);
-  --text-hint: rgba(255, 255, 255, 0.38);
+  // Hint text is still text: at 38% it read 3.58:1 on the dark dialog surface. 60% clears 4.5:1 on
+  // every dark surface the token lands on (text-hint-contrast.spec.ts).
+  --text-hint: rgba(255, 255, 255, 0.6);
   --divider: rgba(255, 255, 255, 0.08);
   --skeleton-bg: rgba(255, 255, 255, 0.08);
   --hover-overlay: rgba(255, 255, 255, 0.04);
@@ -76,7 +78,8 @@ body:not(.dark-theme) {
   --card-border: var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
   --text-secondary: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.54));
   --text-muted: rgba(0, 0, 0, 0.62);
-  --text-hint: rgba(0, 0, 0, 0.38);
+  // 38% read 2.67:1 on the light dialog surface; 60% clears 4.5:1 on the page, cards and dialogs.
+  --text-hint: rgba(0, 0, 0, 0.6);
   --divider: rgba(0, 0, 0, 0.08);
   --skeleton-bg: rgba(0, 0, 0, 0.08);
   --hover-overlay: rgba(0, 0, 0, 0.04);
@@ -639,11 +642,11 @@ body.dark-theme .basemap-control__warning {
   body {
     --text-secondary: rgba(0, 0, 0, 0.7);
     --text-muted: rgba(0, 0, 0, 0.65);
-    --text-hint: rgba(0, 0, 0, 0.55);
+    --text-hint: rgba(0, 0, 0, 0.68);
   }
   body.dark-theme {
     --text-secondary: rgba(255, 255, 255, 0.85);
     --text-muted: rgba(255, 255, 255, 0.75);
-    --text-hint: rgba(255, 255, 255, 0.6);
+    --text-hint: rgba(255, 255, 255, 0.72);
   }
 }

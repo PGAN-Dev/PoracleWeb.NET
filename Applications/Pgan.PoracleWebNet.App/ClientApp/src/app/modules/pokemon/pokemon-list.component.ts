@@ -529,27 +529,6 @@ export class PokemonListComponent implements OnInit {
     }
   }
 
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance !== null && distance !== undefined) {
-        this.monsterService.updateAllDistance(distance).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('POKEMON.SNACK_FAILED_DISTANCE'), this.i18n.instant('COMMON.OK'), { duration: 3000 });
-          },
-          next: result => {
-            this.snackBar.open(
-              distanceUpdateMessage(result, this.i18n.instant('POKEMON.SNACK_ALL_DISTANCE'), this.i18n),
-              this.i18n.instant('COMMON.OK'),
-              { duration: skippedAny(result) ? 6000 : 3000 },
-            );
-            this.loadMonsters();
-          },
-        });
-      }
-    });
-  }
-
   private applyScope(monster: Monster, scope: AlarmScope): void {
     const fields = scopeToFields(scope);
 

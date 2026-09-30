@@ -28,7 +28,6 @@ describe('PokestopEventListComponent', () => {
     deleteAll: jest.Mock;
     getAll: jest.Mock;
     update: jest.Mock;
-    updateAllDistance: jest.Mock;
     updateBulkDistance: jest.Mock;
   };
   let snackBar: { open: jest.Mock };
@@ -63,7 +62,6 @@ describe('PokestopEventListComponent', () => {
       deleteAll: jest.fn().mockReturnValue(of(void 0)),
       getAll: jest.fn().mockImplementation(() => (Array.isArray(items) ? of(items) : items)),
       update: jest.fn().mockReturnValue(of(void 0)),
-      updateAllDistance: jest.fn().mockReturnValue(of(void 0)),
       updateBulkDistance: jest.fn().mockReturnValue(of(void 0)),
     };
 
@@ -332,20 +330,6 @@ describe('PokestopEventListComponent', () => {
 
       expect(snackBar.open).toHaveBeenCalledWith(
         'POKESTOP_EVENTS.SNACK_BULK_DISTANCE. WHERE.DISTANCE_SKIPPED_AREAS',
-        'COMMON.OK',
-        expect.objectContaining({ duration: 6000 }),
-      );
-    });
-
-    it('update-all reports skipped alarms too', () => {
-      setup([base]);
-      dialogReturns(0);
-      pokestopEventService.updateAllDistance.mockReturnValue(of({ skippedAreaScoped: [], skippedPlaceScoped: [4], updated: 2 }));
-
-      component.updateAllDistance();
-
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'POKESTOP_EVENTS.SNACK_ALL_DISTANCE. WHERE.DISTANCE_SKIPPED_PLACE',
         'COMMON.OK',
         expect.objectContaining({ duration: 6000 }),
       );

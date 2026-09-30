@@ -31,10 +31,6 @@ export class FortChangeService {
     return this.http.put<void>(`${this.config.apiHost}/api/fort-changes/${uid}`, fortChange);
   }
 
-  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
-    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/fort-changes/distance`, distance);
-  }
-
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
     return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/fort-changes/distance/bulk`, {
       uids,

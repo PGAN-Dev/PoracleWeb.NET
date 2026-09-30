@@ -24,6 +24,12 @@ const SILENT_URL_PATTERNS = [
   '/api/test-alert',
 ];
 
+/** The token a request carried, from the header authInterceptor (or the refresh retry) attached. */
+function bearerOf(header: string | null): string | null {
+  const match = /^Bearer\s+(.+)$/i.exec(header ?? '');
+  return match?.[1]?.trim() || null;
+}
+
 function shouldSilence(url: string): boolean {
   return SILENT_URL_PATTERNS.some(pattern => url.includes(pattern));
 }
@@ -47,9 +53,23 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       // On 401, clear token and redirect — but NOT during OAuth callback flow or login page
       if (error.status === 401 && !isAuthCallbackRoute()) {
+        // A page load sends about nine requests at once, so a session that dies takes all of them with it
+        // and their 401s arrive together. Each is judged against the token it was *sent with*: once the
+        // first has ended or replaced that session, the rest are about a session that no longer exists.
+        // Judging them against storage instead let the second 401 of a revoked delegate's burst find the
+        // stash already spent and sign out someone who had just been returned to their own account, and
+        // gave every 401 after the first its own "session expired" toast. A request sent with no token
+        // at all has no session to end either: the one it would have belonged to is already over.
+        const retried = tokenStore.retriedTokenFor(error);
+        const sentWith = retried !== undefined ? retried : bearerOf(req.headers.get('Authorization'));
+        const current = tokenStore.getAccessToken()?.trim() || null;
+        if (!sentWith || sentWith !== current) {
+          return throwError(() => error);
+        }
+
         // A 401 while inspecting another account is that account's problem, not the admin's, so end the
         // inspection rather than the session. Without this, inspecting a blocked or deleted user hit the
-        // clearAll() below and signed the admin out with nothing to return to. See #706.
+        // session-ending path below and signed the admin out with nothing to return to. See #706.
         // Toasted even for the silenced endpoints: unlike a background poll, this one explains a
         // navigation the admin can see happen.
         if (tokenStore.tryRestoreAdminSession()) {
@@ -62,12 +82,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // session was invalid: poracle_admin_token -- the higher-privilege credential an impersonating
         // admin leaves behind, which stopImpersonating() would then install as the active token -- plus
         // the refresh token and its expiry, so the next load tried to refresh a session the server had
-        // already rejected. Navigation is deliberately left alone: routing through AuthService.logout()
-        // would append loggedout=1 and suppress the OIDC auto-redirect. See #616.
-        tokenStore.clearAll();
-        // Preserve any existing query params (e.g. ?error=missing_required_role)
+        // already rejected. Navigation deliberately skips AuthService.logout(), which would append
+        // loggedout=1 and suppress the OIDC auto-redirect. See #616.
+        // The tokens go now and the user once the login page is up: forgetting the user swaps the shell's
+        // layout, and doing that on the signed-in route rebuilt the page with no token. Toasted whichever
+        // request found out, because which of a burst lands first is up to the network, and a silent one
+        // landing first used to leave the user on the login page with no word of why.
         const params = new URLSearchParams(window.location.search);
-        router.navigate(['/login'], { queryParams: Object.fromEntries(params) });
+        tokenStore.endSession(() => router.navigate(['/login'], { queryParams: Object.fromEntries(params) }));
+        toast.error(translate.instant('HTTP_ERROR.UNAUTHORIZED'));
+        return throwError(() => error);
       }
 
       // Messages come from HTTP_ERROR.*, which ToastService already uses and which is translated in
@@ -76,9 +100,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // Don't show toasts for silent endpoints
       if (!silent) {
         switch (error.status) {
-          case 401:
-            toast.error(translate.instant('HTTP_ERROR.UNAUTHORIZED'));
-            break;
           case 403:
             // The backend tags "feature disabled" 403s by including a `disableKey` in the body
             // (RequireFeatureEnabledAttribute, FeatureDisabledExceptionFilter, TestAlertController).

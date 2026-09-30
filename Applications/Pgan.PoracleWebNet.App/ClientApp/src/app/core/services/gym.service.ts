@@ -31,10 +31,6 @@ export class GymService {
     return this.http.put<void>(`${this.config.apiHost}/api/gyms/${uid}`, gym);
   }
 
-  updateAllDistance(distance: number): Observable<DistanceUpdateResult> {
-    return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/gyms/distance`, distance);
-  }
-
   updateBulkDistance(uids: number[], distance: number): Observable<DistanceUpdateResult> {
     return this.http.put<DistanceUpdateResult>(`${this.config.apiHost}/api/gyms/distance/bulk`, {
       uids,

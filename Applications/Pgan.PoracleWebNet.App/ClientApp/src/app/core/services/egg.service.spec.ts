@@ -81,11 +81,4 @@ describe('EggService', () => {
     service.deleteAll().subscribe();
     httpMock.expectOne(`${API}/api/eggs`).flush(null);
   });
-
-  it('should update all distances', () => {
-    service.updateAllDistance(800).subscribe();
-    const req = httpMock.expectOne(`${API}/api/eggs/distance`);
-    expect(req.request.body).toBe(800);
-    req.flush(null);
-  });
 });

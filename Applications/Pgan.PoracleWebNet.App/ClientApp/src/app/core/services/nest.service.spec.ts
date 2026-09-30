@@ -74,11 +74,4 @@ describe('NestService', () => {
     service.deleteAll().subscribe();
     httpMock.expectOne(`${API}/api/nests`).flush(null);
   });
-
-  it('should update all distances', () => {
-    service.updateAllDistance(2500).subscribe();
-    const req = httpMock.expectOne(`${API}/api/nests/distance`);
-    expect(req.request.body).toBe(2500);
-    req.flush(null);
-  });
 });

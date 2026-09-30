@@ -14,6 +14,34 @@ import { LocationService } from '../../../core/services/location.service';
 import { SettingsService } from '../../../core/services/settings.service';
 import { LocationDialogComponent } from '../location-dialog/location-dialog.component';
 
+type OnboardingStepId = 'location' | 'areas' | 'alarm';
+
+interface OnboardingStep {
+  descKey: string;
+  doneKey: string;
+  id: OnboardingStepId;
+  route: string | null;
+  titleKey: string;
+}
+
+/**
+ * Where the alarm step sends a new user: the first alarm type the site has switched on, in the order the
+ * sidebar lists them. Pointing at /pokemon unconditionally bounced off the route guard on a site without
+ * Pokemon alarms.
+ */
+const ALARM_ROUTES: { disableKey: string; route: string }[] = [
+  { disableKey: 'disable_mons', route: '/pokemon' },
+  { disableKey: 'disable_raids', route: '/raids' },
+  { disableKey: 'disable_maxbattles', route: '/max-battles' },
+  { disableKey: 'disable_quests', route: '/quests' },
+  { disableKey: 'disable_invasions', route: '/invasions' },
+  { disableKey: 'disable_showcase', route: '/pokestop-events' },
+  { disableKey: 'disable_lures', route: '/lures' },
+  { disableKey: 'disable_nests', route: '/nests' },
+  { disableKey: 'disable_gyms', route: '/gyms' },
+  { disableKey: 'disable_fort_changes', route: '/fort-changes' },
+];
+
 @Component({
   imports: [CommonModule, MatButtonModule, MatIconModule, MatStepperModule, RouterLink, TranslatePipe],
   selector: 'app-onboarding',
@@ -166,10 +194,10 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
         </div>
 
         <div class="steps">
-          @for (step of steps; track step.id; let i = $index) {
-            <div class="step" [class.active]="currentStep() === i" [class.completed]="stepComplete(i)">
+          @for (step of steps(); track step.id; let i = $index) {
+            <div class="step" [class.active]="currentStep() === i" [class.completed]="stepComplete(step)">
               <div class="step-indicator">
-                @if (stepComplete(i)) {
+                @if (stepComplete(step)) {
                   <mat-icon>check_circle</mat-icon>
                 } @else {
                   <span class="step-number">{{ i + 1 }}</span>
@@ -177,7 +205,7 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
               </div>
               <div class="step-content">
                 <h3>{{ step.titleKey | translate }}</h3>
-                <p>{{ (stepComplete(i) ? step.doneKey : step.descKey) | translate }}</p>
+                <p>{{ (stepComplete(step) ? step.doneKey : step.descKey) | translate }}</p>
                 @if (currentStep() === i) {
                   <div class="step-action">
                     @if (step.id === 'location') {
@@ -198,7 +226,7 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
                     }
                     <button mat-button (click)="nextStep()">
                       {{
-                        (stepComplete(i) ? 'ONBOARDING.NEXT' : i < steps.length - 1 ? 'ONBOARDING.SKIP' : 'ONBOARDING.GET_STARTED')
+                        (stepComplete(step) ? 'ONBOARDING.NEXT' : i < steps().length - 1 ? 'ONBOARDING.SKIP' : 'ONBOARDING.GET_STARTED')
                           | translate
                       }}
                     </button>
@@ -217,8 +245,8 @@ import { LocationDialogComponent } from '../location-dialog/location-dialog.comp
             <button mat-flat-button color="primary" (click)="dismiss()">{{ 'ONBOARDING.LETS_GO' | translate }}</button>
           } @else {
             <div class="step-dots">
-              @for (step of steps; track step.id; let i = $index) {
-                <div class="dot" [class.active]="currentStep() === i" [class.completed]="stepComplete(i)"></div>
+              @for (step of steps(); track step.id; let i = $index) {
+                <div class="dot" [class.active]="currentStep() === i" [class.completed]="stepComplete(step)"></div>
               }
             </div>
           }
@@ -235,38 +263,56 @@ export class OnboardingComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
 
   alarmsExist = signal(false);
+  /**
+   * The steps this site offers. A step for a switched-off feature is absent rather than skipped: the
+   * wizard used to offer the location and areas steps under `disable_location` / `disable_areas`, read
+   * /api/areas regardless (a 403 and a toast), and could never read as complete, since completion was
+   * counted over all three by position.
+   */
+  readonly steps = computed<OnboardingStep[]>(() => {
+    const alarmRoute = ALARM_ROUTES.find(a => !this.settingsService.isDisabled(a.disableKey))?.route ?? null;
+    const all: (OnboardingStep | null)[] = [
+      this.settingsService.isDisabled('disable_location')
+        ? null
+        : {
+            id: 'location',
+            descKey: 'ONBOARDING.STEP_LOCATION_DESC',
+            doneKey: 'ONBOARDING.STEP_LOCATION_DONE',
+            route: null,
+            titleKey: 'ONBOARDING.STEP_LOCATION_TITLE',
+          },
+      this.settingsService.isDisabled('disable_areas')
+        ? null
+        : {
+            id: 'areas',
+            descKey: 'ONBOARDING.STEP_AREAS_DESC',
+            doneKey: 'ONBOARDING.STEP_AREAS_DONE',
+            route: '/areas',
+            titleKey: 'ONBOARDING.STEP_AREAS_TITLE',
+          },
+      alarmRoute
+        ? {
+            id: 'alarm',
+            descKey: 'ONBOARDING.STEP_ALARM_DESC',
+            doneKey: 'ONBOARDING.STEP_ALARM_DONE',
+            route: alarmRoute,
+            titleKey: 'ONBOARDING.STEP_ALARM_TITLE',
+          }
+        : null,
+    ];
+    return all.filter((step): step is OnboardingStep => step !== null);
+  });
+
+  allComplete = computed(() => this.steps().every(step => this.stepComplete(step)));
+
   areasSet = signal(false);
-  locationSet = signal(false);
-  allComplete = computed(() => this.locationSet() && this.areasSet() && this.alarmsExist());
+
   completed = output<void>();
   currentStep = signal(0);
+  locationSet = signal(false);
   navigatedAway = output<void>();
 
   siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
-
-  steps = [
-    {
-      id: 'location',
-      descKey: 'ONBOARDING.STEP_LOCATION_DESC',
-      doneKey: 'ONBOARDING.STEP_LOCATION_DONE',
-      route: null,
-      titleKey: 'ONBOARDING.STEP_LOCATION_TITLE',
-    },
-    {
-      id: 'areas',
-      descKey: 'ONBOARDING.STEP_AREAS_DESC',
-      doneKey: 'ONBOARDING.STEP_AREAS_DONE',
-      route: '/areas',
-      titleKey: 'ONBOARDING.STEP_AREAS_TITLE',
-    },
-    {
-      id: 'alarm',
-      descKey: 'ONBOARDING.STEP_ALARM_DESC',
-      doneKey: 'ONBOARDING.STEP_ALARM_DONE',
-      route: '/pokemon',
-      titleKey: 'ONBOARDING.STEP_ALARM_TITLE',
-    },
-  ];
 
   dismiss() {
     localStorage.setItem('poracle-onboarding-complete', 'true');
@@ -278,7 +324,7 @@ export class OnboardingComponent implements OnInit {
   }
 
   nextStep() {
-    if (this.currentStep() < this.steps.length - 1) {
+    if (this.currentStep() < this.steps().length - 1) {
       this.currentStep.update(s => s + 1);
     } else {
       this.dismiss();
@@ -286,32 +332,23 @@ export class OnboardingComponent implements OnInit {
   }
 
   ngOnInit() {
+    const offered = new Set(this.steps().map(step => step.id));
+    // Only what an offered step needs. A switched-off feature's endpoint answers 403, and the interceptor
+    // toasts it before any catchError here could keep it quiet.
     forkJoin({
-      areas: this.areaService.getSelected().pipe(catchError(() => of([]))),
+      areas: offered.has('areas') ? this.areaService.getSelected().pipe(catchError(() => of([]))) : of([]),
       counts: this.dashboardService.getCounts().pipe(catchError(() => of(null))),
-      location: this.locationService.getLocation().pipe(catchError(() => of(null))),
+      location: offered.has('location') ? this.locationService.getLocation().pipe(catchError(() => of(null))) : of(null),
     }).subscribe({
       error: () => {},
       next: ({ areas, counts, location }) => {
-        const hasLocation = !!(location && (location.latitude !== 0 || location.longitude !== 0));
-        const hasAreas = !!(areas && areas.length > 0);
-        const hasAlarms = !!(counts && Object.values(counts).some(c => (c as number) > 0));
+        if (location && (location.latitude !== 0 || location.longitude !== 0)) this.locationSet.set(true);
+        if (areas && areas.length > 0) this.areasSet.set(true);
+        if (counts && Object.values(counts).some(c => (c as number) > 0)) this.alarmsExist.set(true);
 
-        if (hasLocation) this.locationSet.set(true);
-        if (hasAreas) this.areasSet.set(true);
-        if (hasAlarms) this.alarmsExist.set(true);
-
-        // Auto-advance to first incomplete step
-        if (!hasLocation) {
-          this.currentStep.set(0);
-        } else if (!hasAreas) {
-          this.currentStep.set(1);
-        } else if (!hasAlarms) {
-          this.currentStep.set(2);
-        } else {
-          // All complete — show step 0 so user sees everything checked off
-          this.currentStep.set(0);
-        }
+        // Open on the first unfinished step; when all are done, on the first, so the user sees each ticked.
+        const firstIncomplete = this.steps().findIndex(step => !this.stepComplete(step));
+        this.currentStep.set(Math.max(firstIncomplete, 0));
       },
     });
   }
@@ -327,16 +364,14 @@ export class OnboardingComponent implements OnInit {
     }
   }
 
-  stepComplete(index: number): boolean {
-    switch (index) {
-      case 0:
+  stepComplete(step: OnboardingStep): boolean {
+    switch (step.id) {
+      case 'location':
         return this.locationSet();
-      case 1:
+      case 'areas':
         return this.areasSet();
-      case 2:
+      case 'alarm':
         return this.alarmsExist();
-      default:
-        return false;
     }
   }
 }

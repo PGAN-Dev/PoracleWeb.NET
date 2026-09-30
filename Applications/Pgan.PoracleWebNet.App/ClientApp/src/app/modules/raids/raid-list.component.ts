@@ -482,28 +482,6 @@ export class RaidListComponent implements OnInit {
     }
   }
 
-  updateAllDistance(): void {
-    const ref = this.dialog.open(DistanceDialogComponent, { width: '440px' });
-    ref.afterClosed().subscribe(distance => {
-      if (distance !== null && distance !== undefined) {
-        forkJoin([this.raidService.updateAllDistance(distance), this.eggService.updateAllDistance(distance)]).subscribe({
-          error: () => {
-            this.snackBar.open(this.i18n.instant('RAIDS.SNACK_FAILED_DISTANCE'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
-          },
-          next: ([raids, eggs]) => {
-            const result = combineDistanceResults(raids, eggs);
-            this.snackBar.open(
-              distanceUpdateMessage(result, this.i18n.instant('RAIDS.SNACK_ALL_DISTANCE'), this.i18n),
-              this.i18n.instant('TOAST.OK'),
-              { duration: skippedAny(result) ? 6000 : 3000 },
-            );
-            this.loadData();
-          },
-        });
-      }
-    });
-  }
-
   private loadProfileAreas(): void {
     this.areaService.getSelected().subscribe({ error: () => undefined, next: areas => this.profileAreas.set(areas) });
   }

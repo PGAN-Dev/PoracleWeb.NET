@@ -105,13 +105,4 @@ describe('RaidService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
-
-  it('should update all distances', () => {
-    service.updateAllDistance(3000).subscribe();
-
-    const req = httpMock.expectOne(`${API}/api/raids/distance`);
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toBe(3000);
-    req.flush(null);
-  });
 });

@@ -89,12 +89,4 @@ describe('InvasionService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
-
-  it('should update all distances', () => {
-    service.updateAllDistance(1000).subscribe();
-
-    const req = httpMock.expectOne(`${API}/api/invasions/distance`);
-    expect(req.request.method).toBe('PUT');
-    req.flush(null);
-  });
 });

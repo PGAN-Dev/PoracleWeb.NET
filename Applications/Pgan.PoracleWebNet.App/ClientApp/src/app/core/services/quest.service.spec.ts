@@ -93,12 +93,4 @@ describe('QuestService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
-
-  it('should update all distances', () => {
-    service.updateAllDistance(2000).subscribe();
-
-    const req = httpMock.expectOne(`${API}/api/quests/distance`);
-    expect(req.request.method).toBe('PUT');
-    req.flush(null);
-  });
 });
