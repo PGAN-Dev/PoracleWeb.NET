@@ -119,6 +119,52 @@ public class MaxBattleServiceTests
         Assert.Equal(6, result.Uid);
     }
 
+    /// <summary>
+    /// The dialog sends no override as <c>[]</c> and <c>""</c>; PoracleNG reads it back as null and "".
+    /// Pressing Add twice from the UI is still a duplicate.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncRefusesAnExactDuplicateSentTheWayTheDialogSendsIt()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(JsonDocument.Parse(
+            """[{"uid":5,"id":"user1","pokemon_id":150,"distance":500,"level":9000,"override_areas":null,"override_location_label":""}]""")
+            .RootElement.Clone());
+
+        await Assert.ThrowsAsync<TrackingConflictException>(() => this._sut.CreateAsync("user1", new MaxBattle
+        {
+            PokemonId = 150,
+            Distance = 500,
+            Level = 3,
+            OverrideAreas = [],
+            OverrideLocationLabel = "",
+        }));
+    }
+
+    /// <summary>
+    /// PoracleNG stores an unscoped max battle beside an area-scoped one with the same boss as two rules
+    /// (verified on 5.2.1: uids 166 and 167), so the duplicate check must not call them the same alarm.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsyncAllowsTheSameBossBesideAnAreaScopedTwin()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("maxbattle", "user1")).ReturnsAsync(JsonDocument.Parse(
+            """[{"uid":5,"id":"user1","pokemon_id":150,"distance":0,"level":9000,"override_areas":["aberdeen"],"override_location_label":""}]""")
+            .RootElement.Clone());
+        this._proxy.Setup(p => p.CreateAsync("maxbattle", "user1", It.IsAny<JsonElement>()))
+            .ReturnsAsync(new TrackingCreateResult([6], 0, 0, 1));
+
+        var result = await this._sut.CreateAsync("user1", new MaxBattle
+        {
+            PokemonId = 150,
+            Distance = 0,
+            Level = 3,
+            OverrideAreas = [],
+            OverrideLocationLabel = "",
+        });
+
+        Assert.Equal(6, result.Uid);
+    }
+
     [Fact]
     public async Task CreateAsyncSetsUserId()
     {

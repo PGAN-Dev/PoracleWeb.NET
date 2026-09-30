@@ -243,7 +243,19 @@ public partial class MaxBattleService(IPoracleTrackingProxy proxy, IFeatureGate 
         && existing.Gmax == candidate.Gmax
         && existing.Evolution == candidate.Evolution
         && existing.Distance == candidate.Distance
-        && string.Equals(existing.StationId ?? string.Empty, candidate.StationId ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        && string.Equals(existing.StationId ?? string.Empty, candidate.StationId ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+        && SameScope(existing, candidate);
+
+    /// <summary>
+    /// Whether two alarms are confined the same way. Upstream stores the same boss once area-scoped and
+    /// once unscoped as two rules (verified on 5.2.1), so ignoring the scope refused a legitimate Add. "No
+    /// override" has several spellings: the dialogs send <c>[]</c> and <c>""</c>, PoracleNG reads it back as
+    /// null and <c>""</c>. Area names are stored lowercased, in order.
+    /// </summary>
+    private static bool SameScope(MaxBattle existing, MaxBattle candidate) =>
+        string.Equals(existing.OverrideLocationLabel ?? string.Empty, candidate.OverrideLocationLabel ?? string.Empty, StringComparison.Ordinal)
+        && (existing.OverrideAreas ?? []).Select(a => a.ToLowerInvariant())
+            .SequenceEqual((candidate.OverrideAreas ?? []).Select(a => a.ToLowerInvariant()), StringComparer.Ordinal);
 
     /// <summary>
     /// The level PoracleNG will actually store: it forces 9000 unless the alarm tracks any boss.

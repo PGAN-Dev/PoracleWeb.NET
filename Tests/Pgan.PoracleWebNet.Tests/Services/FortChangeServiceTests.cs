@@ -233,13 +233,45 @@ public class FortChangeServiceTests
     }
 
     [Fact]
-    public void FortChangeCreateRefusesMoreThanFiveChangeTypes()
+    public void FortChangeCreateRefusesMoreThanSixChangeTypes()
     {
         var model = new FortChangeCreate
         {
             FortType = "everything",
-            ChangeTypes = ["name", "location", "image_url", "removal", "new", "name2"],
+            ChangeTypes = ["name", "location", "image_url", "removal", "new", "description", "name2"],
         };
+        var results = new List<ValidationResult>();
+        Assert.False(Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true));
+    }
+
+    /// <summary>
+    /// The add and edit dialogs both offer "Description changed", and PoracleNG stores it on v1 (5.1.0,
+    /// 5.2.1, 5.3.0) and accepts it on the v2 PUT -- V2FortRule lists
+    /// location|new|removal|image_url|name|description. Both DTOs refused it, so ticking the box made
+    /// the whole save fail with 400. Bound from the body the dialog sends.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"fortType":"everything","changeTypes":["description"],"includeEmpty":0,"distance":500,"overrideAreas":[],"overrideLocationLabel":""}""")]
+    [InlineData("""{"fortType":"gym","changeTypes":["name","location","image_url","removal","new","description"],"includeEmpty":0,"distance":500,"overrideAreas":[],"overrideLocationLabel":""}""")]
+    public void BothDtosAcceptTheDescriptionChangeTheDialogsOffer(string spaBody)
+    {
+        var web = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        object create = System.Text.Json.JsonSerializer.Deserialize<FortChangeCreate>(spaBody, web)!;
+        object update = System.Text.Json.JsonSerializer.Deserialize<FortChangeUpdate>(spaBody, web)!;
+
+        foreach (var model in new[] { create, update })
+        {
+            var results = new List<ValidationResult>();
+            Assert.True(
+                Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true),
+                string.Join("; ", results.Select(r => r.ErrorMessage)));
+        }
+    }
+
+    [Fact]
+    public void FortChangeUpdateStillRefusesAnUnknownChangeType()
+    {
+        var model = new FortChangeUpdate { ChangeTypes = ["description", "bogus"] };
         var results = new List<ValidationResult>();
         Assert.False(Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true));
     }

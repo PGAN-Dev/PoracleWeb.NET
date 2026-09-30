@@ -31,14 +31,17 @@ public class FortChangeUpdate
 
     // The same two bounds the create DTO carries (#612). Left off here, an update could still push an
     // unbounded or repeating list into the JSON text column. See #660.
-    [MaxLength(5, ErrorMessage = "changeTypes may contain at most 5 entries.")]
+    // Six legal values, including "description", which both dialogs offer and PoracleNG stores on v1 and
+    // accepts on v2. Leaving it out made every save with that box ticked a 400.
+    [MaxLength(6, ErrorMessage = "changeTypes may contain at most 6 entries.")]
     [DistinctValues(ErrorMessage = "changeTypes must not repeat a value.")]
     [AllowedStringValues(
         FortChangeOptions.ChangeTypeName,
         FortChangeOptions.ChangeTypeLocation,
         FortChangeOptions.ChangeTypeImageUrl,
         FortChangeOptions.ChangeTypeRemoval,
-        FortChangeOptions.ChangeTypeNew)]
+        FortChangeOptions.ChangeTypeNew,
+        FortChangeOptions.ChangeTypeDescription)]
     public List<string>? ChangeTypes
     {
         get; set;

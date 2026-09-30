@@ -32,22 +32,17 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
         model.Id = userId;
 
         // An Add that PoracleNG resolves into an update of an existing alarm takes that alarm over:
-        // 201 Created, and the user quietly loses the one they had. See #561.
+        // 201 Created, and the user quietly loses the one they had. See #561 and #502, which is the same
+        // takeover reached by changing only the radius.
+        //
+        // This type used to carry a second, hand-written check on (fort_type, include_empty, change_types)
+        // as well. It refused three Adds PoracleNG stores as separate rules -- verified on 5.2.1: one
+        // beside an area-scoped twin (override_areas is an identity field), one differing by radius AND
+        // template (two updatable differences insert), and one listing the same change types in another
+        // order (change_types is compared as stored text). The shared guard mirrors the real diff, so it
+        // is the only one.
         await TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync(
             this._proxy, TrackingType, userId, 0, SerializeToElement(model));
-
-        // PoracleNG's dedup key for this type ignores distance, so a create matching an existing alarm's
-        // fort type, include-empty flag and change types OVERWRITES that alarm's radius instead of adding a
-        // second one -- while PoracleWeb answered 201 with a fresh uid, so the user believed they had two
-        // alarms and the configured radius was gone. Refuse it and say which alarm is in the way, the same
-        // way the natural-key types do. See #502.
-        var siblings = await this.GetByUserAsync(userId, model.ProfileNo);
-        if (siblings.Any(x => SameDedupKey(x, model)))
-        {
-            throw new TrackingConflictException(
-                TrackingType,
-                "You already have a fort-change alarm for those settings. Edit its radius instead of adding another.");
-        }
 
         var body = SerializeToElement(model);
         var result = await this._proxy.CreateAsync(TrackingType, userId, body);
@@ -212,18 +207,6 @@ public class FortChangeService(IPoracleTrackingProxy proxy, IFeatureGate feature
 
         return modelList;
     }
-
-    /// <summary>
-    /// Whether two fort-change alarms occupy the same slot as far as PoracleNG is concerned.
-    /// </summary>
-    /// <remarks>Distance is excluded deliberately: upstream ignores it when deduping. See #502.</remarks>
-    private static bool SameDedupKey(FortChange existing, FortChange candidate) =>
-        string.Equals(existing.FortType, candidate.FortType, StringComparison.OrdinalIgnoreCase)
-        && existing.IncludeEmpty == candidate.IncludeEmpty
-        && existing.ChangeTypes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-            .SequenceEqual(
-                candidate.ChangeTypes.OrderBy(x => x, StringComparer.OrdinalIgnoreCase),
-                StringComparer.OrdinalIgnoreCase);
 
     private static List<FortChange> DeserializeItems(JsonElement json) =>
         PoracleJsonHelper.DeserializeList<FortChange>(json);
