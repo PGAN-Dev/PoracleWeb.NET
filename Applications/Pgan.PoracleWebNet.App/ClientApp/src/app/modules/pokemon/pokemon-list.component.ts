@@ -28,14 +28,15 @@ import { MonsterService } from '../../core/services/monster.service';
 import { TestAlertService } from '../../core/services/test-alert.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
-import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
+import { RuleSummaryComponent } from '../../shared/components/rule-summary/rule-summary.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData } from '../../shared/components/where-sheet/where-sheet.component';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
 import { NO_COSTUME } from '../../shared/utils/costumes';
 import { minTimePillLabel } from '../../shared/utils/min-time';
+import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -405,6 +406,11 @@ export class PokemonListComponent implements OnInit {
   }
 
   /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
+  /** Whether the card shows a level pill: only when the range is narrower than the no-filter one. */
+  hasLevelFilter(monster: Pick<Monster, 'maxLevel' | 'minLevel'>): boolean {
+    return hasLevelFilter(monster.minLevel, monster.maxLevel);
+  }
+
   isAutoDelete(clean: number): boolean {
     return cleanIsAutoDelete(clean);
   }

@@ -201,4 +201,35 @@ describe('ProfileOverviewComponent rendered duplicates', () => {
     expect(filterChip()).toBeUndefined();
     expect(cards().every(c => !c.duplicate)).toBe(true);
   });
+
+  /**
+   * The level pill hid itself for any max level of 35 or more, from when 35 was the top. The no-filter
+   * value is 55 now, so a rule capped at 50 matched fewer Pokemon than its card let on.
+   */
+  describe('level pill', () => {
+    const levelled = (uid: number, minLevel: number, maxLevel: number) => ({
+      ...monster(uid, 1, 25),
+      max_level: maxLevel,
+      min_level: minLevel,
+    });
+    const pills = () => (Array.from(fixture.nativeElement.querySelectorAll('.level-pill')) as HTMLElement[]).map(p => text(p));
+
+    it('shows a max level between 35 and 54', async () => {
+      await render({ pokemon: [levelled(1, 0, 50)], profile: [HOME, WORK] });
+
+      expect(pills()).toEqual(['L0-50']);
+    });
+
+    it('shows a min level, and a max level under 35', async () => {
+      await render({ pokemon: [levelled(1, 20, 55), levelled(2, 0, 30)], profile: [HOME, WORK] });
+
+      expect(pills().sort()).toEqual(['L0-30', 'L20-55']);
+    });
+
+    it('stays hidden for the no-filter range', async () => {
+      await render({ pokemon: [levelled(1, 0, 55), monster(2, 1, 150)], profile: [HOME, WORK] });
+
+      expect(pills()).toEqual([]);
+    });
+  });
 });

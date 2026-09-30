@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Objeto",
     "REWARD_MEGA_ENERGY": "Megaenergía",
     "REWARD_CANDY": "Caramelos",
-    "REWARD_TYPE_PREFIX": "Tipo de misión:",
+    "REWARD_TYPE_PREFIX": "Tipo de misión: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Encuentro Pokemon",
     "CONFIRM_DELETE_TITLE": "Eliminar alarma de Misión",
     "CONFIRM_DELETE_MSG": "¿Seguro que quieres eliminar esta alarma de misión?",

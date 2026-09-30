@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Genstand",
     "REWARD_MEGA_ENERGY": "Mega-energi",
     "REWARD_CANDY": "Slik",
-    "REWARD_TYPE_PREFIX": "Quest-type:",
+    "REWARD_TYPE_PREFIX": "Quest-type: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Pokemon-møde",
     "CONFIRM_DELETE_TITLE": "Slet quest-alarm",
     "CONFIRM_DELETE_MSG": "Er du sikker på, at du vil slette denne quest-alarm?",

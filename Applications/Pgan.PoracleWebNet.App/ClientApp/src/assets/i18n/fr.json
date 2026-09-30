@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Objet",
     "REWARD_MEGA_ENERGY": "Méga-Énergie",
     "REWARD_CANDY": "Bonbon",
-    "REWARD_TYPE_PREFIX": "Type de quête :",
+    "REWARD_TYPE_PREFIX": "Type de quête : {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Rencontre Pokemon",
     "CONFIRM_DELETE_TITLE": "Supprimer l'alarme Quête",
     "CONFIRM_DELETE_MSG": "Es-tu sûr de vouloir supprimer cette alarme Quête ?",

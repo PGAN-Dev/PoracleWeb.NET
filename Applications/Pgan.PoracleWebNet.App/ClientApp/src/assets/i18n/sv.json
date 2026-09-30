@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Föremål",
     "REWARD_MEGA_ENERGY": "Mega-energi",
     "REWARD_CANDY": "Godis",
-    "REWARD_TYPE_PREFIX": "Quest-typ:",
+    "REWARD_TYPE_PREFIX": "Quest-typ: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Pokemon-möte",
     "CONFIRM_DELETE_TITLE": "Radera quest-larm",
     "CONFIRM_DELETE_MSG": "Är du säker på att du vill radera detta quest-larm?",

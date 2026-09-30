@@ -14,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { AreaDefinition, GeoJsonImportResult, GeofenceData, GeofenceRegion, UserGeofence } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { LocationService } from '../../core/services/location.service';
 import { UserGeofenceService } from '../../core/services/user-geofence.service';
 import { AreaMapComponent } from '../../shared/components/area-map/area-map.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -33,6 +34,7 @@ import {
 } from '../../shared/components/geojson-import-dialog/geojson-import-dialog.component';
 import { RegionOption } from '../../shared/components/region-selector/region-selector.component';
 import { detectRegion } from '../../shared/utils/geo.utils';
+import { pinOrNull } from '../../shared/utils/location.utils';
 
 const MAX_CUSTOM_GEOFENCES = 10;
 
@@ -60,6 +62,7 @@ export class GeofenceListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
+  private readonly locationService = inject(LocationService);
   private readonly rawGeofenceData = signal<GeofenceData[]>([]);
   private readonly snackBar = inject(MatSnackBar);
   private readonly userGeofenceService = inject(UserGeofenceService);
@@ -115,6 +118,8 @@ export class GeofenceListComponent implements OnInit {
   readonly savingGeofence = signal(false);
   readonly selectedMapRegion = signal<{ id: number; name: string; displayName: string } | null>(null);
   readonly skeletonGeofences = Array.from({ length: 3 });
+  /** The profile pin for the map's opening view, or undefined when there is none to use. */
+  readonly userLocation = signal<undefined | { lat: number; lng: number }>(undefined);
 
   async deleteGeofence(geofence: UserGeofence): Promise<void> {
     const ref = this.dialog.open(ConfirmDialogComponent, {
@@ -212,6 +217,7 @@ export class GeofenceListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadUserLocation();
     this.loadActiveAreas();
     this.loadCustomGeofences();
     this.loadRegions();
@@ -452,6 +458,24 @@ export class GeofenceListComponent implements OnInit {
       .subscribe({
         error: () => {},
         next: regions => this.geofenceRegions.set(regions),
+      });
+  }
+
+  /**
+   * The pin, so the map can open on it the way the Areas map does. Without it a user with no geofences
+   * yet opened on the bounds of the whole feed -- on a multi-region instance, the planet. The map
+   * still prefers the user's own shapes when there are some.
+   */
+  private loadUserLocation(): void {
+    this.locationService
+      .getLocation()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {},
+        next: loc => {
+          const pin = pinOrNull(loc);
+          this.userLocation.set(pin ? { lat: pin.latitude, lng: pin.longitude } : undefined);
+        },
       });
   }
 }

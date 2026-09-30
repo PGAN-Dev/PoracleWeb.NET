@@ -535,7 +535,7 @@
     "REWARD_ITEM": "Item",
     "REWARD_MEGA_ENERGY": "Mega-Energie",
     "REWARD_CANDY": "Bonbon",
-    "REWARD_TYPE_PREFIX": "Quest-Typ:",
+    "REWARD_TYPE_PREFIX": "Quest-Typ: {{type}}",
     "REWARD_POKEMON_ENCOUNTER": "Pokemon-Begegnung",
     "CONFIRM_DELETE_TITLE": "Quest-Alarm löschen",
     "CONFIRM_DELETE_MSG": "Möchtest du diesen Quest-Alarm wirklich löschen?",

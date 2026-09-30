@@ -158,7 +158,19 @@ export class CleaningComponent implements OnInit {
   // switched off produced a 403 whose only outcome was an error toast. See #509.
   readonly visibleItems = computed(() => this.cleaningItems.filter(i => !this.settingsService.isDisabled(i.disableKey)));
 
-  readonly allEnabled = computed(() => this.visibleItems().every(i => i.enabled()));
+  /**
+   * The rows cleaning can act on: shown, and holding at least one alarm. A type with no alarms is not
+   * applicable -- the API reports it as not clean, since there is nothing to be clean -- so counting
+   * it kept the header on "Enable All" for everyone without alarms of every type.
+   */
+  readonly applicableItems = computed(() => this.visibleItems().filter(i => i.hasAlarms()));
+
+  readonly allEnabled = computed(() => {
+    const applicable = this.applicableItems();
+    return applicable.length > 0 && applicable.every(i => i.enabled());
+  });
+
+  readonly hasApplicable = computed(() => this.applicableItems().length > 0);
   readonly loading = signal(true);
   readonly toggling = signal(false);
 
@@ -177,7 +189,9 @@ export class CleaningComponent implements OnInit {
           this.snackBar.open(this.i18n.instant('CLEANING.SNACK_FAILED'), this.i18n.instant('TOAST.OK'), { duration: 3000 });
         },
         next: result => {
-          for (const item of this.cleaningItems) {
+          // Only the rows the server wrote. An empty type has nothing to flip, and a disabled one was
+          // skipped, so marking either on showed a state a reload would take back.
+          for (const item of this.applicableItems()) {
             item.enabled.set(enabled);
           }
           this.toggling.set(false);

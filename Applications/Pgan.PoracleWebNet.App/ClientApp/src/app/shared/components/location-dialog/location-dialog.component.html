@@ -17,7 +17,11 @@
       @if (searching()) {
         <mat-icon matSuffix class="spin">sync</mat-icon>
       }
-      <mat-autocomplete #auto="matAutocomplete" (optionSelected)="selectResult($event.option.value)" class="address-autocomplete">
+      <mat-autocomplete
+        #auto="matAutocomplete"
+        [displayWith]="displayResult"
+        (optionSelected)="selectResult($event.option.value)"
+        class="address-autocomplete">
         @for (result of searchResults(); track $index) {
           <mat-option [value]="result" class="address-option">
             <div class="address-option-content">
