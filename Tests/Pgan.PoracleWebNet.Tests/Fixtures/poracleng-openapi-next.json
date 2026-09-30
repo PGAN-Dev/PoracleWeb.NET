@@ -397,6 +397,81 @@
     },
     "type": "object"
    },
+   "V2ActiveHourEntry": {
+    "additionalProperties": false,
+    "properties": {
+     "day": {
+      "description": "ISO day of week (1=Monday \u2026 7=Sunday)",
+      "format": "int64",
+      "maximum": 7,
+      "minimum": 1,
+      "type": "integer"
+     },
+     "end_hours": {
+      "description": "End hour (0\u201323); required when step>0",
+      "format": "int64",
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+     },
+     "end_mins": {
+      "description": "End minute (0\u201359); required when step>0",
+      "format": "int64",
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+     },
+     "hours": {
+      "description": "Start hour (0\u201323)",
+      "format": "int64",
+      "maximum": 23,
+      "minimum": 0,
+      "type": "integer"
+     },
+     "mins": {
+      "description": "Start minute (0\u201359)",
+      "format": "int64",
+      "maximum": 59,
+      "minimum": 0,
+      "type": "integer"
+     },
+     "step": {
+      "description": "Step in hours; >0 makes this a range entry, 0/absent = single-fire",
+      "format": "int64",
+      "minimum": 0,
+      "type": "integer"
+     }
+    },
+    "required": [
+     "day",
+     "hours",
+     "mins"
+    ],
+    "type": "object"
+   },
+   "V2AddProfileBody": {
+    "additionalProperties": false,
+    "properties": {
+     "active_hours": {
+      "description": "Optional active-hours schedule (absent or [] = no schedule)",
+      "items": {
+       "$ref": "#/components/schemas/V2ActiveHourEntry"
+      },
+      "type": [
+       "array",
+       "null"
+      ]
+     },
+     "name": {
+      "description": "Profile name (required, non-empty)",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "type": "object"
+   },
    "StatusOKOutputBody": {
     "additionalProperties": false,
     "properties": {

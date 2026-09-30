@@ -30,10 +30,11 @@ public partial class TrackedUidRemapper(
             // profiles overview believed the looser version of this and tagged unrelated rules as
             // duplicates of each other (#831).
             var states = await this._appliedStateRepository.GetByUserAsync(userId);
+            var quickPickType = QuickPickAlarmType(alarmType);
 
             foreach (var state in states)
             {
-                if (!string.Equals(state.AlarmType, alarmType, StringComparison.Ordinal))
+                if (!string.Equals(state.AlarmType, quickPickType, StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -56,6 +57,15 @@ public partial class TrackedUidRemapper(
             LogRemapFailed(this._logger, ex, alarmType, oldUid, newUid);
         }
     }
+
+    /// <summary>
+    /// The quick-pick name for a tracking type. Callers pass PoracleNG's name, and applied state stores
+    /// the quick pick's own; the two agree for every type but one. Pokemon is <c>pokemon</c> to
+    /// PoracleNG and <c>monster</c> to a quick pick, so every Pokemon pick kept its stale uid and
+    /// "remove" left the edited alarm behind.
+    /// </summary>
+    private static string QuickPickAlarmType(string alarmType) =>
+        string.Equals(alarmType, "pokemon", StringComparison.Ordinal) ? "monster" : alarmType;
 
     [LoggerMessage(
         Level = LogLevel.Debug,

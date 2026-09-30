@@ -206,6 +206,8 @@ Two upstream behaviours that PoracleWeb has to work around. Both verified direct
 
 **PoracleNG's profile update silently ignores `name`.** `POST /api/profiles/{id}/update` answers `{"status":"ok"}` and writes nothing for a rename, while honouring `active_hours` on the same request. Rename therefore goes through `IProfileRepository.RenameAsync`, a direct DB write scoped to `profiles.name` only -- unless the server declares `name` on `V2UpdateProfileBody`, in which case `UpdateProfileAsync` PATCHes `/api/v2/humans/{id}/profiles/{n}` and reports that it applied, and the direct write is skipped (#837). **That gate is load-bearing, not an optimisation**: the PATCH exists on 5.2.1, where the body declares `active_hours` alone under `additionalProperties: false`, so sending a name there is a 422 rather than an ignored field. Verified that PoracleNG serves the new name on its very next read, so nothing needs invalidating. This is the same class of workaround as `HACK: trusted-set-areas`. See #406.
 
+**The v2 profile bodies are translated, never forwarded.** `V2AddProfileBody` and `V2UpdateProfileBody` declare `name` and `active_hours` and nothing else, under `additionalProperties: false`, and `active_hours` is the entry array rather than the JSON string we store. The callers build one body for both surfaces (with `area`, `latitude`, `longitude` and `profile_no` in it), so `PoracleHumanProxy.V2ProfileBody` keeps the two declared fields, parses the schedule, and answers null (use v1) for a schedule v2 would refuse. Forwarding the body shipped once and made every profile create, duplicate, import and rename a 422 on PoracleNG `develop`; the unit tests passed because they posted `{"name":...}`, a body no caller builds. The tests now post the controllers' real shapes and check them against the schema fixture.
+
 **Alarm writes never send `profile_no`.** PoracleNG takes a submitted `profile_no` at face value for the pokemon type -- `profile_no: 9` creates a row on a profile that does not exist -- while scoping every read to `current_profile_no`. Since the JWT claim can be stale (see "JWT profile resync"), stamping it onto writes stranded alarms that were invisible and undeletable. `PoracleJsonHelper.SerializeToElement` strips it, so PoracleNG files each alarm under the live active profile. See #411.
 
 ### Webhook Delegation Resolves Live, From Three Sources
@@ -643,7 +645,7 @@ totalDiffs == 1 && nonUpdatableDiffs == 0  -> UPDATE of that existing row, re-ke
 otherwise                                  -> new insert
 ```
 
-`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm.
+`diff:"update"` fields are `clean`, `distance`, `template`, plus `slot_changes` and `battle_changes` on gyms. `diff:"match"` and untagged fields identify the alarm. That list is not the whole story for Pokemon: two rules differing only in `min_iv` merge on 5.2.1 (`{"updates":1}`, one row left), verified by posting both straight to PoracleNG. Read the struct tags for the type in hand rather than trusting this list.
 
 The consequence that keeps biting: **an Add or an Edit that differs from a *different* alarm by exactly one updatable field takes that alarm over.** The user gets 201/200, and one alarm exists where there were two. `TrackingUpdateReconciler.EnsureNoMergeIntoAnotherAlarmAsync` mirrors the rule and refuses before the write — on create and update alike. Two or more updatable differences genuinely coexist and must stay editable; refusing those made alarms permanently uneditable (#553).
 
@@ -677,10 +679,11 @@ than a **verb**, so two shapes never coexist.
 handler is keyed on `(human, uid)` and ignores the profile; v2's `v2FindOwnedRow` reads
 `SelectByIDProfile` and 404s for a uid that is not on the active profile, while its bulk form skips such a
 uid silently and still answers 200. Every caller derives its uid list from a profile-scoped read, so
-nothing depends on the loose behaviour by design — but the ten alarm services pass a uid straight through
-with no re-read, and PoracleNG's active-hours scheduler can move a user between the list rendering and the
-click. So a rule-not-found 404 goes to v1 rather than being swallowed as "already deleted", and a bulk
-delete v2 only partly took sends the whole set to v1, which is idempotent. v2 also takes the bulk uid list
+nothing depends on the loose behaviour by design. A rule-not-found 404 goes to v1 rather than being
+swallowed as "already deleted", and a bulk delete v2 only partly took sends the whole set to v1, which is
+idempotent. The single-alarm case never reaches that fallback from the UI, though: each controller's
+`Delete` looks the uid up on the active profile first and answers 404, so a click on a rule the scheduler
+has just moved out of view is refused rather than half-done (verified on 5.1.0, 5.2.1 and 5.3.0). v2 also takes the bulk uid list
 in the query string, so a list past 2000 rendered characters stays on v1.
 
 **Invasion writes through v2 as well (#841), behind a second gate the other nine do not have.**
@@ -707,7 +710,10 @@ enum is `any|male|female`) so a stored gender 3 goes to v1.
 **The v2 PUT is delete-then-insert, so every type rotates its uid on edit.** Pokemon was the one exception
 and no longer is. Quick-pick applied state is the thing that actually breaks without the remap (#403), so
 every service hands `ITrackedUidRemapper` to `TrackingV2Replacement.TryApplyAsync`, the shared v2 branch
-each `UpdateAsync` takes before its own v1 path.
+each `UpdateAsync` takes before its own v1 path. Callers pass PoracleNG's type name and applied state
+stores the quick pick's, and those differ for exactly one type: `pokemon` against `monster`. The remapper
+translates it. Before it did, no Pokemon pick was ever remapped, and removing one after an edit left the
+alarm behind (present in v2.18.0, found by driving the API against 5.2.1).
 
 **Taking the v2 branch skips the whole v1 repair path, as a unit.** That is the point of moving, and it is
 where the wins are:
@@ -830,7 +836,8 @@ Three rules follow:
   game's 2020 ceiling -- under a comment claiming it matched the add dialog's 55. 4,088 production rows.
 - **Do not tighten the `[Range]` to match the default.** `PvpRankingBest` still admits 0 because 15,383
   rules hold one and have to stay editable; refusing the value would fail an edit on a rule the user did
-  not break. Editing one now writes the correct value back.
+  not break. Editing one does **not** repair it: the preserver re-reads the stored 0 and sends it back,
+  verified on 5.1.0, 5.2.1 and 5.3.0. Unmerged PoracleNG PR #230 would have the v2 read report such rows as the wildcard.
 
 ### PoracleNG API Availability
 The PoracleNG REST API (`Poracle:ApiAddress`) must be running and reachable for all alarm, human, profile, and area operations. If the API is down: alarm CRUD, human lookups, profile reads/writes, location updates, area updates, and profile switches all fail with no DB fallback. Only admin bulk operations (`GetAllAsync`, `DeleteUserAsync`) and non-active profile cleanup in `UserGeofenceService` use direct DB. Monitor PoracleNG uptime as a hard dependency.
